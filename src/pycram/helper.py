@@ -9,6 +9,12 @@ GeneratorList -- implementation of generator list wrappers.
 from inspect import isgeneratorfunction
 from macropy.core.quotes import macros, ast_literal, q
 
+def _client_id(world):
+	if world is None:
+		return world.id
+	else:
+		return 0
+
 def _block(tree):
 	"""Wrap multiple statements into a single block and return it.
 

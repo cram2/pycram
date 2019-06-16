@@ -2,7 +2,8 @@ from pycram.projection import macros, simulated_robot
 from pycram.bullet_world import stable, Object, BulletWorld
 
 world = BulletWorld()
-print(world.client_id)
+obj = Object("box", "box.urdf", world)
+#print(world.client_id)
 
 '''
 with simulated_robot as world:
