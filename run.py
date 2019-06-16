@@ -4,7 +4,6 @@ sys.path.append('/home/jonas/Documents/Studium/BA/pycram/src/')
 
 # Launch MacroPY
 import macropy.activate
-print(macropy)
 
 # Launch the Demo
 import demo
