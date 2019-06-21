@@ -19,7 +19,10 @@ class BulletWorld:
         self.objects.append(object)
 
     def get_object_by_name(self, name):
-        return map(lambda obj: obj.name == name, self.objects)
+        return list(map(lambda obj: obj.name == name, self.objects))
+
+    def get_object_by_id(self, id):
+        return list(map(lambda obj: obj.id == id, self.objects))
 
     def set_realtime(self):
         p.setGravity(0, 0, -9.8, self.client_id)
@@ -37,8 +40,8 @@ class Gui(threading.Thread):
 
     def run(self):
         self.world.client_id = p.connect(p.GUI)
-        while 1:
-            a=1
+        while p.isConnected(self.world.client_id):
+            time.sleep(100)
 
 def stable(object, world=None):
     world = _client_id(world)
@@ -57,7 +60,8 @@ def stable(object, world=None):
     return coords_past == coords_prev
 
 def contact(object1, object2, world=None):
-    return p.getOverlappingObjects() is not None
+    minaabb, maxaabb = p.getAABB(object1.id)
+    return object2.id in p.getOverlappingObjects(minaabb, maxaabb)
 
 
 
