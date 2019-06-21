@@ -60,9 +60,8 @@ def stable(object, world=None):
     return coords_past == coords_prev
 
 def contact(object1, object2, world=None):
-    minaabb, maxaabb = p.getAABB(object1.id)
-    return object2.id in p.getOverlappingObjects(minaabb, maxaabb)
-
+    con_points = p.getContactPoints(object1.id, object2.id)
+    return con_points is ()
 
 
 class Object:

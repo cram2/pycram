@@ -10,14 +10,8 @@ plane = Object("floor", "plane.urdf", world=world)
 obj = Object("box", "box.urdf", [0, 0, 2], world)
 
 world.set_realtime()
+#print(p.getContactPoints(plane.id ,obj.id))
+print(contact(plane, obj))
 #world.simulate(2500)
-time.sleep(10)
+#time.sleep(10)
 
-
-'''
-with simulated_robot as world:
-    #print(world)
-    o1 = Object("box", "box.urdf", world)
-    s = stable(o1.id)
-    print(str(s))
-'''
