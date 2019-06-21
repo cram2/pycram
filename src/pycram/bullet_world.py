@@ -46,22 +46,26 @@ class Gui(threading.Thread):
 def stable(object, world=None):
     world = _client_id(world)
     object = object.id
-    coords_prev, ori_prev = p.getBasePositionAndOrientation(object)
-    state = p.saveState()
+    coords_prev, ori_prev = p.getBasePositionAndOrientation(object, physicsClientId=world)
+    state = p.saveState(clientServerId=world)
     p.setGravity(0, 0, -9.8)
 
     for i in range(0, 1000):
-        p.stepSimulation()
-    coords_past, ori_past = p.getBasePositionAndOrientation(object)
+        p.stepSimulation(physicsClientId=world)
+    coords_past, ori_past = p.getBasePositionAndOrientation(object, physicsClientId=world)
 
-    p.restoreState(state)
+    p.restoreState(state, clientServerId=world)
     coords_prev = list(map(lambda n: round(n, 3), coords_prev))
     coords_past = list(map(lambda n: round(n, 3), coords_past))
     return coords_past == coords_prev
 
 def contact(object1, object2, world=None):
-    con_points = p.getContactPoints(object1.id, object2.id)
+    world = _client_id(world)
+    con_points = p.getContactPoints(object1.id, object2.id, physicsClientId=world)
     return con_points is not ()
+
+def visible(object, world=None):
+    return None
 
 
 class Object:
