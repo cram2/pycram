@@ -61,7 +61,7 @@ def stable(object, world=None):
 
 def contact(object1, object2, world=None):
     con_points = p.getContactPoints(object1.id, object2.id)
-    return con_points is ()
+    return con_points is not ()
 
 
 class Object:
