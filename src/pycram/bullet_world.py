@@ -1,8 +1,8 @@
 import pybullet as p
 import threading
 import time
+import itertools
 from pycram.helper import _client_id
-
 
 
 class BulletWorld:
@@ -43,33 +43,54 @@ class Gui(threading.Thread):
         while p.isConnected(self.world.client_id):
             time.sleep(100)
 
+
 def stable(object, world=None):
-    world = _client_id(world)
+    world_id = _client_id(world)
     object = object.id
-    coords_prev, ori_prev = p.getBasePositionAndOrientation(object, physicsClientId=world)
-    state = p.saveState(clientServerId=world)
+    coords_prev, ori_prev = p.getBasePositionAndOrientation(object, physicsClientId=world_id)
+    state = p.saveState(clientServerId=world_id)
     p.setGravity(0, 0, -9.8)
 
-    for i in range(0, 1000):
-        p.stepSimulation(physicsClientId=world)
-    coords_past, ori_past = p.getBasePositionAndOrientation(object, physicsClientId=world)
+    # one Step is approximately 1/240 seconds
+    for i in range(0, 10 * 240):
+        p.stepSimulation(physicsClientId=world_id)
+    coords_past, ori_past = p.getBasePositionAndOrientation(object, physicsClientId=world_id)
 
-    p.restoreState(state, clientServerId=world)
+    p.restoreState(state, clientServerId=world_id)
     coords_prev = list(map(lambda n: round(n, 3), coords_prev))
     coords_past = list(map(lambda n: round(n, 3), coords_past))
     return coords_past == coords_prev
 
+
 def contact(object1, object2, world=None):
-    world = _client_id(world)
-    con_points = p.getContactPoints(object1.id, object2.id, physicsClientId=world)
+    world_id = _client_id(world)
+    con_points = p.getContactPoints(object1.id, object2.id, physicsClientId=world_id)
     return con_points is not ()
 
-def visible(object, world=None):
-    return None
+
+def visible(object, world):
+    world_id = _client_id(world)
+    state = p.saveState()
+    for obj in world.objects:
+        if obj.id is not object.id:
+            #p.removeBody(object.id, physicsClientId=world_id)
+            # Hot fix until I come up with something better
+            p.resetBasePositionAndOrientation(obj.id, [100, 100, 100], [0, 0, 0, 1], world_id)
+
+    seg_mask = p.getCameraImage(128, 128, physicsClientId=world_id)[4]
+    flat_list = list(itertools.chain.from_iterable(seg_mask))
+    max_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
+    p.restoreState(state)
+
+    seg_mask = p.getCameraImage(256, 256, physicsClientId=world_id)[4]
+    flat_list = list(itertools.chain.from_iterable(seg_mask))
+    real_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
+
+    return real_pixel >= max_pixel
 
 
 class Object:
-    def __init__(self, name, path, position=[0,0,0], world=None):
+    def __init__(self, name, path, position=[0, 0, 0], world=None):
         self.name = name
         self.path = path
         self.world = _client_id(world)
@@ -79,3 +100,12 @@ class Object:
     def get_position(self):
         return p.getBasePositionAndOrientation(self.id)
 
+    def set_position(self):
+        #TODO: Implement
+        return None
+
+
+class Robot(Object):
+    #TODO: Maybe Implement
+    def __init__(self):
+        return None
