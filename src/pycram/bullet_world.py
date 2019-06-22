@@ -5,6 +5,7 @@ import itertools
 from pycram.helper import _client_id
 
 
+
 class BulletWorld:
 
     def __init__(self):
@@ -18,11 +19,13 @@ class BulletWorld:
     def _add_object(self, object):
         self.objects.append(object)
 
-    def get_object_by_name(self, name):
+    def get_objects_by_name(self, name):
         return list(map(lambda obj: obj.name == name, self.objects))
 
     def get_object_by_id(self, id):
-        return list(map(lambda obj: obj.id == id, self.objects))
+        for o in self.objects:
+            if o.id == id:
+                return o
 
     def set_realtime(self):
         p.setGravity(0, 0, -9.8, self.client_id)
@@ -77,7 +80,7 @@ def visible(object, world):
             # Hot fix until I come up with something better
             p.resetBasePositionAndOrientation(obj.id, [100, 100, 100], [0, 0, 0, 1], world_id)
 
-    seg_mask = p.getCameraImage(128, 128, physicsClientId=world_id)[4]
+    seg_mask = p.getCameraImage(256, 256, physicsClientId=world_id)[4]
     flat_list = list(itertools.chain.from_iterable(seg_mask))
     max_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
     p.restoreState(state)
@@ -87,6 +90,32 @@ def visible(object, world):
     real_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
 
     return real_pixel >= max_pixel
+
+
+def occluding(object, world):
+    world_id = _client_id(world)
+    state = p.saveState()
+    for obj in world.objects:
+        if obj.id is not object.id:
+            #p.removeBody(object.id, physicsClientId=world_id)
+            # Hot fix until I come up with something better
+            p.resetBasePositionAndOrientation(obj.id, [100, 100, 100], [0, 0, 0, 1], world_id)
+
+    seg_mask = p.getCameraImage(256, 256, physicsClientId=world_id)[4]
+    pixels = []
+    for i in range(0, 256):
+        for j in range(0, 256):
+            if seg_mask[i][j] == object.id:
+                pixels.append((i, j))
+    p.restoreState(state)
+
+    occluding = []
+    seg_mask = p.getCameraImage(256, 256, physicsClientId=world_id)[4]
+    for c in pixels:
+        if not seg_mask[c[0]][c[1]] == object.id:
+            occluding.append(seg_mask[c[0]][c[1]])
+
+    return list(set(map(lambda x: world.get_object_by_id(x), occluding)))
 
 
 class Object:
