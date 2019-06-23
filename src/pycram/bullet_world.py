@@ -5,7 +5,6 @@ import itertools
 from pycram.helper import _client_id
 
 
-
 class BulletWorld:
 
     def __init__(self):
@@ -20,7 +19,11 @@ class BulletWorld:
         self.objects.append(object)
 
     def get_objects_by_name(self, name):
-        return list(map(lambda obj: obj.name == name, self.objects))
+        res = []
+        for o in self.objects:
+            if o.name == name:
+                res.append(o)
+        return res
 
     def get_object_by_id(self, id):
         for o in self.objects:
@@ -47,17 +50,42 @@ class Gui(threading.Thread):
             time.sleep(100)
 
 
+class Object:
+    def __init__(self, name, path, position=[0, 0, 0], world=None):
+        self.name = name
+        self.path = path
+        self.world = _client_id(world)
+        self.id = p.loadURDF(path, basePosition=position, physicsClientId=self.world)
+        world._add_object(self)
+
+    def get_position(self):
+        return p.getBasePositionAndOrientation(self.id)[0]
+
+    def get_orientation(self):
+        return p.getBasePositionAndOrientation(self.id)[1]
+
+    def set_position_and_orientation(self, position, orientation):
+        world_id = _client_id(self.world)
+        p.resetBasePositionAndOrientation(self.id, position, orientation, world_id)
+
+
+class Robot(Object):
+    #TODO: Maybe Implement
+    def __init__(self):
+        return None
+
+
 def stable(object, world=None):
     world_id = _client_id(world)
     object = object.id
-    coords_prev, ori_prev = p.getBasePositionAndOrientation(object, physicsClientId=world_id)
+    coords_prev = p.getBasePositionAndOrientation(object, physicsClientId=world_id)[0]
     state = p.saveState(clientServerId=world_id)
     p.setGravity(0, 0, -9.8)
 
     # one Step is approximately 1/240 seconds
     for i in range(0, 10 * 240):
         p.stepSimulation(physicsClientId=world_id)
-    coords_past, ori_past = p.getBasePositionAndOrientation(object, physicsClientId=world_id)
+    coords_past = p.getBasePositionAndOrientation(object, physicsClientId=world_id)[0]
 
     p.restoreState(state, clientServerId=world_id)
     coords_prev = list(map(lambda n: round(n, 3), coords_prev))
@@ -74,34 +102,36 @@ def contact(object1, object2, world=None):
 def visible(object, world):
     world_id = _client_id(world)
     state = p.saveState()
+    #matrix = p.computeViewMatrix() TODO
     for obj in world.objects:
         if obj.id is not object.id:
             #p.removeBody(object.id, physicsClientId=world_id)
             # Hot fix until I come up with something better
             p.resetBasePositionAndOrientation(obj.id, [100, 100, 100], [0, 0, 0, 1], world_id)
 
-    seg_mask = p.getCameraImage(256, 256, physicsClientId=world_id)[4]
+    seg_mask = p.getCameraImage(256, 256, shadow=0, physicsClientId=world_id)[4]
     flat_list = list(itertools.chain.from_iterable(seg_mask))
     max_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
     p.restoreState(state)
 
-    seg_mask = p.getCameraImage(256, 256, physicsClientId=world_id)[4]
+    seg_mask = p.getCameraImage(256, 256, shadow=0, physicsClientId=world_id)[4]
     flat_list = list(itertools.chain.from_iterable(seg_mask))
     real_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
 
-    return real_pixel >= max_pixel
+    return real_pixel >= max_pixel > 0
 
 
 def occluding(object, world):
     world_id = _client_id(world)
     state = p.saveState()
+    #matrix = p.computeViewMatrix() TODO
     for obj in world.objects:
         if obj.id is not object.id:
             #p.removeBody(object.id, physicsClientId=world_id)
             # Hot fix until I come up with something better
             p.resetBasePositionAndOrientation(obj.id, [100, 100, 100], [0, 0, 0, 1], world_id)
 
-    seg_mask = p.getCameraImage(256, 256, physicsClientId=world_id)[4]
+    seg_mask = p.getCameraImage(256, 256, shadow=0, physicsClientId=world_id)[4]
     pixels = []
     for i in range(0, 256):
         for j in range(0, 256):
@@ -110,7 +140,7 @@ def occluding(object, world):
     p.restoreState(state)
 
     occluding = []
-    seg_mask = p.getCameraImage(256, 256, physicsClientId=world_id)[4]
+    seg_mask = p.getCameraImage(256, 256, shadow=0, physicsClientId=world_id)[4]
     for c in pixels:
         if not seg_mask[c[0]][c[1]] == object.id:
             occluding.append(seg_mask[c[0]][c[1]])
@@ -118,23 +148,7 @@ def occluding(object, world):
     return list(set(map(lambda x: world.get_object_by_id(x), occluding)))
 
 
-class Object:
-    def __init__(self, name, path, position=[0, 0, 0], world=None):
-        self.name = name
-        self.path = path
-        self.world = _client_id(world)
-        self.id = p.loadURDF(path, basePosition=position, physicsClientId=self.world)
-        world._add_object(self)
-
-    def get_position(self):
-        return p.getBasePositionAndOrientation(self.id)
-
-    def set_position(self):
-        #TODO: Implement
-        return None
+def reachable(object, world=None):
+    world_id = _client_id(world)
 
 
-class Robot(Object):
-    #TODO: Maybe Implement
-    def __init__(self):
-        return None
