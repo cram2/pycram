@@ -108,7 +108,6 @@ def _get_seg_mask_for_target(cam_position, target_position):
     return p.getCameraImage(256, 256, view_matrix, projection_matrix)[4]
 
 
-
 def stable(object, world):
     world_id = _client_id(world)
     object = object.id
@@ -138,7 +137,7 @@ def visible(object, camera_position,  world):
     state = p.saveState()
     for obj in world.objects:
         if obj.id is not object.id:
-            #p.removeBody(object.id, physicsClientId=world_id)
+            # p.removeBody(object.id, physicsClientId=world_id)
             # Hot fix until I come up with something better
             p.resetBasePositionAndOrientation(obj.id, [100, 100, 100], [0, 0, 0, 1], world_id)
 
@@ -180,7 +179,9 @@ def occluding(object, camera_position, world):
     return list(set(map(lambda x: world.get_object_by_id(x), occluding)))
 
 
-def reachable(object, world):
+def reachable(object, robot, gripper_name, world):
     world_id = _client_id(world)
+    inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper_name), object.get_position(), physicsClientId=world_id)
+    return inv is not ()
 
 
