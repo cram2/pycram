@@ -71,11 +71,26 @@ class Object:
         world_id = _client_id(self.world)
         p.resetBasePositionAndOrientation(self.id, position, orientation, world_id)
 
+    def _joint_or_link_name_to_id(self, type):
+        nJoints = p.getNumJoints(self.id)
+        joint_name_to_id = {}
+        info = 1 if type == "joint" else 12
+        for i in range(0, nJoints):
+            joint_info = p.getJointInfo(self.id, i)
+            joint_name_to_id[joint_info[info].decode('utf-8')] = joint_info[0]
+        return joint_name_to_id
 
-class Robot(Object):
-    #TODO: Maybe Implement
-    def __init__(self):
-        return None
+    def get_joint_id(self, name):
+        return self._joint_or_link_name_to_id("joint")[name]
+
+    def get_link_id(self, name):
+        return self._joint_or_link_name_to_id("link")[name]
+
+    def get_link_position(self, name):
+        return p.getLinkState(self.id, self.get_link_id(name))[0]
+
+    def get_link_orientation(self, name):
+        return p.getLinkState(self.id, self.get_link_id(name))[1]
 
 
 def stable(object, world):
