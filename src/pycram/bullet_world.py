@@ -4,6 +4,7 @@ import time
 import itertools
 from pycram.helper import _client_id
 
+current_bullet_world = None
 
 class BulletWorld:
 
@@ -14,6 +15,8 @@ class BulletWorld:
         gui_thread.start()
         time.sleep(0.1)
         p.setGravity(0, 0, -9)
+        global current_bullet_world
+        current_bullet_world = self
 
     def _add_object(self, object):
         self.objects.append(object)
@@ -75,7 +78,7 @@ class Robot(Object):
         return None
 
 
-def stable(object, world=None):
+def stable(object, world):
     world_id = _client_id(world)
     object = object.id
     coords_prev = p.getBasePositionAndOrientation(object, physicsClientId=world_id)[0]
@@ -93,7 +96,7 @@ def stable(object, world=None):
     return coords_past == coords_prev
 
 
-def contact(object1, object2, world=None):
+def contact(object1, object2, world):
     world_id = _client_id(world)
     con_points = p.getContactPoints(object1.id, object2.id, physicsClientId=world_id)
     return con_points is not ()
@@ -148,7 +151,7 @@ def occluding(object, world):
     return list(set(map(lambda x: world.get_object_by_id(x), occluding)))
 
 
-def reachable(object, world=None):
+def reachable(object, world):
     world_id = _client_id(world)
 
 
