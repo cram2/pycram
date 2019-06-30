@@ -2,7 +2,7 @@ import pybullet as p
 import threading
 import time
 import itertools
-from pycram.helper import _client_id
+
 
 current_bullet_world = None
 
@@ -35,7 +35,6 @@ class BulletWorld:
                 return o
 
     def set_realtime(self):
-        p.setGravity(0, 0, -9.8, self.client_id)
         p.setRealTimeSimulation(1, self.client_id)
 
     def simulate(self, seconds):
@@ -59,23 +58,33 @@ class Gui(threading.Thread):
 
 class Object:
     def __init__(self, name, path, position=[0, 0, 0], world=None):
+        if not world:
+            global current_bullet_world
+            self.world = current_bullet_world
+        else:
+            self.world = world
         self.name = name
         self.path = path
-        self.world = _client_id(world)
-        self.id = p.loadURDF(path, basePosition=position, physicsClientId=self.world)
+        self.id = p.loadURDF(path, basePosition=position, physicsClientId=self.world.client_id)
         self.joints = self._joint_or_link_name_to_id("joint")
         self.links = self._joint_or_link_name_to_id("link")
         self.attachments = {}
-        world._add_object(self)
+        self.world.objects.append(self)
 
-    def attach(self, attachment_name, object, parent_link_id, child_link_id):
-        cid = p.createConstraint(self.id, parent_link_id, object.id, child_link_id, p.JOINT_FIXED, [0, 0, 1], self.get_position(), object.get_position(), physicsClientId=self.world)
-        self.attachments[attachment_name] = cid
+    def attach(self, object, parent_link_id, child_link_id):
+        own_pos = p.getLinkState(self.id, parent_link_id, physicsClientId=self.world.client_id)[2]
+        object_pos = p.getLinkState(object.id, child_link_id, physicsClientId=self.world.client_id)[2]
 
-    def detach(self, attachment_name):
-        if self.attachments[attachment_name]:
-            p.removeConstraint(self.attachments[attachment_name], self.world)
-            self.attachments[attachment_name] = None
+        cid = p.createConstraint(self.id, parent_link_id,
+                                 object.id, child_link_id,
+                                 p.JOINT_FIXED,
+                                 [0, 0, 1], own_pos, object_pos,
+                                 physicsClientId=self.world.client_id)
+        self.attachments[object] = cid
+
+    def detach(self, object):
+        p.removeConstraint(self.attachments[object])
+        self.attachments[object] = None
 
     def get_position(self):
         return p.getBasePositionAndOrientation(self.id)[0]
@@ -84,7 +93,7 @@ class Object:
         return p.getBasePositionAndOrientation(self.id)[1]
 
     def set_position_and_orientation(self, position, orientation):
-        p.resetBasePositionAndOrientation(self.id, position, orientation, self.world)
+        p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
 
     def _joint_or_link_name_to_id(self, type):
         nJoints = p.getNumJoints(self.id)
@@ -198,9 +207,15 @@ def reachable(object, robot, gripper_name, world):
     inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper_name), object.get_position(), physicsClientId=world_id)
     return inv is not ()
 
+
 def blocking(object, robot, gripper_name, world):
     world_id = _client_id(world)
 
     return None
 
 
+def _client_id(world):
+    if world is not None:
+        return world.client_id
+    else:
+        return 0
