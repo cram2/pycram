@@ -42,6 +42,9 @@ class BulletWorld:
         for i in range(0, seconds * 240):
             p.stepSimulation(self.client_id)
 
+    def exit(self):
+        p.disconnect(self.client_id)
+
 
 class Gui(threading.Thread):
     def __init__(self, world):
@@ -51,7 +54,7 @@ class Gui(threading.Thread):
     def run(self):
         self.world.client_id = p.connect(p.GUI)
         while p.isConnected(self.world.client_id):
-            time.sleep(100)
+            time.sleep(10)
 
 
 class Object:
@@ -60,7 +63,19 @@ class Object:
         self.path = path
         self.world = _client_id(world)
         self.id = p.loadURDF(path, basePosition=position, physicsClientId=self.world)
+        self.joints = self._joint_or_link_name_to_id("joint")
+        self.links = self._joint_or_link_name_to_id("link")
+        self.attachments = {}
         world._add_object(self)
+
+    def attach(self, attachment_name, object, parent_link_id, child_link_id):
+        cid = p.createConstraint(self.id, parent_link_id, object.id, child_link_id, p.JOINT_FIXED, [0, 0, 1], self.get_position(), object.get_position(), physicsClientId=self.world)
+        self.attachments[attachment_name] = cid
+
+    def detach(self, attachment_name):
+        if self.attachments[attachment_name]:
+            p.removeConstraint(self.attachments[attachment_name], self.world)
+            self.attachments[attachment_name] = None
 
     def get_position(self):
         return p.getBasePositionAndOrientation(self.id)[0]
@@ -69,8 +84,7 @@ class Object:
         return p.getBasePositionAndOrientation(self.id)[1]
 
     def set_position_and_orientation(self, position, orientation):
-        world_id = _client_id(self.world)
-        p.resetBasePositionAndOrientation(self.id, position, orientation, world_id)
+        p.resetBasePositionAndOrientation(self.id, position, orientation, self.world)
 
     def _joint_or_link_name_to_id(self, type):
         nJoints = p.getNumJoints(self.id)
@@ -82,10 +96,10 @@ class Object:
         return joint_name_to_id
 
     def get_joint_id(self, name):
-        return self._joint_or_link_name_to_id("joint")[name]
+        return self.joints[name]
 
     def get_link_id(self, name):
-        return self._joint_or_link_name_to_id("link")[name]
+        return self.links[name]
 
     def get_link_position_and_orientation(self, name):
         return p.getLinkState(self.id, self.get_link_id(name))[:2]
@@ -183,5 +197,10 @@ def reachable(object, robot, gripper_name, world):
     world_id = _client_id(world)
     inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper_name), object.get_position(), physicsClientId=world_id)
     return inv is not ()
+
+def blocking(object, robot, gripper_name, world):
+    world_id = _client_id(world)
+
+    return None
 
 
