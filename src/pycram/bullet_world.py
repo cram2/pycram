@@ -59,7 +59,7 @@ class Gui(threading.Thread):
 class Object:
     def __init__(self, name, path, position=[0, 0, 0], world=None):
         global current_bullet_world
-        self.world = world if not world else current_bullet_world
+        self.world = world if world != None else current_bullet_world
         self.name = name
         self.path = path
         self.id = p.loadURDF(path, basePosition=position, physicsClientId=self.world.client_id)
@@ -69,8 +69,8 @@ class Object:
         self.world.objects.append(self)
 
     def attach(self, object, parent_link_id, child_link_id):
-        own_pos = -1 if parent_link_id == -1 else p.getLinkState(self.id, parent_link_id, physicsClientId=self.world.client_id)[2]
-        object_pos = -1 if child_link_id == -1 else p.getLinkState(object.id, child_link_id, physicsClientId=self.world.client_id)[2]
+        own_pos = self.get_position() if parent_link_id == -1 else p.getLinkState(self.id, parent_link_id, physicsClientId=self.world.client_id)[2]
+        object_pos = object.get_position() if child_link_id == -1 else p.getLinkState(object.id, child_link_id, physicsClientId=self.world.client_id)[2]
 
         cid = p.createConstraint(self.id, parent_link_id,
                                  object.id, child_link_id,
@@ -78,6 +78,10 @@ class Object:
                                  [0, 0, 1], own_pos, object_pos,
                                  physicsClientId=self.world.client_id)
         self.attachments[object] = cid
+
+    def _compute_relative(self, object):
+
+        return None
 
     def detach(self, object):
         p.removeConstraint(self.attachments[object])
