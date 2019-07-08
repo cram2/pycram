@@ -95,6 +95,14 @@ def blocking(object, robot, gripper_name, world):
     return None
 
 
+def supporting(object1, object2, world):
+    world_id = _client_id(world)
+    if contact(object1, object2, world):
+        if object2.get_position()[2] > object1.get_position()[2]:
+            return True
+    return False
+
+
 def _client_id(world):
     if world is not None:
         return world.client_id

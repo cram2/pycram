@@ -86,6 +86,9 @@ class Object:
     def get_position(self):
         return p.getBasePositionAndOrientation(self.id)[0]
 
+    def get_pose(self):
+        return self.get_position()
+
     def get_orientation(self):
         return p.getBasePositionAndOrientation(self.id)[1]
 
