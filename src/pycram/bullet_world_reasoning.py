@@ -1,5 +1,6 @@
 import  pybullet as p
 import itertools
+from pycram.helper import _client_id
 
 def _get_seg_mask_for_target(cam_position, target_position):
     fov = 300
@@ -96,15 +97,5 @@ def blocking(object, robot, gripper_name, world):
 
 
 def supporting(object1, object2, world):
-    world_id = _client_id(world)
-    if contact(object1, object2, world):
-        if object2.get_position()[2] > object1.get_position()[2]:
-            return True
-    return False
+    return contact(object1, object2, world) and object2.getposition()[2] > object1.get_position()[2]
 
-
-def _client_id(world):
-    if world is not None:
-        return world.client_id
-    else:
-        return 0

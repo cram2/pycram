@@ -1,8 +1,8 @@
 import pybullet as p
 import threading
 import time
-import itertools
-
+import pathlib
+from pycram.helper import _client_id
 
 current_bullet_world = None
 
@@ -62,7 +62,7 @@ class Object:
         self.world = world if world != None else current_bullet_world
         self.name = name
         self.path = path
-        self.id = p.loadURDF(path, basePosition=position, physicsClientId=self.world.client_id)
+        self.id = _load_object(name, path, position, world)
         self.joints = self._joint_or_link_name_to_id("joint")
         self.links = self._joint_or_link_name_to_id("link")
         self.attachments = {}
@@ -95,6 +95,9 @@ class Object:
     def set_position_and_orientation(self, position, orientation):
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
 
+    def set_position(self, position):
+        self.set_position_and_orientation(position, [0, 0, 0, 1])
+
     def _joint_or_link_name_to_id(self, type):
         nJoints = p.getNumJoints(self.id)
         joint_name_to_id = {}
@@ -119,3 +122,38 @@ class Object:
     def get_link_orientation(self, name):
         return p.getLinkState(self.id, self.get_link_id(name))[1]
 
+
+def _load_object(name, path, position, world):
+    extension = pathlib.Path(path).suffix
+    world_id = _client_id(world)
+    if extension == ".obj":
+       path = _generate_urdf_file(name, path)
+    return p.loadURDF(path, basePosition=position, physicsClientId=world_id)
+
+
+def _generate_urdf_file(name, path):
+    urdf_template = '<?xml version="1.0" ?> \n \
+                        <robot name="~a"> \n \
+                         <link name="~a"> \n \
+                            <visual> \n \
+                                <origin rpy="0 0 0" xyz="0 0 0"/>\n \
+                                <geometry>\n \
+                                    <mesh filename="~b" scale="1 1 1"/> \n \
+                                </geometry>\n \
+                                <material name="white">\n \
+                                    <color rgba="1 1 1 1"/>\n \
+                                </material>\n \
+                            </visual>\n \
+                            <collision>\n \
+                                <origin rpy="0 0 0" xyz="0 0 -5"/>\n \
+                                <geometry>\n \
+                                    <box size="0.3 0.3 0.5"/>\n \
+                                </geometry>\n \
+                            </collision>\n \
+                            </link> \n\
+                        </robot>'
+    content = urdf_template.replace("~a", name).replace("~b", path)
+    file = open(name + ".urdf", "w", encoding="utf-8")
+    file.write(content)
+    file.close()
+    return name + ".urdf"
