@@ -126,7 +126,7 @@ class Object:
 def _load_object(name, path, position, world):
     extension = pathlib.Path(path).suffix
     world_id = _client_id(world)
-    if extension == ".obj":
+    if extension == ".obj" or extension == "-stl":
        path = _generate_urdf_file(name, path)
     return p.loadURDF(path, basePosition=position, physicsClientId=world_id)
 
@@ -143,14 +143,8 @@ def _generate_urdf_file(name, path):
                                 <material name="white">\n \
                                     <color rgba="1 1 1 1"/>\n \
                                 </material>\n \
-                            </visual>\n \
-                            <collision>\n \
-                                <origin rpy="0 0 0" xyz="0 0 -5"/>\n \
-                                <geometry>\n \
-                                    <box size="0.3 0.3 0.5"/>\n \
-                                </geometry>\n \
-                            </collision>\n \
-                            </link> \n\
+                          </visual> \n \
+                        </link> \n \
                         </robot>'
     content = urdf_template.replace("~a", name).replace("~b", path)
     file = open(name + ".urdf", "w", encoding="utf-8")
