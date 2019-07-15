@@ -25,8 +25,8 @@ class BulletWorld:
     def get_object_by_id(self, id):
         return list(filter(lambda x: x.id == id, self.objects))[0]
 
-    def set_realtime(self):
-        p.setRealTimeSimulation(1, self.client_id)
+    def set_realtime(self, real_time):
+        p.setRealTimeSimulation(1 if real_time else 0, self.client_id)
 
     def simulate(self, seconds):
         for i in range(0, int(seconds * 240)):
@@ -67,7 +67,7 @@ class Object:
         cid = p.createConstraint(self.id, parent_link_id,
                                  object.id, child_link_id,
                                  p.JOINT_FIXED,
-                                 [1, 0, 0], gripper_object, [0, 0, 0],
+                                 [0, 1, 0], gripper_object, [0, 0, 0],
                                  physicsClientId=self.world.client_id)
         self.attachments[object] = cid
 
@@ -123,7 +123,7 @@ def _load_object(name, path, position, world):
     return p.loadURDF(path, basePosition=position, physicsClientId=world_id)
 
 
-def _generate_urdf_file(name, path):
+def _generate_urdf_file(name, path, color=[1, 1, 1, 1]):
     urdf_template = '<?xml version="0.0" ?> \n \
                         <robot name="~a"> \n \
                          <link name="~a_main"> \n \
@@ -132,7 +132,7 @@ def _generate_urdf_file(name, path):
                                     <mesh filename="~b" scale="1 1 1"/> \n \
                                 </geometry>\n \
                                 <material name="white">\n \
-                                    <color rgba="1 0 0 1"/>\n \
+                                    <color rgba="~c"/>\n \
                                 </material>\n \
                           </visual> \n \
                         <collision> \n \
@@ -142,7 +142,8 @@ def _generate_urdf_file(name, path):
                         </collision>\n \
                         </link> \n \
                         </robot>'
-    content = urdf_template.replace("~a", name).replace("~b", path)
+    rgb = " ".join(list(map(str, color)))
+    content = urdf_template.replace("~a", name).replace("~b", path).replace("~c", rgb)
     file = open(name + ".urdf", "w", encoding="utf-8")
     file.write(content)
     file.close()
