@@ -2,6 +2,7 @@ import  pybullet as p
 import itertools
 from pycram.helper import _client_id
 
+
 def _get_seg_mask_for_target(cam_position, target_position):
     fov = 300
     aspect = 256 / 256

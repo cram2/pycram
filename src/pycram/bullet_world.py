@@ -19,26 +19,17 @@ class BulletWorld:
         global current_bullet_world
         current_bullet_world = self
 
-    def _add_object(self, object):
-        self.objects.append(object)
-
     def get_objects_by_name(self, name):
-        res = []
-        for o in self.objects:
-            if o.name == name:
-                res.append(o)
-        return res
+        return list(filter(lambda x: x.name == name, self.objects))
 
     def get_object_by_id(self, id):
-        for o in self.objects:
-            if o.id == id:
-                return o
+        return list(filter(lambda x: x.id == id, self.objects))[0]
 
     def set_realtime(self):
         p.setRealTimeSimulation(1, self.client_id)
 
     def simulate(self, seconds):
-        for i in range(0, seconds * 240):
+        for i in range(0, int(seconds * 240)):
             p.stepSimulation(self.client_id)
 
     def exit(self):
@@ -69,13 +60,14 @@ class Object:
         self.world.objects.append(self)
 
     def attach(self, object, parent_link_id, child_link_id):
-        own_pos = self.get_position() if parent_link_id == -1 else p.getLinkState(self.id, parent_link_id, physicsClientId=self.world.client_id)[2]
-        object_pos = object.get_position() if child_link_id == -1 else p.getLinkState(object.id, child_link_id, physicsClientId=self.world.client_id)[2]
-
+        world_gripper = p.getLinkState(self.id, parent_link_id)[4]
+        world_object = object.get_position()
+        gripper_object = p.multiplyTransforms(p.invertTransform(world_gripper, [0, 0, 0, 1])[0], [0, 0, 0, 1],
+                                              world_object, [0, 0, 0, 1], self.world.client_id)[0]
         cid = p.createConstraint(self.id, parent_link_id,
                                  object.id, child_link_id,
                                  p.JOINT_FIXED,
-                                 [0, 0, 1], own_pos, object_pos,
+                                 [1, 0, 0], gripper_object, [0, 0, 0],
                                  physicsClientId=self.world.client_id)
         self.attachments[object] = cid
 
@@ -126,24 +118,28 @@ class Object:
 def _load_object(name, path, position, world):
     extension = pathlib.Path(path).suffix
     world_id = _client_id(world)
-    if extension == ".obj" or extension == "-stl":
-       path = _generate_urdf_file(name, path)
+    if extension == ".obj" or extension == ".stl":
+        path = _generate_urdf_file(name, path)
     return p.loadURDF(path, basePosition=position, physicsClientId=world_id)
 
 
 def _generate_urdf_file(name, path):
-    urdf_template = '<?xml version="1.0" ?> \n \
+    urdf_template = '<?xml version="0.0" ?> \n \
                         <robot name="~a"> \n \
-                         <link name="~a"> \n \
+                         <link name="~a_main"> \n \
                             <visual> \n \
-                                <origin rpy="0 0 0" xyz="0 0 0"/>\n \
                                 <geometry>\n \
                                     <mesh filename="~b" scale="1 1 1"/> \n \
                                 </geometry>\n \
                                 <material name="white">\n \
-                                    <color rgba="1 1 1 1"/>\n \
+                                    <color rgba="1 0 0 1"/>\n \
                                 </material>\n \
                           </visual> \n \
+                        <collision> \n \
+                        <geometry>\n \
+                            <mesh filename="~b" scale="1 1 1"/>\n \
+                        </geometry>\n \
+                        </collision>\n \
                         </link> \n \
                         </robot>'
     content = urdf_template.replace("~a", name).replace("~b", path)
