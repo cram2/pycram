@@ -3,19 +3,22 @@ import threading
 import time
 import pathlib
 from pycram.helper import _client_id
+from pycram.event import Event
 
 current_bullet_world = None
 
 
 class BulletWorld:
 
-    def __init__(self):
+    def __init__(self, type="GUI"):
         self.objects = []
         self.client_id = -1
-        gui_thread = Gui(self)
+        self.dummy = Event()
+        self.detachment_event = Event()
+        self.attachment_event = Event()
+        gui_thread = Gui(self, type)
         gui_thread.start()
         time.sleep(0.1)
-        p.setGravity(0, 0, -9)
         global current_bullet_world
         current_bullet_world = self
 
@@ -25,8 +28,15 @@ class BulletWorld:
     def get_object_by_id(self, id):
         return list(filter(lambda x: x.id == id, self.objects))[0]
 
+    def get_attachment_event(self):
+        print(self.detachment_event)
+        return self.attachment_event
+
     def set_realtime(self, real_time):
         p.setRealTimeSimulation(1 if real_time else 0, self.client_id)
+
+    def set_gravity(self, velocity):
+        p.setGravity(velocity[0], velocity[1], velocity[2])
 
     def simulate(self, seconds):
         for i in range(0, int(seconds * 240)):
@@ -37,30 +47,37 @@ class BulletWorld:
 
 
 class Gui(threading.Thread):
-    def __init__(self, world):
+    def __init__(self, world, type):
         threading.Thread.__init__(self)
         self.world = world
+        self.type = type
 
     def run(self):
-        self.world.client_id = p.connect(p.GUI)
+        if self.type == "GUI":
+            self.world.client_id = p.connect(p.GUI)
+        else:
+            self.world.client_id = p.connect(p.DIRECT)
+
         while p.isConnected(self.world.client_id):
             time.sleep(10)
 
 
 class Object:
-    def __init__(self, name, path, position=[0, 0, 0], world=None):
+
+    def __init__(self, name, path, position=[0, 0, 0], world=None, color=[1, 1, 1, 1]):
         global current_bullet_world
         self.world = world if world != None else current_bullet_world
         self.name = name
         self.path = path
-        self.id = _load_object(name, path, position, world)
+        self.id = _load_object(name, path, position, world, color)
         self.joints = self._joint_or_link_name_to_id("joint")
         self.links = self._joint_or_link_name_to_id("link")
         self.attachments = {}
         self.world.objects.append(self)
+        self.event = self.world.attachment_event
 
     def attach(self, object, parent_link_id, child_link_id):
-        world_gripper = p.getLinkState(self.id, parent_link_id)[4]
+        world_gripper = p.getLinkState(self.id, parent_link_id)[4] if parent_link_id != -1 else self.get_position()
         world_object = object.get_position()
         gripper_object = p.multiplyTransforms(p.invertTransform(world_gripper, [0, 0, 0, 1])[0], [0, 0, 0, 1],
                                               world_object, [0, 0, 0, 1], self.world.client_id)[0]
@@ -70,10 +87,12 @@ class Object:
                                  [0, 1, 0], gripper_object, [0, 0, 0],
                                  physicsClientId=self.world.client_id)
         self.attachments[object] = cid
+        self.world.attachment_event(self)
 
     def detach(self, object):
         p.removeConstraint(self.attachments[object])
         self.attachments[object] = None
+        self.world.detachment_event(self)
 
     def get_position(self):
         return p.getBasePositionAndOrientation(self.id)[0]
@@ -115,15 +134,15 @@ class Object:
         return p.getLinkState(self.id, self.get_link_id(name))[1]
 
 
-def _load_object(name, path, position, world):
+def _load_object(name, path, position, world, color):
     extension = pathlib.Path(path).suffix
     world_id = _client_id(world)
     if extension == ".obj" or extension == ".stl":
-        path = _generate_urdf_file(name, path)
+        path = _generate_urdf_file(name, path, color)
     return p.loadURDF(path, basePosition=position, physicsClientId=world_id)
 
 
-def _generate_urdf_file(name, path, color=[1, 1, 1, 1]):
+def _generate_urdf_file(name, path, color):
     urdf_template = '<?xml version="0.0" ?> \n \
                         <robot name="~a"> \n \
                          <link name="~a_main"> \n \

@@ -1,4 +1,4 @@
-import  pybullet as p
+import pybullet as p
 import itertools
 from pycram.helper import _client_id
 
