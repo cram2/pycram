@@ -2,8 +2,8 @@ import pybullet as p
 import threading
 import time
 import pathlib
-from pycram.helper import _client_id
-from pycram.event import Event
+from .helper import _client_id
+from .event import Event
 
 current_bullet_world = None
 
@@ -16,6 +16,7 @@ class BulletWorld:
         self.dummy = Event()
         self.detachment_event = Event()
         self.attachment_event = Event()
+        self.manipulation_event = Event()
         gui_thread = Gui(self, type)
         gui_thread.start()
         time.sleep(0.1)
@@ -66,7 +67,7 @@ class Object:
 
     def __init__(self, name, path, position=[0, 0, 0], world=None, color=[1, 1, 1, 1]):
         global current_bullet_world
-        self.world = world if world != None else current_bullet_world
+        self.world = world if world is not None else current_bullet_world
         self.name = name
         self.path = path
         self.id = _load_object(name, path, position, world, color)
@@ -87,12 +88,12 @@ class Object:
                                  [0, 1, 0], gripper_object, [0, 0, 0],
                                  physicsClientId=self.world.client_id)
         self.attachments[object] = cid
-        self.world.attachment_event(self)
+        self.world.attachment_event(self, [self, object])
 
     def detach(self, object):
         p.removeConstraint(self.attachments[object])
         self.attachments[object] = None
-        self.world.detachment_event(self)
+        self.world.detachment_event(self, [self, object])
 
     def get_position(self):
         return p.getBasePositionAndOrientation(self.id)[0]
