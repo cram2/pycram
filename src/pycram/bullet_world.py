@@ -7,6 +7,7 @@ from .event import Event
 
 
 class BulletWorld:
+
     current_bullet_world = None
 
     def __init__(self, type="GUI"):
@@ -22,20 +23,22 @@ class BulletWorld:
         BulletWorld.current_bullet_world = self
 
     def get_objects_by_name(self, name):
-        return list(filter(lambda x: x.name == name, self.objects))
+        return list(filter(lambda obj: obj.name == name, self.objects))
 
     def get_object_by_id(self, id):
-        return list(filter(lambda x: x.id == id, self.objects))[0]
+        return list(filter(lambda obj: obj.id == id, self.objects))[0]
 
     def get_attachment_event(self):
-        print(self.detachment_event)
         return self.attachment_event
+
+    def get_detachment_event(self):
+        return self.detachment_event
 
     def set_realtime(self, real_time):
         p.setRealTimeSimulation(1 if real_time else 0, self.client_id)
 
     def set_gravity(self, velocity):
-        p.setGravity(velocity[0], velocity[1], velocity[2])
+        p.setGravity(velocity[0], velocity[1], velocity[2], physicsClientId=self.client_id)
 
     def simulate(self, seconds):
         for i in range(0, int(seconds * 240)):
@@ -94,6 +97,8 @@ class Object:
         self.world.attachment_event(self, [self, object])
 
     def detach(self, object):
+        if object not in self.attachments:
+            return
         p.removeConstraint(self.attachments[object])
         self.attachments[object] = None
         object.attachments[self] = None
@@ -168,7 +173,6 @@ def _generate_urdf_file(name, path, color):
                         </robot>'
     rgb = " ".join(list(map(str, color)))
     content = urdf_template.replace("~a", name).replace("~b", path).replace("~c", rgb)
-    file = open(name + ".urdf", "w", encoding="utf-8")
-    file.write(content)
-    file.close()
+    with open(name + ".urdf", "w", encoding="utf-8") as file:
+        file.write(content)
     return name + ".urdf"

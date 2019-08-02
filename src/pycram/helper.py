@@ -16,6 +16,7 @@ def _client_id(world):
     else:
         return 0
 
+
 def _block(tree):
 	"""Wrap multiple statements into a single block and return it.
 
