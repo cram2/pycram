@@ -31,7 +31,7 @@ def _get_joint_ranges(robot):
     return ll, ul, jr, rp, jd
 
 
-def stable(object, world):
+def stable(object, world=BulletWorld.current_bullet_world):
     world_id = _client_id(world)
     coords_prev = p.getBasePositionAndOrientation(object.id, physicsClientId=world_id)[0]
     state = p.saveState(clientServerId=world_id)
@@ -48,14 +48,14 @@ def stable(object, world):
     return coords_past == coords_prev
 
 
-def contact(object1, object2, world):
+def contact(object1, object2, world=BulletWorld.current_bullet_world):
     world_id = _client_id(world)
     world.simulate(0.01)
     con_points = p.getContactPoints(object1.id, object2.id, physicsClientId=world_id)
     return con_points is not ()
 
 
-def visible(object, camera_position,  world):
+def visible(object, camera_position, world=BulletWorld.current_bullet_world):
     world_id = _client_id(world)
     state = p.saveState()
     for obj in world.objects:
@@ -76,7 +76,7 @@ def visible(object, camera_position,  world):
     return real_pixel >= max_pixel > 0
 
 
-def occluding(object, camera_position, world):
+def occluding(object, camera_position, world=BulletWorld.current_bullet_world):
     world_id = _client_id(world)
     state = p.saveState()
     for obj in world.objects:
@@ -102,7 +102,7 @@ def occluding(object, camera_position, world):
     return list(set(map(lambda x: world.get_object_by_id(x), occluding)))
 
 
-def reachable(object, robot, gripper_name, world, threshold=0.01):
+def reachable(object, robot, gripper_name, world=BulletWorld.current_bullet_world, threshold=0.01):
     world_id = _client_id(world)
     state = p.saveState()
     inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper_name), object.get_position(),
@@ -118,7 +118,7 @@ def reachable(object, robot, gripper_name, world, threshold=0.01):
     return np.sqrt(diff[0] ** 2 + diff[1] ** 2 + diff[2] ** 2) < threshold
 
 
-def blocking(object, robot, gripper_name, world):
+def blocking(object, robot, gripper_name, world=BulletWorld.current_bullet_world):
     world_id = _client_id(world)
     state = p.saveState()
     inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper_name), object.get_pose(),
@@ -138,6 +138,6 @@ def blocking(object, robot, gripper_name, world):
     return block
 
 
-def supporting(object1, object2, world):
+def supporting(object1, object2, world=BulletWorld.current_bullet_world):
     return contact(object1, object2, world) and object2.getposition()[2] > object1.get_position()[2]
 
