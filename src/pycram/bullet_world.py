@@ -5,10 +5,9 @@ import pathlib
 from .helper import _client_id
 from .event import Event
 
-current_bullet_world = None
-
 
 class BulletWorld:
+    current_bullet_world = None
 
     def __init__(self, type="GUI"):
         self.objects = []
@@ -20,8 +19,7 @@ class BulletWorld:
         gui_thread = Gui(self, type)
         gui_thread.start()
         time.sleep(0.1)
-        global current_bullet_world
-        current_bullet_world = self
+        BulletWorld.current_bullet_world = self
 
     def get_objects_by_name(self, name):
         return list(filter(lambda x: x.name == name, self.objects))
@@ -47,6 +45,9 @@ class BulletWorld:
         p.disconnect(self.client_id)
 
 
+current_bullet_world = BulletWorld.current_bullet_world
+
+
 class Gui(threading.Thread):
     def __init__(self, world, type):
         threading.Thread.__init__(self)
@@ -66,8 +67,7 @@ class Gui(threading.Thread):
 class Object:
 
     def __init__(self, name, path, position=[0, 0, 0], world=None, color=[1, 1, 1, 1]):
-        global current_bullet_world
-        self.world = world if world is not None else current_bullet_world
+        self.world = world if world is not None else BulletWorld.current_bullet_world
         self.name = name
         self.path = path
         self.id = _load_object(name, path, position, world, color)

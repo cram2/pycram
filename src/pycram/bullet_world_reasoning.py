@@ -1,6 +1,7 @@
 import pybullet as p
 import itertools
 import numpy as np
+from .bullet_world import BulletWorld
 from .helper import _client_id
 
 
@@ -49,6 +50,7 @@ def stable(object, world):
 
 def contact(object1, object2, world):
     world_id = _client_id(world)
+    world.simulate(0.01)
     con_points = p.getContactPoints(object1.id, object2.id, physicsClientId=world_id)
     return con_points is not ()
 
@@ -100,22 +102,40 @@ def occluding(object, camera_position, world):
     return list(set(map(lambda x: world.get_object_by_id(x), occluding)))
 
 
-def reachable(object, robot, gripper_name, world):
+def reachable(object, robot, gripper_name, world, threshold=0.01):
     world_id = _client_id(world)
-    inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper_name), object.get_position(), physicsClientId=world_id)
+    state = p.saveState()
+    inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper_name), object.get_position(),
+                                       maxNumIterations=100, physicsClientId=world_id)
     for i in range(p.getNumJoints(robot.id)):
-        qIndex = p.getJointInfo(robot.id, i)
+        qIndex = p.getJointInfo(robot.id, i)[3]
         if qIndex > -1:
             p.resetJointState(robot.id, i, inv[qIndex-7])
 
     newp = p.getLinkState(robot.id, robot.get_link_id(gripper_name))[4]
     diff = [object.get_pose()[0] - newp[0], object.get_pose()[1] - newp[1], object.get_pose()[2] - newp[2]]
-    return np.sqrt(diff[0] ** 2, diff[1] ** 2, diff[2] ** 2) < 0.01
+    p.restoreState(state)
+    return np.sqrt(diff[0] ** 2 + diff[1] ** 2 + diff[2] ** 2) < threshold
+
 
 def blocking(object, robot, gripper_name, world):
     world_id = _client_id(world)
+    state = p.saveState()
+    inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper_name), object.get_pose(),
+                                       maxNumIterations=100, physicsClientId=world_id)
+    for i in range(0, p.getNumJoints(robot.id)):
+        qIndex = p.getJointInfo(robot.id, i)[3]
+        if qIndex > -1:
+            p.resetJointState(robot.id, i, inv[qIndex-7])
 
-    return None
+    block = []
+    for obj in world.objects:
+        if obj == object:
+            continue
+        if contact(robot, obj, world):
+            block.append(obj)
+    p.restoreState(state)
+    return block
 
 
 def supporting(object1, object2, world):
