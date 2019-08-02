@@ -6,6 +6,13 @@ from .helper import _client_id
 
 
 def _get_seg_mask_for_target(cam_position, target_position):
+    """
+    Calculates the view and projection Matrix and returns the Segmentation mask
+    The segmentation mask indicates for every pixel the visible Object.
+    :param cam_position: The position of the Camera as a list of x,y,z
+    :param target_position: The position to which the camera should point as a list of x,y,z
+    :return: The Segmentation mask from the camera position
+    """
     fov = 300
     aspect = 256 / 256
     near = 0.2
@@ -17,6 +24,13 @@ def _get_seg_mask_for_target(cam_position, target_position):
 
 
 def _get_joint_ranges(robot):
+    """
+    Calculates the lower and upper limits, the joint ranges and the joint damping. For a given multibody.
+    The rest poses are the current poses of the joints.
+    Fixed joints will be skipped because they don't have limits or ranges.
+    :param robot: The robot for whom the values should be calculated
+    :return: The lists for the upper and lower limits, joint ranges, rest poses and joint damping
+    """
     ll, ul, jr, rp, jd = [], [], [], [], []
 
     for i in range(0, p.getNumJoints(robot.id)):
@@ -32,10 +46,24 @@ def _get_joint_ranges(robot):
 
 
 def _select_world(world):
+    """
+    A helper function to decide which BulletWorld should be used. If 'world' is None the current_bullet_world will be
+    used else the given BulletWorld.
+    The current_bullet_world is the latest initialized BulletWorld.
+    :param world: The world to be selected or None if the current_bullet_world should be used
+    :return: The chosen world
+    """
     return world if world is not None else BulletWorld.current_bullet_world
 
 
 def stable(object, world=None):
+    """
+    This predicate checks if an object is stable in the world. This will be done by simulating the world for 10 seconds
+    and compare the previous coordinates with the coordinates after the simulation.
+    :param object: The object which should be checked
+    :param world: The BulletWorld if more than one BulletWorld is active
+    :return: True if the given object is stable in the world False else
+    """
     world = _select_world(world)
     world_id = _client_id(world)
     coords_prev = p.getBasePositionAndOrientation(object.id, physicsClientId=world_id)[0]
@@ -50,18 +78,36 @@ def stable(object, world=None):
     p.restoreState(state, clientServerId=world_id)
     coords_prev = list(map(lambda n: round(n, 3), coords_prev))
     coords_past = list(map(lambda n: round(n, 3), coords_past))
+
     return coords_past == coords_prev
 
 
 def contact(object1, object2, world=None):
+    """
+    This predicate checks if two objects are in contact or not.
+    :param object1: The first object
+    :param object2: The second object
+    :param world: The BulletWorld if more than one BulletWorld is active
+    :return: True if the two objects are in contact False else
+    """
     world = _select_world(world)
     world_id = _client_id(world)
     p.stepSimulation(world_id)
     con_points = p.getContactPoints(object1.id, object2.id, physicsClientId=world_id)
+
     return con_points is not ()
 
 
 def visible(object, camera_position, world=None):
+    """
+    This predicate checks if an object is visible from a given position. This will be achieved by rendering the object
+    alone and counting the visible pixel, then rendering the complete scene and compare the visible pixels with the
+    absolut count of pixels.
+    :param object: The object for which the visibility should be checked
+    :param camera_position: The position of which the camera looks at the object
+    :param world: The BulletWorld if more than one BulletWorld is active
+    :return: True if the object is visible from the camera_position False if not
+    """
     world = _select_world(world)
     world_id = _client_id(world)
     state = p.saveState()
@@ -84,6 +130,16 @@ def visible(object, camera_position, world=None):
 
 
 def occluding(object, camera_position, world=None):
+    """
+    This predicate lists the objects which are occluding a given object. This works similar to 'visible'.
+    First the object alone will be rendered and the position of the pixels of the object in the picture will be saved.
+    After that the complete scene will be rendered and the previous saved pixel positions will be compared to the
+    actual pixels, if in one pixel an other object is visible ot will be saved as occluding.
+    :param object: The object for which occluding should be checked
+    :param camera_position: The position from which the camera looks at the object
+    :param world: The BulletWorld if more than one BulletWorld is active
+    :return: A list of occluding objects
+    """
     world = _select_world(world)
     world_id = _client_id(world)
     state = p.saveState()
@@ -111,6 +167,18 @@ def occluding(object, camera_position, world=None):
 
 
 def reachable(object, robot, gripper_name, world=None, threshold=0.01):
+    """
+    This predicate checks if an object is reachable for a given robot. For this purpose the inverse kinematics between
+    the robot and the object will be calculated and applied. In the next step the distance between the given end_effector
+    and the object will be calculated and it will be checked if it less than the threshold.
+    :param object: The object for which reachability should be checked
+    :param robot: The robot which should reach for the object
+    :param gripper_name: The name of the end effector of the robot
+    :param world: The BulletWorld if more than one BulletWorld is active
+    :param threshold: The threshold between the end effector and the object. The default value is 0.01 m
+    :return: True if after applying the inverse kinematics the distance between end effector and object is less than
+                the threshold False if not.
+    """
     world = _select_world(world)
     world_id = _client_id(world)
     state = p.saveState()
@@ -128,6 +196,16 @@ def reachable(object, robot, gripper_name, world=None, threshold=0.01):
 
 
 def blocking(object, robot, gripper_name, world=None):
+    """
+    This predicate checks if any objects are blocking an other object when an robot tries to pick it. This works
+    similar to the reachable predicate. First the inverse kinematics between the robot and the object will be calculated
+    and applied. Then it will be checked if the robot is in contact with any object except the given one.
+    :param object: The object for which blocking objects should be found
+    :param robot: The robot who reaches for the object
+    :param gripper_name: The name of the end effector of the robot
+    :param world: The BulletWorld if more than one BulletWorld is active
+    :return:
+    """
     world = _select_world(world)
     world_id = _client_id(world)
     state = p.saveState()
@@ -149,6 +227,14 @@ def blocking(object, robot, gripper_name, world=None):
 
 
 def supporting(object1, object2, world=None):
+    """
+    This predicate checks if one object is supporting an other obkect. An object supports an other object if they are in
+    contact and the second object is above the first one. (e.g. a Bottle will be supported by a table)
+    :param object1: The first object
+    :param object2: The second object
+    :param world: The BulletWorld if more than one BulletWorld is active
+    :return: True if the second object is in contact with the first one and the second one ist above the first False else
+    """
     world = _select_world(world)
     return contact(object1, object2, world) and object2.getposition()[2] > object1.get_position()[2]
 
