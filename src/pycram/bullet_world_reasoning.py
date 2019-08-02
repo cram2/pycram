@@ -21,9 +21,6 @@ def _get_joint_ranges(robot):
     for i in range(0, p.getNumJoints(robot.id)):
         info = p.getJointInfo(robot.id, i)
         if info[3] > -1:
-            if info[1].decode('utf-8') == 'torso_lift_joint':
-                print("lower: ", info[8])
-                print("upper: ", info[9])
             ll.append(info[8])
             ul.append(info[9])
             jr.append(info[9] - info[8])

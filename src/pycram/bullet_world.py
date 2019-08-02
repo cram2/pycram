@@ -78,6 +78,8 @@ class Object:
         self.event = self.world.attachment_event
 
     def attach(self, object, parent_link_id, child_link_id):
+        if object in self.attachments:
+            return
         world_gripper = p.getLinkState(self.id, parent_link_id)[4] if parent_link_id != -1 else self.get_position()
         world_object = object.get_position()
         gripper_object = p.multiplyTransforms(p.invertTransform(world_gripper, [0, 0, 0, 1])[0], [0, 0, 0, 1],
@@ -88,11 +90,13 @@ class Object:
                                  [0, 1, 0], gripper_object, [0, 0, 0],
                                  physicsClientId=self.world.client_id)
         self.attachments[object] = cid
+        object.attachments[self] = cid
         self.world.attachment_event(self, [self, object])
 
     def detach(self, object):
         p.removeConstraint(self.attachments[object])
         self.attachments[object] = None
+        object.attachments[self] = None
         self.world.detachment_event(self, [self, object])
 
     def get_position(self):
