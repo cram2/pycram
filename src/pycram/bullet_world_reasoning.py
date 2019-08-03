@@ -1,8 +1,7 @@
 import pybullet as p
 import itertools
 import numpy as np
-from .bullet_world import BulletWorld
-from .helper import _client_id
+from .bullet_world import BulletWorld, _world_and_id
 
 
 def _get_seg_mask_for_target(cam_position, target_position):
@@ -45,17 +44,6 @@ def _get_joint_ranges(robot):
     return ll, ul, jr, rp, jd
 
 
-def _select_world(world):
-    """
-    A helper function to decide which BulletWorld should be used. If 'world' is None the current_bullet_world will be
-    used else the given BulletWorld.
-    The current_bullet_world is the latest initialized BulletWorld.
-    :param world: The world to be selected or None if the current_bullet_world should be used
-    :return: The chosen world
-    """
-    return world if world is not None else BulletWorld.current_bullet_world
-
-
 def stable(object, world=None):
     """
     This predicate checks if an object is stable in the world. This will be done by simulating the world for 10 seconds
@@ -64,8 +52,7 @@ def stable(object, world=None):
     :param world: The BulletWorld if more than one BulletWorld is active
     :return: True if the given object is stable in the world False else
     """
-    world = _select_world(world)
-    world_id = _client_id(world)
+    world, world_id = _world_and_id(world)
     coords_prev = p.getBasePositionAndOrientation(object.id, physicsClientId=world_id)[0]
     state = p.saveState(clientServerId=world_id)
     p.setGravity(0, 0, -9.8)
@@ -90,8 +77,7 @@ def contact(object1, object2, world=None):
     :param world: The BulletWorld if more than one BulletWorld is active
     :return: True if the two objects are in contact False else
     """
-    world = _select_world(world)
-    world_id = _client_id(world)
+    world, world_id = _world_and_id(world)
     p.stepSimulation(world_id)
     con_points = p.getContactPoints(object1.id, object2.id, physicsClientId=world_id)
 
@@ -108,8 +94,7 @@ def visible(object, camera_position, world=None):
     :param world: The BulletWorld if more than one BulletWorld is active
     :return: True if the object is visible from the camera_position False if not
     """
-    world = _select_world(world)
-    world_id = _client_id(world)
+    world, world_id = _world_and_id(world)
     state = p.saveState()
     for obj in world.objects:
         if obj.id is not object.id:
@@ -140,8 +125,7 @@ def occluding(object, camera_position, world=None):
     :param world: The BulletWorld if more than one BulletWorld is active
     :return: A list of occluding objects
     """
-    world = _select_world(world)
-    world_id = _client_id(world)
+    world, world_id = _world_and_id(world)
     state = p.saveState()
     for obj in world.objects:
         if obj.id is not object.id:
@@ -179,8 +163,7 @@ def reachable(object, robot, gripper_name, world=None, threshold=0.01):
     :return: True if after applying the inverse kinematics the distance between end effector and object is less than
                 the threshold False if not.
     """
-    world = _select_world(world)
-    world_id = _client_id(world)
+    world, world_id = _world_and_id(world)
     state = p.saveState()
     inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper_name), object.get_position(),
                                        maxNumIterations=100, physicsClientId=world_id)
@@ -206,8 +189,7 @@ def blocking(object, robot, gripper_name, world=None):
     :param world: The BulletWorld if more than one BulletWorld is active
     :return:
     """
-    world = _select_world(world)
-    world_id = _client_id(world)
+    world, world_id = _world_and_id(world)
     state = p.saveState()
     inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper_name), object.get_pose(),
                                        maxNumIterations=100, physicsClientId=world_id)
@@ -235,6 +217,6 @@ def supporting(object1, object2, world=None):
     :param world: The BulletWorld if more than one BulletWorld is active
     :return: True if the second object is in contact with the first one and the second one ist above the first False else
     """
-    world = _select_world(world)
+    world, world_id = _world_and_id(world)
     return contact(object1, object2, world) and object2.getposition()[2] > object1.get_position()[2]
 

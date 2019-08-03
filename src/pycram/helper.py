@@ -10,11 +10,6 @@ from inspect import isgeneratorfunction
 from macropy.core.quotes import macros, ast_literal, q
 
 
-def _client_id(world):
-    if world is not None:
-        return world.client_id
-    else:
-        return 0
 
 
 def _block(tree):
