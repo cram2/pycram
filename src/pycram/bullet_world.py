@@ -1,3 +1,11 @@
+"""Implementation of the BulletWorld
+
+Classes:
+BulletWorld -- The Represnation of the physics simulation
+Gui -- Starts a new thread to keep the gui persistent
+Object -- Representation of an object in the BulletWorld
+"""
+
 import pybullet as p
 import threading
 import time
@@ -8,9 +16,9 @@ from .event import Event
 class BulletWorld:
     """
     The BulletWorld Class represents the physics Simulation.
-    The Class variable 'current_bullet_world' always points to the latest initialized BulletWorld. Every BulletWorld
-    object holds the reference to the previous 'current_bullet_world' and if the 'exit' method of this BulletWorld will
-    be called the previous 'current_bullet_world' becomes the new 'current_bullet_world'.
+    The Class variable 'current_bullet_world' always points to the latest initialized BulletWorld.
+    Every BulletWorld object holds the reference to the previous 'current_bullet_world' and if the 'exit' method
+    of this BulletWorld will be called the previous 'current_bullet_world' becomes the new 'current_bullet_world'.
     """
 
     current_bullet_world = None
@@ -28,8 +36,8 @@ class BulletWorld:
         self.detachment_event = Event()
         self.attachment_event = Event()
         self.manipulation_event = Event()
-        self.gui_thread = Gui(self, type)
-        self.gui_thread.start()
+        self._gui_thread = Gui(self, type)
+        self._gui_thread.start()
         time.sleep(0.1)
         self.last_bullet_world = BulletWorld.current_bullet_world
         BulletWorld.current_bullet_world = self
@@ -58,7 +66,7 @@ class BulletWorld:
 
     def exit(self):
         BulletWorld.current_bullet_world = self.last_bullet_world
-        self.gui_thread.join()
+        self._gui_thread.join()
         p.disconnect(self.client_id)
 
 
@@ -115,18 +123,20 @@ class Object:
         self.attachments = {}
         self.world.objects.append(self)
 
-    def attach(self, object, parent_link_id, child_link_id=-1):
+    def attach(self, object, parent_link=None, child_link=None):
         """
         This method attaches two objects. This will be done by creating a virtual fixed joint between the two objects.
         After the attachment the attachment event of the BulletWorld will be fired.
         It can only exist one attachment between two objects.
         :param object: The object which should be attached to this object
-        :param parent_link_id: The id of the link of this object to which the other object should be attached or -1
+        :param parent_link: The Name of the link of this object to which the other object should be attached or -1
                                 for the base position
-        :param child_link_id: The link id of the other object to which this object should be attached or -1 for the base
+        :param child_link: The link Name of the other object to which this object should be attached or -1 for the base
         """
         if object in self.attachments:
             return
+        parent_link_id = -1 if parent_link is None else self.links[parent_link]
+        child_link_id = -1 if child_link is None else self.links[child_link]
         world_gripper = p.getLinkState(self.id, parent_link_id)[4] if parent_link_id != -1 else self.get_position()
         world_object = object.get_position()
         gripper_object = p.multiplyTransforms(p.invertTransform(world_gripper, [0, 0, 0, 1])[0], [0, 0, 0, 1],
@@ -143,7 +153,7 @@ class Object:
     def detach(self, object):
         """
         This method detaches an other object from this object. After the detachment the detachment event of the
-        corrosponding BulletWorld will be fired.
+        corresponding BulletWorld will be fired.
         :param object: The object which should be detached
         """
         if object not in self.attachments:
@@ -164,9 +174,22 @@ class Object:
 
     def set_position_and_orientation(self, position, orientation):
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
+        for at in self.attachments:
+            p.resetBasePositionAndOrientation(at.id, [position[0]+0.5, position[1]+0.5, position[2]], at.get_orientation(),
+                                              self.world.client_id)
+        self.world.simulate(1)
 
     def set_position(self, position):
         self.set_position_and_orientation(position, self.get_orientation())
+
+    def set_orientation(self, orientation):
+        p.resetBasePositionAndOrientation(self.id, self.get_position(), orientation, self.world.client_id)
+
+    def set_pose(self, position):
+        self.set_position(position)
+
+    def set_joint(self, joint, pose):
+        p.resetJointState(self.id, self.joints[joint], pose)
 
     def _joint_or_link_name_to_id(self, type):
         nJoints = p.getNumJoints(self.id)
@@ -184,13 +207,13 @@ class Object:
         return self.links[name]
 
     def get_link_position_and_orientation(self, name):
-        return p.getLinkState(self.id, self.get_link_id(name))[:2]
+        return p.getLinkState(self.id, self.links[name])[:2]
 
     def get_link_position(self, name):
-        return p.getLinkState(self.id, self.get_link_id(name))[0]
+        return p.getLinkState(self.id, self.links[name])[0]
 
     def get_link_orientation(self, name):
-        return p.getLinkState(self.id, self.get_link_id(name))[1]
+        return p.getLinkState(self.id, self.links[name])[1]
 
 
 def _load_object(name, path, position, orientation, world, color):
@@ -221,7 +244,7 @@ def _generate_urdf_file(name, path, color):
     :param name: The name of the object
     :param path: The path to the .obj or .stl file
     :param color: The color which should be used for the material tag
-    :return:
+    :return: The name of the generated .urdf file
     """
     urdf_template = '<?xml version="0.0" ?> \n \
                         <robot name="~a"> \n \

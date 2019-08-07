@@ -1,7 +1,7 @@
 import pybullet as p
 import itertools
 import numpy as np
-from .bullet_world import BulletWorld, _world_and_id
+from .bullet_world import _world_and_id
 
 
 def _get_seg_mask_for_target(cam_position, target_position):
