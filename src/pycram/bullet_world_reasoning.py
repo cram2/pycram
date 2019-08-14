@@ -187,7 +187,7 @@ def blocking(object, robot, gripper_name, world=None):
     :param robot: The robot who reaches for the object
     :param gripper_name: The name of the end effector of the robot
     :param world: The BulletWorld if more than one BulletWorld is active
-    :return:
+    :return: A list of objects the robot is in collision with when reaching for the specified object
     """
     world, world_id = _world_and_id(world)
     state = p.saveState()

@@ -22,6 +22,7 @@ class BulletWorld:
     """
 
     current_bullet_world = None
+    robot = None
 
     def __init__(self, type="GUI"):
         """
@@ -59,6 +60,9 @@ class BulletWorld:
 
     def set_gravity(self, velocity):
         p.setGravity(velocity[0], velocity[1], velocity[2], physicsClientId=self.client_id)
+
+    def set_robot(self, robot):
+        BulletWorld.robot = robot
 
     def simulate(self, seconds):
         for i in range(0, int(seconds * 240)):
