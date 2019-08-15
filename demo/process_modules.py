@@ -24,7 +24,7 @@ class Pr2Navigation(ProcessModule):
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == 'move':
-            robot = BulletWorld.current_bullet_world.get_object_by_id(solution['id'])
+            robot = BulletWorld.robot
             pre_pose = robot.get_pose()
             robot.set_position(solution['pose'])
             for obj in BulletWorld.current_bullet_world.objects:
