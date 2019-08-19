@@ -2,6 +2,7 @@ from pycram.process_module import ProcessModule
 from pycram.bullet_world import BulletWorld
 import pycram.bullet_world_reasoning as btr
 import pybullet as p
+import time
 
 
 def _apply_ik(robot, joint_poses):
@@ -12,32 +13,30 @@ def _apply_ik(robot, joint_poses):
 
 
 def _park_arms():
-    joint_poses = [] # TODO add park joint poses
-    robot = BulletWorld.robot
-    for i in range(0, p.getNumJoints(robot.id)):
-        qIndex = p.getJointInfo(robot.id, i)[3]
-        if qIndex > -1:
-            p.resetJointState(robot.id, i, joint_poses[qIndex-7])
+    joint_poses = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.9, -0.1, 1.6, 1.7,
+                   0.087, 1.2, -1.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.9, -0.1, 1.6,
+                   -1.7, -0.08, -1.2, 1.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    _apply_ik(BulletWorld.robot, joint_poses)
 
 
 class Pr2Navigation(ProcessModule):
     def _execute(self, desig):
         solution = desig.reference()
-        if solution['cmd'] == 'move':
+        if solution['cmd'] == 'navigate':
             robot = BulletWorld.robot
             pre_pose = robot.get_pose()
-            robot.set_position(solution['pose'])
-            for obj in BulletWorld.current_bullet_world.objects:
-                if btr.contact(robot, obj):
-                    robot.set_position(pre_pose)
-                    raise IOError # TODO fix error
+            robot.set_position(solution['target'])
+            #for obj in BulletWorld.current_bullet_world.objects:
+            #    if btr.contact(robot, obj):
+            #        robot.set_position(pre_pose)
+            #        raise IOError # TODO fix error
 
 
 class Pr2PickUp(ProcessModule):
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == 'pick':
-            object = BulletWorld.current_bullet_world.get_object_by_id(solution['id'])
+            object = solution['object']
             robot = BulletWorld.robot
             if not btr.reachable(object, BulletWorld.robot, solution['gripper']):
                 raise IOError # TODO fix error
@@ -46,21 +45,27 @@ class Pr2PickUp(ProcessModule):
             _apply_ik(robot, inv)
             robot.attach(object, solution['gripper'])
             _park_arms()
+            pos = p.getLinkState(robot.id, robot.get_link_id(solution['gripper']))[0]
+            p.resetBasePositionAndOrientation(object.id, pos, object.get_orientation())
+            BulletWorld.current_bullet_world.simulate(1)
+            time.sleep(0.5)
 
 
 class Pr2Place(ProcessModule):
     def _execute(self, desig):
         solution = desig.reference()
-        if solution['cmd'] == 'pick':
-            object = BulletWorld.current_bullet_world.get_object_by_id(solution['id'])
+        if solution['cmd'] == 'place':
+            object = solution['object']
             robot = BulletWorld.robot
             if not btr.reachable(object, robot, solution['gripper']):
                 raise IOError # TODO fix error
-        inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), solution['target'],
+            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), solution['target'],
                                            maxNumIterations=100)
-        _apply_ik(robot, inv)
-        robot.detach(object)
-        _park_arms()
+            _apply_ik(robot, inv)
+            p.resetBasePositionAndOrientation(object.id, solution['target'], object.get_orientation())
+            robot.detach(object)
+            _park_arms()
+            time.sleep(0.5)
 
 
 class Pr2Accessing(ProcessModule):
