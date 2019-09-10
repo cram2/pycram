@@ -55,6 +55,9 @@ class BulletWorld:
     def get_detachment_event(self):
         return self.detachment_event
 
+    def get_manupulation_event(self):
+        return self.manipulation_event
+
     def set_realtime(self, real_time):
         p.setRealTimeSimulation(1 if real_time else 0, self.client_id)
 
@@ -218,6 +221,9 @@ class Object:
 
     def get_link_orientation(self, name):
         return p.getLinkState(self.id, self.links[name])[1]
+
+    def set_joint_state(self, joint_name, joint_pose):
+        p.resetJointState(self.id, self.get_joint_id(joint_name), joint_pose)
 
 
 def _load_object(name, path, position, orientation, world, color):
