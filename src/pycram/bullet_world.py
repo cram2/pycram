@@ -46,6 +46,9 @@ class BulletWorld:
     def get_objects_by_name(self, name):
         return list(filter(lambda obj: obj.name == name, self.objects))
 
+    def get_objects_by_type(self, obj_type):
+        return list(filter(lambda obj: obj.type == obj_type, self.objects))
+
     def get_object_by_id(self, id):
         return list(filter(lambda obj: obj.id == id, self.objects))[0]
 
@@ -108,13 +111,14 @@ class Object:
     This class represents an object in the BulletWorld.
     """
 
-    def __init__(self, name, path, position=[0, 0, 0], orientation=[0, 0, 0, 1], world=None, color=[1, 1, 1, 1]):
+    def __init__(self, name, type, path, position=[0, 0, 0], orientation=[0, 0, 0, 1], world=None, color=[1, 1, 1, 1]):
         """
         The constructor loads the urdf file into the given BulletWorld, if no BulletWorld is specified the
         'current_bullet_world' will be used. It is also possible to load .obj and .stl file into the BulletWorld.
         The color parameter takes the color as rgba. This is only used when spawning .obj or .stl files and will be
         ignored for .urdf files.
         :param name: The name of the object
+        :param type; The type of the object
         :param path: The path to the source file, it can be either .urdf, .obj or .stl
         :param position: The position in which the object should be spawned
         :param orientation: The orientation with which the object should be spawned
@@ -123,6 +127,7 @@ class Object:
         """
         self.world = world if world is not None else BulletWorld.current_bullet_world
         self.name = name
+        self.type = type
         self.path = path
         self.id = _load_object(name, path, position, orientation, world, color)
         self.joints = self._joint_or_link_name_to_id("joint")
@@ -153,6 +158,7 @@ class Object:
                                  p.JOINT_FIXED,
                                  [0, 1, 0], gripper_object, [0, 0, 0],
                                  physicsClientId=self.world.client_id)
+        p.changeConstraint(cid, maxForce=30)
         self.attachments[object] = cid
         object.attachments[self] = cid
         self.world.attachment_event(self, [self, object])
@@ -160,7 +166,7 @@ class Object:
     def detach(self, object):
         """
         This method detaches an other object from this object. After the detachment the detachment event of the
-        corresponding BulletWorld will be fired.
+        corresponding BulletWorld w:ill be fired.
         :param object: The object which should be detached
         """
         if object not in self.attachments:

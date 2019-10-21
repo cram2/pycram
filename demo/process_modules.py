@@ -24,12 +24,13 @@ class Pr2Navigation(ProcessModule):
         solution = desig.reference()
         if solution['cmd'] == 'navigate':
             robot = BulletWorld.robot
-            pre_pose = robot.get_pose()
             robot.set_position(solution['target'])
-            #for obj in BulletWorld.current_bullet_world.objects:
-            #    if btr.contact(robot, obj):
-            #        robot.set_position(pre_pose)
-            #        raise IOError # TODO fix error
+            for obj in BulletWorld.current_bullet_world.objects:
+                if btr.contact(robot, obj):
+                    if obj.name == "floor":
+                        continue
+                    raise IOError # TODO fix error
+
 
 
 class Pr2PickUp(ProcessModule):
@@ -44,6 +45,7 @@ class Pr2PickUp(ProcessModule):
                                                maxNumIterations=100)
             _apply_ik(robot, inv)
             robot.attach(object, solution['gripper'])
+            time.sleep(0.3)
             _park_arms()
             pos = p.getLinkState(robot.id, robot.get_link_id(solution['gripper']))[0]
             p.resetBasePositionAndOrientation(object.id, pos, object.get_orientation())
@@ -82,10 +84,99 @@ class Pr2Accessing(ProcessModule):
             robot.detach(BulletWorld.current_bullet_world.get_object_by_id(solution['drawer']))
 
 
+class Pr2ParkArms(ProcessModule):
+    def _execute(self, desig):
+        solutions = desig.reference()
+        if solutions['cmd'] == 'park':
+            _park_arms()
+
+
+class Pr2MoveHead(ProcessModule):
+    def _execute(self, desig):
+        solutions = desig.reference()
+        if solutions['cmd'] == 'looking':
+            target = solutions['target']
+            joint_id = solutions['joint-id']
+            robot = BulletWorld.robot
+
+
+class Pr2MoveGripper(ProcessModule):
+    def _execute(self, desig):
+        solution = desig.reference()
+        if solution['cmd'] == "move-gripper":
+            robot = BulletWorld.robot
+            left_conf = solution['left']
+            right_conf = solution['right']
+            if right_conf:
+                p.resetJointState(robot.id, 57, 0 if right_conf == "close" else 0.548)
+                p.resetJointState(robot.id, 59, 0 if right_conf == "close" else 0.548)
+            if left_conf:
+                p.resetJointState(robot.id, 79, 0 if right_conf == "close" else 0.548)
+                p.resetJointState(robot.id, 81, 0 if right_conf == "close" else 0.548)
+
+
+class Pr2Detecting(ProcessModule):
+    def _execute(self, desig):
+        solultion = desig.reference()
+        if solultion['cmd'] == "detecting":
+            robot = BulletWorld.robot
+            object_type = solultion['object']
+            cam_frame_id = solultion['cam_frame']
+
+            objects = BulletWorld.current_bullet_world.objects
+            visible_objects = []
+            for obj in objects:
+                if obj.type == "environment":
+                    continue
+                if btr.visible(obj, BulletWorld.current_bullet_world.get_object_by_id(cam_frame_id).get_pose()):
+                    visible_objects.append(obj)
+
+            for obj in visible_objects:
+                if obj.type == object_type:
+                    return obj
+
+
+class Pr2MoveTCP(ProcessModule):
+    def _execute(self, desig):
+        return None
+
+
+class Pr2MoveJoints(ProcessModule):
+    def _execute(self, desig):
+        solution = desig.reference()
+        if solution['cmd'] == "move-joints":
+            robot = BulletWorld.robot
+            right_arm_poses = solution['right-poses']
+            left_arm_poses = solution['left-poses']
+            if right_arm_poses:
+                for i in range(0, 9):
+                    p.resetJointState(robot.id, i + 42, right_arm_poses[i])
+
+            if left_arm_poses:
+                for i in range(0, 9):
+                    p.resetJointState(robot.id, i + 64, left_arm_poses[i])
+
+
+# Maybe Implement
+class Pr2WorldStateDetecting(ProcessModule):
+    def _execute(self, desig):
+        solution = desig.reference()
+        if solution['cmd'] == "world-state-detecting":
+            obj_type = solution['object']
+            return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
+
+
 pr2_navigation = Pr2Navigation()
 pr2_pick_up = Pr2PickUp()
 pr2_place = Pr2Place()
 pr2_accessing = Pr2Accessing()
+pr2_park_arms = Pr2ParkArms()
+pr2_move_head = Pr2MoveHead()
+pr2_move_gripper = Pr2MoveGripper()
+pr2_detecting = Pr2Detecting()
+pr2_move_tcp = Pr2MoveTCP()
+pr2_move_joints = Pr2MoveJoints()
+pr2_world_state_detecting = Pr2WorldStateDetecting()
 
 
 def available_process_modules(desig):
@@ -100,6 +191,9 @@ def available_process_modules(desig):
 
     if desig.check_constraints([('type', 'accessing')]):
         return pr2_accessing
+
+    if desig.check_constraints([('type', 'park-arms')]):
+        return pr2_park_arms
 
 
 ProcessModule.resolvers.append(available_process_modules)
