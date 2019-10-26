@@ -18,10 +18,11 @@ bowl = Object("bowl", "bowl", "../resources/bowl.stl", [1.3, 0.8, 1])
 BulletWorld.robot = robot
 
 
-ProcessModule.perform(MotionDesignator([('type', 'park-arms')]))
 
-ProcessModule.perform(MotionDesignator([('type', 'moving'), ('target', [0.65, 1, 0])]))
+#ProcessModule.perform(MotionDesignator([('type', 'park-arms')]))
 
-ProcessModule.perform(MotionDesignator([('type', 'pick-up'), ('object', cereal), ('target', cereal.get_pose()), ('arm', 'right')]))
+#ProcessModule.perform(MotionDesignator([('type', 'moving'), ('target', [0.65, 1, 0])]))
+
+#ProcessModule.perform(MotionDesignator([('type', 'pick-up'), ('object', cereal), ('target', cereal.get_pose()), ('arm', 'right')]))
 
 #world.set_realtime(True)
