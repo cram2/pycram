@@ -110,9 +110,11 @@ class Pr2MoveGripper(ProcessModule):
             if gripper == 'right':
                 p.resetJointState(robot.id, 57, 0 if motion == "close" else 0.548)
                 p.resetJointState(robot.id, 59, 0 if motion == "close" else 0.548)
+                time.sleep(0.5)
             if gripper == 'left':
                 p.resetJointState(robot.id, 79, 0 if motion == "close" else 0.548)
                 p.resetJointState(robot.id, 81, 0 if motion == "close" else 0.548)
+                time.sleep(0.5)
 
 
 class Pr2Detecting(ProcessModule):
@@ -121,14 +123,14 @@ class Pr2Detecting(ProcessModule):
         if solultion['cmd'] == "detecting":
             robot = BulletWorld.robot
             object_type = solultion['object']
-            cam_frame_id = solultion['cam_frame']
+            cam_frame_name = solultion['cam_frame']
 
             objects = BulletWorld.current_bullet_world.objects
             visible_objects = []
             for obj in objects:
                 if obj.type == "environment":
                     continue
-                if btr.visible(obj, BulletWorld.current_bullet_world.get_object_by_id(cam_frame_id).get_pose()):
+                if btr.visible(obj, robot.get_link_position(cam_frame_name)):
                     visible_objects.append(obj)
 
             for obj in visible_objects:
@@ -151,10 +153,12 @@ class Pr2MoveJoints(ProcessModule):
             if right_arm_poses:
                 for i in range(0, 9):
                     p.resetJointState(robot.id, i + 42, right_arm_poses[i])
+                time.sleep(0.5)
 
             if left_arm_poses:
                 for i in range(0, 9):
                     p.resetJointState(robot.id, i + 64, left_arm_poses[i])
+                time.sleep(0.5)
 
 
 # Maybe Implement
@@ -198,7 +202,10 @@ def available_process_modules(desig):
     if desig.check_constraints(['type' 'looking']):
         return pr2_move_head
 
-    if desig.check_constraints([('type', 'move-gripper')]):
+    if desig.check_constraints([('type', 'opening-gripper')]):
+        return pr2_move_gripper
+
+    if desig.check_constraints([('type', 'closing-gripper')]):
         return pr2_move_gripper
 
     if desig.check_constraints([('type', 'detecting')]):
@@ -207,7 +214,7 @@ def available_process_modules(desig):
     if desig.check_constraints([('type', 'move-tcp')]):
         return pr2_move_tcp
 
-    if desig.check_constraints([('type', 'move-joints')]):
+    if desig.check_constraints([('type', 'move-arm-joints')]):
         return pr2_move_joints
 
     if desig.check_constraints([('type', 'world-state-detecting')]):

@@ -49,22 +49,27 @@ def pr2_motion_designators(desig):
     #    solutions.append(desig.make_dictionary([('cmd', 'move-gripper'), 'right_gripper', 'left_gripper']))
 
     if desig.check_constraints([('type', 'opening-gripper'), 'gripper']):
-        solutions.append([('cmd', 'move-gripper'), ('motion', 'open'), 'gripper'])
+        solutions.append(desig.make_dictionary([('cmd', 'move-gripper'), ('motion', 'open'), 'gripper']))
 
     if desig.check_constraints([('type', 'closing-gripper'), 'gripper']):
-        solutions.append([('cmd', 'move-gripper'), ('motion', 'close'), 'gripper'])
+        solutions.append(desig.make_dictionary([('cmd', 'move-gripper'), ('motion', 'close'), 'gripper']))
 
     if desig.check_constraints([('type', 'detecting'), 'object']):
-        solutions.append(desig.make_dictionary([('cmd', 'detecting'), 'object']))
+        solutions.append(desig.make_dictionary([('cmd', 'detecting'), ('cam_frame', 'wide_stereo_optical_frame'), 'object']))
 
     if desig.check_constraints([('type', 'move-tcp'), 'arm', 'target']):
         solutions.append(desig.make_dictionary([('cmd', 'move-tcp'), 'arm', 'target']))
 
     if desig.check_constraints([('type', 'move-arm-joints')]):
+        if desig.check_constraints(['left-arm', 'right-arm']):
+            solutions.append(desig.make_dictionary([('cmd', 'move-joints'), ('left-poses', desig.prop_value('left-arm')), ('right-poses', desig.prop_value('right-arm'))]))
         if desig.check_constraints(['left-arm']):
-            solutions.append(desig.make_dictionary([('cmd', 'move-joints'), ('left-poses', desig.prop_value('left-arm'))]))
+            solutions.append(desig.make_dictionary([('cmd', 'move-joints'), ('left-poses', desig.prop_value('left-arm')), ('right-poses', None)]))
         if desig.check_constraints(['right-arm']):
-            solutions.append(desig.make_dictionary([('cmd', 'move-joints'), ('right-poses', desig.prop_value('right-arm'))]))
+            solutions.append(desig.make_dictionary([('cmd', 'move-joints'), ('right-poses', desig.prop_value('right-arm')), ('left-poses', None)]))
+
+    if desig.check_constraints([('type', 'world-state-detecting')]):
+        solutions.append(desig.make_dictionary([('cmd', 'world-state-detecting'), 'object']))
 
 
 
