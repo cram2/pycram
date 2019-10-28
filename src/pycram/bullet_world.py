@@ -11,6 +11,7 @@ import threading
 import time
 import pathlib
 from .event import Event
+from .helper import transform
 
 
 class BulletWorld:
@@ -148,7 +149,7 @@ class Object:
         if object in self.attachments:
             return
         parent_link_id = -1 if parent_link is None else self.links[parent_link]
-        child_link_id = -1 if child_link is None else self.links[child_link]
+        child_link_id = -1 if child_link is None else object.links[child_link]
         world_gripper = p.getLinkState(self.id, parent_link_id)[4] if parent_link_id != -1 else self.get_position()
         world_object = object.get_position()
         gripper_object = p.multiplyTransforms(p.invertTransform(world_gripper, [0, 0, 0, 1])[0], [0, 0, 0, 1],
@@ -159,8 +160,8 @@ class Object:
                                  [0, 1, 0], gripper_object, [0, 0, 0],
                                  physicsClientId=self.world.client_id)
         p.changeConstraint(cid, maxForce=30)
-        self.attachments[object] = cid
-        object.attachments[self] = cid
+        self.attachments[object] = cid, parent_link_id
+        object.attachments[self] = cid, parent_link_id
         self.world.attachment_event(self, [self, object])
 
     def detach(self, object):
@@ -171,9 +172,9 @@ class Object:
         """
         if object not in self.attachments:
             return
-        p.removeConstraint(self.attachments[object])
-        self.attachments[object] = None
-        object.attachments[self] = None
+        p.removeConstraint(self.attachments[object][0])
+        del self.attachments[object]
+        del object.attachments[self]
         self.world.detachment_event(self, [self, object])
 
     def get_position(self):
@@ -188,8 +189,9 @@ class Object:
     def set_position_and_orientation(self, position, orientation):
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
         for at in self.attachments:
-            p.resetBasePositionAndOrientation(at.id, [position[0]+0.5, position[1]+0.5, position[2]], at.get_orientation(),
-                                              self.world.client_id)
+            lid = self.attachments[at][1]
+            new_p = p.getLinkState(BulletWorld.robot.id, lid)[0]
+            p.resetBasePositionAndOrientation(at.id, new_p, at.get_orientation(), self.world.client_id)
         self.world.simulate(1)
 
     def set_position(self, position):
