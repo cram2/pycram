@@ -220,3 +220,7 @@ def supporting(object1, object2, world=None):
     world, world_id = _world_and_id(world)
     return contact(object1, object2, world) and object2.getposition()[2] > object1.get_position()[2]
 
+
+class ReasoningError(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)

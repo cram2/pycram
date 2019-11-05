@@ -3,6 +3,7 @@ from pycram.bullet_world import BulletWorld
 from pycram.helper import transform
 import pycram.bullet_world_reasoning as btr
 import pybullet as p
+import numpy as np
 import time
 
 
@@ -30,7 +31,7 @@ class Pr2Navigation(ProcessModule):
                 if btr.contact(robot, obj):
                     if obj.name == "floor":
                         continue
-                    print(obj.type)
+                   # print(obj.type)
                    # raise IOError # TODO fix error
 
 
@@ -42,7 +43,7 @@ class Pr2PickUp(ProcessModule):
             robot = BulletWorld.robot
             target = object.get_position()
             if not btr.reachable(object, BulletWorld.robot, solution['gripper']):
-                raise IOError # TODO fix error
+                raise btr.ReasoningError
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), target,
                                                maxNumIterations=100)
             _apply_ik(robot, inv)
@@ -63,7 +64,7 @@ class Pr2Place(ProcessModule):
             robot = BulletWorld.robot
             if not btr.reachable(object, robot, solution['gripper']):
                 print("test")
-                raise IOError # TODO fix error
+                raise btr.ReasoningError
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), solution['target'],
                                            maxNumIterations=100)
             _apply_ik(robot, inv)
@@ -103,10 +104,15 @@ class Pr2MoveHead(ProcessModule):
         solutions = desig.reference()
         if solutions['cmd'] == 'looking':
             target = solutions['target']
-            #joint_id = solutions['joint-id']
             robot = BulletWorld.robot
-            print(robot.get_position())
-            print(transform(target, robot.get_position()))
+            pose_in_pan = transform(target, robot.get_link_position("head_pan_link"))
+            pose_in_tilt = transform(target, robot.get_link_position("head_tilt_link"))
+
+            new_pan = np.arctan([pose_in_pan[1], pose_in_pan[0]])
+            new_tilt = np.arctan([-pose_in_tilt[2], pose_in_tilt[0]**2 + pose_in_tilt[1]**2])
+
+            p.resetJointState(robot.id, 19, new_pan[0])
+            p.resetJointState(robot.id, 20, new_tilt[0])
 
 
 class Pr2MoveGripper(ProcessModule):

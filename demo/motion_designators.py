@@ -20,11 +20,11 @@ def pr2_motion_designators(desig):
                 solutions.append(desig.make_dictionary([('cmd', 'place'), 'target', 'object', ('gripper', 'r_gripper_tool_frame')]))
             solutions.append(desig.make_dictionary([('cmd', 'place'), 'target', 'object', ('gripper', 'l_gripper_tool_frame')]))
 
-        if desig.check_constraints([('arm', 'right')]):
-            solutions.append(desig.make_dictionary([('cmd', 'place'), 'target',
-                                                   ('object', list(BulletWorld.robot.attachments.keys())[0]), ('gripper', 'r_gripper_tool_frame')]))
-        solutions.append(desig.make_dictionary([('cmd', 'place'), 'target',
-                                               ('object', list(BulletWorld.robot.attachments.keys())[0]), ('gripper', 'l_gripper_tool_frame')]))
+        #if desig.check_constraints([('arm', 'right')]):
+        #    solutions.append(desig.make_dictionary([('cmd', 'place'), 'target',
+        #                                           ('object', list(BulletWorld.robot.attachments.keys())[0]), ('gripper', 'r_gripper_tool_frame')]))
+        #solutions.append(desig.make_dictionary([('cmd', 'place'), 'target',
+        #                                       ('object', list(BulletWorld.robot.attachments.keys())[0]), ('gripper', 'l_gripper_tool_frame')]))
 
     if desig.check_constraints([('type', 'accessing'), 'drawer']):
         if desig.check_constraints(['distance']):
@@ -37,7 +37,6 @@ def pr2_motion_designators(desig):
             solutions.append(desig.make_dictionary([('cmd', 'access'), 'drawer', 'part-of', ('distance', 0.3), ('gripper', 'r_gripper_tool_frame')]))
         solutions.append(desig.make_dictionary([('cmd', 'access'), 'drawer',  ('distance', 0.3),
                                                 ('part-of', BulletWorld.current_bullet_world.get_object_by_name("kitchen")), ('gripper', 'l_gripper_tool_frame')]))
-
 
     if desig.check_constraints([('type', 'park-arms')]):
         solutions.append(desig.make_dictionary([('cmd', 'park')]))
@@ -58,8 +57,10 @@ def pr2_motion_designators(desig):
     if desig.check_constraints([('type', 'detecting'), 'object']):
         solutions.append(desig.make_dictionary([('cmd', 'detecting'), ('cam_frame', 'wide_stereo_optical_frame'), 'object']))
 
-    if desig.check_constraints([('type', 'move-tcp'), 'arm', 'target']):
-        solutions.append(desig.make_dictionary([('cmd', 'move-tcp'), 'arm', 'target']))
+    if desig.check_constraints([('type', 'move-tcp'), 'target']):
+        if desig.check_constraints([('arm', 'right')]):
+            solutions.append(desig.make_dictionary([('cmd', 'move-tcp'), 'arm', 'target']))
+        solutions.append(desig.make_dictionary([('cmd', 'move-tcp'), ('arm', 'left'), 'target']))
 
     if desig.check_constraints([('type', 'move-arm-joints')]):
         if desig.check_constraints(['left-arm', 'right-arm']):
