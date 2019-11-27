@@ -42,7 +42,7 @@ class Pr2PickUp(ProcessModule):
             object = solution['object']
             robot = BulletWorld.robot
             target = object.get_position()
-            if not btr.reachable(object, BulletWorld.robot, solution['gripper']):
+            if not btr.reachable_object(object, BulletWorld.robot, solution['gripper']):
                 raise btr.ReasoningError
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), target,
                                                maxNumIterations=100)
@@ -62,9 +62,6 @@ class Pr2Place(ProcessModule):
         if solution['cmd'] == 'place':
             object = solution['object']
             robot = BulletWorld.robot
-            if not btr.reachable(object, robot, solution['gripper']):
-                print("test")
-                raise btr.ReasoningError
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), solution['target'],
                                            maxNumIterations=100)
             _apply_ik(robot, inv)
@@ -78,18 +75,23 @@ class Pr2Accessing(ProcessModule):
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == 'access':
-            kitchen = BulletWorld.current_bullet_world.get_object_by_id(solution['part-of'])
+            kitchen = solution['part-of']
             robot = BulletWorld.robot
             gripper = solution['gripper']
-            drawer = solution['drawer']
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), kitchen.get_link_position(drawer))
+            drawer_handle = solution['drawer-handle']
+            drawer_joint = solution['drawer-joint']
+            dis = solution['distance']
+            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), kitchen.get_link_position(drawer_handle))
             _apply_ik(robot, inv)
+            time.sleep(0.2)
+            han_pose = kitchen.get_link_position(drawer_handle)
+            new_p = [han_pose[0] - dis, han_pose[1], han_pose[2]]
+            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), new_p)
+            _apply_ik(robot, inv)
+            p.resetJointState(kitchen.id, kitchen.get_joint_id(drawer_joint), 0.3)
+            spoon = BulletWorld.current_bullet_world.get_objects_by_name("spoon")[0]
+            spoon.set_position([1.15, 0.7, 0.8])
             time.sleep(0.5)
-            new_p = kitchen.get_link_position(drawer)
-            np = [new_p[0] + 0.3, new_p[1], new_p[2]]
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), np)
-            _apply_ik(robot, inv)
-            p.resetJointState(kitchen.id, )
 
 
 class Pr2ParkArms(ProcessModule):
@@ -155,7 +157,14 @@ class Pr2Detecting(ProcessModule):
 
 class Pr2MoveTCP(ProcessModule):
     def _execute(self, desig):
-        return None
+        solution = desig.reference()
+        if solution['cmd'] == "move-tcp":
+            target = solution['target']
+            gripper = solution['gripper']
+            robot = BulletWorld.robot
+            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), target)
+            _apply_ik(robot, inv)
+            time.sleep(0.5)
 
 
 class Pr2MoveJoints(ProcessModule):

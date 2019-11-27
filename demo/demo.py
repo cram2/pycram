@@ -8,14 +8,21 @@ from pycram.language import macros, par
 
 world = BulletWorld()
 world.set_gravity([0, 0, -9.8])
-plane = Object("floor", "environment", "../plane.urdf", world=world)
-robot = Object("pr2", "robot", "../pr2.urdf")
-kitchen = Object("kitchen", "environment", "../kitchen.urdf")
+plane = Object("floor", "environment", "../resources/plane.urdf", world=world)
+robot = Object("pr2", "robot", "../resources/pr2.urdf")
+kitchen = Object("kitchen", "environment", "../resources/kitchen.urdf")
 milk = Object("milk", "milk", "../resources/milk.stl", [1.3, 1, 1])
-spoon = Object("spoon", "spoon", "../resources/spoon.stl", [1.4, 0.8, 1])
+spoon = Object("spoon", "spoon", "../resources/spoon.stl", [1.35, 0.7, 0.8])
 cereal = Object("cereal", "cereal", "../resources/breakfast_cereal.stl", [1.3, 0.6, 1])
 bowl = Object("bowl", "bowl", "../resources/bowl.stl", [1.3, 0.8, 1])
 BulletWorld.robot = robot
+
+targets = {
+    'milk': [[-0.8, 1, 0.93], "left", False],
+    'bowl': [[-0.8, 1.2, 0.9], "right", False],
+    'cereal': [[-1, 1, 0.94], "right", False],
+    'spoon': [[-0.8, 1.2, 0.94], "right", False]
+}
 
 
 def move_object(object_type, target, arm):
@@ -24,33 +31,41 @@ def move_object(object_type, target, arm):
         ProcessModule.perform(MotionDesignator([('type', 'move-arm-joints'), ('left-arm', 'park'), ('right-arm', 'park')]))
         ProcessModule.perform(MotionDesignator([('type', 'moving'), ('target', [0.65, 0.7, 0]), ('orientation', [0, 0, 0, 1])]))
 
+    if object_type == "spoon":
+        ProcessModule.perform(MotionDesignator([('type', 'accessing'), ('drawer-joint', 'sink_area_left_upper_drawer_main_joint'), ('drawer-handle', 'sink_area_left_upper_drawer_handle'), ('arm', 'left'), ('distance', 0.3), ('part-of', kitchen)]))
+
+    return
     ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', [1.3, 0.6, 1])]))
 
     det_obj = ProcessModule.perform(MotionDesignator([('type', 'detecting'), ('object', object_type)]))
-    #print(det_obj.name))
+
     block = btr.blocking(det_obj, BulletWorld.robot, gripper)
     block_new = list(filter(lambda obj: obj.type != "environment", block))
 
-    if not block_new:
-        ProcessModule.perform(MotionDesignator([('type', 'pick-up'), ('object', det_obj), ('arm', arm)]))
-    else:
-        move_object(block_new[0].type, [0, 0, 1], "right")
+    if block_new:
+        move_object(block_new[0].type, targets[block_new[0].type][0], targets[block_new[0].type][1])
         ProcessModule.perform(MotionDesignator([('type', 'moving'), ('target', [0.65, 0.7, 0]), ('orientation', [0, 0, 0, 1])]))
-        ProcessModule.perform(MotionDesignator([('type', 'pick-up'), ('object', det_obj), ('arm', arm)]))
 
-    print(det_obj.name)
+    ProcessModule.perform(MotionDesignator([('type', 'pick-up'), ('object', det_obj), ('arm', arm)]))
 
     ProcessModule.perform(MotionDesignator([('type', 'move-arm-joints'), ('right-arm', 'park')]))
 
-    ProcessModule.perform(MotionDesignator([('type', 'moving'), ('target', [-0.3, 1, 0]), ('orientation', [0, 0, 1, 0.000001])]))
+    ProcessModule.perform(MotionDesignator([('type', 'moving'), ('target', [-0.3, 1, 0]), ('orientation', [0, 0, 1, 0])]))
 
-    ProcessModule.perform(MotionDesignator([('type', 'place'), ('object', det_obj), ('target', target), ('arm', arm)]))
+    if btr.reachable_pose(targets[object_type][0], robot, gripper):
+        ProcessModule.perform(MotionDesignator([('type', 'place'), ('object', det_obj), ('target', target), ('arm', arm)]))
 
     ProcessModule.perform(MotionDesignator([('type', 'move-arm-joints'), ('left-arm', 'park'), ('right-arm', 'park')]))
+    print("placed: ", object_type)
+
+    if not btr.stable(det_obj):
+        raise btr.ReasoningError
+    targets[object_type][2] = True
 
 
-object_types = ['milk', 'bowl', 'cereal', 'spoon']
-target_poses = [[-0.8, 1, 1], [-0.8, 1.2, 1], [-0.8, 1.4, 1], []]
-arms = ["left", "right", "right", "left"]
+#object_types = ['milk', 'bowl', 'cereal', 'spoon']
+object_types = ['spoon']
 for i in range(0, 4):
-    move_object(object_types[i], target_poses[i], arms[i])
+    if not targets[object_types[i]][2]:
+        move_object(object_types[i], targets[object_types[i]][0], targets[object_types[i]][1])
+

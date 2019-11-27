@@ -20,23 +20,17 @@ def pr2_motion_designators(desig):
                 solutions.append(desig.make_dictionary([('cmd', 'place'), 'target', 'object', ('gripper', 'r_gripper_tool_frame')]))
             solutions.append(desig.make_dictionary([('cmd', 'place'), 'target', 'object', ('gripper', 'l_gripper_tool_frame')]))
 
-        #if desig.check_constraints([('arm', 'right')]):
-        #    solutions.append(desig.make_dictionary([('cmd', 'place'), 'target',
-        #                                           ('object', list(BulletWorld.robot.attachments.keys())[0]), ('gripper', 'r_gripper_tool_frame')]))
-        #solutions.append(desig.make_dictionary([('cmd', 'place'), 'target',
-        #                                       ('object', list(BulletWorld.robot.attachments.keys())[0]), ('gripper', 'l_gripper_tool_frame')]))
+    if desig.check_constraints([('type', 'accessing'), 'drawer-joint', 'drawer-handle', 'part-of']):
+        if desig.check_constraints([('arm', 'right')]):
+            if desig.check_constraints('distance'):
+                solutions.append(desig.make_dictionary([('cmd', 'access'), 'drawer-joint', 'drawer-handle', ('gripper', 'r_gripper_tool_frame'), 'distance', 'part-of']))
+            solutions.append(desig.make_dictionary([('cmd', 'access'), 'drawer-joint', 'drawer-handle', ('gripper', 'r_gripper_tool_frame'), ('distance', 0.3), 'part-of']))
+        solutions.append(desig.make_dictionary([('cmd', 'access'), 'drawer-joint', 'drawer-handle', 'part-of', ('distance', 0.3), ('gripper', 'l_gripper_tool_frame'), 'part-of']))
 
-    if desig.check_constraints([('type', 'accessing'), 'drawer']):
-        if desig.check_constraints(['distance']):
-            if desig.check_constraints([('part-of', 'kitchen'), ('arm', 'right')]):
-                solutions.append(desig.make_dictionary(('cmd', 'access'), 'drawer', 'part-of', 'distance', ('gripper', 'r_gripper_tool_frame')))
-            solutions.append(desig.make_dictionary([('cmd', 'access'), 'drawer', 'distance',
-                                                    ('part-of', BulletWorld.current_bullet_world.get_object_by_name("kitchen")), ('gripper', 'l_gripper_tool_frame')]))
-
-        if desig.check_constraints(['part-of', ('arm', 'right')]):
-            solutions.append(desig.make_dictionary([('cmd', 'access'), 'drawer', 'part-of', ('distance', 0.3), ('gripper', 'r_gripper_tool_frame')]))
-        solutions.append(desig.make_dictionary([('cmd', 'access'), 'drawer',  ('distance', 0.3),
-                                                ('part-of', BulletWorld.current_bullet_world.get_object_by_name("kitchen")), ('gripper', 'l_gripper_tool_frame')]))
+    if desig.check_constraints([('type', 'move-tcp'), 'target']):
+        if desig.check_constraints([('arm', 'right')]):
+            solutions.append(desig.make_dictionary([('cmd', 'move-tcp'), 'target', ('gripper', 'r_gripper_tool_frame')]))
+        solutions.append(desig.make_dictionary([('cmd', 'move-tcp'), 'target', ('gripper', 'l_gripper_tool_frame')]))
 
     if desig.check_constraints([('type', 'park-arms')]):
         solutions.append(desig.make_dictionary([('cmd', 'park')]))
