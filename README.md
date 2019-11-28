@@ -23,7 +23,7 @@ To run the demo one needs, all files in the resources folder along with the [pr2
 ### Execute
 To execute the demo the follwing commands have to be executed:
 ```
-cd resources
+cd demo
 ```
 ```
 python3 run.py
