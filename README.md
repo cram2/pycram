@@ -8,7 +8,7 @@ PyCRAM requires [a specific fork of MacroPy](https://github.com/daugsten93/macro
 
 * **Andy Augsten** <a.augsten@uni-bremen.de>
 * **Dustin Augsten** <augsten@uni-bremen.de>
-* **Jonas Dech** <jdech@uni-bremen-de>>
+* **Jonas Dech** <jdech@uni-bremen-de>
 
 ## Dependecies 
 To work with the Bullet World of PyCRAM the follwing packages are required. 
