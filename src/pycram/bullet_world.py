@@ -77,8 +77,8 @@ class BulletWorld:
 
     def exit(self):
         BulletWorld.current_bullet_world = self.last_bullet_world
-        self._gui_thread.join()
         p.disconnect(self.client_id)
+        self._gui_thread.join()
 
 
 current_bullet_world = BulletWorld.current_bullet_world
