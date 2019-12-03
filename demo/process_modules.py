@@ -36,7 +36,6 @@ class Pr2Navigation(ProcessModule):
     """
     The process module to move the robot from one position to another.
     After moving the robot it will be checked if the robot is in collision with anything besides the floor.
-    If it is
     """
     def _execute(self, desig):
         solution = desig.reference()
@@ -47,7 +46,6 @@ class Pr2Navigation(ProcessModule):
                 if btr.contact(robot, obj):
                     if obj.name == "floor":
                         continue
-                    raise btr.ReasoningError
 
 
 class Pr2PickUp(ProcessModule):
@@ -177,7 +175,6 @@ class Pr2Detecting(ProcessModule):
     """
     This process module tries to detect an object with the given type. To be detected the object has to be in
     the field of view of the robot.
-    If no object is detected a ReasoningError is raised.
     """
     def _execute(self, desig):
         solultion = desig.reference()
@@ -197,7 +194,6 @@ class Pr2Detecting(ProcessModule):
             for obj in visible_objects:
                 if obj.type == object_type:
                     return obj
-            raise btr.ReasoningError
 
 
 class Pr2MoveTCP(ProcessModule):
