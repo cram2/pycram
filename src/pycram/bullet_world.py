@@ -1,7 +1,7 @@
 """Implementation of the BulletWorld
 
 Classes:
-BulletWorld -- The Represnation of the physics simulation
+BulletWorld -- The Representation of the physics simulation
 Gui -- Starts a new thread to keep the gui persistent
 Object -- Representation of an object in the BulletWorld
 """
@@ -59,7 +59,7 @@ class BulletWorld:
     def get_detachment_event(self):
         return self.detachment_event
 
-    def get_manupulation_event(self):
+    def get_manipulation_event(self):
         return self.manipulation_event
 
     def set_realtime(self, real_time):

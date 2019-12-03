@@ -1,5 +1,5 @@
 import process_modules
-import motion_designators # Needs o be imported to load Process Modules and designator solutions
+import motion_designators # Needs to be imported to load Process Modules and designator solutions
 import pycram.bullet_world_reasoning as btr
 from pycram.designator import MotionDesignator
 from pycram.process_module import ProcessModule
@@ -34,7 +34,6 @@ def move_object(object_type, target, arm):
     if object_type == "spoon":
         ProcessModule.perform(MotionDesignator([('type', 'accessing'), ('drawer-joint', 'sink_area_left_upper_drawer_main_joint'), ('drawer-handle', 'sink_area_left_upper_drawer_handle'), ('arm', 'left'), ('distance', 0.3), ('part-of', kitchen)]))
 
-    return
     ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', [1.3, 0.6, 1])]))
 
     det_obj = ProcessModule.perform(MotionDesignator([('type', 'detecting'), ('object', object_type)]))
@@ -63,8 +62,7 @@ def move_object(object_type, target, arm):
     targets[object_type][2] = True
 
 
-#object_types = ['milk', 'bowl', 'cereal', 'spoon']
-object_types = ['spoon']
+object_types = ['milk', 'bowl', 'cereal', 'spoon']
 for i in range(0, 4):
     if not targets[object_types[i]][2]:
         move_object(object_types[i], targets[object_types[i]][0], targets[object_types[i]][1])

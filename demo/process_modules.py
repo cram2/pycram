@@ -8,6 +8,12 @@ import time
 
 
 def _apply_ik(robot, joint_poses):
+    """
+    Apllies a list of joint poses calculated by an inverse kinematics solver to a robot
+    :param robot: The robot the joint poses should be applied on
+    :param joint_poses: The joint poses to be applied
+    :return: None
+    """
     for i in range(0, p.getNumJoints(robot.id)):
         qIndex = p.getJointInfo(robot.id, i)[3]
         if qIndex > -1:
@@ -15,6 +21,11 @@ def _apply_ik(robot, joint_poses):
 
 
 def _park_arms():
+    """
+    Defines the joint poses for the parking positions of the arms of the PR2 and applies them to the, in the BulletWorld
+    defined robot.
+    :return:
+    """
     joint_poses = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.9, -0.1, 1.6, 1.7,
                    0.087, 1.2, -1.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.9, -0.1, 1.6,
                    -1.7, -0.08, -1.2, 1.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -22,6 +33,11 @@ def _park_arms():
 
 
 class Pr2Navigation(ProcessModule):
+    """
+    The process module to move the robot from one position to another.
+    After moving the robot it will be checked if the robot is in collision with anything besides the floor.
+    If it is
+    """
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == 'navigate':
@@ -31,11 +47,13 @@ class Pr2Navigation(ProcessModule):
                 if btr.contact(robot, obj):
                     if obj.name == "floor":
                         continue
-                   # print(obj.type)
-                   # raise IOError # TODO fix error
+                    raise btr.ReasoningError
 
 
 class Pr2PickUp(ProcessModule):
+    """
+    This process module picks up a given object. The object has to be reachable for this process module to succeed.
+    """
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == 'pick':
@@ -57,6 +75,9 @@ class Pr2PickUp(ProcessModule):
 
 
 class Pr2Place(ProcessModule):
+    """
+    This process module places an object at the given position in world coordinate frame.
+    """
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == 'place':
@@ -72,6 +93,12 @@ class Pr2Place(ProcessModule):
 
 
 class Pr2Accessing(ProcessModule):
+    """
+    This process module responsible for opening drawers to access the objects inside. This works by firstly moving
+    the end effector to the handle of the drawer. Next, the end effector is moved the respective distance to the back.
+    This provides the illusion the robot would open the drawer by himself.
+    Then the drawer will be opened by setting the joint pose of the drawer joint.
+    """
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == 'access':
@@ -95,6 +122,10 @@ class Pr2Accessing(ProcessModule):
 
 
 class Pr2ParkArms(ProcessModule):
+    """
+    This process module is for moving the arms in a parking position.
+    It is currently not used.
+    """
     def _execute(self, desig):
         solutions = desig.reference()
         if solutions['cmd'] == 'park':
@@ -102,6 +133,10 @@ class Pr2ParkArms(ProcessModule):
 
 
 class Pr2MoveHead(ProcessModule):
+    """
+    This process module moves the head to look at a specific point in the world coordinate frame.
+    This point can either be a position or an object.
+    """
     def _execute(self, desig):
         solutions = desig.reference()
         if solutions['cmd'] == 'looking':
@@ -118,6 +153,10 @@ class Pr2MoveHead(ProcessModule):
 
 
 class Pr2MoveGripper(ProcessModule):
+    """
+    This process module controls the gripper of the robot. They can either be opened or closed.
+    Furthermore, it can only moved one gripper at a time.
+    """
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == "move-gripper":
@@ -135,6 +174,11 @@ class Pr2MoveGripper(ProcessModule):
 
 
 class Pr2Detecting(ProcessModule):
+    """
+    This process module tries to detect an object with the given type. To be detected the object has to be in
+    the field of view of the robot.
+    If no object is detected a ReasoningError is raised.
+    """
     def _execute(self, desig):
         solultion = desig.reference()
         if solultion['cmd'] == "detecting":
@@ -153,9 +197,13 @@ class Pr2Detecting(ProcessModule):
             for obj in visible_objects:
                 if obj.type == object_type:
                     return obj
+            raise btr.ReasoningError
 
 
 class Pr2MoveTCP(ProcessModule):
+    """
+    This process moves the tool center point of either the right or the left arm.
+    """
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == "move-tcp":
@@ -168,6 +216,10 @@ class Pr2MoveTCP(ProcessModule):
 
 
 class Pr2MoveJoints(ProcessModule):
+    """
+    This process modules moves the joints of either the right or the left arm. The joint states can be given as
+    list that should be applied or a pre-defined position can be used, such as "parking"
+    """
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == "move-joints":
@@ -199,8 +251,10 @@ class Pr2MoveJoints(ProcessModule):
             time.sleep(0.5)
 
 
-# Maybe Implement
 class Pr2WorldStateDetecting(ProcessModule):
+    """
+    This process module detectes an object even if it is not in the field of view of the robot.
+    """
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == "world-state-detecting":
@@ -222,6 +276,11 @@ pr2_world_state_detecting = Pr2WorldStateDetecting()
 
 
 def available_process_modules(desig):
+    """
+    This method chooses the right process module for the given designator and returns it.
+    :param desig: The designator for which a process module should be choosen.
+    :return: The choosen process module
+    """
     if desig.check_constraints([('type', 'moving')]):
         return pr2_navigation
 

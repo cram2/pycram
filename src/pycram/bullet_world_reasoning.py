@@ -9,6 +9,11 @@ class ReasoningError(Exception):
         Exception.__init__(self, *args, **kwargs)
 
 
+class CollisionError(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
+
+
 def _get_seg_mask_for_target(cam_position, target_position):
     """
     Calculates the view and projection Matrix and returns the Segmentation mask
