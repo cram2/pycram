@@ -35,22 +35,17 @@ def _park_arms():
 class Pr2Navigation(ProcessModule):
     """
     The process module to move the robot from one position to another.
-    After moving the robot it will be checked if the robot is in collision with anything besides the floor.
     """
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == 'navigate':
             robot = BulletWorld.robot
             robot.set_position_and_orientation(solution['target'], solution['orientation'])
-            for obj in BulletWorld.current_bullet_world.objects:
-                if btr.contact(robot, obj):
-                    if obj.name == "floor":
-                        continue
-
 
 class Pr2PickUp(ProcessModule):
     """
-    This process module picks up a given object. The object has to be reachable for this process module to succeed.
+    This process module is for picking up a given object.
+    The object has to be reachable for this process module to succeed.
     """
     def _execute(self, desig):
         solution = desig.reference()
@@ -58,17 +53,10 @@ class Pr2PickUp(ProcessModule):
             object = solution['object']
             robot = BulletWorld.robot
             target = object.get_position()
-            if not btr.reachable_object(object, BulletWorld.robot, solution['gripper']):
-                raise btr.ReasoningError
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), target,
                                                maxNumIterations=100)
             _apply_ik(robot, inv)
             robot.attach(object, solution['gripper'])
-            #time.sleep(0.3)
-            #_park_arms()
-            pos = p.getLinkState(robot.id, robot.get_link_id(solution['gripper']))[0]
-            p.resetBasePositionAndOrientation(object.id, pos, [0, 0, 0, 1])
-            #BulletWorld.current_bullet_world.simulate(1)
             time.sleep(0.5)
 
 
@@ -84,9 +72,8 @@ class Pr2Place(ProcessModule):
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), solution['target'],
                                            maxNumIterations=100)
             _apply_ik(robot, inv)
-            p.resetBasePositionAndOrientation(object.id, solution['target'], [0, 0, 0, 1])
+            object.set_pose(solution['target'])
             robot.detach(object)
-            #_park_arms()
             time.sleep(0.5)
 
 
@@ -113,9 +100,7 @@ class Pr2Accessing(ProcessModule):
             new_p = [han_pose[0] - dis, han_pose[1], han_pose[2]]
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), new_p)
             _apply_ik(robot, inv)
-            p.resetJointState(kitchen.id, kitchen.get_joint_id(drawer_joint), 0.3)
-            spoon = BulletWorld.current_bullet_world.get_objects_by_name("spoon")[0]
-            spoon.set_position([1.15, 0.7, 0.8])
+            kitchen.set_joint_state(drawer-joint, 0.3)
             time.sleep(0.5)
 
 
@@ -183,17 +168,11 @@ class Pr2Detecting(ProcessModule):
             object_type = solultion['object']
             cam_frame_name = solultion['cam_frame']
 
-            objects = BulletWorld.current_bullet_world.objects
-            visible_objects = []
+            objects = BulletWorld.current_bullet_world.get_objects_by_type(object_type)
             for obj in objects:
-                if obj.type == "environment":
-                    continue
                 if btr.visible(obj, robot.get_link_position(cam_frame_name)):
-                    visible_objects.append(obj)
-
-            for obj in visible_objects:
-                if obj.type == object_type:
-                    return obj
+                    if obj.type == object_type:
+                        return obj
 
 
 class Pr2MoveTCP(ProcessModule):
@@ -225,25 +204,14 @@ class Pr2MoveJoints(ProcessModule):
             if type(right_arm_poses) == list:
                 for i in range(0, 9):
                     p.resetJointState(robot.id, i + 42, right_arm_poses[i])
-                #time.sleep(0.5)
             elif type(right_arm_poses) == str and right_arm_poses == "park":
                 _park_arms()
-                #time.sleep(0.5)
 
             if type(left_arm_poses) == list:
                 for i in range(0, 9):
                     p.resetJointState(robot.id, i + 64, left_arm_poses[i])
-                #time.sleep(0.5)
             elif type(right_arm_poses) == str and left_arm_poses == "park":
                 _park_arms()
-                #time.sleep(0.5)
-
-            for at in BulletWorld.robot.attachments:
-                # lid = self.attachments[at][1]
-                lid = BulletWorld.robot.attachments[at][1]
-                new_p = p.getLinkState(BulletWorld.robot.id, lid)[0]
-                p.resetBasePositionAndOrientation(at.id, new_p, [0, 0, 0, 1])
-            BulletWorld.current_bullet_world.simulate(0.5)
             time.sleep(0.5)
 
 
@@ -315,5 +283,3 @@ def available_process_modules(desig):
 
 
 ProcessModule.resolvers.append(available_process_modules)
-
-
