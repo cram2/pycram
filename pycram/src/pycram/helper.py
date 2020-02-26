@@ -9,6 +9,14 @@ GeneratorList -- implementation of generator list wrappers.
 from inspect import isgeneratorfunction
 from macropy.core.quotes import macros, ast_literal, q
 
+
+def transform(pose, transformation):
+	res = [0, 0, 0]
+	for i in range(0, 3):
+		res[i] = pose[i] - transformation[i]
+	return res
+
+
 def _block(tree):
 	"""Wrap multiple statements into a single block and return it.
 
