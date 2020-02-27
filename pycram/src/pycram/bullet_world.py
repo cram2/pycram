@@ -134,9 +134,10 @@ class Object:
         self.joints = self._joint_or_link_name_to_id("joint")
         self.links = self._joint_or_link_name_to_id("link")
         self.attachments = {}
+        self.cids = {}
         self.world.objects.append(self)
 
-    def attach(self, object, parent_link=None, child_link=None):
+    def attach(self, object, link=None):
         """
         This method attaches two objects. This will be done by creating a virtual fixed joint between the two objects.
         After the attachment the attachment event of the BulletWorld will be fired.
@@ -146,23 +147,20 @@ class Object:
                                 for the base position
         :param child_link: The link Name of the other object to which this object should be attached or -1 for the base
         """
-        if object in self.attachments:
-            return
-        parent_link_id = -1 if parent_link is None else self.links[parent_link]
-        child_link_id = -1 if child_link is None else object.links[child_link]
-        world_gripper = p.getLinkState(self.id, parent_link_id)[4] if parent_link_id != -1 else self.get_position()
-        world_object = object.get_position()
-        gripper_object = p.multiplyTransforms(p.invertTransform(world_gripper, [0, 0, 0, 1])[0], [0, 0, 0, 1],
-                                              world_object, [0, 0, 0, 1], self.world.client_id)[0]
-        cid = p.createConstraint(self.id, parent_link_id,
-                                 object.id, child_link_id,
-                                 p.JOINT_FIXED,
-                                 [0, 1, 0], gripper_object, [0, 0, 0],
-                                 physicsClientId=self.world.client_id)
-        p.changeConstraint(cid, maxForce=30)
-        self.attachments[object] = cid, parent_link_id
-        object.attachments[self] = cid, parent_link_id
-        self.world.attachment_event(self, [self, object])
+        link_id = self.get_link_id(link) if link else -1
+        world_T_link =  self.get_link_position_and_orientation(link) if link else self.get_position_and_orientation()
+        link_T_world = p.invertTransform(world_T_link[0], world_T_link[1])
+        world_T_object = object.get_position_and_orientation()
+        link_T_object = p.multiplyTransforms(link_T_world[0], link_T_world[1],
+                                              world_T_object[0], world_T_object [1], self.world.client_id)
+        self.attachments[object] = [link_T_object, link]
+        object.attachments[self] = [p.invertTransform(link_T_object[0], link_T_object[1]), link]
+
+        cid = p.createConstraint(self.id, link_id, object.id, -1, p.JOINT_FIXED, [0, 1, 0], link_T_object[0], [0, 0, 0])
+        self.cids[object] = cid
+        object.cids[self] = cid
+
+
 
     def detach(self, object):
         """
@@ -170,12 +168,13 @@ class Object:
         corresponding BulletWorld w:ill be fired.
         :param object: The object which should be detached
         """
-        if object not in self.attachments:
-            return
-        p.removeConstraint(self.attachments[object][0])
         del self.attachments[object]
         del object.attachments[self]
-        self.world.detachment_event(self, [self, object])
+
+        p.removeConstraint(self.cids[object])
+
+        del self.cids[object]
+        del object.cids[self]
 
     def get_position(self):
         return p.getBasePositionAndOrientation(self.id)[0]
@@ -186,25 +185,27 @@ class Object:
     def get_orientation(self):
         return p.getBasePositionAndOrientation(self.id)[1]
 
+    def get_position_and_orientation(self):
+        return p.getBasePositionAndOrientation(self.id)[:2]
+
     def set_position_and_orientation(self, position, orientation):
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
-        for at in self.attachments:
-            lid = self.attachments[at][1]
-            new_p = p.getLinkState(BulletWorld.robot.id, lid)[0]
-            p.resetBasePositionAndOrientation(at.id, new_p, at.get_orientation(), self.world.client_id)
-        self.world.simulate(1)
+        for obj in self.attachments:
+            link_T_object = self.attachments[obj][0]
+            link_name = self.attachments[obj][1]
+            world_T_link = self.get_link_position_and_orientation(link_name) if link_name else self.get_position_and_orientation()
+            world_T_object = p.multiplyTransforms(world_T_link[0], world_T_link[1], link_T_object[0], link_T_object[1])
+            p.resetBasePositionAndOrientation(obj.id, world_T_object[0], world_T_object[1])
+            #obj.set_position_and_orientation(world_T_object[0], world_T_object[1])
 
     def set_position(self, position):
         self.set_position_and_orientation(position, self.get_orientation())
 
     def set_orientation(self, orientation):
-        p.resetBasePositionAndOrientation(self.id, self.get_position(), orientation, self.world.client_id)
+        self.set_position_and_orientation(self.get_position(), orientation)
 
     def set_pose(self, position):
         self.set_position(position)
-
-    def set_joint(self, joint, pose):
-        p.resetJointState(self.id, self.joints[joint], pose)
 
     def _joint_or_link_name_to_id(self, type):
         nJoints = p.getNumJoints(self.id)
@@ -231,7 +232,7 @@ class Object:
         return p.getLinkState(self.id, self.links[name])[1]
 
     def set_joint_state(self, joint_name, joint_pose):
-        p.resetJointState(self.id, self.get_joint_id(joint_name), joint_pose)
+        p.resetJointState(self.id, self.joints[joint], joint_pose)
 
 
 def _load_object(name, path, position, orientation, world, color):
