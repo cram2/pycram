@@ -154,12 +154,12 @@ class Object:
         link_T_object = p.multiplyTransforms(link_T_world[0], link_T_world[1],
                                               world_T_object[0], world_T_object [1], self.world.client_id)
         self.attachments[object] = [link_T_object, link]
-        object.attachments[self] = [p.invertTransform(link_T_object[0], link_T_object[1]), link]
+        object.attachments[self] = [p.invertTransform(link_T_object[0], link_T_object[1]), None]
 
         cid = p.createConstraint(self.id, link_id, object.id, -1, p.JOINT_FIXED, [0, 1, 0], link_T_object[0], [0, 0, 0])
         self.cids[object] = cid
         object.cids[self] = cid
-
+        self.world.attachment_event(self, [self, object])
 
 
     def detach(self, object):
@@ -175,6 +175,7 @@ class Object:
 
         del self.cids[object]
         del object.cids[self]
+        self.world.detachment_event(self, [self, object])
 
     def get_position(self):
         return p.getBasePositionAndOrientation(self.id)[0]
@@ -190,13 +191,15 @@ class Object:
 
     def set_position_and_orientation(self, position, orientation):
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
+        self._set_attached_objects()
+
+    def _set_attached_objects(self):
         for obj in self.attachments:
             link_T_object = self.attachments[obj][0]
             link_name = self.attachments[obj][1]
             world_T_link = self.get_link_position_and_orientation(link_name) if link_name else self.get_position_and_orientation()
             world_T_object = p.multiplyTransforms(world_T_link[0], world_T_link[1], link_T_object[0], link_T_object[1])
             p.resetBasePositionAndOrientation(obj.id, world_T_object[0], world_T_object[1])
-            #obj.set_position_and_orientation(world_T_object[0], world_T_object[1])
 
     def set_position(self, position):
         self.set_position_and_orientation(position, self.get_orientation())
@@ -232,7 +235,9 @@ class Object:
         return p.getLinkState(self.id, self.links[name])[1]
 
     def set_joint_state(self, joint_name, joint_pose):
-        p.resetJointState(self.id, self.joints[joint], joint_pose)
+        p.resetJointState(self.id, self.joints[joint_name], joint_pose)
+        self._set_attached_objects()
+
 
 
 def _load_object(name, path, position, orientation, world, color):
