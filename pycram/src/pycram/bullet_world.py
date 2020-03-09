@@ -140,7 +140,7 @@ class Object:
         self.cids = {}
         self.world.objects.append(self)
 
-    def attach(self, object, link=None):
+    def attach(self, object, link=None, loose=False):
         """
         This method attaches an other object to this object. This is done by
         saving the transformation between the given link, if there is one, and
@@ -153,15 +153,11 @@ class Object:
         attached.
         """
         link_id = self.get_link_id(link) if link else -1
-        world_T_link =  self.get_link_position_and_orientation(link) if link else self.get_position_and_orientation()
-        link_T_world = p.invertTransform(world_T_link[0], world_T_link[1])
-        world_T_object = object.get_position_and_orientation()
-        link_T_object = p.multiplyTransforms(link_T_world[0], link_T_world[1],
-                                              world_T_object[0], world_T_object [1], self.world.client_id)
-        self.attachments[object] = [link_T_object, link]
-        object.attachments[self] = [p.invertTransform(link_T_object[0], link_T_object[1]), None]
+        link_T_object = self._calculate_transform(object, link)
+        self.attachments[object] = [link_T_object, link, loose]
+        object.attachments[self] = [p.invertTransform(link_T_object[0], link_T_object[1]), None, False]
 
-        cid = p.createConstraint(self.id, link_id, object.id, -1, p.JOINT_FIXED, [0, 1, 0], link_T_object[0], [0, 0, 0])
+        cid = p.createConstraint(self.id, link_id, object.id, -1, p.JOINT_FIXED, [0, 1, 0], link_T_object[0], [0, 0, 0], link_T_object[1])
         self.cids[object] = cid
         object.cids[self] = cid
         self.world.attachment_event(self, [self, object])
@@ -199,7 +195,7 @@ class Object:
 
     def set_position_and_orientation(self, position, orientation):
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
-        self._set_attached_objects(self)
+        self._set_attached_objects(None)
 
     def _set_attached_objects(self, prev_object):
         """
@@ -208,17 +204,40 @@ class Object:
         base pose of the attached objects to this new pose.
         After this the _set_attached_objects method of all attached objects
         will be called.
-        :param prev_object:
+        :param prev_object: The object that called this method, this will be
+        excluded to prevent recursion in the update.
         """
         for obj in self.attachments:
             if obj == prev_object:
                 continue
-            link_T_object = self.attachments[obj][0]
-            link_name = self.attachments[obj][1]
-            world_T_link = self.get_link_position_and_orientation(link_name) if link_name else self.get_position_and_orientation()
-            world_T_object = p.multiplyTransforms(world_T_link[0], world_T_link[1], link_T_object[0], link_T_object[1])
-            p.resetBasePositionAndOrientation(obj.id, world_T_object[0], world_T_object[1])
-            obj._set_attached_objects(self)
+            if self.attachments[obj][2]:
+                # Updates the attachment transformation and contraint if the
+                # attachment is loos, instead of updating the position of all attached objects
+                link_T_object = self._calculate_transform(obj, self.attachments[obj][1])
+                link_id = self.get_link_id(self.attachments[obj][1]) if self.attachments[obj][1] else -1
+                self.attachments[obj][0] = link_T_object
+                obj.attachments[self][0] = p.invertTransform(link_T_object[0], link_T_object[1])
+                p.removeConstraint(self.cids[obj])
+                cid = p.createConstraint(self.id, link_id, obj.id, -1, p.JOINT_FIXED, [0, 0, 0], link_T_object[0], [0, 0, 0], link_T_object[1])
+                self.cids[obj] = cid
+                obj.cids[self] = cid
+            else:
+                # Updates the position of all attached objects
+                link_T_object = self.attachments[obj][0]
+                link_name = self.attachments[obj][1]
+                world_T_link = self.get_link_position_and_orientation(link_name) if link_name else self.get_position_and_orientation()
+                world_T_object = p.multiplyTransforms(world_T_link[0], world_T_link[1], link_T_object[0], link_T_object[1])
+                p.resetBasePositionAndOrientation(obj.id, world_T_object[0], world_T_object[1])
+                obj._set_attached_objects(self)
+
+    def _calculate_transform(self, obj, link):
+        link_id = self.get_link_id(link) if link else -1
+        world_T_link =  self.get_link_position_and_orientation(link) if link else self.get_position_and_orientation()
+        link_T_world = p.invertTransform(world_T_link[0], world_T_link[1])
+        world_T_object = obj.get_position_and_orientation()
+        link_T_object = p.multiplyTransforms(link_T_world[0], link_T_world[1],
+                                              world_T_object[0], world_T_object [1], self.world.client_id)
+        return link_T_object
 
     def set_position(self, position):
         self.set_position_and_orientation(position, self.get_orientation())
@@ -255,7 +274,7 @@ class Object:
 
     def set_joint_state(self, joint_name, joint_pose):
         p.resetJointState(self.id, self.joints[joint_name], joint_pose)
-        self._set_attached_objects(self)
+        self._set_attached_objects(None)
 
 
 
