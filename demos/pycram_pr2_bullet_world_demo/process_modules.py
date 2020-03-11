@@ -6,6 +6,37 @@ import pybullet as p
 import numpy as np
 import time
 
+right_arm_park = {"r_shoulder_pan_joint" : -1.9,
+                    "r_shoulder_lift_joint" : -0.1,
+                    "r_upper_arm_roll_joint" : 1.6,
+                    "r_upper_arm_joint" : 1.7,
+                    "r_elbow_flex_joint" : 0.087,
+                    "r_forearm_roll_joint" : 1.2,
+                    "r_forearm_joint" : -1.2}
+left_arm_park = {"l_shoulder_pan_joint" : 1.9,
+                    "l_shoulder_lift_joint" : -0.1,
+                    "l_upper_arm_roll_joint" : 1.6,
+                    "l_upper_arm_joint" : -1.7,
+                    "l_elbow_flex_joint" : -0.087,
+                    "l_forearm_roll_joint" : -1.2,
+                    "l_forearm_joint" : 1.2}
+ik_joints = ["fl_caster_rotation_joint", "fl_caster_l_wheel_joint", "fl_caster_r_wheel_joint",
+            "fr_caster_rotation_joint", "fr_caster_l_wheel_joint", "fr_caster_r_wheel_joint",
+            "bl_caster_rotation_joint", "bl_caster_l_wheel_joint", "bl_caster_r_wheel_joint",
+            "br_caster_rotation_joint", "br_caster_l_wheel_joint", "br_caster_r_wheel_joint",
+            "head_pan_joint", "head_tilt_joint", "laser_tilt_mount_joint", "r_shoulder_pan_joint",
+            "r_shoulder_lift_joint", "r_upper_arm_roll_joint", "r_elbow_flex_joint",
+            "r_forearm_roll_joint", "r_wrist_flex_joint", "r_wrist_roll_joint",
+            "r_gripper_motor_slider_joint", "r_gripper_motor_screw_joint",
+            "r_gripper_l_finger_joint", "r_gripper_l_finger_tip_joint",
+            "r_gripper_r_finger_joint", "r_gripper_r_finger_tip_joint",
+            "r_gripper_joint", "l_shoulder_pan_joint", "l_shoulder_lift_joint",
+            "l_upper_arm_roll_joint", "l_elbow_flex_joint", "l_forearm_roll_joint",
+            "l_wrist_flex_joint", "l_wrist_roll_joint", "l_gripper_motor_slider_joint",
+            "l_gripper_motor_screw_joint", "l_gripper_l_finger_joint",
+            "l_gripper_l_finger_tip_joint", "l_gripper_r_finger_joint",
+            "l_gripper_r_finger_tip_joint", "l_gripper_joint", "torso_lift_motor_screw_joint"]
+
 
 def _apply_ik(robot, joint_poses):
     """
@@ -14,22 +45,27 @@ def _apply_ik(robot, joint_poses):
     :param joint_poses: The joint poses to be applied
     :return: None
     """
-    for i in range(0, p.getNumJoints(robot.id)):
-        qIndex = p.getJointInfo(robot.id, i)[3]
-        if qIndex > -1:
-            p.resetJointState(robot.id, i, joint_poses[qIndex-7])
+    for i in range(0, len(ik_joints):
+        robot.set_joint_state(ik_joints[i], joint_poses[i])
 
 
-def _park_arms():
+def _park_arms(arm):
     """
     Defines the joint poses for the parking positions of the arms of the PR2 and applies them to the, in the BulletWorld
     defined robot.
     :return:
     """
-    joint_poses = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.9, -0.1, 1.6, 1.7,
-                   0.087, 1.2, -1.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.9, -0.1, 1.6,
-                   -1.7, -0.08, -1.2, 1.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    _apply_ik(BulletWorld.robot, joint_poses)
+    #joint_poses = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.9, -0.1, 1.6, 1.7,
+    #               0.087, 1.2, -1.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.9, -0.1, 1.6,
+    #               -1.7, -0.08, -1.2, 1.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+    robot = BulletWorld.robot
+    if arm == "right":
+        for joint, pose in right_arm_park.items():
+            robot.set_joint_state(joint, pose)
+    if arm == "left":
+        for joint, pose in left_arm_park.items():
+            robot.set_joint_state(joint, pose)
 
 
 class Pr2Navigation(ProcessModule):
@@ -131,8 +167,8 @@ class Pr2MoveHead(ProcessModule):
             new_pan = np.arctan([pose_in_pan[1], pose_in_pan[0]])
             new_tilt = np.arctan([-pose_in_tilt[2], pose_in_tilt[0]**2 + pose_in_tilt[1]**2])
 
-            p.resetJointState(robot.id, 19, new_pan[0])
-            p.resetJointState(robot.id, 20, new_tilt[0])
+            robot.set_joint_state("head_pan_joint", new_pan[0])
+            robot.set_joint_state("head_tilt_joint", new_tilt[0])
 
 
 class Pr2MoveGripper(ProcessModule):
@@ -146,14 +182,11 @@ class Pr2MoveGripper(ProcessModule):
             robot = BulletWorld.robot
             gripper = solution['gripper']
             motion = solution['motion']
-            if gripper == 'right':
-                p.resetJointState(robot.id, 57, 0 if motion == "close" else 0.548)
-                p.resetJointState(robot.id, 59, 0 if motion == "close" else 0.548)
-                time.sleep(0.5)
-            if gripper == 'left':
-                p.resetJointState(robot.id, 79, 0 if motion == "close" else 0.548)
-                p.resetJointState(robot.id, 81, 0 if motion == "close" else 0.548)
-                time.sleep(0.5)
+            robot.set_joint_state("r_gripper_l_finger_joint" if gripper == 'right' else "l_gripper_l_finger_joint",
+                                        0 if motion == "close" else 0.548)
+            robot.set_joint_state("r_gripper_r_finger_joint" if gripper == 'right' else "l_gripper_r_finger_joint",
+                                        0 if motion == "close" else 0.548)
+            time.sleep(0.5)
 
 
 class Pr2Detecting(ProcessModule):
@@ -171,8 +204,7 @@ class Pr2Detecting(ProcessModule):
             objects = BulletWorld.current_bullet_world.get_objects_by_type(object_type)
             for obj in objects:
                 if btr.visible(obj, robot.get_link_position(cam_frame_name)):
-                    if obj.type == object_type:
-                        return obj
+                    return obj
 
 
 class Pr2MoveTCP(ProcessModule):
@@ -201,17 +233,18 @@ class Pr2MoveJoints(ProcessModule):
             robot = BulletWorld.robot
             right_arm_poses = solution['right-poses']
             left_arm_poses = solution['left-poses']
-            if type(right_arm_poses) == list:
-                for i in range(0, 9):
-                    p.resetJointState(robot.id, i + 42, right_arm_poses[i])
+            if type(right_arm_poses) == dict:
+                for joint, pose in right_arm_poses.items():
+                    robot.set_joint_state(joint, pose)
             elif type(right_arm_poses) == str and right_arm_poses == "park":
-                _park_arms()
+                _park_arms("right")
 
-            if type(left_arm_poses) == list:
-                for i in range(0, 9):
-                    p.resetJointState(robot.id, i + 64, left_arm_poses[i])
+            if type(left_arm_poses) == dict:
+                for joint, pose in left_arm_poses.items():
+                    robot.set_joint_state(joint, pose)
             elif type(right_arm_poses) == str and left_arm_poses == "park":
-                _park_arms()
+                _park_arms("left")
+
             time.sleep(0.5)
 
 
