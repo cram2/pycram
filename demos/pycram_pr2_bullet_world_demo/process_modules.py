@@ -6,20 +6,19 @@ import pybullet as p
 import numpy as np
 import time
 
-right_arm_park = {"r_shoulder_pan_joint" : -1.9,
-                    "r_shoulder_lift_joint" : -0.1,
-                    "r_upper_arm_roll_joint" : 1.6,
-                    "r_upper_arm_joint" : 1.7,
-                    "r_elbow_flex_joint" : 0.087,
-                    "r_forearm_roll_joint" : 1.2,
-                    "r_forearm_joint" : -1.2}
-left_arm_park = {"l_shoulder_pan_joint" : 1.9,
-                    "l_shoulder_lift_joint" : -0.1,
-                    "l_upper_arm_roll_joint" : 1.6,
-                    "l_upper_arm_joint" : -1.7,
-                    "l_elbow_flex_joint" : -0.087,
-                    "l_forearm_roll_joint" : -1.2,
-                    "l_forearm_joint" : 1.2}
+right_arm_park = {"r_shoulder_pan_joint" : -1.712,
+                    "r_shoulder_lift_joint" : -0.256,
+                    "r_upper_arm_roll_joint" : -1.463,
+                    "r_elbow_flex_joint" : -2.12,
+                    "r_forearm_roll_joint" : 1.766,
+                    "r_wrist_flex_joint" : -0.07,
+                    "r_wrist_roll_joint" : 0.051}
+left_arm_park = {"l_shoulder_pan_joint" : 1.712,
+                    "l_shoulder_lift_joint" : -0.264,
+                    "l_upper_arm_roll_joint" : 1.38,
+                    "l_elbow_flex_joint" : -2.12,
+                    "l_forearm_roll_joint" : 16.996,
+                    "l_wrist_flex_joint" : -0.073}
 ik_joints = ["fl_caster_rotation_joint", "fl_caster_l_wheel_joint", "fl_caster_r_wheel_joint",
             "fr_caster_rotation_joint", "fr_caster_l_wheel_joint", "fr_caster_r_wheel_joint",
             "bl_caster_rotation_joint", "bl_caster_l_wheel_joint", "bl_caster_r_wheel_joint",
@@ -45,7 +44,7 @@ def _apply_ik(robot, joint_poses):
     :param joint_poses: The joint poses to be applied
     :return: None
     """
-    for i in range(0, len(ik_joints):
+    for i in range(0, len(ik_joints)):
         robot.set_joint_state(ik_joints[i], joint_poses[i])
 
 
@@ -108,7 +107,6 @@ class Pr2Place(ProcessModule):
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), solution['target'],
                                            maxNumIterations=100)
             _apply_ik(robot, inv)
-            object.set_pose(solution['target'])
             robot.detach(object)
             time.sleep(0.5)
 
@@ -136,7 +134,8 @@ class Pr2Accessing(ProcessModule):
             new_p = [han_pose[0] - dis, han_pose[1], han_pose[2]]
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), new_p)
             _apply_ik(robot, inv)
-            kitchen.set_joint_state(drawer-joint, 0.3)
+            print(drawer_joint)
+            kitchen.set_joint_state(drawer_joint, 0.3)
             time.sleep(0.5)
 
 
