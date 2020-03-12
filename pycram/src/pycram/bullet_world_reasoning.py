@@ -18,8 +18,8 @@ def _get_seg_mask_for_target(target_position, cam_position):
     """
     Calculates the view and projection Matrix and returns the Segmentation mask
     The segmentation mask indicates for every pixel the visible Object.
-    :param cam_position: The position of the Camera as a list of x,y,z
-    :param target_position: The position to which the camera should point as a list of x,y,z
+    :param cam_position: The position of the Camera as a list of x,y,z and orientation as quaternion
+    :param target_position: The position to which the camera should point as a list of x,y,z and orientation as quaternion
     :return: The Segmentation mask from the camera position
     """
     fov = 300
@@ -92,13 +92,18 @@ def contact(object1, object2, world=None):
     return con_points is not ()
 
 
-def visible(object, camera_position_and_orientation, front_facing_axis, world=None):
+def visible(object, camera_position_and_orientation, front_facing_axis, threshold=0.8 world=None):
     """
     This reasoning query checks if an object is visible from a given position. This will be achieved by rendering the object
     alone and counting the visible pixel, then rendering the complete scene and compare the visible pixels with the
     absolut count of pixels.
     :param object: The object for which the visibility should be checked
-    :param camera_position: The position of which the camera looks at the object
+    :param camera_position_and_orientation: The position and orientation of the
+    camera in world coordinate fram
+    :front_facing_axis: The axis, of the camera frame, which faces to the front of
+    the robot. Given as list of x, y, z
+    :threshold: The minimum percentage of the object that needs to be visibile
+    for this method to return true
     :param world: The BulletWorld if more than one BulletWorld is active
     :return: True if the object is visible from the camera_position False if not
     """
@@ -127,7 +132,7 @@ def visible(object, camera_position_and_orientation, front_facing_axis, world=No
         # Object is not visible
         return False
 
-    return real_pixel / max_pixel > 0.8 > 0
+    return real_pixel / max_pixel > threshold > 0
 
 
 def occluding(object, camera_position_and_orientation, front_facing_axis, world=None):
@@ -137,7 +142,10 @@ def occluding(object, camera_position_and_orientation, front_facing_axis, world=
     After that the complete scene will be rendered and the previous saved pixel positions will be compared to the
     actual pixels, if in one pixel an other object is visible ot will be saved as occluding.
     :param object: The object for which occluding should be checked
-    :param camera_position: The position from which the camera looks at the object
+    :param camera_position_and_orientation: The position and orientation of the
+    camera in world coordinate frame
+    :front_facing_axis: The axis, of the camera frame, which faces to the front of
+    the robot. Given as list of x, y, z
     :param world: The BulletWorld if more than one BulletWorld is active
     :return: A list of occluding objects
     """
