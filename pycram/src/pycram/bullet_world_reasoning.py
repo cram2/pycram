@@ -92,7 +92,7 @@ def contact(object1, object2, world=None):
     return con_points is not ()
 
 
-def visible(object, camera_position_and_orientation, front_facing_axis, threshold=0.8 world=None):
+def visible(object, camera_position_and_orientation, front_facing_axis, threshold=0.8, world=None):
     """
     This reasoning query checks if an object is visible from a given position. This will be achieved by rendering the object
     alone and counting the visible pixel, then rendering the complete scene and compare the visible pixels with the
