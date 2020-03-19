@@ -27,7 +27,7 @@ def _get_seg_mask_for_target(target_position, cam_position):
     near = 0.2
     far = 10
 
-    view_matrix = p.computeViewMatrix(cam_position[0], target_position[0], p.getEulerFromQuaternion(cam_position[1]))
+    view_matrix = p.computeViewMatrix(cam_position[0], target_position[0], [0, 0, -1])
     projection_matrix = p.computeProjectionMatrixFOV(fov, aspect, near, far)
     return p.getCameraImage(256, 256, view_matrix, projection_matrix)[4]
 
