@@ -80,6 +80,15 @@ class BulletWorld:
         p.disconnect(self.client_id)
         self._gui_thread.join()
 
+    def copy(self):
+        world = BulletWorld("DIRECT")
+        for obj in self.objects:
+            o = Object(obj.name, obj.type, obj.path, obj.get_position(), obj.get_orientation(),
+                            world, obj.color)
+            for joint in obj.joints:
+                o.set_joint_state(joint, obj.get_joint_state(joint))
+        return world
+
 
 current_bullet_world = BulletWorld.current_bullet_world
 
@@ -130,6 +139,7 @@ class Object:
         self.name = name
         self.type = type
         self.path = path
+        self.color = color
         self.id = _load_object(name, path, position, orientation, world, color)
         self.joints = self._joint_or_link_name_to_id("joint")
         self.links = self._joint_or_link_name_to_id("link")
@@ -232,6 +242,9 @@ class Object:
 
     def set_joint_state(self, joint_name, joint_pose):
         p.resetJointState(self.id, self.get_joint_id(joint_name), joint_pose)
+
+    def get_joint_state(self, joint_name):
+        return p.getJointState(self.id, self.joints[joint_name])[0]
 
 
 def _load_object(name, path, position, orientation, world, color):
