@@ -14,7 +14,7 @@ class CollisionError(Exception):
         Exception.__init__(self, *args, **kwargs)
 
 
-def _get_seg_mask_for_target(target_position, cam_position):
+def _get_seg_mask_for_target(target_position, cam_position, world=None):
     """
     Calculates the view and projection Matrix and returns the Segmentation mask
     The segmentation mask indicates for every pixel the visible Object.
@@ -22,6 +22,7 @@ def _get_seg_mask_for_target(target_position, cam_position):
     :param target_position: The position to which the camera should point as a list of x,y,z and orientation as quaternion
     :return: The Segmentation mask from the camera position
     """
+    world, world_id = _world_and_id(world)
     fov = 300
     aspect = 256 / 256
     near = 0.2
@@ -29,7 +30,7 @@ def _get_seg_mask_for_target(target_position, cam_position):
 
     view_matrix = p.computeViewMatrix(cam_position[0], target_position[0], [0, 0, -1])
     projection_matrix = p.computeProjectionMatrixFOV(fov, aspect, near, far)
-    return p.getCameraImage(256, 256, view_matrix, projection_matrix)[4]
+    return p.getCameraImage(256, 256, view_matrix, projection_matrix, physicsClientId=world_id)[4]
 
 
 def _get_joint_ranges(robot):
@@ -64,14 +65,14 @@ def stable(object, world=None):
     """
     world, world_id = _world_and_id(world)
     coords_prev = p.getBasePositionAndOrientation(object.id, physicsClientId=world_id)[0]
-    state = p.saveState()
-    p.setGravity(0, 0, -9.8)
+    state = p.saveState(physicsClientId=world_id)
+    p.setGravity(0, 0, -9.8, world_id)
 
     # one Step is approximately 1/240 seconds
     world.simulate(2)
     coords_past = p.getBasePositionAndOrientation(object.id, physicsClientId=world_id)[0]
 
-    p.restoreState(state)
+    p.restoreState(state, physicsClientId=world_id)
     coords_prev = list(map(lambda n: round(n, 3), coords_prev))
     coords_past = list(map(lambda n: round(n, 3), coords_past))
     return coords_past == coords_prev
@@ -108,7 +109,7 @@ def visible(object, camera_position_and_orientation, front_facing_axis, threshol
     :return: True if the object is visible from the camera_position False if not
     """
     world, world_id = _world_and_id(world)
-    state = p.saveState()
+    state = p.saveState(physicsClientId=world_id)
     for obj in world.objects:
         if obj.id is not object.id:
             # p.removeBody(object.id, physicsClientId=world_id)
@@ -119,10 +120,10 @@ def visible(object, camera_position_and_orientation, front_facing_axis, threshol
     cam_T_point = list(np.multiply(front_facing_axis, 2))
     target_point = p.multiplyTransforms(world_T_cam[0], world_T_cam[1], cam_T_point, [0, 0, 0, 1])
 
-    seg_mask = _get_seg_mask_for_target(target_point, world_T_cam)
+    seg_mask = _get_seg_mask_for_target(target_point, world_T_cam, world)
     flat_list = list(itertools.chain.from_iterable(seg_mask))
     max_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
-    p.restoreState(state)
+    p.restoreState(state, physicsClientId=world_id)
 
     seg_mask = _get_seg_mask_for_target(target_point, world_T_cam)
     flat_list = list(itertools.chain.from_iterable(seg_mask))
@@ -150,7 +151,7 @@ def occluding(object, camera_position_and_orientation, front_facing_axis, world=
     :return: A list of occluding objects
     """
     world, world_id = _world_and_id(world)
-    state = p.saveState()
+    state = p.saveState(physicsClientId=world_id)
     for obj in world.objects:
         if obj.id is not object.id:
             # p.removeBody(object.id, physicsClientId=world_id)
@@ -161,13 +162,13 @@ def occluding(object, camera_position_and_orientation, front_facing_axis, world=
     cam_T_point = list(np.multiply(front_facing_axis, 2))
     target_point = p.multiplyTransforms(world_T_cam[0], world_T_cam[1], cam_T_point, [0, 0, 0, 1])
 
-    seg_mask = _get_seg_mask_for_target(target_point, world_T_cam)
+    seg_mask = _get_seg_mask_for_target(target_point, world_T_cam, world)
     pixels = []
     for i in range(0, 256):
         for j in range(0, 256):
             if seg_mask[i][j] == object.id:
                 pixels.append((i, j))
-    p.restoreState(state)
+    p.restoreState(state, physicsClientId=world_id)
 
     occluding = []
     seg_mask = _get_seg_mask_for_target(target_point, world_T_cam)
@@ -208,7 +209,7 @@ def reachable_pose(pose, robot, gripper_name, world=None, threshold=0.01):
     to the target position, False in every other case to the target position, False in every other case
     """
     world, world_id = _world_and_id(world)
-    state = p.saveState()
+    state = p.saveState(physicsClientId=world_id)
     inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper_name), pose,
                                        maxNumIterations=100, physicsClientId=world_id)
     for i in range(p.getNumJoints(robot.id)):
@@ -218,7 +219,7 @@ def reachable_pose(pose, robot, gripper_name, world=None, threshold=0.01):
 
     newp = p.getLinkState(robot.id, robot.get_link_id(gripper_name))[4]
     diff = [pose[0] - newp[0], pose[1] - newp[1],  pose[2] - newp[2]]
-    p.restoreState(state)
+    p.restoreState(state, physicsClientId=world_id)
     return np.sqrt(diff[0] ** 2 + diff[1] ** 2 + diff[2] ** 2) < threshold
 
 
@@ -234,7 +235,7 @@ def blocking(object, robot, gripper_name, world=None):
     :return: A list of objects the robot is in collision with when reaching for the specified object
     """
     world, world_id = _world_and_id(world)
-    state = p.saveState()
+    state = p.saveState(physicsClientId=world_id)
     inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper_name), object.get_pose(),
                                        maxNumIterations=100, physicsClientId=world_id)
     for i in range(0, p.getNumJoints(robot.id)):
@@ -248,7 +249,7 @@ def blocking(object, robot, gripper_name, world=None):
             continue
         if contact(robot, obj, world):
             block.append(obj)
-    p.restoreState(state)
+    p.restoreState(state, physicsClientId=world_id)
     return block
 
 
