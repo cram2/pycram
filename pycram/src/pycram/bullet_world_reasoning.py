@@ -1,6 +1,7 @@
 import pybullet as p
 import itertools
 import numpy as np
+import time
 from .bullet_world import _world_and_id
 
 
@@ -75,13 +76,15 @@ def stable(object, world=None):
     p.restoreState(state, physicsClientId=world_id)
     coords_prev = list(map(lambda n: round(n, 3), coords_prev))
     coords_past = list(map(lambda n: round(n, 3), coords_past))
+    print(coords_prev)
+    print(coords_past)
     return coords_past == coords_prev
 
 
 def contact(object1, object2, world=None):
     """
     This reasoning query checks if two objects are in contact or not.
-    :param object1: The first object, [-1, 0, -1])
+    :param object1: The first object
     :param object2: The second object
     :param world: The BulletWorld if more than one BulletWorld is active
     :return: True if the two objects are in contact False else
@@ -125,13 +128,13 @@ def visible(object, camera_position_and_orientation, front_facing_axis, threshol
     max_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
     p.restoreState(state, physicsClientId=world_id)
 
-    seg_mask = _get_seg_mask_for_target(target_point, world_T_cam)
-    flat_list = list(itertools.chain.from_iterable(seg_mask))
-    real_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
-
     if max_pixel == 0:
         # Object is not visible
         return False
+
+    seg_mask = _get_seg_mask_for_target(target_point, world_T_cam, world)
+    flat_list = list(itertools.chain.from_iterable(seg_mask))
+    real_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
 
     return real_pixel / max_pixel > threshold > 0
 
@@ -171,7 +174,7 @@ def occluding(object, camera_position_and_orientation, front_facing_axis, world=
     p.restoreState(state, physicsClientId=world_id)
 
     occluding = []
-    seg_mask = _get_seg_mask_for_target(target_point, world_T_cam)
+    seg_mask = _get_seg_mask_for_target(target_point, world_T_cam, world)
     for c in pixels:
         if not seg_mask[c[0]][c[1]] == object.id:
             occluding.append(seg_mask[c[0]][c[1]])
@@ -212,12 +215,12 @@ def reachable_pose(pose, robot, gripper_name, world=None, threshold=0.01):
     state = p.saveState(physicsClientId=world_id)
     inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper_name), pose,
                                        maxNumIterations=100, physicsClientId=world_id)
-    for i in range(p.getNumJoints(robot.id)):
-        qIndex = p.getJointInfo(robot.id, i)[3]
+    for i in range(p.getNumJoints(robot.id, world_id)):
+        qIndex = p.getJointInfo(robot.id, i, world_id)[3]
         if qIndex > -1:
-            p.resetJointState(robot.id, i, inv[qIndex-7])
+            p.resetJointState(robot.id, i, inv[qIndex-7], physicsClientId=world_id)
 
-    newp = p.getLinkState(robot.id, robot.get_link_id(gripper_name))[4]
+    newp = p.getLinkState(robot.id, robot.get_link_id(gripper_name), physicsClientId=world_id)[4]
     diff = [pose[0] - newp[0], pose[1] - newp[1],  pose[2] - newp[2]]
     p.restoreState(state, physicsClientId=world_id)
     return np.sqrt(diff[0] ** 2 + diff[1] ** 2 + diff[2] ** 2) < threshold
@@ -238,10 +241,10 @@ def blocking(object, robot, gripper_name, world=None):
     state = p.saveState(physicsClientId=world_id)
     inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper_name), object.get_pose(),
                                        maxNumIterations=100, physicsClientId=world_id)
-    for i in range(0, p.getNumJoints(robot.id)):
-        qIndex = p.getJointInfo(robot.id, i)[3]
+    for i in range(0, p.getNumJoints(robot.id, world_id)):
+        qIndex = p.getJointInfo(robot.id, i, world_id)[3]
         if qIndex > -1:
-            p.resetJointState(robot.id, i, inv[qIndex-7])
+            p.resetJointState(robot.id, i, inv[qIndex-7], physicsClientId=world_id)
 
     block = []
     for obj in world.objects:
