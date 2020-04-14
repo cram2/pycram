@@ -95,7 +95,8 @@ current_bullet_world = BulletWorld.current_bullet_world
 
 class Gui(threading.Thread):
     """
-    This class is for internal use only. It initializes the physics simulation in a new thread an holds it active.
+    This class is for internal use only. It initializes the physics simulation
+    in a new thread an holds it active.
     """
     def __init__(self, world, type):
         threading.Thread.__init__(self)
@@ -104,8 +105,10 @@ class Gui(threading.Thread):
 
     def run(self):
         """
-        This method initializes the new simulation and checks in an endless loop if it is still active. If it is the
-        thread will be suspended for 10 seconds, if it is not the method and thus the thread terminates.
+        This method initializes the new simulation and checks in an endless loop
+        if it is still active. If it is the
+        thread will be suspended for 10 seconds, if it is not the method and
+        thus the thread terminates.
         """
         if self.type == "GUI":
             self.world.client_id = p.connect(p.GUI)
@@ -144,47 +147,48 @@ class Object:
         self.joints = self._joint_or_link_name_to_id("joint")
         self.links = self._joint_or_link_name_to_id("link")
         self.attachments = {}
+        self.cids = {}
         self.world.objects.append(self)
 
-    def attach(self, object, parent_link=None, child_link=None):
+    def attach(self, object, link=None, loose=False):
         """
-        This method attaches two objects. This will be done by creating a virtual fixed joint between the two objects.
-        After the attachment the attachment event of the BulletWorld will be fired.
-        It can only exist one attachment between two objects.
-        :param object: The object which should be attached to this object
-        :param parent_link: The Name of the link of this object to which the other object should be attached or -1
-                                for the base position
-        :param child_link: The link Name of the other object to which this object should be attached or -1 for the base
+        This method attaches an other object to this object. This is done by
+        saving the transformation between the given link, if there is one, and
+        the base pose of the other object. Additional the name of the link, to
+        which the obejct is attached, will be saved.
+        Furthermore, a constraint of pybullet will be created so the attachment
+        also works in the simulation.
+        :param object: The other object that should be attached
+        :param link: The link of this obejct to which the other object should be
+        attached.
         """
-        if object in self.attachments:
-            return
-        parent_link_id = -1 if parent_link is None else self.links[parent_link]
-        child_link_id = -1 if child_link is None else object.links[child_link]
-        world_gripper = p.getLinkState(self.id, parent_link_id)[4] if parent_link_id != -1 else self.get_position()
-        world_object = object.get_position()
-        gripper_object = p.multiplyTransforms(p.invertTransform(world_gripper, [0, 0, 0, 1])[0], [0, 0, 0, 1],
-                                              world_object, [0, 0, 0, 1], self.world.client_id)[0]
-        cid = p.createConstraint(self.id, parent_link_id,
-                                 object.id, child_link_id,
-                                 p.JOINT_FIXED,
-                                 [0, 1, 0], gripper_object, [0, 0, 0],
-                                 physicsClientId=self.world.client_id)
-        p.changeConstraint(cid, maxForce=30)
-        self.attachments[object] = cid, parent_link_id
-        object.attachments[self] = cid, parent_link_id
+        link_id = self.get_link_id(link) if link else -1
+        link_T_object = self._calculate_transform(object, link)
+        self.attachments[object] = [link_T_object, link, loose]
+        object.attachments[self] = [p.invertTransform(link_T_object[0], link_T_object[1]), None, False]
+
+        cid = p.createConstraint(self.id, link_id, object.id, -1, p.JOINT_FIXED, [0, 1, 0], link_T_object[0], [0, 0, 0], link_T_object[1])
+        self.cids[object] = cid
+        object.cids[self] = cid
         self.world.attachment_event(self, [self, object])
+
 
     def detach(self, object):
         """
-        This method detaches an other object from this object. After the detachment the detachment event of the
+        This method detaches an other object from this object. This is done by
+        deleting the attachment from the attachments dictionaty of both obejects
+        and deleting the constraint of pybullet.
+        After the detachment the detachment event of the
         corresponding BulletWorld w:ill be fired.
         :param object: The object which should be detached
         """
-        if object not in self.attachments:
-            return
-        p.removeConstraint(self.attachments[object][0])
         del self.attachments[object]
         del object.attachments[self]
+
+        p.removeConstraint(self.cids[object])
+
+        del self.cids[object]
+        del object.cids[self]
         self.world.detachment_event(self, [self, object])
 
     def get_position(self):
@@ -201,23 +205,58 @@ class Object:
 
     def set_position_and_orientation(self, position, orientation):
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
-        for at in self.attachments:
-            lid = self.attachments[at][1]
-            new_p = p.getLinkState(BulletWorld.robot.id, lid)[0]
-            p.resetBasePositionAndOrientation(at.id, new_p, at.get_orientation(), self.world.client_id)
-        self.world.simulate(1)
+        self._set_attached_objects(None)
+
+    def _set_attached_objects(self, prev_object):
+        """
+        This method updates the positions of all attached objects. This is done
+        by calculating the new pose in world coordinate frame and setting the
+        base pose of the attached objects to this new pose.
+        After this the _set_attached_objects method of all attached objects
+        will be called.
+        :param prev_object: The object that called this method, this will be
+        excluded to prevent recursion in the update.
+        """
+        for obj in self.attachments:
+            if obj == prev_object:
+                continue
+            if self.attachments[obj][2]:
+                # Updates the attachment transformation and contraint if the
+                # attachment is loos, instead of updating the position of all attached objects
+                link_T_object = self._calculate_transform(obj, self.attachments[obj][1])
+                link_id = self.get_link_id(self.attachments[obj][1]) if self.attachments[obj][1] else -1
+                self.attachments[obj][0] = link_T_object
+                obj.attachments[self][0] = p.invertTransform(link_T_object[0], link_T_object[1])
+                p.removeConstraint(self.cids[obj])
+                cid = p.createConstraint(self.id, link_id, obj.id, -1, p.JOINT_FIXED, [0, 0, 0], link_T_object[0], [0, 0, 0], link_T_object[1])
+                self.cids[obj] = cid
+                obj.cids[self] = cid
+            else:
+                # Updates the position of all attached objects
+                link_T_object = self.attachments[obj][0]
+                link_name = self.attachments[obj][1]
+                world_T_link = self.get_link_position_and_orientation(link_name) if link_name else self.get_position_and_orientation()
+                world_T_object = p.multiplyTransforms(world_T_link[0], world_T_link[1], link_T_object[0], link_T_object[1])
+                p.resetBasePositionAndOrientation(obj.id, world_T_object[0], world_T_object[1])
+                obj._set_attached_objects(self)
+
+    def _calculate_transform(self, obj, link):
+        link_id = self.get_link_id(link) if link else -1
+        world_T_link =  self.get_link_position_and_orientation(link) if link else self.get_position_and_orientation()
+        link_T_world = p.invertTransform(world_T_link[0], world_T_link[1])
+        world_T_object = obj.get_position_and_orientation()
+        link_T_object = p.multiplyTransforms(link_T_world[0], link_T_world[1],
+                                              world_T_object[0], world_T_object [1], self.world.client_id)
+        return link_T_object
 
     def set_position(self, position):
         self.set_position_and_orientation(position, self.get_orientation())
 
     def set_orientation(self, orientation):
-        p.resetBasePositionAndOrientation(self.id, self.get_position(), orientation, self.world.client_id)
+        self.set_position_and_orientation(self.get_position(), orientation)
 
     def set_pose(self, position):
         self.set_position(position)
-
-    def set_joint(self, joint, pose):
-        p.resetJointState(self.id, self.joints[joint], pose)
 
     def _joint_or_link_name_to_id(self, type):
         nJoints = p.getNumJoints(self.id)
@@ -244,7 +283,9 @@ class Object:
         return p.getLinkState(self.id, self.links[name])[1]
 
     def set_joint_state(self, joint_name, joint_pose):
-        p.resetJointState(self.id, self.get_joint_id(joint_name), joint_pose)
+        p.resetJointState(self.id, self.joints[joint_name], joint_pose)
+        self._set_attached_objects(None)
+
 
     def get_joint_state(self, joint_name):
         return p.getJointState(self.id, self.joints[joint_name])[0]
