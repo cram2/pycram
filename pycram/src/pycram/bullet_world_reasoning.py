@@ -76,8 +76,6 @@ def stable(object, world=None):
     p.restoreState(state, physicsClientId=world_id)
     coords_prev = list(map(lambda n: round(n, 3), coords_prev))
     coords_past = list(map(lambda n: round(n, 3), coords_past))
-    print(coords_prev)
-    print(coords_past)
     return coords_past == coords_prev
 
 
