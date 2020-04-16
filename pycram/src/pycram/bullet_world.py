@@ -195,7 +195,7 @@ class Object:
 
     def set_position_and_orientation(self, position, orientation):
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
-        self._set_attached_objects(None)
+        self._set_attached_objects([self])
 
     def _set_attached_objects(self, prev_object):
         """
@@ -208,7 +208,7 @@ class Object:
         excluded to prevent recursion in the update.
         """
         for obj in self.attachments:
-            if obj == prev_object:
+            if obj in prev_object:
                 continue
             if self.attachments[obj][2]:
                 # Updates the attachment transformation and contraint if the
@@ -228,7 +228,7 @@ class Object:
                 world_T_link = self.get_link_position_and_orientation(link_name) if link_name else self.get_position_and_orientation()
                 world_T_object = p.multiplyTransforms(world_T_link[0], world_T_link[1], link_T_object[0], link_T_object[1])
                 p.resetBasePositionAndOrientation(obj.id, world_T_object[0], world_T_object[1])
-                obj._set_attached_objects(self)
+                obj._set_attached_objects(prev_object + [self])
 
     def _calculate_transform(self, obj, link):
         link_id = self.get_link_id(link) if link else -1
@@ -274,7 +274,7 @@ class Object:
 
     def set_joint_state(self, joint_name, joint_pose):
         p.resetJointState(self.id, self.joints[joint_name], joint_pose)
-        self._set_attached_objects(None)
+        self._set_attached_objects([self])
 
 
 
