@@ -199,10 +199,11 @@ class Pr2Detecting(ProcessModule):
             robot = BulletWorld.robot
             object_type = solultion['object']
             cam_frame_name = solultion['cam_frame']
+            front_facing_axis = solution['front_facing_axis']
 
             objects = BulletWorld.current_bullet_world.get_objects_by_type(object_type)
             for obj in objects:
-                if btr.visible(obj, robot.get_link_position(cam_frame_name)):
+                if btr.visible(obj, robot.get_link_position_and_orientation(cam_frame_name), front_facing_axis):
                     return obj
 
 
