@@ -14,12 +14,12 @@ class CollisionError(Exception):
         Exception.__init__(self, *args, **kwargs)
 
 
-def _get_seg_mask_for_target(cam_position, target_position):
+def _get_seg_mask_for_target(target_position, cam_position):
     """
     Calculates the view and projection Matrix and returns the Segmentation mask
     The segmentation mask indicates for every pixel the visible Object.
-    :param cam_position: The position of the Camera as a list of x,y,z
-    :param target_position: The position to which the camera should point as a list of x,y,z
+    :param cam_position: The position of the Camera as a list of x,y,z and orientation as quaternion
+    :param target_position: The position to which the camera should point as a list of x,y,z and orientation as quaternion
     :return: The Segmentation mask from the camera position
     """
     fov = 300
@@ -27,7 +27,7 @@ def _get_seg_mask_for_target(cam_position, target_position):
     near = 0.2
     far = 10
 
-    view_matrix = p.computeViewMatrix(cam_position, target_position, [-1, 0, -1])
+    view_matrix = p.computeViewMatrix(cam_position[0], target_position[0], [0, 0, -1])
     projection_matrix = p.computeProjectionMatrixFOV(fov, aspect, near, far)
     return p.getCameraImage(256, 256, view_matrix, projection_matrix)[4]
 
@@ -68,8 +68,7 @@ def stable(object, world=None):
     p.setGravity(0, 0, -9.8)
 
     # one Step is approximately 1/240 seconds
-    for i in range(0, 2 * 240):
-        p.stepSimulation(physicsClientId=world_id)
+    world.simulate(2)
     coords_past = p.getBasePositionAndOrientation(object.id, physicsClientId=world_id)[0]
 
     p.restoreState(state)
@@ -81,7 +80,7 @@ def stable(object, world=None):
 def contact(object1, object2, world=None):
     """
     This reasoning query checks if two objects are in contact or not.
-    :param object1: The first object
+    :param object1: The first object, [-1, 0, -1])
     :param object2: The second object
     :param world: The BulletWorld if more than one BulletWorld is active
     :return: True if the two objects are in contact False else
@@ -93,13 +92,18 @@ def contact(object1, object2, world=None):
     return con_points is not ()
 
 
-def visible(object, camera_position, world=None):
+def visible(object, camera_position_and_orientation, front_facing_axis, threshold=0.8, world=None):
     """
     This reasoning query checks if an object is visible from a given position. This will be achieved by rendering the object
     alone and counting the visible pixel, then rendering the complete scene and compare the visible pixels with the
     absolut count of pixels.
     :param object: The object for which the visibility should be checked
-    :param camera_position: The position of which the camera looks at the object
+    :param camera_position_and_orientation: The position and orientation of the
+    camera in world coordinate fram
+    :front_facing_axis: The axis, of the camera frame, which faces to the front of
+    the robot. Given as list of x, y, z
+    :threshold: The minimum percentage of the object that needs to be visibile
+    for this method to return true
     :param world: The BulletWorld if more than one BulletWorld is active
     :return: True if the object is visible from the camera_position False if not
     """
@@ -111,30 +115,37 @@ def visible(object, camera_position, world=None):
             # Hot fix until I come up with something better
             p.resetBasePositionAndOrientation(obj.id, [100, 100, 100], [0, 0, 0, 1], world_id)
 
-    seg_mask = _get_seg_mask_for_target(camera_position, object.get_position())
+    world_T_cam = camera_position_and_orientation
+    cam_T_point = list(np.multiply(front_facing_axis, 2))
+    target_point = p.multiplyTransforms(world_T_cam[0], world_T_cam[1], cam_T_point, [0, 0, 0, 1])
+
+    seg_mask = _get_seg_mask_for_target(target_point, world_T_cam)
     flat_list = list(itertools.chain.from_iterable(seg_mask))
     max_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
     p.restoreState(state)
 
-    seg_mask = _get_seg_mask_for_target(camera_position, object.get_position())
+    seg_mask = _get_seg_mask_for_target(target_point, world_T_cam)
     flat_list = list(itertools.chain.from_iterable(seg_mask))
     real_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
 
     if max_pixel == 0:
         # Object is not visible
-        raise False
+        return False
 
-    return real_pixel / max_pixel > 0.8 > 0
+    return real_pixel / max_pixel > threshold > 0
 
 
-def occluding(object, camera_position, world=None):
+def occluding(object, camera_position_and_orientation, front_facing_axis, world=None):
     """
     This reasoning query lists the objects which are occluding a given object. This works similar to 'visible'.
     First the object alone will be rendered and the position of the pixels of the object in the picture will be saved.
     After that the complete scene will be rendered and the previous saved pixel positions will be compared to the
     actual pixels, if in one pixel an other object is visible ot will be saved as occluding.
     :param object: The object for which occluding should be checked
-    :param camera_position: The position from which the camera looks at the object
+    :param camera_position_and_orientation: The position and orientation of the
+    camera in world coordinate frame
+    :front_facing_axis: The axis, of the camera frame, which faces to the front of
+    the robot. Given as list of x, y, z
     :param world: The BulletWorld if more than one BulletWorld is active
     :return: A list of occluding objects
     """
@@ -146,7 +157,11 @@ def occluding(object, camera_position, world=None):
             # Hot fix until I come up with something better
             p.resetBasePositionAndOrientation(obj.id, [100, 100, 100], [0, 0, 0, 1], world_id)
 
-    seg_mask = _get_seg_mask_for_target(camera_position, object.get_position())
+    world_T_cam = camera_position_and_orientation
+    cam_T_point = list(np.multiply(front_facing_axis, 2))
+    target_point = p.multiplyTransforms(world_T_cam[0], world_T_cam[1], cam_T_point, [0, 0, 0, 1])
+
+    seg_mask = _get_seg_mask_for_target(target_point, world_T_cam)
     pixels = []
     for i in range(0, 256):
         for j in range(0, 256):
@@ -155,7 +170,7 @@ def occluding(object, camera_position, world=None):
     p.restoreState(state)
 
     occluding = []
-    seg_mask = _get_seg_mask_for_target(camera_position, object.get_position())
+    seg_mask = _get_seg_mask_for_target(target_point, world_T_cam)
     for c in pixels:
         if not seg_mask[c[0]][c[1]] == object.id:
             occluding.append(seg_mask[c[0]][c[1]])
@@ -248,4 +263,3 @@ def supporting(object1, object2, world=None):
     """
     world, world_id = _world_and_id(world)
     return contact(object1, object2, world) and object2.getposition()[2] > object1.get_position()[2]
-
