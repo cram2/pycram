@@ -186,6 +186,9 @@ class Object:
     def get_orientation(self):
         return p.getBasePositionAndOrientation(self.id)[1]
 
+    def get_position_and_orientation(self):
+        return p.getBasePositionAndOrientation(self.id)[:2]
+
     def set_position_and_orientation(self, position, orientation):
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
         for at in self.attachments:
