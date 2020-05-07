@@ -66,7 +66,7 @@ def pr2_motion_designators(desig):
 
     # Type: detecting
     if desig.check_constraints([('type', 'detecting'), 'object']):
-        solutions.append(desig.make_dictionary([('cmd', 'detecting'), ('cam_frame', 'wide_stereo_optical_frame'), 'object']))
+        solutions.append(desig.make_dictionary([('cmd', 'detecting'), ('cam_frame', 'wide_stereo_optical_frame'), ('front_facing_axis', [0, 0, 1]), 'object']))
 
     # Type: move-arm-joints
     if desig.check_constraints([('type', 'move-arm-joints')]):
