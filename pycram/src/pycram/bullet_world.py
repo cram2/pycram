@@ -80,6 +80,20 @@ class BulletWorld:
         p.disconnect(self.client_id)
         self._gui_thread.join()
 
+    def copy(self):
+        """
+        Copies this Bullet World into another and returns it. The other BulletWorld
+        will be in Direct mode.
+        :return: The reference to the new BulletWorld
+        """
+        world = BulletWorld("DIRECT")
+        for obj in self.objects:
+            o = Object(obj.name, obj.type, obj.path, obj.get_position(), obj.get_orientation(),
+                            world, obj.color)
+            for joint in obj.joints:
+                o.set_joint_state(joint, obj.get_joint_state(joint))
+        return world
+
 
 current_bullet_world = BulletWorld.current_bullet_world
 
@@ -133,6 +147,7 @@ class Object:
         self.name = name
         self.type = type
         self.path = path
+        self.color = color
         self.id = _load_object(name, path, position, orientation, world, color)
         self.joints = self._joint_or_link_name_to_id("joint")
         self.links = self._joint_or_link_name_to_id("link")
@@ -156,8 +171,9 @@ class Object:
         link_T_object = self._calculate_transform(object, link)
         self.attachments[object] = [link_T_object, link, loose]
         object.attachments[self] = [p.invertTransform(link_T_object[0], link_T_object[1]), None, False]
-
-        cid = p.createConstraint(self.id, link_id, object.id, -1, p.JOINT_FIXED, [0, 1, 0], link_T_object[0], [0, 0, 0], link_T_object[1])
+        
+        cid = p.createConstraint(self.id, link_id, object.id, -1, p.JOINT_FIXED,
+                            [0, 1, 0], link_T_object[0], [0, 0, 0], link_T_object[1], physicsClientId=self.world.client_id)
         self.cids[object] = cid
         object.cids[self] = cid
         self.world.attachment_event(self, [self, object])
@@ -175,23 +191,23 @@ class Object:
         del self.attachments[object]
         del object.attachments[self]
 
-        p.removeConstraint(self.cids[object])
+        p.removeConstraint(self.cids[object], physicsClientId=self.world.client_id)
 
         del self.cids[object]
         del object.cids[self]
         self.world.detachment_event(self, [self, object])
 
     def get_position(self):
-        return p.getBasePositionAndOrientation(self.id)[0]
+        return p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id)[0]
 
     def get_pose(self):
         return self.get_position()
 
     def get_orientation(self):
-        return p.getBasePositionAndOrientation(self.id)[1]
+        return p.getBasePositionAndOrientation(self.id, self.world.client_id)[1]
 
     def get_position_and_orientation(self):
-        return p.getBasePositionAndOrientation(self.id)[:2]
+        return p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id)[:2]
 
     def set_position_and_orientation(self, position, orientation):
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
@@ -249,11 +265,11 @@ class Object:
         self.set_position(position)
 
     def _joint_or_link_name_to_id(self, type):
-        nJoints = p.getNumJoints(self.id)
+        nJoints = p.getNumJoints(self.id, self.world.client_id)
         joint_name_to_id = {}
         info = 1 if type == "joint" else 12
         for i in range(0, nJoints):
-            joint_info = p.getJointInfo(self.id, i)
+            joint_info = p.getJointInfo(self.id, i, self.world.client_id)
             joint_name_to_id[joint_info[info].decode('utf-8')] = joint_info[0]
         return joint_name_to_id
 
@@ -264,18 +280,21 @@ class Object:
         return self.links[name]
 
     def get_link_position_and_orientation(self, name):
-        return p.getLinkState(self.id, self.links[name])[:2]
+        return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[:2]
 
     def get_link_position(self, name):
-        return p.getLinkState(self.id, self.links[name])[0]
+        return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[0]
 
     def get_link_orientation(self, name):
-        return p.getLinkState(self.id, self.links[name])[1]
+        return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[1]
 
     def set_joint_state(self, joint_name, joint_pose):
-        p.resetJointState(self.id, self.joints[joint_name], joint_pose)
-        self._set_attached_objects([self])
+        p.resetJointState(self.id, self.joints[joint_name], joint_pose, physicsClientId=self.world.client_id)
+        self._set_attached_objects(None)
 
+
+    def get_joint_state(self, joint_name):
+        return p.getJointState(self.id, self.joints[joint_name], physicsClientId=self.world.client_id)[0]
 
 
 def _load_object(name, path, position, orientation, world, color):
