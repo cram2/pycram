@@ -194,15 +194,16 @@ class Pr2Detecting(ProcessModule):
     the field of view of the robot.
     """
     def _execute(self, desig):
-        solultion = desig.reference()
-        if solultion['cmd'] == "detecting":
+        solution = desig.reference()
+        if solution['cmd'] == "detecting":
             robot = BulletWorld.robot
-            object_type = solultion['object']
-            cam_frame_name = solultion['cam_frame']
+            object_type = solution['object']
+            cam_frame_name = solution['cam_frame']
+            front_facing_axis = solution['front_facing_axis']
 
             objects = BulletWorld.current_bullet_world.get_objects_by_type(object_type)
             for obj in objects:
-                if btr.visible(obj, robot.get_link_position(cam_frame_name)):
+                if btr.visible(obj, robot.get_link_position_and_orientation(cam_frame_name), front_facing_axis):
                     return obj
 
 
