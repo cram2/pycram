@@ -1,0 +1,12 @@
+<launch>
+  <arg name="upload" default="true" />
+  
+  <node pkg="kdl_ik_service" type="start_ros_server.py" name="kdl_ik_service" output="screen" />
+
+  <!-- PR2 URDF -->
+  <group if="$(arg upload)">
+    <param name="robot_description"
+           command="$(find xacro)/xacro.py
+                    '$(find pr2_description)/robots/pr2.urdf.xacro'"/>
+  </group>
+</launch>

@@ -43,6 +43,8 @@ def _make_request_msg(root_link, tip_link, target_pose, robot_object, joints):
     msg_request.timeout = rospy.Duration(secs=1000)
     msg_request.attempts = 100
 
+    return msg_request
+
 def request_ik(root_link, tip_link, target_pose_and_rotation, robot_object, joints):
     rospy.init_node('listener', anonymous=True)
     rospy.wait_for_service('/kdl_ik_service/get_ik')
@@ -51,5 +53,4 @@ def request_ik(root_link, tip_link, target_pose_and_rotation, robot_object, join
 
     ik = rospy.ServiceProxy('/kdl_ik_service/get_ik', GetPositionIK)
     resp = ik(req)
-    print(resp)
     return(resp.solution.joint_state.position)
