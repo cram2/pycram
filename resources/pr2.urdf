@@ -726,7 +726,7 @@
       <rpyOffsets>0 0 0</rpyOffsets>
     </plugin>
   </gazebo>
-  <joint name="torso_lift_joint" type="fixed">
+  <joint name="torso_lift_joint" type="prismatic">
     <axis xyz="0 0 1"/>
     <limit effort="1000" lower="0." upper="0.33" velocity="0.13"/>
     <!-- alpha tested velocity and effort limits -->
@@ -3486,4 +3486,3 @@
     <material>PR2/Blue</material>
   </gazebo>
 </robot>
-

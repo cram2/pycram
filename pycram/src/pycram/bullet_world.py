@@ -11,7 +11,7 @@ import threading
 import time
 import pathlib
 from .event import Event
-from .helper import transform
+#from .helper import transform
 
 
 class BulletWorld:
@@ -171,7 +171,7 @@ class Object:
         link_T_object = self._calculate_transform(object, link)
         self.attachments[object] = [link_T_object, link, loose]
         object.attachments[self] = [p.invertTransform(link_T_object[0], link_T_object[1]), None, False]
-        
+
         cid = p.createConstraint(self.id, link_id, object.id, -1, p.JOINT_FIXED,
                             [0, 1, 0], link_T_object[0], [0, 0, 0], link_T_object[1], physicsClientId=self.world.client_id)
         self.cids[object] = cid
