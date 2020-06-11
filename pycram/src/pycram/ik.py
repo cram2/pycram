@@ -9,9 +9,29 @@ from geometry_msgs.msg import Pose
 
 
 def _get_position_for_joints(robot, joints):
+    """
+    Returns a list with all joint positions for the joint names specified in
+    the joints parameter
+    :param robot: The robot the joint states should be taken from
+    :param joints: The list of joint names that should be in the output
+    :return: A list of joint states according and in the same order as the joint
+    names in the joints parameter
+    """
     return list(map(lambda x: p.getJointState(robot.id, robot.get_joint_id(x))[0], joints))
 
 def _make_request_msg(root_link, tip_link, target_pose, robot_object, joints):
+    """
+    This method generates an ik request message for the kdl_ik_service. The message is
+     of the type moveit_msgs/PositionIKRequest and contains all information
+     contained in the parameter.
+    :param root_link: The first link of the chain of joints to be altered
+    :param tip_link: The last link of the chain of joints to be altered
+    :param target_pose: A list of two lists, the first is the pose in world coordinate frame
+                        the second is the orientation as quanternion in world coordinate frame
+    :param robot_object: The robot for which the ik should be generated
+    :param joints: A list of joint names between the root_link and tip_link that should be altered.
+    :return: A moveit_msgs/PositionIKRequest message containing all the information from the parameter
+    """
     pose_sta = PoseStamped()
     pose_sta.header.frame_id = root_link
     pose_sta.header.stamp = rospy.Time.now()
@@ -46,6 +66,21 @@ def _make_request_msg(root_link, tip_link, target_pose, robot_object, joints):
     return msg_request
 
 def request_ik(root_link, tip_link, target_pose_and_rotation, robot_object, joints):
+    """
+    This method sends a request to the kdl_ik_service and returns the solution.
+    Note that the robot in robot_object should be identical to the robot description
+    uploaded to the parameter server. Furthermore note that the root_link and
+    tip_link are the first and last links of the joints that should be altered.
+    These joints should also be specified in the joints parameter as a list of names.
+    :param root_link: The first link of the chain of joints to be altered
+    :param tip_link: The last link in the chain of joints to be altered
+    :param target_pose_and_rotation: The target position and orientation as a list
+    of two lists were the first is the position in world coordinate frame and the
+    second is the orientation as quanternion in world coordinate fraem
+    :param robot_object: The robot object for which the ik solution should be generated
+    :param joints: A list of joint name that should be altered
+    :return: The solution that was generated.
+    """
     rospy.init_node('listener', anonymous=True)
     rospy.wait_for_service('/kdl_ik_service/get_ik')
 
