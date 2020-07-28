@@ -33,10 +33,12 @@ def pr2_motion_designators(desig):
     # Type: accessing
     if desig.check_constraints([('type', 'accessing'), 'drawer-joint', 'drawer-handle', 'part-of']):
         if desig.check_constraints([('arm', 'right')]):
-            if desig.check_constraints('distance'):
+            if desig.check_constraints(['distance']):
                 solutions.append(desig.make_dictionary([('cmd', 'access'), 'drawer-joint', 'drawer-handle', ('gripper', 'r_gripper_tool_frame'), 'distance', 'part-of']))
-            solutions.append(desig.make_dictionary([('cmd', 'access'), 'drawer-joint', 'drawer-handle', ('gripper', 'r_gripper_tool_frame'), ('distance', 0.3), 'part-of']))
-        solutions.append(desig.make_dictionary([('cmd', 'access'), 'drawer-joint', 'drawer-handle', 'part-of', ('distance', 0.3), ('gripper', 'l_gripper_tool_frame'), 'part-of']))
+            solutions.append(desig.make_dictionary([('cmd', 'access'), 'drawer-joint', 'drawer-handle', ('gripper', 'r_gripper_tool_frame'), ('distance', 0.1), 'part-of']))
+        if desig.check_constraints(['distance']):
+            solutions.append(desig.make_dictionary([('cmd', 'access'), 'drawer-joint', 'drawer-handle', ('gripper', 'l_gripper_tool_frame'), 'distance', 'part-of']))
+        solutions.append(desig.make_dictionary([('cmd', 'access'), 'drawer-joint', 'drawer-handle', 'part-of', ('distance', 0.2), ('gripper', 'l_gripper_tool_frame'), 'part-of']))
 
     # Type: move-tcp
     if desig.check_constraints([('type', 'move-tcp'), 'target']):

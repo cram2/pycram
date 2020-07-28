@@ -1,6 +1,7 @@
 from pycram.process_module import ProcessModule
 from pycram.bullet_world import BulletWorld
 from pycram.helper import transform
+from pycram.ik import request_ik
 import pycram.bullet_world_reasoning as btr
 import pybullet as p
 import numpy as np
@@ -19,31 +20,53 @@ left_arm_park = {"l_shoulder_pan_joint" : 1.712,
                     "l_elbow_flex_joint" : -2.12,
                     "l_forearm_roll_joint" : 16.996,
                     "l_wrist_flex_joint" : -0.073}
-ik_joints = ["fl_caster_rotation_joint", "fl_caster_l_wheel_joint", "fl_caster_r_wheel_joint",
-            "fr_caster_rotation_joint", "fr_caster_l_wheel_joint", "fr_caster_r_wheel_joint",
-            "bl_caster_rotation_joint", "bl_caster_l_wheel_joint", "bl_caster_r_wheel_joint",
-            "br_caster_rotation_joint", "br_caster_l_wheel_joint", "br_caster_r_wheel_joint",
-            "head_pan_joint", "head_tilt_joint", "laser_tilt_mount_joint", "r_shoulder_pan_joint",
-            "r_shoulder_lift_joint", "r_upper_arm_roll_joint", "r_elbow_flex_joint",
-            "r_forearm_roll_joint", "r_wrist_flex_joint", "r_wrist_roll_joint",
-            "r_gripper_motor_slider_joint", "r_gripper_motor_screw_joint",
-            "r_gripper_l_finger_joint", "r_gripper_l_finger_tip_joint",
-            "r_gripper_r_finger_joint", "r_gripper_r_finger_tip_joint",
-            "r_gripper_joint", "l_shoulder_pan_joint", "l_shoulder_lift_joint",
-            "l_upper_arm_roll_joint", "l_elbow_flex_joint", "l_forearm_roll_joint",
-            "l_wrist_flex_joint", "l_wrist_roll_joint", "l_gripper_motor_slider_joint",
-            "l_gripper_motor_screw_joint", "l_gripper_l_finger_joint",
-            "l_gripper_l_finger_tip_joint", "l_gripper_r_finger_joint",
-            "l_gripper_r_finger_tip_joint", "l_gripper_joint", "torso_lift_motor_screw_joint"]
+#ik_joints = ["fl_caster_rotation_joint", "fl_caster_l_wheel_joint", "fl_caster_r_wheel_joint",
+#            "fr_caster_rotation_joint", "fr_caster_l_wheel_joint", "fr_caster_r_wheel_joint",
+#            "bl_caster_rotation_joint", "bl_caster_l_wheel_joint", "bl_caster_r_wheel_joint",
+#            "br_caster_rotation_joint", "br_caster_l_wheel_joint", "br_caster_r_wheel_joint",
+#            "head_pan_joint", "head_tilt_joint", "laser_tilt_mount_joint", "r_shoulder_pan_joint",
+#            "r_shoulder_lift_joint", "r_upper_arm_roll_joint", "r_elbow_flex_joint",
+#            "r_forearm_roll_joint", "r_wrist_flex_joint", "r_wrist_roll_joint",
+#            "r_gripper_motor_slider_joint", "r_gripper_motor_screw_joint",
+#            "r_gripper_l_finger_joint", "r_gripper_l_finger_tip_joint",
+#            "r_gripper_r_finger_joint", "r_gripper_r_finger_tip_joint",
+#            "r_gripper_joint", "l_shoulder_pan_joint", "l_shoulder_lift_joint",
+#            "l_upper_arm_roll_joint", "l_elbow_flex_joint", "l_forearm_roll_joint",
+#            "l_wrist_flex_joint", "l_wrist_roll_joint", "l_gripper_motor_slider_joint",
+#            "l_gripper_motor_screw_joint", "l_gripper_l_finger_joint",
+#            "l_gripper_l_finger_tip_joint", "l_gripper_r_finger_joint",
+#            "l_gripper_r_finger_tip_joint", "l_gripper_joint", "torso_lift_motor_screw_joint"]
+
+ik_joints_left = ["torso_lift_joint","l_shoulder_pan_joint", "l_shoulder_lift_joint",
+                "l_upper_arm_roll_joint", "l_elbow_flex_joint", "l_forearm_roll_joint",
+                "l_wrist_flex_joint", "l_wrist_roll_joint"]
+
+ik_joints_right = ["torso_lift_joint","r_shoulder_pan_joint", "r_shoulder_lift_joint",
+                "r_upper_arm_roll_joint", "r_elbow_flex_joint", "r_forearm_roll_joint",
+                "r_wrist_flex_joint", "r_wrist_roll_joint"]
+
+pr2_root_link = "base_footprint"
 
 
-def _apply_ik(robot, joint_poses):
+def _transform_to_torso(pose_and_rotation):
+    robot = BulletWorld.robot
+    #map_T_torso = robot.get_link_position_and_orientation("base_footprint")
+    map_T_torso = robot.get_position_and_orientation()
+    torso_T_map = p.invertTransform(map_T_torso[0], map_T_torso[1])
+    map_T_target = pose_and_rotation
+    torso_T_target = p.multiplyTransforms(torso_T_map[0], torso_T_map[1], map_T_target[0], map_T_target[1])
+    return torso_T_target
+
+
+def _apply_ik(robot, joint_poses, gripper):
     """
     Apllies a list of joint poses calculated by an inverse kinematics solver to a robot
     :param robot: The robot the joint poses should be applied on
     :param joint_poses: The joint poses to be applied
+    :param gripper: specifies the gripper for which the ik solution should be applied
     :return: None
     """
+    ik_joints = ik_joints_left if gripper == "l_gripper_tool_frame" else ik_joints_right
     for i in range(0, len(ik_joints)):
         robot.set_joint_state(ik_joints[i], joint_poses[i])
 
@@ -87,10 +110,14 @@ class Pr2PickUp(ProcessModule):
         if solution['cmd'] == 'pick':
             object = solution['object']
             robot = BulletWorld.robot
-            target = object.get_position()
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), target,
-                                               maxNumIterations=100)
-            _apply_ik(robot, inv)
+            target = object.get_position_and_orientation()
+            target = _transform_to_torso(target)
+            joints = ik_joints_left if solution['gripper'] == "l_gripper_tool_frame" else ik_joints_right
+            #inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), target,
+            #                                   maxNumIterations=100)
+            tip = "r_wrist_roll_link" if solution['gripper'] == "r_gripper_tool_frame" else "l_wrist_roll_link"
+            inv = request_ik(pr2_root_link, solution['gripper'], target, robot, joints)
+            _apply_ik(robot, inv, solution['gripper'])
             robot.attach(object, solution['gripper'])
             time.sleep(0.5)
 
@@ -104,9 +131,15 @@ class Pr2Place(ProcessModule):
         if solution['cmd'] == 'place':
             object = solution['object']
             robot = BulletWorld.robot
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), solution['target'],
-                                           maxNumIterations=100)
-            _apply_ik(robot, inv)
+            joints = ik_joints_left if solution['gripper'] == "l_gripper_tool_frame" else ik_joints_right
+            target = [solution['target'], [0, 0, 0, 1]]
+            target = _transform_to_torso(target)
+            target = (target[0], [0, 0, 0, 1])
+            #inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), solution['target'],
+            #                               maxNumIterations=100)
+            tip = "r_wrist_roll_link" if solution['gripper'] == "r_gripper_tool_frame" else "l_wrist_roll_link"
+            inv = request_ik(pr2_root_link, solution['gripper'], target, robot, joints)
+            _apply_ik(robot, inv, solution['gripper'])
             robot.detach(object)
             time.sleep(0.5)
 
@@ -127,15 +160,18 @@ class Pr2Accessing(ProcessModule):
             drawer_handle = solution['drawer-handle']
             drawer_joint = solution['drawer-joint']
             dis = solution['distance']
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), kitchen.get_link_position(drawer_handle))
-            _apply_ik(robot, inv)
+            joints = ik_joints_left if solution['gripper'] == "l_gripper_tool_frame" else ik_joints_right
+            #inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), kitchen.get_link_position(drawer_handle))
+            target = _transform_to_torso(kitchen.get_link_position_and_orientation(drawer_handle))
+            target = (target[0], [0, 0, 0, 1])
+            inv = request_ik(pr2_root_link, gripper, target , robot, joints )
+            _apply_ik(robot, inv, gripper)
             time.sleep(0.2)
-            han_pose = kitchen.get_link_position(drawer_handle)
-            new_p = [han_pose[0] - dis, han_pose[1], han_pose[2]]
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), new_p)
-            _apply_ik(robot, inv)
-            print(drawer_joint)
-            kitchen.set_joint_state(drawer_joint, 0.3)
+            new_p = ([target[0][0] - dis, target[0][1], target[0][2]],target[1])
+            #inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), new_p)
+            inv = request_ik(pr2_root_link, gripper, new_p, robot, joints)
+            _apply_ik(robot, inv, gripper)
+            kitchen.set_joint_state(drawer_joint, dis)
             time.sleep(0.5)
 
 
@@ -215,10 +251,13 @@ class Pr2MoveTCP(ProcessModule):
         solution = desig.reference()
         if solution['cmd'] == "move-tcp":
             target = solution['target']
+            target = _transform_to_torso([target, [0, 0, 0, 1]])
             gripper = solution['gripper']
             robot = BulletWorld.robot
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), target)
-            _apply_ik(robot, inv)
+            joints = ik_joints_left if gripper == "l_gripper_tool_frame" else ik_joints_right
+            #inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), target)
+            inv = request_ik(pr2_root_link, gripper, target, robot, joints)
+            _apply_ik(robot, inv, gripper)
             time.sleep(0.5)
 
 
