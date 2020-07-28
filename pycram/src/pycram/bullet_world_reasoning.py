@@ -3,6 +3,7 @@ import itertools
 import numpy as np
 import time
 from .bullet_world import _world_and_id
+from .ik import request_ik
 
 
 class ReasoningError(Exception):
@@ -13,6 +14,15 @@ class ReasoningError(Exception):
 class CollisionError(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
+
+
+def _get_joint_names(robot, tip_link):
+    res = []
+    for i in range(p.getNumJoints(robot.id)):
+        info = p.getJointInfo(robot.id, i)
+        if info[2] != p.JOINT_FIXED:
+            res.append(info[1])
+    return res
 
 
 def _get_seg_mask_for_target(target_position, cam_position, world=None):
@@ -213,6 +223,7 @@ def reachable_pose(pose, robot, gripper_name, world=None, threshold=0.01):
     state = p.saveState(physicsClientId=world_id)
     inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper_name), pose,
                                        maxNumIterations=100, physicsClientId=world_id)
+    #inv = request_ik("base_footprint", gripper_namer, [pose, [0, 0, 0, 1]], robot, )
     for i in range(p.getNumJoints(robot.id, world_id)):
         qIndex = p.getJointInfo(robot.id, i, world_id)[3]
         if qIndex > -1:
