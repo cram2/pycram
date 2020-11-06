@@ -1,3 +1,4 @@
+from pycram.robot_description import InitializedRobotDescription as robot_description
 from pycram.process_module import ProcessModule
 from pycram.bullet_world import BulletWorld
 from pycram.helper import transform
@@ -6,19 +7,6 @@ import pybullet as p
 import numpy as np
 import time
 
-right_arm_park = {"r_shoulder_pan_joint" : -1.712,
-                    "r_shoulder_lift_joint" : -0.256,
-                    "r_upper_arm_roll_joint" : -1.463,
-                    "r_elbow_flex_joint" : -2.12,
-                    "r_forearm_roll_joint" : 1.766,
-                    "r_wrist_flex_joint" : -0.07,
-                    "r_wrist_roll_joint" : 0.051}
-left_arm_park = {"l_shoulder_pan_joint" : 1.712,
-                    "l_shoulder_lift_joint" : -0.264,
-                    "l_upper_arm_roll_joint" : 1.38,
-                    "l_elbow_flex_joint" : -2.12,
-                    "l_forearm_roll_joint" : 16.996,
-                    "l_wrist_flex_joint" : -0.073}
 ik_joints = ["fl_caster_rotation_joint", "fl_caster_l_wheel_joint", "fl_caster_r_wheel_joint",
             "fr_caster_rotation_joint", "fr_caster_l_wheel_joint", "fr_caster_r_wheel_joint",
             "bl_caster_rotation_joint", "bl_caster_l_wheel_joint", "bl_caster_r_wheel_joint",
@@ -60,10 +48,10 @@ def _park_arms(arm):
 
     robot = BulletWorld.robot
     if arm == "right":
-        for joint, pose in right_arm_park.items():
+        for joint, pose in robot_description.i.get_static_joint_chain("right", "park").items():
             robot.set_joint_state(joint, pose)
     if arm == "left":
-        for joint, pose in left_arm_park.items():
+        for joint, pose in robot_description.i.get_static_joint_chain("left", "park").items():
             robot.set_joint_state(joint, pose)
 
 
@@ -181,10 +169,9 @@ class Pr2MoveGripper(ProcessModule):
             robot = BulletWorld.robot
             gripper = solution['gripper']
             motion = solution['motion']
-            robot.set_joint_state("r_gripper_l_finger_joint" if gripper == 'right' else "l_gripper_l_finger_joint",
-                                        0 if motion == "close" else 0.548)
-            robot.set_joint_state("r_gripper_r_finger_joint" if gripper == 'right' else "l_gripper_r_finger_joint",
-                                        0 if motion == "close" else 0.548)
+            for joint, state in robot_description.i.get_static_gripper_chain(gripper, motion).items():
+                # TODO: Test this, add gripper-opening/-closing to the demo.py
+                robot.set_joint_state(joint, state)
             time.sleep(0.5)
 
 
