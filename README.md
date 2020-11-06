@@ -14,7 +14,17 @@ To work with the Bullet World of PyCRAM the follwing packages are required.
 * pathlib
 * numpy
 
+### Macropy
+
 Additionally a specific fork of macropy is needed, which is already included in this repo as a submodule.
+To get this submodule just run the following commands in the Repo. 
+```
+git submodule init
+```
+
+```
+git submodule update
+```
 
 ## Run the Demo
 ### Prerequisites
