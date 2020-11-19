@@ -7,23 +7,6 @@ import pybullet as p
 import numpy as np
 import time
 
-ik_joints = ["fl_caster_rotation_joint", "fl_caster_l_wheel_joint", "fl_caster_r_wheel_joint",
-            "fr_caster_rotation_joint", "fr_caster_l_wheel_joint", "fr_caster_r_wheel_joint",
-            "bl_caster_rotation_joint", "bl_caster_l_wheel_joint", "bl_caster_r_wheel_joint",
-            "br_caster_rotation_joint", "br_caster_l_wheel_joint", "br_caster_r_wheel_joint",
-            "head_pan_joint", "head_tilt_joint", "laser_tilt_mount_joint", "r_shoulder_pan_joint",
-            "r_shoulder_lift_joint", "r_upper_arm_roll_joint", "r_elbow_flex_joint",
-            "r_forearm_roll_joint", "r_wrist_flex_joint", "r_wrist_roll_joint",
-            "r_gripper_motor_slider_joint", "r_gripper_motor_screw_joint",
-            "r_gripper_l_finger_joint", "r_gripper_l_finger_tip_joint",
-            "r_gripper_r_finger_joint", "r_gripper_r_finger_tip_joint",
-            "r_gripper_joint", "l_shoulder_pan_joint", "l_shoulder_lift_joint",
-            "l_upper_arm_roll_joint", "l_elbow_flex_joint", "l_forearm_roll_joint",
-            "l_wrist_flex_joint", "l_wrist_roll_joint", "l_gripper_motor_slider_joint",
-            "l_gripper_motor_screw_joint", "l_gripper_l_finger_joint",
-            "l_gripper_l_finger_tip_joint", "l_gripper_r_finger_joint",
-            "l_gripper_r_finger_tip_joint", "l_gripper_joint", "torso_lift_motor_screw_joint"]
-
 
 def _apply_ik(robot, joint_poses):
     """
@@ -32,8 +15,8 @@ def _apply_ik(robot, joint_poses):
     :param joint_poses: The joint poses to be applied
     :return: None
     """
-    for i in range(0, len(ik_joints)):
-        robot.set_joint_state(ik_joints[i], joint_poses[i])
+    for i in range(0, len(robot_description.i.ik_joints)):
+        robot.set_joint_state(robot_description.i.ik_joints[i], joint_poses[i])
 
 
 def _park_arms(arm):
