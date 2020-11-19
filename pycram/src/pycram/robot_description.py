@@ -1,5 +1,6 @@
 from copy import deepcopy
-from rospy import logerr, logwarn
+from rospy import logerr, logwarn, search_param, has_param, get_param, ROSException
+import re
 
 
 class ChainDescription:
@@ -464,16 +465,16 @@ class DonbotDescription(RobotDescription):
                                       horizontal_angle=0.99483, vertical_angle=0.75049,
                                       minimal_height=0.5, maximal_height=1.2)
         # not in the donbot.urdf, although used in cram
-        #realsense_camera = CameraDescription("rs_camera_depth_optical_frame",
+        # realsense_camera = CameraDescription("rs_camera_depth_optical_frame",
         #                                     horizontal_angle=0.99483, vertical_angle=0.75049,
         #                                     minimal_height=0.5, maximal_height=1.2)
-        #virtual_camera = CameraDescription("rs_camera_color_optical_frame",
+        # virtual_camera = CameraDescription("rs_camera_color_optical_frame",
         #                                   horizontal_angle=0.99483, vertical_angle=0.75049,
         #                                   minimal_height=0.5, maximal_height=1.2)
         self.cameras["rgb_camera"] = rgb_camera
         self.cameras["rs_camera"] = rs_camera
-        #self.cameras["realsense_camera"] = realsense_camera
-        #self.cameras["virtual_camera"] = virtual_camera
+        # self.cameras["realsense_camera"] = realsense_camera
+        # self.cameras["virtual_camera"] = virtual_camera
         # Gripper
         gripper_links = ["wrist_collision", "gripper_base_link", "gripper_finger_left_link",
                          "gripper_finger_right_link", "gripper_gripper_left_link", "gripper_gripper_right_link",
@@ -489,7 +490,8 @@ class DonbotDescription(RobotDescription):
                       "ur5_wrist_1_joint", "ur5_wrist_2_joint", "ur5_wrist_3_joint"]
         arm_chain = ChainDescription("left", arm_joints, arm_links)
         arm_inter = InteractionDescription(arm_chain, "ur5_ee_link")
-        arm_manip = ManipulatorDescription(arm_inter, tool_frame="gripper_tool_frame", gripper_description=gripper) #or ur5_tool0
+        arm_manip = ManipulatorDescription(arm_inter, tool_frame="gripper_tool_frame",
+                                           gripper_description=gripper)  # or ur5_tool0
         self.chains["left"] = arm_manip
         # Neck
         neck_base_link = "ur5_base_link"
@@ -499,14 +501,18 @@ class DonbotDescription(RobotDescription):
         # Static Neck Positions
         down = [4.130944728851318, 0.04936718940734863, -1.9734209219561976,
                 -1.7624157110797327, 1.6369260549545288, -1.6503327528582972]
-        right = [1.6281344890594482, -1.4734271208392542, -1.1555221716510218,
-                 -0.9881671110736292, 1.4996352195739746, -1.4276765028582972]
+        right = [1.6281344890594482, -1.1734271208392542, -1.1555221716510218,
+                 # 2:-1.4734271208392542, 4: -0.9881671110736292,
+                 -1.7555221716510218, 1.4996352195739746, -1.4276765028582972]
+        left = [-1.6281344890594482, -1.1734271208392542, -1.1555221716510218,
+                # 2:-1.4734271208392542, 4: -0.9881671110736292,
+                -1.7555221716510218, 1.4996352195739746, -1.4276765028582972]
         right_separators = [1.4752850532531738, -1.4380276838885706, -1.9198325316058558,
                             -0.0680769125567835, 1.704722285270691, -1.5686963240252894]
         right_separators_preplace_state = [1.585883378982544, -0.49957687059511,
                                            -1.61414081255068, -1.1720898787127894,
                                            1.37771737575531, -1.3602331320392054]
-        neck.add_static_joint_chains({"down": down, "right": right, "right_separators": right_separators,
+        neck.add_static_joint_chains({"down": down, "right": right, "left": left, "right_separators": right_separators,
                                       "right_separators_preplace_state": right_separators_preplace_state})
         # Static Arm Positions
         park = [3.234022855758667, -1.5068710486041468, -0.7870314756976526, -2.337625328694479,
@@ -529,8 +535,41 @@ class InitializedRobotDescription():
                 InitializedRobotDescription.current_description_loaded is not robot_description:
             InitializedRobotDescription.current_description_loaded = robot_description
             InitializedRobotDescription.i = robot_description()
+            print("loaded robot description")
 
 
-InitializedRobotDescription(BoxyDescription)  # TODO: Get robot name from param server and map to PR2-/BoxyDescription
-print("loaded robot description")
-# print(InitializedRobotDescription.i.get_static_joint_chain("neck", "away").items())
+def update_robot_description(robot_name=None, from_ros=None):
+    print(robot_name)
+    # Get robot name
+    if robot_name:
+        robot = robot_name
+    elif from_ros:
+        param_name = search_param('robot_description')
+        if has_param(param_name):
+            try:
+                urdf = get_param(param_name)
+            except ROSException:
+                logerr("Could not get roboter name from parameter server.")
+                return None
+            res = re.findall(r"robot\ *name\ *=\ *\"\ *[a-zA-Z_1-9]*\ *\"", urdf)
+            if len(res) == 1:
+                begin = res[0].find("\"")
+                end = res[0][begin + 1:].find("\"")
+                robot = res[0][begin + 1:begin + 1 + end].lower()
+    else:
+        return None
+
+    # Choose Description based on robot name
+    if 'donbot' in robot:
+        description = DonbotDescription
+    elif 'pr2' in robot:
+        description = PR2Description
+    elif 'boxy' in robot:
+        description = BoxyDescription
+    else:
+        logerr("The given robot name %s has no description class.", robot_name)
+        return None
+    InitializedRobotDescription(description)
+
+
+update_robot_description(from_ros=True)
