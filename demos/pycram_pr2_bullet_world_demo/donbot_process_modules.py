@@ -1,11 +1,13 @@
 from pycram.robot_description import InitializedRobotDescription as robot_description
 from pycram.process_module import ProcessModule
+from pycram.process_modules import ProcessModules
 from pycram.bullet_world import BulletWorld
 from pycram.helper import transform
 import pycram.bullet_world_reasoning as btr
 import pybullet as p
-import numpy as np
+from rospy import logerr
 import time
+
 
 
 def _apply_ik(robot, joint_poses):
@@ -127,11 +129,14 @@ class DonbotMoveHead(ProcessModule):
         solutions = desig.reference()
         if solutions['cmd'] == 'looking':
             target = solutions['target']
-            robot = BulletWorld.robot
-            print(robot_description.i.get_static_joint_chain("neck", "right_separators"))
-            print("donbot looking")
-            for joint, state in robot_description.i.get_static_joint_chain("neck", "right_separators").items():
-                robot.set_joint_state(joint, state)
+            if target is 'left' or target is 'right':
+                robot = BulletWorld.robot
+                print(robot_description.i.get_static_joint_chain("neck", "right_separators"))
+                print("donbot looking")
+                for joint, state in robot_description.i.get_static_joint_chain("neck", target).items():
+                    robot.set_joint_state(joint, state)
+            else:
+                logerr("There is no target position defined with the target %s.", target)
 
 
 class DonbotMoveGripper(ProcessModule):
@@ -168,7 +173,8 @@ class DonbotDetecting(ProcessModule):
             for obj in objects:
                 print("visible?")
                 print(btr.visible(obj, robot.get_link_position_and_orientation(cam_frame_name), front_facing_axis, 0.5))
-                if True or btr.visible(obj, robot.get_link_position_and_orientation(cam_frame_name), front_facing_axis, 0.5):
+                if btr.visible(obj, robot.get_link_position_and_orientation(cam_frame_name), front_facing_axis, 0.5):
+                    print(obj)
                     return obj
 
 
@@ -218,60 +224,12 @@ class DonbotWorldStateDetecting(ProcessModule):
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
 
-donbot_navigation = DonbotNavigation()
-donbot_pick_up = DonbotPickUp()
-donbot_place = DonbotPlace()
-donbot_accessing = DonbotAccessing()
-donbot_park_arms = DonbotParkArms()
-donbot_move_head = DonbotMoveHead()
-donbot_move_gripper = DonbotMoveGripper()
-donbot_detecting = DonbotDetecting()
-donbot_move_tcp = DonbotMoveTCP()
-donbot_move_joints = DonbotMoveJoints()
-donbot_world_state_detecting = DonbotWorldStateDetecting()
+class DonbotProcessModules(ProcessModules):
+    initialized = None
 
-
-def available_process_modules(desig):
-    """
-    This method chooses the right process module for the given designator and returns it.
-    :param desig: The designator for which a process module should be choosen.
-    :return: The choosen process module
-    """
-    if desig.check_constraints([('type', 'moving')]):
-        return donbot_navigation
-
-    if desig.check_constraints([('type', 'pick-up')]):
-        return donbot_pick_up
-
-    if desig.check_constraints([('type', 'place')]):
-        return donbot_place
-
-    if desig.check_constraints([('type', 'accessing')]):
-        return donbot_accessing
-
-    if desig.check_constraints([('type', 'park-arms')]):
-        return donbot_park_arms
-
-    if desig.check_constraints([('type', 'looking')]):
-        return donbot_move_head
-
-    if desig.check_constraints([('type', 'opening-gripper')]):
-        return donbot_move_gripper
-
-    if desig.check_constraints([('type', 'closing-gripper')]):
-        return donbot_move_gripper
-
-    if desig.check_constraints([('type', 'detecting')]):
-        return donbot_detecting
-
-    if desig.check_constraints([('type', 'move-tcp')]):
-        return donbot_move_tcp
-
-    if desig.check_constraints([('type', 'move-arm-joints')]):
-        return donbot_move_joints
-
-    if desig.check_constraints([('type', 'world-state-detecting')]):
-        return donbot_world_state_detecting
-
-
-ProcessModule.resolvers.append(available_process_modules)
+    def __init__(self):
+        if not DonbotProcessModules.initialized:
+            super().__init__(DonbotNavigation(), DonbotPickUp(), DonbotPlace(), DonbotAccessing(), DonbotParkArms(),
+                             DonbotMoveHead(), DonbotMoveGripper(), DonbotMoveGripper(), DonbotDetecting(),
+                             DonbotMoveTCP(), DonbotMoveJoints(), DonbotWorldStateDetecting())
+            DonbotProcessModules.initialized = self
