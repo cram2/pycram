@@ -1,5 +1,6 @@
 from pycram.robot_description import InitializedRobotDescription as robot_description
 from pycram.process_module import ProcessModule
+from pycram.process_modules import ProcessModules
 from pycram.bullet_world import BulletWorld
 from pycram.helper import transform
 import pycram.bullet_world_reasoning as btr
@@ -227,60 +228,12 @@ class BoxyWorldStateDetecting(ProcessModule):
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
 
-boxy_navigation = BoxyNavigation()
-boxy_pick_up = BoxyPickUp()
-boxy_place = BoxyPlace()
-boxy_accessing = BoxyAccessing()
-boxy_park_arms = BoxyParkArms()
-boxy_move_head = BoxyMoveHead()
-boxy_move_gripper = BoxyMoveGripper()
-boxy_detecting = BoxyDetecting()
-boxy_move_tcp = BoxyMoveTCP()
-boxy_move_joints = BoxyMoveJoints()
-boxy_world_state_detecting = BoxyWorldStateDetecting()
+class BoxyProcessModules(ProcessModules):
+    initialized = None
 
-
-def available_process_modules(desig):
-    """
-    This method chooses the right process module for the given designator and returns it.
-    :param desig: The designator for which a process module should be choosen.
-    :return: The choosen process module
-    """
-    if desig.check_constraints([('type', 'moving')]):
-        return boxy_navigation
-
-    if desig.check_constraints([('type', 'pick-up')]):
-        return boxy_pick_up
-
-    if desig.check_constraints([('type', 'place')]):
-        return boxy_place
-
-    if desig.check_constraints([('type', 'accessing')]):
-        return boxy_accessing
-
-    if desig.check_constraints([('type', 'park-arms')]):
-        return boxy_park_arms
-
-    if desig.check_constraints([('type', 'looking')]):
-        return boxy_move_head
-
-    if desig.check_constraints([('type', 'opening-gripper')]):
-        return boxy_move_gripper
-
-    if desig.check_constraints([('type', 'closing-gripper')]):
-        return boxy_move_gripper
-
-    if desig.check_constraints([('type', 'detecting')]):
-        return boxy_detecting
-
-    if desig.check_constraints([('type', 'move-tcp')]):
-        return boxy_move_tcp
-
-    if desig.check_constraints([('type', 'move-arm-joints')]):
-        return boxy_move_joints
-
-    if desig.check_constraints([('type', 'world-state-detecting')]):
-        return boxy_world_state_detecting
-
-
-ProcessModule.resolvers.append(available_process_modules)
+    def __init__(self):
+        if not BoxyProcessModules.initialized:
+            super().__init__(BoxyNavigation(), BoxyPickUp(), BoxyPlace(), BoxyAccessing(), BoxyParkArms(),
+                             BoxyMoveHead(), BoxyMoveGripper(), BoxyMoveGripper(), BoxyDetecting(), BoxyMoveTCP(),
+                             BoxyMoveJoints(), BoxyWorldStateDetecting())
+            BoxyProcessModules.initialized = self
