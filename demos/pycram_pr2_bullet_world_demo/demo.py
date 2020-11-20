@@ -1,5 +1,5 @@
 from pycram.robot_description import InitializedRobotDescription as robot_description
-import boxy_process_modules
+import available_process_modules
 import motion_designators  # Needs to be imported to load Process Modules and designator solutions
 import pycram.bullet_world_reasoning as btr
 from pycram.designator import MotionDesignator
@@ -11,7 +11,7 @@ world = BulletWorld()
 world.set_gravity([0, 0, -9.8])
 plane = Object("floor", "environment", "../../resources/plane.urdf", world=world)
 # robot = Object("pr2", "robot", "../../resources/pr2.urdf")
-robot = Object("boxy", "robot", "../../resources/boxy.urdf")
+robot = Object("boxy", "robot", "../../resources/hsr.urdf")
 kitchen = Object("kitchen", "environment", "../../resources/kitchen.urdf")
 milk = Object("milk", "milk", "../../resources/milk.stl", [1.3, 1, 1])
 spoon = Object("spoon", "spoon", "../../resources/spoon.stl", [1.35, 0.7, 0.8])
@@ -33,14 +33,16 @@ moving_targets = {
     'boxy': {'sink': [[0.65, 0.7, 0], [0, 0, 0, 1]],
              'island': [[-0.3, 1, 0], [0, 0, 1, 0]]},
     'donbot': {'sink': [[0.6, 1, 0], [0, 0, 0.7, 0.7]],
-               'island': [[-0.3, 1.2, 0], [0, 0, -0.7, 0.7]]}
+               'island': [[-0.3, 1.2, 0], [0, 0, -0.7, 0.7]]},
+    'hsr': {'hsr_cereal': [[0.2, 1.2, 0], [0, 0, 0.7, 0.7]],
+            'kitchen_entry': [[0.2, -2.2, 0], [0, 0, -0.7, 0.7]]}
 }
 
 
 def park_arms(robot_name):
     # Parking description
     park_desc = [('type', 'move-arm-joints'), ('left-arm', 'park')]
-    if robot_name is not 'donbot':
+    if robot_name is not 'donbot' and robot_name is not 'hsr':
         park_desc.append([('right-arm', 'park')])
     # Perform Parking with MotionDesignator
     ProcessModule.perform(MotionDesignator(park_desc))
@@ -107,12 +109,35 @@ def move_object(object_type, target, arm, robot_name):
     targets[object_type][2] = True
 
 
-object_types = ['milk',
-                'bowl',
-                'cereal',
-                'spoon']
-for i in range(0, 4):
-    if not targets[object_types[i]][2]:
-        position_target = targets[object_types[i]][0]
-        arm = targets[object_types[i]][1] if robot_description.i.name is not 'donbot' else 'left'
-        move_object(object_types[i], position_target, arm, robot_description.i.name)
+if 'hsr' not in robot_description.i.name:
+    object_types = ['milk',
+                    'bowl',
+                    'cereal',
+                    'spoon']
+    for i in range(0, 4):
+        if not targets[object_types[i]][2]:
+            position_target = targets[object_types[i]][0]
+            arm = targets[object_types[i]][1] if robot_description.i.name is not 'donbot' else 'left'
+            move_object(object_types[i], position_target, arm, robot_description.i.name)
+else:
+    # Spawn object to be manipulated from hsr
+    robot_name = 'hsr'
+    hsr_cereal = Object("hsr_cereal", "cereal", "../../resources/breakfast_cereal.stl", [0.2, 1.6, 0.5])
+    # Park arms
+    park_arms(robot_name)
+    # Move to object
+    move_robot(robot_name, 'hsr_cereal')
+    # Look at object
+    ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', 'down')]))
+    # Detect object
+    det_obj = ProcessModule.perform(MotionDesignator([('type', 'detecting'), ('object', 'cereal')]))
+    # Pick up detected object
+    ProcessModule.perform(MotionDesignator([('type', 'pick-up'), ('object', det_obj), ('arm', 'left')]))
+    # Park Arms
+    park_arms(robot_name)
+    # Move to kitchen entry
+    move_robot(robot_name, 'kitchen_entry')
+    # Drop the cereal box
+    ProcessModule.perform(MotionDesignator([('type', 'place'), ('object', det_obj), ('target', [0.2, -2.5, 0.4]), ('arm', 'left')]))
+    # Park Arms
+    park_arms(robot_name)
