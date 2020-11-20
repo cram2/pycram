@@ -92,7 +92,8 @@ class InteractionDescription(ChainDescription):
 
     def __init__(self, chain_description: ChainDescription, eef_link: str):
         tmp = deepcopy(chain_description)
-        super().__init__(tmp.name, tmp.joints, tmp.links, tmp.static_joint_states)
+        super().__init__(tmp.name, tmp.joints, tmp.links, base_link=tmp.base_link,
+                         static_joint_states=tmp.static_joint_states)
         self.chain_description = tmp
         self.eef_link = eef_link
 
@@ -524,6 +525,58 @@ class DonbotDescription(RobotDescription):
         return super().get_camera_frame(name)
 
 
+class HSRDescription(RobotDescription):
+
+    def __init__(self):
+        ik_joints = ['base_roll_joint', 'base_r_drive_wheel_joint', 'base_l_drive_wheel_joint',
+                     'base_r_passive_wheel_x_frame_joint', 'base_r_passive_wheel_y_frame_joint', 'base_r_passive_wheel_z_joint',
+                     'base_l_passive_wheel_x_frame_joint', 'base_l_passive_wheel_y_frame_joint', 'base_l_passive_wheel_z_joint',
+                     'torso_lift_joint', 'head_pan_joint', 'head_tilt_joint', 'arm_lift_joint', 'arm_flex_joint', 'arm_roll_joint',
+                     'wrist_flex_joint', 'wrist_roll_joint', 'hand_motor_joint', 'hand_l_proximal_joint', 'hand_l_spring_proximal_joint',
+                     'hand_l_mimic_distal_joint', 'hand_l_distal_joint', 'hand_r_proximal_joint', 'hand_r_spring_proximal_joint',
+                     'hand_r_mimic_distal_joint', 'hand_r_distal_joint']
+        super().__init__("hsr", "odom", "base_footprint", "base_link", "arm_lift_link", "arm_lift_joint", ik_joints)
+        # Camera
+        head_center_camera = CameraDescription("head_center_camera_frame",
+                                               horizontal_angle=0.99483, vertical_angle=0.75049)
+        head_r_camera = CameraDescription("head_r_stereo_camera_link",
+                                          horizontal_angle=0.99483, vertical_angle=0.75049)
+        head_l_camera = CameraDescription("head_r_stereo_camera_link",
+                                          horizontal_angle=0.99483, vertical_angle=0.75049)
+        head_rgbd_camera = CameraDescription("head_rgbd_sensor_link",
+                                             horizontal_angle=0.99483, vertical_angle=0.75049)
+        hand_camera = CameraDescription("hand_camera_frame",
+                                        horizontal_angle=0.99483, vertical_angle=0.75049)
+        self.cameras["head_center_camera"] = head_center_camera
+        self.cameras["head_rgbd_camera"] = head_rgbd_camera
+        self.cameras["head_l_camera"] = head_l_camera
+        self.cameras["head_r_camera"] = head_r_camera
+        self.cameras["hand_camera"] = hand_camera
+        # Neck
+        neck_links = ["head_pan_link", "head_tilt_link"]
+        neck_joints = ["head_pan_joint", "head_tilt_joint"]
+        neck_forward = {"forward": [0.0, 0.0], "down": [0.0, -0.7]}
+        neck_chain = ChainDescription("neck", neck_joints, neck_links, static_joint_states=neck_forward)
+        self.chains["neck"] = neck_chain
+        # Arm
+        arm_joints = ["arm_flex_joint", "arm_roll_joint", "wrist_flex_joint", "wrist_roll_joint"]
+        arm_links = ["arm_flex_link", "arm_roll_link", "wrist_flex_link", "wrist_roll_link"]
+        arm_carry = {"park": [0, 1.5, -1.85, 0]}
+        gripper_links = ["hand_l_distal_link", "hand_l_spring_proximal_link", "hand_palm_link",
+                         "hand_r_distal_link", "hand_r_spring_proximal_link"]
+        gripper_joints = ["hand_motor_joint"]
+        gripper = GripperDescription("gripper", gripper_links=gripper_links, gripper_joints=gripper_joints,
+                                     gripper_meter_to_jnt_multiplier=1.0, gripper_minimal_position=0.0,
+                                     gripper_convergence_delta=0.001)
+        arm_chain = ChainDescription("left", arm_joints, arm_links, static_joint_states=arm_carry)
+        arm_inter = InteractionDescription(arm_chain, "wrist_roll_link")
+        arm_manip = ManipulatorDescription(arm_inter, tool_frame="gripper_tool_frame", gripper_description=gripper)
+        self.chains["left"] = arm_manip
+
+    def get_camera_frame(self, name="head_center_camera"):
+        # TODO: Hacky since only one optical camera frame from pr2 is used
+        return super().get_camera_frame(name)
+
 class InitializedRobotDescription():
     # singleton instance short named as 'i'
     i = None
@@ -539,23 +592,20 @@ class InitializedRobotDescription():
 
 
 def update_robot_description(robot_name=None, from_ros=None):
-    print(robot_name)
     # Get robot name
     if robot_name:
         robot = robot_name
     elif from_ros:
-        param_name = search_param('robot_description')
-        if has_param(param_name):
-            try:
-                urdf = get_param(param_name)
-            except ROSException:
-                logerr("Could not get roboter name from parameter server.")
-                return None
-            res = re.findall(r"robot\ *name\ *=\ *\"\ *[a-zA-Z_1-9]*\ *\"", urdf)
-            if len(res) == 1:
-                begin = res[0].find("\"")
-                end = res[0][begin + 1:].find("\"")
-                robot = res[0][begin + 1:begin + 1 + end].lower()
+        try:
+            urdf = get_param('robot_description')
+        except ConnectionRefusedError:
+            logerr("(robot-description) Could not get robot name from parameter server. Try again.")
+            return None
+        res = re.findall(r"robot\ *name\ *=\ *\"\ *[a-zA-Z_1-9]*\ *\"", urdf)
+        if len(res) == 1:
+            begin = res[0].find("\"")
+            end = res[0][begin + 1:].find("\"")
+            robot = res[0][begin + 1:begin + 1 + end].lower()
     else:
         return None
 
@@ -566,10 +616,13 @@ def update_robot_description(robot_name=None, from_ros=None):
         description = PR2Description
     elif 'boxy' in robot:
         description = BoxyDescription
+    elif 'hsr' in robot:
+        description = HSRDescription
     else:
         logerr("The given robot name %s has no description class.", robot_name)
         return None
     InitializedRobotDescription(description)
 
 
-update_robot_description(from_ros=True)
+update_robot_description(from_ros=True) # todo: put in ros init
+#print(InitializedRobotDescription.i.chains["left"].static_joint_states)
