@@ -6,18 +6,26 @@ from pycram.designator import MotionDesignator
 from pycram.process_module import ProcessModule
 from pycram.bullet_world import BulletWorld, Object
 from pycram.language import macros, par
+from time import sleep
 
 world = BulletWorld()
 world.set_gravity([0, 0, -9.8])
 plane = Object("floor", "environment", "../../resources/plane.urdf", world=world)
-# robot = Object("pr2", "robot", "../../resources/pr2.urdf")
-robot = Object("boxy", "robot", "../../resources/hsr.urdf")
+robot = Object("boxy", "robot", "../../resources/boxy.urdf")
+
+spawning_poses = {
+    'milk': [1.3, 1, 1],
+    'spoon': [1.35, 0.7, 0.8],
+    'cereal': [1.3, 0.6, 1],
+    'bowl': [1.3, 0.8, 1]
+}
+
 kitchen = Object("kitchen", "environment", "../../resources/kitchen.urdf")
-milk = Object("milk", "milk", "../../resources/milk.stl", [1.3, 1, 1])
-spoon = Object("spoon", "spoon", "../../resources/spoon.stl", [1.35, 0.7, 0.8])
+milk = Object("milk", "milk", "../../resources/milk.stl", spawning_poses["milk"])
+spoon = Object("spoon", "spoon", "../../resources/spoon.stl", spawning_poses["spoon"])
 kitchen.attach(spoon, link="sink_area_left_upper_drawer_main")
-cereal = Object("cereal", "cereal", "../../resources/breakfast_cereal.stl", [1.3, 0.6, 1])
-bowl = Object("bowl", "bowl", "../../resources/bowl.stl", [1.3, 0.8, 1])
+cereal = Object("cereal", "cereal", "../../resources/breakfast_cereal.stl", spawning_poses["cereal"])
+bowl = Object("bowl", "bowl", "../../resources/bowl.stl", spawning_poses["bowl"])
 BulletWorld.robot = robot
 
 targets = {
@@ -30,9 +38,9 @@ targets = {
 moving_targets = {
     'pr2': {'sink': [[0.65, 0.7, 0], [0, 0, 0, 1]],
             'island': [[-0.3, 1, 0], [0, 0, 1, 0]]},
-    'boxy': {'sink': [[0.65, 0.7, 0], [0, 0, 0, 1]],
+    'boxy': {'sink': [[0.4, 0.7, 0], [0, 0, 0, 1]],
              'island': [[-0.3, 1, 0], [0, 0, 1, 0]]},
-    'donbot': {'sink': [[0.6, 1, 0], [0, 0, 0.7, 0.7]],
+    'donbot': {'sink': [[0.5, 1.2, 0], [0, 0, 0.7, 0.7]],
                'island': [[-0.3, 1.2, 0], [0, 0, -0.7, 0.7]]},
     'hsr': {'hsr_cereal': [[0.2, 1.2, 0], [0, 0, 0.7, 0.7]],
             'kitchen_entry': [[0.2, -2.2, 0], [0, 0, -0.7, 0.7]]}
@@ -43,7 +51,7 @@ def park_arms(robot_name):
     # Parking description
     park_desc = [('type', 'move-arm-joints'), ('left-arm', 'park')]
     if robot_name is not 'donbot' and robot_name is not 'hsr':
-        park_desc.append([('right-arm', 'park')])
+        park_desc.append(('right-arm', 'park'))
     # Perform Parking with MotionDesignator
     ProcessModule.perform(MotionDesignator(park_desc))
 
@@ -71,7 +79,10 @@ def move_object(object_type, target, arm, robot_name):
              ('part-of', kitchen)]))
 
     # Look at object
-    ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', [1.3, 0.6, 1])]))
+    if robot_name is 'donbot':
+        ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', 'right')]))
+    else:
+        ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', spawning_poses[object_type])]))
 
     # Detect object
     det_obj = ProcessModule.perform(MotionDesignator([('type', 'detecting'), ('object', object_type)]))
@@ -97,7 +108,7 @@ def move_object(object_type, target, arm, robot_name):
     move_robot(robot_name, 'island')
 
     # Place object if target pose of object is reachable for the robots manipulator
-    if btr.reachable_pose(target, robot, gripper):
+    if btr.reachable_pose(target, robot, gripper, threshold=0.05):
         ProcessModule.perform(
             MotionDesignator([('type', 'place'), ('object', det_obj), ('target', target), ('arm', arm)]))
 
@@ -131,13 +142,19 @@ else:
     ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', 'down')]))
     # Detect object
     det_obj = ProcessModule.perform(MotionDesignator([('type', 'detecting'), ('object', 'cereal')]))
+    # Open Gripper
+    ProcessModule.perform(MotionDesignator([('type', 'opening-gripper'), ('gripper', 'left')]))
     # Pick up detected object
     ProcessModule.perform(MotionDesignator([('type', 'pick-up'), ('object', det_obj), ('arm', 'left')]))
+    # Close Gripper
+    ProcessModule.perform(MotionDesignator([('type', 'closing-gripper'), ('gripper', 'left'),]))
     # Park Arms
     park_arms(robot_name)
     # Move to kitchen entry
     move_robot(robot_name, 'kitchen_entry')
     # Drop the cereal box
     ProcessModule.perform(MotionDesignator([('type', 'place'), ('object', det_obj), ('target', [0.2, -2.5, 0.4]), ('arm', 'left')]))
+    # Open Gripper
+    ProcessModule.perform(MotionDesignator([('type', 'opening-gripper'), ('gripper', 'left')]))
     # Park Arms
     park_arms(robot_name)
