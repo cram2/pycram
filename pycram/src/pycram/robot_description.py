@@ -1,5 +1,6 @@
 from copy import deepcopy
-from rospy import logerr, logwarn, search_param, has_param, get_param, ROSException
+from numbers import Number
+from rospy import logerr, logwarn, search_param, has_param, get_param, ROSException, loginfo
 import re
 
 
@@ -28,30 +29,46 @@ class ChainDescription:
 
     def add_static_joint_chains(self, static_joint_states):
         """
-        :param static_joint_states: dict[str: list[float]]
+        This function adds static joints chains, which are given in a dictionary.
+
+        :type static_joint_states: dict[str: list[float]]
+        :param static_joint_states: Static joint chains, where keys hold the configuration name
+                                    and values hold a list of floats/joint configurations.
         """
         for configuration, joint_states in static_joint_states.items():
-            self.add_static_joint_chain(configuration, joint_states)
+            if not self.add_static_joint_chain(configuration, joint_states):
+                logerr("(robot_description) Could not add all static_joint_states for the chain %s.", self.name)
+                break
 
     def add_static_joint_chain(self, configuration, static_joint_states):
         """
-        :param configuration: str
-        :param static_joint_states: list[float]
+        This function adds one static joints chain with the given configuration name.
+
+        :param configuration: Configuration name of the static joint configuration
+        :type configuration: str
+        :param static_joint_states: List of floats/joint configurations
+        :type static_joint_states: list[float]
         """
-        if len(static_joint_states) == len(self.joints):
-            configurations = list(self.static_joint_states.keys())
-            if configuration not in configurations:
-                self.static_joint_states = self.static_joint_states
-                self.static_joint_states[configuration] = static_joint_states
+        if all(map(lambda n: isinstance(n, Number), static_joint_states)):
+            if len(static_joint_states) == len(self.joints):
+                configurations = list(self.static_joint_states.keys())
+                if configuration not in configurations:
+                    self.static_joint_states = self.static_joint_states
+                    self.static_joint_states[configuration] = static_joint_states
+                    return True
+                else:
+                    logwarn("(robot_description) The chain %s already has static joint values "
+                            "for the config %s.", self.name, configuration)
             else:
-                logwarn("(robot_description) The chain %s already has static joint values "
-                        "for the config %s.", self.name, configuration)
-        else:
-            logerr("(robot_description) The number of the joint values does not equal the amount of the joints"
-                   "for the chain %s.", self.name)
+                logerr("(robot_description) The number of the joint values does not equal the amount of the joints"
+                       "for the chain %s.", self.name)
 
     def get_static_joint_chain(self, configuration):
         """
+        Gets a static joint chain as dictionary of its joint names and values.
+
+        :param configuration: Name of the configuration
+        :type configuration: str
         :return: dict[str: float]
         """
         try:
@@ -63,15 +80,20 @@ class ChainDescription:
 
 
 class GripperDescription(ChainDescription):
+    """
+    This class represents a gripper of a robot. It allows to specify more parameters
+    for the robots gripper and set static gripper configurations (since it inherits
+    from ChainDescription).
+    """
 
     def __init__(self, name, gripper_links=None, gripper_joints=None,
                  static_gripper_joint_states=None,
                  gripper_meter_to_jnt_multiplier=1.0, gripper_minimal_position=0.0,
                  gripper_convergence_delta=0.001):
         """
-        :param gripper_links: list[str]
-        :param gripper_joints: list[str]
-        :param static_gripper_joint_states: dict[str: list[float]]
+        :type gripper_links: list[str]
+        :type gripper_joints: list[str]
+        :type static_gripper_joint_states: dict[str: list[float]]
         """
         super().__init__(name, gripper_joints, gripper_links, base_link=None,
                          static_joint_states=static_gripper_joint_states)
@@ -105,8 +127,9 @@ class ManipulatorDescription(InteractionDescription):
     and the rest of it.
     Independently from that a tool frame can be saved, which allows to use objects
     to manipulate the environment.
-
-        chain of links: interaction_description <-> (gripper_description) <-> (tool_frame)/eef_link
+                                                                           |--> (tool_frame)
+        chain of links: interaction_description <-> (gripper_description) -|
+                                                                           |--> eef_link
     """
 
     def __init__(self, interaction_description: InteractionDescription,
@@ -119,13 +142,17 @@ class ManipulatorDescription(InteractionDescription):
 
 
 class CameraDescription:
+    """
+    This class represents a camera by saving the camera link from the URDF and other
+    parameters specifically for that camera.
+    """
 
     def __init__(self, frame: str,
                  minimal_height=0.0, maximal_height=0.0,
                  vertical_angle=0.0, horizontal_angle=0.0,
                  other_params=None):
         """
-        :param other_params: dict[str: float]
+        :type other_params: dict[str: float]
         """
         self.frame = frame
         self.min_height = minimal_height
@@ -137,8 +164,26 @@ class CameraDescription:
 
 
 class RobotDescription:
+    """
+    The RobotDescription as an abstract class which needs to be inherited from to implement
+    a robot description for specific object. It implements different functions to add and get
+    chains of different objects types which inherit of the class ChainDescription. Moreover,
+    it allows to model the robot with its odom_frame, base_frame, base_link and torso links
+    and joints. Different cameras can be added and static transforms and poses can be added too.
+    """
 
     def __init__(self, name, odom_frame, base_frame, base_link, torso_link, torso_joint, ik_joints):
+        """
+        Initialises the robot description with the given frames.
+
+        :type name: str
+        :type odom_frame: str
+        :type base_frame: str
+        :type base_link: str
+        :type torso_link: str
+        :type torso_joint: str
+        :type ik_joints: [str]
+        """
         self.name = name
         self.chains = {}  # dict{str: ChainDescription}
         self.cameras = {}  # dict{str: CameraDescription}
@@ -149,18 +194,32 @@ class RobotDescription:
         self.base_link = base_link
         self.torso_link = torso_link
         self.torso_joint = torso_joint
-        self.ik_joints = ik_joints
+        self.ik_joints = ik_joints #TODO: remove if _apply_ik does not set all joints anymore or if it was removed
 
-    def get_chain_description(self, chain_name, description_type=ChainDescription, is_same_description_type=True):
+    def _safely_access_chains(self, chain_name, verbose=True):
         """
+        This function returns the chain_description of the name chain_name or None, if there
+        exists no chain description with the name chain_name.
+        """
+        try:
+            chain_description = self.chains[chain_name]
+        except KeyError:
+            if verbose:
+                logwarn("(robot_description) Chain name %s is unknown.", chain_name)
+            return None
+        return chain_description
+
+    def _get_chain_description(self, chain_name, description_type=ChainDescription, is_same_description_type=True):
+        """
+        This function checks if there is a chain saved in self.chains with the chain name chain_name.
+        Moreover, if is_same_description_type is True it will be checked if the found chain is of the given
+        object class description_type. If is_same_description_type is False, it will be just checked if
+        the found chain is a subclass of description_type.
+
         :return: subclass of ChainDescription or None
         """
         if issubclass(description_type, ChainDescription):
-            try:
-                chain_description = self.chains[chain_name]
-            except KeyError:
-                logerr("(robot_description) Name %s is unknown.", chain_name)
-                return None
+            chain_description = self._safely_access_chains(chain_name)
             if not is_same_description_type:
                 return chain_description
             else:
@@ -172,22 +231,30 @@ class RobotDescription:
         else:
             logwarn("(robot_description) Only subclasses of ChainDescription are allowed.")
 
-    def get_tool_frame(self, manipulator_name):
-        manipulator_description = self.get_chain_description(manipulator_name, description_type=ManipulatorDescription)
+    def get_tool_frame(self, manipulator_name: str):
+        """
+        Returns the tool frame of the manipulator description with the name manipulator name.
+
+        :return: str
+        """
+        manipulator_description = self._get_chain_description(manipulator_name, description_type=ManipulatorDescription)
         if manipulator_description:
             return manipulator_description.tool_frame
         else:
-            exit(0)
+            logerr("(robot_description) Could not get the tool frame of the manipulator %s.", manipulator_name)
 
     def get_static_joint_chain(self, chain_name: str, configuration: str):
         """
+        Returns the static joint chain given the chains name chain_name and the configurations name configuration.
+
         :return: dict[str: float]
         """
-        chain_description = self.get_chain_description(chain_name, is_same_description_type=False)
+        chain_description = self._get_chain_description(chain_name, is_same_description_type=False)
         if chain_description:
             return chain_description.get_static_joint_chain(configuration)
         else:
-            exit(0)
+            logerr("(robot_description) Could not get static joint chain called %s of the chain %s.",
+                   configuration, chain_name)
 
     def get_static_tf(self, base_link: str, target_link: str):
         pass
@@ -196,12 +263,68 @@ class RobotDescription:
         pass
 
     def add_chain(self, name: str, chain_description: ChainDescription):
-        pass
+        """
+        This functions adds the chain description chain_description with the name name and
+        overwrites the existing chain description of name name, if it already exists in self.chains.
+        """
+        if issubclass(type(chain_description), ChainDescription):
+            if self._safely_access_chains(name, verbose=False):
+                logwarn("(robot_description) Replacing the chain description of the name %s.", name)
+            self.chains[name] = chain_description
+            return True
+        else:
+            logerr("(robot_description) Given chain_description object is no subclass of ChainDescription.")
+
+    def add_chains(self, chains_dict):
+        """
+        This function calls recursively the self.add_chain function and adds therefore the chain description
+        saved in the values part of the dictionary chains_dict with the names saved in the key part of the
+        dictionary chains_dict.
+
+        :type chains_dict: dict[str: ChainDescription]
+        """
+        for name, chain in chains_dict.items():
+            if not self.add_chain(name, chain):
+                logerr("(robot_description) Could not add the chain object of name %s.", name)
+                break
 
     def add_camera(self, name: str, camera_description: CameraDescription):
-        pass
+        """
+        This functions adds the camera description camera_description with the name name and
+        overwrites the existing camera description of name name, if it already exists in self.cameras.
+        """
+        if type(camera_description) is CameraDescription:
+            found = True
+            try:
+                self.cameras[name]
+            except KeyError:
+                found = False
+            if found:
+                logwarn("(robot_description) Replacing the camera description of the name %s.", name)
+            self.cameras[name] = camera_description
+            return True
+        else:
+            logerr("(robot_description) Given camera_description object is not of type CameraDescription.")
+
+    def add_cameras(self, cameras_dict):
+        """
+        This function calls recursively the self.add_camera function and adds therefore the camera description
+        saved in the values part of the dictionary cameras_dict with the names saved in the key part of the
+        dictionary cameras_dict.
+
+        :type cameras_dict: dict[str: CamerasDescription]
+        """
+        for name, camera in cameras_dict.items():
+            if not self.add_camera(name, camera):
+                logerr("(robot_description) Could not add the camera object of name %s.", name)
+                break
 
     def get_camera_frame(self, camera_name):
+        """
+        Returns the camera frame of the given camera with the name camera_name.
+
+        :return: str
+        """
         try:
             camera_description = self.cameras[camera_name]
         except KeyError:
@@ -211,35 +334,63 @@ class RobotDescription:
 
     def add_static_joint_chain(self, chain_name: str, configuration: str, static_joint_states):
         """
-        :param static_joint_states: list[float]
+        This function calls the add_static_joint_chain function on the chain object with the name chain_name.
+        For more information see the add_static_joint_chain in ChainDescription.
+
+        :type static_joint_states: list[float]
         """
-        self.chains[chain_name].add_static_joint_chain(configuration, static_joint_states)
+        return self.chains[chain_name].add_static_joint_chain(configuration, static_joint_states)
 
     def add_static_joint_chains(self, chain_name: str, static_joint_states):
         """
-        :param static_joint_states: dict[str: list[float]]
+        This function calls recursively the self.add_static_joint_chain function with the name chain_name
+        and adds therefore the static joint values saved in the values part of the dictionary static_joint_states
+        with the configuration names saved in the key part of the dictionary static_joint_states.
+
+        :type static_joint_states: dict[str: list[float]]
         """
         for configuration, joint_states in static_joint_states.items():
-            self.add_static_joint_chain(chain_name, configuration, joint_states)
+            if not self.add_static_joint_chain(chain_name, configuration, joint_states):
+                logerr("(robot_description) Could not add the static joint chain called %s for chain %s.",
+                       configuration, chain_name)
+                break
 
-    def add_static_gripper_chain(self, manipulator_name: str, configuration: str,
-                                 static_joint_states):
+    def add_static_gripper_chain(self, manipulator_name: str, configuration: str, static_joint_states):
         """
-        :param static_joint_states: dict[str: list[float]]
+        This function adds a static gripper chain to a gripper description if there exists a manipulator description
+        with the name manipulator_name. The static gripper joint vales in static_joint_states are then saved
+        with the configuration name configuration in the manipulator description object.
+        For more information see the add_static_joint_chain in ChainDescription.
+
+        :type static_joint_states: dict[str: list[float]]
         """
-        manipulator_description = self.get_chain_description(manipulator_name, ManipulatorDescription)
+        manipulator_description = self._get_chain_description(manipulator_name, ManipulatorDescription)
         if manipulator_description and manipulator_description.gripper:
-            manipulator_description.gripper.add_static_joint_chain(configuration, static_joint_states)
+            return manipulator_description.gripper.add_static_joint_chain(configuration, static_joint_states)
 
     def add_static_gripper_chains(self, manipulator_name: str, static_joint_states):
         """
-        :param static_joint_states: dict[str: list[float]]
+        This function calls recursively the self.add_static_gripper_chain function with the name manipulator_name
+        and adds therefore the static joint values saved in the values part of the dictionary static_joint_states
+        with the configuration names saved in the key part of the dictionary static_joint_states.
+
+        :type static_joint_states: dict[str: list[float]]
         """
         for configuration, joint_states in static_joint_states.items():
-            self.add_static_gripper_chain(manipulator_name, configuration, joint_states)
+            if not self.add_static_gripper_chain(manipulator_name, configuration, joint_states):
+                logerr("(robot_description) Could not add static gripper chain called %s for manipulator chain %s.",
+                       configuration, manipulator_name)
+                break
 
     def get_static_gripper_chain(self, manipulator_name: str, configuration: str):
-        manipulator_description = self.get_chain_description(manipulator_name, ManipulatorDescription)
+        """
+        Returns the static gripper joint chain given the manipulator name manipulator_name and the configuration name configuration.
+
+        For more information see the function get_static_joint_chain in ChainDescription.
+
+        :return: dict[str: list[float]] or None
+        """
+        manipulator_description = self._get_chain_description(manipulator_name, ManipulatorDescription)
         if manipulator_description and manipulator_description.gripper:
             return manipulator_description.gripper.get_static_joint_chain(configuration)
 
@@ -247,7 +398,7 @@ class RobotDescription:
 class PR2Description(RobotDescription):
 
     def __init__(self):
-        # all joints which are not fix
+        # all joints which are not fix,
         ik_joints = ["fl_caster_rotation_joint", "fl_caster_l_wheel_joint", "fl_caster_r_wheel_joint",
                      "fr_caster_rotation_joint", "fr_caster_l_wheel_joint", "fr_caster_r_wheel_joint",
                      "bl_caster_rotation_joint", "bl_caster_l_wheel_joint", "bl_caster_r_wheel_joint",
@@ -283,17 +434,15 @@ class PR2Description(RobotDescription):
         wide_stereo_optical_frame = CameraDescription("wide_stereo_optical_frame",
                                                       horizontal_angle=horizontal_angle, vertical_angle=vertical_angle,
                                                       minimal_height=minimal_height, maximal_height=maximal_height)
-        self.cameras["kinect"] = kinect
-        self.cameras["openni"] = openni
-        self.cameras["stereo"] = stereo
-        self.cameras["optical_frame"] = wide_stereo_optical_frame
+        self.add_cameras({"kinect": kinect, "openni": openni, "stereo": stereo,
+                          "optical_frame": wide_stereo_optical_frame})
         # Chains
         neck_static_joints = {}
         neck_static_joints["forward"] = [0.0, 0.0]
         neck = ChainDescription("neck", ["head_pan_joint", "head_tilt_joint"],
                                 ["head_pan_link", "head_tilt_link"],
                                 static_joint_states=neck_static_joints)
-        self.chains["neck"] = neck
+        self.add_chain("neck", neck)
         # Arms
         r_joints = ["r_shoulder_pan_joint", "r_shoulder_lift_joint", "r_upper_arm_roll_joint",
                     "r_elbow_flex_joint", "r_forearm_roll_joint", "r_wrist_flex_joint",
@@ -339,8 +488,7 @@ class PR2Description(RobotDescription):
                                           gripper_description=left_gripper)
         right_arm = ManipulatorDescription(right_inter, tool_frame="r_gripper_tool_frame",
                                            gripper_description=right_gripper)
-        self.chains["left"] = left_arm
-        self.chains["right"] = right_arm
+        self.add_chains({"left": left_arm, "right": right_arm})
         # Adding Static Joint Poses
         # Static Arm Positions
         r_arm_park = [-1.712, -0.256, -1.463, -2.12, 1.766, -0.07, 0.051]
@@ -348,8 +496,7 @@ class PR2Description(RobotDescription):
         self.add_static_joint_chain("right", "park", r_arm_park)
         self.add_static_joint_chain("left", "park", l_arm_park)
         # Static Gripper Positions
-        gripper_confs = {"open": [0.548, 0.548],
-                         "close": [0.0, 0.0]}
+        gripper_confs = {"open": [0.548, 0.548], "close": [0.0, 0.0]}
         self.add_static_gripper_chains("left", gripper_confs)
         self.add_static_gripper_chains("right", gripper_confs)
 
@@ -374,7 +521,7 @@ class BoxyDescription(RobotDescription):
         camera = CameraDescription("head_mount_kinect2_rgb_optical_frame",
                                    minimal_height=0.0, maximal_height=2.5,
                                    horizontal_angle=0.99483, vertical_angle=0.75049)
-        self.cameras["camera"] = camera
+        self.add_camera("camera", camera)
         # Neck
         neck_links = ["neck_shoulder_link", "neck_upper_arm_link", "neck_forearm_link",
                       "neck_wrist_1_link", "neck_wrist_2_link", "neck_wrist_3_link"]
@@ -386,7 +533,7 @@ class BoxyDescription(RobotDescription):
         neck_down_left = [-0.776, -3.1252, -0.8397, 0.83967, 1.1347, -0.0266]
         neck = ChainDescription("neck", neck_joints, neck_links, base_link=neck_base)
         neck.add_static_joint_chains({"away": neck_away, "down": neck_down, "down_left": neck_down_left})
-        self.chains["neck"] = neck
+        self.add_chain("neck", neck)
         # Arms
         left_joints = ["left_arm_0_joint", "left_arm_1_joint", "left_arm_2_joint",
                        "left_arm_3_joint", "left_arm_4_joint", "left_arm_5_joint",
@@ -431,8 +578,7 @@ class BoxyDescription(RobotDescription):
         right_inter = InteractionDescription(right, "right_arm_7_link")
         right_arm = ManipulatorDescription(right_inter, tool_frame="right_gripper_tool_frame",
                                            gripper_description=right_gripper)
-        self.chains["left"] = left_arm
-        self.chains["right"] = right_arm
+        self.add_chains({"left": left_arm, "right": right_arm})
         # Adding Static Joint Poses
         # Static Arm Positions
         l_carry = [-1.858, 0.70571, 0.9614, -0.602, -2.5922, -1.94065, -1.28735]
@@ -472,8 +618,7 @@ class DonbotDescription(RobotDescription):
         # virtual_camera = CameraDescription("rs_camera_color_optical_frame",
         #                                   horizontal_angle=0.99483, vertical_angle=0.75049,
         #                                   minimal_height=0.5, maximal_height=1.2)
-        self.cameras["rgb_camera"] = rgb_camera
-        self.cameras["rs_camera"] = rs_camera
+        self.add_cameras({"rgb_camera": rgb_camera, "rs_camera": rs_camera})
         # self.cameras["realsense_camera"] = realsense_camera
         # self.cameras["virtual_camera"] = virtual_camera
         # Gripper
@@ -493,11 +638,11 @@ class DonbotDescription(RobotDescription):
         arm_inter = InteractionDescription(arm_chain, "ur5_ee_link")
         arm_manip = ManipulatorDescription(arm_inter, tool_frame="gripper_tool_frame",
                                            gripper_description=gripper)  # or ur5_tool0
-        self.chains["left"] = arm_manip
+        self.add_chain("left", arm_manip)
         # Neck
         neck_base_link = "ur5_base_link"
         neck = ChainDescription("neck", arm_joints, arm_links, base_link=neck_base_link)
-        self.chains["neck"] = neck
+        self.add_chain("neck", neck)
         # Adding Static Joint Poses
         # Static Neck Positions
         down = [4.130944728851318, 0.04936718940734863, -1.9734209219561976,
@@ -513,12 +658,13 @@ class DonbotDescription(RobotDescription):
         right_separators_preplace_state = [1.585883378982544, -0.49957687059511,
                                            -1.61414081255068, -1.1720898787127894,
                                            1.37771737575531, -1.3602331320392054]
-        neck.add_static_joint_chains({"down": down, "right": right, "left": left, "right_separators": right_separators,
-                                      "right_separators_preplace_state": right_separators_preplace_state})
+        self.add_static_joint_chains("neck", {"down": down, "right": right, "left": left,
+                                              "right_separators": right_separators,
+                                              "right_separators_preplace_state": right_separators_preplace_state})
         # Static Arm Positions
         park = [3.234022855758667, -1.5068710486041468, -0.7870314756976526, -2.337625328694479,
                 1.5699548721313477, -1.6504042784320276]
-        arm_manip.add_static_joint_chain("park", park)
+        self.add_static_joint_chain("left", "park", park)
 
     def get_camera_frame(self, name="rgb_camera"):
         # TODO: Hacky since only one optical camera frame from pr2 is used
@@ -547,17 +693,15 @@ class HSRDescription(RobotDescription):
                                              horizontal_angle=0.99483, vertical_angle=0.75049)
         hand_camera = CameraDescription("hand_camera_frame",
                                         horizontal_angle=0.99483, vertical_angle=0.75049)
-        self.cameras["head_center_camera"] = head_center_camera
-        self.cameras["head_rgbd_camera"] = head_rgbd_camera
-        self.cameras["head_l_camera"] = head_l_camera
-        self.cameras["head_r_camera"] = head_r_camera
-        self.cameras["hand_camera"] = hand_camera
+        self.add_cameras({"head_center_camera": head_center_camera, "head_rgbd_camera": head_rgbd_camera,
+                          "head_l_camera": head_l_camera, "head_r_camera": head_r_camera,
+                          "hand_camera": hand_camera})
         # Neck
         neck_links = ["head_pan_link", "head_tilt_link"]
         neck_joints = ["head_pan_joint", "head_tilt_joint"]
         neck_forward = {"forward": [0.0, 0.0], "down": [0.0, -0.7]}
         neck_chain = ChainDescription("neck", neck_joints, neck_links, static_joint_states=neck_forward)
-        self.chains["neck"] = neck_chain
+        self.add_chain("neck", neck_chain)
         # Arm
         arm_joints = ["arm_flex_joint", "arm_roll_joint", "wrist_flex_joint", "wrist_roll_joint"]
         arm_links = ["arm_flex_link", "arm_roll_link", "wrist_flex_link", "wrist_roll_link"]
@@ -571,7 +715,8 @@ class HSRDescription(RobotDescription):
         arm_chain = ChainDescription("left", arm_joints, arm_links, static_joint_states=arm_carry)
         arm_inter = InteractionDescription(arm_chain, "wrist_roll_link")
         arm_manip = ManipulatorDescription(arm_inter, tool_frame="gripper_tool_frame", gripper_description=gripper)
-        self.chains["left"] = arm_manip
+        self.add_chain("left", arm_manip)
+        self.add_static_gripper_chains("left", {"open": [0.3], "close": [0.0]})
 
     def get_camera_frame(self, name="head_center_camera"):
         # TODO: Hacky since only one optical camera frame from pr2 is used
@@ -588,8 +733,7 @@ class InitializedRobotDescription():
                 InitializedRobotDescription.current_description_loaded is not robot_description:
             InitializedRobotDescription.current_description_loaded = robot_description
             InitializedRobotDescription.i = robot_description()
-            print("loaded robot description")
-
+            loginfo("(robot-description) (Re)Loaded Description of robot %s.", self.i.name)
 
 def update_robot_description(robot_name=None, from_ros=None):
     # Get robot name
@@ -619,9 +763,9 @@ def update_robot_description(robot_name=None, from_ros=None):
     elif 'hsr' in robot:
         description = HSRDescription
     else:
-        logerr("The given robot name %s has no description class.", robot_name)
+        logerr("(robot-description) The given robot name %s has no description class.", robot_name)
         return None
-    InitializedRobotDescription(description)
+    return InitializedRobotDescription(description)
 
 
 update_robot_description(from_ros=True) # todo: put in ros init
