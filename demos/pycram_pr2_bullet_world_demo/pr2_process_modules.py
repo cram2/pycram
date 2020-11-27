@@ -1,6 +1,6 @@
 from pycram.robot_description import InitializedRobotDescription as robot_description
 from pycram.process_module import ProcessModule
-from pycram.process_modules import ProcessModules
+from pycram.process_modules import ProcessModules, _apply_ik
 from pycram.bullet_world import BulletWorld
 from pycram.helper import transform
 import pycram.bullet_world_reasoning as btr
@@ -9,26 +9,12 @@ import numpy as np
 import time
 
 
-def _apply_ik(robot, joint_poses):
-    """
-    Apllies a list of joint poses calculated by an inverse kinematics solver to a robot
-    :param robot: The robot the joint poses should be applied on
-    :param joint_poses: The joint poses to be applied
-    :return: None
-    """
-    for i in range(0, len(robot_description.i.ik_joints)):
-        robot.set_joint_state(robot_description.i.ik_joints[i], joint_poses[i])
-
-
 def _park_arms(arm):
     """
-    Defines the joint poses for the parking positions of the arms of the PR2 and applies them to the, in the BulletWorld
-    defined robot.
-    :return:
+    Defines the joint poses for the parking positions of the arms of PR2 and applies them to the
+    in the BulletWorld defined robot.
+    :return: None
     """
-    # joint_poses = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.9, -0.1, 1.6, 1.7,
-    #               0.087, 1.2, -1.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.9, -0.1, 1.6,
-    #               -1.7, -0.08, -1.2, 1.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     robot = BulletWorld.robot
     if arm == "right":
@@ -112,7 +98,6 @@ class Pr2Accessing(ProcessModule):
             new_p = [han_pose[0] - dis, han_pose[1], han_pose[2]]
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), new_p)
             _apply_ik(robot, inv)
-            print(drawer_joint)
             kitchen.set_joint_state(drawer_joint, 0.3)
             time.sleep(0.5)
 
@@ -163,7 +148,6 @@ class Pr2MoveGripper(ProcessModule):
             gripper = solution['gripper']
             motion = solution['motion']
             for joint, state in robot_description.i.get_static_gripper_chain(gripper, motion).items():
-                # TODO: Test this, add gripper-opening/-closing to the demo.py
                 robot.set_joint_state(joint, state)
             time.sleep(0.5)
 
