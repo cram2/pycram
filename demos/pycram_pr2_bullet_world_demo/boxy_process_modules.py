@@ -1,34 +1,18 @@
 from pycram.robot_description import InitializedRobotDescription as robot_description
 from pycram.process_module import ProcessModule
-from pycram.process_modules import ProcessModules
+from pycram.process_modules import ProcessModules, _apply_ik
 from pycram.bullet_world import BulletWorld
-from pycram.helper import transform
 import pycram.bullet_world_reasoning as btr
 import pybullet as p
-import numpy as np
 import time
-
-
-def _apply_ik(robot, joint_poses):
-    """
-    Apllies a list of joint poses calculated by an inverse kinematics solver to a robot
-    :param robot: The robot the joint poses should be applied on
-    :param joint_poses: The joint poses to be applied
-    :return: None
-    """
-    for i in range(0, len(robot_description.i.ik_joints)):
-        robot.set_joint_state(robot_description.i.ik_joints[i], joint_poses[i])
 
 
 def _park_arms(arm):
     """
-    Defines the joint poses for the parking positions of the arms of the PR2 and applies them to the, in the BulletWorld
-    defined robot.
-    :return:
+    Defines the joint poses for the parking positions of the arms of Boxy and applies them to the
+    in the BulletWorld defined robot.
+    :return: None
     """
-    #joint_poses = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.9, -0.1, 1.6, 1.7,
-    #               0.087, 1.2, -1.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.9, -0.1, 1.6,
-    #               -1.7, -0.08, -1.2, 1.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     robot = BulletWorld.robot
     if arm == "right":
@@ -43,17 +27,20 @@ class BoxyNavigation(ProcessModule):
     """
     The process module to move the robot from one position to another.
     """
+
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == 'navigate':
             robot = BulletWorld.robot
             robot.set_position_and_orientation(solution['target'], solution['orientation'])
 
+
 class BoxyPickUp(ProcessModule):
     """
     This process module is for picking up a given object.
     The object has to be reachable for this process module to succeed.
     """
+
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == 'pick':
@@ -71,13 +58,14 @@ class BoxyPlace(ProcessModule):
     """
     This process module places an object at the given position in world coordinate frame.
     """
+
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == 'place':
             object = solution['object']
             robot = BulletWorld.robot
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), solution['target'],
-                                           maxNumIterations=100)
+                                               maxNumIterations=100)
             _apply_ik(robot, inv)
             robot.detach(object)
             time.sleep(0.5)
@@ -90,6 +78,7 @@ class BoxyAccessing(ProcessModule):
     This provides the illusion the robot would open the drawer by himself.
     Then the drawer will be opened by setting the joint pose of the drawer joint.
     """
+
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == 'access':
@@ -99,14 +88,14 @@ class BoxyAccessing(ProcessModule):
             drawer_handle = solution['drawer-handle']
             drawer_joint = solution['drawer-joint']
             dis = solution['distance']
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), kitchen.get_link_position(drawer_handle))
+            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper),
+                                               kitchen.get_link_position(drawer_handle))
             _apply_ik(robot, inv)
             time.sleep(0.2)
             han_pose = kitchen.get_link_position(drawer_handle)
             new_p = [han_pose[0] - dis, han_pose[1], han_pose[2]]
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), new_p)
             _apply_ik(robot, inv)
-            print(drawer_joint)
             kitchen.set_joint_state(drawer_joint, 0.3)
             time.sleep(0.5)
 
@@ -116,6 +105,7 @@ class BoxyParkArms(ProcessModule):
     This process module is for moving the arms in a parking position.
     It is currently not used.
     """
+
     def _execute(self, desig):
         solutions = desig.reference()
         if solutions['cmd'] == 'park':
@@ -127,13 +117,12 @@ class BoxyMoveHead(ProcessModule):
     This process module moves the head to look at a specific point in the world coordinate frame.
     This point can either be a position or an object.
     """
+
     def _execute(self, desig):
         solutions = desig.reference()
         if solutions['cmd'] == 'looking':
             target = solutions['target']
             robot = BulletWorld.robot
-            print(robot_description.i.get_static_joint_chain("neck", "down"))
-            print("boxy looking")
             for joint, state in robot_description.i.get_static_joint_chain("neck", "down").items():
                 robot.set_joint_state(joint, state)
 
@@ -143,6 +132,7 @@ class BoxyMoveGripper(ProcessModule):
     This process module controls the gripper of the robot. They can either be opened or closed.
     Furthermore, it can only moved one gripper at a time.
     """
+
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == "move-gripper":
@@ -160,6 +150,7 @@ class BoxyDetecting(ProcessModule):
     This process module tries to detect an object with the given type. To be detected the object has to be in
     the field of view of the robot.
     """
+
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == "detecting":
@@ -170,9 +161,7 @@ class BoxyDetecting(ProcessModule):
 
             objects = BulletWorld.current_bullet_world.get_objects_by_type(object_type)
             for obj in objects:
-                print("visible?")
-                print(btr.visible(obj, robot.get_link_position_and_orientation(cam_frame_name), front_facing_axis, 0.5))
-                if True or btr.visible(obj, robot.get_link_position_and_orientation(cam_frame_name), front_facing_axis, 0.5):
+                if btr.visible(obj, robot.get_link_position_and_orientation(cam_frame_name), front_facing_axis, 0.5):
                     return obj
 
 
@@ -180,6 +169,7 @@ class BoxyMoveTCP(ProcessModule):
     """
     This process moves the tool center point of either the right or the left arm.
     """
+
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == "move-tcp":
@@ -196,6 +186,7 @@ class BoxyMoveJoints(ProcessModule):
     This process modules moves the joints of either the right or the left arm. The joint states can be given as
     list that should be applied or a pre-defined position can be used, such as "parking"
     """
+
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == "move-joints":
@@ -221,6 +212,7 @@ class BoxyWorldStateDetecting(ProcessModule):
     """
     This process module detectes an object even if it is not in the field of view of the robot.
     """
+
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == "world-state-detecting":
