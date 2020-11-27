@@ -30,6 +30,10 @@ class DonbotNavigation(ProcessModule):
         solution = desig.reference()
         if solution['cmd'] == 'navigate':
             robot = BulletWorld.robot
+            # Reset odom joints to zero
+            for joint_name in robot_description.i.odom_joints:
+                robot.set_joint_state(joint_name, 0.0)
+            # Set actual goal pose
             robot.set_position_and_orientation(solution['target'], solution['orientation'])
 
 
