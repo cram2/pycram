@@ -172,12 +172,14 @@ class RobotDescription:
     and joints. Different cameras can be added and static transforms and poses can be added too.
     """
 
-    def __init__(self, name, odom_frame, base_frame, base_link, torso_link, torso_joint, ik_joints):
+    def __init__(self, name, base_frame, base_link, torso_link, torso_joint, ik_joints,
+                 odom_frame=None, odom_joints=None):
         """
         Initialises the robot description with the given frames.
 
         :type name: str
         :type odom_frame: str
+        :type odom_frame: [str]
         :type base_frame: str
         :type base_link: str
         :type torso_link: str
@@ -190,6 +192,7 @@ class RobotDescription:
         self.static_transforms = []  # list[tf]
         self.static_poses = []  # list[pose]
         self.odom_frame = odom_frame
+        self.odom_joints = odom_joints if odom_joints else [] # list[str]
         self.base_frame = base_frame
         self.base_link = base_link
         self.torso_link = torso_link
@@ -415,8 +418,7 @@ class PR2Description(RobotDescription):
                      "l_gripper_motor_screw_joint", "l_gripper_l_finger_joint",
                      "l_gripper_l_finger_tip_joint", "l_gripper_r_finger_joint",
                      "l_gripper_r_finger_tip_joint", "l_gripper_joint", "torso_lift_motor_screw_joint"]
-        super().__init__("pr2", "odom_combined", "base_footprint", "base_link",
-                         "torso_lift_link", "torso_lift_joint", ik_joints)
+        super().__init__("pr2", "base_footprint", "base_link", "torso_lift_link", "torso_lift_joint", ik_joints)
         # Camera
         minimal_height = 1.27
         maximal_height = 1.60
@@ -516,8 +518,9 @@ class BoxyDescription(RobotDescription):
                      'right_arm_0_joint', 'right_arm_1_joint', 'right_arm_2_joint', 'right_arm_3_joint',
                      'right_arm_4_joint', 'right_arm_5_joint', 'right_arm_6_joint',
                      'right_gripper_base_gripper_left_joint', 'right_gripper_joint']  # TODO: all non fixed joints
-        super().__init__("boxy", "odom", "base_footprint", "base_link", "triangle_base_link",
-                         "triangle_base_joint", ik_joints)
+        super().__init__("boxy", "base_footprint", "base_link", "triangle_base_link",
+                         "triangle_base_joint", ik_joints, odom_frame="odom",
+                         odom_joints=["odom_x_joint", "odom_y_joint", "odom_z_joint"])
         camera = CameraDescription("head_mount_kinect2_rgb_optical_frame",
                                    minimal_height=0.0, maximal_height=2.5,
                                    horizontal_angle=0.99483, vertical_angle=0.75049)
@@ -602,8 +605,9 @@ class DonbotDescription(RobotDescription):
                      'ur5_shoulder_lift_joint', 'ur5_elbow_joint', 'ur5_wrist_1_joint',
                      'ur5_wrist_2_joint', 'ur5_wrist_3_joint', 'gripper_base_gripper_left_joint',
                      'gripper_joint']  # TODO: all non fixed joints
-        super().__init__("donbot", "odom", "base_footprint", "base_link", "ur5_base_link",
-                         "arm_base_mounting_joint", ik_joints)
+        super().__init__("donbot", "base_footprint", "base_link", "ur5_base_link",
+                         "arm_base_mounting_joint", ik_joints, odom_frame="odom",
+                         odom_joints=["odom_x_joint", "odom_y_joint", "odom_z_joint"])
         # Camera
         rgb_camera = CameraDescription("camera_link",
                                        horizontal_angle=0.99483, vertical_angle=0.75049,
@@ -681,7 +685,7 @@ class HSRDescription(RobotDescription):
                      'wrist_flex_joint', 'wrist_roll_joint', 'hand_motor_joint', 'hand_l_proximal_joint', 'hand_l_spring_proximal_joint',
                      'hand_l_mimic_distal_joint', 'hand_l_distal_joint', 'hand_r_proximal_joint', 'hand_r_spring_proximal_joint',
                      'hand_r_mimic_distal_joint', 'hand_r_distal_joint']
-        super().__init__("hsr", "odom", "base_footprint", "base_link", "arm_lift_link", "arm_lift_joint", ik_joints)
+        super().__init__("hsr", "base_footprint", "base_link", "arm_lift_link", "arm_lift_joint", ik_joints)
         # Camera
         head_center_camera = CameraDescription("head_center_camera_frame",
                                                horizontal_angle=0.99483, vertical_angle=0.75049)
