@@ -11,7 +11,7 @@ from time import sleep
 world = BulletWorld()
 world.set_gravity([0, 0, -9.8])
 plane = Object("floor", "environment", "../../resources/plane.urdf", world=world)
-robot = Object("boxy", "robot", "../../resources/boxy.urdf")
+robot = Object("boxy", "robot", "../../resources/" + robot_description.i.name + ".urdf")
 
 spawning_poses = {
     'milk': [1.3, 1, 1],
@@ -39,8 +39,9 @@ moving_targets = {
     'pr2': {'sink': [[0.65, 0.7, 0], [0, 0, 0, 1]],
             'island': [[-0.3, 1, 0], [0, 0, 1, 0]]},
     'boxy': {'sink': [[0.4, 0.7, 0], [0, 0, 0, 1]],
-             'island': [[-0.3, 1, 0], [0, 0, 1, 0]]},
+             'island': [[0.2, 0.8, 0], [0, 0, 1, 0]]},
     'donbot': {'sink': [[0.5, 1.2, 0], [0, 0, 0.7, 0.7]],
+               'spoon': [[0.5, 1.4, 0], [0, 0, 0.7, 0.7]],
                'island': [[-0.3, 1.2, 0], [0, 0, -0.7, 0.7]]},
     'hsr': {'hsr_cereal': [[0.2, 1.2, 0], [0, 0, 0.7, 0.7]],
             'kitchen_entry': [[0.2, -2.2, 0], [0, 0, -0.7, 0.7]]}
@@ -85,14 +86,18 @@ def move_object(object_type, target, arm, robot_name):
         ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', spawning_poses[object_type])]))
 
     # Detect object
+    # Try to detect object via camera, if this fails...
     det_obj = ProcessModule.perform(MotionDesignator([('type', 'detecting'), ('object', object_type)]))
+    block_new = None
     if det_obj:
         block = btr.blocking(det_obj, BulletWorld.robot, gripper)
         block_new = list(filter(lambda obj: obj.type != "environment", block))
     else:
-        block_new = [ProcessModule.perform(MotionDesignator([('type', "world-state-detecting"),
-                                                             ('object', object_type)]))]
+        # ... the robot grasps the object by using its knowledge of the environment.
+        det_obj = ProcessModule.perform(MotionDesignator([('type', "world-state-detecting"),
+                                                          ('object', object_type)]))
 
+    # If something is in the way, move it first and then move back to the sink.
     if block_new:
         move_object(block_new[0].type, targets[block_new[0].type][0], arm, robot_name)
         move_robot(robot_name, 'sink')
@@ -100,12 +105,19 @@ def move_object(object_type, target, arm, robot_name):
     if det_obj.type == "spoon":
         kitchen.detach(det_obj)
 
+    # Pick up the object
     ProcessModule.perform(MotionDesignator([('type', 'pick-up'), ('object', det_obj), ('arm', arm)]))
 
     park_arms(robot_name)
 
     # Move to island
     move_robot(robot_name, 'island')
+
+    # Look at target (also quickfix for not colliding with kitchen if robot has odom frame :/ )
+    if robot_name is 'donbot':
+        ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', 'right')]))
+    else:
+        ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', targets[object_type][0])]))
 
     # Place object if target pose of object is reachable for the robots manipulator
     if btr.reachable_pose(target, robot, gripper, threshold=0.05):
