@@ -1,0 +1,2 @@
+import macropy.activate
+import demo_bullet
