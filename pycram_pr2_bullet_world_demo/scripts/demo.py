@@ -1,3 +1,4 @@
+import os
 import process_modules
 import motion_designators # Needs to be imported to load Process Modules and designator solutions
 import pycram.bullet_world_reasoning as btr
@@ -6,16 +7,17 @@ from pycram.process_module import ProcessModule
 from pycram.bullet_world import BulletWorld, Object
 from pycram.language import macros, par
 
+resources_path = os.path.join(os.path.dirname(__file__), '..', 'resources')
 world = BulletWorld()
 world.set_gravity([0, 0, -9.8])
-plane = Object("floor", "environment", "../../resources/plane.urdf", world=world)
-robot = Object("pr2", "robot", "../../resources/pr2.urdf")
-kitchen = Object("kitchen", "environment", "../../resources/kitchen.urdf")
-milk = Object("milk", "milk", "../../resources/milk.stl", [1.3, 1, 1])
-spoon = Object("spoon", "spoon", "../../resources/spoon.stl", [1.35, 0.7, 0.8])
+plane = Object("floor", "environment", os.path.join(resources_path, "plane.urdf"), world=world)
+robot = Object("pr2", "robot", os.path.join(resources_path, "pr2.urdf"))
+kitchen = Object("kitchen", "environment", os.path.join(resources_path, "kitchen.urdf"))
+milk = Object("milk", "milk", os.path.join(resources_path, "milk.stl"), [1.3, 1, 1])
+spoon = Object("spoon", "spoon", os.path.join(resources_path, "spoon.stl"), [1.35, 0.7, 0.8])
 kitchen.attach(spoon, link="sink_area_left_upper_drawer_main")
-cereal = Object("cereal", "cereal", "../../resources/breakfast_cereal.stl", [1.3, 0.6, 1])
-bowl = Object("bowl", "bowl", "../../resources/bowl.stl", [1.3, 0.8, 1])
+cereal = Object("cereal", "cereal", os.path.join(resources_path, "breakfast_cereal.stl"), [1.3, 0.6, 1])
+bowl = Object("bowl", "bowl", os.path.join(resources_path, "bowl.stl"), [1.3, 0.8, 1])
 BulletWorld.robot = robot
 
 targets = {
@@ -67,7 +69,7 @@ def move_object(object_type, target, arm):
     targets[object_type][2] = True
 
 
-object_types = ['milk', 'bowl', 'cereal', 'spoon']
-for i in range(0, 4):
+object_types = ['milk', 'bowl', 'cereal']
+for i in range(0, 3):
     if not targets[object_types[i]][2]:
         move_object(object_types[i], targets[object_types[i]][0], targets[object_types[i]][1])
