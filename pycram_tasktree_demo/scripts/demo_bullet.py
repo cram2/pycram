@@ -101,9 +101,9 @@ def introspection_demo(view=False):
                 raise f
     ActionDesignator(ParkArmsDescription(Arms.BOTH)).perform()
     if previous_tree:
-        pycram.task.TASK_TREE.generate_dot().render("out/introspection_optimized", format="png", view=view)
+        pycram.task.TASK_TREE.generate_dot(verbose=False).render("out/introspection_optimized", format="png", view=view)
     else:
-        pycram.task.TASK_TREE.generate_dot().render("out/introspection", format="png", view=view)
+        pycram.task.TASK_TREE.generate_dot(verbose=False).render("out/introspection", format="png", view=view)
     previous_tree = pycram.task.TASK_TREE
 
 @with_tree
@@ -131,7 +131,7 @@ def prospection_demo(view=False):
                 print("No more retries left.")
                 return
             finally:
-                st.simulated_root.generate_dot().render("out/prospection_st_"+str(counter))
+                st.simulated_root.generate_dot(verbose=False).render("out/prospection_st_"+str(counter))
                 counter += 1
     ActionDesignator(OpenActionDescription(*params[0][0])).perform()
     ActionDesignator(ParkArmsDescription(Arms.BOTH)).perform()
@@ -139,7 +139,7 @@ def prospection_demo(view=False):
     obj = ActionDesignator(DetectActionDescription(ObjectDesignator([('type', 'spoon')]))).perform()
     ActionDesignator(PickUpDescription(obj, arm=Arms.RIGHT)).perform()
     ActionDesignator(ParkArmsDescription(Arms.BOTH)).perform()
-    pycram.task.TASK_TREE.generate_dot().render("out/prospection", view=view)
+    pycram.task.TASK_TREE.generate_dot(verbose=False).render("out/prospection", view=view)
 
 @with_tree
 def reorganization_demo_plan():
@@ -154,11 +154,11 @@ def reorganization_demo_plan():
 def reorganization_demo(view=False):
     local_state, attachments = world.save_state()
     reorganization_demo_plan()
-    pycram.task.TASK_TREE.generate_dot().render("images/demos/reorganization/1", view=view, format="png")
+    pycram.task.TASK_TREE.generate_dot(verbose=False).render("images/demos/reorganization/1", view=view, format="png")
     world.restore_state(local_state, attachments)
     transform_transport_at_once(pycram.task.TASK_TREE)
     pycram.task.TASK_TREE.execute()
-    pycram.task.TASK_TREE.generate_dot().render("images/demos/reorganization/2", view=view, format="png")
+    pycram.task.TASK_TREE.generate_dot(verbose=False).render("images/demos/reorganization/2", view=view, format="png")
 
 def transform_transport_at_once(task_tree):
     place_node = task_tree.get_child_by_path("transport.0/place").copy()
