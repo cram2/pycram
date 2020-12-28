@@ -101,9 +101,9 @@ def introspection_demo(view=False):
                 raise f
     ActionDesignator(ParkArmsDescription(Arms.BOTH)).perform()
     if previous_tree:
-        pycram.task.TASK_TREE.generate_dot(verbose=False).render("out/introspection_optimized", format="png", view=view)
+        pycram.task.TASK_TREE.generate_dot(verbose=False).render("images/demos/introspection/optimized", format="png", view=view)
     else:
-        pycram.task.TASK_TREE.generate_dot(verbose=False).render("out/introspection", format="png", view=view)
+        pycram.task.TASK_TREE.generate_dot(verbose=False).render("images/demos/introspection/original", format="png", view=view)
     previous_tree = pycram.task.TASK_TREE
 
 @with_tree
@@ -131,7 +131,7 @@ def prospection_demo(view=False):
                 print("No more retries left.")
                 return
             finally:
-                st.simulated_root.generate_dot(verbose=False).render("out/prospection_st_"+str(counter))
+                st.simulated_root.generate_dot(verbose=False).render("images/demos/prospection_dream_"+str(counter))
                 counter += 1
     ActionDesignator(OpenActionDescription(*params[0][0])).perform()
     ActionDesignator(ParkArmsDescription(Arms.BOTH)).perform()
@@ -139,7 +139,7 @@ def prospection_demo(view=False):
     obj = ActionDesignator(DetectActionDescription(ObjectDesignator([('type', 'spoon')]))).perform()
     ActionDesignator(PickUpDescription(obj, arm=Arms.RIGHT)).perform()
     ActionDesignator(ParkArmsDescription(Arms.BOTH)).perform()
-    pycram.task.TASK_TREE.generate_dot(verbose=False).render("out/prospection", view=view)
+    pycram.task.TASK_TREE.generate_dot(verbose=False).render("images/demos/prospection/real", format='png', view=view)
 
 @with_tree
 def reorganization_demo_plan():
@@ -348,7 +348,7 @@ def set_table(destination="kitchen_island_countertop", view=False, optimize=Fals
     ## RENDER ##
     if optimize:
         print(counters)
-    pycram.task.TASK_TREE.generate_dot().render("out/set_table.dot", view=view)
+    pycram.task.TASK_TREE.generate_dot().render("images/demos/set_table", format='png', view=view)
 
 @with_tree
 def set_table_for_two(optimize=False):
@@ -408,8 +408,7 @@ def full_demo_optimized():
     close_fridge = tt.get_child_by_path("set_table.0/transport.0/close_container.0")  # after: nav cereal, pickup
     place_milk = tt.get_child_by_path("set_table.0/transport.0/place.0")  # after: place cereal
 
-    tt.generate_dot().render("out/ENDE_vorher.dot")
-    print(tt.get_child_by_path("set_table.0").children)
+    tt.generate_dot().render("images/demos/combined/1", format='png')
     # INSERTION
     pickup_bowl1.insert_after(pickup_bowl2)
     place_bowl1.insert_after(nav_bowl2)
@@ -441,19 +440,16 @@ def full_demo_optimized():
     last_park.code.args = (Arms.BOTH, )
     place_cereal.insert_after(last_park)
 
-    ## Just delete the whole second set_table?
+    ## Just delete the whole second set_table
     tt.get_child_by_path("set_table.0/transport.1").delete()
     tt.get_child_by_path("set_table.1").delete()
 
-    tt.generate_dot().render("out/ENDE_nachher.dot")
-    print("AFTER ::::::::::::::::::::::::::::::")
-    print(tt.get_child_by_path("set_table.0").children)
-
+    tt.generate_dot().render("images/demos/combined/2", format='png')
 
     world.restore_state(*s)
     print("================ THIRD SET_TABLE_FOR_TWO - THE RE-EXECUTION ===================")
     tt.execute()
-    # tt.generate_dot().render("out/ENDE.dot")
+    tt.generate_dot().render("images/demos/combined/3", format='png')
 
 state = world.save_state()
 # introspection_demo()
