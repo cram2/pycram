@@ -112,24 +112,27 @@ class TaskTreeNode:
 
         return pretty
 
-    def generate_dot(self, dot=None):
+    def generate_dot(self, dot=None, verbose=True):
         if not dot:
             dot = Digraph()
         if self.exec_child_prev:
-            dot = self.exec_child_prev.generate_dot(dot)
+            dot = self.exec_child_prev.generate_dot(dot, verbose)
 
         if type(self.code) is not NoopCode:
-            label = "\n".join([self.path.split("/")[-1], self.code.pp(), str(self.status), str(self.start_time), str(self.end_time)])
+            if verbose:
+                label = "\n".join([self.path.split("/")[-1], self.code.pp(), str(self.status), str(self.start_time), str(self.end_time)])
+            else:
+                label = "\n".join([self.path.split("/")[-1], str(self.status)])
             if self.failure:
                 label = "\n".join([label, str(self.failure)])
             dot.node(self.path, label, shape="box", style="filled")
             if self.parent:
                 dot.edge(self.parent.path, self.path)
             for c in self.children:
-                dot = c.generate_dot(dot)
+                dot = c.generate_dot(dot, verbose)
 
         if self.exec_child_next:
-            dot = self.exec_child_next.generate_dot(dot)
+            dot = self.exec_child_next.generate_dot(dot, verbose)
         return dot
 
     def execute(self):

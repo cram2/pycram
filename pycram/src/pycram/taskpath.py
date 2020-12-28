@@ -10,14 +10,13 @@ TODO
 """
 
 class PathStringMalformed(Exception):
-    """Implementation of plan failures."""
+    """Implementation of path string exceptions."""
 
     def __init__(self, *args):
         """Create a new PathStringMalformed exception."""
         Exception.__init__(self, *args)
 
 class TaskPathNode:
-
     def __init__(self, name, n=0):
         self.name = name
         self.n = n
