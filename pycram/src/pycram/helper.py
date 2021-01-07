@@ -59,13 +59,15 @@ def list2pose(pose_list):
 
 
 def ensure_pose(pose):
-    if type(pose) is list or type(pose) is tuple and is_list_pose(pose):
+    if type(pose) is Pose:
+        return pose
+    elif type(pose) is list or type(pose) is tuple and is_list_pose(pose):
         pose = list2pose(pose)
         return pose
     elif type(pose) is list or type(pose) is tuple and is_list_position(pose):
         point = list2point(pose)
         return Pose(point, Quaternion(0, 0, 0, 1))
-    elif type(pose) is not Pose:
+    else:
         rospy.logerr("(helper) Cannot convert pose since it is no Pose object or valid list pose.")
         return None
 
