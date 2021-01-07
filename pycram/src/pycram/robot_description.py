@@ -192,12 +192,12 @@ class RobotDescription:
         self.static_transforms = []  # list[tf]
         self.static_poses = []  # list[pose]
         self.odom_frame = odom_frame
-        self.odom_joints = odom_joints if odom_joints else [] # list[str]
+        self.odom_joints = odom_joints if odom_joints else []  # list[str]
         self.base_frame = base_frame
         self.base_link = base_link
         self.torso_link = torso_link
         self.torso_joint = torso_joint
-        self.ik_joints = ik_joints #TODO: remove if _apply_ik does not set all joints anymore or if it was removed
+        self.ik_joints = ik_joints  # TODO: remove if _apply_ik does not set all joints anymore or if it was removed
 
     def _safely_access_chains(self, chain_name, verbose=True):
         """
@@ -531,11 +531,20 @@ class BoxyDescription(RobotDescription):
         neck_joints = ["neck_shoulder_pan_joint", "neck_shoulder_lift_joint", "neck_elbow_joint",
                        "neck_wrist_1_joint", "neck_wrist_2_joint", "neck_wrist_3_joint"]
         neck_base = "neck_base_link"
-        neck_away = [-1.3155, -1.181355, -1.9562, 0.142417, 1.13492, 0.143467]
+        neck_away = [-1.3155, -1.181355, -1.9562, 0.142417, 1.13492, 0.143467]  # up
         neck_down = [-1.176, -3.1252, -0.8397, 0.83967, 1.1347, -0.0266]
         neck_down_left = [-0.776, -3.1252, -0.8397, 0.83967, 1.1347, -0.0266]
+        neck_down_right = [-2.176, -3.1252, -0.8397, 0.83967, 1.1347, -0.0266]
+        neck_behind_up = [2.10, -1.11, -1.89, 0.64, 1.11, -0.43]
+        neck_behind = [-1.68, -0.26, -0.12, -0.24, 1.49, 3.09]
+        # neck_forward = [-1.39, -3.09, -0.78, 1.91, 1.51, -0.14]
+        neck_forward = [-1.20, 2.39, 0.17, 1.77, 1.44, -0.35]
+        neck_right = [-1.20, 2.39, 0.17, 1.77, 1.44, 0.0]
+        neck_left = [-1.20, 2.39, 0.17, 1.77, 1.44, -0.7]
         neck = ChainDescription("neck", neck_joints, neck_links, base_link=neck_base)
-        neck.add_static_joint_chains({"away": neck_away, "down": neck_down, "down_left": neck_down_left})
+        neck.add_static_joint_chains({"away": neck_away, "down": neck_down, "down_left": neck_down_left,
+                                      "down_right": neck_down_right, "behind_up": neck_behind_up, "behind": neck_behind,
+                                      "forward": neck_forward, "right": neck_right, "left": neck_left})
         self.add_chain("neck", neck)
         # Arms
         left_joints = ["left_arm_0_joint", "left_arm_1_joint", "left_arm_2_joint",
@@ -679,11 +688,16 @@ class HSRDescription(RobotDescription):
 
     def __init__(self):
         ik_joints = ['base_roll_joint', 'base_r_drive_wheel_joint', 'base_l_drive_wheel_joint',
-                     'base_r_passive_wheel_x_frame_joint', 'base_r_passive_wheel_y_frame_joint', 'base_r_passive_wheel_z_joint',
-                     'base_l_passive_wheel_x_frame_joint', 'base_l_passive_wheel_y_frame_joint', 'base_l_passive_wheel_z_joint',
-                     'torso_lift_joint', 'head_pan_joint', 'head_tilt_joint', 'arm_lift_joint', 'arm_flex_joint', 'arm_roll_joint',
-                     'wrist_flex_joint', 'wrist_roll_joint', 'hand_motor_joint', 'hand_l_proximal_joint', 'hand_l_spring_proximal_joint',
-                     'hand_l_mimic_distal_joint', 'hand_l_distal_joint', 'hand_r_proximal_joint', 'hand_r_spring_proximal_joint',
+                     'base_r_passive_wheel_x_frame_joint', 'base_r_passive_wheel_y_frame_joint',
+                     'base_r_passive_wheel_z_joint',
+                     'base_l_passive_wheel_x_frame_joint', 'base_l_passive_wheel_y_frame_joint',
+                     'base_l_passive_wheel_z_joint',
+                     'torso_lift_joint', 'head_pan_joint', 'head_tilt_joint', 'arm_lift_joint', 'arm_flex_joint',
+                     'arm_roll_joint',
+                     'wrist_flex_joint', 'wrist_roll_joint', 'hand_motor_joint', 'hand_l_proximal_joint',
+                     'hand_l_spring_proximal_joint',
+                     'hand_l_mimic_distal_joint', 'hand_l_distal_joint', 'hand_r_proximal_joint',
+                     'hand_r_spring_proximal_joint',
                      'hand_r_mimic_distal_joint', 'hand_r_distal_joint']
         super().__init__("hsr", "base_footprint", "base_link", "arm_lift_link", "arm_lift_joint", ik_joints)
         # Camera
@@ -726,6 +740,7 @@ class HSRDescription(RobotDescription):
         # TODO: Hacky since only one optical camera frame from pr2 is used
         return super().get_camera_frame(name)
 
+
 class InitializedRobotDescription():
     # singleton instance short named as 'i'
     i = None
@@ -738,6 +753,7 @@ class InitializedRobotDescription():
             InitializedRobotDescription.current_description_loaded = robot_description
             InitializedRobotDescription.i = robot_description()
             loginfo("(robot-description) (Re)Loaded Description of robot %s.", self.i.name)
+
 
 def update_robot_description(robot_name=None, from_ros=None):
     # Get robot name
@@ -772,5 +788,5 @@ def update_robot_description(robot_name=None, from_ros=None):
     return InitializedRobotDescription(description)
 
 
-update_robot_description(from_ros=True) # todo: put in ros init
-#print(InitializedRobotDescription.i.chains["left"].static_joint_states)
+update_robot_description(from_ros=True)  # todo: put in ros init
+# print(InitializedRobotDescription.i.chains["left"].static_joint_states)
