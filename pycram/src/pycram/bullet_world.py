@@ -13,6 +13,8 @@ import pathlib
 from .event import Event
 from .helper import transform
 
+from pycram.robot_description import InitializedRobotDescription as robot_description
+
 
 class BulletWorld:
     """
@@ -154,6 +156,14 @@ class Object:
         self.attachments = {}
         self.cids = {}
         self.world.objects.append(self)
+        self.validate_odom(path)
+
+    def validate_odom(self, path):
+        # Check if the odom frame would be physically moved with the robot
+        if robot_description.i.odom_frame in self.links:
+            raise ValueError("(bullet_world) Please make sure that the odom link %s"
+                             " has no physical representation in the URDF file %s.",
+                             robot_description.odom_frame, path)
 
     def attach(self, object, link=None, loose=False):
         """
