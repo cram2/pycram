@@ -24,9 +24,9 @@ def transform(pose,
 
 def pose_stamped2tuple(pose_stamped):
     if type(pose_stamped) is PoseStamped:
-        p = pose_stamped.position
-        o = pose_stamped.orientation
-        return tuple(((p[0], p[1], p[2]), (o[0], o[1], o[2], o[3])))
+        p = pose_stamped.pose.position
+        o = pose_stamped.pose.orientation
+        return tuple(((p.x, p.y, p.z), (o.x, o.y, o.z, o.w)))
 
 
 def is_list_position(list_pos):
@@ -61,10 +61,10 @@ def list2pose(pose_list):
 def ensure_pose(pose):
     if type(pose) is Pose:
         return pose
-    elif type(pose) is list or type(pose) is tuple and is_list_pose(pose):
+    elif (type(pose) is list or type(pose) is tuple) and is_list_pose(pose):
         pose = list2pose(pose)
         return pose
-    elif type(pose) is list or type(pose) is tuple and is_list_position(pose):
+    elif (type(pose) is list or type(pose) is tuple) and is_list_position(pose):
         point = list2point(pose)
         return Pose(point, Quaternion(0, 0, 0, 1))
     else:
