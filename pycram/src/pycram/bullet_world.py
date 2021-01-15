@@ -291,7 +291,10 @@ class Object:
     def set_joint_state(self, joint_name, joint_pose):
         p.resetJointState(self.id, self.joints[joint_name], joint_pose, physicsClientId=self.world.client_id)
         self._set_attached_objects([self])
+<<<<<<< HEAD
 
+=======
+>>>>>>> e09e24afbc4adc6892a059109bf752e0045d36e0
 
     def get_joint_state(self, joint_name):
         return p.getJointState(self.id, self.joints[joint_name], physicsClientId=self.world.client_id)[0]
