@@ -7,6 +7,9 @@
   <group if="$(arg upload)">
     <param name="robot_description"
            command="$(find xacro)/xacro.py
-                    '$(find pr2_description)/robots/pr2.urdf.xacro'"/>
+                    '$(find pr2_description)/robots/pr2.urdf.xacro'"/> 
   </group>
+  <!--
+  <include file="$(find iai_boxy_description)/launch/upload_boxy.launch" />
+-->
 </launch>
