@@ -27,7 +27,7 @@ kitchen.attach(spoon, link="sink_area_left_upper_drawer_main")
 cereal = Object("cereal", "cereal", "../../resources/breakfast_cereal.stl", spawning_poses["cereal"])
 bowl = Object("bowl", "bowl", "../../resources/bowl.stl", spawning_poses["bowl"])
 BulletWorld.robot = robot
-robot.set_joint_state("torso_lift_joint", 0.24)
+robot.set_joint_state(robot_description.i.torso_joint, 0.24)
 
 targets = {
     'milk': [[-0.8, 1, 0.93], "left", False],
@@ -45,10 +45,18 @@ moving_targets = {
                          'bowl' : [[-0.3, 0.5, 0], [0, 0, 1, 0]],
                          'cereal': [[-0.35, 0.4, 0], [0, 0, 1, 0]],
                          'spoon' : [[-0.3, 1.6, 0], [0, 0, 1, 0]]} },
+    'boxy' : {'sink' : { 'milk' : [[0.1, 0.7, 0], [0, 0, 0, 1]],
+                        'bowl' : [[0.2, 1.5, 0], [0, 0, 0, 1]],
+                        'cereal' : [[0.2, 1.5, 0], [0, 0, 0, 1]],
+                        'spoon': [[0.4, 0.7, 0], [0, 0, 0, 1]]},
+            'island' : { 'milk' : [[0.3, 1.5, 0], [0, 0, 1, 0]],
+                         'bowl' : [[0.3, 0.5, 0], [0, 0, 1, 0]],
+                         'cereal': [[0.2, 0.8, 0], [0, 0, 1, 0]],
+                         'spoon' : [[0.3, 1.7, 0], [0, 0, 1, 0]]} },
 #    'pr2': {'sink': [[0.6, 0.4, 0], [0, 0, 0, 1]], #0.65, 0.7, 0
 #            'island': [[-0.3, 1.6, 0], [0, 0, 1, 0]]},
-    'boxy': {'sink': [[0.4, 0.7, 0], [0, 0, 0, 1]],
-             'island': [[0.2, 0.8, 0], [0, 0, 1, 0]]},
+#    'boxy': {'sink': [[0.4, 0.7, 0], [0, 0, 0, 1]],
+#             'island': [[0.2, 0.8, 0], [0, 0, 1, 0]]},
     'donbot': {'sink': [[0.5, 1.2, 0], [0, 0, 0.7, 0.7]],
                'spoon': [[0.5, 1.4, 0], [0, 0, 0.7, 0.7]],
                'island': [[-0.3, 1.2, 0], [0, 0, -0.7, 0.7]]},
@@ -64,8 +72,6 @@ def park_arms(robot_name):
         park_desc.append(('right-arm', 'park'))
     # Perform Parking with MotionDesignator
     ProcessModule.perform(MotionDesignator(park_desc))
-
-    #ProcessModule.perform(MotionDesignator([('type', 'moving'), ('target', [0.35, 0.24, 0]), ('orientation', [0, 0, 0, 1])]))
 
 def move_robot(robot_name, to, object):
     ProcessModule.perform(MotionDesignator([('type', 'moving'),
