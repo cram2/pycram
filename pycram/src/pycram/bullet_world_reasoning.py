@@ -4,6 +4,8 @@ import numpy as np
 import time
 from .bullet_world import _world_and_id
 from .ik import request_ik
+from .robot_description import InitializedRobotDescription as robot_description
+from .helper import _transform_to_torso
 
 
 class ReasoningError(Exception):
@@ -223,13 +225,17 @@ def reachable_pose(pose, robot, gripper_name, world=None, threshold=0.01):
     """
     world, world_id = _world_and_id(world)
     state = p.saveState(physicsClientId=world_id)
-    inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper_name), pose,
-                                       maxNumIterations=100, physicsClientId=world_id)
-    #inv = request_ik("base_footprint", gripper_namer, [pose, [0, 0, 0, 1]], robot, )
-    for i in range(p.getNumJoints(robot.id, world_id)):
-        qIndex = p.getJointInfo(robot.id, i, world_id)[3]
-        if qIndex > -1:
-            p.resetJointState(robot.id, i, inv[qIndex-7], physicsClientId=world_id)
+    arm = "left" if gripper_name == robot_description.i.get_tool_frame("left") else "right"
+    joints = robot_description.i._safely_access_chains(arm).joints
+    target = _transform_to_torso([pose, [0, 0, 0, 1]], robot)
+    target = (target[0], [0, 0, 0, 1])
+    inv = request_ik(robot_description.i.base_frame, gripper_name, target, robot, joints)
+
+    # Hack because kdl outputs more joint values than there are joints given
+    joints = [robot_description.i.torso_joint] + joints
+
+    for i in range(len(inv)):
+        robot.set_joint_state(joints[i], inv[i])
 
     newp = p.getLinkState(robot.id, robot.get_link_id(gripper_name), physicsClientId=world_id)[4]
     diff = [pose[0] - newp[0], pose[1] - newp[1],  pose[2] - newp[2]]
@@ -250,12 +256,17 @@ def blocking(object, robot, gripper_name, world=None):
     """
     world, world_id = _world_and_id(world)
     state = p.saveState(physicsClientId=world_id)
-    inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper_name), object.get_pose(),
-                                       maxNumIterations=100, physicsClientId=world_id)
-    for i in range(0, p.getNumJoints(robot.id, world_id)):
-        qIndex = p.getJointInfo(robot.id, i, world_id)[3]
-        if qIndex > -1:
-            p.resetJointState(robot.id, i, inv[qIndex-7], physicsClientId=world_id)
+
+    arm = "left" if gripper_name == robot_description.i.get_tool_frame("left") else "right"
+    joints = robot_description.i._safely_access_chains(arm).joints
+    target = _transform_to_torso([object.get_pose(), [0, 0, 0, 1]], robot)
+    inv = request_ik(robot_description.i.base_frame, gripper_name, target, robot, joints)
+
+    # Hack because kdl outputs more joint values than there are joints given
+    joints = [robot_description.i.torso_joint] + joints
+
+    for i in range(len(inv)):
+        robot.set_joint_state(joints[i], inv[i])
 
     block = []
     for obj in world.objects:

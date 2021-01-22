@@ -14,10 +14,10 @@ plane = Object("floor", "environment", "../../resources/plane.urdf", world=world
 robot = Object("boxy", "robot", "../../resources/" + robot_description.i.name + ".urdf")
 
 spawning_poses = {
-    'milk': [1.3, 1, 1],
-    'spoon': [1.35, 0.7, 0.8],
-    'cereal': [1.3, 0.6, 1],
-    'bowl': [1.3, 0.8, 1]
+    'milk': [1.3, 1, 0.93],
+    'spoon': [1.35, 0.9, 0.8],
+    'cereal': [1.3, 0.6, 0.94],
+    'bowl': [1.3, 0.8, 0.94]
 }
 
 kitchen = Object("kitchen", "environment", "../../resources/kitchen.urdf")
@@ -27,18 +27,26 @@ kitchen.attach(spoon, link="sink_area_left_upper_drawer_main")
 cereal = Object("cereal", "cereal", "../../resources/breakfast_cereal.stl", spawning_poses["cereal"])
 bowl = Object("bowl", "bowl", "../../resources/bowl.stl", spawning_poses["bowl"])
 BulletWorld.robot = robot
-robot.set_joint_state("torso_lift_joint", 0.14)
+robot.set_joint_state("torso_lift_joint", 0.24)
 
 targets = {
     'milk': [[-0.8, 1, 0.93], "left", False],
-    'bowl': [[-0.8, 1.2, 0.9], "left", False],
-    'cereal': [[-1, 1, 0.94], "left", False],
+    'bowl': [[-0.8, 1.2, 0.9], "right", False],
+    'cereal': [[-1, 1, 0.94], "right", False],
     'spoon': [[-0.8, 1.2, 0.94], "left", False]
 }
 
 moving_targets = {
-    'pr2': {'sink': [[0.65, 0.7, 0], [0, 0, 0, 1]],
-            'island': [[-0.3, 1, 0], [0, 0, 1, 0]]},
+    'pr2' : {'sink' : { 'milk' : [[0.6, 0.4, 0], [0, 0, 0, 1]],
+                        'bowl' : [[0.65, 1.4, 0], [0, 0, 0, 1]],
+                        'cereal' : [[0.65, 1.3, 0], [0, 0, 0, 1]],
+                        'spoon': [[0.6, 0.35, 0], [0, 0, 0, 1]]},
+            'island' : { 'milk' : [[-0.3, 1.6, 0], [0, 0, 1, 0]],
+                         'bowl' : [[-0.3, 0.5, 0], [0, 0, 1, 0]],
+                         'cereal': [[-0.35, 0.4, 0], [0, 0, 1, 0]],
+                         'spoon' : [[-0.3, 1.6, 0], [0, 0, 1, 0]]} },
+#    'pr2': {'sink': [[0.6, 0.4, 0], [0, 0, 0, 1]], #0.65, 0.7, 0
+#            'island': [[-0.3, 1.6, 0], [0, 0, 1, 0]]},
     'boxy': {'sink': [[0.4, 0.7, 0], [0, 0, 0, 1]],
              'island': [[0.2, 0.8, 0], [0, 0, 1, 0]]},
     'donbot': {'sink': [[0.5, 1.2, 0], [0, 0, 0.7, 0.7]],
@@ -57,12 +65,12 @@ def park_arms(robot_name):
     # Perform Parking with MotionDesignator
     ProcessModule.perform(MotionDesignator(park_desc))
 
-        ProcessModule.perform(MotionDesignator([('type', 'moving'), ('target', [0.35, 0.24, 0]), ('orientation', [0, 0, 0, 1])]))
+    #ProcessModule.perform(MotionDesignator([('type', 'moving'), ('target', [0.35, 0.24, 0]), ('orientation', [0, 0, 0, 1])]))
 
-def move_robot(robot_name, to):
+def move_robot(robot_name, to, object):
     ProcessModule.perform(MotionDesignator([('type', 'moving'),
-                                            ('target', moving_targets[robot_name][to][0]),
-                                            ('orientation', moving_targets[robot_name][to][1])]))
+                                            ('target', moving_targets[robot_name][to][object][0]),
+                                            ('orientation', moving_targets[robot_name][to][object][1])]))
 
 
 def move_object(object_type, target, arm, robot_name):
@@ -72,7 +80,7 @@ def move_object(object_type, target, arm, robot_name):
     # Move to sink
     with par as s:
         park_arms(robot_name)
-        move_robot(robot_name, 'sink')
+        move_robot(robot_name, 'sink', object_type)
 
     # Access object if needed
     if object_type == "spoon":
@@ -102,7 +110,7 @@ def move_object(object_type, target, arm, robot_name):
     # If something is in the way, move it first and then move back to the sink.
     if block_new:
         move_object(block_new[0].type, targets[block_new[0].type][0], arm, robot_name)
-        move_robot(robot_name, 'sink')
+        move_robot(robot_name, 'sink', object_type)
 
     if det_obj.type == "spoon":
         kitchen.detach(det_obj)
@@ -113,7 +121,7 @@ def move_object(object_type, target, arm, robot_name):
     park_arms(robot_name)
 
     # Move to island
-    move_robot(robot_name, 'island')
+    move_robot(robot_name, 'island', object_type)
 
     # Look at target (also quickfix for not colliding with kitchen if robot has odom frame :/ )
     if robot_name is 'donbot':
