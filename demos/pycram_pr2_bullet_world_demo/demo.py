@@ -1,3 +1,6 @@
+import rospy
+rospy.init_node('pycram')
+
 from pycram.robot_description import InitializedRobotDescription as robot_description
 import available_process_modules
 import motion_designators  # Needs to be imported to load Process Modules and designator solutions
@@ -6,7 +9,11 @@ from pycram.designator import MotionDesignator
 from pycram.process_module import ProcessModule
 from pycram.bullet_world import BulletWorld, Object
 from pycram.language import macros, par
-from time import sleep
+from pycram.local_transformer import start_publishing, stop_publishing
+from pycram import helper
+from time import time, sleep
+from threading import Thread, currentThread
+
 
 world = BulletWorld()
 world.set_gravity([0, 0, -9.8])
@@ -80,10 +87,7 @@ def move_object(object_type, target, arm, robot_name):
              ('part-of', kitchen)]))
 
     # Look at object
-    if robot_name is 'donbot':
-        ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', 'right')]))
-    else:
-        ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', spawning_poses[object_type])]))
+    ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', object_type)]))
 
     # Detect object
     # Try to detect object via camera, if this fails...
@@ -114,10 +118,7 @@ def move_object(object_type, target, arm, robot_name):
     move_robot(robot_name, 'island')
 
     # Look at target (also quickfix for not colliding with kitchen if robot has odom frame :/ )
-    if robot_name is 'donbot':
-        ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', 'right')]))
-    else:
-        ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', targets[object_type][0])]))
+    ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', targets[object_type][0])]))
 
     # Place object if target pose of object is reachable for the robots manipulator
     if btr.reachable_pose(target, robot, gripper, threshold=0.05):
@@ -131,6 +132,7 @@ def move_object(object_type, target, arm, robot_name):
     # raise btr.ReasoningError
     targets[object_type][2] = True
 
+threads = start_publishing()
 
 if 'hsr' not in robot_description.i.name:
     object_types = ['milk',
@@ -159,14 +161,17 @@ else:
     # Pick up detected object
     ProcessModule.perform(MotionDesignator([('type', 'pick-up'), ('object', det_obj), ('arm', 'left')]))
     # Close Gripper
-    ProcessModule.perform(MotionDesignator([('type', 'closing-gripper'), ('gripper', 'left'),]))
+    ProcessModule.perform(MotionDesignator([('type', 'closing-gripper'), ('gripper', 'left'), ]))
     # Park Arms
     park_arms(robot_name)
     # Move to kitchen entry
     move_robot(robot_name, 'kitchen_entry')
     # Drop the cereal box
-    ProcessModule.perform(MotionDesignator([('type', 'place'), ('object', det_obj), ('target', [0.2, -2.5, 0.4]), ('arm', 'left')]))
+    ProcessModule.perform(
+        MotionDesignator([('type', 'place'), ('object', det_obj), ('target', [0.2, -2.5, 0.4]), ('arm', 'left')]))
     # Open Gripper
     ProcessModule.perform(MotionDesignator([('type', 'opening-gripper'), ('gripper', 'left')]))
     # Park Arms
     park_arms(robot_name)
+
+stop_publishing(threads)
