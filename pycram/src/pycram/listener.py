@@ -1,32 +1,32 @@
 import pycram.helper as helper
 
 from time import time as current_time
-from tf import TransformListener
+from tf import TransformListener, TransformerROS
 from rospy import Duration, Time
 from std_msgs.msg import Header
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, TransformStamped
 
 transformer = TransformListener()
 # Wait "waiting_time" seconds before lookup of transform or transforming of a pose
-waiting_time = 3
+waiting_time = 4
 # Timeout in seconds for lookup of transform and transforming of a pose
 timeout = 5
 
 
-def tf_pose_transform(source_frame, target_frame, pose, time=None):
-    tf_pose = helper.ensure_pose(pose)
-    tf_time = Time(time) if time else Time(current_time() + waiting_time)
-    tf_pose_stamped = PoseStamped(Header(0, tf_time, source_frame), tf_pose)
-    return tf_pose_stamped_transform(target_frame, tf_pose_stamped, time)
+def get_global_transforms():
+    tf_frames = transformer.getFrameStrings()
+    looked_up = []
+    tf_time = Time(current_time())
+    ret = []
+    for source_frame in tf_frames:
+        for target_frame in tf_frames:
+            if (source_frame is not target_frame) and not \
+                    any(map((lambda l: source_frame in l and target_frame in l), looked_up)):
+                if transformer.canTransform(source_frame, target_frame, tf_time):
+                    pos, q = transformer.lookupTransform(source_frame, target_frame, tf_time)
+                    tf_stamped = helper.list2tfstamped(source_frame, target_frame, [pos, q], time=tf_time)
+                    ret.append([source_frame, target_frame, tf_stamped])
+                    looked_up.append([source_frame, target_frame])
+    return ret
 
 
-def tf_pose_stamped_transform(target_frame, pose_stamped, time=None):
-    transformer.waitForTransform(Time(time) if time else pose_stamped.header.frame_id, target_frame,
-                                 time=pose_stamped.header.stamp, timeout=Duration(timeout))
-    return helper.pose_stamped2tuple(transformer.transformPose(target_frame, pose_stamped))
-
-
-def tf_transform(source_frame, target_frame, time=None):
-    tf_time = Time(time) if time else Time(current_time() + waiting_time)
-    transformer.waitForTransform(source_frame, target_frame, time=tf_time, timeout=Duration(timeout))
-    return transformer.lookupTransform(source_frame, target_frame, tf_time)
