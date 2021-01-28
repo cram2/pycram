@@ -1,11 +1,11 @@
 from pycram.robot_description import InitializedRobotDescription as robot_description
 from pycram import helper
+from pycram.listener import transformer
 
 import sys
 from time import time
 from threading import Thread, currentThread
 
-import tf2_ros
 import rospy
 from std_msgs.msg import Header
 from geometry_msgs.msg import Transform, TransformStamped, Pose
@@ -24,9 +24,6 @@ odom_frame = "odom"
 projection_namespace = "projection"
 kitchen_namespace = "iai_kitchen"
 
-# global TransformBroadcaster to publish TransformStampeds to /tf
-br = tf2_ros.TransformBroadcaster()
-
 
 def publish_pose(frame_id, child_frame_id, pose):
     if not rospy.is_shutdown():
@@ -34,7 +31,7 @@ def publish_pose(frame_id, child_frame_id, pose):
         tf = Transform(pose.position, pose.orientation)
         header = Header(0, rospy.Time(time()), frame_id)
         tf_stamped = TransformStamped(header, child_frame_id, tf)
-        br.sendTransform(tf_stamped)
+        transformer.setTransform(tf_stamped)
         return True
 
 
