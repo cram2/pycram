@@ -9,9 +9,11 @@ GeneratorList -- implementation of generator list wrappers.
 from inspect import isgeneratorfunction
 from numbers import Number
 from macropy.core.quotes import macros, ast_literal, q
-from geometry_msgs.msg import Point, Quaternion, Pose, Transform, PoseStamped
+from geometry_msgs.msg import Point, Quaternion, Pose, Transform, PoseStamped, TransformStamped, Vector3
 
 import rospy
+from std_msgs.msg import Header
+from time import time as current_time
 
 
 def transform(pose,
@@ -47,6 +49,15 @@ def list2point_and_quaternion(pose_list):
         return point, quaternion
 
 
+def list2vector3_and_quaternion(pose_list):
+    if len(pose_list) == 2 and len(pose_list[0]) == 3 and len(pose_list[1]) == 4:
+        pos = pose_list[0]
+        orient = pose_list[1]
+        vector = Vector3(pos[0], pos[1], pos[2])
+        quaternion = Quaternion(orient[0], orient[1], orient[2], orient[3])
+        return vector, quaternion
+
+
 def list2point(pos_list):
     if len(pos_list) == 3:
         return Point(pos_list[0], pos_list[1], pos_list[2])
@@ -73,9 +84,33 @@ def ensure_pose(pose):
 
 
 def list2tf(pose_list):
-    p, q = list2point_and_quaternion(pose_list)
+    p, q = list2vector3_and_quaternion(pose_list)
     if p and q:
         return Transform(p, q)
+
+
+def pose2tf(pose):
+    if pose and pose.position and pose.orientation:
+        p = pose.position
+        return Transform(Vector3(p.x, p.y, p.z), pose.orientation)
+
+
+def list2tfstamped(source_frame, target_frame, pose_list, time=None):
+    tf = list2tf(pose_list)
+    if tf:
+        return tf2tfstamped(source_frame, target_frame, tf, time)
+
+
+def pose2tfstamped(source_frame, target_frame, pose, time=None):
+    tf = pose2tf(pose)
+    if tf:
+        return tf2tfstamped(source_frame, target_frame, tf, time)
+
+
+def tf2tfstamped(source_frame, target_frame, tf, time=None):
+    tf_time = time if time else rospy.Time(current_time())
+    header = Header(0, tf_time, source_frame)
+    return TransformStamped(header, target_frame, tf)
 
 
 def _block(tree):
