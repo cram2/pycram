@@ -259,7 +259,7 @@ def blocking(object, robot, gripper_name, world=None):
 
     arm = "left" if gripper_name == robot_description.i.get_tool_frame("left") else "right"
     joints = robot_description.i._safely_access_chains(arm).joints
-    target = _transform_to_torso([object.get_pose(), [0, 0, 0, 1]], robot)
+    target = _transform_to_torso(object.get_position_and_orientation(), robot)
     inv = request_ik(robot_description.i.base_frame, gripper_name, target, robot, joints)
 
     # Hack because kdl outputs more joint values than there are joints given
