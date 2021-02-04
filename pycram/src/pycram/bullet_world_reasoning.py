@@ -24,6 +24,8 @@ def _get_seg_mask_for_target(target_position, cam_position, world=None):
     :return: The Segmentation mask from the camera position
     """
     world, world_id = _world_and_id(world)
+    # TODO: Might depend on robot cameras, if so please add these camera parameters to RobotDescription object
+    # TODO: of your robot with a CameraDescription object.
     fov = 300
     aspect = 256 / 256
     near = 0.2
