@@ -1,6 +1,6 @@
 from pycram.designator import MotionDesignator
 from pycram.bullet_world import BulletWorld
-
+from pycram.robot_description import InitializedRobotDescription as robot_description
 
 def pr2_motion_designators(desig):
     """
@@ -20,29 +20,29 @@ def pr2_motion_designators(desig):
     # Type: pick-up
     if desig.check_constraints([('type', 'pick-up'), 'object']):
         if desig.check_constraints([('arm', 'right')]):
-            solutions.append(desig.make_dictionary([('cmd', 'pick'), 'object', ('gripper', 'r_gripper_tool_frame')]))
-        solutions.append(desig.make_dictionary([('cmd', 'pick'), 'object', ('gripper', 'l_gripper_tool_frame')]))
+            solutions.append(desig.make_dictionary([('cmd', 'pick'), 'object', ('gripper', robot_description.i.get_tool_frame('right'))]))
+        solutions.append(desig.make_dictionary([('cmd', 'pick'), 'object', ('gripper', robot_description.i.get_tool_frame('left'))]))
 
     # Type: place
     if desig.check_constraints([('type', 'place'), 'target']):
         if desig.check_constraints(['object']):
             if desig.check_constraints([('arm', 'right')]):
-                solutions.append(desig.make_dictionary([('cmd', 'place'), 'target', 'object', ('gripper', 'r_gripper_tool_frame')]))
-            solutions.append(desig.make_dictionary([('cmd', 'place'), 'target', 'object', ('gripper', 'l_gripper_tool_frame')]))
+                solutions.append(desig.make_dictionary([('cmd', 'place'), 'target', 'object', ('gripper', robot_description.i.get_tool_frame('right'))]))
+            solutions.append(desig.make_dictionary([('cmd', 'place'), 'target', 'object', ('gripper', robot_description.i.get_tool_frame('left'))]))
 
     # Type: accessing
     if desig.check_constraints([('type', 'accessing'), 'drawer-joint', 'drawer-handle', 'part-of']):
         if desig.check_constraints([('arm', 'right')]):
             if desig.check_constraints('distance'):
-                solutions.append(desig.make_dictionary([('cmd', 'access'), 'drawer-joint', 'drawer-handle', ('gripper', 'r_gripper_tool_frame'), 'distance', 'part-of']))
-            solutions.append(desig.make_dictionary([('cmd', 'access'), 'drawer-joint', 'drawer-handle', ('gripper', 'r_gripper_tool_frame'), ('distance', 0.3), 'part-of']))
-        solutions.append(desig.make_dictionary([('cmd', 'access'), 'drawer-joint', 'drawer-handle', 'part-of', ('distance', 0.3), ('gripper', 'l_gripper_tool_frame'), 'part-of']))
+                solutions.append(desig.make_dictionary([('cmd', 'access'), 'drawer-joint', 'drawer-handle', ('gripper', robot_description.i.get_tool_frame('right')), 'distance', 'part-of']))
+            solutions.append(desig.make_dictionary([('cmd', 'access'), 'drawer-joint', 'drawer-handle', ('gripper', robot_description.i.get_tool_frame('right')), ('distance', 0.3), 'part-of']))
+        solutions.append(desig.make_dictionary([('cmd', 'access'), 'drawer-joint', 'drawer-handle', 'part-of', ('distance', 0.3), ('gripper', robot_description.i.get_tool_frame('left')), 'part-of']))
 
     # Type: move-tcp
     if desig.check_constraints([('type', 'move-tcp'), 'target']):
         if desig.check_constraints([('arm', 'right')]):
-            solutions.append(desig.make_dictionary([('cmd', 'move-tcp'), 'target', ('gripper', 'r_gripper_tool_frame')]))
-        solutions.append(desig.make_dictionary([('cmd', 'move-tcp'), 'target', ('gripper', 'l_gripper_tool_frame')]))
+            solutions.append(desig.make_dictionary([('cmd', 'move-tcp'), 'target', ('gripper', robot_description.i.get_tool_frame('right'))]))
+        solutions.append(desig.make_dictionary([('cmd', 'move-tcp'), 'target', ('gripper', robot_description.i.get_tool_frame('left'))]))
 
     # Type: park-arms
     if desig.check_constraints([('type', 'park-arms')]):
@@ -66,7 +66,7 @@ def pr2_motion_designators(desig):
 
     # Type: detecting
     if desig.check_constraints([('type', 'detecting'), 'object']):
-        solutions.append(desig.make_dictionary([('cmd', 'detecting'), ('cam_frame', 'wide_stereo_optical_frame'), ('front_facing_axis', [0, 0, 1]), 'object']))
+        solutions.append(desig.make_dictionary([('cmd', 'detecting'), ('cam_frame', robot_description.i.get_camera_frame()), ('front_facing_axis', [0, 0, 1]), 'object']))
 
     # Type: move-arm-joints
     if desig.check_constraints([('type', 'move-arm-joints')]):
