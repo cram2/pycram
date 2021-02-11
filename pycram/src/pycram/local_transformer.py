@@ -1,11 +1,10 @@
 from pycram.robot_description import InitializedRobotDescription as robot_description
 import pycram.helper as helper
-import pybullet as p
 
 import sys
+import rospkg
+import atexit
 from threading import Thread, currentThread
-from time import sleep
-from time import time as current_time
 
 from tf import TransformerROS, transformations
 from rospy import Duration, Time, logerr, logwarn, Rate, is_shutdown
@@ -13,206 +12,218 @@ from urdf_parser_py.urdf import URDF
 from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped
 
-local_transformer = TransformerROS(interpolate=True, cache_time=Duration(10.0))
-# Wait "waiting_time" seconds before lookup of transform or transforming of a pose
-waiting_time = 0
-# Timeout in seconds for lookup of transform and transforming of a pose
-timeout = 5
-
 # Global Variables
-# Booleans if robot or robot poses should be published to /tf
-publish_robot_base_pose = True
-publish_objects_poses = True
+# Booleans for publishing frequently poses/states
 publish_frequently = True
-publish_robot_state = True
-publish_static_odom = True
 
-# Frame names of the map and odom frame
-map_frame = "map"
-odom_frame = "odom"
+class LocalTransformer:
+    """This class allows to use the TF class TransformerROS without using the ROS
+    network system or the topic /tf, where transforms are usually published to.
+    Instead a local transformer is saved and allows to publish local transforms,
+    as well the use of TFs convenient lookup functions (see functions below).
 
-# Namespaces
-projection_namespace = "projection"
-kitchen_namespace = "iai_kitchen"
+    This class uses the robots (currently only one! supported) URDF file to
+    initialize the tfs for the robot. Moreover, the function update_local_transformer_from_btr
+    updates these tfs by copying the tfs state from the pybullet world."""
 
-tf_stampeds = []
-static_tf_stampeds = []
+    def __init__(self, map_frame, odom_frame, projection_namespace, kitchen_namespace):
+        # Frame names of the map and odom frame
+        self.map_frame = map_frame
+        self.odom_frame = odom_frame
+        # Namespaces
+        self.projection_namespace = projection_namespace
+        self.kitchen_namespace = kitchen_namespace
+        # TF tf_stampeds and static_tf_stampeds of the Robot in the BulletWorld:
+        # These are initialized with the function init_transforms_from_urdf and are
+        # used to update the local transformer with the function update_local_transformer_from_btr
+        self.tf_stampeds = []
+        self.static_tf_stampeds = []
+        self.local_transformer = TransformerROS(interpolate=True, cache_time=Duration(10.0))
+        self.init_local_tf_with_tfs_from_urdf()
 
+    def init_transforms_from_urdf(self):
+        """
+            This static function gets with the robot name in robot_description.py, the
+            robots URDF file from the "resources" folder in the ROS "pycram" folder.
+            All joints of the URDF are extracted and saved in a list of static and
+            normal TFStamped.
 
-def get_init_transforms_from_urdf():
-    with open('/home/thomas/pycram_ros/src/pycram/resources/donbot.urdf') as f:
-        s = f.read()
-        robot = URDF.from_xml_string(s)
-        for joint in robot.joints:
-            source_frame = projection_namespace + '/' + joint.parent
-            target_frame = projection_namespace + '/' + joint.child
-            if source_frame is target_frame or odom_frame in joint.name:
-                continue
-            if joint.origin:
-                if joint.origin.xyz:
-                    translation = joint.origin.xyz
-                else:
+            :returns: list of static_tf_stampeds, list of tf_stampeds
+        """
+        # Save joint translations and orientations in tf_stampeds
+        # static_tf_stampeds saves only the static joint translations and orientations
+        self.tf_stampeds = []
+        self.static_tf_stampeds = []
+        # Get URDF file path
+        robot_name = robot_description.i.name
+        rospack = rospkg.RosPack()
+        filename = rospack.get_path('pycram') + '/resources/' + robot_name + '.urdf'
+        # ... and open it
+        with open(filename) as f:
+            s = f.read()
+            robot = URDF.from_xml_string(s)
+            # Save for every joint in the robot the source_frame, target_frame,
+            # aswell the joints origin, where the translation xyz and rotation rpy
+            # are saved
+            for joint in robot.joints:
+
+                source_frame = self.projection_namespace + '/' + joint.parent
+                target_frame = self.projection_namespace + '/' + joint.child
+
+                if joint.origin:
+                    if joint.origin.xyz:
+                        translation = joint.origin.xyz
+                    else:
+                        translation = [0, 0, 0]
+                    if joint.origin.rpy:
+                        roll = joint.origin.rpy[0]
+                        pitch = joint.origin.rpy[1]
+                        yaw = joint.origin.rpy[2]
+                        rotation = transformations.quaternion_from_euler(roll, pitch, yaw)
+                    else:
+                        rotation = [0, 0, 0, 1]
+
+                if joint.name in robot_description.i.odom_joints:
+                    # since pybullet wont update this joints, these are declared as static
                     translation = [0, 0, 0]
-                if joint.origin.rpy:
-                    roll = joint.origin.rpy[0]
-                    pitch = joint.origin.rpy[1]
-                    yaw = joint.origin.rpy[2]
-                    rotation = transformations.quaternion_from_euler(roll, pitch, yaw)
-                else:
                     rotation = [0, 0, 0, 1]
-            tf_stamped = helper.list2tfstamped(source_frame, target_frame, [translation, rotation])
-            if joint.type and joint.type == 'fixed':
-                static_tf_stampeds.append(tf_stamped)
-            else:
-                tf_stampeds.append(tf_stamped)
-    tf_stampeds.append(helper.list2tfstamped(map_frame, projection_namespace + '/' + odom_frame, [[0, 0, 0], [0, 0, 0, 1]]))
-    return static_tf_stampeds, tf_stampeds
 
+                # Wrap the joint attributes in a TFStamped and append it to static_tf_stamped if the joint was fixed
+                tf_stamped = helper.list2tfstamped(source_frame, target_frame, [translation, rotation])
+                if (joint.type and joint.type == 'fixed') or joint.name in robot_description.i.odom_joints:
+                    self.static_tf_stampeds.append(tf_stamped)
+                else:
+                    self.tf_stampeds.append(tf_stamped)
 
-def update_local_transformer_from_btr():
-    robot = BulletWorld.robot
-    if robot:
-        # Update tf stampeds which might have changed
-        for tf_stamped in tf_stampeds:
-            source_frame = tf_stamped.header.frame_id
-            target_frame = tf_stamped.child_frame_id
+        # This TFStamped must always be the identity Pose for map_frame to odom_frame
+        self.static_tf_stampeds.append(
+            helper.list2tfstamped(self.map_frame, self.projection_namespace + '/' + self.odom_frame, [[0, 0, 0], [0, 0, 0, 1]]))
 
-            if 'odom' in source_frame or 'odom' in target_frame:
-                # since the robots base_footprint = odom
-                continue
+    def init_local_tf_with_tfs_from_urdf(self):
+        "This function initializes the local transformer with TFs from the robots URDF."
+        self.init_transforms_from_urdf()
+        for static_tfstamped in self.static_tf_stampeds:
+            self.local_transformer._buffer.set_transform_static(static_tfstamped, "default_authority")
+        for tfstamped in self.tf_stampeds:
+            self.local_transformer.setTransform(tfstamped)
 
-            # Create Transformation Matrix from map to source frame
-            map_T_source = robot.get_link_position_and_orientation(source_frame.replace(projection_namespace + '/', ""))
-            map_T_source_trans = map_T_source[0]
-            map_T_source_rot = map_T_source[1]
-            map_T_source_m = transformations.concatenate_matrices(
-                transformations.translation_matrix(map_T_source_trans),
-                transformations.quaternion_matrix(map_T_source_rot))
-            # Create Transformation Matrix from map to target frame
-            map_T_target = robot.get_link_position_and_orientation(target_frame.replace(projection_namespace + '/', ""))
-            map_T_target_trans = map_T_target[0]
-            map_T_target_rot = map_T_target[1]
-            map_T_target_m = transformations.concatenate_matrices(
-                transformations.translation_matrix(map_T_target_trans),
-                transformations.quaternion_matrix(map_T_target_rot))
-            # Calculate Transformation from source to target frame
-            source_T_map_m = transformations.inverse_matrix(map_T_source_m)
-            source_T_target_m = transformations.concatenate_matrices(source_T_map_m, map_T_target_m)
-            source_T_target_trans = transformations.translation_from_matrix(source_T_target_m)
-            source_T_target_rot = transformations.quaternion_from_matrix(source_T_target_m)
-            source_T_target = helper.list2tfstamped(source_frame, target_frame,
-                                                    [source_T_target_trans, source_T_target_rot])
-            # Push calculated transformation to the local transformer
-            local_transformer.setTransform(source_T_target)
-        # Update the static transforms
-        for static_tf_stamped in static_tf_stampeds:
-            local_transformer._buffer.set_transform_static(static_tf_stamped, "default_authority")
+    def update_local_transformer_from_btr(self):
+        "This function updates the local transformer by using the frames states of the pybullet world."
+        robot = BulletWorld.robot
+        if robot:
+            # First publish (static) joint states to tf
+            # Update tf stampeds which might have changed
+            for tf_stamped in self.tf_stampeds:
+                source_frame = tf_stamped.header.frame_id
+                target_frame = tf_stamped.child_frame_id
+                # Push calculated transformation to the local transformer
+                p, q = robot.get_link_relative_to_other_link(source_frame.replace(self.projection_namespace + "/", ""),
+                                                             target_frame.replace(self.projection_namespace + "/", ""))
+                self.local_transformer.setTransform(helper.list2tfstamped(source_frame, target_frame, [p, q]))
 
+            # Update the static transforms
+            for static_tf_stamped in self.static_tf_stampeds:
+                self.local_transformer._buffer.set_transform_static(static_tf_stamped, "default_authority")
 
-############################################################################################################
-######################################## Update Local Transformer ##########################################
-############################################################################################################
+            # Then publish pose of robot
+            robot_pose = helper.ensure_pose(
+                BulletWorld.robot.get_link_position_and_orientation_tf(robot_description.i.base_frame))
+            self.publish_robot_pose(robot_pose)
 
+        # And publish poses of the other objects
+        if BulletWorld.current_bullet_world:
+            for obj in list(BulletWorld.current_bullet_world.objects):
+                if obj.name in robot_description.i.name:
+                    continue
+                else:
+                    published = local_transformer.publish_object_pose(obj.name,
+                                                                      obj.get_position_and_orientation())
+                if not published:
+                    logerr("(publisher) Could not publish given pose of %s.", obj.name)
 
-def tf_pose_transform(source_frame, target_frame, pose, time=None):
-    # sleep(1)
-    tf_pose = helper.ensure_pose(pose)
-    tf_time = time if time else Time(0)
-    tf_pose_stamped = PoseStamped(Header(0, tf_time, source_frame), tf_pose)
-    return tf_pose_stamped_transform(target_frame, tf_pose_stamped)
+    ############################################################################################################
+    ######################################### Query Local Transformer ##########################################
+    ############################################################################################################
 
+    def tf_pose_transform(self, source_frame, target_frame, pose, time=None):
+        tf_pose = helper.ensure_pose(pose)
+        tf_time = time if time else self.local_transformer.getLatestCommonTime(source_frame, target_frame)
+        tf_pose_stamped = PoseStamped(Header(0, tf_time, source_frame), tf_pose)
+        return self.tf_pose_stamped_transform(target_frame, tf_pose_stamped)
 
-def tf_pose_stamped_transform(target_frame, pose_stamped):
-    # sleep(1)
-    return helper.pose_stamped2tuple(local_transformer.transformPose(target_frame, pose_stamped))
+    def tf_pose_stamped_transform(self, target_frame, pose_stamped):
+        return helper.pose_stamped2tuple(self.local_transformer.transformPose(target_frame, pose_stamped))
 
+    def tf_transform(self, source_frame, target_frame, time=None):
+        tf_time = time if time else self.local_transformer.getLatestCommonTime(source_frame, target_frame)
+        return self.local_transformer.lookupTransform(source_frame, target_frame, tf_time)
 
-def tf_transform(source_frame, target_frame, time=None):
-    # sleep(1)
-    tf_time = time if time else Time(0)
-    return local_transformer.lookupTransform(source_frame, target_frame, tf_time)
+    ############################################################################################################
+    ####################################### Publish to Local Transformer ###########'###########################
+    ############################################################################################################
 
+    def publish_pose(self, frame_id, child_frame_id, pose, static=None):
+        if frame_id is not child_frame_id:
+            pose = helper.ensure_pose(pose)
+            tf_stamped = helper.pose2tfstamped(frame_id, child_frame_id, pose)
+            if tf_stamped:
+                if static:
+                    self.local_transformer._buffer.set_transform_static(tf_stamped, "default_authority")
+                else:
+                    self.local_transformer.setTransform(tf_stamped)
+                return True
 
-def init_local_tf_with_tfs_from_urdf():
-    static_tfstampeds, tfstampeds = get_init_transforms_from_urdf()
-    for static_tfstamped in static_tfstampeds:
-        local_transformer._buffer.set_transform_static(static_tfstamped, "default_authority")
-    for tfstamped in tfstampeds:
-        local_transformer.setTransform(tfstamped)
+    def publish_object_pose(self, name, pose):
+        """
+        Publishes the given pose of the object of given name in reference to the map frame to tf.
 
-
-init_local_tf_with_tfs_from_urdf()
-
-
-############################################################################################################
-####################################### Publish to Local Transformer ###########'###########################
-############################################################################################################
-
-def publish_pose(frame_id, child_frame_id, pose):
-    if frame_id is not child_frame_id:
-        pose = helper.ensure_pose(pose)
-        tf_stamped = helper.pose2tfstamped(frame_id, child_frame_id, pose)
-        if tf_stamped:
-            local_transformer.setTransform(tf_stamped)
-            return True
-
-
-def publish_object_pose(name, pose):
-    """
-    Publishes the given pose of the object of given name in reference to the map frame to tf.
-
-    :type name: str
-    :type pose: list or Pose
-    """
-    if name in robot_description.i.name:
-        return None
-    if publish_objects_poses and name not in robot_description.i.name:
-        pose = helper.ensure_pose(pose)
-        if pose:
-            tf_name = projection_namespace + '/' + name if projection_namespace else name
-            return publish_pose(map_frame, tf_name, pose)
-        else:
-            logerr("(publisher) Could not publish given pose of %s since"
-                   " it could not be converted to a Pose object.", name)
+        :type name: str
+        :type pose: list or Pose
+        """
+        if name in robot_description.i.name:
             return None
+        if name not in robot_description.i.name:
+            pose = helper.ensure_pose(pose)
+            if pose:
+                tf_name = self.projection_namespace + '/' + name if self.projection_namespace else name
+                return self.publish_pose(self.map_frame, tf_name, pose)
+            else:
+                logerr("(publisher) Could not publish given pose of %s since"
+                       " it could not be converted to a Pose object.", name)
+                return None
 
-
-def publish_robot_pose(pose):
-    "Publishes the base_frame of the robot in reference to the odom frame to tf."
-    if publish_robot_base_pose:
+    def publish_robot_pose(self, pose):
+        "Publishes the base_frame of the robot in reference to the odom frame to tf."
         robot_pose = helper.ensure_pose(pose)
         if robot_pose:
-            tf_odom_frame = projection_namespace + '/' + odom_frame \
-                if projection_namespace \
-                else odom_frame
-            tf_base_frame = projection_namespace + '/' + robot_description.i.base_frame \
-                if projection_namespace \
+            tf_base_frame = self.projection_namespace + '/' + robot_description.i.base_frame \
+                if self.projection_namespace \
                 else robot_description.i.base_frame
-            return publish_pose(tf_odom_frame, tf_base_frame, robot_pose)
+            return self.publish_pose(self.map_frame, tf_base_frame, robot_pose)
         else:
             logerr("(publisher) Could not publish given pose of robot since"
                    " it could not be converted to a Pose object.")
             return None
 
-
-def publish_robots_link_pose(link, pose):
-    "Publishes the frame link of the robot in reference to the base_frame of the robot to tf."
-    if publish_robot_base_pose:
+    def publish_robots_link_pose(self, link, pose):
+        "Publishes the frame link of the robot in reference to the base_frame of the robot to tf."
         robot_pose = helper.ensure_pose(pose)
         if robot_pose:
-            tf_base_frame = projection_namespace + '/' + robot_description.i.base_frame \
-                if projection_namespace \
+            tf_base_frame = self.projection_namespace + '/' + robot_description.i.base_frame \
+                if self.projection_namespace \
                 else robot_description.i.base_frame
-            tf_link_frame = projection_namespace + '/' + link \
-                if projection_namespace \
+            tf_link_frame = self.projection_namespace + '/' + link \
+                if self.projection_namespace \
                 else link
             if not tf_base_frame in tf_link_frame:
-                return publish_pose(tf_base_frame, tf_link_frame, robot_pose)
+                return self.publish_pose(tf_base_frame, tf_link_frame, robot_pose)
         else:
             logerr("(publisher) Could not publish given pose of robot since"
                    " it could not be converted to a Pose object.")
             return None
 
+# Initializing Local Transformer using ROS data types
+local_transformer = LocalTransformer("map", "odom", "projection", "iai_kitchen")
 
 ############################################################################################################
 ################################### Frequently Publish To Local Transformer ################################
@@ -222,101 +233,125 @@ if publish_frequently:
 
     if 'bullet_world' in sys.modules:
         logwarn("(publisher) Make sure that you are not loading this module from pycram.bullet_world.")
-
     from pycram.bullet_world import BulletWorld
 
 
-    def local_object_pose_publisher(publish_rate=60):
+    class LocalTransformerFreqPublisher:
+
         """
-        Publishes the given pose of the object of given name in reference to the map frame to tf.
-
-        :type name: str
-        :type pose: list or Pose
+        This class publishes frequently poses of objects and the robot base poses as well its joint states into
+        the local transformer.
         """
-        if publish_objects_poses:
-            rate = Rate(publish_rate)
-            t = currentThread()
-            while not is_shutdown() and getattr(t, "do_run", True):
-                for obj in list(BulletWorld.current_bullet_world.objects):
-                    if obj.name in robot_description.i.name:
-                        published = publish_robot_pose(obj.get_position_and_orientation())
-                    else:
-                        published = publish_object_pose(obj.name, obj.get_position_and_orientation())
-                    if not published:
-                        logerr("(publisher) Could not publish given pose of %s.", obj.name)
-                rate.sleep()
-            return True
 
+        def __init__(self, publish_robot_base_pose=None, publish_objects_poses=None, publish_robot_state=None,
+                     publisher_funs=None, publisher_fun_names=None):
+            """This function allows to specify which object poses or states of objects should be published by using
+            the parameters. If None, everything below is published with information from the bullet world:
 
-    def local_odom_T_base_frame_publisher(publish_rate=60):
-        "Publishes the base_frame of the robot in reference to the odom frame to tf."
-        if publish_robot_base_pose:
-            rate = Rate(publish_rate)  # 20hz
-            t = currentThread()
-            while not is_shutdown() and getattr(t, "do_run", True):
-                robot_pose = helper.ensure_pose(BulletWorld.robot.get_position_and_orientation())
-                if robot_pose:
-                    published = publish_robot_pose(robot_pose)
-                    if not published:
-                        logerr("(publisher) Could not publish given pose of robot.")
+            - robots base pose (map -> base_frame)
+            - poses of objects (map -> pos of the objects center of mass)
+            - robots joint states (joint_i_source -> joint_i_target)
+            - static odom publisher (map -> odom is the identity pose)
+
+            The functions in publisher_funs are then each ran in a separate thread with the given name in
+            publisher_fun_names. For implementing other frequent publisher functions, please take a look at
+            the other functions below.
+            """
+
+            # Booleans for publishing frequently poses of robot base, object pose, robot states, static odom
+            self.publish_robot_base_pose = publish_robot_base_pose if publish_robot_base_pose else False
+            self.publish_objects_poses = publish_objects_poses if publish_objects_poses else False
+            self.publish_robot_state = publish_robot_state if publish_robot_state else True
+            self.publish_static_odom = True
+            # Functions and threads for publishing above poses
+            if publisher_fun_names is None:
+                self.publisher_fun_names = ["local_odom_T_base_frame_bullet_publisher_thread", "local_object_pose_publisher",
+                                            "local_robot_state_publisher", "local_static_odom_publisher"]
+            if publisher_funs is None:
+                self.publisher_funs = [self.local_robot_pose_publisher, self.local_object_pose_publisher,
+                                       self.local_robot_state_publisher, self.local_static_odom_publisher]
+            self.threads = []
+            self.start_publishing()
+            # Call stop_publishing if python environment is closed
+            atexit.register(self.stop_publishing)
+
+        def local_object_pose_publisher(self, publish_rate=20):
+            """
+            Publishes the given pose of the object of given name in reference to the map frame to tf.
+
+            :type name: str
+            :type pose: list or Pose
+            """
+            if self.publish_objects_poses:
+                rate = Rate(publish_rate)
+                t = currentThread()
+                while not is_shutdown() and getattr(t, "do_run", True):
+                    if BulletWorld.current_bullet_world:
+                        for obj in list(BulletWorld.current_bullet_world.objects):
+                            if obj.name in robot_description.i.name:
+                                published = local_transformer.publish_robot_pose(obj.get_position_and_orientation())
+                            else:
+                                published = local_transformer.publish_object_pose(obj.name,
+                                                                                  obj.get_position_and_orientation())
+                            if not published:
+                                logerr("(publisher) Could not publish given pose of %s.", obj.name)
                     rate.sleep()
-            return True
+                return True
+
+        def local_robot_pose_publisher(self, publish_rate=20):
+            "Publishes the base_frame of the robot in reference to the odom frame to tf."
+            if self.publish_robot_base_pose:
+                rate = Rate(publish_rate)  # 20hz
+                t = currentThread()
+                while not is_shutdown() and getattr(t, "do_run", True):
+                    if BulletWorld.robot:
+                        robot_pose = helper.ensure_pose(
+                            BulletWorld.robot.get_link_position_and_orientation_tf(robot_description.i.base_frame))
+                        if robot_pose:
+                            published = local_transformer.publish_robot_pose(robot_pose)
+                            if not published:
+                                logerr("(publisher) Could not publish given pose of robot.")
+                    rate.sleep()
+                return True
+
+        def local_robot_state_publisher(self, publish_rate=20):
+            if self.publish_robot_state:
+                rate = Rate(publish_rate)  # 20hz
+                t = currentThread()
+                while not is_shutdown() and getattr(t, "do_run", True):
+                    local_transformer.update_local_transformer_from_btr()
+                    rate.sleep()
+                return True
+
+        def local_static_odom_publisher(self, publish_rate=20):
+            if self.publish_static_odom:
+                rate = Rate(publish_rate)  # 20hz
+                t = currentThread()
+                while not is_shutdown() and getattr(t, "do_run", True):
+                    published = local_transformer.publish_pose(local_transformer.map_frame,
+                                                               local_transformer.projection_namespace +
+                                                               '/' +
+                                                               local_transformer.odom_frame,
+                                                               [[0, 0, 0], [0, 0, 0, 1]],
+                                                               static=True)
+                    if not published:
+                        logerr("(publisher) Could not publish static map to odom tf.")
+                    rate.sleep()
+                return True
+
+        def start_publishing(self):
+            ret = []
+            for target, name in zip(self.publisher_funs, self.publisher_fun_names):
+                t = Thread(target=target, name=type(self).__name__ + ":" + name)
+                t.do_run = True
+                t.start()
+                ret.append(t)
+            self.threads = ret
+
+        def stop_publishing(self):
+            for t in self.threads:
+                t.do_run = False
+                t.join()
 
 
-    def local_robot_state_publisher(publish_rate=60):
-        if publish_robot_state:
-            rate = Rate(publish_rate)  # 20hz
-            t = currentThread()
-            while not is_shutdown() and getattr(t, "do_run", True):
-                robot = BulletWorld.robot
-                robot_links = robot.links
-                world_T_robot_pose = robot.get_position_and_orientation()
-                robot_T_world_pose = p.invertTransform(world_T_robot_pose[0], world_T_robot_pose[1])
-                for robot_link in robot_links:
-                    if robot_description.i.base_frame in robot_link:
-                        continue
-                    world_T_link_pose = robot.get_link_position_and_orientation(robot_link)
-                    robot_T_link_pose = p.multiplyTransforms(robot_T_world_pose[0], robot_T_world_pose[1],
-                                                             world_T_link_pose[0], world_T_link_pose[1],
-                                                             robot.world.client_id)
-                    if robot_T_link_pose:
-                        published = publish_robots_link_pose(robot_link, robot_T_link_pose)
-                        if not published:
-                            logerr("(publisher) Could not publish given link of robot.")
-                        rate.sleep()
-            return True
-
-
-    def local_static_odom_publisher(publish_rate=60):
-        if publish_static_odom:
-            rate = Rate(publish_rate)  # 20hz
-            t = currentThread()
-            while not is_shutdown() and getattr(t, "do_run", True):
-                published = publish_pose(map_frame, projection_namespace + '/' + odom_frame, [[0, 0, 0], [0, 0, 0, 1]])
-                if not published:
-                    logerr("(publisher) Could not publish static map to odom tf.")
-                rate.sleep()
-            return True
-
-
-    def start_publishing(targets=None, names=None):
-        if names is None:
-            names = ["local_odom_T_base_frame_bullet_publisher_thread", "local_object_pose_publisher",
-                     "local_robot_state_publisher", "local_static_odom_publisher"]
-        if targets is None:
-            targets = [local_odom_T_base_frame_publisher, local_object_pose_publisher,
-                       local_robot_state_publisher, local_static_odom_publisher]
-        ret = []
-        for target, name in zip(targets, names):
-            t = Thread(target=target, name=name)
-            t.do_run = True
-            t.start()
-            ret.append(t)
-        sleep(1)
-        return ret
-
-
-    def stop_publishing(threads):
-        for t in threads:
-            t.do_run = False
-            t.join()
+    freq_local_transformer = LocalTransformerFreqPublisher()
