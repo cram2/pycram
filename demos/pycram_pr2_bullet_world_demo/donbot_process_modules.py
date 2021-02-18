@@ -2,9 +2,7 @@ from pycram.robot_description import InitializedRobotDescription as robot_descri
 from pycram.process_module import ProcessModule
 from pycram.process_modules import ProcessModules, _apply_ik
 from pycram.bullet_world import BulletWorld
-from pycram.publisher import map_frame
-import pycram.local_transformer as local_transformer
-from pycram.local_transformer import update_local_transformer_from_btr
+from pycram.local_transformer import local_transformer
 import pycram.helper as helper
 import pycram.bullet_world_reasoning as btr
 import pybullet as p
@@ -39,8 +37,8 @@ class DonbotNavigation(ProcessModule):
                 robot.set_joint_state(joint_name, 0.0)
             # Set actual goal pose
             robot.set_position_and_orientation(solution['target'], solution['orientation'])
-            time.sleep(0.1)
-            update_local_transformer_from_btr()
+            time.sleep(0.5)
+            local_transformer.update_from_btr()
 
 class DonbotPickUp(ProcessModule):
     """
@@ -139,7 +137,7 @@ class DonbotMoveHead(ProcessModule):
                 pose_in_neck_base = local_transformer.tf_transform(neck_base_frame, target)
             elif helper.is_list_pose(solutions['target']) or helper.is_list_position(solutions['target']):
                 pose = helper.ensure_pose(solutions['target'])
-                pose_in_neck_base = local_transformer.tf_pose_transform(map_frame, neck_base_frame, pose)
+                pose_in_neck_base = local_transformer.tf_pose_transform(local_transformer.map_frame, neck_base_frame, pose)
 
             vector = pose_in_neck_base[0]
             # +x as forward
@@ -153,16 +151,8 @@ class DonbotMoveHead(ProcessModule):
                 conf = "left"
             else:
                 conf = "right"
-            print(conf)
             for joint, state in robot_description.i.get_static_joint_chain("neck", conf).items():
                 robot.set_joint_state(joint, state)
-
-            #if target is 'left' or target is 'right':
-            #    robot = BulletWorld.robot
-            #    for joint, state in robot_description.i.get_static_joint_chain("neck", target).items():
-            #        robot.set_joint_state(joint, state)
-            #else:
-            #    logerr("There is no target position defined with the target %s.", target)
 
 
 class DonbotMoveGripper(ProcessModule):
