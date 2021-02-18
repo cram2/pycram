@@ -149,7 +149,6 @@ class BoxyMoveHead(ProcessModule):
             y = -vector[0]
             z = vector[2]
             conf = None
-            print((x,y,z))
             if x > 0:
                 if z < 0.5:
                     if y > 0.4:
