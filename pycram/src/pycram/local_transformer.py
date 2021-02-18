@@ -2,6 +2,10 @@ from pycram.robot_description import InitializedRobotDescription as robot_descri
 import pycram.helper as helper
 
 import sys
+if 'bullet_world' in sys.modules:
+    logwarn("(publisher) Make sure that you are not loading this module from pycram.bullet_world.")
+from pycram.bullet_world import BulletWorld
+
 import rospkg
 import atexit
 from threading import Thread, currentThread
@@ -12,8 +16,14 @@ from urdf_parser_py.urdf import URDF
 from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped
 
-# Global Variables
-# Booleans for publishing frequently poses/states
+
+# Boolean for publishing frequently poses/states
+# Although frequently updating the local tf is tested and seems to work, there currently
+# exist problems if the simulation is resetting (like currently for detection). During
+# this "unstable" simulation process pose-querying from pybullet, seems to return non valid poses,
+# which would destroy the validate local tf tree. Therefore, this mode is NOT activated.
+# Instead to update the local tf tree, please call the memeber function update_local_transformer_from_btr()
+# on the object local_transformer of class LocalTransformer.
 publish_frequently = True
 
 class LocalTransformer:
@@ -95,10 +105,6 @@ class LocalTransformer:
                 else:
                     self.tf_stampeds.append(tf_stamped)
 
-        # This TFStamped must always be the identity Pose for map_frame to odom_frame
-        self.static_tf_stampeds.append(
-            helper.list2tfstamped(self.map_frame, self.projection_namespace + '/' + self.odom_frame, [[0, 0, 0], [0, 0, 0, 1]]))
-
     def init_local_tf_with_tfs_from_urdf(self):
         "This function initializes the local transformer with TFs from the robots URDF."
         self.init_transforms_from_urdf()
@@ -107,8 +113,7 @@ class LocalTransformer:
         for tfstamped in self.tf_stampeds:
             self.local_transformer.setTransform(tfstamped)
 
-    def update_local_transformer_from_btr(self):
-        "This function updates the local transformer by using the frames states of the pybullet world."
+    def update_robot_state(self):
         robot = BulletWorld.robot
         if robot:
             # First publish (static) joint states to tf
@@ -125,21 +130,40 @@ class LocalTransformer:
             for static_tf_stamped in self.static_tf_stampeds:
                 self.local_transformer._buffer.set_transform_static(static_tf_stamped, "default_authority")
 
+    def update_robot_pose(self):
+        robot = BulletWorld.robot
+        if robot:
             # Then publish pose of robot
             robot_pose = helper.ensure_pose(
                 BulletWorld.robot.get_link_position_and_orientation_tf(robot_description.i.base_frame))
             self.publish_robot_pose(robot_pose)
 
-        # And publish poses of the other objects
+    def update_robot(self):
+        self.update_robot_state()
+        self.update_robot_pose()
+
+    def update_objects(self):
         if BulletWorld.current_bullet_world:
             for obj in list(BulletWorld.current_bullet_world.objects):
-                if obj.name in robot_description.i.name:
+                if obj.name in robot_description.i.name or obj.name == "floor" or obj.name == "kitchen":
                     continue
                 else:
                     published = local_transformer.publish_object_pose(obj.name,
                                                                       obj.get_position_and_orientation())
                 if not published:
                     logerr("(publisher) Could not publish given pose of %s.", obj.name)
+
+    def update_static_odom(self):
+        self.publish_pose(self.map_frame, self.projection_namespace + '/' + self.odom_frame,
+                          [[0, 0, 0], [0, 0, 0, 1]], static=True)
+
+    def update_from_btr(self):
+        # Update static odom
+        self.update_static_odom()
+        # Update pose and state of robot
+        self.update_robot()
+        # Update pose of objects which are possibly attached on the robot
+        self.update_objects()
 
     ############################################################################################################
     ######################################### Query Local Transformer ##########################################
@@ -193,7 +217,7 @@ class LocalTransformer:
                 return None
 
     def publish_robot_pose(self, pose):
-        "Publishes the base_frame of the robot in reference to the odom frame to tf."
+        "Publishes the base_frame of the robot in reference to the map frame to tf."
         robot_pose = helper.ensure_pose(pose)
         if robot_pose:
             tf_base_frame = self.projection_namespace + '/' + robot_description.i.base_frame \
@@ -231,16 +255,15 @@ local_transformer = LocalTransformer("map", "odom", "projection", "iai_kitchen")
 
 if publish_frequently:
 
-    if 'bullet_world' in sys.modules:
-        logwarn("(publisher) Make sure that you are not loading this module from pycram.bullet_world.")
-    from pycram.bullet_world import BulletWorld
-
 
     class LocalTransformerFreqPublisher:
 
         """
         This class publishes frequently poses of objects and the robot base poses as well its joint states into
         the local transformer.
+        !!!!!IMPORTANT!!!!!
+        Currently, it is not advised to publish poses frequently from the simulation, since
+        pybullet returns invalid poses during detection.
         """
 
         def __init__(self, publish_robot_base_pose=None, publish_objects_poses=None, publish_robot_state=None,
@@ -260,8 +283,8 @@ if publish_frequently:
 
             # Booleans for publishing frequently poses of robot base, object pose, robot states, static odom
             self.publish_robot_base_pose = publish_robot_base_pose if publish_robot_base_pose else False
-            self.publish_objects_poses = publish_objects_poses if publish_objects_poses else False
-            self.publish_robot_state = publish_robot_state if publish_robot_state else True
+            self.publish_objects_poses = publish_objects_poses if publish_objects_poses else True
+            self.publish_robot_state = publish_robot_state if publish_robot_state else False
             self.publish_static_odom = True
             # Functions and threads for publishing above poses
             if publisher_fun_names is None:
@@ -286,15 +309,7 @@ if publish_frequently:
                 rate = Rate(publish_rate)
                 t = currentThread()
                 while not is_shutdown() and getattr(t, "do_run", True):
-                    if BulletWorld.current_bullet_world:
-                        for obj in list(BulletWorld.current_bullet_world.objects):
-                            if obj.name in robot_description.i.name:
-                                published = local_transformer.publish_robot_pose(obj.get_position_and_orientation())
-                            else:
-                                published = local_transformer.publish_object_pose(obj.name,
-                                                                                  obj.get_position_and_orientation())
-                            if not published:
-                                logerr("(publisher) Could not publish given pose of %s.", obj.name)
+                    local_transformer.update_objects()
                     rate.sleep()
                 return True
 
@@ -304,13 +319,7 @@ if publish_frequently:
                 rate = Rate(publish_rate)  # 20hz
                 t = currentThread()
                 while not is_shutdown() and getattr(t, "do_run", True):
-                    if BulletWorld.robot:
-                        robot_pose = helper.ensure_pose(
-                            BulletWorld.robot.get_link_position_and_orientation_tf(robot_description.i.base_frame))
-                        if robot_pose:
-                            published = local_transformer.publish_robot_pose(robot_pose)
-                            if not published:
-                                logerr("(publisher) Could not publish given pose of robot.")
+                    local_transformer.update_robot_pose()
                     rate.sleep()
                 return True
 
@@ -319,7 +328,7 @@ if publish_frequently:
                 rate = Rate(publish_rate)  # 20hz
                 t = currentThread()
                 while not is_shutdown() and getattr(t, "do_run", True):
-                    local_transformer.update_local_transformer_from_btr()
+                    local_transformer.update_robot_state()
                     rate.sleep()
                 return True
 
