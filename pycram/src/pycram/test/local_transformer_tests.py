@@ -1,6 +1,5 @@
 import unittest
 import rospy
-from tf import TransformerROS
 from time import sleep
 
 rospy.init_node('pycram')
@@ -53,7 +52,7 @@ def setup():
     ltf = LocalTransformer(map_frame, odom_frame, projection_namespace, kitchen_namespace)
     freq_ltf = LocalTransformerFreqPublisher()
     sleep(1)
-    ltf.update_local_transformer_from_btr()
+    ltf.update_from_btr()
 
 
 
@@ -78,7 +77,7 @@ class LocalTransformerTests(unittest.TestCase):
         sleep(0.5)
 
         # Update the local transformer
-        ltf.update_local_transformer_from_btr()
+        ltf.update_from_btr()
 
         # Get the updated pose of the robot
         p, q = ltf.tf_transform("/map", "projection/base_footprint")
@@ -117,7 +116,7 @@ class LocalTransformerTests(unittest.TestCase):
         p_before, _ = ltf.tf_transform("projection/base_link", "projection/triangle_base_link")
         robot.set_joint_state("triangle_base_joint", -0.2)
         sleep(0.5)
-        ltf.update_local_transformer_from_btr()
+        ltf.update_from_btr()
         p_after, _ = ltf.tf_transform("projection/base_link", "projection/triangle_base_link")
         p_before_r = list(map(lambda n: round(n, 2), p_before))
         p_after_r = list(map(lambda n: round(n, 2), p_after))
@@ -163,7 +162,7 @@ class LocalTransformerTests(unittest.TestCase):
         sleep(1)
 
         # Update TF
-        ltf.update_local_transformer_from_btr()
+        ltf.update_from_btr()
         # Get updated pose of tool frame in base_link and global frame
         p_after, _ = ltf.tf_transform("projection/" + base_link, "projection/" + link)
         p_after_global, _ = ltf.tf_transform("/map", "projection/" + link)
