@@ -2,11 +2,7 @@ from pycram.robot_description import InitializedRobotDescription as robot_descri
 from pycram.process_module import ProcessModule
 from pycram.process_modules import ProcessModules, _apply_ik
 from pycram.bullet_world import BulletWorld
-#from pycram.publisher import map_frame
-#import pycram.publisher as publisher
-#import pycram.listener as listener
-import pycram.local_transformer as local_tf
-from pycram.local_transformer import update_local_transformer_from_btr
+from pycram.local_transformer import local_transformer as local_tf
 import pycram.helper as helper
 import pycram.bullet_world_reasoning as btr
 
@@ -44,8 +40,8 @@ class BoxyNavigation(ProcessModule):
                 robot.set_joint_state(joint_name, 0.0)
             # Set actual goal pose
             robot.set_position_and_orientation(solution['target'], solution['orientation'])
-            time.sleep(0.1)
-            update_local_transformer_from_btr()
+            time.sleep(0.5)
+            local_tf.update_from_btr()
 
 
 
@@ -153,18 +149,19 @@ class BoxyMoveHead(ProcessModule):
             y = -vector[0]
             z = vector[2]
             conf = None
+            print((x,y,z))
             if x > 0:
                 if z < 0.5:
-                    if y > 0.5:
+                    if y > 0.4:
                         conf = "down_left"
-                    elif y < -0.5:
+                    elif y < -0.4:
                         conf = "down_right"
                     else:
                         conf = "down"
                 else:
-                    if y > 0.5:
+                    if y > 0.4:
                         conf = "left"
-                    elif y < -0.5:
+                    elif y < -0.4:
                         conf = "right"
                     else:
                         conf = "forward"
