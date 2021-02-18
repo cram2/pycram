@@ -134,9 +134,11 @@ class LocalTransformer:
         robot = BulletWorld.robot
         if robot:
             # Then publish pose of robot
-            robot_pose = helper.ensure_pose(
-                BulletWorld.robot.get_link_position_and_orientation_tf(robot_description.i.base_frame))
-            self.publish_robot_pose(robot_pose)
+            try:
+                robot_pose = BulletWorld.robot.get_link_position_and_orientation_tf(robot_description.i.base_frame)
+            except KeyError:
+                robot_pose = BulletWorld.robot.get_position_and_orientation()
+            self.publish_robot_pose(helper.ensure_pose(robot_pose))
 
     def update_robot(self):
         self.update_robot_state()
