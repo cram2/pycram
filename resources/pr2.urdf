@@ -218,11 +218,6 @@
       </geometry>
     </collision>
   </link>
-  <transmission name="fl_caster_rotation_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="fl_caster_rotation_motor"/>
-    <joint name="fl_caster_rotation_joint"/>
-    <mechanicalReduction>-79.2380952381</mechanicalReduction>
-  </transmission>
   <joint name="fl_caster_l_wheel_joint" type="continuous">
     <axis xyz="0 1 0"/>
     <limit effort="7" velocity="15"/>
@@ -262,11 +257,6 @@
     <maxVel value="100.0"/>
     <minDepth value="0.0"/>
   </gazebo>
-  <transmission name="fl_caster_l_wheel_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="fl_caster_l_wheel_motor"/>
-    <joint name="fl_caster_l_wheel_joint"/>
-    <mechanicalReduction>79.2380952381</mechanicalReduction>
-  </transmission>
   <joint name="fl_caster_r_wheel_joint" type="continuous">
     <axis xyz="0 1 0"/>
     <limit effort="7" velocity="15"/>
@@ -306,11 +296,6 @@
     <maxVel value="100.0"/>
     <minDepth value="0.0"/>
   </gazebo>
-  <transmission name="fl_caster_r_wheel_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="fl_caster_r_wheel_motor"/>
-    <joint name="fl_caster_r_wheel_joint"/>
-    <mechanicalReduction>-79.2380952381</mechanicalReduction>
-  </transmission>
   <gazebo reference="fl_caster_rotation_link">
     <material value="PR2/caster_texture"/>
   </gazebo>
@@ -345,11 +330,6 @@
       </geometry>
     </collision>
   </link>
-  <transmission name="fr_caster_rotation_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="fr_caster_rotation_motor"/>
-    <joint name="fr_caster_rotation_joint"/>
-    <mechanicalReduction>-79.2380952381</mechanicalReduction>
-  </transmission>
   <joint name="fr_caster_l_wheel_joint" type="continuous">
     <axis xyz="0 1 0"/>
     <limit effort="7" velocity="15"/>
@@ -389,11 +369,6 @@
     <maxVel value="100.0"/>
     <minDepth value="0.0"/>
   </gazebo>
-  <transmission name="fr_caster_l_wheel_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="fr_caster_l_wheel_motor"/>
-    <joint name="fr_caster_l_wheel_joint"/>
-    <mechanicalReduction>79.2380952381</mechanicalReduction>
-  </transmission>
   <joint name="fr_caster_r_wheel_joint" type="continuous">
     <axis xyz="0 1 0"/>
     <limit effort="7" velocity="15"/>
@@ -433,11 +408,6 @@
     <maxVel value="100.0"/>
     <minDepth value="0.0"/>
   </gazebo>
-  <transmission name="fr_caster_r_wheel_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="fr_caster_r_wheel_motor"/>
-    <joint name="fr_caster_r_wheel_joint"/>
-    <mechanicalReduction>-79.2380952381</mechanicalReduction>
-  </transmission>
   <gazebo reference="fr_caster_rotation_link">
     <material value="PR2/caster_texture"/>
   </gazebo>
@@ -472,11 +442,6 @@
       </geometry>
     </collision>
   </link>
-  <transmission name="bl_caster_rotation_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="bl_caster_rotation_motor"/>
-    <joint name="bl_caster_rotation_joint"/>
-    <mechanicalReduction>-79.2380952381</mechanicalReduction>
-  </transmission>
   <joint name="bl_caster_l_wheel_joint" type="continuous">
     <axis xyz="0 1 0"/>
     <limit effort="7" velocity="15"/>
@@ -516,11 +481,6 @@
     <maxVel value="100.0"/>
     <minDepth value="0.0"/>
   </gazebo>
-  <transmission name="bl_caster_l_wheel_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="bl_caster_l_wheel_motor"/>
-    <joint name="bl_caster_l_wheel_joint"/>
-    <mechanicalReduction>79.2380952381</mechanicalReduction>
-  </transmission>
   <joint name="bl_caster_r_wheel_joint" type="continuous">
     <axis xyz="0 1 0"/>
     <limit effort="7" velocity="15"/>
@@ -560,11 +520,6 @@
     <maxVel value="100.0"/>
     <minDepth value="0.0"/>
   </gazebo>
-  <transmission name="bl_caster_r_wheel_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="bl_caster_r_wheel_motor"/>
-    <joint name="bl_caster_r_wheel_joint"/>
-    <mechanicalReduction>-79.2380952381</mechanicalReduction>
-  </transmission>
   <gazebo reference="bl_caster_rotation_link">
     <material value="PR2/caster_texture"/>
   </gazebo>
@@ -599,11 +554,6 @@
       </geometry>
     </collision>
   </link>
-  <transmission name="br_caster_rotation_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="br_caster_rotation_motor"/>
-    <joint name="br_caster_rotation_joint"/>
-    <mechanicalReduction>-79.2380952381</mechanicalReduction>
-  </transmission>
   <joint name="br_caster_l_wheel_joint" type="continuous">
     <axis xyz="0 1 0"/>
     <limit effort="7" velocity="15"/>
@@ -643,11 +593,6 @@
     <maxVel value="100.0"/>
     <minDepth value="0.0"/>
   </gazebo>
-  <transmission name="br_caster_l_wheel_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="br_caster_l_wheel_motor"/>
-    <joint name="br_caster_l_wheel_joint"/>
-    <mechanicalReduction>79.2380952381</mechanicalReduction>
-  </transmission>
   <joint name="br_caster_r_wheel_joint" type="continuous">
     <axis xyz="0 1 0"/>
     <limit effort="7" velocity="15"/>
@@ -687,11 +632,6 @@
     <maxVel value="100.0"/>
     <minDepth value="0.0"/>
   </gazebo>
-  <transmission name="br_caster_r_wheel_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="br_caster_r_wheel_motor"/>
-    <joint name="br_caster_r_wheel_joint"/>
-    <mechanicalReduction>-79.2380952381</mechanicalReduction>
-  </transmission>
   <gazebo reference="br_caster_rotation_link">
     <material value="PR2/caster_texture"/>
   </gazebo>
@@ -838,12 +778,6 @@
       <thread_pitch>3141.6</thread_pitch>
     </joint>
   </gazebo>
-  <transmission name="torso_lift_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="torso_lift_motor"/>
-    <joint name="torso_lift_joint"/>
-    <mechanicalReduction>-47641.53</mechanicalReduction>
-    <simulated_actuated_joint name="torso_lift_motor_screw_joint" simulated_reduction="3141.6"/>
-  </transmission>
   <joint name="imu_joint" type="fixed">
     <axis xyz="0 1 0"/>
     <origin rpy="0 3.14159265359 0" xyz="-0.02977 -0.1497 0.164"/>
@@ -900,11 +834,6 @@
       </geometry>
     </collision>
   </link>
-  <transmission name="head_pan_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="head_pan_motor"/>
-    <joint name="head_pan_joint"/>
-    <mechanicalReduction>6.0</mechanicalReduction>
-  </transmission>
   <joint name="head_tilt_joint" type="revolute">
     <axis xyz="0 1 0"/>
     <limit effort="18" lower="-0.471238" upper="1.39626" velocity="5"/>
@@ -937,11 +866,6 @@
       </geometry>
     </collision>
   </link>
-  <transmission name="head_tilt_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="head_tilt_motor"/>
-    <joint name="head_tilt_joint"/>
-    <mechanicalReduction>6.0</mechanicalReduction>
-  </transmission>
   <!-- Head plate frame -->
   <joint name="head_plate_frame_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0.0232 0 0.0645"/>
@@ -1496,11 +1420,6 @@
   </gazebo>
   <gazebo reference="laser_tilt_mount_link">
     </gazebo>
-  <transmission name="laser_tilt_mount_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="laser_tilt_mount_motor"/>
-    <joint name="laser_tilt_mount_joint"/>
-    <mechanicalReduction>-6.05</mechanicalReduction>
-  </transmission>
   <!-- Shoulder pan -->
   <joint name="r_shoulder_pan_joint" type="revolute">
     <axis xyz="0 0 1"/>
@@ -1611,11 +1530,6 @@
     <fudgeFactor value="0.5"/>
   </gazebo>
   <!-- Upperarm roll: internal fixed attchment point for upper arm -->
-  <transmission name="r_upper_arm_roll_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="r_upper_arm_roll_motor"/>
-    <joint name="r_upper_arm_roll_joint"/>
-    <mechanicalReduction>32.6525111499</mechanicalReduction>
-  </transmission>
   <!-- Shoulder pan -->
   <gazebo reference="r_shoulder_pan_link">
     <turnGravityOff>true</turnGravityOff>
@@ -1633,19 +1547,6 @@
     <stopKp value="1000000.0"/>
   </gazebo>
   <!-- Shoulder pan -->
-  <transmission name="r_shoulder_pan_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <joint name="r_shoulder_pan_joint"/>
-    <actuator name="r_shoulder_pan_motor"/>
-    <mechanicalReduction>63.1552452977</mechanicalReduction>
-    <compensator k_belt="4000.0" kd_motor="15.0" lambda_combined="0.0" lambda_joint="40.0" lambda_motor="40.0" mass_motor="0.05"/>
-  </transmission>
-  <!-- Shoulder lift -->
-  <transmission name="r_shoulder_lift_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <joint name="r_shoulder_lift_joint"/>
-    <actuator name="r_shoulder_lift_motor"/>
-    <mechanicalReduction>61.8948225713</mechanicalReduction>
-    <compensator k_belt="4000.0" kd_motor="10.0" lambda_combined="0.0" lambda_joint="60.0" lambda_motor="60.0" mass_motor="0.05"/>
-  </transmission>
   <joint name="r_upper_arm_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <parent link="r_upper_arm_roll_link"/>
@@ -1719,11 +1620,6 @@
   <gazebo reference="r_forearm_roll_joint">
     <fudgeFactor value="0.5"/>
   </gazebo>
-  <transmission name="r_forearm_roll_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="r_forearm_roll_motor"/>
-    <joint name="r_forearm_roll_joint"/>
-    <mechanicalReduction>-90.5142857143</mechanicalReduction>
-  </transmission>
   <!-- Elbow flex -->
   <joint name="r_elbow_flex_joint" type="revolute">
     <axis xyz="0 1 0"/>
@@ -1770,11 +1666,6 @@
     <stopKp value="1000000.0"/>
   </gazebo>
   <!-- Elbow flex -->
-  <transmission name="r_elbow_flex_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="r_elbow_flex_motor"/>
-    <joint name="r_elbow_flex_joint"/>
-    <mechanicalReduction>-36.167452007</mechanicalReduction>
-  </transmission>
   <joint name="r_forearm_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <!-- transform from parent link to this joint frame -->
@@ -1886,12 +1777,6 @@
     <fudgeFactor value="0.5"/>
   </gazebo>
   <!-- Wrist flex , Wrist roll -->
-  <transmission name="r_wrist_trans" type="pr2_mechanism_model/WristTransmission">
-    <rightActuator mechanicalReduction="60.1714285714" name="r_wrist_r_motor"/>
-    <leftActuator mechanicalReduction="60.1714285714" name="r_wrist_l_motor"/>
-    <flexJoint mechanicalReduction="-1.0" name="r_wrist_flex_joint"/>
-    <rollJoint mechanicalReduction="1.0" name="r_wrist_roll_joint"/>
-  </transmission>
   <joint name="r_gripper_palm_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <parent link="r_wrist_roll_link"/>
@@ -2420,21 +2305,6 @@
   <!-- the transmission function.                                                          -->
   <!-- Please refer to mechanism_model/src/pr2_gripper_transmission.cpp for implementation.-->
   <!-- gazebo_mimic_pid is for sim only.                                                   -->
-  <transmission name="r_gripper_trans" type="pr2_mechanism_model/PR2GripperTransmission">
-    <actuator name="r_gripper_motor"/>
-    <gap_joint L0="0.0375528" a="0.0683698" b="0.0433849" gear_ratio="40.095" h="0.0" mechanical_reduction="1.0" name="r_gripper_joint" phi0="0.518518122146" r="0.0915" screw_reduction="0.004" t0="-0.0001914" theta0="0.0628824676201"/>
-    <!-- if a gazebo joint exists as [l|r]_gripper_joint, use this tag to have
-           gripper transmission apply torque directly to prismatic joint
-           this should be the default behavior in diamondback, deprecating this flag -->
-    <use_simulated_gripper_joint/>
-    <!-- set passive joint angles so things look nice in rviz -->
-    <passive_joint name="r_gripper_l_finger_joint"/>
-    <passive_joint name="r_gripper_r_finger_joint"/>
-    <passive_joint name="r_gripper_r_finger_tip_joint"/>
-    <passive_joint name="r_gripper_l_finger_tip_joint"/>
-    <!-- screw joint to capture gripper "dynamics" -->
-    <simulated_actuated_joint name="r_gripper_motor_screw_joint" passive_actuated_joint="r_gripper_motor_slider_joint" simulated_reduction="314.16"/>
-  </transmission>
   <!-- Shoulder pan -->
   <joint name="l_shoulder_pan_joint" type="revolute">
     <axis xyz="0 0 1"/>
@@ -2545,11 +2415,6 @@
     <fudgeFactor value="0.5"/>
   </gazebo>
   <!-- Upperarm roll: internal fixed attchment point for upper arm -->
-  <transmission name="l_upper_arm_roll_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="l_upper_arm_roll_motor"/>
-    <joint name="l_upper_arm_roll_joint"/>
-    <mechanicalReduction>32.6525111499</mechanicalReduction>
-  </transmission>
   <!-- Shoulder pan -->
   <gazebo reference="l_shoulder_pan_link">
     <turnGravityOff>true</turnGravityOff>
@@ -2567,19 +2432,6 @@
     <stopKp value="1000000.0"/>
   </gazebo>
   <!-- Shoulder pan -->
-  <transmission name="l_shoulder_pan_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <joint name="l_shoulder_pan_joint"/>
-    <actuator name="l_shoulder_pan_motor"/>
-    <mechanicalReduction>63.1552452977</mechanicalReduction>
-    <compensator k_belt="4000.0" kd_motor="15.0" lambda_combined="0.0" lambda_joint="40.0" lambda_motor="40.0" mass_motor="0.05"/>
-  </transmission>
-  <!-- Shoulder lift -->
-  <transmission name="l_shoulder_lift_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <joint name="l_shoulder_lift_joint"/>
-    <actuator name="l_shoulder_lift_motor"/>
-    <mechanicalReduction>61.8948225713</mechanicalReduction>
-    <compensator k_belt="4000.0" kd_motor="10.0" lambda_combined="0.0" lambda_joint="60.0" lambda_motor="60.0" mass_motor="0.05"/>
-  </transmission>
   <joint name="l_upper_arm_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <parent link="l_upper_arm_roll_link"/>
@@ -2653,11 +2505,6 @@
   <gazebo reference="l_forearm_roll_joint">
     <fudgeFactor value="0.5"/>
   </gazebo>
-  <transmission name="l_forearm_roll_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="l_forearm_roll_motor"/>
-    <joint name="l_forearm_roll_joint"/>
-    <mechanicalReduction>-90.5142857143</mechanicalReduction>
-  </transmission>
   <!-- Elbow flex -->
   <joint name="l_elbow_flex_joint" type="revolute">
     <axis xyz="0 1 0"/>
@@ -2704,11 +2551,6 @@
     <stopKp value="1000000.0"/>
   </gazebo>
   <!-- Elbow flex -->
-  <transmission name="l_elbow_flex_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="l_elbow_flex_motor"/>
-    <joint name="l_elbow_flex_joint"/>
-    <mechanicalReduction>-36.167452007</mechanicalReduction>
-  </transmission>
   <joint name="l_forearm_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <!-- transform from parent link to this joint frame -->
@@ -2820,12 +2662,6 @@
     <fudgeFactor value="0.5"/>
   </gazebo>
   <!-- Wrist flex , Wrist roll -->
-  <transmission name="l_wrist_trans" type="pr2_mechanism_model/WristTransmission">
-    <rightActuator mechanicalReduction="60.1714285714" name="l_wrist_r_motor"/>
-    <leftActuator mechanicalReduction="60.1714285714" name="l_wrist_l_motor"/>
-    <flexJoint mechanicalReduction="-1.0" name="l_wrist_flex_joint"/>
-    <rollJoint mechanicalReduction="1.0" name="l_wrist_roll_joint"/>
-  </transmission>
   <joint name="l_gripper_palm_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <parent link="l_wrist_roll_link"/>
@@ -3354,21 +3190,6 @@
   <!-- the transmission function.                                                          -->
   <!-- Please refer to mechanism_model/src/pr2_gripper_transmission.cpp for implementation.-->
   <!-- gazebo_mimic_pid is for sim only.                                                   -->
-  <transmission name="l_gripper_trans" type="pr2_mechanism_model/PR2GripperTransmission">
-    <actuator name="l_gripper_motor"/>
-    <gap_joint L0="0.0375528" a="0.0683698" b="0.0433849" gear_ratio="40.095" h="0.0" mechanical_reduction="1.0" name="l_gripper_joint" phi0="0.518518122146" r="0.0915" screw_reduction="0.004" t0="-0.0001914" theta0="0.0628824676201"/>
-    <!-- if a gazebo joint exists as [l|r]_gripper_joint, use this tag to have
-           gripper transmission apply torque directly to prismatic joint
-           this should be the default behavior in diamondback, deprecating this flag -->
-    <use_simulated_gripper_joint/>
-    <!-- set passive joint angles so things look nice in rviz -->
-    <passive_joint name="l_gripper_l_finger_joint"/>
-    <passive_joint name="l_gripper_r_finger_joint"/>
-    <passive_joint name="l_gripper_r_finger_tip_joint"/>
-    <passive_joint name="l_gripper_l_finger_tip_joint"/>
-    <!-- screw joint to capture gripper "dynamics" -->
-    <simulated_actuated_joint name="l_gripper_motor_screw_joint" passive_actuated_joint="l_gripper_motor_slider_joint" simulated_reduction="314.16"/>
-  </transmission>
   <joint name="l_forearm_cam_frame_joint" type="fixed">
     <origin rpy="-1.57079632679 -0.562868683768 0" xyz=".135 0 .044"/>
     <parent link="l_forearm_roll_link"/>
