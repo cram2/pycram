@@ -13,9 +13,6 @@ import pathlib
 from .event import Event
 from .helper import transform
 
-from pycram.robot_description import InitializedRobotDescription as robot_description
-
-
 class BulletWorld:
     """
     The BulletWorld Class represents the physics Simulation.
@@ -156,14 +153,6 @@ class Object:
         self.attachments = {}
         self.cids = {}
         self.world.objects.append(self)
-        self.validate_odom(path)
-
-    def validate_odom(self, path):
-        # Check if the odom frame would be physically moved with the robot
-        if robot_description.i.odom_frame in self.links:
-            raise ValueError("(bullet_world) Please make sure that the odom link %s"
-                             " has no physical representation in the URDF file %s.",
-                             robot_description.odom_frame, path)
 
     def attach(self, object, link=None, loose=False):
         """
@@ -288,6 +277,23 @@ class Object:
 
     def get_link_id(self, name):
         return self.links[name]
+
+    def get_link_position_and_orientation_tf(self, name):
+        return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[4:6]
+
+    def get_link_relative_to_other_link(self, source_frame, target_frame):
+
+        # Get pose of source_frame in map (although pose is returned we use the transform style for clarity)
+        map_T_source_trans, map_T_source_rot = self.get_link_position_and_orientation_tf(source_frame)
+
+        # Get pose of target_frame in map (although pose is returned we use the transform style for clarity)
+        map_T_target_trans, map_T_target_rot = self.get_link_position_and_orientation_tf(target_frame)
+
+        # Calculate Pose of target frame relatively to source_frame
+        source_T_map_trans, source_T_map_rot = p.invertTransform(map_T_source_trans, map_T_source_rot)
+        source_T_target_trans, source_T_target_rot = p.multiplyTransforms(source_T_map_trans, source_T_map_rot,
+                                                                          map_T_target_trans, map_T_target_rot)
+        return source_T_target_trans, source_T_target_rot
 
     def get_link_position_and_orientation(self, name):
         return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[:2]
