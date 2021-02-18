@@ -9,10 +9,6 @@ from pycram.designator import MotionDesignator
 from pycram.process_module import ProcessModule
 from pycram.bullet_world import BulletWorld, Object
 from pycram.language import macros, par
-from pycram.local_transformer import start_publishing, stop_publishing
-from pycram import helper
-from time import time, sleep
-from threading import Thread, currentThread
 
 
 world = BulletWorld()
@@ -132,7 +128,6 @@ def move_object(object_type, target, arm, robot_name):
     # raise btr.ReasoningError
     targets[object_type][2] = True
 
-threads = start_publishing()
 
 if 'hsr' not in robot_description.i.name:
     object_types = ['milk',
@@ -173,5 +168,3 @@ else:
     ProcessModule.perform(MotionDesignator([('type', 'opening-gripper'), ('gripper', 'left')]))
     # Park Arms
     park_arms(robot_name)
-
-stop_publishing(threads)
