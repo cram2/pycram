@@ -40,7 +40,7 @@ class BulletWorld:
         self.manipulation_event = Event()
         self._gui_thread = Gui(self, type)
         self._gui_thread.start()
-        time.sleep(0.1)
+        time.sleep(1) # 0.1
         self.last_bullet_world = BulletWorld.current_bullet_world
         BulletWorld.current_bullet_world = self
 
@@ -79,6 +79,26 @@ class BulletWorld:
         BulletWorld.current_bullet_world = self.last_bullet_world
         p.disconnect(self.client_id)
         self._gui_thread.join()
+
+    def save_state(self):
+        """
+        Returns the id of the saved state of the BulletWorld
+        """
+        objects2attached = {}
+        for o in self.objects:
+            objects2attached[o] = (o.attachments.copy(), o.cids.copy())
+        return p.saveState(self.client_id), objects2attached
+
+    def restore_state(self, state, objects2attached={}):
+        """
+        Restores the state of the BulletWorld according to the given state id
+        """
+        p.restoreState(state, physicsClientId=self.client_id)
+        for obj in self.objects:
+            try:
+                obj.attachments, obj.cids = objects2attached[obj]
+            except KeyError:
+                continue
 
     def copy(self):
         """
@@ -171,7 +191,7 @@ class Object:
         link_T_object = self._calculate_transform(object, link)
         self.attachments[object] = [link_T_object, link, loose]
         object.attachments[self] = [p.invertTransform(link_T_object[0], link_T_object[1]), None, False]
-        
+
         cid = p.createConstraint(self.id, link_id, object.id, -1, p.JOINT_FIXED,
                             [0, 1, 0], link_T_object[0], [0, 0, 0], link_T_object[1], physicsClientId=self.world.client_id)
         self.cids[object] = cid
@@ -196,6 +216,15 @@ class Object:
         del self.cids[object]
         del object.cids[self]
         self.world.detachment_event(self, [self, object])
+
+    def detach_all(self):
+        """
+        Detach all objects attached to this object.
+        :return:
+        """
+        attachments = self.attachments.copy()
+        for att in attachments.keys():
+            self.detach(att)
 
     def get_position(self):
         return p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id)[0]
@@ -295,6 +324,18 @@ class Object:
     def get_joint_state(self, joint_name):
         return p.getJointState(self.id, self.joints[joint_name], physicsClientId=self.world.client_id)[0]
 
+    def contact_points(self):
+        return p.getContactPoints(self.id)
+
+    def contact_points_simulated(self):
+        s = self.world.save_state()
+        p.stepSimulation(self.world.client_id)
+        contact_points = self.contact_points()
+        self.world.restore_state(*s)
+        return contact_points
+
+def filter_contact_points(contact_points, exclude_ids):
+    return list(filter(lambda cp: cp[2] not in exclude_ids, contact_points))
 
 def _load_object(name, path, position, orientation, world, color):
     """
