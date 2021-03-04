@@ -2,7 +2,7 @@ import pybullet as p
 import itertools
 import numpy as np
 import time
-from .bullet_world import _world_and_id
+from .bullet_world import _world_and_id, BulletWorld
 
 
 class ReasoningError(Exception):
@@ -112,21 +112,22 @@ def visible(object, camera_position_and_orientation, front_facing_axis, threshol
     :return: True if the object is visible from the camera_position False if not
     """
     world, world_id = _world_and_id(world)
-    state = p.saveState(physicsClientId=world_id)
-    for obj in world.objects:
-        if obj.id is not object.id:
-            # p.removeBody(object.id, physicsClientId=world_id)
-            # Hot fix until I come up with something better
-            p.resetBasePositionAndOrientation(obj.id, [100, 100, 100], [0, 0, 0, 1], world_id)
+    det_world = world.copy()
+    state = p.saveState(physicsClientId=det_world.client_id)
+    for obj in det_world.objects:
+        if object.get_position_and_orientation() == obj.get_position_and_orientation():
+            object = obj
+        else:
+            p.resetBasePositionAndOrientation(obj.id, [100, 100, 100], [0, 0, 0, 1], det_world.client_id)
 
     world_T_cam = camera_position_and_orientation
     cam_T_point = list(np.multiply(front_facing_axis, 2))
     target_point = p.multiplyTransforms(world_T_cam[0], world_T_cam[1], cam_T_point, [0, 0, 0, 1])
-
-    seg_mask = _get_seg_mask_for_target(target_point, world_T_cam, world)
+    
+    seg_mask = _get_seg_mask_for_target(target_point, world_T_cam, det_world)
     flat_list = list(itertools.chain.from_iterable(seg_mask))
     max_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
-    p.restoreState(state, physicsClientId=world_id)
+    p.restoreState(state, physicsClientId=det_world.client_id)
 
     if max_pixel == 0:
         # Object is not visible
@@ -136,6 +137,7 @@ def visible(object, camera_position_and_orientation, front_facing_axis, threshol
     flat_list = list(itertools.chain.from_iterable(seg_mask))
     real_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
 
+    det_world.exit()
     return real_pixel / max_pixel > threshold > 0
 
 
@@ -154,32 +156,36 @@ def occluding(object, camera_position_and_orientation, front_facing_axis, world=
     :return: A list of occluding objects
     """
     world, world_id = _world_and_id(world)
-    state = p.saveState(physicsClientId=world_id)
-    for obj in world.objects:
-        if obj.id is not object.id:
-            # p.removeBody(object.id, physicsClientId=world_id)
-            # Hot fix until I come up with something better
-            p.resetBasePositionAndOrientation(obj.id, [100, 100, 100], [0, 0, 0, 1], world_id)
+    occ_world = world.copy()
+    state = p.saveState(physicsClientId=occ_world.client_id)
+    for obj in occ_world.objects:
+        if object.get_position_and_orientation() == obj.get_position_and_orientation():
+            object = obj
+        else:
+            p.resetBasePositionAndOrientation(obj.id, [100, 100, 100], [0, 0, 0, 1], occ_world.client_id)
 
     world_T_cam = camera_position_and_orientation
     cam_T_point = list(np.multiply(front_facing_axis, 2))
     target_point = p.multiplyTransforms(world_T_cam[0], world_T_cam[1], cam_T_point, [0, 0, 0, 1])
 
-    seg_mask = _get_seg_mask_for_target(target_point, world_T_cam, world)
+    seg_mask = _get_seg_mask_for_target(target_point, world_T_cam, occ_world)
     pixels = []
     for i in range(0, 256):
         for j in range(0, 256):
             if seg_mask[i][j] == object.id:
                 pixels.append((i, j))
-    p.restoreState(state, physicsClientId=world_id)
+    p.restoreState(state, physicsClientId=occ_world.client_id)
 
     occluding = []
-    seg_mask = _get_seg_mask_for_target(target_point, world_T_cam, world)
+    seg_mask = _get_seg_mask_for_target(target_point, world_T_cam, occ_world)
     for c in pixels:
         if not seg_mask[c[0]][c[1]] == object.id:
             occluding.append(seg_mask[c[0]][c[1]])
 
-    return list(set(map(lambda x: world.get_object_by_id(x), occluding)))
+    occ_objects = list(set(map(lambda x: occ_world.get_object_by_id(x), occluding)))
+    occ_world.exit()
+
+    return occ_objects
 
 
 def reachable_object(object, robot, gripper_name, world=None, threshold=0.01):
