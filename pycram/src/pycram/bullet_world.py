@@ -175,6 +175,18 @@ class Object:
         self.cids = {}
         self.world.objects.append(self)
 
+    def remove(self):
+        """
+        This method removes this object from the BulletWorld it currently
+        resides in.
+        For the object to be removed it has to be detached from all objects it
+        is currently attached to. After this is done a call to PyBullet is done
+        to remove this Object from the simulation.
+        """
+        for obj in self.attachments.keys():
+            self.detach(obj)
+        p.removeBody(self.id, physicsClientId=self.world.client_id)
+
     def attach(self, object, link=None, loose=False):
         """
         This method attaches an other object to this object. This is done by
