@@ -141,7 +141,7 @@ class Gui(threading.Thread):
             self.world.client_id = p.connect(p.DIRECT)
 
         while p.isConnected(self.world.client_id):
-            time.sleep(10)
+            time.sleep(0.5)
 
 
 class Object:
