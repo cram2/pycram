@@ -1,10 +1,10 @@
-from pycram.robot_description import InitializedRobotDescription as robot_description
-import pycram.helper as helper
+from .robot_description import InitializedRobotDescription as robot_description
+from . import helper
 
 import sys
 if 'bullet_world' in sys.modules:
     logwarn("(publisher) Make sure that you are not loading this module from pycram.bullet_world.")
-from pycram.bullet_world import BulletWorld
+from .bullet_world import BulletWorld
 
 import rospkg
 import atexit
@@ -147,7 +147,7 @@ class LocalTransformer:
     def update_objects(self):
         if BulletWorld.current_bullet_world:
             for obj in list(BulletWorld.current_bullet_world.objects):
-                if obj.name in robot_description.i.name or obj.name == "floor" or obj.name == "kitchen":
+                if obj.name == robot_description.i.name or obj.type == "environment":
                     continue
                 else:
                     published = local_transformer.publish_object_pose(obj.name,
@@ -189,7 +189,7 @@ class LocalTransformer:
     ############################################################################################################
 
     def publish_pose(self, frame_id, child_frame_id, pose, static=None):
-        if frame_id is not child_frame_id:
+        if frame_id != child_frame_id:
             pose = helper.ensure_pose(pose)
             tf_stamped = helper.pose2tfstamped(frame_id, child_frame_id, pose)
             if tf_stamped:
