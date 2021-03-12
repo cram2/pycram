@@ -10,6 +10,8 @@ import pybullet as p
 import threading
 import time
 import pathlib
+import rospy
+import rospkg
 from .event import Event
 from .helper import transform
 
@@ -23,6 +25,7 @@ class BulletWorld:
 
     current_bullet_world = None
     robot = None
+    node = rospy.init_node('listen')
 
     def __init__(self, type="GUI"):
         """
@@ -112,6 +115,7 @@ class BulletWorld:
             for joint in obj.joints:
                 o.set_joint_state(joint, obj.get_joint_state(joint))
         return world
+
 
 
 current_bullet_world = BulletWorld.current_bullet_world
@@ -372,7 +376,7 @@ def _load_object(name, path, position, orientation, world, color):
     If a .obj or .stl file is given then, before spawning, a urdf file with the .obj or .stl as mesh will be created
     and this .urdf file will be loaded instead.
     :param name: The name of the object which should be spawned
-    :param path: The path to the source file
+    :param path: The path to the source file or the name on the ROS parameter server
     :param position: The position in which the object should be spawned
     :param orientation: The orientation in which the object should be spawned
     :param world: The BulletWorld to which the Object should be spawned
@@ -383,8 +387,38 @@ def _load_object(name, path, position, orientation, world, color):
     world, world_id = _world_and_id(world)
     if extension == ".obj" or extension == ".stl":
         path = _generate_urdf_file(name, path, color)
-    return p.loadURDF(path, basePosition=position, baseOrientation=orientation, physicsClientId=world_id)
+    elif not pathlib.Path(path).exists():
+        f = open(name + ".urdf", mode="w")
+        f.write(_correct_urdf_string(path))
+        f.close()
+        path = name + ".urdf"
+    try:
+        obj = p.loadURDF(path, basePosition=position, baseOrientation=orientation, physicsClientId=world_id)
+    except e:
+        print("The path has to be either a path to a URDf file, stl file, obj file \
+        or the name of a URDF on the parameter server.")
+    return obj
 
+def _correct_urdf_string(urdf_name):
+    """
+    This method gets the name of a urdf description and feteches it from the ROS
+    parameter server. Afterwards the URDF will be traversed and references to ROS packages
+    will be replaced with the absolute path in the filesystem.
+    :param urdf_name: The name of the URDf on the parameter server
+    :return: The URDF string with paths in the filesystem instead of ROS packages
+    """
+    r = rospkg.RosPack()
+    urdf_string = rospy.get_param(urdf_name)
+    new_urdf_string = ""
+    for line in urdf_string.split('\n'):
+        if "package://" in line:
+            s = line.split('//')
+            s1 = s[1].split('/')
+            path = r.get_path(s1[0])
+            line = line.replace("package://" + s1[0], path)
+        new_urdf_string += line + '\n'
+
+    return new_urdf_string
 
 def _generate_urdf_file(name, path, color):
     """
