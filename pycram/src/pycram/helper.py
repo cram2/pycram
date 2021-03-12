@@ -7,74 +7,171 @@ Classes:
 GeneratorList -- implementation of generator list wrappers.
 """
 from inspect import isgeneratorfunction
+from numbers import Number
 from macropy.core.quotes import macros, ast_literal, q
+from geometry_msgs.msg import Point, Quaternion, Pose, Transform, PoseStamped, TransformStamped, Vector3
+
+import rospy
+from std_msgs.msg import Header
+from time import time as current_time
 
 
-def transform(pose, transformation):
-	res = [0, 0, 0]
-	for i in range(0, 3):
-		res[i] = pose[i] - transformation[i]
-	return res
+def transform(pose,
+              transformation):  # TODO: if pose is a list of position and orientation calculate new pose w/ orientation too
+    res = [0, 0, 0]
+    for i in range(0, 3):
+        res[i] = pose[i] - transformation[i]
+    return res
+
+
+def pose_stamped2tuple(pose_stamped):
+    if type(pose_stamped) is PoseStamped:
+        p = pose_stamped.pose.position
+        o = pose_stamped.pose.orientation
+        return tuple(((p.x, p.y, p.z), (o.x, o.y, o.z, o.w)))
+
+
+def is_list_position(list_pos):
+    return len(list_pos) == 3 and all(isinstance(x, Number) for x in list_pos)
+
+
+def is_list_pose(list_pose):
+    if len(list_pose) == 2 and is_list_position(list_pose[0]):
+        return len(list_pose[1]) == 4 and all(isinstance(x, Number) for x in list_pose[1])
+
+
+def list2point_and_quaternion(pose_list):
+    if len(pose_list) == 2 and len(pose_list[0]) == 3 and len(pose_list[1]) == 4:
+        pos = pose_list[0]
+        orient = pose_list[1]
+        point = Point(pos[0], pos[1], pos[2])
+        quaternion = Quaternion(orient[0], orient[1], orient[2], orient[3])
+        return point, quaternion
+
+
+def list2vector3_and_quaternion(pose_list):
+    if len(pose_list) == 2 and len(pose_list[0]) == 3 and len(pose_list[1]) == 4:
+        pos = pose_list[0]
+        orient = pose_list[1]
+        vector = Vector3(pos[0], pos[1], pos[2])
+        quaternion = Quaternion(orient[0], orient[1], orient[2], orient[3])
+        return vector, quaternion
+
+
+def list2point(pos_list):
+    if len(pos_list) == 3:
+        return Point(pos_list[0], pos_list[1], pos_list[2])
+
+
+def list2pose(pose_list):
+    p, q = list2point_and_quaternion(pose_list)
+    if p and q:
+        return Pose(p, q)
+
+
+def ensure_pose(pose):
+    if type(pose) is Pose:
+        return pose
+    elif (type(pose) is list or type(pose) is tuple) and is_list_pose(pose):
+        pose = list2pose(pose)
+        return pose
+    elif (type(pose) is list or type(pose) is tuple) and is_list_position(pose):
+        point = list2point(pose)
+        return Pose(point, Quaternion(0, 0, 0, 1))
+    else:
+        rospy.logerr("(helper) Cannot convert pose since it is no Pose object or valid list pose.")
+        return None
+
+
+def list2tf(pose_list):
+    p, q = list2vector3_and_quaternion(pose_list)
+    if p and q:
+        return Transform(p, q)
+
+
+def pose2tf(pose):
+    if pose and pose.position and pose.orientation:
+        p = pose.position
+        return Transform(Vector3(p.x, p.y, p.z), pose.orientation)
+
+
+def list2tfstamped(source_frame, target_frame, pose_list, time=None):
+    tf = list2tf(pose_list)
+    if tf:
+        return tf2tfstamped(source_frame, target_frame, tf, time)
+
+
+def pose2tfstamped(source_frame, target_frame, pose, time=None):
+    tf = pose2tf(pose)
+    if tf:
+        return tf2tfstamped(source_frame, target_frame, tf, time)
+
+
+def tf2tfstamped(source_frame, target_frame, tf, time=None):
+    tf_time = time if time else rospy.Time(current_time())
+    header = Header(0, tf_time, source_frame)
+    return TransformStamped(header, target_frame, tf)
 
 
 def _block(tree):
-	"""Wrap multiple statements into a single block and return it.
+    """Wrap multiple statements into a single block and return it.
 
-	If macros themselves are not a single statement, they can't always be nested (for example inside the par macro which executes each statement in an own thread).
+    If macros themselves are not a single statement, they can't always be nested (for example inside the par macro which executes each statement in an own thread).
 
-	Arguments:
-	tree -- the tree containing the statements.
-	"""
-	with q as new_tree:
-		# Wrapping the tree into an if block which itself is a statement that contains one or more statements.
-		# The condition is just True and therefor makes sure that the wrapped statements get executed.
-		if True:
-			ast_literal[tree]
+    Arguments:
+    tree -- the tree containing the statements.
+    """
+    with q as new_tree:
+        # Wrapping the tree into an if block which itself is a statement that contains one or more statements.
+        # The condition is just True and therefor makes sure that the wrapped statements get executed.
+        if True:
+            ast_literal[tree]
 
-	return new_tree
+    return new_tree
+
 
 class GeneratorList:
-	"""Implementation of generator list wrappers.
+    """Implementation of generator list wrappers.
 
-	Generator lists store the elements of a generator, so these can be fetched multiple times.
+    Generator lists store the elements of a generator, so these can be fetched multiple times.
 
-	Methods:
-	get -- get the element at a specific index.
-	has -- check if an element at a specific index exists.
-	"""
+    Methods:
+    get -- get the element at a specific index.
+    has -- check if an element at a specific index exists.
+    """
 
-	def __init__(self, generator):
-		"""Create a new generator list.
+    def __init__(self, generator):
+        """Create a new generator list.
 
-		Arguments:
-		generator -- the generator to use.
-		"""
-		if isgeneratorfunction(generator):
-			self._generator = generator()
-		else:
-			self._generator = generator
+        Arguments:
+        generator -- the generator to use.
+        """
+        if isgeneratorfunction(generator):
+            self._generator = generator()
+        else:
+            self._generator = generator
 
-		self._generated = []
+        self._generated = []
 
-	def get(self, index = 0):
-		"""Get the element at a specific index or raise StopIteration if it doesn't exist.
+    def get(self, index=0):
+        """Get the element at a specific index or raise StopIteration if it doesn't exist.
 
-		Arguments:
-		index -- the index to get the element of.
-		"""
-		while len(self._generated) <= index:
-			self._generated.append(next(self._generator))
+        Arguments:
+        index -- the index to get the element of.
+        """
+        while len(self._generated) <= index:
+            self._generated.append(next(self._generator))
 
-		return self._generated[index]
+        return self._generated[index]
 
-	def has(self, index):
-		"""Check if an element at a specific index exists and return True or False.
+    def has(self, index):
+        """Check if an element at a specific index exists and return True or False.
 
-		Arguments:
-		index -- the index to check for.
-		"""
-		try:
-			self.get(index)
-			return True
-		except StopIteration:
-			return False
+        Arguments:
+        index -- the index to check for.
+        """
+        try:
+            self.get(index)
+            return True
+        except StopIteration:
+            return False
