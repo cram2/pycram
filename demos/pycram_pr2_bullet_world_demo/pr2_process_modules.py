@@ -3,6 +3,7 @@ from pycram.process_module import ProcessModule
 from pycram.process_modules import ProcessModules, _apply_ik
 from pycram.bullet_world import BulletWorld
 from pycram.helper import transform
+from pycram.local_transformer import local_transformer
 import pycram.bullet_world_reasoning as btr
 import pybullet as p
 import numpy as np
@@ -35,6 +36,8 @@ class Pr2Navigation(ProcessModule):
         if solution['cmd'] == 'navigate':
             robot = BulletWorld.robot
             robot.set_position_and_orientation(solution['target'], solution['orientation'])
+            time.sleep(0.5)
+            local_transformer.update_from_btr()
 
 
 class Pr2PickUp(ProcessModule):
@@ -125,6 +128,11 @@ class Pr2MoveHead(ProcessModule):
         if solutions['cmd'] == 'looking':
             target = solutions['target']
             robot = BulletWorld.robot
+            if type(target) is str:
+                target_frame = local_transformer.projection_namespace + '/' + target \
+                    if local_transformer.projection_namespace \
+                    else target
+                target = local_transformer.tf_transform(local_transformer.map_frame, target_frame)[0]
             pose_in_pan = transform(target, robot.get_link_position("head_pan_link"))
             pose_in_tilt = transform(target, robot.get_link_position("head_tilt_link"))
 

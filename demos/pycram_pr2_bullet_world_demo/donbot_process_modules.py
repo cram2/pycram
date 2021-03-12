@@ -2,6 +2,8 @@ from pycram.robot_description import InitializedRobotDescription as robot_descri
 from pycram.process_module import ProcessModule
 from pycram.process_modules import ProcessModules, _apply_ik
 from pycram.bullet_world import BulletWorld
+from pycram.local_transformer import local_transformer
+import pycram.helper as helper
 import pycram.bullet_world_reasoning as btr
 import pybullet as p
 from rospy import logerr
@@ -35,7 +37,8 @@ class DonbotNavigation(ProcessModule):
                 robot.set_joint_state(joint_name, 0.0)
             # Set actual goal pose
             robot.set_position_and_orientation(solution['target'], solution['orientation'])
-
+            time.sleep(0.5)
+            local_transformer.update_from_btr()
 
 class DonbotPickUp(ProcessModule):
     """
@@ -123,13 +126,33 @@ class DonbotMoveHead(ProcessModule):
     def _execute(self, desig):
         solutions = desig.reference()
         if solutions['cmd'] == 'looking':
-            target = solutions['target']
-            if target is 'left' or target is 'right':
-                robot = BulletWorld.robot
-                for joint, state in robot_description.i.get_static_joint_chain("neck", target).items():
-                    robot.set_joint_state(joint, state)
+            robot = BulletWorld.robot
+            neck_base_frame = local_transformer.projection_namespace + '/' + robot_description.i.chains["neck"].base_link if \
+                local_transformer.projection_namespace else \
+                robot_description.i.chains["neck"].base_link
+            if type(solutions['target']) is str:
+                target = local_transformer.projection_namespace + '/' + solutions['target'] if \
+                    local_transformer.projection_namespace else \
+                    solutions['target']
+                pose_in_neck_base = local_transformer.tf_transform(neck_base_frame, target)
+            elif helper.is_list_pose(solutions['target']) or helper.is_list_position(solutions['target']):
+                pose = helper.ensure_pose(solutions['target'])
+                pose_in_neck_base = local_transformer.tf_pose_transform(local_transformer.map_frame, neck_base_frame, pose)
+
+            vector = pose_in_neck_base[0]
+            # +x as forward
+            # +y as left
+            # +z as up
+            x = vector[0]
+            y = vector[1]
+            z = vector[2]
+            conf = None
+            if y > 0:
+                conf = "left"
             else:
-                logerr("There is no target position defined with the target %s.", target)
+                conf = "right"
+            for joint, state in robot_description.i.get_static_joint_chain("neck", conf).items():
+                robot.set_joint_state(joint, state)
 
 
 class DonbotMoveGripper(ProcessModule):

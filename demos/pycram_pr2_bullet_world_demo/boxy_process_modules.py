@@ -2,7 +2,10 @@ from pycram.robot_description import InitializedRobotDescription as robot_descri
 from pycram.process_module import ProcessModule
 from pycram.process_modules import ProcessModules, _apply_ik
 from pycram.bullet_world import BulletWorld
+from pycram.local_transformer import local_transformer as local_tf
+import pycram.helper as helper
 import pycram.bullet_world_reasoning as btr
+
 import pybullet as p
 import time
 
@@ -37,6 +40,9 @@ class BoxyNavigation(ProcessModule):
                 robot.set_joint_state(joint_name, 0.0)
             # Set actual goal pose
             robot.set_position_and_orientation(solution['target'], solution['orientation'])
+            time.sleep(0.5)
+            local_tf.update_from_btr()
+
 
 
 class BoxyPickUp(ProcessModule):
@@ -116,6 +122,7 @@ class BoxyParkArms(ProcessModule):
             _park_arms()
 
 
+
 class BoxyMoveHead(ProcessModule):
     """
     This process module moves the head to look at a specific point in the world coordinate frame.
@@ -125,9 +132,44 @@ class BoxyMoveHead(ProcessModule):
     def _execute(self, desig):
         solutions = desig.reference()
         if solutions['cmd'] == 'looking':
-            target = solutions['target']
             robot = BulletWorld.robot
-            for joint, state in robot_description.i.get_static_joint_chain("neck", "down").items():
+            neck_base_frame = local_tf.projection_namespace + '/' + robot_description.i.chains["neck"].base_link
+            if type(solutions['target']) is str:
+                target = local_tf.projection_namespace + '/' + solutions['target']
+                pose_in_neck_base = local_tf.tf_transform(neck_base_frame, target)
+            elif helper.is_list_pose(solutions['target']) or helper.is_list_position(solutions['target']):
+                pose = helper.ensure_pose(solutions['target'])
+                pose_in_neck_base = local_tf.tf_pose_transform(local_tf.map_frame, neck_base_frame, pose)
+
+            vector = pose_in_neck_base[0]
+            # +x as forward
+            # +y as left
+            # +z as up
+            x = vector[1]
+            y = -vector[0]
+            z = vector[2]
+            conf = None
+            if x > 0:
+                if z < 0.5:
+                    if y > 0.4:
+                        conf = "down_left"
+                    elif y < -0.4:
+                        conf = "down_right"
+                    else:
+                        conf = "down"
+                else:
+                    if y > 0.4:
+                        conf = "left"
+                    elif y < -0.4:
+                        conf = "right"
+                    else:
+                        conf = "forward"
+            else:
+                if z < 0.5:
+                    conf = "behind"
+                else:
+                    conf = "behind_up"
+            for joint, state in robot_description.i.get_static_joint_chain("neck", conf).items():
                 robot.set_joint_state(joint, state)
 
 
