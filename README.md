@@ -15,6 +15,10 @@ To work with the Bullet World of PyCRAM the follwing packages are required.
 * PyBullet
 * pathlib
 * numpy
+* rospkg 
+* atexit
+* urdfpy
+* graphviz 
 
 ### Macropy
 
