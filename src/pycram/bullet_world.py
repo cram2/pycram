@@ -387,19 +387,30 @@ def _load_object(name, path, position, orientation, world, color):
     world, world_id = _world_and_id(world)
     if extension == ".obj" or extension == ".stl":
         path = _generate_urdf_file(name, path, color)
-    elif not pathlib.Path(path).exists():
+    else:
+        if not pathlib.Path(path).exists():
+             urdf_string = rospy.get_param(urdf_name)
+
+        else:
+            f = open(path, mode="r")
+            urdf_string = f.read()
+            f.close()
+
         f = open(name + ".urdf", mode="w")
-        f.write(_correct_urdf_string(path))
+        f.write(_correct_urdf_string(urdf_string))
         f.close()
         path = name + ".urdf"
-    try:
-        obj = p.loadURDF(path, basePosition=position, baseOrientation=orientation, physicsClientId=world_id)
-    except e:
-        print("The path has to be either a path to a URDf file, stl file, obj file \
-        or the name of a URDF on the parameter server.")
-    return obj
 
-def _correct_urdf_string(urdf_name):
+    try:
+        print(path)
+        obj = p.loadURDF(path, basePosition=position, baseOrientation=orientation, physicsClientId=world_id)
+        return obj
+    except p.error:
+        print("The path has to be either a path to a URDf file, stl file, obj file or the name of a URDF on the parameter server.")
+
+
+
+def _correct_urdf_string(urdf_string):
     """
     This method gets the name of a urdf description and feteches it from the ROS
     parameter server. Afterwards the URDF will be traversed and references to ROS packages
@@ -408,7 +419,6 @@ def _correct_urdf_string(urdf_name):
     :return: The URDF string with paths in the filesystem instead of ROS packages
     """
     r = rospkg.RosPack()
-    urdf_string = rospy.get_param(urdf_name)
     new_urdf_string = ""
     for line in urdf_string.split('\n'):
         if "package://" in line:
