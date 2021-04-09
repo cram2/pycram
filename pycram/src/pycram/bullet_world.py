@@ -10,9 +10,10 @@ import pybullet as p
 import threading
 import time
 import pathlib
+import rospy
+import rospkg
 from .event import Event
 #from .helper import transform
-
 
 class BulletWorld:
     """
@@ -24,6 +25,7 @@ class BulletWorld:
 
     current_bullet_world = None
     robot = None
+    node = rospy.init_node('listen')
 
     def __init__(self, type="GUI"):
         """
@@ -40,7 +42,7 @@ class BulletWorld:
         self.manipulation_event = Event()
         self._gui_thread = Gui(self, type)
         self._gui_thread.start()
-        time.sleep(0.1)
+        time.sleep(1) # 0.1
         self.last_bullet_world = BulletWorld.current_bullet_world
         BulletWorld.current_bullet_world = self
 
@@ -80,6 +82,26 @@ class BulletWorld:
         p.disconnect(self.client_id)
         self._gui_thread.join()
 
+    def save_state(self):
+        """
+        Returns the id of the saved state of the BulletWorld
+        """
+        objects2attached = {}
+        for o in self.objects:
+            objects2attached[o] = (o.attachments.copy(), o.cids.copy())
+        return p.saveState(self.client_id), objects2attached
+
+    def restore_state(self, state, objects2attached={}):
+        """
+        Restores the state of the BulletWorld according to the given state id
+        """
+        p.restoreState(state, physicsClientId=self.client_id)
+        for obj in self.objects:
+            try:
+                obj.attachments, obj.cids = objects2attached[obj]
+            except KeyError:
+                continue
+
     def copy(self):
         """
         Copies this Bullet World into another and returns it. The other BulletWorld
@@ -93,6 +115,7 @@ class BulletWorld:
             for joint in obj.joints:
                 o.set_joint_state(joint, obj.get_joint_state(joint))
         return world
+
 
 
 current_bullet_world = BulletWorld.current_bullet_world
@@ -121,7 +144,7 @@ class Gui(threading.Thread):
             self.world.client_id = p.connect(p.DIRECT)
 
         while p.isConnected(self.world.client_id):
-            time.sleep(10)
+            time.sleep(0.5)
 
 
 class Object:
@@ -154,6 +177,18 @@ class Object:
         self.attachments = {}
         self.cids = {}
         self.world.objects.append(self)
+
+    def remove(self):
+        """
+        This method removes this object from the BulletWorld it currently
+        resides in.
+        For the object to be removed it has to be detached from all objects it
+        is currently attached to. After this is done a call to PyBullet is done
+        to remove this Object from the simulation.
+        """
+        for obj in self.attachments.keys():
+            self.detach(obj)
+        p.removeBody(self.id, physicsClientId=self.world.client_id)
 
     def attach(self, object, link=None, loose=False):
         """
@@ -196,6 +231,15 @@ class Object:
         del self.cids[object]
         del object.cids[self]
         self.world.detachment_event(self, [self, object])
+
+    def detach_all(self):
+        """
+        Detach all objects attached to this object.
+        :return:
+        """
+        attachments = self.attachments.copy()
+        for att in attachments.keys():
+            self.detach(att)
 
     def get_position(self):
         return p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id)[0]
@@ -279,6 +323,23 @@ class Object:
     def get_link_id(self, name):
         return self.links[name]
 
+    def get_link_position_and_orientation_tf(self, name):
+        return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[4:6]
+
+    def get_link_relative_to_other_link(self, source_frame, target_frame):
+
+        # Get pose of source_frame in map (although pose is returned we use the transform style for clarity)
+        map_T_source_trans, map_T_source_rot = self.get_link_position_and_orientation_tf(source_frame)
+
+        # Get pose of target_frame in map (although pose is returned we use the transform style for clarity)
+        map_T_target_trans, map_T_target_rot = self.get_link_position_and_orientation_tf(target_frame)
+
+        # Calculate Pose of target frame relatively to source_frame
+        source_T_map_trans, source_T_map_rot = p.invertTransform(map_T_source_trans, map_T_source_rot)
+        source_T_target_trans, source_T_target_rot = p.multiplyTransforms(source_T_map_trans, source_T_map_rot,
+                                                                          map_T_target_trans, map_T_target_rot)
+        return source_T_target_trans, source_T_target_rot
+
     def get_link_position_and_orientation(self, name):
         return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[4:6]
 
@@ -295,6 +356,18 @@ class Object:
     def get_joint_state(self, joint_name):
         return p.getJointState(self.id, self.joints[joint_name], physicsClientId=self.world.client_id)[0]
 
+    def contact_points(self):
+        return p.getContactPoints(self.id)
+
+    def contact_points_simulated(self):
+        s = self.world.save_state()
+        p.stepSimulation(self.world.client_id)
+        contact_points = self.contact_points()
+        self.world.restore_state(*s)
+        return contact_points
+
+def filter_contact_points(contact_points, exclude_ids):
+    return list(filter(lambda cp: cp[2] not in exclude_ids, contact_points))
 
 def _load_object(name, path, position, orientation, world, color):
     """
@@ -303,7 +376,7 @@ def _load_object(name, path, position, orientation, world, color):
     If a .obj or .stl file is given then, before spawning, a urdf file with the .obj or .stl as mesh will be created
     and this .urdf file will be loaded instead.
     :param name: The name of the object which should be spawned
-    :param path: The path to the source file
+    :param path: The path to the source file or the name on the ROS parameter server
     :param position: The position in which the object should be spawned
     :param orientation: The orientation in which the object should be spawned
     :param world: The BulletWorld to which the Object should be spawned
@@ -314,8 +387,38 @@ def _load_object(name, path, position, orientation, world, color):
     world, world_id = _world_and_id(world)
     if extension == ".obj" or extension == ".stl":
         path = _generate_urdf_file(name, path, color)
-    return p.loadURDF(path, basePosition=position, baseOrientation=orientation, physicsClientId=world_id)
+    elif not pathlib.Path(path).exists():
+        f = open(name + ".urdf", mode="w")
+        f.write(_correct_urdf_string(path))
+        f.close()
+        path = name + ".urdf"
+    try:
+        obj = p.loadURDF(path, basePosition=position, baseOrientation=orientation, physicsClientId=world_id)
+    except e:
+        print("The path has to be either a path to a URDf file, stl file, obj file \
+        or the name of a URDF on the parameter server.")
+    return obj
 
+def _correct_urdf_string(urdf_name):
+    """
+    This method gets the name of a urdf description and feteches it from the ROS
+    parameter server. Afterwards the URDF will be traversed and references to ROS packages
+    will be replaced with the absolute path in the filesystem.
+    :param urdf_name: The name of the URDf on the parameter server
+    :return: The URDF string with paths in the filesystem instead of ROS packages
+    """
+    r = rospkg.RosPack()
+    urdf_string = rospy.get_param(urdf_name)
+    new_urdf_string = ""
+    for line in urdf_string.split('\n'):
+        if "package://" in line:
+            s = line.split('//')
+            s1 = s[1].split('/')
+            path = r.get_path(s1[0])
+            line = line.replace("package://" + s1[0], path)
+        new_urdf_string += line + '\n'
+
+    return new_urdf_string
 
 def _generate_urdf_file(name, path, color):
     """
