@@ -1,5 +1,5 @@
 import rospy
-rospy.init_node('pycram')
+#rospy.init_node('pycram')
 
 from pycram.robot_description import InitializedRobotDescription as robot_description
 import available_process_modules
@@ -73,7 +73,7 @@ moving_targets = {
 def park_arms(robot_name):
     # Parking description
     park_desc = [('type', 'move-arm-joints'), ('left-arm', 'park')]
-    if robot_name is not 'donbot' and robot_name is not 'hsr':
+    if robot_name != 'donbot' and robot_name != 'hsr':
         park_desc.append(('right-arm', 'park'))
     # Perform Parking with MotionDesignator
     ProcessModule.perform(MotionDesignator(park_desc))
@@ -160,7 +160,7 @@ if 'hsr' not in robot_description.i.name:
     for i in range(0, 4):
         if not targets[object_types[i]][2]:
             position_target = targets[object_types[i]][0]
-            arm = targets[object_types[i]][1] if robot_description.i.name is not 'donbot' else 'left'
+            arm = targets[object_types[i]][1] if robot_description.i.name != 'donbot' else 'left'
             move_object(object_types[i], position_target, arm, robot_description.i.name)
 else:
     # Spawn object to be manipulated from hsr
