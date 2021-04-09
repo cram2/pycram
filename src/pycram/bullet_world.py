@@ -7,6 +7,7 @@ Object -- Representation of an object in the BulletWorld
 """
 
 import pybullet as p
+import os
 import threading
 import time
 import pathlib
@@ -383,31 +384,54 @@ def _load_object(name, path, position, orientation, world, color):
     :param color: The color of the object, only used when .obj or .stl file is given
     :return: The unique id of the object
     """
-    extension = pathlib.Path(path).suffix
+    pa = pathlib.Path(path)
+    extension = pa.suffix
     world, world_id = _world_and_id(world)
-    if extension == ".obj" or extension == ".stl":
-        path = _generate_urdf_file(name, path, color)
+    rospack = rospkg.RosPack()
+    cach_dir = rospack.get_path('pycram') + '/resources/cached/'
+    if not pathlib.Path(cach_dir).exists():
+        os.mkdir(cach_dir)
+
+    # if file is not yet cached corrcet the urdf and save if in the cache directory
+    if not _is_cached(path, name, cach_dir):
+        if extension == ".obj" or extension == ".stl":
+            path = _generate_urdf_file(name, path, color, cach_dir)
+        elif extension == ".urdf":
+            with open(path, mode="r") as f:
+                urdf_string = f.read()
+            path = cach_dir +  pa.name
+            with open(path, mode="w") as f:
+                f.write(_correct_urdf_string(urdf_string))
+        else: # Using the urdf from the parameter server
+            urdf_string = rospy.get_param(urdf_name)
+            path = cach_dir +  name + ".urdf"
+            with open(path, mode="w") as f:
+                f.write(_correct_urdf_string(urdf_string))
+    # save correct path in case the file is already in the cache directory
+    elif extension == ".obj" or extension == ".stl":
+        path = cach_dir + name  + ".urdf"
+    elif extension == ".urdf":
+        path = cach_dir + pa.name
     else:
-        if not pathlib.Path(path).exists():
-             urdf_string = rospy.get_param(urdf_name)
-
-        else:
-            f = open(path, mode="r")
-            urdf_string = f.read()
-            f.close()
-
-        f = open(name + ".urdf", mode="w")
-        f.write(_correct_urdf_string(urdf_string))
-        f.close()
-        path = name + ".urdf"
+        path = cach_dir + name+ ".urdf"
 
     try:
-        print(path)
         obj = p.loadURDF(path, basePosition=position, baseOrientation=orientation, physicsClientId=world_id)
         return obj
-    except p.error:
+    except p.error as e:
+        print(e)
         print("The path has to be either a path to a URDf file, stl file, obj file or the name of a URDF on the parameter server.")
 
+
+def _is_cached(path, name, cach_dir):
+    file_name = pathlib.Path(path).name
+    p = pathlib.Path(cach_dir + file_name)
+    if p.exists():
+        return True
+    p = pathlib.Path(cach_dir + name + ".urdf")
+    if p.exists():
+        return True
+    return False
 
 
 def _correct_urdf_string(urdf_string):
@@ -430,7 +454,7 @@ def _correct_urdf_string(urdf_string):
 
     return new_urdf_string
 
-def _generate_urdf_file(name, path, color):
+def _generate_urdf_file(name, path, color, cach_dir):
     """
     This method generates an .urdf file with the given .obj or .stl file as mesh. In addition the given color will be
     used to crate a material tag in the URDF,
@@ -458,10 +482,11 @@ def _generate_urdf_file(name, path, color):
                         </link> \n \
                         </robot>'
     rgb = " ".join(list(map(str, color)))
+    path = str(pathlib.Path(path).resolve())
     content = urdf_template.replace("~a", name).replace("~b", path).replace("~c", rgb)
-    with open(name + ".urdf", "w", encoding="utf-8") as file:
+    with open(cach_dir + name + ".urdf", "w", encoding="utf-8") as file:
         file.write(content)
-    return name + ".urdf"
+    return cach_dir + name + ".urdf"
 
 
 def _world_and_id(world):
