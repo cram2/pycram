@@ -1,3 +1,3 @@
 [submodule "pycram/src/macropy"]
-	path = pycram/src/macropy
+	path = src/macropy
 	url = git@github.com:Tigul/macropy.git
