@@ -2,9 +2,11 @@ from pycram.robot_description import InitializedRobotDescription as robot_descri
 from pycram.process_module import ProcessModule
 from pycram.process_modules import ProcessModules, _apply_ik
 from pycram.bullet_world import BulletWorld
-from pycram.helper import _transform_to_torso
 from pycram.ik import request_ik
+from pycram.local_transformer import local_transformer as local_tf
+import pycram.helper as helper
 import pycram.bullet_world_reasoning as btr
+
 import pybullet as p
 import time
 
@@ -39,6 +41,9 @@ class BoxyNavigation(ProcessModule):
                 robot.set_joint_state(joint_name, 0.0)
             # Set actual goal pose
             robot.set_position_and_orientation(solution['target'], solution['orientation'])
+            time.sleep(0.5)
+            local_tf.update_from_btr()
+
 
 
 class BoxyPickUp(ProcessModule):
@@ -53,7 +58,7 @@ class BoxyPickUp(ProcessModule):
             object = solution['object']
             robot = BulletWorld.robot
             target = object.get_position_and_orientation()
-            target = _transform_to_torso(target, robot)
+            target = helper._transform_to_torso(target, robot)
             arm = "left" if solution['gripper'] == robot_description.i.get_tool_frame("left") else "right"
             joints = robot_description.i._safely_access_chains(arm).joints
             #tip = "r_wrist_roll_link" if solution['gripper'] == "r_gripper_tool_frame" else "l_wrist_roll_link"
@@ -76,7 +81,7 @@ class BoxyPlace(ProcessModule):
             object = solution['object']
             robot = BulletWorld.robot
             target = object.get_position_and_orientation()
-            target = _transform_to_torso(target, robot)
+            target = helper._transform_to_torso(target, robot)
             arm = "left" if solution['gripper'] == robot_description.i.get_tool_frame("left") else "right"
             joints = robot_description.i._safely_access_chains(arm).joints
             #tip = "r_wrist_roll_link" if solution['gripper'] == "r_gripper_tool_frame" else "l_wrist_roll_link"
@@ -107,7 +112,7 @@ class BoxyAccessing(ProcessModule):
             arm = "left" if solution['gripper'] == robot_description.i.get_tool_frame("left") else "right"
             joints = robot_description.i._safely_access_chains(arm).joints
             #inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), kitchen.get_link_position(drawer_handle))
-            target = _transform_to_torso(kitchen.get_link_position_and_orientation(drawer_handle), robot)
+            target = helper._transform_to_torso(kitchen.get_link_position_and_orientation(drawer_handle), robot)
             #target = (target[0], [0, 0, 0, 1])
             inv = request_ik(robot_description.i.base_frame, gripper, target , robot, joints )
             _apply_ik(robot, inv, gripper)
@@ -116,7 +121,7 @@ class BoxyAccessing(ProcessModule):
             robot.set_position([cur_pose[0]-dis, cur_pose[1], cur_pose[2]])
             han_pose = kitchen.get_link_position(drawer_handle)
             new_p = [[han_pose[0] - dis, han_pose[1], han_pose[2]], kitchen.get_link_orientation(drawer_handle)]
-            new_p = _transform_to_torso(new_p, robot)
+            new_p = helper._transform_to_torso(new_p, robot)
             inv = request_ik(robot_description.i.base_frame, gripper, new_p, robot, joints)
             _apply_ik(robot, inv, gripper)
             kitchen.set_joint_state(drawer_joint, 0.3)
@@ -135,6 +140,7 @@ class BoxyParkArms(ProcessModule):
             _park_arms()
 
 
+
 class BoxyMoveHead(ProcessModule):
     """
     This process module moves the head to look at a specific point in the world coordinate frame.
@@ -144,9 +150,44 @@ class BoxyMoveHead(ProcessModule):
     def _execute(self, desig):
         solutions = desig.reference()
         if solutions['cmd'] == 'looking':
-            target = solutions['target']
             robot = BulletWorld.robot
-            for joint, state in robot_description.i.get_static_joint_chain("neck", "down").items():
+            neck_base_frame = local_tf.projection_namespace + '/' + robot_description.i.chains["neck"].base_link
+            if type(solutions['target']) is str:
+                target = local_tf.projection_namespace + '/' + solutions['target']
+                pose_in_neck_base = local_tf.tf_transform(neck_base_frame, target)
+            elif helper.is_list_pose(solutions['target']) or helper.is_list_position(solutions['target']):
+                pose = helper.ensure_pose(solutions['target'])
+                pose_in_neck_base = local_tf.tf_pose_transform(local_tf.map_frame, neck_base_frame, pose)
+
+            vector = pose_in_neck_base[0]
+            # +x as forward
+            # +y as left
+            # +z as up
+            x = vector[1]
+            y = -vector[0]
+            z = vector[2]
+            conf = None
+            if x > 0:
+                if z < 0.5:
+                    if y > 0.4:
+                        conf = "down_left"
+                    elif y < -0.4:
+                        conf = "down_right"
+                    else:
+                        conf = "down"
+                else:
+                    if y > 0.4:
+                        conf = "left"
+                    elif y < -0.4:
+                        conf = "right"
+                    else:
+                        conf = "forward"
+            else:
+                if z < 0.5:
+                    conf = "behind"
+                else:
+                    conf = "behind_up"
+            for joint, state in robot_description.i.get_static_joint_chain("neck", conf).items():
                 robot.set_joint_state(joint, state)
 
 

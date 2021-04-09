@@ -23,6 +23,7 @@ class ProcessModule:
 	resolvers = []
 	"""List of all process module resolvers. Process module resolvers are functions which take a designator as argument and return a process module."""
 
+	@staticmethod
 	def perform(designator):
 		"""Automatically choose a process module and execute the given designator.
 
