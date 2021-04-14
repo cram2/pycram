@@ -9,12 +9,21 @@ GeneratorList -- implementation of generator list wrappers.
 from inspect import isgeneratorfunction
 from numbers import Number
 from macropy.core.quotes import macros, ast_literal, q
+import pybullet as p
 from geometry_msgs.msg import Point, Quaternion, Pose, Transform, PoseStamped, TransformStamped, Vector3
 
 import rospy
 from std_msgs.msg import Header
 from time import time as current_time
 
+
+def _transform_to_torso(pose_and_rotation, robot):
+    #map_T_torso = robot.get_link_position_and_orientation("base_footprint")
+    map_T_torso = robot.get_position_and_orientation()
+    torso_T_map = p.invertTransform(map_T_torso[0], map_T_torso[1])
+    map_T_target = pose_and_rotation
+    torso_T_target = p.multiplyTransforms(torso_T_map[0], torso_T_map[1], map_T_target[0], map_T_target[1])
+    return torso_T_target
 
 def transform(pose,
               transformation):  # TODO: if pose is a list of position and orientation calculate new pose w/ orientation too

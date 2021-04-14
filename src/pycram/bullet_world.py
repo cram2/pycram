@@ -14,7 +14,7 @@ import pathlib
 import rospy
 import rospkg
 from .event import Event
-from .helper import transform
+#from .helper import transform
 
 class BulletWorld:
     """
@@ -342,13 +342,13 @@ class Object:
         return source_T_target_trans, source_T_target_rot
 
     def get_link_position_and_orientation(self, name):
-        return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[:2]
+        return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[4:6]
 
     def get_link_position(self, name):
-        return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[0]
+        return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[4]
 
     def get_link_orientation(self, name):
-        return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[1]
+        return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[5]
 
     def set_joint_state(self, joint_name, joint_pose):
         p.resetJointState(self.id, self.joints[joint_name], joint_pose, physicsClientId=self.world.client_id)

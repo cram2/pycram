@@ -2,6 +2,7 @@ from pycram.robot_description import InitializedRobotDescription as robot_descri
 from pycram.process_module import ProcessModule
 from pycram.process_modules import ProcessModules, _apply_ik
 from pycram.bullet_world import BulletWorld
+from pycram.ik import request_ik
 from pycram.local_transformer import local_transformer as local_tf
 import pycram.helper as helper
 import pycram.bullet_world_reasoning as btr
@@ -56,10 +57,15 @@ class BoxyPickUp(ProcessModule):
         if solution['cmd'] == 'pick':
             object = solution['object']
             robot = BulletWorld.robot
-            target = object.get_position()
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), target,
-                                               maxNumIterations=100)
-            _apply_ik(robot, inv)
+            target = object.get_position_and_orientation()
+            target = helper._transform_to_torso(target, robot)
+            arm = "left" if solution['gripper'] == robot_description.i.get_tool_frame("left") else "right"
+            joints = robot_description.i._safely_access_chains(arm).joints
+            #tip = "r_wrist_roll_link" if solution['gripper'] == "r_gripper_tool_frame" else "l_wrist_roll_link"
+            inv = request_ik(robot_description.i.base_frame, solution['gripper'], target, robot, joints)
+            _apply_ik(robot, inv, solution['gripper'])
+            #inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), target,
+            #                                   maxNumIterations=100)
             robot.attach(object, solution['gripper'])
             time.sleep(0.5)
 
@@ -74,9 +80,13 @@ class BoxyPlace(ProcessModule):
         if solution['cmd'] == 'place':
             object = solution['object']
             robot = BulletWorld.robot
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), solution['target'],
-                                               maxNumIterations=100)
-            _apply_ik(robot, inv)
+            target = object.get_position_and_orientation()
+            target = helper._transform_to_torso(target, robot)
+            arm = "left" if solution['gripper'] == robot_description.i.get_tool_frame("left") else "right"
+            joints = robot_description.i._safely_access_chains(arm).joints
+            #tip = "r_wrist_roll_link" if solution['gripper'] == "r_gripper_tool_frame" else "l_wrist_roll_link"
+            inv = request_ik(robot_description.i.base_frame, solution['gripper'], target, robot, joints)
+            _apply_ik(robot, inv, solution['gripper'])
             robot.detach(object)
             time.sleep(0.5)
 
@@ -98,14 +108,22 @@ class BoxyAccessing(ProcessModule):
             drawer_handle = solution['drawer-handle']
             drawer_joint = solution['drawer-joint']
             dis = solution['distance']
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper),
-                                               kitchen.get_link_position(drawer_handle))
-            _apply_ik(robot, inv)
+            robot.set_joint_state(robot_description.i.torso_joint, -0.1)
+            arm = "left" if solution['gripper'] == robot_description.i.get_tool_frame("left") else "right"
+            joints = robot_description.i._safely_access_chains(arm).joints
+            #inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), kitchen.get_link_position(drawer_handle))
+            target = helper._transform_to_torso(kitchen.get_link_position_and_orientation(drawer_handle), robot)
+            #target = (target[0], [0, 0, 0, 1])
+            inv = request_ik(robot_description.i.base_frame, gripper, target , robot, joints )
+            _apply_ik(robot, inv, gripper)
             time.sleep(0.2)
+            cur_pose = robot.get_pose()
+            robot.set_position([cur_pose[0]-dis, cur_pose[1], cur_pose[2]])
             han_pose = kitchen.get_link_position(drawer_handle)
-            new_p = [han_pose[0] - dis, han_pose[1], han_pose[2]]
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), new_p)
-            _apply_ik(robot, inv)
+            new_p = [[han_pose[0] - dis, han_pose[1], han_pose[2]], kitchen.get_link_orientation(drawer_handle)]
+            new_p = helper._transform_to_torso(new_p, robot)
+            inv = request_ik(robot_description.i.base_frame, gripper, new_p, robot, joints)
+            _apply_ik(robot, inv, gripper)
             kitchen.set_joint_state(drawer_joint, 0.3)
             time.sleep(0.5)
 
