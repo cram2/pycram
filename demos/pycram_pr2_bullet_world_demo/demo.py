@@ -27,7 +27,8 @@ spawning_poses = {
 kitchen = Object("kitchen", "environment", "../../resources/kitchen.urdf")
 milk = Object("milk", "milk", "../../resources/milk.stl", spawning_poses["milk"])
 spoon = Object("spoon", "spoon", "../../resources/spoon.stl", spawning_poses["spoon"])
-spoon.set_orientation([0, 0, 1, 0])
+if robot_description.i.name == "boxy":
+    spoon.set_orientation([0, 0, 1, 0])
 kitchen.attach(spoon, link="sink_area_left_upper_drawer_main")
 cereal = Object("cereal", "cereal", "../../resources/breakfast_cereal.stl", spawning_poses["cereal"])
 bowl = Object("bowl", "bowl", "../../resources/bowl.stl", spawning_poses["bowl"])
@@ -45,7 +46,7 @@ moving_targets = {
     'pr2' : {'sink' : { 'milk' : [[0.6, 0.4, 0], [0, 0, 0, 1]],
                         'bowl' : [[0.65, 1.4, 0], [0, 0, 0, 1]],
                         'cereal' : [[0.65, 1.3, 0], [0, 0, 0, 1]],
-                        'spoon': [[0.6, 0.35, 0], [0, 0, 0, 1]]},
+                        'spoon': [[0.4, 0.35, 0], [0, 0, 0, 1]]}, # (0.6, 0.35, 0)
             'island' : { 'milk' : [[-0.3, 1.6, 0], [0, 0, 1, 0]],
                          'bowl' : [[-0.3, 0.5, 0], [0, 0, 1, 0]],
                          'cereal': [[-0.35, 0.4, 0], [0, 0, 1, 0]],

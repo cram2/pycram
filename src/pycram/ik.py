@@ -104,7 +104,7 @@ def request_ik(root_link, tip_link, target_pose_and_rotation, robot_object, join
     :param joints: A list of joint name that should be altered
     :return: The solution that was generated.
     """
-    rospy.init_node('listener', anonymous=True)
+    #rospy.init_node('listener', anonymous=True)
     rospy.wait_for_service('/kdl_ik_service/get_ik')
 
     req = _make_request_msg(root_link, tip_link, target_pose_and_rotation, robot_object, joints)
