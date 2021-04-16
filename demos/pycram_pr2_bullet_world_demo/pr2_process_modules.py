@@ -1,10 +1,10 @@
 from pycram.robot_description import InitializedRobotDescription as robot_description
 from pycram.process_module import ProcessModule
-from pycram.process_modules import ProcessModules, _apply_ik
+from pycram.process_modules import ProcessModules
 from pycram.bullet_world import BulletWorld
 from pycram.helper import transform
 from pycram.ik import request_ik
-from pycram.helper import _transform_to_torso
+from pycram.helper import _transform_to_torso, _apply_ik
 from pycram.local_transformer import local_transformer
 import pycram.bullet_world_reasoning as btr
 import pybullet as p

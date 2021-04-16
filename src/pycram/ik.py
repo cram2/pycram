@@ -24,17 +24,6 @@ def _get_position_for_joints(robot, joints):
     """
     return list(map(lambda x: p.getJointState(robot.id, robot.get_joint_id(x))[0], joints))
 
-def _get_position_for_all_joints(robot):
-    joint_names = []
-    joint_poses = []
-    for joint in list(robot.joints.values()):
-        info = p.getJointInfo(robot.id, joint)
-        if info[2] not in  [p.JOINT_FIXED, p.JOINT_PLANAR, p.JOINT_SPHERICAL]:
-            joint_names.append(info[1].decode('utf-8'))
-            joint_poses.append(p.getJointState(robot.id, joint)[0])
-
-    return joint_names, joint_poses
-
 
 def _make_request_msg(root_link, tip_link, target_pose, robot_object, joints):
     """
@@ -68,13 +57,10 @@ def _make_request_msg(root_link, tip_link, target_pose, robot_object, joints):
 
     robot_state = RobotState()
     joint_state = JointState()
-    names, poses = _get_position_for_all_joints(robot_object)
     joint_state.name = joints
     joint_state.position = _get_position_for_joints(robot_object, joints)
     joint_state.velocity = [0.0 for x in range(len(joints))]
     joint_state.effort = [0.0 for x in range(len(joints))]
-    #joint_state.name = names
-    #joint_state.position = poses
     robot_state.joint_state = joint_state
 
     msg_request = PositionIKRequest()
@@ -104,7 +90,6 @@ def request_ik(root_link, tip_link, target_pose_and_rotation, robot_object, join
     :param joints: A list of joint name that should be altered
     :return: The solution that was generated.
     """
-    #rospy.init_node('listener', anonymous=True)
     rospy.wait_for_service('/kdl_ik_service/get_ik')
 
     req = _make_request_msg(root_link, tip_link, target_pose_and_rotation, robot_object, joints)

@@ -14,7 +14,7 @@ import pathlib
 import rospy
 import rospkg
 from .event import Event
-#from .helper import transform
+from .helper import bcolors
 
 class BulletWorld:
     """
@@ -26,7 +26,7 @@ class BulletWorld:
 
     current_bullet_world = None
     robot = None
-    node = rospy.init_node('listen')
+    node = rospy.init_node('pycram')
 
     def __init__(self, type="GUI"):
         """
@@ -324,16 +324,13 @@ class Object:
     def get_link_id(self, name):
         return self.links[name]
 
-    def get_link_position_and_orientation_tf(self, name):
-        return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[4:6]
-
     def get_link_relative_to_other_link(self, source_frame, target_frame):
 
         # Get pose of source_frame in map (although pose is returned we use the transform style for clarity)
-        map_T_source_trans, map_T_source_rot = self.get_link_position_and_orientation_tf(source_frame)
+        map_T_source_trans, map_T_source_rot = self.get_link_position_and_orientation(source_frame)
 
         # Get pose of target_frame in map (although pose is returned we use the transform style for clarity)
-        map_T_target_trans, map_T_target_rot = self.get_link_position_and_orientation_tf(target_frame)
+        map_T_target_trans, map_T_target_rot = self.get_link_position_and_orientation(target_frame)
 
         # Calculate Pose of target frame relatively to source_frame
         source_T_map_trans, source_T_map_rot = p.invertTransform(map_T_source_trans, map_T_source_rot)
@@ -351,6 +348,13 @@ class Object:
         return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[5]
 
     def set_joint_state(self, joint_name, joint_pose):
+        up_lim, low_lim = p.getJointInfo(self.id, self.joints[joint_name], physicsClientId=self.world.client_id)[8:10]
+        if low_lim > up_lim:
+            low_lim, up_lim = up_lim, low_lim
+        if not low_lim <= joint_pose <= up_lim:
+            print(f'{bcolors.BOLD}{bcolors.WARNING}The joint position has to be within the limits of the joint. The joint limits for {joint_name} are {low_lim} and {up_lim} {bcolors.ENDC}')
+            print(f'{bcolors.BOLD}{bcolors.WARNING}The given joint position was: {joint_pose} {bcolors.ENDC}')
+            return
         p.resetJointState(self.id, self.joints[joint_name], joint_pose, physicsClientId=self.world.client_id)
         self._set_attached_objects([self])
 
@@ -423,7 +427,7 @@ def _load_object(name, path, position, orientation, world, color):
         return obj
     except p.error as e:
         print(e)
-        print("The path has to be either a path to a URDf file, stl file, obj file or the name of a URDF on the parameter server.")
+        print(f"{bcolors.BOLD}{bcolors.WARNING}The path has to be either a path to a URDf file, stl file, obj file or the name of a URDF on the parameter server.{bcolors.ENDC}")
 
 
 def _is_cached(path, name, cach_dir):

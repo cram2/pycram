@@ -172,7 +172,7 @@ class RobotDescription:
     and joints. Different cameras can be added and static transforms and poses can be added too.
     """
 
-    def __init__(self, name, base_frame, base_link, torso_link, torso_joint, ik_joints,
+    def __init__(self, name, base_frame, base_link, torso_link, torso_joint,
                  odom_frame=None, odom_joints=None):
         """
         Initialises the robot description with the given frames.
@@ -197,7 +197,6 @@ class RobotDescription:
         self.base_link = base_link
         self.torso_link = torso_link
         self.torso_joint = torso_joint
-        self.ik_joints = ik_joints  # TODO: remove if _apply_ik does not set all joints anymore or if it was removed
 
     def _safely_access_chains(self, chain_name, verbose=True):
         """
@@ -401,24 +400,9 @@ class RobotDescription:
 class PR2Description(RobotDescription):
 
     def __init__(self):
-        # all joints which are not fix,
-        ik_joints = ["fl_caster_rotation_joint", "fl_caster_l_wheel_joint", "fl_caster_r_wheel_joint",
-                     "fr_caster_rotation_joint", "fr_caster_l_wheel_joint", "fr_caster_r_wheel_joint",
-                     "bl_caster_rotation_joint", "bl_caster_l_wheel_joint", "bl_caster_r_wheel_joint",
-                     "br_caster_rotation_joint", "br_caster_l_wheel_joint", "br_caster_r_wheel_joint",
-                     "head_pan_joint", "head_tilt_joint", "laser_tilt_mount_joint", "r_shoulder_pan_joint",
-                     "r_shoulder_lift_joint", "r_upper_arm_roll_joint", "r_elbow_flex_joint",
-                     "r_forearm_roll_joint", "r_wrist_flex_joint", "r_wrist_roll_joint",
-                     "r_gripper_motor_slider_joint", "r_gripper_motor_screw_joint",
-                     "r_gripper_l_finger_joint", "r_gripper_l_finger_tip_joint",
-                     "r_gripper_r_finger_joint", "r_gripper_r_finger_tip_joint",
-                     "r_gripper_joint", "l_shoulder_pan_joint", "l_shoulder_lift_joint",
-                     "l_upper_arm_roll_joint", "l_elbow_flex_joint", "l_forearm_roll_joint",
-                     "l_wrist_flex_joint", "l_wrist_roll_joint", "l_gripper_motor_slider_joint",
-                     "l_gripper_motor_screw_joint", "l_gripper_l_finger_joint",
-                     "l_gripper_l_finger_tip_joint", "l_gripper_r_finger_joint",
-                     "l_gripper_r_finger_tip_joint", "l_gripper_joint", "torso_lift_motor_screw_joint"]
-        super().__init__("pr2", "base_footprint", "base_link", "torso_lift_link", "torso_lift_joint", ik_joints)
+
+
+        super().__init__("pr2", "base_footprint", "base_link", "torso_lift_link", "torso_lift_joint")
         # Camera
         minimal_height = 1.27
         maximal_height = 1.60
@@ -436,8 +420,11 @@ class PR2Description(RobotDescription):
         wide_stereo_optical_frame = CameraDescription("wide_stereo_optical_frame",
                                                       horizontal_angle=horizontal_angle, vertical_angle=vertical_angle,
                                                       minimal_height=minimal_height, maximal_height=maximal_height)
-        self.add_cameras({"kinect": kinect, "openni": openni, "stereo": stereo,
-                          "optical_frame": wide_stereo_optical_frame})
+        self.add_cameras({"optical_frame": wide_stereo_optical_frame, "kinect": kinect,
+                            "openni": openni, "stereo": stereo})
+
+        # The axis which points away from the camera and along which the picture of the camera is created
+        self.front_facing_axis = [0, 0, 1]
         # Chains
         neck_static_joints = {}
         neck_static_joints["forward"] = [0.0, 0.0]
@@ -510,21 +497,16 @@ class PR2Description(RobotDescription):
 class BoxyDescription(RobotDescription):
 
     def __init__(self):
-        ik_joints = ['odom_x_joint', 'odom_y_joint', 'odom_z_joint', 'neck_shoulder_pan_joint',
-                     'neck_shoulder_lift_joint', 'neck_elbow_joint', 'neck_wrist_1_joint', 'neck_wrist_2_joint',
-                     'neck_wrist_3_joint', 'triangle_base_joint', 'left_arm_0_joint', 'left_arm_1_joint',
-                     'left_arm_2_joint', 'left_arm_3_joint', 'left_arm_4_joint', 'left_arm_5_joint',
-                     'left_arm_6_joint', 'left_gripper_base_gripper_left_joint', 'left_gripper_joint',
-                     'right_arm_0_joint', 'right_arm_1_joint', 'right_arm_2_joint', 'right_arm_3_joint',
-                     'right_arm_4_joint', 'right_arm_5_joint', 'right_arm_6_joint',
-                     'right_gripper_base_gripper_left_joint', 'right_gripper_joint']  # TODO: all non fixed joints
+
         super().__init__("boxy", "base_footprint", "base_link", "triangle_base_link",
-                         "triangle_base_joint", ik_joints, odom_frame="odom",
+                         "triangle_base_joint", odom_frame="odom",
                          odom_joints=["odom_x_joint", "odom_y_joint", "odom_z_joint"])
         camera = CameraDescription("head_mount_kinect2_rgb_optical_frame",
                                    minimal_height=0.0, maximal_height=2.5,
                                    horizontal_angle=0.99483, vertical_angle=0.75049)
         self.add_camera("camera", camera)
+        # The axis which points away from the camera and along which the picture of the camera is created
+        self.front_facing_axis = [0, 0, 1]
         # Neck
         neck_links = ["neck_shoulder_link", "neck_upper_arm_link", "neck_forearm_link",
                       "neck_wrist_1_link", "neck_wrist_2_link", "neck_wrist_3_link"]
@@ -610,12 +592,9 @@ class BoxyDescription(RobotDescription):
 class DonbotDescription(RobotDescription):
 
     def __init__(self):
-        ik_joints = ['odom_x_joint', 'odom_y_joint', 'odom_z_joint', 'ur5_shoulder_pan_joint',
-                     'ur5_shoulder_lift_joint', 'ur5_elbow_joint', 'ur5_wrist_1_joint',
-                     'ur5_wrist_2_joint', 'ur5_wrist_3_joint', 'gripper_base_gripper_left_joint',
-                     'gripper_joint']  # TODO: all non fixed joints
+
         super().__init__("donbot", "base_footprint", "base_link", "ur5_base_link",
-                         "arm_base_mounting_joint", ik_joints, odom_frame="odom",
+                         "arm_base_mounting_joint", odom_frame="odom",
                          odom_joints=["odom_x_joint", "odom_y_joint", "odom_z_joint"])
         # Camera
         rgb_camera = CameraDescription("camera_link",
@@ -634,6 +613,9 @@ class DonbotDescription(RobotDescription):
         self.add_cameras({"rgb_camera": rgb_camera, "rs_camera": rs_camera})
         # self.cameras["realsense_camera"] = realsense_camera
         # self.cameras["virtual_camera"] = virtual_camera
+        # The axis which points away from the camera and along which the picture of the camera is created
+        self.front_facing_axis = [0, 0, 1]
+
         # Gripper
         gripper_links = ["wrist_collision", "gripper_base_link", "gripper_finger_left_link",
                          "gripper_finger_right_link", "gripper_gripper_left_link", "gripper_gripper_right_link",
@@ -687,19 +669,8 @@ class DonbotDescription(RobotDescription):
 class HSRDescription(RobotDescription):
 
     def __init__(self):
-        ik_joints = ['base_roll_joint', 'base_r_drive_wheel_joint', 'base_l_drive_wheel_joint',
-                     'base_r_passive_wheel_x_frame_joint', 'base_r_passive_wheel_y_frame_joint',
-                     'base_r_passive_wheel_z_joint',
-                     'base_l_passive_wheel_x_frame_joint', 'base_l_passive_wheel_y_frame_joint',
-                     'base_l_passive_wheel_z_joint',
-                     'torso_lift_joint', 'head_pan_joint', 'head_tilt_joint', 'arm_lift_joint', 'arm_flex_joint',
-                     'arm_roll_joint',
-                     'wrist_flex_joint', 'wrist_roll_joint', 'hand_motor_joint', 'hand_l_proximal_joint',
-                     'hand_l_spring_proximal_joint',
-                     'hand_l_mimic_distal_joint', 'hand_l_distal_joint', 'hand_r_proximal_joint',
-                     'hand_r_spring_proximal_joint',
-                     'hand_r_mimic_distal_joint', 'hand_r_distal_joint']
-        super().__init__("hsr", "base_footprint", "base_link", "arm_lift_link", "arm_lift_joint", ik_joints)
+
+        super().__init__("hsr", "base_footprint", "base_link", "arm_lift_link", "arm_lift_joint")
         # Camera
         head_center_camera = CameraDescription("head_center_camera_frame",
                                                horizontal_angle=0.99483, vertical_angle=0.75049)
@@ -714,6 +685,8 @@ class HSRDescription(RobotDescription):
         self.add_cameras({"head_center_camera": head_center_camera, "head_rgbd_camera": head_rgbd_camera,
                           "head_l_camera": head_l_camera, "head_r_camera": head_r_camera,
                           "hand_camera": hand_camera})
+        # The axis which points away from the camera and along which the picture of the camera is created
+        self.front_facing_axis = [0, 0, 1]
         # Neck
         neck_links = ["head_pan_link", "head_tilt_link"]
         neck_joints = ["head_pan_joint", "head_tilt_joint"]

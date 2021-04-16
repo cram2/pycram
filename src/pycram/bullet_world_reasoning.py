@@ -2,10 +2,10 @@ import pybullet as p
 import itertools
 import numpy as np
 import time
-from .bullet_world import _world_and_id
+from .bullet_world import _world_and_id, Object
 from .ik import request_ik
 from .robot_description import InitializedRobotDescription as robot_description
-from .helper import _transform_to_torso
+from .helper import _transform_to_torso, _apply_ik
 
 
 class ReasoningError(Exception):
@@ -108,7 +108,7 @@ def contact(object1, object2, world=None):
     return con_points is not ()
 
 
-def visible(object, camera_position_and_orientation, front_facing_axis, threshold=0.8, world=None):
+def visible(object, camera_position_and_orientation, front_facing_axis=None, threshold=0.8, world=None):
     """
     This reasoning query checks if an object is visible from a given position. This will be achieved by rendering the object
     alone and counting the visible pixel, then rendering the complete scene and compare the visible pixels with the
@@ -124,10 +124,13 @@ def visible(object, camera_position_and_orientation, front_facing_axis, threshol
     :return: True if the object is visible from the camera_position False if not
     """
     world, world_id = _world_and_id(world)
+    front_facing_axis = robot_description.i.front_facing_axis if front_facing_axis == None else front_facing_axis
     det_world = world.copy()
     state = p.saveState(physicsClientId=det_world.client_id)
     for obj in det_world.objects:
-        if object.get_position_and_orientation() == obj.get_position_and_orientation():
+        if obj.name == world.robot.name:
+            continue
+        elif object.get_position_and_orientation() == obj.get_position_and_orientation():
             object = obj
         else:
             p.resetBasePositionAndOrientation(obj.id, [100, 100, 100], [0, 0, 0, 1], det_world.client_id)
@@ -171,7 +174,9 @@ def occluding(object, camera_position_and_orientation, front_facing_axis, world=
     occ_world = world.copy()
     state = p.saveState(physicsClientId=occ_world.client_id)
     for obj in occ_world.objects:
-        if object.get_position_and_orientation() == obj.get_position_and_orientation():
+        if obj.name == world.robot.name:
+            continue
+        elif object.get_position_and_orientation() == obj.get_position_and_orientation():
             object = obj
         else:
             p.resetBasePositionAndOrientation(obj.id, [100, 100, 100], [0, 0, 0, 1], occ_world.client_id)
@@ -200,28 +205,12 @@ def occluding(object, camera_position_and_orientation, front_facing_axis, world=
     return occ_objects
 
 
-def reachable_object(object, robot, gripper_name, world=None, threshold=0.01):
-    """
-    This reasoning query checks if an object is reachable for a given robot. For this purpose the inverse kinematics between
-    the robot and the object will be calculated and applied. In the next step the distance between the given end_effector
-    and the object will be calculated and it will be checked if it less than the threshold.
-    :param object: The object for which reachability should be checked
-    :param robot: The robot which should reach for the object
-    :param gripper_name: The name of the end effector of the robot
-    :param world: The BulletWorld if more than one BulletWorld is active
-    :param threshold: The threshold between the end effector and the object. The default value is 0.01 m
-    :return: True if after applying the inverse kinematics the distance between end effector and object is less than
-                the threshold False if not.
-    """
-    return reachable_pose(object.get_position(), robot, gripper_name, world, threshold)
-
-
-def reachable_pose(pose, robot, gripper_name, world=None, threshold=0.01):
+def reachable(pose, robot, gripper_name, world=None, threshold=0.01):
     """
     This reasoning query checks if the robot can reach a given position. To determine this the inverse kinematics are
     calculated and applied. Afterwards the distance between the position and the given end effector is calculated, if
     it is smaller than the threshold the reasoning query returns True, if not it returns False.
-    :param pose: The position for that reachability should be checked
+    :param pose: The position or Object for which reachability should be checked.
     :param robot: The robot that should reach for the position
     :param gripper_name: The name of the end effector
     :param world: The BulletWorld in which the reasoning query should opperate
@@ -229,6 +218,8 @@ def reachable_pose(pose, robot, gripper_name, world=None, threshold=0.01):
     :return: True if the end effector is closer than the threshold True if the end effector is closer than the threshold
     to the target position, False in every other case to the target position, False in every other case
     """
+    if type(pose) == Object:
+        pose = pose.get_position()
     world, world_id = _world_and_id(world)
     state = p.saveState(physicsClientId=world_id)
     arm = "left" if gripper_name == robot_description.i.get_tool_frame("left") else "right"
@@ -237,11 +228,7 @@ def reachable_pose(pose, robot, gripper_name, world=None, threshold=0.01):
     target = (target[0], [0, 0, 0, 1])
     inv = request_ik(robot_description.i.base_frame, gripper_name, target, robot, joints)
 
-    # Hack because kdl outputs more joint values than there are joints given
-    joints = [robot_description.i.torso_joint] + joints
-
-    for i in range(len(inv)):
-        robot.set_joint_state(joints[i], inv[i])
+    _apply_ik(robot, inv, gripper_name)
 
     newp = p.getLinkState(robot.id, robot.get_link_id(gripper_name), physicsClientId=world_id)[4]
     diff = [pose[0] - newp[0], pose[1] - newp[1],  pose[2] - newp[2]]
@@ -268,11 +255,7 @@ def blocking(object, robot, gripper_name, world=None):
     target = _transform_to_torso(object.get_position_and_orientation(), robot)
     inv = request_ik(robot_description.i.base_frame, gripper_name, target, robot, joints)
 
-    # Hack because kdl outputs more joint values than there are joints given
-    joints = [robot_description.i.torso_joint] + joints
-
-    for i in range(len(inv)):
-        robot.set_joint_state(joints[i], inv[i])
+    _apply_ik(robot, inv, gripper_name)
 
     block = []
     for obj in world.objects:
