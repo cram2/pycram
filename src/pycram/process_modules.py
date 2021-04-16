@@ -1,17 +1,6 @@
 from .robot_description import InitializedRobotDescription as robot_description
 
-def _apply_ik(robot, joint_poses, gripper):
-    """
-    Apllies a list of joint poses calculated by an inverse kinematics solver to a robot
-    :param robot: The robot the joint poses should be applied on
-    :param joint_poses: The joint poses to be applied
-    :param gripper: specifies the gripper for which the ik solution should be applied
-    :return: None
-    """
-    arm ="left" if gripper == robot_description.i.get_tool_frame("left") else "right"
-    ik_joints = [robot_description.i.torso_joint] + robot_description.i._safely_access_chains(arm).joints
-    for i in range(0, len(ik_joints)):
-        robot.set_joint_state(ik_joints[i], joint_poses[i])
+
 
 
 class ProcessModules():

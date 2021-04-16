@@ -1,6 +1,6 @@
 from pycram.robot_description import InitializedRobotDescription as robot_description
 from pycram.process_module import ProcessModule
-from pycram.process_modules import ProcessModules, _apply_ik
+from pycram.process_modules import ProcessModules
 from pycram.bullet_world import BulletWorld
 from pycram.local_transformer import local_transformer
 import pycram.helper as helper
@@ -54,7 +54,7 @@ class DonbotPickUp(ProcessModule):
             target = object.get_position()
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), target,
                                                maxNumIterations=100)
-            _apply_ik(robot, inv)
+            helper._apply_ik(robot, inv)
             robot.attach(object, solution['gripper'])
             time.sleep(0.5)
 
@@ -71,7 +71,7 @@ class DonbotPlace(ProcessModule):
             robot = BulletWorld.robot
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), solution['target'],
                                                maxNumIterations=100)
-            _apply_ik(robot, inv)
+            helper._apply_ik(robot, inv)
             robot.detach(object)
             time.sleep(0.5)
 
@@ -95,12 +95,12 @@ class DonbotAccessing(ProcessModule):
             dis = solution['distance']
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper),
                                                kitchen.get_link_position(drawer_handle))
-            _apply_ik(robot, inv)
+            helper._apply_ik(robot, inv)
             time.sleep(0.2)
             han_pose = kitchen.get_link_position(drawer_handle)
             new_p = [han_pose[0] - dis, han_pose[1], han_pose[2]]
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), new_p)
-            _apply_ik(robot, inv)
+            helper._apply_ik(robot, inv)
             kitchen.set_joint_state(drawer_joint, 0.3)
             time.sleep(0.5)
 
@@ -205,7 +205,7 @@ class DonbotMoveTCP(ProcessModule):
             gripper = solution['gripper']
             robot = BulletWorld.robot
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), target)
-            _apply_ik(robot, inv)
+            helper._apply_ik(robot, inv)
             time.sleep(0.5)
 
 
