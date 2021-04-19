@@ -105,7 +105,7 @@ def contact(object1, object2, world=None):
     p.stepSimulation(world_id)
     con_points = p.getContactPoints(object1.id, object2.id, physicsClientId=world_id)
 
-    return con_points is not ()
+    return con_points != ()
 
 
 def visible(object, camera_position_and_orientation, front_facing_axis=None, threshold=0.8, world=None):
