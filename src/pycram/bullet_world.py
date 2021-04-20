@@ -153,7 +153,7 @@ class Object:
     This class represents an object in the BulletWorld.
     """
 
-    def __init__(self, name, type, path, position=[0, 0, 0], orientation=[0, 0, 0, 1], world=None, color=[1, 1, 1, 1]):
+    def __init__(self, name, type, path, position=[0, 0, 0], orientation=[0, 0, 0, 1], world=None, color=[1, 1, 1, 1], ignoreCachedFiles=False):
         """
         The constructor loads the urdf file into the given BulletWorld, if no BulletWorld is specified the
         'current_bullet_world' will be used. It is also possible to load .obj and .stl file into the BulletWorld.
@@ -172,7 +172,7 @@ class Object:
         self.type = type
         self.path = path
         self.color = color
-        self.id = _load_object(name, path, position, orientation, world, color)
+        self.id = _load_object(name, path, position, orientation, world, color, ignoreCachedFiles)
         self.joints = self._joint_or_link_name_to_id("joint")
         self.links = self._joint_or_link_name_to_id("link")
         self.attachments = {}
@@ -374,7 +374,7 @@ class Object:
 def filter_contact_points(contact_points, exclude_ids):
     return list(filter(lambda cp: cp[2] not in exclude_ids, contact_points))
 
-def _load_object(name, path, position, orientation, world, color):
+def _load_object(name, path, position, orientation, world, color, ignoreCachedFiles):
     """
     This method loads an object to the given BulletWorld with the given position and orientation. The color will only be
     used when an .obj or .stl file is given.
@@ -400,7 +400,7 @@ def _load_object(name, path, position, orientation, world, color):
         os.mkdir(cach_dir)
 
     # if file is not yet cached corrcet the urdf and save if in the cache directory
-    if not _is_cached(path, name, cach_dir):
+    if not _is_cached(path, name, cach_dir) or ignoreCachedFiles:
         if extension == ".obj" or extension == ".stl":
             path = _generate_urdf_file(name, path, color, cach_dir)
         elif extension == ".urdf":
