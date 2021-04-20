@@ -713,6 +713,78 @@ class HSRDescription(RobotDescription):
         # TODO: Hacky since only one optical camera frame from pr2 is used
         return super().get_camera_frame(name)
 
+class PepperDescription(RobotDescription):
+    def __init__(self):
+        super().__init__("pepper", "base_link", "base_footprint", "torso", "base_link_fixedjoint",
+                        "odom")
+
+        camera = CameraDescription("CameraDepth_optical_frame",
+                            minimal_height=1.0, maximal_height=1.0,
+                            horizontal_angle=1.0, vertical_angle=1.0)
+        self.add_camera("camera", camera)
+
+        # The axis which points away from the camera and along which the picture of the camera is created
+        self.front_facing_axis = [0, 0, 1]
+
+        # Neck
+        neck_links = ["Neck", "Head"]
+        neck_joints = ["HeadYaw", "HeadPitch"]
+        neck_down = [0.00, 0.62]
+        neck_left = [0.86, 0.00]
+        neck_park = [0.00, 0.00]
+
+        neck = ChainDescription("neck", neck_joints, neck_links)
+        neck.add_static_joint_chain({"down" : neck_down, "left" : neck_left, "park" : neck_park})
+        self.add_chain("neck", neck)
+
+        # ARMS
+
+        left_arm_joints = ["LShoulderPitch", "LShoulderRoll", "LElbowYaw", "LElbowRoll", "LWristYaw"]
+        left_arm_links = ["LShoulder", "LBicep", "LElbow", "LForeArm", "l_wrist"]
+        right_arm_joints = ["RShoulderPitch", "RShoulderRoll", "RElbowYaw", "RElbowRoll", "RWristYaw"]
+        right_arm_links = ["RShoulder", "RBicep", "RElbow", "RForeArm", "r_wrist"]
+
+        # Gripper
+        l_gripper_links = ["l_gripper"]
+        l_gripper_joints = ["left_gripper_joint"]
+        r_gripper_links = ["r_gripper"]
+        r_gripper_joints = ["right_gripper_joint"]
+
+        left_gripper = GripperDescription("left_gripper", gripper_links=l_gripper_links,
+                                            gripper_joints=l_gripper_joints)
+        right_gripper = GripperDescription("right_gripper", gripper_links=r_gripper_links,
+                                            gripper_joints=r_gripper_joints)
+
+        # Arms
+        left_arm = ChainDescription("left", left_arm_joints, left_arm_links)
+        left_inter = InteractionDescription(left, "LThumb1_link")
+        left_arm = ManipulatorDescription(left_inter, tool_frame="LThumb1", gripper_description=left_gripper)
+
+        right_arm = ChainDescription("right", right_arm_joints, right_arm_links)
+        right_inter = InteractionDescription(right, "RThumb1_link")
+        right_arm = ManipulatorDescription(right_arm, tool_frame="RThumb1", gripper_description=right_gripper)
+
+        self.add_chain({"left" : left_arm, "right" : right_arm})
+
+        # Adding static Joint Poses
+
+        l_park = [1.08, 0.51, -0.15, -0.79, 0.00]
+        r_park = [1.08, -0.53, 0.00, 0.79, 0.00]
+        l_point = [-0.46, 0.99, -1.18, -0.01, 0.00]
+        r_point = [-0.41, -1.00, 0.50, 0.01, 0.91]
+        straight_point = [-0.13, -0.37, 0.46, 0.69, 1.82] # TODO ncohmal gucken wie genau, die hier ist für rechts
+
+        left_arm.add_static_joint_chains({"park" : l_park, "point" : l_point})
+        right_arm.add_static_joint_chains({"park" : r_park, "point" : r_point})
+
+    def get_camera_frame(self, name="camera"):
+        return super().get_camera_frame(name)
+
+
+
+
+
+
 
 class InitializedRobotDescription():
     # singleton instance short named as 'i'

@@ -12,8 +12,10 @@
   </group>
 -->
 
-  <param textfile="$(find pycram)/resources/boxy.urdf" name="robot_description"/>
-  <!--
+  <param textfile="$(find pycram)/resources/pepper.urdf" name="robot_description"/>
+<!--
+<param textfile="$(find pycram)/resources/boxy.urdf" name="robot_description"/>
+
   In ROS Noetic the xacro file for boxy doesnt seem to work, as a quick fix use the line above
   <include file="$(find iai_boxy_description)/launch/upload_boxy.launch" />
 -->
