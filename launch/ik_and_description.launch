@@ -11,8 +11,8 @@
                     '$(find pr2_description)/robots/pr2.urdf.xacro'"/>
   </group>
 -->
-
   <param textfile="$(find pycram)/resources/pepper.urdf" name="robot_description"/>
+
 <!--
 <param textfile="$(find pycram)/resources/boxy.urdf" name="robot_description"/>
 

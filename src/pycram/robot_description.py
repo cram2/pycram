@@ -734,7 +734,7 @@ class PepperDescription(RobotDescription):
         neck_park = [0.00, 0.00]
 
         neck = ChainDescription("neck", neck_joints, neck_links)
-        neck.add_static_joint_chain({"down" : neck_down, "left" : neck_left, "park" : neck_park})
+        neck.add_static_joint_chains({"down" : neck_down, "left" : neck_left, "park" : neck_park})
         self.add_chain("neck", neck)
 
         # ARMS
@@ -757,14 +757,16 @@ class PepperDescription(RobotDescription):
 
         # Arms
         left_arm = ChainDescription("left", left_arm_joints, left_arm_links)
-        left_inter = InteractionDescription(left, "LThumb1_link")
-        left_arm = ManipulatorDescription(left_inter, tool_frame="LThumb1", gripper_description=left_gripper)
+        left_inter = InteractionDescription(left_arm, "LThumb1_link")
+        left_man = ManipulatorDescription(left_inter, tool_frame="LThumb1", gripper_description=left_gripper)
 
         right_arm = ChainDescription("right", right_arm_joints, right_arm_links)
-        right_inter = InteractionDescription(right, "RThumb1_link")
-        right_arm = ManipulatorDescription(right_arm, tool_frame="RThumb1", gripper_description=right_gripper)
+        right_inter = InteractionDescription(right_arm, "RThumb1_link")
+        right_man = ManipulatorDescription(right_inter, tool_frame="RThumb1", gripper_description=right_gripper)
 
-        self.add_chain({"left" : left_arm, "right" : right_arm})
+        self.add_chain("left", left_man)
+        self.add_chain("right", right_man)
+
 
         # Adding static Joint Poses
 
@@ -774,8 +776,8 @@ class PepperDescription(RobotDescription):
         r_point = [-0.41, -1.00, 0.50, 0.01, 0.91]
         straight_point = [-0.13, -0.37, 0.46, 0.69, 1.82] # TODO ncohmal gucken wie genau, die hier ist für rechts
 
-        left_arm.add_static_joint_chains({"park" : l_park, "point" : l_point})
-        right_arm.add_static_joint_chains({"park" : r_park, "point" : r_point})
+        left_man.add_static_joint_chains({"park" : l_park, "point" : l_point})
+        right_man.add_static_joint_chains({"park" : r_park, "point" : r_point})
 
     def get_camera_frame(self, name="camera"):
         return super().get_camera_frame(name)
@@ -827,6 +829,8 @@ def update_robot_description(robot_name=None, from_ros=None):
         description = BoxyDescription
     elif 'hsr' in robot:
         description = HSRDescription
+    elif 'pepper' in robot:
+        description = PepperDescription
     else:
         logerr("(robot-description) The given robot name %s has no description class.", robot_name)
         return None

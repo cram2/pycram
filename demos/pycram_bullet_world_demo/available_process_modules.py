@@ -4,6 +4,7 @@ from pr2_process_modules import PR2ProcessModules
 from boxy_process_modules import BoxyProcessModules
 from donbot_process_modules import DonbotProcessModules
 from hsr_process_modules import HSRProcessModules
+from pepper_process_modules import PepperProcessModules
 from rospy import logerr
 
 
@@ -17,6 +18,8 @@ def available_process_modules(desig):
         return DonbotProcessModules().initialized.available_process_modules(desig)
     elif robot_name is 'hsr': # todo rmv hardcoded robot names
         return HSRProcessModules().initialized.available_process_modules(desig)
+    elif robot_name == 'pepper':
+        return PepperProcessModules().initialized.available_process_modules(desig)
     else:
         logerr('No Process Modules found for robot %s.', robot_name)
 
