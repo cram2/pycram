@@ -162,6 +162,42 @@ class CameraDescription:
         # static, but flexible params
         self.params = other_params if other_params else {}
 
+class GraspingDescription():
+    """
+    This class represents all possible grasp a robot can perform and the grasps
+    the robot can perform for a specific object.
+    """
+    def __init__(self):
+        self.grasps = {}
+        self.grasps_for_object = {}
+
+    def add_grasp(self, grasp, orientation):
+        """
+        Adds a Grasping side like "top", "left", "front" and the corresponding orientation
+        of the gripper to this description.
+        :param grasp: The type of grasp like "top" or "left"
+        :param orientation: The orientation the Gripper has to have in order to
+        achive this grasp. In world coordinate frame
+        """
+        self.grasps[grasp] = orientation
+
+    def add_graspings_for_object(self, grasps, object):
+        """
+        Adds all possible Grasps for the specified object. The used grasps have to
+        be registered beforehand via the add_grasp method.
+        :param graps: A list of all graps for this object.
+        :param object: The object for which the grasps should be specified
+        """
+        self.grasps_for_object[object] = grasps
+
+    def get_all_grasps(self):
+        return self.grasps.keys()
+
+    def get_orientation_for_grasp(self, grasp):
+        return self.grasps[grasp]
+
+    def get_grasps_for_object(self, object):
+        return self.grasps_for_object[object]
 
 class RobotDescription:
     """
