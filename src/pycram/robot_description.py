@@ -715,8 +715,7 @@ class HSRDescription(RobotDescription):
 
 class PepperDescription(RobotDescription):
     def __init__(self):
-        super().__init__("pepper", "base_link", "base_footprint", "torso", "base_link_fixedjoint",
-                        "odom")
+        super().__init__("pepper", "base_link", "base_footprint", "torso", "base_link_fixedjoint")
 
         camera = CameraDescription("CameraDepth_optical_frame",
                             minimal_height=1.0, maximal_height=1.0,

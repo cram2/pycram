@@ -24,7 +24,7 @@ from geometry_msgs.msg import PoseStamped
 # which would destroy the validate local tf tree. Therefore, this mode is NOT activated.
 # Instead to update the local tf tree, please call the memeber function update_local_transformer_from_btr()
 # on the object local_transformer of class LocalTransformer.
-publish_frequently = False
+publish_frequently = True
 
 class LocalTransformer:
     """This class allows to use the TF class TransformerROS without using the ROS
