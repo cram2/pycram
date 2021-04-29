@@ -35,6 +35,11 @@ bowl = Object("bowl", "bowl", "../../resources/bowl.stl", spawning_poses["bowl"]
 BulletWorld.robot = robot
 robot.set_joint_state(robot_description.i.torso_joint, 0.24)
 
+robot_description.i.grasps.add_graspings_for_object(["left", "right", "front"], milk)
+robot_description.i.grasps.add_graspings_for_object(["top"], spoon)
+robot_description.i.grasps.add_graspings_for_object(["top"], bowl)
+robot_description.i.grasps.add_graspings_for_object(["front"], milk)
+
 targets = {
     'milk': [[-0.8, 1, 0.93], "left", False],
     'bowl': [[-0.8, 1.2, 0.9], "right", False],
