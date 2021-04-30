@@ -19,9 +19,10 @@ def pr2_motion_designators(desig):
 
     # Type: pick-up
     if desig.check_constraints([('type', 'pick-up'), 'object']):
-        if desig.check_constraints([('arm', 'right')]):
-            if desig.check_constraints(['grasp']):
-                solutions.append(desig.make_dictionary([('cmd', 'pick'), 'object', ('gripper', robot_description.i.get_tool_frame('right')), 'grasp']))
+        if desig.check_constraints([('arm', 'right'), 'grasp']):
+            solutions.append(desig.make_dictionary([('cmd', 'pick'), 'object', ('gripper', robot_description.i.get_tool_frame('right')), 'grasp']))
+        if desig.check_constraints([('arm', 'left'), 'grasp']):
+            solutions.append(desig.make_dictionary([('cmd', 'pick'), 'object', ('gripper', robot_description.i.get_tool_frame('left')), 'grasp']))
         solutions.append(desig.make_dictionary([('cmd', 'pick'), 'object', ('gripper', robot_description.i.get_tool_frame('left')), ('grasp', robot_description.i.grasps.get_grasps_for_object(desig.prop_value('object'))[0])]))
 
     # Type: place
