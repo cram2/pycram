@@ -57,7 +57,8 @@ class BoxyPickUp(ProcessModule):
         if solution['cmd'] == 'pick':
             object = solution['object']
             robot = BulletWorld.robot
-            target = object.get_position_and_orientation()
+            grasp = robot_description.i.grasps.get_orientation_for_grasp(solution['grasp'])
+            target = [object.get_position(), grasp]
             target = helper._transform_to_torso(target, robot)
             arm = "left" if solution['gripper'] == robot_description.i.get_tool_frame("left") else "right"
             joints = robot_description.i._safely_access_chains(arm).joints
