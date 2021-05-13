@@ -2,6 +2,9 @@
   <arg name="robot" default="pepper" />
 
   <node pkg="kdl_ik_service" type="start_ros_server.py" name="kdl_ik_service" output="screen" />
+
+  <node pkg="rosprolog" type="rosprolog_node" name="knowrob" args="knowrob" output="screen" />
+
   <param name="ik_debug" value="true"/>
   <!-- PR2 URDF -->
 
