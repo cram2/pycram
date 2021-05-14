@@ -2,6 +2,11 @@ from pycram.designator import MotionDesignator
 from pycram.bullet_world import BulletWorld
 from pycram.robot_description import InitializedRobotDescription as robot_description
 
+def ground_moving(self):
+
+
+
+
 def pr2_motion_designators(desig):
     """
     This method defines the referencing of all available motion designator.
