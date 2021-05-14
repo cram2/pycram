@@ -2,6 +2,65 @@ from pycram.designator import MotionDesignator
 from pycram.bullet_world import BulletWorld
 from pycram.robot_description import InitializedRobotDescription as robot_description
 
+def pr2_motion_designators_new(desig):
+    solutions = []
+    match desig._properties:
+        # Type: Moving
+        case [('type', 'moving'), ('target', position)]:
+            print("Assume orientation as current orientation")
+            orientation = BulletWorld.robot.get_orientation()
+            solutions.append(desig.make_dictionary([('cmd', 'navigate'), ('target', position),
+                        ('orientation', orientation)]))
+
+        case [('type', 'moving'), ('target', position), ('orientation', orientation)]:
+            solutions.append(desig.make_dictionary([('cmd', 'navigate'), ('target', position),
+                        ('orientation', orientation)]))
+
+        case [('type', 'moving'), *props]:
+            print("Error")
+
+        #Type: pick-up
+        case [('type', 'pick-up'), ('object', obj), ('arm', arm)]:
+            solutions.append(desig.make_dictionary([('cmd', 'pick'),
+                        ('object', obj), ('gripper', robot_description.i.get_tool_frame(arm))])
+
+        case [('type', 'pick-up'), ('object', obj)]:
+            print("Assume arm as 'left'")
+            solutions.append(desig.make_dictionary([('cmd', 'pick'),
+                        ('object', obj), ('gripper', robot_description.i.get_tool_frame('left'))])
+
+        case [('type', 'pick-up'), *props]:
+            print("error")
+
+        #Type: Place
+        case [('type', 'place'), ('target', pose), ('object', obj), ('arm', arm)]:
+            solutions.append(desig.make_dictionary([('cmd', 'place'),
+                    ('target', pose), ('object', obj),
+                    ('gripper', robot_description.i.get_tool_frame(arm))])
+
+        case [('type', 'place'), ('target', pose), ('object', obj)]:
+            print("Assume arm as 'left'")
+            solutions.append(desig.make_dictionary([('cmd', 'place'),
+                    ('target', pose), ('object', obj),
+                    ('gripper', robot_description.i.get_tool_frame('left'))])
+
+        case [('type', 'place'), *props]:
+            print("Error")
+
+
+        # Type: accessing
+        case [('type', 'accessing'), ('drawer-joint', joint), ('drawer-handle', handle),
+        ('part-of', part), ('arm', arm), ('distance', dist)]:
+            solutions.append(desig.make_dictionary([('cmd', 'access'),
+                ('drawer-joint', joint), ('drawer-handle', handle),
+                 ('gripper', robot_description.i.get_tool_frame(arm)),
+                 ('distance', dist) ('part-of', part)]))
+
+        case [('type', 'accessing'), ('drawer-joint', joint), ('drawer-handle', handle),
+        ('part-of', part), ('arm', arm), ('distance', dist)]:
+            
+
+
 def pr2_motion_designators(desig):
     """
     This method defines the referencing of all available motion designator.

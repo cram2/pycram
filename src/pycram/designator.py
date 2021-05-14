@@ -41,7 +41,7 @@ class Designator:
 	make_dictionary -- return the given parameters as dictionary.
 	"""
 
-	def __init__(self, properties, parent = None):
+	def __init__(self, description, parent = None):
 		"""Create a new desginator.
 
 		Arguments:
@@ -54,7 +54,7 @@ class Designator:
 		self._effective = False
 		self._data = None
 		self.timestamp = None
-		self._properties = properties
+		self._properties = description
 
 		if parent is not None:
 			self.equate(parent)
@@ -134,7 +134,7 @@ class Designator:
 		else:
 			desig = self
 
-		def generator(desig):
+		def generator(desig):properties
 			while desig is not None:
 				try:
 					yield desig.reference()
@@ -260,66 +260,6 @@ class Designator:
 		return self.current()
 
 
-class MotionDesignator(Designator):
-	"""
-	Implementation of motion designators.
-
-	Variables:
-	resolvers -- list of all motion designator resolvers.
-	"""
-
-	resolvers = []
-	"""List of all motion designator resolvers. Motion designator resolvers are functions which take a designator as argument and return a list of solutions. A solution can also be a generator."""
-
-	def __init__(self, properties, parent = None):
-		self._solutions = None
-		self._index = 0
-		Designator.__init__(self, properties, parent)
-
-	def _reference(self):
-		if self._solutions is None:
-			def generator():
-				for resolver in MotionDesignator.resolvers:
-					for solution in resolver(self):
-						if isgeneratorfunction(solution):
-							solution = solution()
-
-						if isgenerator(solution):
-							while True:
-								try:
-									yield next(solution)
-								except StopIteration:
-									break
-						else:
-							yield solution
-
-			self._solutions = GeneratorList(generator)
-
-		if self._data is not None:
-			return self._data
-
-		try:
-			self._data = self._solutions.get(self._index)
-			return self._data
-		except StopIteration:
-			raise DesignatorError('Cannot resolve motion designator')
-
-	def next_solution(self):
-		try:
-			self.reference()
-		except DesignatorError:
-			pass
-
-		if self._solutions.has(self._index + 1):
-			desig = MotionDesignator(self._properties, self)
-			desig._solutions = self._solutions
-			desig._index = self._index + 1
-			return desig
-
-		return None
-
-	def __str__(self):
-		return "MotionDesignator({})".format(self._properties)
 
 class LocationDesignator(Designator):
 	def __str__(self):
