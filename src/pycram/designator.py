@@ -17,6 +17,12 @@ class DesignatorError(Exception):
 		"""Create a new designator error."""
 		Exception.__init__(self, *args, **kwargs)
 
+class ResolutionError(Exception):
+	def __init__(self, missing_properties, designator):
+		self.message = f"Some requiered properties where missing when grounding the Designator: {designator}.\n
+		The missing properties where: {missing_properties}"
+		super(ResolutionError, self).__init__(self.message)
+
 class Designator:
 	"""Implementation of designators.
 
@@ -238,16 +244,22 @@ class Designator:
 		Arguments:
 		properties -- the properties to create a dictionary of. A property can be a tuple in which case its first value is the dictionary key and the second value is the dictionary value. Otherwise it's simply the dictionary key and the key of a property which is the dictionary value.
 		"""
-		dictionary = {}
+		attributes = self.__dict__
 
-		for prop in properties:
-			if type(prop) == tuple:
-				key, value = prop
-				dictionary[key] = value
-			else:
-				dictionary[prop] = self.prop_value(prop)
+		for att in attributes.keys():
+			if att not in properties:
+				del attributes[att]
 
-		return dictionary
+		return attributes
+
+		#for prop in properties:
+		#	if type(prop) == tuple:
+		#		key, value = prop
+		#		dictionary[key] = value
+		#	else:
+		#		dictionary[prop] = self.prop_value(prop)
+#
+#		return dictionary
 
 	def rename_prop(self, old, new):
 		old_value = self.prop_value(old)

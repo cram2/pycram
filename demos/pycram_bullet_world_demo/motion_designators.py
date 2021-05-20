@@ -1,65 +1,105 @@
-from pycram.designator import MotionDesignator
+from pycram.motionDesignator import *
+from pycram.designator import ResolutionError
 from pycram.bullet_world import BulletWorld
 from pycram.robot_description import InitializedRobotDescription as robot_description
+import rospy
 
-def pr2_motion_designators_new(desig):
-    solutions = []
-    match desig._properties:
-        # Type: Moving
-        case [('type', 'moving'), ('target', position)]:
-            print("Assume orientation as current orientation")
-            orientation = BulletWorld.robot.get_orientation()
-            solutions.append(desig.make_dictionary([('cmd', 'navigate'), ('target', position),
-                        ('orientation', orientation)]))
+def ground_move(self):
+    if not self.orientation:
+        self.orientation = BulletWorld.robot.get_orientation()
+    missing = self._check_missing_properties()
+    if missing != []:
+        raise ResolutionError(missing, "[Motion Designator] Moving")
+    return self.__dict__
 
-        case [('type', 'moving'), ('target', position), ('orientation', orientation)]:
-            solutions.append(desig.make_dictionary([('cmd', 'navigate'), ('target', position),
-                        ('orientation', orientation)]))
+def ground_pick_up(self):
+    if not self.arm:
+        self.arm = 'left'
+    missing = self._check_missing_properties()
+    if missing != []:
+        raise ResolutionError(missing, "[Motion Designator] Pick-Up")
+    return self.__dict__
 
-        case [('type', 'moving'), *props]:
-            print("Error")
+def ground_place(self):
+    if not self.arm:
+        self.arm = 'left'
+    missing = self._check_missing_properties()
+    if missing != []:
+        raise ResolutionError(missing, "[Motion Designator] Place")
+    return self.__dict__
 
-        #Type: pick-up
-        case [('type', 'pick-up'), ('object', obj), ('arm', arm)]:
-            solutions.append(desig.make_dictionary([('cmd', 'pick'),
-                        ('object', obj), ('gripper', robot_description.i.get_tool_frame(arm))])
+def ground_accessing(self):
+    if not self.arm:
+        self.arm = 'left'
+    missing = self._check_missing_properties()
+    if missing != []:
+        raise ResolutionError(missing, "[Motion Designator] Accessing")
+    return self.__dict__
 
-        case [('type', 'pick-up'), ('object', obj)]:
-            print("Assume arm as 'left'")
-            solutions.append(desig.make_dictionary([('cmd', 'pick'),
-                        ('object', obj), ('gripper', robot_description.i.get_tool_frame('left'))])
+def ground_move_tcp(self):
+    if not self.arm:
+        self.arm = 'left'
+    missing = self._check_missing_properties()
+    if missing != []:
+        raise ResolutionError(missing, "[Motion Designator] Move-TCP")
+    return sefl.__dict__
 
-        case [('type', 'pick-up'), *props]:
-            print("error")
+def ground_looking(self):
+    if self.target and self.object:
+        rospy.logwarn(f"[Looking Designator Resolution] Target and Object parameter provided. Only Object will be further used.")
+        return {'cmd': self.cmd,
+                'target': BulletWorld.current_bullet_world.get_objects_by_name(self.object).get_pose}
+    if self.object:
+        return {'cmd': self.cmd,
+                'target': BulletWorld.current_bullet_world.get_objects_by_name(self.object).get_pose}
+    if self.target:
+        return self.make_dictionary(["cmd", "target"])
+    if not self.target and not self.object:
+        raise Resolution(['target', 'object'], "[Motion Designator] Looking")
 
-        #Type: Place
-        case [('type', 'place'), ('target', pose), ('object', obj), ('arm', arm)]:
-            solutions.append(desig.make_dictionary([('cmd', 'place'),
-                    ('target', pose), ('object', obj),
-                    ('gripper', robot_description.i.get_tool_frame(arm))])
+def ground_move_gripper(self):
+    missing = self._check_missing_properties()
+    if missing != []:
+        raise ResolutionError(missing, "[Motion Designator] Move-gripper")
+    return self.__dict__
 
-        case [('type', 'place'), ('target', pose), ('object', obj)]:
-            print("Assume arm as 'left'")
-            solutions.append(desig.make_dictionary([('cmd', 'place'),
-                    ('target', pose), ('object', obj),
-                    ('gripper', robot_description.i.get_tool_frame('left'))])
+def ground_detect(self):
+    if not self.cam_frame:
+        self.cam_frame = robot_description.i.get_camera_frame()
+    if not self.front_facing_axis:
+        self.front_facing_axis = robot.i.front_facing_axis
+    missing = self._check_missing_properties()
+    if missing != []:
+        raise ResolutionError(missing, "[Motion Designator] Detecting")
+    return self.__dict__
 
-        case [('type', 'place'), *props]:
-            print("Error")
+def ground_move_arm(self):
+    missing = self._check_missing_properties()
+    if missing != []:
+        raise ResolutionError(missing, "[Motion Designator] Move-arm-joints")
+    return self.__dict__
 
+def ground_world_state_detecting(self):
+    missing = self._check_missing_properties()
+    if missing != []:
+        raise ResolutionError(missing, "[Motion Designator] World-state-detecting")
+    return self.__dict__
 
-        # Type: accessing
-        case [('type', 'accessing'), ('drawer-joint', joint), ('drawer-handle', handle),
-        ('part-of', part), ('arm', arm), ('distance', dist)]:
-            solutions.append(desig.make_dictionary([('cmd', 'access'),
-                ('drawer-joint', joint), ('drawer-handle', handle),
-                 ('gripper', robot_description.i.get_tool_frame(arm)),
-                 ('distance', dist) ('part-of', part)]))
+MoveMotionDescription.ground = ground_move
+PickUpDescription.ground = ground_pick_up
+PlaceMotionDescription.ground = ground_place
+AccessingMotinDescription.ground = ground_accessing
+MoveTCPMotinDescription.ground = ground_move_tcp
+LookingMotionDescription.ground = ground_looking
+MoveGripperMotionDescription.ground = ground_move_gripper
+DetectingMotionDescription.ground = ground_detect
+MoveArmJointsMotionDescription.ground = ground_move_arm
+WorldStateDetectingMotionDescription.ground = ground_world_state_detecting
 
-        case [('type', 'accessing'), ('drawer-joint', joint), ('drawer-handle', handle),
-        ('part-of', part), ('arm', arm), ('distance', dist)]:
-            
+def call_ground(desig):
+    return desig._properties.ground()
 
+MotionDesignator.resolvers.append(call_ground)
 
 def pr2_motion_designators(desig):
     """
@@ -143,4 +183,4 @@ def pr2_motion_designators(desig):
     return solutions
 
 
-MotionDesignator.resolvers.append(pr2_motion_designators)
+#MotionDesignator.resolvers.append(pr2_motion_designators)
