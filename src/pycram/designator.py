@@ -6,7 +6,7 @@ Designator -- implementation of designators.
 MotionDesignator -- implementation of motion designators.
 """
 from inspect import isgenerator, isgeneratorfunction
-from .helper import GeneratorList
+from .helper import GeneratorList, bcolors
 from threading import Lock
 from time import time
 
@@ -18,9 +18,20 @@ class DesignatorError(Exception):
 		Exception.__init__(self, *args, **kwargs)
 
 class ResolutionError(Exception):
-	def __init__(self, missing_properties, designator):
-		self.message = f"Some requiered properties where missing when grounding the Designator: {designator}.\n
-		The missing properties where: {missing_properties}"
+	def __init__(self, missing_properties, wrong_type, designator):
+		self.error = f"\nSome requiered properties where missing or had the wrong type when grounding the Designator: {designator}.\n"
+		self.missing = f"The missing properties where: {missing_properties}"
+		self.wrong = f"The properties with the wrong type along with the right type:\n"
+		self.head = "Property   |    Right Type\n----------------------------\n"
+		self.tab = ""
+		for prop in wrong_type.keys():
+			self.tab += prop + "     " + str(wrong_type[prop]) +"\n"
+		self.message = self.error
+		if missing_properties != []:
+			self.message += self.missing
+		if wrong_type != {}:
+			self.message += self.wrong + self.head + self.tab
+		self.message = f"{bcolors.BOLD}{bcolors.FAIL}" + self.message + f"{bcolors.ENDC}"
 		super(ResolutionError, self).__init__(self.message)
 
 class Designator:
@@ -60,7 +71,7 @@ class Designator:
 		self._effective = False
 		self._data = None
 		self.timestamp = None
-		self._properties = description
+		self._description = description
 
 		if parent is not None:
 			self.equate(parent)
@@ -140,7 +151,7 @@ class Designator:
 		else:
 			desig = self
 
-		def generator(desig):properties
+		def generator(desig):
 			while desig is not None:
 				try:
 					yield desig.reference()

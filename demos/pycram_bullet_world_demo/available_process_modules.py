@@ -1,9 +1,9 @@
 from pycram.robot_description import InitializedRobotDescription as robot_description
 from pycram.process_module import ProcessModule
-from pr2_process_modules import PR2ProcessModules
-from boxy_process_modules import BoxyProcessModules
-from donbot_process_modules import DonbotProcessModules
-from hsr_process_modules import HSRProcessModules
+from .pr2_process_modules import PR2ProcessModules
+from .boxy_process_modules import BoxyProcessModules
+from .donbot_process_modules import DonbotProcessModules
+from .hsr_process_modules import HSRProcessModules
 from rospy import logerr
 
 

@@ -1,5 +1,5 @@
 from .robot_description import InitializedRobotDescription as robot_description
-
+from .motionDesignator import *
 
 
 
@@ -27,38 +27,38 @@ class ProcessModules():
         :param desig: The designator for which a process module should be choosen.
         :return: The choosen process module
         """
-        if desig.check_constraints([('type', 'moving')]):
+        if type(desig._description) == MoveMotionDescription:
             return self.navigation
 
-        if desig.check_constraints([('type', 'pick-up')]):
+        if type(desig._description) == PickUpMotionDescription:
             return self.pick_up
 
-        if desig.check_constraints([('type', 'place')]):
+        if type(desig._description) == PlaceMotionDescription:
             return self.place
 
-        if desig.check_constraints([('type', 'accessing')]):
+        if type(desig._description) == AccessingMotionDescription:
             return self.accessing
 
-        if desig.check_constraints([('type', 'park-arms')]):
-            return self.park_arms
+        #if desig.check_constraints([('type', 'park-arms')]):
+        #    return self.park_arms
 
-        if desig.check_constraints([('type', 'looking')]):
+        if type(desig._description) == LookingMotionDescription:
             return self.move_head
 
-        if desig.check_constraints([('type', 'opening-gripper')]):
+        if type(desig._description) == MoveGripperMotionDescription:
             return self.opening_gripper
 
-        if desig.check_constraints([('type', 'closing-gripper')]):
+        if type(desig._description) == MoveGripperMotionDescription:
             return self.closing_gripper
 
-        if desig.check_constraints([('type', 'detecting')]):
+        if type(desig._description) == DetectingMotionDescription:
             return self.detecting
 
-        if desig.check_constraints([('type', 'move-tcp')]):
+        if type(desig._description) == MoveTCPMotionDescription:
             return self.move_tcp
 
-        if desig.check_constraints([('type', 'move-arm-joints')]):
+        if type(desig._description) == MoveArmJointsMotionDescription:
             return self.move_joints
 
-        if desig.check_constraints([('type', 'world-state-detecting')]):
+        if type(desig._description) == WorldStateDetectingMotionDescription:
             return self.world_state_detecting
