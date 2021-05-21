@@ -1,4 +1,8 @@
-from .designator import Designator
+from .designator import Designator, DesignatorError
+from .helper import GeneratorList
+from inspect import isgenerator, isgeneratorfunction
+from typing import get_type_hints
+
 
 class MotionDesignator(Designator):
 	"""
@@ -39,6 +43,7 @@ class MotionDesignator(Designator):
 			return self._data
 
 		try:
+			#print(self._solutions._generated)
 			self._data = self._solutions.get(self._index)
 			return self._data
 		except StopIteration:
@@ -58,107 +63,104 @@ class MotionDesignator(Designator):
 
 		return None
 
-    def ground(self):
-        """
-        To be overwritten by explicit ground function
-        """
-        pass
+	def ground(self):
+		return None
 
 	def __str__(self):
-		return "MotionDesignator({})".format(self._properties)
+		return "MotionDesignator({})".format(self._description.__dict__)
 
 
 class MotionDesignatorDescription:
-    function = None
-
-    def ground(self):
-        return self
-
+	cmd: str
 	def make_dictionary(self, properties):
-		"""Return the given properties as dictionary.
-
-		Arguments:
-		properties -- the properties to create a dictionary of. A property can
-		be a tuple in which case its first value is the dictionary key and the
-		second value is the dictionary value. Otherwise it's simply the dictionary
-		key and the key of a property which is the dictionary value.
-		"""
 		attributes = self.__dict__
-
 		for att in attributes.keys():
 			if att not in properties:
 				del attributes[att]
-
 		return attributes
 
-	def _check_missing_properties(self, exclude=[]):
+	def _check_properties(self, exclude=[]):
+		types = get_type_hints(type(self))
 		attributes = self.__dict__
 		missing = []
+		wrong_type = {}
 		for k in attributes.keys():
-			if attributes[k] == None and not in exclude:
+			if attributes[k] == None and not attributes[k] in exclude:
 				missing.append(k)
-		return missing
+			elif type(attributes[k]) != types[k] and not attributes[k] in exclude:
+				wrong_type[k] = types[k]
+		return missing, wrong_type
+
+	def ground(self):
+		return self
 
 class MoveMotionDescription(MotionDesignatorDescription):
-    def __init__(self, target, orientation=None):
-		self.cmd = 'navigate'
-        self.target = target
-        self.orientation = orientation
+	"""
+	Definition of types. Is used in _check_missing_properties for evaluating
+	the types of given properties.
+	"""
+	target: list
+	orientation: list
+
+	def __init__(self, target: list, orientation:list =None):
+		self.cmd = "navigate"
+		self.target = target
+		self.orientation = orientation
 
 class PickUpMotionDescription(MotionDesignatorDescription):
-    def __init__(self, object, arm=None):
+	def __init__(self, object, arm=None):
 		self.cmd = 'pick-up'
-        self.object = object
-        self.arm = arm
+		self.object = object
+		self.arm = arm
 
 class PlaceMotionDescription(MotionDesignatorDescription):
-    def __init__(self, object, target, arm=None):
+	def __init__(self, object, target, arm=None):
 		self.cmd = 'place'
-        self.object = object
-        self.target = target
-        self.arm = arm
+		self.object = object
+		self.target = target
+		self.arm = arm
 
 class AccessingMotinDescription(MotionDesignatorDescription):
-    def __init__(self, drawer_joint, drawer_handle, part_of, arm=None, distance=0.3):
+	def __init__(self, drawer_joint, drawer_handle, part_of, arm=None, distance=0.3):
 		self.cmd = 'access'
-        self.drawer_joint = drawer_joint
-        self.drawer_handle = drawer_handle
-        self.part_of = part_of
-        self.arm = arm
-        self.distance = distance
+		self.drawer_joint = drawer_joint
+		self.drawer_handle = drawer_handle
+		self.part_of = part_of
+		self.arm = arm
+		self.distance = distance
 
 class MoveTCPMotinDescription(MotionDesignatorDescription):
-    def __init__(self, target, arm=None):
+	def __init__(self, target, arm=None):
 		self.cmd = 'move-tcp'
-        self.target = target
-        self.arm = arm
+		self.target = target
+		self.arm = arm
 
 class LookingMotionDescription(MotionDesignatorDescription):
-    def __init__(self, target=None, object=None):
+	def __init__(self, target=None, object=None):
 		self.cmd = 'looking'
-        self.target = target
-        self.object = Object
+		self.target = target
+		self.object = Object
 
 class MoveGripperMotionDescription(MotionDesignatorDescription):
-    def __init__(self, motion, gripper):
+	def __init__(self, motion, gripper):
 		self.cmd = 'move-gripper'
-        self.motion = motion
-        self.gripper = gripper
+		self.motion = motion
+		self.gripper = gripper
 
 class DetectingMotionDescription(MotionDesignatorDescription):
-    def __init__(self, object, cam_frame=None, front_facing_axis=None):
+	def __init__(self, object, cam_frame=None, front_facing_axis=None):
 		self.cmd = 'detecting'
-        self.object = object
-        self.cam_frame = cam_frame
-        self.front_facing_axis = front_facing_axis
+		self.object = object
+		self.cam_frame = cam_frame
+		self.front_facing_axis = front_facing_axis
 
 class MoveArmJointsMotionDescription(MotionDesignatorDescription):
-    def __init__(self, left_arm=None, right_arm=None):
+	def __init__(self, left_arm=None, right_arm=None):
 		self.cmd = 'move-joints'
-        self.left_arm = left_arm
-        self.right_arm = right_arm
+		self.left_arm = left_arm
+		self.right_arm = right_arm
 
 class WorldStateDetectingMotionDescription(MotionDesignatorDescription):
-    def __init__(self, object):
+	def __init__(self, object):
 		self.cmd = 'world-state-detecting'
-        self.object = object
+		self.object = object

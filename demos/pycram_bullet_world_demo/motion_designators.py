@@ -3,19 +3,18 @@ from pycram.designator import ResolutionError
 from pycram.bullet_world import BulletWorld
 from pycram.robot_description import InitializedRobotDescription as robot_description
 import rospy
-
 def ground_move(self):
     if not self.orientation:
         self.orientation = BulletWorld.robot.get_orientation()
-    missing = self._check_missing_properties()
-    if missing != []:
-        raise ResolutionError(missing, "[Motion Designator] Moving")
+    missing, wrong_type = self._check_properties()
+    if missing != [] or wrong_type != {}:
+        raise ResolutionError(missing, wrong_type, "[Motion Designator] Moving")
     return self.__dict__
 
 def ground_pick_up(self):
     if not self.arm:
         self.arm = 'left'
-    missing = self._check_missing_properties()
+    missing = self._check_properties()
     if missing != []:
         raise ResolutionError(missing, "[Motion Designator] Pick-Up")
     return self.__dict__
@@ -23,7 +22,7 @@ def ground_pick_up(self):
 def ground_place(self):
     if not self.arm:
         self.arm = 'left'
-    missing = self._check_missing_properties()
+    missing = self._check_properties()
     if missing != []:
         raise ResolutionError(missing, "[Motion Designator] Place")
     return self.__dict__
@@ -31,7 +30,7 @@ def ground_place(self):
 def ground_accessing(self):
     if not self.arm:
         self.arm = 'left'
-    missing = self._check_missing_properties()
+    missing = self._check_properties()
     if missing != []:
         raise ResolutionError(missing, "[Motion Designator] Accessing")
     return self.__dict__
@@ -39,7 +38,7 @@ def ground_accessing(self):
 def ground_move_tcp(self):
     if not self.arm:
         self.arm = 'left'
-    missing = self._check_missing_properties()
+    missing = self._check_properties()
     if missing != []:
         raise ResolutionError(missing, "[Motion Designator] Move-TCP")
     return sefl.__dict__
@@ -58,7 +57,7 @@ def ground_looking(self):
         raise Resolution(['target', 'object'], "[Motion Designator] Looking")
 
 def ground_move_gripper(self):
-    missing = self._check_missing_properties()
+    missing = self._check_properties()
     if missing != []:
         raise ResolutionError(missing, "[Motion Designator] Move-gripper")
     return self.__dict__
@@ -68,25 +67,25 @@ def ground_detect(self):
         self.cam_frame = robot_description.i.get_camera_frame()
     if not self.front_facing_axis:
         self.front_facing_axis = robot.i.front_facing_axis
-    missing = self._check_missing_properties()
+    missing = self._check_properties()
     if missing != []:
         raise ResolutionError(missing, "[Motion Designator] Detecting")
     return self.__dict__
 
 def ground_move_arm(self):
-    missing = self._check_missing_properties()
+    missing = self._check_properties()
     if missing != []:
         raise ResolutionError(missing, "[Motion Designator] Move-arm-joints")
     return self.__dict__
 
 def ground_world_state_detecting(self):
-    missing = self._check_missing_properties()
+    missing = self._check_properties()
     if missing != []:
         raise ResolutionError(missing, "[Motion Designator] World-state-detecting")
     return self.__dict__
 
 MoveMotionDescription.ground = ground_move
-PickUpDescription.ground = ground_pick_up
+PickUpMotionDescription.ground = ground_pick_up
 PlaceMotionDescription.ground = ground_place
 AccessingMotinDescription.ground = ground_accessing
 MoveTCPMotinDescription.ground = ground_move_tcp
@@ -97,7 +96,7 @@ MoveArmJointsMotionDescription.ground = ground_move_arm
 WorldStateDetectingMotionDescription.ground = ground_world_state_detecting
 
 def call_ground(desig):
-    return desig._properties.ground()
+    return [desig._description.ground()]
 
 MotionDesignator.resolvers.append(call_ground)
 
