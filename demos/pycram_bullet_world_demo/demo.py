@@ -5,7 +5,7 @@ import available_process_modules
 import motion_designators  # Needs to be imported to load Process Modules and designator solutions
 import pycram.bullet_world_reasoning as btr
 from pycram.designator import MotionDesignator
-from pycram.process_module import ProcessModule
+from pycram.process_module import ProcessModule, with_simulated_robot
 from pycram.bullet_world import BulletWorld, Object
 from pycram.language import macros, par
 
@@ -69,21 +69,23 @@ moving_targets = {
             'kitchen_entry': [[0.2, -2.2, 0], [0, 0, -0.7, 0.7]]}
 }
 
-
+@with_simulated_robot
 def park_arms(robot_name):
     # Parking description
+
     park_desc = [('type', 'move-arm-joints'), ('left-arm', 'park')]
     if robot_name != 'donbot' and robot_name != 'hsr':
         park_desc.append(('right-arm', 'park'))
     # Perform Parking with MotionDesignator
     ProcessModule.perform(MotionDesignator(park_desc))
 
+@with_simulated_robot
 def move_robot(robot_name, to, object):
     ProcessModule.perform(MotionDesignator([('type', 'moving'),
                                             ('target', moving_targets[robot_name][to][object][0]),
                                             ('orientation', moving_targets[robot_name][to][object][1])]))
 
-
+@with_simulated_robot
 def move_object(object_type, target, arm, robot_name):
     # Get Gripper frame
     gripper = robot_description.i.get_tool_frame(arm)

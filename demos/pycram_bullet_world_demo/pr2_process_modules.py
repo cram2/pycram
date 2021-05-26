@@ -254,12 +254,19 @@ class Pr2WorldStateDetecting(ProcessModule):
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
 
-class PR2ProcessModules(ProcessModules):
-    initialized_simulated = None
-    initialized_real = None
+class PR2ProcessModulesSimulated(ProcessModules):
+    initialized = None
     def __init__(self):
-        if not PR2ProcessModules.initialized:
+        if not PR2ProcessModulesSimulated.initialized:
             super().__init__(Pr2Navigation(), Pr2PickUp(), Pr2Place(), Pr2Accessing(), Pr2ParkArms(), Pr2MoveHead(),
                              Pr2MoveGripper(), Pr2MoveGripper(), Pr2Detecting(), Pr2MoveTCP(), Pr2MoveJoints(),
                              Pr2WorldStateDetecting())
-            PR2ProcessModules.initialized = self
+            PR2ProcessModulesSimulated.initialized = self
+
+class PR2ProcessModulesReal(ProcessModules):
+    initialized = None
+    def __init__(self):
+        if not PR2ProcessModulesReal.initialized:
+            super().__init__(None, None, None, None, None, None, None, None, None, None, None, None)
+
+            PR2ProcessModulesReal.initialized = self
