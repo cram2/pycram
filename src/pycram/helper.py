@@ -11,6 +11,7 @@ from numbers import Number
 from macropy.core.quotes import macros, ast_literal, q
 import pybullet as p
 from geometry_msgs.msg import Point, Quaternion, Pose, Transform, PoseStamped, TransformStamped, Vector3
+from std_msgs.msg import Header
 from .robot_description import InitializedRobotDescription as robot_description
 
 
@@ -36,6 +37,14 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+
+def make_pose_stamped_msg(translation, rotation):
+    point, quaternion = list2point_and_quaternion([translation, rotation])
+    pose = Pose(point, quaternion)
+    head = Header(0, rospy.get_rostime(), 'map')
+    pose_stamped = PoseStamped(head, pose)
+    return pose_stamped
+
 
 
 def _apply_ik(robot, joint_poses, gripper):

@@ -62,3 +62,8 @@ class ProcessModule:
 		self._designators.remove(designator)
 		self._running.set_value(False)
 		return ret
+
+def with_real_robot(pm):
+	def wrapper():
+		print(pm)
+	return wrapper

@@ -4,8 +4,13 @@ from pycram.process_modules import ProcessModules
 from pycram.bullet_world import BulletWorld
 from pycram.helper import transform
 from pycram.ik import request_ik
-from pycram.helper import _transform_to_torso, _apply_ik
+from pycram.helper import _transform_to_torso, _apply_ik, make_pose_stamped_msg, list2pose
 from pycram.local_transformer import local_transformer
+from move_base_msgs.msg import MoveBaseActionGoal, MoveBaseGoal
+from std_msgs.msg import Header
+from actionlib_msgs.msg import GoalID
+import rospy
+import actionlib
 import pycram.bullet_world_reasoning as btr
 import pybullet as p
 import numpy as np
@@ -215,7 +220,6 @@ class PepperMoveTCP(ProcessModule):
             _apply_ik(robot, inv, gripper)
             time.sleep(0.5)
 
-
 class PepperMoveJoints(ProcessModule):
     """
     This process modules moves the joints of either the right or the left arm. The joint states can be given as
@@ -253,6 +257,21 @@ class PepperWorldStateDetecting(ProcessModule):
         if solution['cmd'] == "world-state-detecting":
             obj_type = solution['object']
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
+
+
+class PepperRealNavigation(ProcessModule):
+    def _execute(self, desig):
+        if solution['cmd'] == 'navigate':
+            pose =list2pose(solution['target'], solution['orientation'])
+            head = Header(0, rospy.get_rostime(), 'map')
+            goal = MoveBaseGoal(head, pose)
+            id = GoalID(rospy.get_rostime(), 'nav')
+            action_goal = MoveBaseActionGoal(head, id, goal)
+            client = actionlib.SimpleActionClient('move_base/goal', MoveBaseActionGoal)
+            client.wait_for_server()
+            client.send_goal(action_goal)
+            client.wait_for_results()
+
 
 
 class PepperProcessModules(ProcessModules):
