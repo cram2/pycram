@@ -22,6 +22,9 @@ class ProcessModule:
 
 	resolvers = []
 	"""List of all process module resolvers. Process module resolvers are functions which take a designator as argument and return a process module."""
+	robot_type = ""
+	"""The type of the robot, either real or simulated. Is used to determine which Process Module is choosen for execution."""
+
 
 	@staticmethod
 	def perform(designator):
@@ -62,3 +65,34 @@ class ProcessModule:
 		self._designators.remove(designator)
 		self._running.set_value(False)
 		return ret
+
+class real_robot():
+	def __init__(self):
+		pass
+	def __enter__(self):
+		print("works")
+		ProcessModule.robot_type = "real"
+	def __exit__(self, type, value, traceback):
+		ProcessModule.robot_type = ""
+
+class simulated_robot():
+	def __init__(self):
+		pass
+	def __enter__(self):
+		ProcessModule.robot_type = "simulated"
+	def __exit__(self, type, value, traceback):
+		ProcessModule.robot_type = ""
+
+def with_real_robot(func):
+	def wrapper():
+		ProcessModule.robot_type = "real"
+		func()
+		ProcessModule.robot_type = ""
+	return wrapper
+
+def with_simulated_robot(func):
+	def wrapper():
+		ProcessModule.robot_type = "simulated"
+		func()
+		ProcessModule.robot_type = ""
+	return wrapper

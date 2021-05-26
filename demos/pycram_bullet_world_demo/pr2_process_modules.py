@@ -255,8 +255,8 @@ class Pr2WorldStateDetecting(ProcessModule):
 
 
 class PR2ProcessModules(ProcessModules):
-    initialized = None
-
+    initialized_simulated = None
+    initialized_real = None
     def __init__(self):
         if not PR2ProcessModules.initialized:
             super().__init__(Pr2Navigation(), Pr2PickUp(), Pr2Place(), Pr2Accessing(), Pr2ParkArms(), Pr2MoveHead(),
