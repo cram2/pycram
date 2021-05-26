@@ -68,31 +68,34 @@ class ProcessModule:
 
 class real_robot():
 	def __init__(self):
-		pass
+		self.pre = ""
 	def __enter__(self):
-		print("works")
+		self.pre = ProcessModule.robot_type
 		ProcessModule.robot_type = "real"
 	def __exit__(self, type, value, traceback):
-		ProcessModule.robot_type = ""
+		ProcessModule.robot_type = self.pre
 
 class simulated_robot():
 	def __init__(self):
-		pass
+		self.pre = ""
 	def __enter__(self):
+		self.pre = ProcessModule.robot_type
 		ProcessModule.robot_type = "simulated"
 	def __exit__(self, type, value, traceback):
-		ProcessModule.robot_type = ""
+		ProcessModule.robot_type = self.pre
 
 def with_real_robot(func):
-	def wrapper():
+	def wrapper(*args, **kwargs):
+		pre = ProcessModule.robot_type
 		ProcessModule.robot_type = "real"
-		func()
-		ProcessModule.robot_type = ""
+		func(*args, **kwargs)
+		ProcessModule.robot_type = pre
 	return wrapper
 
 def with_simulated_robot(func):
-	def wrapper():
+	def wrapper(*args, **kwargs):
+		pre = ProcessModule.robot_type
 		ProcessModule.robot_type = "simulated"
-		func()
-		ProcessModule.robot_type = ""
+		func(*args, **kwargs)
+		ProcessModule.robot_type = pre
 	return wrapper
