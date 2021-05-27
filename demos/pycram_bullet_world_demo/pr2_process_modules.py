@@ -186,7 +186,7 @@ class Pr2Detecting(ProcessModule):
         solution = desig.reference()
         if solution['cmd'] == "detecting":
             robot = BulletWorld.robot
-            object_type = solution['object']
+            object_type = solution['object_type']
             cam_frame_name = solution['cam_frame']
             front_facing_axis = solution['front_facing_axis']
 
@@ -250,7 +250,7 @@ class Pr2WorldStateDetecting(ProcessModule):
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == "world-state-detecting":
-            obj_type = solution['object']
+            obj_type = solution['object_type']
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
 
