@@ -99,11 +99,11 @@ class Pr2Accessing(ProcessModule):
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == 'access':
-            kitchen = solution['part-of']
+            kitchen = solution['part_of']
             robot = BulletWorld.robot
             gripper = solution['gripper']
-            drawer_handle = solution['drawer-handle']
-            drawer_joint = solution['drawer-joint']
+            drawer_handle = solution['drawer_handle']
+            drawer_joint = solution['drawer_joint']
             dis = solution['distance']
             arm = "left" if solution['gripper'] == robot_description.i.get_tool_frame("left") else "right"
             joints = robot_description.i._safely_access_chains(arm).joints
@@ -225,8 +225,9 @@ class Pr2MoveJoints(ProcessModule):
         solution = desig.reference()
         if solution['cmd'] == "move-joints":
             robot = BulletWorld.robot
-            right_arm_poses = solution['right-poses']
-            left_arm_poses = solution['left-poses']
+            right_arm_poses = solution['right_arm_poses']
+            left_arm_poses = solution['left_arm_poses']
+
             if type(right_arm_poses) == dict:
                 for joint, pose in right_arm_poses.items():
                     robot.set_joint_state(joint, pose)
