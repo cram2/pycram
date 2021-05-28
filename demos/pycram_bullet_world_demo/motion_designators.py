@@ -60,7 +60,11 @@ def ground_detect(self):
     return self.__dict__
 
 def ground_move_arm(self):
-    if self.left_arm or self.right_arm:
+    if self.left_arm_config or self.right_arm_config:
+        self.left_arm_poses = self.left_arm_config
+        self.right_arm_poses = self.right_arm_config
+        return self.__dict__
+    if self.right_arm_poses or self.left_arm_poses:
         return self.__dict__
     else:
         self._check_properties("[Motion Designator] Move-arm-joints")

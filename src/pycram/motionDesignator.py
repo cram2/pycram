@@ -181,12 +181,16 @@ class DetectingMotionDescription(MotionDesignatorDescription):
 		self.front_facing_axis = front_facing_axis
 
 class MoveArmJointsMotionDescription(MotionDesignatorDescription):
-	left_arm: list
-	right_arm: list
-	def __init__(self, left_arm=None, right_arm=None):
+	left_arm_config: str
+	right_arm_config: str
+	left_arm_poses: dict
+	right_arm_poses: dict
+	def __init__(self, left_arm_config=None, right_arm_config=None, left_arm_poses=None, right_arm_poses=None):
 		self.cmd = 'move-joints'
-		self.left_arm = left_arm
-		self.right_arm = right_arm
+		self.left_arm_config = left_arm_config
+		self.right_arm_config = right_arm_config
+		self.left_arm_poses = left_arm_poses
+		self.right_arm_poses = right_arm_poses
 
 class WorldStateDetectingMotionDescription(MotionDesignatorDescription):
 	object_type: str
