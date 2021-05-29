@@ -1,77 +1,27 @@
 from json_prolog_msgs.srv import PrologQuery, PrologNextSolution, PrologFinish
+from knowrob_refills.knowrob_wrapper import KnowRob
+from rosprolog_client import Prolog, PrologException
 import rospy
 
+def startup_knowrob():
+    db = '~/workspace/whole_store_filled_neem/roslog'
+    knowrob = KnowRob(initial_mongo_db=db,
+                      clear_roslog=True,
+                      republish_tf=True,
+                      neem_mode=False)
+    # knowrob = KnowRob(initial_mongo_db=None,
+    #                   clear_roslog=False)
+    shelf_ids = knowrob.get_shelf_system_ids(False)
+    print(shelf_ids)
+    for shelf_id in shelf_ids:
+        print('shelf center frame id {}'.format(knowrob.get_object_frame_id(shelf_id)))
+        print('shelf corner frame id {}'.format(knowrob.get_perceived_frame_id(shelf_id)))
+    return knowrob
 
-def query(query, id, mode=1):
-    rospy.wait_for_service('/rosprolog/query')
-    service = rospy.ServiceProxy('/rosprolog/query', PrologQuery)
-    response = service(mode, id, query)
-    #print(response)
+def get_all_shelves():
+    prolog = Prolog()
+    return prolog.once("get_all_shelves(A)")['A']
 
-def solution(id):
-    rospy.wait_for_service('/rosprolog/next_solution')
-    service = rospy.ServiceProxy('/rosprolog/next_solution', PrologNextSolution)
-    response = service(str(id))
-    #print(response.solution)
-    return response.solution
-
-def finish(id):
-    rospy.wait_for_service('/rosprolog/finish')
-    service = rospy.ServiceProxy('/rosprolog/finish', PrologFinish)
-    response = service(str(id))
-
-
-def query_1(query_string):
-    """
-    Query which only returns the first result and then finishes the query.
-    """
-    query(query_string, "tmp")
-    sol = solution("tmp")
-    finish("tmp")
-    return sol
-
-def query_all(query_string):
-    query(query_string, "tmp", 0)
-    sol = solution("tmp")
-    finish("tmp")
-    return sol
-
-def get_object_pose(object_class):
-    query(f"owl_individual_of(Object, knowrob:'{object_class}'), current_object_pose(Object, Pose).",
-        "object_pose")
-    solution = solution("object_pose")
-    return solution
-
-def _make_dict_from_msg(msg):
-    split = msg.split("\n")
-    if split == [msg]:
-        return _make_dict_from_msg_single(msg)
-    dict = {}
-    curr_elem = None
-    for line in split:
-        if ":" in line and "http" not in line:
-            curr_elem = line.replace(":", "").replace("[", "")
-            curr_elem = "".join(curr_elem.split()).replace("\"", "")
-            dict[curr_elem] = []
-        if "http" in line:
-            dict[curr_elem].append("".join(line.split()).replace(",", "").replace("\"", ""))
-    return dict
-
-def _make_dict_from_msg_single(msg):
-    split = msg.split("\"")
-    dict = {}
-    dict[split[1]] = split[3]
-    return dict
-
-
-def find_shelf_pose():
-    shelves = query_1("get_all_shelves(A)")
-    shelves = _make_dict_from_msg(shelves)['A']
-    poses = {}
-    for shelf in shelves:
-        translation = query_1(f"holds('{shelf}', knowrob:pose, Trans)")
-        translation = _make_dict_from_msg_single(translation)
-        pose = query_1(f"holds('{translation['Trans']}', knowrob:translation, P)")
-        pose = _make_dict_from_msg_single(pose)
-        poses[shelf] = pose['P']
-    return poses
+def find_shelf_pose(shelf):
+    prolog = Prolog()
+    return prolog.once(f"get_pose_in_desired_reference_frame('{shelf}', 'map', T, R)")
