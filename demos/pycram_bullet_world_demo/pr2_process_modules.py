@@ -253,20 +253,34 @@ class Pr2WorldStateDetecting(ProcessModule):
             obj_type = solution['object']
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
+PR2ProcessModulesSimulated = {'moving' : Pr2Navigation(),
+                              'pick-up' : Pr2PickUp(),
+                              'place' : Pr2Place(),
+                              'accessing' : Pr2Accessing(),
+                              'looking' : Pr2MoveHead(),
+                              'opening_gripper' : Pr2MoveGripper(),
+                              'closing_gripper' : Pr2MoveGripper(),
+                              'detecting' : Pr2Detecting(),
+                              'move-tcp' : Pr2MoveTCP(),
+                              'move-arm-joints' : Pr2MoveJoints(),
+                              'world-state-detecting' : Pr2WorldStateDetecting()}
 
-class PR2ProcessModulesSimulated(ProcessModules):
-    initialized = None
-    def __init__(self):
-        if not PR2ProcessModulesSimulated.initialized:
-            super().__init__(Pr2Navigation(), Pr2PickUp(), Pr2Place(), Pr2Accessing(), Pr2ParkArms(), Pr2MoveHead(),
-                             Pr2MoveGripper(), Pr2MoveGripper(), Pr2Detecting(), Pr2MoveTCP(), Pr2MoveJoints(),
-                             Pr2WorldStateDetecting())
-            PR2ProcessModulesSimulated.initialized = self
+PR2ProcessModulesReal = {}
 
-class PR2ProcessModulesReal(ProcessModules):
-    initialized = None
-    def __init__(self):
-        if not PR2ProcessModulesReal.initialized:
-            super().__init__(None, None, None, None, None, None, None, None, None, None, None, None)
 
-            PR2ProcessModulesReal.initialized = self
+#class PR2ProcessModulesSimulated(ProcessModules):
+#    initialized = None
+#    def __init__(self):
+#        if not PR2ProcessModulesSimulated.initialized:
+#            super().__init__(Pr2Navigation(), Pr2PickUp(), Pr2Place(), Pr2Accessing(), Pr2ParkArms(), Pr2MoveHead(),
+#                             Pr2MoveGripper(), Pr2MoveGripper(), Pr2Detecting(), Pr2MoveTCP(), Pr2MoveJoints(),
+#                             Pr2WorldStateDetecting())
+#            PR2ProcessModulesSimulated.initialized = self
+
+#class PR2ProcessModulesReal(ProcessModules):
+#    initialized = None
+#    def __init__(self):
+#        if not PR2ProcessModulesReal.initialized:
+#            super().__init__(None, None, None, None, None, None, None, None, None, None, None, None)
+#
+#            PR2ProcessModulesReal.initialized = self

@@ -74,6 +74,8 @@ class real_robot():
 		ProcessModule.robot_type = "real"
 	def __exit__(self, type, value, traceback):
 		ProcessModule.robot_type = self.pre
+	def __call__(self):
+		return self
 
 class simulated_robot():
 	def __init__(self):
@@ -83,6 +85,8 @@ class simulated_robot():
 		ProcessModule.robot_type = "simulated"
 	def __exit__(self, type, value, traceback):
 		ProcessModule.robot_type = self.pre
+	def __call__(self):
+		return self
 
 def with_real_robot(func):
 	def wrapper(*args, **kwargs):
@@ -99,3 +103,7 @@ def with_simulated_robot(func):
 		func(*args, **kwargs)
 		ProcessModule.robot_type = pre
 	return wrapper
+
+# These are imported so they dont have to be initialized when executing with
+simulated_robot = simulated_robot()
+real_robot = real_robot()
