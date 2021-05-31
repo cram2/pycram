@@ -1,6 +1,5 @@
 from pycram.robot_description import InitializedRobotDescription as robot_description
 from pycram.process_module import ProcessModule
-from pycram.process_modules import ProcessModules
 from pycram.bullet_world import BulletWorld
 from pycram.ik import request_ik
 from pycram.local_transformer import local_transformer as local_tf
@@ -284,12 +283,16 @@ class BoxyWorldStateDetecting(ProcessModule):
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
 
-class BoxyProcessModules(ProcessModules):
-    initialized = None
+BoxyProcessModulesSimulated = {'moving' : BoxyNavigation(),
+                              'pick-up' : BoxyPickUp(),
+                              'place' : BoxyPlace(),
+                              'accessing' : BoxyAccessing(),
+                              'looking' : BoxyMoveHead(),
+                              'opening_gripper' : BoxyMoveGripper(),
+                              'closing_gripper' : BoxyMoveGripper(),
+                              'detecting' : BoxyDetecting(),
+                              'move-tcp' : BoxyMoveTCP(),
+                              'move-arm-joints' : BoxyMoveJoints(),
+                              'world-state-detecting' : BoxyWorldStateDetecting()}
 
-    def __init__(self):
-        if not BoxyProcessModules.initialized:
-            super().__init__(BoxyNavigation(), BoxyPickUp(), BoxyPlace(), BoxyAccessing(), BoxyParkArms(),
-                             BoxyMoveHead(), BoxyMoveGripper(), BoxyMoveGripper(), BoxyDetecting(), BoxyMoveTCP(),
-                             BoxyMoveJoints(), BoxyWorldStateDetecting())
-            BoxyProcessModules.initialized = self
+BoxyProcessModulesReal = {}

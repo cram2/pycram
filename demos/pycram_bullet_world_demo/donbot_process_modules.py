@@ -1,6 +1,5 @@
 from pycram.robot_description import InitializedRobotDescription as robot_description
 from pycram.process_module import ProcessModule
-from pycram.process_modules import ProcessModules
 from pycram.bullet_world import BulletWorld
 from pycram.local_transformer import local_transformer
 import pycram.helper as helper
@@ -241,13 +240,16 @@ class DonbotWorldStateDetecting(ProcessModule):
             obj_type = solution['object']
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
+DonbotProcessModulesSimulated = {'moving' : DonbotNavigation(),
+                              'pick-up' : DonbotPickUp(),
+                              'place' : DonbotPlace(),
+                              'accessing' : DonbotAccessing(),
+                              'looking' : DonbotMoveHead(),
+                              'opening_gripper' : DonbotMoveGripper(),
+                              'closing_gripper' : DonbotMoveGripper(),
+                              'detecting' : DonbotDetecting(),
+                              'move-tcp' : DonbotMoveTCP(),
+                              'move-arm-joints' : DonbotMoveJoints(),
+                              'world-state-detecting' : DonbotWorldStateDetecting()}
 
-class DonbotProcessModules(ProcessModules):
-    initialized = None
-
-    def __init__(self):
-        if not DonbotProcessModules.initialized:
-            super().__init__(DonbotNavigation(), DonbotPickUp(), DonbotPlace(), DonbotAccessing(), DonbotParkArms(),
-                             DonbotMoveHead(), DonbotMoveGripper(), DonbotMoveGripper(), DonbotDetecting(),
-                             DonbotMoveTCP(), DonbotMoveJoints(), DonbotWorldStateDetecting())
-            DonbotProcessModules.initialized = self
+DonbotProcessModulesReal = {}

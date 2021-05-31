@@ -10,7 +10,6 @@ def pr2_motion_designators(desig):
     :return: A list with possible solution.
     """
     solutions = []
-
     # Type: moving
     if desig.check_constraints([('type', 'moving'), 'target']):
         if desig.check_constraints(['orientation']):
