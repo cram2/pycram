@@ -67,6 +67,9 @@ class MotionDesignator(Designator):
 	def ground(self):
 		return None
 
+	def get_slots(self):
+		return self._description.get_slots()
+
 	def __str__(self):
 		return "MotionDesignator({})".format(self._description.__dict__)
 
@@ -74,6 +77,13 @@ class MotionDesignator(Designator):
 class MotionDesignatorDescription:
 	cmd: str
 	def make_dictionary(self, properties):
+		"""
+		Creates a dictionary of this description with only the given properties
+		included.
+		:param properties: A list of properties that should be included in the dictionary.
+							The given properties have to be an attribute of this description.
+		:return: A dictionary with the properties as keys.
+		"""
 		attributes = self.__dict__
 		ret = {}
 		for att in attributes.keys():
@@ -82,6 +92,15 @@ class MotionDesignatorDescription:
 		return ret
 
 	def _check_properties(self, desig, exclude=[]):
+		"""
+		Checks the properties of this description. It will be checked if any attribute is
+		None and if any attribute has to wrong type according to the type hints in
+		the description class.
+		It is possible to provide a list of attributes which should not be checked.
+		:param desig: The current type of designator, will be used when raising an
+						Exception as output.
+		:param exclude: A list of properties which should not be checked.
+		"""
 		right_types = get_type_hints(type(self))
 		attributes = self.__dict__
 		missing = []
@@ -97,7 +116,19 @@ class MotionDesignatorDescription:
 			raise ResolutionError(missing, wrong_type, current_type, desig)
 
 	def ground(self):
+		"""
+		Should be overriten with an actual grounding function which inferres
+		missing properties.
+		"""
 		return self
+
+	def get_slots(self):
+		"""
+		Returns a list of all slots of this description. Can be used for inspecting
+		different descriptions and debugging.
+		:return: A list of all slots.
+		"""
+		return list(self.__dict__.keys()).remove('cmd')
 
 	def copy(self):
 		return copy(self)

@@ -1,5 +1,5 @@
 from .robot_description import InitializedRobotDescription as robot_description
-from .motionDesignator import *
+from .motion_designator import *
 
 
 
