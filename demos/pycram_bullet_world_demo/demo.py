@@ -98,7 +98,7 @@ def move_object(object_type, target, arm, robot_name):
 
     # Access object if needed
     if object_type == "spoon":
-        ProcessModule.perform(MotionDesignator(AccessingMotionDescription(drawer_joint='sink_area_left_upper_drawer_main',
+        ProcessModule.perform(MotionDesignator(AccessingMotionDescription(drawer_joint='sink_area_left_upper_drawer_main_joint',
                                             drawer_handle='sink_area_left_upper_drawer_handle', arm='left',
                                             distance=0.3, part_of=kitchen)))
         #ProcessModule.perform(MotionDesignator(
@@ -151,7 +151,8 @@ def move_object(object_type, target, arm, robot_name):
     ProcessModule.perform(MotionDesignator(LookingMotionDescription(target=targets[object_type][0])))
 
     # Place object if target pose of object is reachable for the robots manipulator
-    if btr.reachable(target, robot, gripper, threshold=0.05):
+    print(btr.reachable(target, robot, gripper, threshold=0.5))
+    if btr.reachable(target, robot, gripper, threshold=0.5):
         #ProcessModule.perform(
         #    MotionDesignator([('type', 'place'), ('object', det_obj), ('target', target), ('arm', arm)]))
         ProcessModule.perform(MotionDesignator(PlaceMotionDescription(object=det_obj, target=target, arm=arm)))

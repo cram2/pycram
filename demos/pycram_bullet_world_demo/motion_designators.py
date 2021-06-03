@@ -13,18 +13,21 @@ def ground_move(self):
 def ground_pick_up(self):
     if not self.arm:
         self.arm = 'left'
+    self.gripper = robot_description.i.get_tool_frame(self.arm)
     self._check_properties("[Motion Designator] Pick-Up")
     return self.__dict__
 
 def ground_place(self):
     if not self.arm:
         self.arm = 'left'
+    self.gripper = robot_description.i.get_tool_frame(self.arm)
     self._check_properties("[Motion Designator] Place")
     return self.__dict__
 
 def ground_accessing(self):
     if not self.arm:
         self.arm = 'left'
+    self.gripper = robot_description.i.get_tool_frame(self.arm)
     self._check_properties("[Motion Designator] Accessing")
     return self.__dict__
 
