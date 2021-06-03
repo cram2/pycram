@@ -1,7 +1,15 @@
-from pycram.motionDesignator import *
+from pycram.motion_designator import *
 from pycram.bullet_world import BulletWorld
 from pycram.robot_description import InitializedRobotDescription as robot_description
 import rospy
+
+"""
+The grounding functions for the Motion designator descriptions in pycram/motion_designator.py
+They all inferre missing properties and return a dictionaty with the properties as
+value.
+"""
+
+
 def ground_move(self):
     if not self.orientation:
         # get_orientation returns tuple, the conversion is because of the type
