@@ -117,20 +117,24 @@ class MoveMotionDescription(MotionDesignatorDescription):
 class PickUpMotionDescription(MotionDesignatorDescription):
 	object: Object
 	arm: str
+	gripper: str
 	def __init__(self, object, arm=None):
-		self.cmd = 'pick-up'
+		self.cmd = 'pick'
 		self.object = object
 		self.arm = arm
+		self.gripper = None
 
 class PlaceMotionDescription(MotionDesignatorDescription):
 	object: Object
 	target: list
 	arm: str
+	gripper: str
 	def __init__(self, object, target, arm=None):
 		self.cmd = 'place'
 		self.object = object
 		self.target = target
 		self.arm = arm
+		self.gripper = None
 
 class AccessingMotionDescription(MotionDesignatorDescription):
 	drawer_joint: str
@@ -138,6 +142,7 @@ class AccessingMotionDescription(MotionDesignatorDescription):
 	part_of: Object
 	arm: str
 	distance: float
+	gripper: str
 	def __init__(self, drawer_joint, drawer_handle, part_of, arm=None, distance=0.3):
 		self.cmd = 'access'
 		self.drawer_joint = drawer_joint
@@ -145,6 +150,7 @@ class AccessingMotionDescription(MotionDesignatorDescription):
 		self.part_of = part_of
 		self.arm = arm
 		self.distance = distance
+		self.gripper = None
 
 class MoveTCPMotionDescription(MotionDesignatorDescription):
 	target: list
