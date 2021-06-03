@@ -81,11 +81,11 @@ class HSRAccessing(ProcessModule):
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == 'access':
-            kitchen = solution['part-of']
+            kitchen = solution['part_of']
             robot = BulletWorld.robot
             gripper = solution['gripper']
-            drawer_handle = solution['drawer-handle']
-            drawer_joint = solution['drawer-joint']
+            drawer_handle = solution['drawer_handle']
+            drawer_joint = solution['drawer_joint']
             dis = solution['distance']
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper),
                                                kitchen.get_link_position(drawer_handle))
@@ -156,7 +156,7 @@ class HSRDetecting(ProcessModule):
         solution = desig.reference()
         if solution['cmd'] == "detecting":
             robot = BulletWorld.robot
-            object_type = solution['object']
+            object_type = solution['object_type']
             cam_frame_name = solution['cam_frame']
             front_facing_axis = solution['front_facing_axis']
 
@@ -192,7 +192,7 @@ class HSRMoveJoints(ProcessModule):
         solution = desig.reference()
         if solution['cmd'] == "move-joints":
             robot = BulletWorld.robot
-            left_arm_poses = solution['left-poses']
+            left_arm_poses = solution['left_arm_poses']
 
             if type(left_arm_poses) == dict:
                 for joint, pose in left_arm_poses.items():
@@ -211,7 +211,7 @@ class HSRWorldStateDetecting(ProcessModule):
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == "world-state-detecting":
-            obj_type = solution['object']
+            obj_type = solution['object_type']
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
 

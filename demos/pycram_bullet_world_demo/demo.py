@@ -13,7 +13,7 @@ from pycram.language import macros, par
 world = BulletWorld()
 world.set_gravity([0, 0, -9.8])
 plane = Object("floor", "environment", "../../resources/plane.urdf", world=world)
-robot = Object("boxy", "robot", "../../resources/" + robot_description.i.name + ".urdf")
+robot = Object("donbot", "robot", "../../resources/" + robot_description.i.name + ".urdf")
 
 spawning_poses = {
     'milk': [1.3, 1, 0.93],
