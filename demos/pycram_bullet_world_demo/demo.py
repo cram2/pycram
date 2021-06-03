@@ -151,8 +151,7 @@ def move_object(object_type, target, arm, robot_name):
     ProcessModule.perform(MotionDesignator(LookingMotionDescription(target=targets[object_type][0])))
 
     # Place object if target pose of object is reachable for the robots manipulator
-    print(btr.reachable(target, robot, gripper, threshold=0.5))
-    if btr.reachable(target, robot, gripper, threshold=0.5):
+    if btr.reachable(target, robot, gripper, threshold=0.1):
         #ProcessModule.perform(
         #    MotionDesignator([('type', 'place'), ('object', det_obj), ('target', target), ('arm', arm)]))
         ProcessModule.perform(MotionDesignator(PlaceMotionDescription(object=det_obj, target=target, arm=arm)))
