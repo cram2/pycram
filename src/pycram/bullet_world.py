@@ -354,9 +354,8 @@ class Object:
         if not low_lim <= joint_pose <= up_lim:
             rospy.logerr(f"The joint position has to be within the limits of the joint. The joint limits for {joint_name} are {low_lim} and {up_lim}")
             rospy.logerr(f"The given joint position was: {joint_pose}")
-            #print(f'{bcolors.BOLD}{bcolors.WARNING}The joint position has to be within the limits of the joint. The joint limits for {joint_name} are {low_lim} and {up_lim} {bcolors.ENDC}')
-            #print(f'{bcolors.BOLD}{bcolors.WARNING}The given joint position was: {joint_pose} {bcolors.ENDC}')
-            return
+            # Temporarily disabled because kdl outputs values exciting joint limits 
+            #return
         p.resetJointState(self.id, self.joints[joint_name], joint_pose, physicsClientId=self.world.client_id)
         self._set_attached_objects([self])
 
