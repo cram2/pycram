@@ -1,6 +1,7 @@
 from pycram.task import with_tree
 from pycram.process_module import ProcessModule
-from pycram.designator import MotionDesignator, ObjectDesignator
+from pycram.designator import ObjectDesignator
+from pycram.motion_designator import *
 from pycram.action_designator import *
 from pycram.plan_failures import PlanFailure
 from pr2_knowledge import reach_position_generator, object_fetching_location_generator, free_arms, Arms

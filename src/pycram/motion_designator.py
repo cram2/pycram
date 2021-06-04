@@ -1,6 +1,7 @@
 from .designator import Designator, DesignatorError, ResolutionError
 from .helper import GeneratorList
 from .bullet_world import Object
+from .process_module import ProcessModule
 from inspect import isgenerator, isgeneratorfunction
 from typing import get_type_hints
 from copy import copy
@@ -72,6 +73,9 @@ class MotionDesignator(Designator):
 
 	def __str__(self):
 		return "MotionDesignator({})".format(self._description.__dict__)
+
+	def perform(self):
+		return ProcessModule.perform(self)
 
 
 class MotionDesignatorDescription:
