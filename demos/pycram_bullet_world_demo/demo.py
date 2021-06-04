@@ -172,24 +172,26 @@ else:
     park_arms(robot_name)
     # Move to object
     move_robot(robot_name, 'hsr_cereal')
-    # Look at object
-    ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', 'down')]))
-    # Detect object
-    det_obj = ProcessModule.perform(MotionDesignator([('type', 'detecting'), ('object', 'cereal')]))
-    # Open Gripper
-    ProcessModule.perform(MotionDesignator([('type', 'opening-gripper'), ('gripper', 'left')]))
-    # Pick up detected object
-    ProcessModule.perform(MotionDesignator([('type', 'pick-up'), ('object', det_obj), ('arm', 'left')]))
-    # Close Gripper
-    ProcessModule.perform(MotionDesignator([('type', 'closing-gripper'), ('gripper', 'left'), ]))
+    with simulated_robot:
+        # Look at object
+        ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', 'down')]))
+        # Detect object
+        det_obj = ProcessModule.perform(MotionDesignator([('type', 'detecting'), ('object', 'cereal')]))
+        # Open Gripper
+        ProcessModule.perform(MotionDesignator([('type', 'opening-gripper'), ('gripper', 'left')]))
+        # Pick up detected object
+        ProcessModule.perform(MotionDesignator([('type', 'pick-up'), ('object', det_obj), ('arm', 'left')]))
+        # Close Gripper
+        ProcessModule.perform(MotionDesignator([('type', 'closing-gripper'), ('gripper', 'left'), ]))
     # Park Arms
     park_arms(robot_name)
     # Move to kitchen entry
     move_robot(robot_name, 'kitchen_entry')
     # Drop the cereal box
-    ProcessModule.perform(
-        MotionDesignator([('type', 'place'), ('object', det_obj), ('target', [0.2, -2.5, 0.4]), ('arm', 'left')]))
-    # Open Gripper
-    ProcessModule.perform(MotionDesignator([('type', 'opening-gripper'), ('gripper', 'left')]))
+    with simulated_robot:
+        ProcessModule.perform(
+            MotionDesignator([('type', 'place'), ('object', det_obj), ('target', [0.2, -2.5, 0.4]), ('arm', 'left')]))
+        # Open Gripper
+        ProcessModule.perform(MotionDesignator([('type', 'opening-gripper'), ('gripper', 'left')]))
     # Park Arms
     park_arms(robot_name)
