@@ -11,10 +11,13 @@ import os
 import threading
 import time
 import pathlib
-import rospy
 import rospkg
+import roslibpy
 from .event import Event
 #from .helper import transform
+from .rosbridge import ROSBridge
+from .tf_broadcaster import TFBroadcaster
+
 
 class BulletWorld:
     """
@@ -26,9 +29,8 @@ class BulletWorld:
 
     current_bullet_world = None
     robot = None
-    node = rospy.init_node('listen')
 
-    def __init__(self, type="GUI"):
+    def __init__(self, type="GUI", broadcast_tf=False):
         """
         The constructor initializes a new simulation. The parameter decides if the Simulation should be graphical or
         non-graphical. It can only exist one graphical simulation at the time, but an arbitrary amount of non-graphical.
@@ -46,6 +48,14 @@ class BulletWorld:
         time.sleep(1) # 0.1
         self.last_bullet_world = BulletWorld.current_bullet_world
         BulletWorld.current_bullet_world = self
+        self.tf_broadcaster = None
+        if broadcast_tf:
+            self.tf_broadcaster = TFBroadcaster(self, "map", "odom", "projection", "iai_kitchen", interval=1.0)
+            self.tf_broadcaster.start_broadcasting()
+
+    def __del__(self):
+        if self.tf_broadcaster:
+            self.tf_broadcaster.stop_broadcasting()
 
     def get_objects_by_name(self, name):
         return list(filter(lambda obj: obj.name == name, self.objects))
@@ -406,7 +416,8 @@ def _load_object(name, path, position, orientation, world, color):
             with open(path, mode="w") as f:
                 f.write(_correct_urdf_string(urdf_string))
         else: # Using the urdf from the parameter server
-            urdf_string = rospy.get_param(urdf_name)
+            with ROSBridge() as rb:
+                urdf_string = rb.ros_client.get_param(path)
             path = cach_dir +  name + ".urdf"
             with open(path, mode="w") as f:
                 f.write(_correct_urdf_string(urdf_string))
