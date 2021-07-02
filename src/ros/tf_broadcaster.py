@@ -1,5 +1,4 @@
 import threading
-import logging
 import time
 
 from pytransform3d.rotations import quaternion_xyzw_from_wxyz, quaternion_wxyz_from_xyzw, quaternion_from_matrix, \
@@ -7,8 +6,8 @@ from pytransform3d.rotations import quaternion_xyzw_from_wxyz, quaternion_wxyz_f
 from pytransform3d.transformations import transform_from_pq, pq_from_transform
 
 from pycram.robot_description import InitializedRobotDescription as robot_description
+from ros.ros_topic_publisher import ROSTopicPublisher
 
-from ros.rosbridge import ROSBridge
 import roslibpy
 
 import rospkg
@@ -39,12 +38,10 @@ class Pose(object):
         return Pose(transform_from_pq(np.concatenate((trans, quat))))
 
 
-class TFBroadcaster(object):
-    def __init__(self, bullet_world, map_frame, odom_frame, projection_namespace, kitchen_namespace,
-                 interval=0.1):
+class TFBroadcaster(ROSTopicPublisher):
+    def __init__(self, bullet_world, map_frame, odom_frame, projection_namespace, kitchen_namespace, interval=0.1):
+        super().__init__()
         self.world = bullet_world
-        self.ros_client = roslibpy.Ros(*ROSBridge.get_ros_master_host_and_port())
-        self.ros_client.run()
 
         self.tf_static_publisher = roslibpy.Topic(self.ros_client, "/tf_static", "geometry_msgs/TransformStamped")
         self.tf_publisher = roslibpy.Topic(self.ros_client, "/tf", "geometry_msgs/TransformStamped")
@@ -62,9 +59,6 @@ class TFBroadcaster(object):
         self.tf_stampeds = []
         self.static_tf_stampeds = []
         self.init_transforms_from_urdf()
-
-    def __del__(self):
-        self.ros_client.terminate()
 
     @staticmethod
     def make_tf_stamped(source_frame: str, target_frame: str, trans: np.ndarray, quat_xyzw: np.ndarray) -> roslibpy.Message:
@@ -216,33 +210,7 @@ class TFBroadcaster(object):
         if not tf_base_frame in tf_link_frame:
             self._publish_pose(tf_base_frame, tf_link_frame, pose)
 
-    def start_broadcasting(self):
-        logging.info("TFBroadcaster::start_broadcasting: Starting broadcast thread...")
-        if not self.ros_client.is_connected:
-            raise RuntimeError("TFBroadcaster: Cannot start broadcasting, ROS client not connected")
-        if self.kill_event.is_set():
-            self.kill_event.clear()
-        self.thread = threading.Thread(target=self._broadcast)
-        self.thread.start()
-        logging.info("TFBroadcaster::start_broadcasting: Broadcast thread started")
-
-    def stop_broadcasting(self):
-        logging.info("TFBroadcaster::stop_broadcasting: Stopping broadcast thread...")
-        if self.thread:
-            self.kill_event.set()
-            self.thread.join()
-            self.thread = None
-            logging.info("TFBroadcaster::stop_broadcasting: Broadcast thread stopped")
-        else:
-            logging.info("TFBroadcaster::stop_broadcasting: Broadcast thread not running")
-
-    def _broadcast(self):
+    def _publish(self):
         while not self.kill_event.is_set():
             self.update()
             time.sleep(self.interval)
-
-    def __enter__(self):
-        self.start_broadcasting()
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.stop_broadcasting()
