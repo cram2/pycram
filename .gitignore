@@ -63,3 +63,5 @@ pycram_pr2_demo/*.save
 venv/
 .vscode/
 .idea/
+
+resources/cached/

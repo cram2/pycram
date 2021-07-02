@@ -1,7 +1,9 @@
 from copy import deepcopy
 from numbers import Number
-from rospy import logerr, logwarn, search_param, has_param, get_param, ROSException, loginfo
+import logging
 import re
+
+from pycram.rosbridge import ROSBridge
 
 
 class ChainDescription:
@@ -37,7 +39,7 @@ class ChainDescription:
         """
         for configuration, joint_states in static_joint_states.items():
             if not self.add_static_joint_chain(configuration, joint_states):
-                logerr("(robot_description) Could not add all static_joint_states for the chain %s.", self.name)
+                logging.error("(robot_description) Could not add all static_joint_states for the chain %s.", self.name)
                 break
 
     def add_static_joint_chain(self, configuration, static_joint_states):
@@ -57,10 +59,10 @@ class ChainDescription:
                     self.static_joint_states[configuration] = static_joint_states
                     return True
                 else:
-                    logwarn("(robot_description) The chain %s already has static joint values "
+                    logging.warning("(robot_description) The chain %s already has static joint values "
                             "for the config %s.", self.name, configuration)
             else:
-                logerr("(robot_description) The number of the joint values does not equal the amount of the joints"
+                logging.error("(robot_description) The number of the joint values does not equal the amount of the joints"
                        "for the chain %s.", self.name)
 
     def get_static_joint_chain(self, configuration):
@@ -74,7 +76,7 @@ class ChainDescription:
         try:
             joint_values = self.static_joint_states[configuration]
         except KeyError:
-            logerr("(robot_description) Configuration %s is unknown for the chain %s.", configuration, self.name)
+            logging.error("(robot_description) Configuration %s is unknown for the chain %s.", configuration, self.name)
             return None
         return dict(zip(self.joints, joint_values))
 
@@ -172,7 +174,7 @@ class RobotDescription:
     and joints. Different cameras can be added and static transforms and poses can be added too.
     """
 
-    def __init__(self, name, base_frame, base_link, torso_link, torso_joint, ik_joints,
+    def __init__(self, name, base_frame, base_link, ik_joints, torso_link=None, torso_joint=None,
                  odom_frame=None, odom_joints=None):
         """
         Initialises the robot description with the given frames.
@@ -208,7 +210,7 @@ class RobotDescription:
             chain_description = self.chains[chain_name]
         except KeyError:
             if verbose:
-                logwarn("(robot_description) Chain name %s is unknown.", chain_name)
+                logging.warning("(robot_description) Chain name %s is unknown.", chain_name)
             return None
         return chain_description
 
@@ -229,10 +231,10 @@ class RobotDescription:
                 if type(chain_description) is description_type:
                     return chain_description
                 else:
-                    logerr("(robot_description) The chain %s is not of type %s, but of type %s.",
+                    logging.error("(robot_description) The chain %s is not of type %s, but of type %s.",
                            chain_name, description_type, type(chain_description))
         else:
-            logwarn("(robot_description) Only subclasses of ChainDescription are allowed.")
+            logging.warning("(robot_description) Only subclasses of ChainDescription are allowed.")
 
     def get_tool_frame(self, manipulator_name: str):
         """
@@ -244,7 +246,7 @@ class RobotDescription:
         if manipulator_description:
             return manipulator_description.tool_frame
         else:
-            logerr("(robot_description) Could not get the tool frame of the manipulator %s.", manipulator_name)
+            logging.error("(robot_description) Could not get the tool frame of the manipulator %s.", manipulator_name)
 
     def get_static_joint_chain(self, chain_name: str, configuration: str):
         """
@@ -256,7 +258,7 @@ class RobotDescription:
         if chain_description:
             return chain_description.get_static_joint_chain(configuration)
         else:
-            logerr("(robot_description) Could not get static joint chain called %s of the chain %s.",
+            logging.error("(robot_description) Could not get static joint chain called %s of the chain %s.",
                    configuration, chain_name)
 
     def get_static_tf(self, base_link: str, target_link: str):
@@ -272,11 +274,11 @@ class RobotDescription:
         """
         if issubclass(type(chain_description), ChainDescription):
             if self._safely_access_chains(name, verbose=False):
-                logwarn("(robot_description) Replacing the chain description of the name %s.", name)
+                logging.warning("(robot_description) Replacing the chain description of the name %s.", name)
             self.chains[name] = chain_description
             return True
         else:
-            logerr("(robot_description) Given chain_description object is no subclass of ChainDescription.")
+            logging.error("(robot_description) Given chain_description object is no subclass of ChainDescription.")
 
     def add_chains(self, chains_dict):
         """
@@ -288,7 +290,7 @@ class RobotDescription:
         """
         for name, chain in chains_dict.items():
             if not self.add_chain(name, chain):
-                logerr("(robot_description) Could not add the chain object of name %s.", name)
+                logging.error("(robot_description) Could not add the chain object of name %s.", name)
                 break
 
     def add_camera(self, name: str, camera_description: CameraDescription):
@@ -303,11 +305,11 @@ class RobotDescription:
             except KeyError:
                 found = False
             if found:
-                logwarn("(robot_description) Replacing the camera description of the name %s.", name)
+                logging.warning("(robot_description) Replacing the camera description of the name %s.", name)
             self.cameras[name] = camera_description
             return True
         else:
-            logerr("(robot_description) Given camera_description object is not of type CameraDescription.")
+            logging.error("(robot_description) Given camera_description object is not of type CameraDescription.")
 
     def add_cameras(self, cameras_dict):
         """
@@ -319,7 +321,7 @@ class RobotDescription:
         """
         for name, camera in cameras_dict.items():
             if not self.add_camera(name, camera):
-                logerr("(robot_description) Could not add the camera object of name %s.", name)
+                logging.error("(robot_description) Could not add the camera object of name %s.", name)
                 break
 
     def get_camera_frame(self, camera_name):
@@ -331,7 +333,7 @@ class RobotDescription:
         try:
             camera_description = self.cameras[camera_name]
         except KeyError:
-            logerr("(robot_description) Camera name %s is unknown.", camera_name)
+            logging.error("(robot_description) Camera name %s is unknown.", camera_name)
             return None
         return camera_description.frame
 
@@ -354,7 +356,7 @@ class RobotDescription:
         """
         for configuration, joint_states in static_joint_states.items():
             if not self.add_static_joint_chain(chain_name, configuration, joint_states):
-                logerr("(robot_description) Could not add the static joint chain called %s for chain %s.",
+                logging.error("(robot_description) Could not add the static joint chain called %s for chain %s.",
                        configuration, chain_name)
                 break
 
@@ -381,7 +383,7 @@ class RobotDescription:
         """
         for configuration, joint_states in static_joint_states.items():
             if not self.add_static_gripper_chain(manipulator_name, configuration, joint_states):
-                logerr("(robot_description) Could not add static gripper chain called %s for manipulator chain %s.",
+                logging.error("(robot_description) Could not add static gripper chain called %s for manipulator chain %s.",
                        configuration, manipulator_name)
                 break
 
@@ -396,6 +398,56 @@ class RobotDescription:
         manipulator_description = self._get_chain_description(manipulator_name, ManipulatorDescription)
         if manipulator_description and manipulator_description.gripper:
             return manipulator_description.gripper.get_static_joint_chain(configuration)
+
+    # @staticmethod
+    # def from_urdf(urdf_path: str):
+    #     # URDF Python library does not like ROS package paths --> replace
+    #     with tempfile.NamedTemporaryFile(suffix=".urdf") as temp_urdf_file:
+    #         with open(urdf_path) as urdf_file:
+    #             urdf_resolved = replace_package_urls(urdf_file.read())
+    #         temp_urdf_file.write(urdf_resolved)
+    #         urdf = URDF.load(temp_urdf_file)
+    #     ik_joints = [joint.name for joint in urdf.actuated_joints]
+
+
+class UR5RobotiqDescription(RobotDescription):
+    def __init__(self):
+        # all joints which are not fix,
+        ik_joints = ["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint",
+                     "wrist_3_joint", "robotiq_85_left_knuckle_joint", "robotiq_85_right_knuckle_joint",
+                     "robotiq_85_left_finger_joint", "robotiq_85_right_finger_joint",
+                     "robotiq_85_left_inner_knuckle_joint", "robotiq_85_right_inner_knuckle_joint",
+                     "robotiq_85_left_finger_tip_joint", "robotiq_85_left_finger_tip_joint"]
+        super(UR5RobotiqDescription, self).__init__("ur5_robotiq", "world", "base_link", ik_joints)
+
+        # Arm
+        arm_joints = ["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint",
+                      "wrist_3_joint"]
+        arm_links = ["base_link", "shoulder_link", "upper_arm_link", "forearm_link", "wrist_1_link", "wrist_2_link", "wrist_3_link"]
+        gripper_joints = ["robotiq_85_left_finger_joint", "robotiq_85_right_finger_joint",
+                          "robotiq_85_left_inner_knuckle_joint", "robotiq_85_right_inner_knuckle_joint",
+                          "robotiq_85_left_finger_tip_joint", "robotiq_85_left_finger_tip_joint"]
+        gripper_links = ["robotiq_85_base_link", "robotiq_85_left_knuckle_link", "robotiq_85_right_knuckle_link",
+                         "robotiq_85_left_finger_link", "robotiq_85_right_finger_link",
+                         "robotiq_85_left_inner_knuckle_link", "robotiq_85_right_inner_knuckle_link",
+                         "robotiq_85_left_finger_tip_link" "robotiq_85_right_finger_tip_link"]
+
+        # Arm
+        manipulator_chain = ChainDescription("manipulator", arm_joints, arm_links)
+        manipulator_inter = InteractionDescription(manipulator_chain, "ee_link")
+        # Gripper
+        gripper = GripperDescription("gripper", gripper_links, gripper_joints)
+        # Adding Arm + Gripper
+        manipulator = ManipulatorDescription(manipulator_inter, tool_frame="ee_link",
+                                             gripper_description=gripper)
+        self.add_chains({"manipulator": manipulator})
+        # Adding Static Joint Poses
+        # Static Arm Positions
+        manipulator_home = [0, 0, 0, 0, 0, 0]
+        self.add_static_joint_chain("manipulator", "home", manipulator_home)
+        # Static Gripper Positions
+        gripper_confs = {"open": [0.0], "close": [1.0]}
+        self.add_static_gripper_chains("gripper", gripper_confs)
 
 
 class PR2Description(RobotDescription):
@@ -418,7 +470,7 @@ class PR2Description(RobotDescription):
                      "l_gripper_motor_screw_joint", "l_gripper_l_finger_joint",
                      "l_gripper_l_finger_tip_joint", "l_gripper_r_finger_joint",
                      "l_gripper_r_finger_tip_joint", "l_gripper_joint", "torso_lift_motor_screw_joint"]
-        super().__init__("pr2", "base_footprint", "base_link", "torso_lift_link", "torso_lift_joint", ik_joints)
+        super().__init__("pr2", "base_footprint", "base_link", ik_joints, "torso_lift_link", "torso_lift_joint")
         # Camera
         minimal_height = 1.27
         maximal_height = 1.60
@@ -518,8 +570,8 @@ class BoxyDescription(RobotDescription):
                      'right_arm_0_joint', 'right_arm_1_joint', 'right_arm_2_joint', 'right_arm_3_joint',
                      'right_arm_4_joint', 'right_arm_5_joint', 'right_arm_6_joint',
                      'right_gripper_base_gripper_left_joint', 'right_gripper_joint']  # TODO: all non fixed joints
-        super().__init__("boxy", "base_footprint", "base_link", "triangle_base_link",
-                         "triangle_base_joint", ik_joints, odom_frame="odom",
+        super().__init__("boxy", "base_footprint", "base_link", ik_joints, "triangle_base_link",
+                         "triangle_base_joint", odom_frame="odom",
                          odom_joints=["odom_x_joint", "odom_y_joint", "odom_z_joint"])
         camera = CameraDescription("head_mount_kinect2_rgb_optical_frame",
                                    minimal_height=0.0, maximal_height=2.5,
@@ -614,8 +666,8 @@ class DonbotDescription(RobotDescription):
                      'ur5_shoulder_lift_joint', 'ur5_elbow_joint', 'ur5_wrist_1_joint',
                      'ur5_wrist_2_joint', 'ur5_wrist_3_joint', 'gripper_base_gripper_left_joint',
                      'gripper_joint']  # TODO: all non fixed joints
-        super().__init__("donbot", "base_footprint", "base_link", "ur5_base_link",
-                         "arm_base_mounting_joint", ik_joints, odom_frame="odom",
+        super().__init__("donbot", "base_footprint", "base_link", ik_joints, "ur5_base_link",
+                         "arm_base_mounting_joint", odom_frame="odom",
                          odom_joints=["odom_x_joint", "odom_y_joint", "odom_z_joint"])
         # Camera
         rgb_camera = CameraDescription("camera_link",
@@ -699,7 +751,7 @@ class HSRDescription(RobotDescription):
                      'hand_l_mimic_distal_joint', 'hand_l_distal_joint', 'hand_r_proximal_joint',
                      'hand_r_spring_proximal_joint',
                      'hand_r_mimic_distal_joint', 'hand_r_distal_joint']
-        super().__init__("hsr", "base_footprint", "base_link", "arm_lift_link", "arm_lift_joint", ik_joints)
+        super().__init__("hsr", "base_footprint", "base_link", ik_joints, "arm_lift_link", "arm_lift_joint")
         # Camera
         head_center_camera = CameraDescription("head_center_camera_frame",
                                                horizontal_angle=0.99483, vertical_angle=0.75049)
@@ -752,7 +804,7 @@ class InitializedRobotDescription():
                 InitializedRobotDescription.current_description_loaded is not robot_description:
             InitializedRobotDescription.current_description_loaded = robot_description
             InitializedRobotDescription.i = robot_description()
-            loginfo("(robot-description) (Re)Loaded Description of robot %s.", self.i.name)
+            logging.info("(robot-description) (Re)Loaded Description of robot %s.", self.i.name)
 
 
 def update_robot_description(robot_name=None, from_ros=None):
@@ -761,9 +813,10 @@ def update_robot_description(robot_name=None, from_ros=None):
         robot = robot_name
     elif from_ros:
         try:
-            urdf = get_param('robot_description')
-        except ConnectionRefusedError:
-            logerr("(robot-description) Could not get robot name from parameter server. Try again.")
+            with ROSBridge() as rb:
+                urdf = rb.ros_client.get_param('robot_description')
+        except:
+            logging.error("(robot-description) Could not get robot name from parameter server. Try again.")
             return None
         res = re.findall(r"robot\ *name\ *=\ *\"\ *[a-zA-Z_1-9]*\ *\"", urdf)
         if len(res) == 1:
@@ -782,11 +835,13 @@ def update_robot_description(robot_name=None, from_ros=None):
         description = BoxyDescription
     elif 'hsr' in robot:
         description = HSRDescription
+    elif "ur5_robotiq" in robot:
+        description = UR5RobotiqDescription
     else:
-        logerr("(robot-description) The given robot name %s has no description class.", robot_name)
+        logging.error("(robot-description) The given robot name %s has no description class.", robot_name)
         return None
     return InitializedRobotDescription(description)
 
 
-update_robot_description(from_ros=True)  # todo: put in ros init
+update_robot_description("ur5_robotiq")#from_ros=True)  # todo: put in ros init
 # print(InitializedRobotDescription.i.chains["left"].static_joint_states)
