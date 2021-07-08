@@ -138,7 +138,9 @@ class TFBroadcaster(ROSTopicPublisher):
             if obj.name == robot_description.i.name or obj.type == "environment":
                 continue
             else:
-                self._publish_object_pose(obj.name, obj.get_position_and_orientation())
+                pb_pos, pb_ori = obj.get_position_and_orientation()
+                pose = Pose.from_xyz_qxyzw(np.array(pb_pos), np.array(pb_ori))
+                self._publish_object_pose(obj.name, pose)
 
     def _update_static_odom(self):
         self._publish_pose(self.map_frame, self.projection_namespace + '/' + self.odom_frame,
@@ -166,7 +168,7 @@ class TFBroadcaster(ROSTopicPublisher):
         if robot:
             # Then publish pose of robot
             try:
-                pb_pos, pb_ori = robot.get_link_position_and_orientation_tf(robot_description.i.base_frame)
+                pb_pos, pb_ori = robot.get_link_position_and_orientation(robot_description.i.base_frame)
             except KeyError:
                 pb_pos, pb_ori = robot.get_position_and_orientation()
             robot_pose = Pose.from_xyz_qxyzw(pb_pos, pb_ori)
