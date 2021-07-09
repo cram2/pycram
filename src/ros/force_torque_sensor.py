@@ -24,7 +24,7 @@ class ForceTorqueSensor(ROSTopicPublisher):
             raise RuntimeError(f"Could not register ForceTorqueSensor: Joint {joint_name} does not exist")
         pb.enableJointForceTorqueSensor(self.world.robot.id, self.fts_joint_idx, enableSensor=1)
 
-        self.fts_pub = roslibpy.Topic(self.ros_client, fts_topic, "geometry_msgs/Wrench")
+        self.fts_pub = roslibpy.Topic(self.ros_client, fts_topic, "geometry_msgs/WrenchStamped")
         self.interval = interval
 
     def _publish(self):
@@ -33,8 +33,12 @@ class ForceTorqueSensor(ROSTopicPublisher):
             current_joint_state = pb.getJointState(self.world.robot.id, self.fts_joint_idx)
             joint_ft = current_joint_state[2]
             wrench_msg = roslibpy.Message({
-                "force": dict(zip(["x", "y", "z"], joint_ft[:3])),
-                "torque": dict(zip(["x", "y", "z"], joint_ft[3:]))
+                "header": roslibpy.Header(seq, roslibpy.Time.now(), frame_id=""),
+                "wrench":
+                    {
+                        "force": dict(zip(["x", "y", "z"], joint_ft[:3])),
+                        "torque": dict(zip(["x", "y", "z"], joint_ft[3:]))
+                    }
             })
             self.fts_pub.publish(wrench_msg)
             seq += 1
