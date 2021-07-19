@@ -46,6 +46,7 @@ class BulletWorld:
         time.sleep(1) # 0.1
         self.last_bullet_world = BulletWorld.current_bullet_world
         BulletWorld.current_bullet_world = self
+        self.coll_callbacks = {}
 
     def get_objects_by_name(self, name):
         return list(filter(lambda obj: obj.name == name, self.objects))
@@ -74,9 +75,19 @@ class BulletWorld:
     def set_robot(self, robot):
         BulletWorld.robot = robot
 
-    def simulate(self, seconds):
+    def simulate(self, seconds, real_time=False):
         for i in range(0, int(seconds * 240)):
             p.stepSimulation(self.client_id)
+            for objects, callback in self.coll_callbacks.items():
+                contact_points = p.getContactPoints(objects[0].id, objects[1].id, physicsClientId=self.client_id)
+                #contact_points = p.getClosestPoints(objects[0].id, objects[1].id, 0.02)
+                #print(contact_points[0][5])
+                if contact_points != ():
+                    callback[0]()
+                else:
+                    callback[1]()
+            if real_time:
+                time.sleep(1/240)
 
     def exit(self):
         BulletWorld.current_bullet_world = self.last_bullet_world
@@ -117,6 +128,9 @@ class BulletWorld:
                 o.set_joint_state(joint, obj.get_joint_state(joint))
         return world
 
+    def register_collision_callback(self, objectA, objectB, callback_collision, callback_no_collision):
+        self.coll_callbacks[(objectA, objectB)] = (callback_collision, callback_no_collision)
+
 
 
 current_bullet_world = BulletWorld.current_bullet_world
@@ -153,7 +167,7 @@ class Object:
     This class represents an object in the BulletWorld.
     """
 
-    def __init__(self, name, type, path, position=[0, 0, 0], orientation=[0, 0, 0, 1], world=None, color=[1, 1, 1, 1]):
+    def __init__(self, name, type, path, position=[0, 0, 0], orientation=[0, 0, 0, 1], world=None, color=[1, 1, 1, 1], fixed_base=False):
         """
         The constructor loads the urdf file into the given BulletWorld, if no BulletWorld is specified the
         'current_bullet_world' will be used. It is also possible to load .obj and .stl file into the BulletWorld.
@@ -172,7 +186,7 @@ class Object:
         self.type = type
         self.path = path
         self.color = color
-        self.id = _load_object(name, path, position, orientation, world, color)
+        self.id = _load_object(name, path, position, orientation, world, color, fixed_base)
         self.joints = self._joint_or_link_name_to_id("joint")
         self.links = self._joint_or_link_name_to_id("link")
         self.attachments = {}
@@ -370,7 +384,7 @@ class Object:
 def filter_contact_points(contact_points, exclude_ids):
     return list(filter(lambda cp: cp[2] not in exclude_ids, contact_points))
 
-def _load_object(name, path, position, orientation, world, color):
+def _load_object(name, path, position, orientation, world, color, fixed_base):
     """
     This method loads an object to the given BulletWorld with the given position and orientation. The color will only be
     used when an .obj or .stl file is given.
@@ -419,7 +433,7 @@ def _load_object(name, path, position, orientation, world, color):
         path = cach_dir + name + ".urdf"
 
     try:
-        obj = p.loadURDF(path, basePosition=position, baseOrientation=orientation, physicsClientId=world_id)
+        obj = p.loadURDF(path, basePosition=position, baseOrientation=orientation, physicsClientId=world_id, useFixedBase=fixed_base)
         return obj
     except p.error as e:
         print(e)
