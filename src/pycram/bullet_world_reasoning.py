@@ -104,7 +104,7 @@ def contact(object1, object2, world=None):
     world, world_id = _world_and_id(world)
     p.stepSimulation(world_id)
     con_points = p.getContactPoints(object1.id, object2.id, physicsClientId=world_id)
-
+    
     return con_points is not ()
 
 
