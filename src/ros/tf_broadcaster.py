@@ -6,9 +6,9 @@ from pytransform3d.rotations import quaternion_xyzw_from_wxyz, quaternion_wxyz_f
     active_matrix_from_extrinsic_euler_xzx
 from pytransform3d.transformations import transform_from_pq, pq_from_transform
 
-from .robot_description import InitializedRobotDescription as robot_description
+from pycram.robot_description import InitializedRobotDescription as robot_description
 
-from .rosbridge import ROSBridge
+from ros.rosbridge import ROSBridge
 import roslibpy
 
 import rospkg
@@ -62,6 +62,9 @@ class TFBroadcaster(object):
         self.tf_stampeds = []
         self.static_tf_stampeds = []
         self.init_transforms_from_urdf()
+
+    def __del__(self):
+        self.ros_client.terminate()
 
     @staticmethod
     def make_tf_stamped(source_frame: str, target_frame: str, trans: np.ndarray, quat_xyzw: np.ndarray) -> roslibpy.Message:
