@@ -237,3 +237,9 @@ class TFBroadcaster(object):
         while not self.kill_event.is_set():
             self.update()
             time.sleep(self.interval)
+
+    def __enter__(self):
+        self.start_broadcasting()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stop_broadcasting()
