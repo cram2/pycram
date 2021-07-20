@@ -2,21 +2,14 @@ import logging
 import threading
 from abc import ABC, abstractmethod
 
-import roslibpy
-
 from ros.rosbridge import ROSBridge
 
 
 class ROSTopicPublisher(ABC):
     def __init__(self):
-        self.ros_client = roslibpy.Ros(*ROSBridge.get_ros_master_host_and_port())
-        self.ros_client.run()
-
+        self.ros_client = ROSBridge().ros_client
         self.thread = None
         self.kill_event = threading.Event()
-
-    def __del__(self):
-        self.ros_client.terminate()
 
     def start_publishing(self):
         logging.info(f"{self.__class__.__name__}::start_publishing: Starting publisher thread...")
