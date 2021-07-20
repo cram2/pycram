@@ -11,6 +11,7 @@ import os
 import threading
 import time
 import pathlib
+import logging
 import rospkg
 from .event import Event
 #from .helper import transform
@@ -356,6 +357,14 @@ class Object:
         return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[5]
 
     def set_joint_state(self, joint_name, joint_pose):
+        up_lim, low_lim = p.getJointInfo(self.id, self.joints[joint_name], physicsClientId=self.world.client_id)[8:10]
+        if low_lim > up_lim:
+            low_lim, up_lim = up_lim, low_lim
+        if not low_lim <= joint_pose <= up_lim:
+            logging.error(f"The joint position has to be within the limits of the joint. The joint limits for {joint_name} are {low_lim} and {up_lim}")
+            logging.error(f"The given joint position was: {joint_pose}")
+            # Temporarily disabled because kdl outputs values exciting joint limits
+            #return
         p.resetJointState(self.id, self.joints[joint_name], joint_pose, physicsClientId=self.world.client_id)
         self._set_attached_objects([self])
 
@@ -429,7 +438,8 @@ def _load_object(name, path, position, orientation, world, color):
         return obj
     except p.error as e:
         print(e)
-        print("The path has to be either a path to a URDf file, stl file, obj file or the name of a URDF on the parameter server.")
+        logging.error("The File could not be loaded. Plese note that the path has to be either a URDF, stl or obj file or the name of an URDF string on the parameter server.")
+        #print(f"{bcolors.BOLD}{bcolors.WARNING}The path has to be either a path to a URDf file, stl file, obj file or the name of a URDF on the parameter server.{bcolors.ENDC}")
 
 
 def _is_cached(path, name, cach_dir):

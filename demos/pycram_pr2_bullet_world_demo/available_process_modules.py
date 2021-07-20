@@ -4,8 +4,7 @@ from pr2_process_modules import PR2ProcessModules
 from boxy_process_modules import BoxyProcessModules
 from donbot_process_modules import DonbotProcessModules
 from hsr_process_modules import HSRProcessModules
-from rospy import logerr
-
+import logging
 
 def available_process_modules(desig):
     robot_name = robot_description.i.name
@@ -18,7 +17,7 @@ def available_process_modules(desig):
     elif robot_name is 'hsr': # todo rmv hardcoded robot names
         return HSRProcessModules().initialized.available_process_modules(desig)
     else:
-        logerr('No Process Modules found for robot %s.', robot_name)
+        logging.error('No Process Modules found for robot %s.', robot_name)
 
 
 ProcessModule.resolvers.append(available_process_modules)

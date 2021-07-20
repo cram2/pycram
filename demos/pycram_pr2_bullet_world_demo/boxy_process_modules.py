@@ -1,3 +1,4 @@
+import pycram.helper_deprecated as helper_deprecated
 from pycram.robot_description import InitializedRobotDescription as robot_description
 from pycram.process_module import ProcessModule
 from pycram.process_modules import ProcessModules, _apply_ik
@@ -155,8 +156,8 @@ class BoxyMoveHead(ProcessModule):
             if type(solutions['target']) is str:
                 target = local_tf.projection_namespace + '/' + solutions['target']
                 pose_in_neck_base = local_tf.tf_transform(neck_base_frame, target)
-            elif helper.is_list_pose(solutions['target']) or helper.is_list_position(solutions['target']):
-                pose = helper.ensure_pose(solutions['target'])
+            elif helper_deprecated.is_list_pose(solutions['target']) or helper_deprecated.is_list_position(solutions['target']):
+                pose = helper_deprecated.ensure_pose(solutions['target'])
                 pose_in_neck_base = local_tf.tf_pose_transform(local_tf.map_frame, neck_base_frame, pose)
 
             vector = pose_in_neck_base[0]
