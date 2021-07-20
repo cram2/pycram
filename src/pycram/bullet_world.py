@@ -30,7 +30,7 @@ class BulletWorld:
     current_bullet_world = None
     robot = None
 
-    def __init__(self, type="GUI", broadcast_tf=False):
+    def __init__(self, type="GUI"):
         """
         The constructor initializes a new simulation. The parameter decides if the Simulation should be graphical or
         non-graphical. It can only exist one graphical simulation at the time, but an arbitrary amount of non-graphical.
@@ -48,14 +48,6 @@ class BulletWorld:
         time.sleep(1) # 0.1
         self.last_bullet_world = BulletWorld.current_bullet_world
         BulletWorld.current_bullet_world = self
-        self.tf_broadcaster = None
-        if broadcast_tf:
-            self.tf_broadcaster = TFBroadcaster(self, "map", "odom", "projection", "iai_kitchen", interval=1.0)
-            self.tf_broadcaster.start_broadcasting()
-
-    def __del__(self):
-        if self.tf_broadcaster:
-            self.tf_broadcaster.stop_broadcasting()
 
     def get_objects_by_name(self, name):
         return list(filter(lambda obj: obj.name == name, self.objects))
