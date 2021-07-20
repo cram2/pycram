@@ -5,6 +5,7 @@ from rospkg import RosPack
 import pybullet as pb
 
 from pycram.bullet_world import BulletWorld, Object
+from ros.force_torque_sensor import ForceTorqueSensor
 from ros.joint_state_publisher import JointStatePublisher
 from ros.tf_broadcaster import TFBroadcaster
 
@@ -41,6 +42,7 @@ if __name__ == '__main__':
 
     tf_broadcaster = TFBroadcaster(world, "map", "odom", "projection", "iai-kitchen", interval=1.0)
     jsp = JointStatePublisher(world)
+    fts = ForceTorqueSensor(world, "ee_fixed_joint")
 
-    with tf_broadcaster, jsp:
+    with tf_broadcaster, jsp, fts:
         world.simulate(60)
