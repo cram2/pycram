@@ -4,7 +4,7 @@ from pycram.process_modules import ProcessModules, _apply_ik
 from pycram.bullet_world import BulletWorld
 import pycram.bullet_world_reasoning as btr
 import pybullet as p
-from rospy import logerr
+import logging
 import time
 
 
@@ -125,7 +125,7 @@ class HSRMoveHead(ProcessModule):
                 for joint, state in robot_description.i.get_static_joint_chain("neck", target).items():
                     robot.set_joint_state(joint, state)
             else:
-                logerr("There is no target position defined with the target %s.", target)
+                logging.error("There is no target position defined with the target %s.", target)
 
 
 class HSRMoveGripper(ProcessModule):

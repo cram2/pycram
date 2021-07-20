@@ -9,6 +9,8 @@ from inspect import isgenerator, isgeneratorfunction
 from pycram.helper import GeneratorList
 from threading import Lock
 from time import time
+import logging
+
 
 class DesignatorError(Exception):
 	"""Implementation of designator errors."""
@@ -208,9 +210,11 @@ class Designator:
 		Arguments:
 		key -- the key to return the value of.
 		"""
-		for k, v in self._properties:
-			if k == key:
-				return v
+		try:
+			return self._description.__dict__[key]
+		except KeyError:
+			logging.error(f"The given key {key} is not in this Designator")
+			return None
 
 		return None
 
