@@ -129,6 +129,14 @@ class BulletWorld:
         return world
 
     def register_collision_callback(self, objectA, objectB, callback_collision, callback_no_collision):
+        """
+        This function regsiters can register two callbacks, one if objectA and objectB are in contact
+        and another if they are not in contact.
+        :param A: An object in the BulletWorld
+        :param B: Another object in the BulletWorld
+        :param callback_collision: A function that should be called if the obejcts are in contact
+        :param callback_no_collision: A funtion that should be called if the objects are not in contact
+        """
         self.coll_callbacks[(objectA, objectB)] = (callback_collision, callback_no_collision)
 
 
@@ -180,6 +188,7 @@ class Object:
         :param orientation: The orientation with which the object should be spawned
         :param world: The BulletWorld in which the object should be spawned, if no world is specified the 'current_bullet_world' will be used
         :param color: The color with which the object should be spawned.
+        :param fixed_base: If True the object will be static in the BulletWorld
         """
         self.world = world if world is not None else BulletWorld.current_bullet_world
         self.name = name
@@ -399,6 +408,7 @@ def _load_object(name, path, position, orientation, world, color, fixed_base):
     :param orientation: The orientation in which the object should be spawned
     :param world: The BulletWorld to which the Object should be spawned
     :param color: The color of the object, only used when .obj or .stl file is given
+    :param fixed_base: If the base should be fixed in space or not
     :return: The unique id of the object
     """
     pa = pathlib.Path(path)
