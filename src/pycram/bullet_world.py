@@ -84,7 +84,7 @@ class BulletWorld:
                 #print(contact_points[0][5])
                 if contact_points != ():
                     callback[0]()
-                else:
+                elif callback[1] != None: # Call no collision callback 
                     callback[1]()
             if real_time:
                 time.sleep(1/240)
@@ -128,7 +128,7 @@ class BulletWorld:
                 o.set_joint_state(joint, obj.get_joint_state(joint))
         return world
 
-    def register_collision_callback(self, objectA, objectB, callback_collision, callback_no_collision):
+    def register_collision_callback(self, objectA, objectB, callback_collision, callback_no_collision=None):
         """
         This function regsiters can register two callbacks, one if objectA and objectB are in contact
         and another if they are not in contact.
