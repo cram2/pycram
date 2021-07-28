@@ -17,6 +17,7 @@ __all__ = ["ActionDesignator",
 
 from typing import List
 from .task import with_tree
+from .designator import Designator
 
 class ActionDesignator: # (Designator):
     def __init__(self, description):

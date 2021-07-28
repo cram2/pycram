@@ -11,6 +11,8 @@ from threading import Lock
 from time import time
 import rospy
 
+
+
 class DesignatorError(Exception):
 	"""Implementation of designator errors."""
 
