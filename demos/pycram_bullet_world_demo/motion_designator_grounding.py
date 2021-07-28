@@ -10,92 +10,94 @@ value.
 """
 
 
-def ground_move(self):
-    if not self.orientation:
+def ground_move(description):
+    if not description.orientation:
         # get_orientation returns tuple, the conversion is because of the type
         # check in _check_properties
-        self.orientation = list(BulletWorld.robot.get_orientation())
-    self._check_properties("[Motion Designator] Moving")
-    return self.__dict__
+        description.orientation = list(BulletWorld.robot.get_orientation())
+    description._check_properties("[Motion Designator] Moving")
+    return description.__dict__
 
-def ground_pick_up(self):
-    if not self.arm:
-        self.arm = 'left'
-    self.gripper = robot_description.i.get_tool_frame(self.arm)
-    self._check_properties("[Motion Designator] Pick-Up")
-    return self.__dict__
+def ground_pick_up(description):
+    if not description.arm:
+        description.arm = 'left'
+    description.gripper = robot_description.i.get_tool_frame(description.arm)
+    description._check_properties("[Motion Designator] Pick-Up")
+    return description.__dict__
 
-def ground_place(self):
-    if not self.arm:
-        self.arm = 'left'
-    self.gripper = robot_description.i.get_tool_frame(self.arm)
-    self._check_properties("[Motion Designator] Place")
-    return self.__dict__
+def ground_place(description):
+    if not description.arm:
+        description.arm = 'left'
+    description.gripper = robot_description.i.get_tool_frame(description.arm)
+    description._check_properties("[Motion Designator] Place")
+    return description.__dict__
 
-def ground_accessing(self):
-    if not self.arm:
-        self.arm = 'left'
-    self.gripper = robot_description.i.get_tool_frame(self.arm)
-    self._check_properties("[Motion Designator] Accessing")
-    return self.__dict__
+def ground_accessing(description):
+    if not description.arm:
+        description.arm = 'left'
+    description.gripper = robot_description.i.get_tool_frame(description.arm)
+    description._check_properties("[Motion Designator] Accessing")
+    return description.__dict__
 
-def ground_move_tcp(self):
-    if not self.arm:
-        self.arm = 'left'
-    self._check_properties("[Motion Designator] Move-TCP")
-    return self.__dict__
+def ground_move_tcp(description):
+    if not description.arm:
+        description.arm = 'left'
+    description._check_properties("[Motion Designator] Move-TCP")
+    return description.__dict__
 
-def ground_looking(self):
-    if self.target and self.object:
+def ground_looking(description):
+    if description.target and description.object:
         rospy.logwarn(f"[Looking Designator Resolution] Target and Object parameter provided. Only Object will be used.")
-        return {'cmd': self.cmd,
-                'target': BulletWorld.current_bullet_world.get_objects_by_name(self.object)[0].get_pose}
-    if self.object:
-        return {'cmd': self.cmd,
-                'target': BulletWorld.current_bullet_world.get_objects_by_name(self.object)[0].get_pose}
-    if self.target:
-        return self.make_dictionary(["cmd", "target"])
-    if not self.target and not self.object:
-        self._check_properties("[Motion Designator] Looking")
+        return {'cmd': description.cmd,
+                'target': BulletWorld.current_bullet_world.get_objects_by_name(description.object)[0].get_pose}
+    if description.object:
+        return {'cmd': description.cmd,
+                'target': BulletWorld.current_bullet_world.get_objects_by_name(description.object)[0].get_pose}
+    if description.target:
+        return description.make_dictionary(["cmd", "target"])
+    if not description.target and not description.object:
+        description._check_properties("[Motion Designator] Looking")
 
-def ground_move_gripper(self):
-    self._check_properties("[Motion Designator] Move-gripper")
-    return self.__dict__
+def ground_move_gripper(description):
+    description._check_properties("[Motion Designator] Move-gripper")
+    return description.__dict__
 
-def ground_detect(self):
-    if not self.cam_frame:
-        self.cam_frame = robot_description.i.get_camera_frame()
-    if not self.front_facing_axis:
-        self.front_facing_axis = robot_description.i.front_facing_axis
-    self._check_properties("[Motion Designator] Detecting")
-    return self.__dict__
+def ground_detect(description):
+    if not description.cam_frame:
+        description.cam_frame = robot_description.i.get_camera_frame()
+    if not description.front_facing_axis:
+        description.front_facing_axis = robot_description.i.front_facing_axis
+    description._check_properties("[Motion Designator] Detecting")
+    return description.__dict__
 
-def ground_move_arm(self):
-    if self.left_arm_config or self.right_arm_config:
-        self.left_arm_poses = self.left_arm_config
-        self.right_arm_poses = self.right_arm_config
-        return self.__dict__
-    if self.right_arm_poses or self.left_arm_poses:
-        return self.__dict__
+def ground_move_arm(description):
+    if description.left_arm_config or description.right_arm_config:
+        description.left_arm_poses = description.left_arm_config
+        description.right_arm_poses = description.right_arm_config
+        return description.__dict__
+    if description.right_arm_poses or description.left_arm_poses:
+        return description.__dict__
     else:
-        self._check_properties("[Motion Designator] Move-arm-joints")
+        description._check_properties("[Motion Designator] Move-arm-joints")
 
-def ground_world_state_detecting(self):
-    self._check_properties("[Motion Designator] World-state-detecting")
-    return self.__dict__
+def ground_world_state_detecting(description):
+    description._check_properties("[Motion Designator] World-state-detecting")
+    return description.__dict__
 
-MoveMotionDescription.ground = ground_move
-PickUpMotionDescription.ground = ground_pick_up
-PlaceMotionDescription.ground = ground_place
-AccessingMotionDescription.ground = ground_accessing
-MoveTCPMotionDescription.ground = ground_move_tcp
-LookingMotionDescription.ground = ground_looking
-MoveGripperMotionDescription.ground = ground_move_gripper
-DetectingMotionDescription.ground = ground_detect
-MoveArmJointsMotionDescription.ground = ground_move_arm
-WorldStateDetectingMotionDescription.ground = ground_world_state_detecting
 
 def call_ground(desig):
-    return [desig._description.ground()]
+    type_to_function = {MoveMotionDescription : ground_move,
+                        PickUpMotionDescription: ground_pick_up,
+                        PlaceMotionDescription: ground_place,
+                        AccessingMotionDescription: ground_accessing,
+                        MoveTCPMotionDescription: ground_move_tcp,
+                        LookingMotionDescription: ground_looking,
+                        MoveGripperMotionDescription: ground_move_gripper,
+                        DetectingMotionDescription: ground_detect,
+                        MoveArmJointsMotionDescription: ground_move_arm,
+                        WorldStateDetectingMotionDescription: ground_world_state_detecting}
 
-MotionDesignator.resolvers.append(call_ground)
+    ground_function = type_to_function[type(desig._description)]
+    return ground_function(desig._description)
+
+MotionDesignator.resolvers['grounding'] = call_ground
