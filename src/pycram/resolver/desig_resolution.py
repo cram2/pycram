@@ -1,10 +1,17 @@
-from pr2_knowledge import Arms, Grasp
 from pycram.designator import DesignatorError, ObjectDesignator
-from pycram.action_designator import SetGripperActionDescription, PickUpDescription, PlaceDescription, \
-    NavigateDescription, ParkArmsDescription, DetectActionDescription, LookAtActionDescription, \
-    TransportObjectDescription, OpenActionDescription, CloseActionDescription
-from plans import open_gripper, close_gripper, pick_up, place, navigate, park_arms, detect, look_at, transport, \
+from pycram.action_designator import *
+from .plans import open_gripper, close_gripper, pick_up, place, navigate, park_arms, detect, look_at, transport, \
     open_container, close_container
+from enum import Enum, auto
+
+class Arms(Enum):
+    LEFT = auto()
+    RIGHT = auto()
+    BOTH = auto()
+
+
+class Grasp(Enum):
+    TOP = auto()
 
 def ground_set_gripper(self):
     if self.opening == 0:
@@ -84,13 +91,33 @@ def ground_close(self:CloseActionDescription):
     self.function = lambda : close_container(self.object_designator, self.arm)
     return super(CloseActionDescription, self).ground()
 
-SetGripperActionDescription.ground = ground_set_gripper
-PickUpDescription.ground = ground_pick_up
-PlaceDescription.ground = ground_place
-NavigateDescription.ground = ground_navigate
-ParkArmsDescription.ground = ground_park_arms
-DetectActionDescription.ground = ground_detect
-LookAtActionDescription.ground = ground_look_at
-TransportObjectDescription.ground = ground_transport
-OpenActionDescription.ground = ground_open
-CloseActionDescription.ground = ground_close
+def ground_move_torso(self):
+    return super(MoveTorsoActionDescription, self).ground()
+
+# SetGripperActionDescription.ground = ground_set_gripper
+# PickUpDescription.ground = ground_pick_up
+# PlaceDescription.ground = ground_place
+# NavigateDescription.ground = ground_navigate
+# ParkArmsDescription.ground = ground_park_arms
+# DetectActionDescription.ground = ground_detect
+# LookAtActionDescription.ground = ground_look_at
+# TransportObjectDescription.ground = ground_transport
+# OpenActionDescription.ground = ground_open
+# CloseActionDescription.ground = ground_close
+
+def call_ground(desig):
+    type_to_ground = {MoveTorsoActionDescription: ground_move_torso,
+                      SetGripperActionDescription: ground_set_gripper,
+                      PickUpDescription: ground_pick_up,
+                      PlaceDescription: ground_place,
+                      NavigateDescription: ground_navigate,
+                      ParkArmsDescription: ground_park_arms,
+                      DetectActionDescription: ground_detect,
+                      LookAtActionDescription: ground_look_at,
+                      TransportObjectDescription: ground_transport,
+                      OpenActionDescription: ground_open,
+                      CloseActionDescription: ground_close}
+    ground_function = type_to_ground[type(desig.description)]
+    return ground_function(desig.description)
+
+ActionDesignator.resolver['grounding'] = call_ground

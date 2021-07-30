@@ -160,23 +160,25 @@ class PickUpMotionDescription(MotionDesignatorDescription):
 	object: Object
 	arm: str
 	gripper: str
-	def __init__(self, object, arm=None):
+	def __init__(self, object, arm=None, resolver="grounding"):
 		self.cmd = 'pick'
 		self.object = object
 		self.arm = arm
 		self.gripper = None
+		self.resolver = resolver
 
 class PlaceMotionDescription(MotionDesignatorDescription):
 	object: Object
 	target: list
 	arm: str
 	gripper: str
-	def __init__(self, object, target, arm=None):
+	def __init__(self, object, target, arm=None, resolver="grounding"):
 		self.cmd = 'place'
 		self.object = object
 		self.target = target
 		self.arm = arm
 		self.gripper = None
+		self.resolver = resolver
 
 class AccessingMotionDescription(MotionDesignatorDescription):
 	drawer_joint: str
@@ -185,7 +187,7 @@ class AccessingMotionDescription(MotionDesignatorDescription):
 	arm: str
 	distance: float
 	gripper: str
-	def __init__(self, drawer_joint, drawer_handle, part_of, arm=None, distance=0.3):
+	def __init__(self, drawer_joint, drawer_handle, part_of, arm=None, distance=0.3, resolver="grounding"):
 		self.cmd = 'access'
 		self.drawer_joint = drawer_joint
 		self.drawer_handle = drawer_handle
@@ -193,55 +195,62 @@ class AccessingMotionDescription(MotionDesignatorDescription):
 		self.arm = arm
 		self.distance = distance
 		self.gripper = None
+		self.resolver = resolver
 
 class MoveTCPMotionDescription(MotionDesignatorDescription):
 	target: list
 	arm: str
-	def __init__(self, target, arm=None):
+	def __init__(self, target, arm=None, resolver="grounding"):
 		self.cmd = 'move-tcp'
 		self.target = target
 		self.arm = arm
+		self.resolver = resolver
 
 class LookingMotionDescription(MotionDesignatorDescription):
 	target: list
 	object: Object
-	def __init__(self, target=None, object=None):
+	def __init__(self, target=None, object=None, resolver="grounding"):
 		self.cmd = 'looking'
 		self.target = target
 		self.object = object
+		self.resolver = resolver
 
 class MoveGripperMotionDescription(MotionDesignatorDescription):
 	motion: str
 	gripper: str
-	def __init__(self, motion, gripper):
+	def __init__(self, motion, gripper, resolver="grounding"):
 		self.cmd = 'move-gripper'
 		self.motion = motion
 		self.gripper = gripper
+		self.resolver = resolver
 
 class DetectingMotionDescription(MotionDesignatorDescription):
 	object_type: str
 	cam_frame: str
 	front_facing_axis: list
-	def __init__(self, object_type, cam_frame=None, front_facing_axis=None):
+	def __init__(self, object_type, cam_frame=None, front_facing_axis=None, resolver="grounding"):
 		self.cmd = 'detecting'
 		self.object_type = object_type
 		self.cam_frame = cam_frame
 		self.front_facing_axis = front_facing_axis
+		self.resolver = resolver
 
 class MoveArmJointsMotionDescription(MotionDesignatorDescription):
 	left_arm_config: str
 	right_arm_config: str
 	left_arm_poses: dict
 	right_arm_poses: dict
-	def __init__(self, left_arm_config=None, right_arm_config=None, left_arm_poses=None, right_arm_poses=None):
+	def __init__(self, left_arm_config=None, right_arm_config=None, left_arm_poses=None, right_arm_poses=None, resolver="grounding"):
 		self.cmd = 'move-joints'
 		self.left_arm_config = left_arm_config
 		self.right_arm_config = right_arm_config
 		self.left_arm_poses = left_arm_poses
 		self.right_arm_poses = right_arm_poses
+		self.resolver = resolver
 
 class WorldStateDetectingMotionDescription(MotionDesignatorDescription):
 	object_type: str
-	def __init__(self, object_type):
+	def __init__(self, object_type, resolver="grounding"):
 		self.cmd = 'world-state-detecting'
 		self.object_type = object_type
+		self.resolver = resolver
