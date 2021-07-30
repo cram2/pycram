@@ -4,9 +4,63 @@ from pycram.designator import ObjectDesignator
 from pycram.motion_designator import *
 from pycram.action_designator import *
 from pycram.plan_failures import PlanFailure
-from pr2_knowledge import reach_position_generator, object_fetching_location_generator, free_arms, Arms
+#from pr2_knowledge import reach_position_generator, object_fetching_location_generator, free_arms, Arms
+from enum import Enum, auto
 
 from pycram.bullet_world import BulletWorld, filter_contact_points
+
+
+def free_arms():
+    if not OBJECT_HELD_LEFT and not OBJECT_HELD_RIGHT:
+        return [Arms.RIGHT, Arms.LEFT]
+    elif not OBJECT_HELD_LEFT:
+        return [Arms.LEFT]
+    elif not OBJECT_HELD_RIGHT:
+        return [Arms.RIGHT]
+    else:
+        return []
+
+def reach_position_generator(target):
+    if type(target) is ObjectDesignator:
+        if target.prop_value('name') in ['sink_area_left_middle_drawer', 'sink_area_left_upper_drawer']:
+            yield [0.3, 0.9, 0], [0,0,0,1]
+            yield [0.4, 0.9, 0], [0,0,0,1]
+            yield [0.5, 0.9, 0], [0,0,0,1]
+            yield [0.6, 0.9, 0], [0,0,0,1]
+        elif target.prop_value('name') is 'iai_fridge':
+            yield [0.5, -0.4, 0], [0, 0, -0.258819, 0.9659258]
+        else:
+            yield [0.6, 0.9, 0], [0,0,0,1]
+    else:
+        yield [-1.8, 1, 0], [0,0,0,1]
+        yield [-0.4, 1, 0], [0,0,1,0]
+
+
+def object_fetching_location_generator(object_designator):
+    object_type = object_designator.prop_value('type')
+    if object_type is "spoon":
+        yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_upper_drawer'), ('part-of', "kitchen")])
+    elif object_type is "bowl":
+        yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_middle_drawer'), ('part-of', "kitchen")])
+    elif object_type is "milk":
+        yield ObjectDesignator([('type', 'fridge'), ('name', 'iai_fridge'), ('part-of', "kitchen")])
+        yield [1.3, 0.8, 0.95]  # Location on counter top
+    elif object_type is "cereal":
+        yield [1.3, 0.8, 0.95]  # Location on counter top
+    else:
+        # Otherwise just look everywhere
+        yield [1.3, 0.8, 0.95]
+        yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_upper_drawer'), ('part-of', "kitchen")])
+        yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_middle_drawer'), ('part-of', "kitchen")])
+        yield ObjectDesignator([('type', 'fridge'), ('name', 'iai_fridge'), ('part-of', "kitchen")])
+
+
+class Arms(Enum):
+    LEFT = auto()
+    RIGHT = auto()
+    BOTH = auto()
+
+
 
 @with_tree
 def open_gripper(gripper):
