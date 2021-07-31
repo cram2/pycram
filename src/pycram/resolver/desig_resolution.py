@@ -9,7 +9,6 @@ class Arms(Enum):
     RIGHT = auto()
     BOTH = auto()
 
-
 class Grasp(Enum):
     TOP = auto()
 
