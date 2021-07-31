@@ -32,7 +32,7 @@ class ActionDesignator: # (Designator):
 
     def perform(self):
         #desc = self.description.ground()
-        desc = self._reference()
+        desc = self.reference()
         return desc.function()
 
     def __call__(self, *args, **kwargs):
