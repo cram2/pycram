@@ -46,6 +46,7 @@ class BulletWorld:
         time.sleep(1) # 0.1
         self.last_bullet_world = BulletWorld.current_bullet_world
         BulletWorld.current_bullet_world = self
+        self.vis_axis = None
 
     def get_objects_by_name(self, name):
         return list(filter(lambda obj: obj.name == name, self.objects))
@@ -116,6 +117,39 @@ class BulletWorld:
             for joint in obj.joints:
                 o.set_joint_state(joint, obj.get_joint_state(joint))
         return world
+
+    def add_vis_axis(self, position_and_orientation, length=0.2):
+        """
+        Creates a Visual object which represents the coordinate frame at the given
+        position and orientation. There can only be one vis axis at a time. If this
+        method is called again the previous visualization will be deleted.
+        :param position_and_orientation: The position as vector of x,y,z and the
+        orientation as a quanternion
+        :param length: Optional parameter to configure the length of the axes
+        """
+        if self.vis_axis:
+            p.removeBody(self.vis_axis)
+
+        position = position_and_orientation[0]
+        orientation = position_and_orientation[1]
+
+        vis_x = p.createVisualShape(p.GEOM_BOX, halfExtents=[length, 0.01, 0.01],
+                            rgbaColor=[1, 0, 0, 0.8], visualFramePosition=[length, 0.01, 0.01])
+        vis_y = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.01, length, 0.01],
+                            rgbaColor=[0, 1, 0, 0.8], visualFramePosition=[0.01, length, 0.01])
+        vis_z = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.01, 0.01, length],
+                            rgbaColor=[0, 0, 1, 0.8], visualFramePosition=[0.01, 0.01, length])
+
+        obj = p.createMultiBody(baseVisualShapeIndex=-1, linkVisualShapeIndices=[vis_x, vis_y, vis_z],
+            basePosition=position, baseOrientation=orientation, linkPositions=[[0,0,0], [0,0,0], [0,0,0]],
+            linkMasses=[1.0,1.0,1.0], linkOrientations=[[0,0,0,1],[0,0,0,1],[0,0,0,1]],
+            linkInertialFramePositions=[[0,0,0], [0,0,0], [0,0,0]],
+            linkInertialFrameOrientations=[[0,0,0,1],[0,0,0,1],[0,0,0,1]],linkParentIndices=[0, 0, 0],
+            linkJointTypes=[p.JOINT_FIXED, p.JOINT_FIXED, p.JOINT_FIXED], linkJointAxis=[[1,0,0], [0,1,0], [0,0,1]],
+            linkCollisionShapeIndices=[-1, -1, -1])
+
+        self.vis_axis = obj
+
 
 
 

@@ -236,7 +236,7 @@ def reachable(pose, robot, gripper_name, world=None, threshold=0.01):
     return np.sqrt(diff[0] ** 2 + diff[1] ** 2 + diff[2] ** 2) < threshold
 
 
-def blocking(object, robot, gripper_name, world=None):
+def blocking(object, robot, gripper_name, world=None, grasp=None):
     """
     This reasoning query checks if any objects are blocking an other object when an robot tries to pick it. This works
     similar to the reachable predicate. First the inverse kinematics between the robot and the object will be calculated
@@ -252,7 +252,10 @@ def blocking(object, robot, gripper_name, world=None):
 
     arm = "left" if gripper_name == robot_description.i.get_tool_frame("left") else "right"
     joints = robot_description.i._safely_access_chains(arm).joints
-    target = _transform_to_torso(object.get_position_and_orientation(), robot)
+    if grasp:
+        target = _transform_to_torso([object.get_position(), robot_description.i.grasps.get_orientation_for_grasp(grasp)], robot)
+    else:
+        target = _transform_to_torso(object.get_position_and_orientation(), robot)
     inv = request_ik(robot_description.i.base_frame, gripper_name, target, robot, joints)
 
     _apply_ik(robot, inv, gripper_name)

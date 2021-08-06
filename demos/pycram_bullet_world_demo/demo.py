@@ -35,6 +35,11 @@ bowl = Object("bowl", "bowl", "../../resources/bowl.stl", spawning_poses["bowl"]
 BulletWorld.robot = robot
 robot.set_joint_state(robot_description.i.torso_joint, 0.24)
 
+robot_description.i.grasps.add_graspings_for_object(["left", "right", "front"], milk)
+robot_description.i.grasps.add_graspings_for_object(["top"], spoon)
+robot_description.i.grasps.add_graspings_for_object(["top"], bowl)
+robot_description.i.grasps.add_graspings_for_object(["front"], cereal)
+
 targets = {
     'milk': [[-0.8, 1, 0.93], "left", False],
     'bowl': [[-0.8, 1.2, 0.9], "right", False],
@@ -51,8 +56,8 @@ moving_targets = {
                          'bowl' : [[-0.3, 0.5, 0], [0, 0, 1, 0]],
                          'cereal': [[-0.35, 0.4, 0], [0, 0, 1, 0]],
                          'spoon' : [[-0.3, 1.6, 0], [0, 0, 1, 0]]} },
-    'boxy' : {'sink' : { 'milk' : [[0.1, 0.7, 0], [0, 0, 0, 1]],
-                        'bowl' : [[0.2, 1.5, 0], [0, 0, 0, 1]],
+    'boxy' : {'sink' : { 'milk' : [[0., 0.4, 0], [0, 0, 0, 1]],
+                        'bowl' : [[0.3, 1.5, 0], [0, 0, 0, 1]],
                         'cereal' : [[0.2, 1.3, 0], [0, 0, 0, 1]],
                         'spoon': [[0.05, 0.6, 0], [0, 0, 0, 1]]},
             'island' : { 'milk' : [[0.3, 1.5, 0], [0, 0, 1, 0]],
@@ -69,6 +74,12 @@ moving_targets = {
     'hsr': {'hsr_cereal': [[0.2, 1.2, 0], [0, 0, 0.7, 0.7]],
             'kitchen_entry': [[0.2, -2.2, 0], [0, 0, -0.7, 0.7]]}
 }
+
+graspings = {
+        'milk': 'front',
+        'bowl': 'top',
+        'cereal': 'front',
+        'spoon': 'top'}
 
 @with_simulated_robot
 def park_arms(robot_name):
@@ -112,7 +123,7 @@ def move_object(object_type, target, arm, robot_name):
     det_obj = MotionDesignator(DetectingMotionDescription(object_type=object_type)).perform()
     block_new = None
     if det_obj:
-        block = btr.blocking(det_obj, BulletWorld.robot, gripper)
+        block = btr.blocking(det_obj, BulletWorld.robot, gripper, grasp=graspings[object_type])
         block_new = list(filter(lambda obj: obj.type != "environment", block))
     else:
         # ... the robot grasps the object by using its knowledge of the environment.
@@ -127,7 +138,7 @@ def move_object(object_type, target, arm, robot_name):
         kitchen.detach(det_obj)
 
     # Pick up the object
-    MotionDesignator(PickUpMotionDescription(object=det_obj, arm=arm)).perform()
+    MotionDesignator(PickUpMotionDescription(object=det_obj, arm=arm, grasp=graspings[object_type])).perform()
     park_arms(robot_name)
 
     # Move to island
