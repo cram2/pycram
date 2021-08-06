@@ -162,6 +162,42 @@ class CameraDescription:
         # static, but flexible params
         self.params = other_params if other_params else {}
 
+class GraspingDescription():
+    """
+    This class represents all possible grasp a robot can perform and the grasps
+    the robot can perform for a specific object.
+    """
+    def __init__(self, grasp_dir=None):
+        self.grasps = grasp_dir if grasp_dir else {}
+        self.grasps_for_object = {}
+
+    def add_grasp(self, grasp, orientation):
+        """
+        Adds a Grasping side like "top", "left", "front" and the corresponding orientation
+        of the gripper to this description.
+        :param grasp: The type of grasp like "top" or "left"
+        :param orientation: The orientation the Gripper has to have in order to
+        achive this grasp. In world coordinate frame
+        """
+        self.grasps[grasp] = orientation
+
+    def add_graspings_for_object(self, grasps, object):
+        """
+        Adds all possible Grasps for the specified object. The used grasps have to
+        be registered beforehand via the add_grasp method.
+        :param graps: A list of all graps for this object.
+        :param object: The object for which the grasps should be specified
+        """
+        self.grasps_for_object[object] = grasps
+
+    def get_all_grasps(self):
+        return self.grasps.keys()
+
+    def get_orientation_for_grasp(self, grasp):
+        return self.grasps[grasp]
+
+    def get_grasps_for_object(self, object):
+        return self.grasps_for_object[object]
 
 class RobotDescription:
     """
@@ -489,6 +525,11 @@ class PR2Description(RobotDescription):
         self.add_static_gripper_chains("left", gripper_confs)
         self.add_static_gripper_chains("right", gripper_confs)
 
+        self.grasps = GraspingDescription({"front": [0, 0, 0, 1],
+                                        "left": [0, 0, -1, 1],
+                                        "right": [0, 0, 1, 1],
+                                        "top": [0, 1, 0, 1]})
+
     def get_camera_frame(self, name="optical_frame"):
         # TODO: Hacky since only one optical camera frame from pr2 is used
         return super().get_camera_frame(name)
@@ -583,6 +624,14 @@ class BoxyDescription(RobotDescription):
                   -0.06962397694587708]
         left_arm.add_static_joint_chains({"park": l_carry, "handover": l_handover, "flip": l_flip})
         right_arm.add_static_joint_chain("park", r_carry)
+
+        # Grasping Poses
+        self.grasps = GraspingDescription({"left":[1,0,0,1],
+                                        "top": [1,1,0,0],
+                                        "right": [0,1,1,0],
+                                        "front": [1,0,1,0]})
+        
+
 
     def get_camera_frame(self, name="camera"):
         # TODO: Hacky since only one optical camera frame from pr2 is used

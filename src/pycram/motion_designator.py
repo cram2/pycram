@@ -160,12 +160,14 @@ class PickUpMotionDescription(MotionDesignatorDescription):
 	object: Object
 	arm: str
 	gripper: str
-	def __init__(self, object, arm=None, resolver="grounding"):
+	grasp: str
+	def __init__(self, object, grasp=None, arm=None, resolver="grounding"):
 		self.cmd = 'pick'
 		self.object = object
 		self.arm = arm
 		self.gripper = None
 		self.resolver = resolver
+		self.grasp = grasp
 
 class PlaceMotionDescription(MotionDesignatorDescription):
 	object: Object

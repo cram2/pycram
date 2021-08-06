@@ -22,6 +22,8 @@ def ground_pick_up(description):
     if not description.arm:
         description.arm = 'left'
     description.gripper = robot_description.i.get_tool_frame(description.arm)
+    if not description.grasp:
+        robot_description.i.grasps.get_grasps_for_object(description.object)[0]
     description._check_properties("[Motion Designator] Pick-Up")
     return description.__dict__
 
