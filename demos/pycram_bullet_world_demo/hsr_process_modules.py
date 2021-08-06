@@ -1,7 +1,7 @@
 from pycram.robot_description import InitializedRobotDescription as robot_description
 from pycram.process_module import ProcessModule
-from pycram.process_modules import ProcessModules, _apply_ik
 from pycram.bullet_world import BulletWorld
+from pycram.helper import _apply_ik
 import pycram.bullet_world_reasoning as btr
 import pybullet as p
 from rospy import logerr
@@ -80,11 +80,11 @@ class HSRAccessing(ProcessModule):
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == 'access':
-            kitchen = solution['part-of']
+            kitchen = solution['part_of']
             robot = BulletWorld.robot
             gripper = solution['gripper']
-            drawer_handle = solution['drawer-handle']
-            drawer_joint = solution['drawer-joint']
+            drawer_handle = solution['drawer_handle']
+            drawer_joint = solution['drawer_joint']
             dis = solution['distance']
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper),
                                                kitchen.get_link_position(drawer_handle))
@@ -155,7 +155,7 @@ class HSRDetecting(ProcessModule):
         solution = desig.reference()
         if solution['cmd'] == "detecting":
             robot = BulletWorld.robot
-            object_type = solution['object']
+            object_type = solution['object_type']
             cam_frame_name = solution['cam_frame']
             front_facing_axis = solution['front_facing_axis']
 
@@ -191,7 +191,7 @@ class HSRMoveJoints(ProcessModule):
         solution = desig.reference()
         if solution['cmd'] == "move-joints":
             robot = BulletWorld.robot
-            left_arm_poses = solution['left-poses']
+            left_arm_poses = solution['left_arm_poses']
 
             if type(left_arm_poses) == dict:
                 for joint, pose in left_arm_poses.items():
@@ -210,16 +210,20 @@ class HSRWorldStateDetecting(ProcessModule):
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == "world-state-detecting":
-            obj_type = solution['object']
+            obj_type = solution['object_type']
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
 
-class HSRProcessModules(ProcessModules):
-    initialized = None
+HSRProcessModulesSimulated = {'moving' : HSRNavigation(),
+                              'pick-up' : HSRPickUp(),
+                              'place' : HSRPlace(),
+                              'accessing' : HSRAccessing(),
+                              'looking' : HSRMoveHead(),
+                              'opening_gripper' : HSRMoveGripper(),
+                              'closing_gripper' : HSRMoveGripper(),
+                              'detecting' : HSRDetecting(),
+                              'move-tcp' : HSRMoveTCP(),
+                              'move-arm-joints' : HSRMoveJoints(),
+                              'world-state-detecting' : HSRWorldStateDetecting()}
 
-    def __init__(self):
-        if not HSRProcessModules.initialized:
-            super().__init__(HSRNavigation(), HSRPickUp(), HSRPlace(), HSRAccessing(), HSRParkArms(),
-                             HSRMoveHead(), HSRMoveGripper(), HSRMoveGripper(), HSRDetecting(),
-                             HSRMoveTCP(), HSRMoveJoints(), HSRWorldStateDetecting())
-            HSRProcessModules.initialized = self
+HSRProcessModulesReal = {}

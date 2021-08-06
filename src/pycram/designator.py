@@ -6,9 +6,12 @@ Designator -- implementation of designators.
 MotionDesignator -- implementation of motion designators.
 """
 from inspect import isgenerator, isgeneratorfunction
-from pycram.helper import GeneratorList
+from .helper import GeneratorList, bcolors
 from threading import Lock
 from time import time
+import rospy
+
+
 
 class DesignatorError(Exception):
 	"""Implementation of designator errors."""
@@ -16,6 +19,23 @@ class DesignatorError(Exception):
 	def __init__(self, *args, **kwargs):
 		"""Create a new designator error."""
 		Exception.__init__(self, *args, **kwargs)
+
+class ResolutionError(Exception):
+	def __init__(self, missing_properties, wrong_type, current_type, designator):
+		self.error = f"\nSome requiered properties where missing or had the wrong type when grounding the Designator: {designator}.\n"
+		self.missing = f"The missing properties where: {missing_properties}\n"
+		self.wrong = f"The properties with the wrong type along with the currrent -and right type :\n"
+		self.head = "Property   |   Current Type    |     Right Type\n-------------------------------------------------------------\n"
+		self.tab = ""
+		for prop in wrong_type.keys():
+			self.tab += prop + "     " + str(current_type[prop]) + "      " + str(wrong_type[prop]) +"\n"
+		self.message = self.error
+		if missing_properties != []:
+			self.message += self.missing
+		if wrong_type != {}:
+			self.message += self.wrong + self.head + self.tab
+		self.message = f"{bcolors.BOLD}{bcolors.FAIL}" + self.message + f"{bcolors.ENDC}"
+		super(ResolutionError, self).__init__(self.message)
 
 class Designator:
 	"""Implementation of designators.
@@ -41,7 +61,7 @@ class Designator:
 	make_dictionary -- return the given parameters as dictionary.
 	"""
 
-	def __init__(self, properties, parent = None):
+	def __init__(self, description, parent = None):
 		"""Create a new desginator.
 
 		Arguments:
@@ -54,7 +74,7 @@ class Designator:
 		self._effective = False
 		self._data = None
 		self.timestamp = None
-		self._properties = properties
+		self._description = description
 
 		if parent is not None:
 			self.equate(parent)
@@ -151,24 +171,15 @@ class Designator:
 		Arguments:
 		new_properties -- a list of new properties to merge into the old ones (default is None).
 		"""
-		properties = self._properties.copy()
+		description = self._description.copy()
 
-		if new_properties is not None:
+		if new_properties:
 			for key, value in new_properties:
-				replaced = False
+				if key in description.__dict__.keys():
+					description.__dict__[key] = value
 
-				for i in range(len(properties)):
-					k, v = properties[i]
+		return self.__class__(description)
 
-					if k == key:
-						properties[i] = (key, value)
-						replaced = True
-						# break
-
-				if not replaced:
-					properties.append((key, value))
-
-		return self.__class__(properties)
 
 	def make_effective(self, properties = None, data = None, timestamp = None):
 		"""Create a new effective designator of the same type as this one. If no properties are specified, this ones are used.
@@ -179,7 +190,7 @@ class Designator:
 		timestamp -- the timestamp of creation of reference (default is the current).
 		"""
 		if properties is None:
-			properties = self._properties
+			properties = self._description
 
 		desig = self.__class__(properties)
 		desig._effective = True
@@ -208,11 +219,11 @@ class Designator:
 		Arguments:
 		key -- the key to return the value of.
 		"""
-		for k, v in self._properties:
-			if k == key:
-				return v
-
-		return None
+		try:
+			return self._description.__dict__[key]
+		except KeyError:
+			rospy.logerr(f"The given key '{key}' is not in this Designator")
+			return None
 
 	def check_constraints(self, properties):
 		"""Return True if all the given properties match, False otherwise.
@@ -233,93 +244,26 @@ class Designator:
 		return True
 
 	def make_dictionary(self, properties):
-		"""Return the given properties as dictionary.
+		""" DEPRECATED, Moved to the description. Function only keept because of
+		backward compatability.
+		Return the given properties as dictionary.
 
 		Arguments:
 		properties -- the properties to create a dictionary of. A property can be a tuple in which case its first value is the dictionary key and the second value is the dictionary value. Otherwise it's simply the dictionary key and the key of a property which is the dictionary value.
 		"""
-		dictionary = {}
 
-		for prop in properties:
-			if type(prop) == tuple:
-				key, value = prop
-				dictionary[key] = value
-			else:
-				dictionary[prop] = self.prop_value(prop)
-
-		return dictionary
+		return self._description.make_dictionary(properties)
 
 	def rename_prop(self, old, new):
 		old_value = self.prop_value(old)
 		if old_value is not None:
-			new_desig = self.copy([(new, old_value)])
-			# del(new_desig._properties[old])
-			new_desig.equate(self)
+			self._description.__dict__[new] = old_value
+			del self._description.__dict__[old]
 		else:
-			raise DesignatorError("Renaming doesn't work.")
+			raise DesignatorError("Old property does not exists.")
 		return self.current()
 
 
-class MotionDesignator(Designator):
-	"""
-	Implementation of motion designators.
-
-	Variables:
-	resolvers -- list of all motion designator resolvers.
-	"""
-
-	resolvers = []
-	"""List of all motion designator resolvers. Motion designator resolvers are functions which take a designator as argument and return a list of solutions. A solution can also be a generator."""
-
-	def __init__(self, properties, parent = None):
-		self._solutions = None
-		self._index = 0
-		Designator.__init__(self, properties, parent)
-
-	def _reference(self):
-		if self._solutions is None:
-			def generator():
-				for resolver in MotionDesignator.resolvers:
-					for solution in resolver(self):
-						if isgeneratorfunction(solution):
-							solution = solution()
-
-						if isgenerator(solution):
-							while True:
-								try:
-									yield next(solution)
-								except StopIteration:
-									break
-						else:
-							yield solution
-
-			self._solutions = GeneratorList(generator)
-
-		if self._data is not None:
-			return self._data
-
-		try:
-			self._data = self._solutions.get(self._index)
-			return self._data
-		except StopIteration:
-			raise DesignatorError('Cannot resolve motion designator')
-
-	def next_solution(self):
-		try:
-			self.reference()
-		except DesignatorError:
-			pass
-
-		if self._solutions.has(self._index + 1):
-			desig = MotionDesignator(self._properties, self)
-			desig._solutions = self._solutions
-			desig._index = self._index + 1
-			return desig
-
-		return None
-
-	def __str__(self):
-		return "MotionDesignator({})".format(self._properties)
 
 class LocationDesignator(Designator):
 	def __str__(self):
