@@ -49,7 +49,7 @@ class Pr2PickUp(ProcessModule):
 
     def _execute(self, desig):
         solution = desig.reference()
-        if solution['cmd'] == 'pick':
+        if solution['cmd'] == 'pick-up':
             object = solution['object']
             robot = BulletWorld.robot
             #target = object.get_position_and_orientation()
@@ -255,16 +255,16 @@ class Pr2WorldStateDetecting(ProcessModule):
             obj_type = solution['object_type']
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
-PR2ProcessModulesSimulated = {'moving' : Pr2Navigation(),
+PR2ProcessModulesSimulated = {'navigate' : Pr2Navigation(),
                               'pick-up' : Pr2PickUp(),
                               'place' : Pr2Place(),
-                              'accessing' : Pr2Accessing(),
+                              'access' : Pr2Accessing(),
                               'looking' : Pr2MoveHead(),
                               'opening_gripper' : Pr2MoveGripper(),
                               'closing_gripper' : Pr2MoveGripper(),
                               'detecting' : Pr2Detecting(),
                               'move-tcp' : Pr2MoveTCP(),
-                              'move-arm-joints' : Pr2MoveJoints(),
+                              'move-joints' : Pr2MoveJoints(),
                               'world-state-detecting' : Pr2WorldStateDetecting()}
 
 PR2ProcessModulesReal = {}
