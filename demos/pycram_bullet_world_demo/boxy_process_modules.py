@@ -102,11 +102,11 @@ class BoxyAccessing(ProcessModule):
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == 'access':
-            kitchen = solution['part-of']
+            kitchen = solution['part_of']
             robot = BulletWorld.robot
             gripper = solution['gripper']
-            drawer_handle = solution['drawer-handle']
-            drawer_joint = solution['drawer-joint']
+            drawer_handle = solution['drawer_handle']
+            drawer_joint = solution['drawer_joint']
             dis = solution['distance']
             robot.set_joint_state(robot_description.i.torso_joint, -0.1)
             arm = "left" if solution['gripper'] == robot_description.i.get_tool_frame("left") else "right"
@@ -219,7 +219,7 @@ class BoxyDetecting(ProcessModule):
         solution = desig.reference()
         if solution['cmd'] == "detecting":
             robot = BulletWorld.robot
-            object_type = solution['object']
+            object_type = solution['object_type']
             cam_frame_name = solution['cam_frame']
             front_facing_axis = solution['front_facing_axis']
 
@@ -255,8 +255,8 @@ class BoxyMoveJoints(ProcessModule):
         solution = desig.reference()
         if solution['cmd'] == "move-joints":
             robot = BulletWorld.robot
-            right_arm_poses = solution['right-poses']
-            left_arm_poses = solution['left-poses']
+            right_arm_poses = solution['right_arm_poses']
+            left_arm_poses = solution['left_arm_poses']
             if type(right_arm_poses) == dict:
                 for joint, pose in right_arm_poses.items():
                     robot.set_joint_state(joint, pose)
@@ -280,7 +280,7 @@ class BoxyWorldStateDetecting(ProcessModule):
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == "world-state-detecting":
-            obj_type = solution['object']
+            obj_type = solution['object_type']
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
 
