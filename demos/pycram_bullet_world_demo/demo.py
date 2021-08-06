@@ -1,5 +1,4 @@
 import rospy
-#rospy.init_node('pycram')
 
 from pycram.robot_description import InitializedRobotDescription as robot_description
 import available_process_modules
@@ -141,7 +140,7 @@ def move_object(object_type, target, arm, robot_name):
     ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', targets[object_type][0])]))
 
     # Place object if target pose of object is reachable for the robots manipulator
-    if btr.reachable_pose(target, robot, gripper, threshold=0.05):
+    if btr.reachable(target, robot, gripper, threshold=0.05):
         ProcessModule.perform(
             MotionDesignator([('type', 'place'), ('object', det_obj), ('target', target), ('arm', arm)]))
 

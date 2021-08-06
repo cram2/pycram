@@ -135,7 +135,7 @@ class LocalTransformer:
         if robot:
             # Then publish pose of robot
             try:
-                robot_pose = BulletWorld.robot.get_link_position_and_orientation_tf(robot_description.i.base_frame)
+                robot_pose = BulletWorld.robot.get_link_position_and_orientation(robot_description.i.base_frame)
             except KeyError:
                 robot_pose = BulletWorld.robot.get_position_and_orientation()
             self.publish_robot_pose(helper.ensure_pose(robot_pose))
@@ -263,9 +263,6 @@ if publish_frequently:
         """
         This class publishes frequently poses of objects and the robot base poses as well its joint states into
         the local transformer.
-        !!!!!IMPORTANT!!!!!
-        Currently, it is not advised to publish poses frequently from the simulation, since
-        pybullet returns invalid poses during detection.
         """
 
         def __init__(self, publish_robot_base_pose=None, publish_objects_poses=None, publish_robot_state=None,

@@ -11,10 +11,45 @@ from numbers import Number
 from macropy.core.quotes import macros, ast_literal, q
 import pybullet as p
 from geometry_msgs.msg import Point, Quaternion, Pose, Transform, PoseStamped, TransformStamped, Vector3
+from .robot_description import InitializedRobotDescription as robot_description
+
 
 import rospy
 from std_msgs.msg import Header
 from time import time as current_time
+
+
+class bcolors:
+    """
+    Color codes which can be used to highlight Text in the Terminal. For example,
+    for warnings.
+    Usage:
+    Firstly import the class into the file.
+    print(f'{bcolors.WARNING} Some Text {bcolors.ENDC}')
+    """
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
+def _apply_ik(robot, joint_poses, gripper):
+    """
+    Apllies a list of joint poses calculated by an inverse kinematics solver to a robot
+    :param robot: The robot the joint poses should be applied on
+    :param joint_poses: The joint poses to be applied
+    :param gripper: specifies the gripper for which the ik solution should be applied
+    :return: None
+    """
+    arm ="left" if gripper == robot_description.i.get_tool_frame("left") else "right"
+    ik_joints = [robot_description.i.torso_joint] + robot_description.i._safely_access_chains(arm).joints
+    for i in range(0, len(ik_joints)):
+        robot.set_joint_state(ik_joints[i], joint_poses[i])
 
 
 def _transform_to_torso(pose_and_rotation, robot):
