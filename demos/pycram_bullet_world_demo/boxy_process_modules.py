@@ -1,29 +1,32 @@
 from pycram.robot_description import InitializedRobotDescription as robot_description
 from pycram.process_module import ProcessModule
-from pycram.process_modules import ProcessModules, _apply_ik
 from pycram.bullet_world import BulletWorld
-from pycram.local_transformer import local_transformer
+from pycram.ik import request_ik
+from pycram.local_transformer import local_transformer as local_tf
 import pycram.helper as helper
 import pycram.bullet_world_reasoning as btr
+
 import pybullet as p
-from rospy import logerr
 import time
 
 
 def _park_arms(arm):
     """
-    Defines the joint poses for the parking positions of the arm of Donbot and applies them to the
+    Defines the joint poses for the parking positions of the arms of Boxy and applies them to the
     in the BulletWorld defined robot.
     :return: None
     """
 
     robot = BulletWorld.robot
+    if arm == "right":
+        for joint, pose in robot_description.i.get_static_joint_chain("right", "park").items():
+            robot.set_joint_state(joint, pose)
     if arm == "left":
         for joint, pose in robot_description.i.get_static_joint_chain("left", "park").items():
             robot.set_joint_state(joint, pose)
 
 
-class DonbotNavigation(ProcessModule):
+class BoxyNavigation(ProcessModule):
     """
     The process module to move the robot from one position to another.
     """
@@ -38,9 +41,11 @@ class DonbotNavigation(ProcessModule):
             # Set actual goal pose
             robot.set_position_and_orientation(solution['target'], solution['orientation'])
             time.sleep(0.5)
-            local_transformer.update_from_btr()
+            local_tf.update_from_btr()
 
-class DonbotPickUp(ProcessModule):
+
+
+class BoxyPickUp(ProcessModule):
     """
     This process module is for picking up a given object.
     The object has to be reachable for this process module to succeed.
@@ -51,15 +56,21 @@ class DonbotPickUp(ProcessModule):
         if solution['cmd'] == 'pick':
             object = solution['object']
             robot = BulletWorld.robot
-            target = object.get_position()
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), target,
-                                               maxNumIterations=100)
-            _apply_ik(robot, inv)
+            grasp = robot_description.i.grasps.get_orientation_for_grasp(solution['grasp'])
+            target = [object.get_position(), grasp]
+            target = helper._transform_to_torso(target, robot)
+            arm = "left" if solution['gripper'] == robot_description.i.get_tool_frame("left") else "right"
+            joints = robot_description.i._safely_access_chains(arm).joints
+            #tip = "r_wrist_roll_link" if solution['gripper'] == "r_gripper_tool_frame" else "l_wrist_roll_link"
+            inv = request_ik(robot_description.i.base_frame, solution['gripper'], target, robot, joints)
+            helper._apply_ik(robot, inv, solution['gripper'])
+            #inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), target,
+            #                                   maxNumIterations=100)
             robot.attach(object, solution['gripper'])
             time.sleep(0.5)
 
 
-class DonbotPlace(ProcessModule):
+class BoxyPlace(ProcessModule):
     """
     This process module places an object at the given position in world coordinate frame.
     """
@@ -69,14 +80,18 @@ class DonbotPlace(ProcessModule):
         if solution['cmd'] == 'place':
             object = solution['object']
             robot = BulletWorld.robot
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), solution['target'],
-                                               maxNumIterations=100)
-            _apply_ik(robot, inv)
+            target = object.get_position_and_orientation()
+            target = helper._transform_to_torso(target, robot)
+            arm = "left" if solution['gripper'] == robot_description.i.get_tool_frame("left") else "right"
+            joints = robot_description.i._safely_access_chains(arm).joints
+            #tip = "r_wrist_roll_link" if solution['gripper'] == "r_gripper_tool_frame" else "l_wrist_roll_link"
+            inv = request_ik(robot_description.i.base_frame, solution['gripper'], target, robot, joints)
+            helper._apply_ik(robot, inv, solution['gripper'])
             robot.detach(object)
             time.sleep(0.5)
 
 
-class DonbotAccessing(ProcessModule):
+class BoxyAccessing(ProcessModule):
     """
     This process module responsible for opening drawers to access the objects inside. This works by firstly moving
     the end effector to the handle of the drawer. Next, the end effector is moved the respective distance to the back.
@@ -87,25 +102,33 @@ class DonbotAccessing(ProcessModule):
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == 'access':
-            kitchen = solution['part-of']
+            kitchen = solution['part_of']
             robot = BulletWorld.robot
             gripper = solution['gripper']
-            drawer_handle = solution['drawer-handle']
-            drawer_joint = solution['drawer-joint']
+            drawer_handle = solution['drawer_handle']
+            drawer_joint = solution['drawer_joint']
             dis = solution['distance']
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper),
-                                               kitchen.get_link_position(drawer_handle))
-            _apply_ik(robot, inv)
+            robot.set_joint_state(robot_description.i.torso_joint, -0.1)
+            arm = "left" if solution['gripper'] == robot_description.i.get_tool_frame("left") else "right"
+            joints = robot_description.i._safely_access_chains(arm).joints
+            #inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), kitchen.get_link_position(drawer_handle))
+            target = helper._transform_to_torso(kitchen.get_link_position_and_orientation(drawer_handle), robot)
+            #target = (target[0], [0, 0, 0, 1])
+            inv = request_ik(robot_description.i.base_frame, gripper, target , robot, joints )
+            helper._apply_ik(robot, inv, gripper)
             time.sleep(0.2)
+            cur_pose = robot.get_pose()
+            robot.set_position([cur_pose[0]-dis, cur_pose[1], cur_pose[2]])
             han_pose = kitchen.get_link_position(drawer_handle)
-            new_p = [han_pose[0] - dis, han_pose[1], han_pose[2]]
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), new_p)
-            _apply_ik(robot, inv)
+            new_p = [[han_pose[0] - dis, han_pose[1], han_pose[2]], kitchen.get_link_orientation(drawer_handle)]
+            new_p = helper._transform_to_torso(new_p, robot)
+            inv = request_ik(robot_description.i.base_frame, gripper, new_p, robot, joints)
+            helper._apply_ik(robot, inv, gripper)
             kitchen.set_joint_state(drawer_joint, 0.3)
             time.sleep(0.5)
 
 
-class DonbotParkArms(ProcessModule):
+class BoxyParkArms(ProcessModule):
     """
     This process module is for moving the arms in a parking position.
     It is currently not used.
@@ -117,7 +140,8 @@ class DonbotParkArms(ProcessModule):
             _park_arms()
 
 
-class DonbotMoveHead(ProcessModule):
+
+class BoxyMoveHead(ProcessModule):
     """
     This process module moves the head to look at a specific point in the world coordinate frame.
     This point can either be a position or an object.
@@ -127,35 +151,47 @@ class DonbotMoveHead(ProcessModule):
         solutions = desig.reference()
         if solutions['cmd'] == 'looking':
             robot = BulletWorld.robot
-            neck_base_frame = local_transformer.projection_namespace + '/' + robot_description.i.chains["neck"].base_link if \
-                local_transformer.projection_namespace else \
-                robot_description.i.chains["neck"].base_link
+            neck_base_frame = local_tf.projection_namespace + '/' + robot_description.i.chains["neck"].base_link
             if type(solutions['target']) is str:
-                target = local_transformer.projection_namespace + '/' + solutions['target'] if \
-                    local_transformer.projection_namespace else \
-                    solutions['target']
-                pose_in_neck_base = local_transformer.tf_transform(neck_base_frame, target)
+                target = local_tf.projection_namespace + '/' + solutions['target']
+                pose_in_neck_base = local_tf.tf_transform(neck_base_frame, target)
             elif helper.is_list_pose(solutions['target']) or helper.is_list_position(solutions['target']):
                 pose = helper.ensure_pose(solutions['target'])
-                pose_in_neck_base = local_transformer.tf_pose_transform(local_transformer.map_frame, neck_base_frame, pose)
+                pose_in_neck_base = local_tf.tf_pose_transform(local_tf.map_frame, neck_base_frame, pose)
 
             vector = pose_in_neck_base[0]
             # +x as forward
             # +y as left
             # +z as up
-            x = vector[0]
-            y = vector[1]
+            x = vector[1]
+            y = -vector[0]
             z = vector[2]
             conf = None
-            if y > 0:
-                conf = "left"
+            if x > 0:
+                if z < 0.5:
+                    if y > 0.4:
+                        conf = "down_left"
+                    elif y < -0.4:
+                        conf = "down_right"
+                    else:
+                        conf = "down"
+                else:
+                    if y > 0.4:
+                        conf = "left"
+                    elif y < -0.4:
+                        conf = "right"
+                    else:
+                        conf = "forward"
             else:
-                conf = "right"
+                if z < 0.5:
+                    conf = "behind"
+                else:
+                    conf = "behind_up"
             for joint, state in robot_description.i.get_static_joint_chain("neck", conf).items():
                 robot.set_joint_state(joint, state)
 
 
-class DonbotMoveGripper(ProcessModule):
+class BoxyMoveGripper(ProcessModule):
     """
     This process module controls the gripper of the robot. They can either be opened or closed.
     Furthermore, it can only moved one gripper at a time.
@@ -173,7 +209,7 @@ class DonbotMoveGripper(ProcessModule):
             time.sleep(0.5)
 
 
-class DonbotDetecting(ProcessModule):
+class BoxyDetecting(ProcessModule):
     """
     This process module tries to detect an object with the given type. To be detected the object has to be in
     the field of view of the robot.
@@ -183,7 +219,7 @@ class DonbotDetecting(ProcessModule):
         solution = desig.reference()
         if solution['cmd'] == "detecting":
             robot = BulletWorld.robot
-            object_type = solution['object']
+            object_type = solution['object_type']
             cam_frame_name = solution['cam_frame']
             front_facing_axis = solution['front_facing_axis']
 
@@ -193,7 +229,7 @@ class DonbotDetecting(ProcessModule):
                     return obj
 
 
-class DonbotMoveTCP(ProcessModule):
+class BoxyMoveTCP(ProcessModule):
     """
     This process moves the tool center point of either the right or the left arm.
     """
@@ -205,11 +241,11 @@ class DonbotMoveTCP(ProcessModule):
             gripper = solution['gripper']
             robot = BulletWorld.robot
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), target)
-            _apply_ik(robot, inv)
+            helper._apply_ik(robot, inv)
             time.sleep(0.5)
 
 
-class DonbotMoveJoints(ProcessModule):
+class BoxyMoveJoints(ProcessModule):
     """
     This process modules moves the joints of either the right or the left arm. The joint states can be given as
     list that should be applied or a pre-defined position can be used, such as "parking"
@@ -219,18 +255,24 @@ class DonbotMoveJoints(ProcessModule):
         solution = desig.reference()
         if solution['cmd'] == "move-joints":
             robot = BulletWorld.robot
-            left_arm_poses = solution['left-poses']
+            right_arm_poses = solution['right_arm_poses']
+            left_arm_poses = solution['left_arm_poses']
+            if type(right_arm_poses) == dict:
+                for joint, pose in right_arm_poses.items():
+                    robot.set_joint_state(joint, pose)
+            elif type(right_arm_poses) == str and right_arm_poses == "park":
+                _park_arms("right")
 
             if type(left_arm_poses) == dict:
                 for joint, pose in left_arm_poses.items():
                     robot.set_joint_state(joint, pose)
-            elif type(left_arm_poses) == str and left_arm_poses == "park":
+            elif type(right_arm_poses) == str and left_arm_poses == "park":
                 _park_arms("left")
 
             time.sleep(0.5)
 
 
-class DonbotWorldStateDetecting(ProcessModule):
+class BoxyWorldStateDetecting(ProcessModule):
     """
     This process module detectes an object even if it is not in the field of view of the robot.
     """
@@ -238,16 +280,20 @@ class DonbotWorldStateDetecting(ProcessModule):
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == "world-state-detecting":
-            obj_type = solution['object']
+            obj_type = solution['object_type']
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
 
-class DonbotProcessModules(ProcessModules):
-    initialized = None
+BoxyProcessModulesSimulated = {'moving' : BoxyNavigation(),
+                              'pick-up' : BoxyPickUp(),
+                              'place' : BoxyPlace(),
+                              'accessing' : BoxyAccessing(),
+                              'looking' : BoxyMoveHead(),
+                              'opening_gripper' : BoxyMoveGripper(),
+                              'closing_gripper' : BoxyMoveGripper(),
+                              'detecting' : BoxyDetecting(),
+                              'move-tcp' : BoxyMoveTCP(),
+                              'move-arm-joints' : BoxyMoveJoints(),
+                              'world-state-detecting' : BoxyWorldStateDetecting()}
 
-    def __init__(self):
-        if not DonbotProcessModules.initialized:
-            super().__init__(DonbotNavigation(), DonbotPickUp(), DonbotPlace(), DonbotAccessing(), DonbotParkArms(),
-                             DonbotMoveHead(), DonbotMoveGripper(), DonbotMoveGripper(), DonbotDetecting(),
-                             DonbotMoveTCP(), DonbotMoveJoints(), DonbotWorldStateDetecting())
-            DonbotProcessModules.initialized = self
+BoxyProcessModulesReal = {}
