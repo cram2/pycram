@@ -162,7 +162,7 @@ class PickUpMotionDescription(MotionDesignatorDescription):
 	gripper: str
 	grasp: str
 	def __init__(self, object, grasp=None, arm=None, resolver="grounding"):
-		self.cmd = 'pick'
+		self.cmd = 'pick-up'
 		self.object = object
 		self.arm = arm
 		self.gripper = None
