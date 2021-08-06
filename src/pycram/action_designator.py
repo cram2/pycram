@@ -16,7 +16,7 @@ __all__ = ["ActionDesignator",
            "CloseActionDescription"]
 
 from typing import List
-from pycram.task import with_tree
+from .task import with_tree
 
 class ActionDesignator: # (Designator):
     def __init__(self, description):

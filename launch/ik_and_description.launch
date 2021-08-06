@@ -1,19 +1,23 @@
 <launch>
-  <arg name="upload" default="true" />
+  <arg name="robot" default="pr2" />
 
   <node pkg="kdl_ik_service" type="start_ros_server.py" name="kdl_ik_service" output="screen" />
 
   <!-- PR2 URDF -->
-  <!--
-  <group if="$(arg upload)">
+
+  <group if="$(eval robot == 'pr2')">
     <param name="robot_description"
            command="$(find xacro)/xacro
                     '$(find pr2_description)/robots/pr2.urdf.xacro'"/>
   </group>
--->
 
-  <param textfile="$(find pycram)/resources/boxy.urdf" name="robot_description"/>
-  <!--
+  <group if="$(eval robot == 'boxy')">
+    <param name="robot_description"
+              textfile="$(find pycram)/resources/boxy.urdf"/>
+  </group>
+
+
+<!--
   In ROS Noetic the xacro file for boxy doesnt seem to work, as a quick fix use the line above
   <include file="$(find iai_boxy_description)/launch/upload_boxy.launch" />
 -->

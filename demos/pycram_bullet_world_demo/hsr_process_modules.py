@@ -1,7 +1,8 @@
 from pycram.robot_description import InitializedRobotDescription as robot_description
 from pycram.process_module import ProcessModule
-from pycram.process_modules import ProcessModules, _apply_ik
+from pycram.process_modules import ProcessModules
 from pycram.bullet_world import BulletWorld
+from pycram.helper import _apply_ik
 import pycram.bullet_world_reasoning as btr
 import pybullet as p
 from rospy import logerr

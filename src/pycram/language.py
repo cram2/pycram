@@ -12,8 +12,8 @@ Classes:
 State -- enumeration to describe the result of a macro.
 """
 import ast
-from pycram.fluent import Fluent
-from pycram.helper import _block
+from .fluent import Fluent
+from .helper import _block
 from enum import Enum
 from macropy.core.macros import Macros
 from macropy.core.hquotes import macros, hq

@@ -6,7 +6,7 @@ Designator -- implementation of designators.
 MotionDesignator -- implementation of motion designators.
 """
 from inspect import isgenerator, isgeneratorfunction
-from pycram.helper import GeneratorList
+from .helper import GeneratorList
 from threading import Lock
 from time import time
 
