@@ -2,9 +2,10 @@ import rospy
 
 from pycram.robot_description import InitializedRobotDescription as robot_description
 import available_process_modules
-import motion_designators  # Needs to be imported to load Process Modules and designator solutions
+#import motion_designator_grounding  # Needs to be imported to load Process Modules and designator solutions
 import pycram.bullet_world_reasoning as btr
-from pycram.designator import MotionDesignator
+from pycram.motion_designator import *
+from pycram.process_module import ProcessModule
 from pycram.process_module import ProcessModule, with_simulated_robot
 from pycram.bullet_world import BulletWorld, Object
 from pycram.language import macros, par
@@ -72,18 +73,17 @@ moving_targets = {
 @with_simulated_robot
 def park_arms(robot_name):
     # Parking description
-
-    park_desc = [('type', 'move-arm-joints'), ('left-arm', 'park')]
-    if robot_name != 'donbot' and robot_name != 'hsr':
-        park_desc.append(('right-arm', 'park'))
+    park_desc = MoveArmJointsMotionDescription(left_arm_config='park', right_arm_config='park')
+    #if robot_name != 'donbot' and robot_name != 'hsr':
+    #    park_desc.append(('right-arm', 'park'))
     # Perform Parking with MotionDesignator
-    ProcessModule.perform(MotionDesignator(park_desc))
+    MotionDesignator(park_desc).perform()
+    #ProcessModule.perform(MotionDesignator(park_desc))
 
 @with_simulated_robot
 def move_robot(robot_name, to, object):
-    ProcessModule.perform(MotionDesignator([('type', 'moving'),
-                                            ('target', moving_targets[robot_name][to][object][0]),
-                                            ('orientation', moving_targets[robot_name][to][object][1])]))
+    MotionDesignator(MoveMotionDescription(target=moving_targets[robot_name][to][object][0],
+                                                orientation=moving_targets[robot_name][to][object][1])).perform()
 
 @with_simulated_robot
 def move_object(object_type, target, arm, robot_name):
@@ -97,30 +97,26 @@ def move_object(object_type, target, arm, robot_name):
 
     # Access object if needed
     if object_type == "spoon":
-        ProcessModule.perform(MotionDesignator(
-            [('type', 'accessing'), ('drawer-joint', 'sink_area_left_upper_drawer_main_joint'),
-             ('drawer-handle', 'sink_area_left_upper_drawer_handle'), ('arm', 'left'), ('distance', 0.3),
-             ('part-of', kitchen)]))
+        MotionDesignator(AccessingMotionDescription(drawer_joint='sink_area_left_upper_drawer_main_joint',
+                                            drawer_handle='sink_area_left_upper_drawer_handle', arm='left',
+                                            distance=0.3, part_of=kitchen)).perform()
         if robot_name == "boxy":
             park_arms("boxy")
-            ProcessModule.perform(MotionDesignator([('type', 'moving'),
-                                                    ('target', [-0.09, 0.61, 0]),
-                                                    ('orientation', [0, 0, 0, 1])]))
+            MotionDesignator(MoveMotionDescription(target=[-0.09, 0.61, 0], orientation=[0,0,0,1])).perform()
 
     # Look at object
-    ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', object_type)]))
+    MotionDesignator(LookingMotionDescription(target=object_type)).perform()
 
     # Detect object
     # Try to detect object via camera, if this fails...
-    det_obj = ProcessModule.perform(MotionDesignator([('type', 'detecting'), ('object', object_type)]))
+    det_obj = MotionDesignator(DetectingMotionDescription(object_type=object_type)).perform()
     block_new = None
     if det_obj:
         block = btr.blocking(det_obj, BulletWorld.robot, gripper)
         block_new = list(filter(lambda obj: obj.type != "environment", block))
     else:
         # ... the robot grasps the object by using its knowledge of the environment.
-        det_obj = ProcessModule.perform(MotionDesignator([('type', "world-state-detecting"),
-                                                          ('object', object_type)]))
+        det_obj = MotionDesignator(WorldStateDetectingMotionDescription(object_type=object_type)).perform()
 
     # If something is in the way, move it first and then move back to the sink.
     if block_new:
@@ -131,21 +127,18 @@ def move_object(object_type, target, arm, robot_name):
         kitchen.detach(det_obj)
 
     # Pick up the object
-    ProcessModule.perform(MotionDesignator([('type', 'pick-up'), ('object', det_obj), ('arm', arm)]))
-
+    MotionDesignator(PickUpMotionDescription(object=det_obj, arm=arm)).perform()
     park_arms(robot_name)
 
     # Move to island
     move_robot(robot_name, 'island', object_type)
 
     # Look at target (also quickfix for not colliding with kitchen if robot has odom frame :/ )
-    ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', targets[object_type][0])]))
+    MotionDesignator(LookingMotionDescription(target=targets[object_type][0])).perform()
 
     # Place object if target pose of object is reachable for the robots manipulator
-    if btr.reachable(target, robot, gripper, threshold=0.05):
-        ProcessModule.perform(
-            MotionDesignator([('type', 'place'), ('object', det_obj), ('target', target), ('arm', arm)]))
-
+    if btr.reachable(target, robot, gripper, threshold=0.1):
+        MotionDesignator(PlaceMotionDescription(object=det_obj, target=target, arm=arm)).perform()
     park_arms(robot_name)
     print("placed: ", object_type)
 
@@ -174,24 +167,24 @@ else:
     move_robot(robot_name, 'hsr_cereal')
     with simulated_robot:
         # Look at object
-        ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', 'down')]))
+        MotionDesignator(LookingMotionDescription(target='down')).perform()
         # Detect object
-        det_obj = ProcessModule.perform(MotionDesignator([('type', 'detecting'), ('object', 'cereal')]))
+        det_obj = MotionDesignator(DetectingMotionDescription(object_type='cereal')).perform()
         # Open Gripper
-        ProcessModule.perform(MotionDesignator([('type', 'opening-gripper'), ('gripper', 'left')]))
+        MotionDesignator(MoveGripperMotionDescription(motion='opening', gripper='left')).perform()
         # Pick up detected object
-        ProcessModule.perform(MotionDesignator([('type', 'pick-up'), ('object', det_obj), ('arm', 'left')]))
+        MotionDesignator(PickUpMotionDescription(object=det_obj, arm='left')).perform()
         # Close Gripper
-        ProcessModule.perform(MotionDesignator([('type', 'closing-gripper'), ('gripper', 'left'), ]))
+        MotionDesignator(MoveGripperMotionDescription(motion='closing', gripper='left')).perform()
     # Park Arms
     park_arms(robot_name)
     # Move to kitchen entry
     move_robot(robot_name, 'kitchen_entry')
     # Drop the cereal box
     with simulated_robot:
-        ProcessModule.perform(
-            MotionDesignator([('type', 'place'), ('object', det_obj), ('target', [0.2, -2.5, 0.4]), ('arm', 'left')]))
+        MotionDesignator(PlaceMotionDescription(object=det_obj, target=[0.2,-2.5,0.4], arm='left')).perform()
         # Open Gripper
-        ProcessModule.perform(MotionDesignator([('type', 'opening-gripper'), ('gripper', 'left')]))
+        MotionDesignator(MoveGripperMotionDescription(motion='opening', gripper='left')).perform()
+
     # Park Arms
     park_arms(robot_name)

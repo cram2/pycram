@@ -10,7 +10,7 @@ from rospy import logerr
 def available_process_modules(desig):
     robot_name = robot_description.i.name
     robot_type = ProcessModule.robot_type
-    type = desig.prop_value('type')
+    type = desig.prop_value('cmd')
 
     if robot_name == 'pr2':
         if robot_type == 'simulated':
