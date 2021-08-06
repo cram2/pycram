@@ -13,8 +13,8 @@ from pycram.plan_failures import PlanFailure
 from pr2_knowledge import reach_position_generator, container_opening_distance_generator, object_fetching_location_generator, object_placing_location_generator, Arms
 
 import process_modules
-import motion_designators
-import desig_resolution
+#import motion_designators
+#import desig_resolution
 
 
 resources_path = os.path.join(os.path.dirname(__file__), '../../..', 'resources')

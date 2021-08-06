@@ -16,6 +16,11 @@
               textfile="$(find pycram)/resources/boxy.urdf"/>
   </group>
 
+  <group if="$(eval robot == 'donbot')">
+    <param name="robot_description"
+              textfile="$(find pycram)/resources/donbot.urdf"/>
+  </group>
+
 
 <!--
   In ROS Noetic the xacro file for boxy doesnt seem to work, as a quick fix use the line above
