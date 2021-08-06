@@ -2,10 +2,11 @@ import rospy
 
 from pycram.robot_description import InitializedRobotDescription as robot_description
 import available_process_modules
-import motion_designator_grounding  # Needs to be imported to load Process Modules and designator solutions
+#import motion_designator_grounding  # Needs to be imported to load Process Modules and designator solutions
 import pycram.bullet_world_reasoning as btr
 from pycram.motion_designator import *
 from pycram.process_module import ProcessModule
+from pycram.process_module import ProcessModule, with_simulated_robot
 from pycram.bullet_world import BulletWorld, Object
 from pycram.language import macros, par
 
@@ -69,7 +70,7 @@ moving_targets = {
             'kitchen_entry': [[0.2, -2.2, 0], [0, 0, -0.7, 0.7]]}
 }
 
-
+@with_simulated_robot
 def park_arms(robot_name):
     # Parking description
     park_desc = MoveArmJointsMotionDescription(left_arm_config='park', right_arm_config='park')
@@ -79,11 +80,12 @@ def park_arms(robot_name):
     MotionDesignator(park_desc).perform()
     #ProcessModule.perform(MotionDesignator(park_desc))
 
+@with_simulated_robot
 def move_robot(robot_name, to, object):
     MotionDesignator(MoveMotionDescription(target=moving_targets[robot_name][to][object][0],
                                                 orientation=moving_targets[robot_name][to][object][1])).perform()
 
-
+@with_simulated_robot
 def move_object(object_type, target, arm, robot_name):
     # Get Gripper frame
     gripper = robot_description.i.get_tool_frame(arm)
@@ -163,23 +165,26 @@ else:
     park_arms(robot_name)
     # Move to object
     move_robot(robot_name, 'hsr_cereal')
-    # Look at object
-    MotionDesignator(LookingMotionDescription(target='down')).perform()
-    # Detect object
-    det_obj = MotionDesignator(DetectingMotionDescription(object_type='cereal')).perform()
-    # Open Gripper
-    MotionDesignator(MoveGripperMotionDescription(motion='opening', gripper='left')).perform()
-    # Pick up detected object
-    MotionDesignator(PickUpMotionDescription(object=det_obj, arm='left')).perform()
-    # Close Gripper
-    MotionDesignator(MoveGripperMotionDescription(motion='closing', gripper='left')).perform()
+    with simulated_robot:
+        # Look at object
+        MotionDesignator(LookingMotionDescription(target='down')).perform()
+        # Detect object
+        det_obj = MotionDesignator(DetectingMotionDescription(object_type='cereal')).perform()
+        # Open Gripper
+        MotionDesignator(MoveGripperMotionDescription(motion='opening', gripper='left')).perform()
+        # Pick up detected object
+        MotionDesignator(PickUpMotionDescription(object=det_obj, arm='left')).perform()
+        # Close Gripper
+        MotionDesignator(MoveGripperMotionDescription(motion='closing', gripper='left')).perform()
     # Park Arms
     park_arms(robot_name)
     # Move to kitchen entry
     move_robot(robot_name, 'kitchen_entry')
     # Drop the cereal box
-    MotionDesignator(PlaceMotionDescription(object=det_obj, target=[0.2,-2.5,0.4], arm='left')).perform()
-    # Open Gripper
-    MotionDesignator(MoveGripperMotionDescription(motion='opening', gripper='left')).perform()
+    with simulated_robot:
+        MotionDesignator(PlaceMotionDescription(object=det_obj, target=[0.2,-2.5,0.4], arm='left')).perform()
+        # Open Gripper
+        MotionDesignator(MoveGripperMotionDescription(motion='opening', gripper='left')).perform()
+
     # Park Arms
     park_arms(robot_name)

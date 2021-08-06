@@ -1,6 +1,5 @@
 from pycram.robot_description import InitializedRobotDescription as robot_description
 from pycram.process_module import ProcessModule
-from pycram.process_modules import ProcessModules
 from pycram.bullet_world import BulletWorld
 from pycram.helper import transform
 from pycram.ik import request_ik
@@ -254,13 +253,16 @@ class Pr2WorldStateDetecting(ProcessModule):
             obj_type = solution['object_type']
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
+PR2ProcessModulesSimulated = {'moving' : Pr2Navigation(),
+                              'pick-up' : Pr2PickUp(),
+                              'place' : Pr2Place(),
+                              'accessing' : Pr2Accessing(),
+                              'looking' : Pr2MoveHead(),
+                              'opening_gripper' : Pr2MoveGripper(),
+                              'closing_gripper' : Pr2MoveGripper(),
+                              'detecting' : Pr2Detecting(),
+                              'move-tcp' : Pr2MoveTCP(),
+                              'move-arm-joints' : Pr2MoveJoints(),
+                              'world-state-detecting' : Pr2WorldStateDetecting()}
 
-class PR2ProcessModules(ProcessModules):
-    initialized = None
-
-    def __init__(self):
-        if not PR2ProcessModules.initialized:
-            super().__init__(Pr2Navigation(), Pr2PickUp(), Pr2Place(), Pr2Accessing(), Pr2ParkArms(), Pr2MoveHead(),
-                             Pr2MoveGripper(), Pr2MoveGripper(), Pr2Detecting(), Pr2MoveTCP(), Pr2MoveJoints(),
-                             Pr2WorldStateDetecting())
-            PR2ProcessModules.initialized = self
+PR2ProcessModulesReal = {}

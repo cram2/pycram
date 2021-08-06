@@ -222,7 +222,7 @@ class Designator:
 		try:
 			return self._description.__dict__[key]
 		except KeyError:
-			rospy.logerr(f"The given key {key} is not in this Designator")
+			rospy.logerr(f"The given key '{key}' is not in this Designator")
 			return None
 
 	def check_constraints(self, properties):

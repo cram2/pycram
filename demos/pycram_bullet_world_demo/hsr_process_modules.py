@@ -1,6 +1,5 @@
 from pycram.robot_description import InitializedRobotDescription as robot_description
 from pycram.process_module import ProcessModule
-from pycram.process_modules import ProcessModules
 from pycram.bullet_world import BulletWorld
 from pycram.helper import _apply_ik
 import pycram.bullet_world_reasoning as btr
@@ -215,12 +214,16 @@ class HSRWorldStateDetecting(ProcessModule):
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
 
-class HSRProcessModules(ProcessModules):
-    initialized = None
+HSRProcessModulesSimulated = {'moving' : HSRNavigation(),
+                              'pick-up' : HSRPickUp(),
+                              'place' : HSRPlace(),
+                              'accessing' : HSRAccessing(),
+                              'looking' : HSRMoveHead(),
+                              'opening_gripper' : HSRMoveGripper(),
+                              'closing_gripper' : HSRMoveGripper(),
+                              'detecting' : HSRDetecting(),
+                              'move-tcp' : HSRMoveTCP(),
+                              'move-arm-joints' : HSRMoveJoints(),
+                              'world-state-detecting' : HSRWorldStateDetecting()}
 
-    def __init__(self):
-        if not HSRProcessModules.initialized:
-            super().__init__(HSRNavigation(), HSRPickUp(), HSRPlace(), HSRAccessing(), HSRParkArms(),
-                             HSRMoveHead(), HSRMoveGripper(), HSRMoveGripper(), HSRDetecting(),
-                             HSRMoveTCP(), HSRMoveJoints(), HSRWorldStateDetecting())
-            HSRProcessModules.initialized = self
+HSRProcessModulesReal = {}
