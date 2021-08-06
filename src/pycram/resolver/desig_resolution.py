@@ -60,11 +60,11 @@ def ground_look_at(self):
         self.function = lambda : look_at(self.target)
     elif isinstance(self.target, ObjectDesignator):
         object_name = self.target.prop_value('name')
-        if object_name is 'iai_fridge':
+        if object_name == 'iai_fridge':
             pos = [0.95, -0.9, 0.8]
-        elif object_name is 'sink_area_left_upper_drawer':
+        elif object_name == 'sink_area_left_upper_drawer':
             pos = [1.0, 0.7, 0.75]
-        elif object_name is 'sink_area_left_middle_drawer':
+        elif object_name == 'sink_area_left_middle_drawer':
             pos = [1.0, 0.925, 0.5]
         else:
             raise DesignatorError()
@@ -79,7 +79,7 @@ def ground_transport(self:TransportObjectDescription):
 
 def ground_open(self:OpenActionDescription):
     if not self.distance:
-        if self.object_designator.prop_value('type') is 'fridge':
+        if self.object_designator.prop_value('type') == 'fridge':
             self.distance = 1.0
         else:
             self.distance = 0.4

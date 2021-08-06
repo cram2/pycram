@@ -27,7 +27,7 @@ def reach_position_generator(target):
             yield [0.4, 0.9, 0], [0,0,0,1]
             yield [0.5, 0.9, 0], [0,0,0,1]
             yield [0.6, 0.9, 0], [0,0,0,1]
-        elif target.prop_value('name') is 'iai_fridge':
+        elif target.prop_value('name') == 'iai_fridge':
             yield [0.5, -0.4, 0], [0, 0, -0.258819, 0.9659258]
         else:
             yield [0.6, 0.9, 0], [0,0,0,1]
@@ -38,14 +38,14 @@ def reach_position_generator(target):
 
 def object_fetching_location_generator(object_designator):
     object_type = object_designator.prop_value('type')
-    if object_type is "spoon":
+    if object_type == "spoon":
         yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_upper_drawer'), ('part-of', "kitchen")])
-    elif object_type is "bowl":
+    elif object_type == "bowl":
         yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_middle_drawer'), ('part-of', "kitchen")])
-    elif object_type is "milk":
+    elif object_type == "milk":
         yield ObjectDesignator([('type', 'fridge'), ('name', 'iai_fridge'), ('part-of', "kitchen")])
         yield [1.3, 0.8, 0.95]  # Location on counter top
-    elif object_type is "cereal":
+    elif object_type == "cereal":
         yield [1.3, 0.8, 0.95]  # Location on counter top
     else:
         # Otherwise just look everywhere
