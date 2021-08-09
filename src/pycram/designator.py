@@ -9,8 +9,7 @@ from inspect import isgenerator, isgeneratorfunction
 from .helper import GeneratorList, bcolors
 from threading import Lock
 from time import time
-import rospy
-
+import logging
 
 
 class DesignatorError(Exception):

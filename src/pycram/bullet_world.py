@@ -11,10 +11,13 @@ import os
 import threading
 import time
 import pathlib
-import rospy
+import logging
 import rospkg
 from .event import Event
-from .helper import bcolors
+#from .helper import transform
+from ros.rosbridge import ROSBridge
+from ros.tf_broadcaster import TFBroadcaster
+
 
 class BulletWorld:
     """
@@ -26,7 +29,6 @@ class BulletWorld:
 
     current_bullet_world = None
     robot = None
-    node = rospy.init_node('pycram')
 
     def __init__(self, type="GUI"):
         """
@@ -41,6 +43,7 @@ class BulletWorld:
         self.detachment_event = Event()
         self.attachment_event = Event()
         self.manipulation_event = Event()
+        self.type = type
         self._gui_thread = Gui(self, type)
         self._gui_thread.start()
         time.sleep(1) # 0.1
@@ -76,8 +79,11 @@ class BulletWorld:
         BulletWorld.robot = robot
 
     def simulate(self, seconds):
-        for i in range(0, int(seconds * 240)):
+        for i in range(0, int(seconds * 240)):  # PyBullet runs at 240 Hz
             p.stepSimulation(self.client_id)
+            if self.type == "GUI":
+                time.sleep(0.0042)
+
 
     def exit(self):
         BulletWorld.current_bullet_world = self.last_bullet_world
@@ -386,8 +392,8 @@ class Object:
         if low_lim > up_lim:
             low_lim, up_lim = up_lim, low_lim
         if not low_lim <= joint_pose <= up_lim:
-            rospy.logerr(f"The joint position has to be within the limits of the joint. The joint limits for {joint_name} are {low_lim} and {up_lim}")
-            rospy.logerr(f"The given joint position was: {joint_pose}")
+            logging.error(f"The joint position has to be within the limits of the joint. The joint limits for {joint_name} are {low_lim} and {up_lim}")
+            logging.error(f"The given joint position was: {joint_pose}")
             # Temporarily disabled because kdl outputs values exciting joint limits
             #return
         p.resetJointState(self.id, self.joints[joint_name], joint_pose, physicsClientId=self.world.client_id)
@@ -445,7 +451,8 @@ def _load_object(name, path, position, orientation, world, color, ignoreCachedFi
             with open(path, mode="w") as f:
                 f.write(_correct_urdf_string(urdf_string))
         else: # Using the urdf from the parameter server
-            urdf_string = rospy.get_param(urdf_name)
+            with ROSBridge() as rb:
+                urdf_string = rb.ros_client.get_param(path)
             path = cach_dir +  name + ".urdf"
             with open(path, mode="w") as f:
                 f.write(_correct_urdf_string(urdf_string))
@@ -462,7 +469,7 @@ def _load_object(name, path, position, orientation, world, color, ignoreCachedFi
         return obj
     except p.error as e:
         print(e)
-        rospy.logerr("The File could not be loaded. Plese note that the path has to be either a URDF, stl or obj file or the name of an URDF string on the parameter server.")
+        logging.error("The File could not be loaded. Plese note that the path has to be either a URDF, stl or obj file or the name of an URDF string on the parameter server.")
         #print(f"{bcolors.BOLD}{bcolors.WARNING}The path has to be either a path to a URDf file, stl file, obj file or the name of a URDF on the parameter server.{bcolors.ENDC}")
 
 
