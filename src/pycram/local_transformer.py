@@ -1,9 +1,12 @@
+import pycram.helper_deprecated
+from .helper_deprecated import pose_stamped2tuple
 from .robot_description import InitializedRobotDescription as robot_description
 from . import helper
 
 import sys
+import logging
 if 'bullet_world' in sys.modules:
-    logwarn("(publisher) Make sure that you are not loading this module from pycram.bullet_world.")
+    logging.warning("(publisher) Make sure that you are not loading this module from pycram.bullet_world.")
 from .bullet_world import BulletWorld
 
 import rospkg
@@ -11,7 +14,7 @@ import atexit
 from threading import Thread, currentThread
 
 from tf import TransformerROS, transformations
-from rospy import Duration, Time, logerr, logwarn, Rate, is_shutdown
+from rospy import Duration, logerr, Rate, is_shutdown
 from urdf_parser_py.urdf import URDF
 from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped
@@ -25,6 +28,7 @@ from geometry_msgs.msg import PoseStamped
 # Instead to update the local tf tree, please call the memeber function update_local_transformer_from_btr()
 # on the object local_transformer of class LocalTransformer.
 publish_frequently = True
+
 
 class LocalTransformer:
     """This class allows to use the TF class TransformerROS without using the ROS
@@ -99,7 +103,7 @@ class LocalTransformer:
                     rotation = [0, 0, 0, 1]
 
                 # Wrap the joint attributes in a TFStamped and append it to static_tf_stamped if the joint was fixed
-                tf_stamped = helper.list2tfstamped(source_frame, target_frame, [translation, rotation])
+                tf_stamped = pycram.helper_deprecated.list2tfstamped(source_frame, target_frame, [translation, rotation])
                 if (joint.type and joint.type == 'fixed') or joint.name in robot_description.i.odom_joints:
                     self.static_tf_stampeds.append(tf_stamped)
                 else:
@@ -124,7 +128,8 @@ class LocalTransformer:
                 # Push calculated transformation to the local transformer
                 p, q = robot.get_link_relative_to_other_link(source_frame.replace(self.projection_namespace + "/", ""),
                                                              target_frame.replace(self.projection_namespace + "/", ""))
-                self.local_transformer.setTransform(helper.list2tfstamped(source_frame, target_frame, [p, q]))
+                self.local_transformer.setTransform(
+                    pycram.helper_deprecated.list2tfstamped(source_frame, target_frame, [p, q]))
 
             # Update the static transforms
             for static_tf_stamped in self.static_tf_stampeds:
@@ -138,7 +143,7 @@ class LocalTransformer:
                 robot_pose = BulletWorld.robot.get_link_position_and_orientation(robot_description.i.base_frame)
             except KeyError:
                 robot_pose = BulletWorld.robot.get_position_and_orientation()
-            self.publish_robot_pose(helper.ensure_pose(robot_pose))
+            self.publish_robot_pose(pycram.helper_deprecated.ensure_pose(robot_pose))
 
     def update_robot(self):
         self.update_robot_state()
@@ -172,13 +177,13 @@ class LocalTransformer:
     ############################################################################################################
 
     def tf_pose_transform(self, source_frame, target_frame, pose, time=None):
-        tf_pose = helper.ensure_pose(pose)
+        tf_pose = pycram.helper_deprecated.ensure_pose(pose)
         tf_time = time if time else self.local_transformer.getLatestCommonTime(source_frame, target_frame)
         tf_pose_stamped = PoseStamped(Header(0, tf_time, source_frame), tf_pose)
         return self.tf_pose_stamped_transform(target_frame, tf_pose_stamped)
 
     def tf_pose_stamped_transform(self, target_frame, pose_stamped):
-        return helper.pose_stamped2tuple(self.local_transformer.transformPose(target_frame, pose_stamped))
+        return pose_stamped2tuple(self.local_transformer.transformPose(target_frame, pose_stamped))
 
     def tf_transform(self, source_frame, target_frame, time=None):
         tf_time = time if time else self.local_transformer.getLatestCommonTime(source_frame, target_frame)
@@ -190,8 +195,8 @@ class LocalTransformer:
 
     def publish_pose(self, frame_id, child_frame_id, pose, static=None):
         if frame_id != child_frame_id:
-            pose = helper.ensure_pose(pose)
-            tf_stamped = helper.pose2tfstamped(frame_id, child_frame_id, pose)
+            pose = pycram.helper_deprecated.ensure_pose(pose)
+            tf_stamped = pycram.helper_deprecated.pose2tfstamped(frame_id, child_frame_id, pose)
             if tf_stamped:
                 if static:
                     self.local_transformer._buffer.set_transform_static(tf_stamped, "default_authority")
@@ -209,7 +214,7 @@ class LocalTransformer:
         if name in robot_description.i.name:
             return None
         if name not in robot_description.i.name:
-            pose = helper.ensure_pose(pose)
+            pose = pycram.helper_deprecated.ensure_pose(pose)
             if pose:
                 tf_name = self.projection_namespace + '/' + name if self.projection_namespace else name
                 return self.publish_pose(self.map_frame, tf_name, pose)
@@ -220,7 +225,7 @@ class LocalTransformer:
 
     def publish_robot_pose(self, pose):
         "Publishes the base_frame of the robot in reference to the map frame to tf."
-        robot_pose = helper.ensure_pose(pose)
+        robot_pose = pycram.helper_deprecated.ensure_pose(pose)
         if robot_pose:
             tf_base_frame = self.projection_namespace + '/' + robot_description.i.base_frame \
                 if self.projection_namespace \
@@ -233,7 +238,7 @@ class LocalTransformer:
 
     def publish_robots_link_pose(self, link, pose):
         "Publishes the frame link of the robot in reference to the base_frame of the robot to tf."
-        robot_pose = helper.ensure_pose(pose)
+        robot_pose = pycram.helper_deprecated.ensure_pose(pose)
         if robot_pose:
             tf_base_frame = self.projection_namespace + '/' + robot_description.i.base_frame \
                 if self.projection_namespace \
