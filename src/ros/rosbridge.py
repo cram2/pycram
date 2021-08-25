@@ -51,7 +51,10 @@ class ROSBridge(metaclass=SingletonMeta):
         return uri.hostname, 9090
 
     def __enter__(self):
+        print("trying to connect to ROS")
         self.ros_client.run()
+        print(f"Connected: {self.ros_client.is_connected}")
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.ros_client.terminate()
