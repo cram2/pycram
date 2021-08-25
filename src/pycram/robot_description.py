@@ -836,10 +836,8 @@ def update_robot_description(robot_name=None, from_ros=None):
     elif from_ros:
         try:
             with ROSBridge() as rb:
-                print(rb)
                 urdf = rb.ros_client.get_param('robot_description')
         except Exception as e:
-            print(f"Error: {e}")
             logging.error("(robot-description) Could not get robot name from parameter server. Try again.")
             return None
         res = re.findall(r"robot\ *name\ *=\ *\"\ *[a-zA-Z_1-9]*\ *\"", urdf)
