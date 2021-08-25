@@ -16,7 +16,6 @@ import rospkg
 from .event import Event
 #from .helper import transform
 from ros.rosbridge import ROSBridge
-from ros.tf_broadcaster import TFBroadcaster
 
 
 class BulletWorld:

@@ -44,6 +44,10 @@ class ROSBridge(metaclass=SingletonMeta):
     def __init__(self):
         ros_host, ros_port = self.get_ros_master_host_and_port()
         self.ros_client = roslibpy.Ros(ros_host, ros_port)
+        self.ros_client.run()
+
+    def __del__(self):
+        self.ros_client.terminate()
 
     @staticmethod
     def get_ros_master_host_and_port():
@@ -51,10 +55,7 @@ class ROSBridge(metaclass=SingletonMeta):
         return uri.hostname, 9090
 
     def __enter__(self):
-        print("trying to connect to ROS")
-        self.ros_client.run()
-        print(f"Connected: {self.ros_client.is_connected}")
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.ros_client.terminate()
+        pass

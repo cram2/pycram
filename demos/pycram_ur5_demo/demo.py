@@ -4,6 +4,7 @@ import os
 from rospkg import RosPack
 import pybullet as pb
 
+from pycram import robot_description
 from pycram.bullet_world import BulletWorld, Object
 from ros.joint_state_publisher import JointStatePublisher
 from ros.tf_broadcaster import TFBroadcaster
