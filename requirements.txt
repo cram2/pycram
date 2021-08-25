@@ -7,3 +7,5 @@ numpy~=1.19.5
 pytransform3d~=1.9.1
 # tf~=1.12.1
 # actionlib~=1.12.1
+urdf-parser-py~=0.0.3
+graphviz

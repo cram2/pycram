@@ -7,17 +7,10 @@ Classes:
 GeneratorList -- implementation of generator list wrappers.
 """
 from inspect import isgeneratorfunction
-from threading import Lock
 
 from macropy.core.quotes import ast_literal, q
 import pybullet as p
-from geometry_msgs.msg import Point, Quaternion, Pose, Transform, PoseStamped, TransformStamped, Vector3
 from .robot_description import InitializedRobotDescription as robot_description
-
-
-import rospy
-from std_msgs.msg import Header
-from time import time as current_time
 
 
 class bcolors:
