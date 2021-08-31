@@ -27,12 +27,13 @@ def _get_joint_names(robot, tip_link):
     return res
 
 
-def _get_seg_mask_for_target(target_position, cam_position, world=None):
+def _get_seg_mask_for_target(target_position, cam_position, world=None, return_depth=False):
     """
     Calculates the view and projection Matrix and returns the Segmentation mask
     The segmentation mask indicates for every pixel the visible Object.
     :param cam_position: The position of the Camera as a list of x,y,z and orientation as quaternion
     :param target_position: The position to which the camera should point as a list of x,y,z and orientation as quaternion
+    :param return_depth: F
     :return: The Segmentation mask from the camera position
     """
     world, world_id = _world_and_id(world)
@@ -45,7 +46,10 @@ def _get_seg_mask_for_target(target_position, cam_position, world=None):
 
     view_matrix = p.computeViewMatrix(cam_position[0], target_position[0], [0, 0, -1])
     projection_matrix = p.computeProjectionMatrixFOV(fov, aspect, near, far)
-    return p.getCameraImage(256, 256, view_matrix, projection_matrix, physicsClientId=world_id)[4]
+    if return_depth:
+        return p.getCameraImage(256, 256, view_matrix, projection_matrix, physicsClientId=world_id)[3:4]
+    else:
+        return p.getCameraImage(256, 256, view_matrix, projection_matrix, physicsClientId=world_id)[4]
 
 
 def _get_joint_ranges(robot):
