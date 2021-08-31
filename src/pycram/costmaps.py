@@ -2,7 +2,8 @@ import numpy as np
 import pybullet as p
 import rospy
 import time
-from pycram.bullet_world import BulletWorld
+from .bullet_world import BulletWorld
+from .bullet_world_reasoning import _get_seg_mask_for_target
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 
 import matplotlib.pyplot as plt
@@ -72,6 +73,35 @@ class OccupancyMap:
         self.map = new_map
         self.resolution *= 2
         self.distance_obstacle = int(self.distance_obstacle/2)
+
+class VisibilityCostmap():
+
+    def __init__(self, object):
+        self.object = object
+        self.map = []
+
+    def _create_images(self):
+        object_pose = self.object.get_position_and_orientation()
+        im_world = self._create_image_world()
+        seg_masks = []
+        seg_masks.append(_get_seg_mask_for_target([[object_pose[0][0] +1, object_pose[0][1], object_pose[0][2]], [0, 0, 0, 1]], object_pose, im_world ))
+        seg_masks.append(_get_seg_mask_for_target([[object_pose[0][0], object_pose[0][1] +1, object_pose[0][2]], [0, 0, 0, 1]],object_pose, im_world ))
+        seg_masks.append(_get_seg_mask_for_target([[object_pose[0][0], object_pose[0][1] -1, object_pose[0][2]], [0, 0, 0, 1]],object_pose, im_world ))
+        seg_masks.append(_get_seg_mask_for_target([[object_pose[0][0] -1, object_pose[0][1], object_pose[0][2]], [0, 0, 0, 1]], object_pose, im_world ))
+
+        im_world.exit()
+        print(seg_masks)
+
+    def _create_image_world(self):
+        world = BulletWorld.current_bullet_world.copy()
+        for obj in world.objects:
+            if BulletWorld.robot != None and obj.name == BulletWorld.robot.name \
+                and obj.type == BulletWorld.robot.type:
+                obj.remove
+            if obj.name == self.object.name and obj.type == self.object.type:
+                obj.remove
+        return world
+
 
 
 def visualize_costmap(costmap, world):
