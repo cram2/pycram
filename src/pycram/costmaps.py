@@ -3,7 +3,7 @@ import pybullet as p
 import rospy
 import time
 from .bullet_world import BulletWorld
-from .bullet_world_reasoning import _get_seg_mask_for_target
+from .bullet_world_reasoning import _get_images_for_target
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 
 import matplotlib.pyplot as plt
@@ -76,21 +76,30 @@ class OccupancyMap:
 
 class VisibilityCostmap():
 
-    def __init__(self, object):
+    def __init__(self, object, resolution):
         self.object = object
-        self.map = []
+        self.map = np.zeros((256, 256))
+        self.resolution = resolution
 
     def _create_images(self):
         object_pose = self.object.get_position_and_orientation()
         im_world = self._create_image_world()
-        seg_masks = []
-        seg_masks.append(_get_seg_mask_for_target([[object_pose[0][0] +1, object_pose[0][1], object_pose[0][2]], [0, 0, 0, 1]], object_pose, im_world ))
-        seg_masks.append(_get_seg_mask_for_target([[object_pose[0][0], object_pose[0][1] +1, object_pose[0][2]], [0, 0, 0, 1]],object_pose, im_world ))
-        seg_masks.append(_get_seg_mask_for_target([[object_pose[0][0], object_pose[0][1] -1, object_pose[0][2]], [0, 0, 0, 1]],object_pose, im_world ))
-        seg_masks.append(_get_seg_mask_for_target([[object_pose[0][0] -1, object_pose[0][1], object_pose[0][2]], [0, 0, 0, 1]], object_pose, im_world ))
+        images = []
+        images.append(_get_images_for_target([[object_pose[0][0] +1, object_pose[0][1], object_pose[0][2]], [0, 0, 0, 1]], object_pose, im_world )[1:3])
+        images.append(_get_images_for_target([[object_pose[0][0], object_pose[0][1] +1, object_pose[0][2]], [0, 0, 0, 1]],object_pose, im_world )[1:3])
+        images.append(_get_images_for_target([[object_pose[0][0], object_pose[0][1] -1, object_pose[0][2]], [0, 0, 0, 1]],object_pose, im_world )[1:3])
+        images.append(_get_images_for_target([[object_pose[0][0] -1, object_pose[0][1], object_pose[0][2]], [0, 0, 0, 1]], object_pose, im_world )[1:3])
 
+        # images [0] = depth, [1] = seg_mask
         im_world.exit()
-        print(seg_masks)
+        for i in range(0, 4):
+            images[i][0] = self._depth_buffer_to_meter(images[i][0])
+        return images
+
+    def _depth_buffer_to_meter(self, buffer):
+        near = 0.2
+        far = 100
+        return far * near / (far - (far-near)*buffer)
 
     def _create_image_world(self):
         world = BulletWorld.current_bullet_world.copy()
@@ -101,6 +110,22 @@ class VisibilityCostmap():
             if obj.name == self.object.name and obj.type == self.object.type:
                 obj.remove
         return world
+
+    def _choose_image(self, index):
+        # Because the (0, 0) is in the middle of the map, this returns the angele
+        # between the origin and the given index
+        angle = np.arctan2(index[0], index[1]) + np.pi
+        # return of np.arctan2 is between 2pi and pi
+        if angle <= np.pi * 0.25 or angle > np.pi * 1.75:
+            return 0
+        elif angle >= np.pi * 1.25 and angle < np.pi * 1.75:
+            return 1
+        elif angle >= np.pi * 0.75 and angle < np.pi * 1.25:
+            return 2
+        elif angle >= np.pi * 0.25 and angle < np.pi * 0.75:
+            return 3
+
+
 
 
 
