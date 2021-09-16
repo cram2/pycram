@@ -76,24 +76,26 @@ class OccupancyMap:
 
 class VisibilityCostmap():
 
-    def __init__(self, object, resolution):
+    def __init__(self, object, resolution, map_size=100):
         self.object = object
-        self.map = np.zeros((256, 256))
+        self.map = np.zeros((map_size, map_size))
+        self.size = map_size
         self.resolution = resolution
 
     def _create_images(self):
         object_pose = self.object.get_position_and_orientation()
         im_world = self._create_image_world()
         images = []
-        images.append(_get_images_for_target([[object_pose[0][0] +1, object_pose[0][1], object_pose[0][2]], [0, 0, 0, 1]], object_pose, im_world )[1:3])
-        images.append(_get_images_for_target([[object_pose[0][0], object_pose[0][1] +1, object_pose[0][2]], [0, 0, 0, 1]],object_pose, im_world )[1:3])
-        images.append(_get_images_for_target([[object_pose[0][0], object_pose[0][1] -1, object_pose[0][2]], [0, 0, 0, 1]],object_pose, im_world )[1:3])
-        images.append(_get_images_for_target([[object_pose[0][0] -1, object_pose[0][1], object_pose[0][2]], [0, 0, 0, 1]], object_pose, im_world )[1:3])
+        images.append(_get_images_for_target([[object_pose[0][0] +1, object_pose[0][1], object_pose[0][2]], [0, 0, 0, 1]], object_pose, im_world, size=self.size )[1])
+        images.append(_get_images_for_target([[object_pose[0][0], object_pose[0][1] +1, object_pose[0][2]], [0, 0, 0, 1]],object_pose, im_world, size=self.size )[1])
+        images.append(_get_images_for_target([[object_pose[0][0] -1, object_pose[0][1], object_pose[0][2]], [0, 0, 0, 1]], object_pose, im_world, size=self.size )[1])
+        images.append(_get_images_for_target([[object_pose[0][0], object_pose[0][1] -1, object_pose[0][2]], [0, 0, 0, 1]],object_pose, im_world, size=self.size )[1])
+
 
         # images [0] = depth, [1] = seg_mask
         im_world.exit()
         for i in range(0, 4):
-            images[i][0] = self._depth_buffer_to_meter(images[i][0])
+            images[i] = self._depth_buffer_to_meter(images[i])
         return images
 
     def _depth_buffer_to_meter(self, buffer):
@@ -116,7 +118,7 @@ class VisibilityCostmap():
         # between the origin and the given index
         angle = np.arctan2(index[0], index[1]) + np.pi
         # return of np.arctan2 is between 2pi and pi
-        if angle <= np.pi * 0.25 or angle > np.pi * 1.75:
+        if angle <= np.pi * 0.25 or angle >= np.pi * 1.75:
             return 0
         elif angle >= np.pi * 1.25 and angle < np.pi * 1.75:
             return 1
@@ -124,6 +126,43 @@ class VisibilityCostmap():
             return 2
         elif angle >= np.pi * 0.25 and angle < np.pi * 0.75:
             return 3
+
+    def _choose_column(self, index):
+        index_in_depth = [index[1], self.size - index[0]]
+        column = (index_in_depth[0] / index_in_depth[1]) * (self.size / 2)
+        column += self.size/2
+        return round(column)
+
+    def _compute_column_range(self, index, min_height, max_height):
+        obj_z = self.object.get_position()[2]
+        distance = np.linalg.norm(index)
+        if distance == 0:
+            return 0, 0
+        r_min = np.arctan((min_height-obj_z) / distance) * self.size
+        r_max = np.arctan((max_height-obj_z) / distance) * self.size
+        r_min += self.size/2
+        r_max += self.size/2
+        return min(round(r_min), self.size-1), min(round(r_max), self.size-1)
+
+    def _generate_map(self):
+        depth_imgs = self._create_images()
+        for x in range(int(-self.size/2), int(self.size/2)):
+            for y in range(int(-self.size/2), int(self.size/2)):
+                max_value = 0
+                depth_index = self._choose_image([x, y])
+                c = self._choose_column([x, y])
+                d = np.linalg.norm([x, y])
+                r_min, r_max = self._compute_column_range([x, y], 1.27, 1.60)
+                v = 0
+                for r in range(r_min, r_max):
+                    if depth_imgs[depth_index][c][r] > d:
+                        v += 1
+                        max_value += 1
+
+                if r_max > r_min:
+                    x_i = x + int(self.size/2)
+                    y_i = y + int(self.size/2)
+                    self.map[x_i][y_i] = v / (r_max - r_min)
 
 
 
