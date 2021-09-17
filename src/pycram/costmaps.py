@@ -76,21 +76,32 @@ class OccupancyMap:
 
 class VisibilityCostmap():
 
-    def __init__(self, object, resolution, map_size=100):
-        self.object = object
+    def __init__(self, location, resolution, min_height, max_height, map_size=100):
+        #self.object = object
+        self.location = location
         self.map = np.zeros((map_size, map_size))
         self.size = map_size
         self.resolution = resolution
+        # for pr2 = 1.27
+        self.max_height = max_height
+        #for pr2 = 1.6
+        self.min_height = min_height
+        self.origin = [location,  [0, 0, 0, 1]]
+
 
     def _create_images(self):
-        object_pose = self.object.get_position_and_orientation()
+        #object_pose = self.object.get_position_and_orientation()
         im_world = self._create_image_world()
         images = []
-        images.append(_get_images_for_target([[object_pose[0][0] +1, object_pose[0][1], object_pose[0][2]], [0, 0, 0, 1]], object_pose, im_world, size=self.size )[1])
-        images.append(_get_images_for_target([[object_pose[0][0], object_pose[0][1] +1, object_pose[0][2]], [0, 0, 0, 1]],object_pose, im_world, size=self.size )[1])
-        images.append(_get_images_for_target([[object_pose[0][0] -1, object_pose[0][1], object_pose[0][2]], [0, 0, 0, 1]], object_pose, im_world, size=self.size )[1])
-        images.append(_get_images_for_target([[object_pose[0][0], object_pose[0][1] -1, object_pose[0][2]], [0, 0, 0, 1]],object_pose, im_world, size=self.size )[1])
+        camera_pose = [self.location, [0, 0, 0, 1]]
 
+        images.append(_get_images_for_target([[self.location[0], self.location[1] +1, self.location[2]], [0, 0, 0, 1]],camera_pose, im_world, size=self.size )[1])
+
+        images.append(_get_images_for_target([[self.location[0] -1, self.location[1], self.location[2]], [0, 0, 0, 1]], camera_pose, im_world, size=self.size )[1])
+
+        images.append(_get_images_for_target([[self.location[0], self.location[1] -1, self.location[2]], [0, 0, 0, 1]],camera_pose, im_world, size=self.size )[1])
+
+        images.append(_get_images_for_target([[self.location[0] +1, self.location[1], self.location[2]], [0, 0, 0, 1]], camera_pose, im_world, size=self.size )[1])
 
         # images [0] = depth, [1] = seg_mask
         im_world.exit()
@@ -109,7 +120,7 @@ class VisibilityCostmap():
             if BulletWorld.robot != None and obj.name == BulletWorld.robot.name \
                 and obj.type == BulletWorld.robot.type:
                 obj.remove
-            if obj.name == self.object.name and obj.type == self.object.type:
+            if obj.get_position() == self.location:
                 obj.remove
         return world
 
@@ -134,17 +145,23 @@ class VisibilityCostmap():
         return round(column)
 
     def _compute_column_range(self, index, min_height, max_height):
-        obj_z = self.object.get_position()[2]
+        #obj_z = self.object.get_position()[2]
+        height = self.location[2]
         distance = np.linalg.norm(index)
         if distance == 0:
             return 0, 0
-        r_min = np.arctan((min_height-obj_z) / distance) * self.size
-        r_max = np.arctan((max_height-obj_z) / distance) * self.size
+        r_min = np.arctan((min_height-height) / distance) * self.size
+        r_max = np.arctan((max_height-height) / distance) * self.size
         r_min += self.size/2
         r_max += self.size/2
         return min(round(r_min), self.size-1), min(round(r_max), self.size-1)
 
     def _generate_map(self):
+        """
+        This method generates the resulting density map by using the algorithm explained
+        in Lorenz Mösenlechners PhD thesis: https://mediatum.ub.tum.de/doc/1239461/1239461.pdf p.178
+        The resulting density map is then saved to self.map
+        """
         depth_imgs = self._create_images()
         for x in range(int(-self.size/2), int(self.size/2)):
             for y in range(int(-self.size/2), int(self.size/2)):
@@ -152,25 +169,24 @@ class VisibilityCostmap():
                 depth_index = self._choose_image([x, y])
                 c = self._choose_column([x, y])
                 d = np.linalg.norm([x, y])
-                r_min, r_max = self._compute_column_range([x, y], 1.27, 1.60)
+                r_min, r_max = self._compute_column_range([x, y], self.min_height, self.max_height)
                 v = 0
-                for r in range(r_min, r_max):
+                for r in range(r_min, r_max+1):
                     if depth_imgs[depth_index][c][r] > d:
                         v += 1
                         max_value += 1
 
-                if r_max > r_min:
+                if max_value > 0:
                     x_i = x + int(self.size/2)
                     y_i = y + int(self.size/2)
-                    self.map[x_i][y_i] = v / (r_max - r_min)
-
+                    self.map[x_i][y_i] = v / max_value
 
 
 
 
 def visualize_costmap(costmap, world):
     cells = []
-    valid = costmap.find_all_valid_non_negativ()
+    #valid = costmap.find_all_valid_non_negativ()
     for width, height in valid:
         vis = p.createVisualShape(p.GEOM_BOX, halfExtents=[costmap.resolution, costmap.resolution, 0.001],
             rgbaColor=[1, 0, 0, 1], visualFramePosition=[width*costmap.resolution, height*costmap.resolution, 0.])
