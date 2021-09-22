@@ -4,6 +4,7 @@ import roslibpy
 import pybullet as pb
 
 from ros.ros_topic_publisher import ROSTopicPublisher
+from ros.rosbridge import ros_client
 
 
 class JointStatePublisher(ROSTopicPublisher):
@@ -11,7 +12,7 @@ class JointStatePublisher(ROSTopicPublisher):
         super().__init__()
         self.world = bullet_world
 
-        self.joint_state_pub = roslibpy.Topic(self.ros_client, joint_state_topic, "sensor_msgs/JointState")
+        self.joint_state_pub = roslibpy.Topic(ros_client, joint_state_topic, "sensor_msgs/JointState")
         self.interval = interval
 
     def _publish(self):

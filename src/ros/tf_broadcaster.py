@@ -15,6 +15,8 @@ import numpy as np
 
 from urdf_parser_py.urdf import URDF
 
+from ros.rosbridge import ros_client
+
 
 class Pose(object):
     def __init__(self, mat):
@@ -43,8 +45,8 @@ class TFBroadcaster(ROSTopicPublisher):
         super().__init__()
         self.world = bullet_world
 
-        self.tf_static_publisher = roslibpy.Topic(self.ros_client, "/tf_static", "geometry_msgs/TransformStamped")
-        self.tf_publisher = roslibpy.Topic(self.ros_client, "/tf", "geometry_msgs/TransformStamped")
+        self.tf_static_publisher = roslibpy.Topic(ros_client, "/tf_static", "geometry_msgs/TransformStamped")
+        self.tf_publisher = roslibpy.Topic(ros_client, "/tf", "geometry_msgs/TransformStamped")
         self.thread = None
         self.kill_event = threading.Event()
         self.interval = interval

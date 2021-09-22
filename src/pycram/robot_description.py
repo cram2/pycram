@@ -3,7 +3,7 @@ from numbers import Number
 import logging
 import re
 
-from ros.rosbridge import ROSBridge
+from ros.rosbridge import ros_client
 
 
 class ChainDescription:
@@ -835,8 +835,7 @@ def update_robot_description(robot_name=None, from_ros=None):
         robot = robot_name
     elif from_ros:
         try:
-            with ROSBridge() as rb:
-                urdf = rb.ros_client.get_param('robot_description')
+            urdf = ros_client.get_param('robot_description')
         except Exception as e:
             logging.error("(robot-description) Could not get robot name from parameter server. Try again.")
             return None
