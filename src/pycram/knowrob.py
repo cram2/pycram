@@ -1,5 +1,5 @@
 from json_prolog_msgs.srv import PrologQuery, PrologNextSolution, PrologFinish
-from knowrob_refills.knowrob_wrapper import KnowRob
+#from knowrob_refills.knowrob_wrapper import KnowRob
 from rosprolog_client import Prolog, PrologException
 import rospy
 
