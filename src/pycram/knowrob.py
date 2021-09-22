@@ -2,8 +2,6 @@ from json_prolog_msgs.srv import PrologQuery, PrologNextSolution, PrologFinish
 from knowrob_refills.knowrob_wrapper import KnowRob
 from rosprolog_client import Prolog, PrologException
 import rospy
-<<<<<<< HEAD
-=======
 
 prolog = Prolog()
 
@@ -27,4 +25,3 @@ def get_all_shelves():
 
 def find_shelf_pose(shelf):
     return prolog.once(f"get_pose_in_desired_reference_frame('{shelf}', 'map', T, R)")
->>>>>>> 3a540e7... added rosprolog_client and refactored code
