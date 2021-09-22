@@ -13,9 +13,10 @@ import time
 import pathlib
 import logging
 import rospkg
+
+from ros.rosbridge import ros_client
 from .event import Event
 #from .helper import transform
-from ros.rosbridge import ROSBridge
 
 
 class BulletWorld:
@@ -450,8 +451,7 @@ def _load_object(name, path, position, orientation, world, color, ignoreCachedFi
             with open(path, mode="w") as f:
                 f.write(_correct_urdf_string(urdf_string))
         else: # Using the urdf from the parameter server
-            with ROSBridge() as rb:
-                urdf_string = rb.ros_client.get_param(path)
+            urdf_string = ros_client.get_param(path)
             path = cach_dir +  name + ".urdf"
             with open(path, mode="w") as f:
                 f.write(_correct_urdf_string(urdf_string))
