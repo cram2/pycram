@@ -3,8 +3,7 @@ from numbers import Number
 import logging
 import re
 
-from ros.rosbridge import ros_client
-
+from ros_pycram.rosbridge import ros_client
 
 class ChainDescription:
     """
@@ -210,7 +209,7 @@ class RobotDescription:
     and joints. Different cameras can be added and static transforms and poses can be added too.
     """
 
-    def __init__(self, name, base_frame, base_link, ik_joints, torso_link=None, torso_joint=None,
+    def __init__(self, name, base_frame, base_link, torso_link=None, torso_joint=None,
                  odom_frame=None, odom_joints=None):
         """
         Initialises the robot description with the given frames.
