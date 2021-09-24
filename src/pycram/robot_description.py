@@ -447,12 +447,7 @@ class RobotDescription:
 class UR5RobotiqDescription(RobotDescription):
     def __init__(self):
         # all joints which are not fix,
-        ik_joints = ["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint",
-                     "wrist_3_joint", "robotiq_85_left_knuckle_joint", "robotiq_85_right_knuckle_joint",
-                     "robotiq_85_left_finger_joint", "robotiq_85_right_finger_joint",
-                     "robotiq_85_left_inner_knuckle_joint", "robotiq_85_right_inner_knuckle_joint",
-                     "robotiq_85_left_finger_tip_joint", "robotiq_85_left_finger_tip_joint"]
-        super(UR5RobotiqDescription, self).__init__("ur5_robotiq", "world", "base_link", ik_joints)
+        super(UR5RobotiqDescription, self).__init__("ur5_robotiq", "world", "base_link")
 
         # Arm
         arm_joints = ["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint",
