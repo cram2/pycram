@@ -3,8 +3,7 @@ from numbers import Number
 import logging
 import re
 
-from ros.rosbridge import ros_client
-
+from ros_pycram.rosbridge import ros_client
 
 class ChainDescription:
     """
@@ -210,7 +209,7 @@ class RobotDescription:
     and joints. Different cameras can be added and static transforms and poses can be added too.
     """
 
-    def __init__(self, name, base_frame, base_link, ik_joints, torso_link=None, torso_joint=None,
+    def __init__(self, name, base_frame, base_link, torso_link=None, torso_joint=None,
                  odom_frame=None, odom_joints=None):
         """
         Initialises the robot description with the given frames.
@@ -448,12 +447,7 @@ class RobotDescription:
 class UR5RobotiqDescription(RobotDescription):
     def __init__(self):
         # all joints which are not fix,
-        ik_joints = ["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint",
-                     "wrist_3_joint", "robotiq_85_left_knuckle_joint", "robotiq_85_right_knuckle_joint",
-                     "robotiq_85_left_finger_joint", "robotiq_85_right_finger_joint",
-                     "robotiq_85_left_inner_knuckle_joint", "robotiq_85_right_inner_knuckle_joint",
-                     "robotiq_85_left_finger_tip_joint", "robotiq_85_left_finger_tip_joint"]
-        super(UR5RobotiqDescription, self).__init__("ur5_robotiq", "world", "base_link", ik_joints)
+        super(UR5RobotiqDescription, self).__init__("ur5_robotiq", "world", "base_link")
 
         # Arm
         arm_joints = ["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint",
