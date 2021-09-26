@@ -1,7 +1,8 @@
 import logging
 from numbers import Number
 
-import roslibpy
+#import roslibpy
+import rospy
 
 from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped, Pose, Quaternion, TransformStamped, Transform, Vector3, Point
@@ -30,7 +31,7 @@ def ensure_pose(pose):
 
 
 def tf2tfstamped(source_frame, target_frame, tf, time=None):
-    tf_time = time if time else roslibpy.Time.now()
+    tf_time = time if time else rospy.Time.now()
     header = Header(0, tf_time, source_frame)
     return TransformStamped(header, target_frame, tf)
 
