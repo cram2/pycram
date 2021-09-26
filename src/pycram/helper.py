@@ -8,7 +8,7 @@ GeneratorList -- implementation of generator list wrappers.
 """
 from inspect import isgeneratorfunction
 
-from macropy.core.quotes import ast_literal, q
+from macropy.core.quotes import macros, ast_literal, q
 import pybullet as p
 from .robot_description import InitializedRobotDescription as robot_description
 
