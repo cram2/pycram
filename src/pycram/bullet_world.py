@@ -14,7 +14,8 @@ import pathlib
 import logging
 import rospkg
 
-from ros.rosbridge import ros_client
+#from ros.rosbridge import ros_client
+import rospy
 from .event import Event
 #from .helper import transform
 
@@ -29,6 +30,7 @@ class BulletWorld:
 
     current_bullet_world = None
     robot = None
+    rospy.init_node('pycram')
 
     def __init__(self, type="GUI"):
         """
@@ -451,7 +453,7 @@ def _load_object(name, path, position, orientation, world, color, ignoreCachedFi
             with open(path, mode="w") as f:
                 f.write(_correct_urdf_string(urdf_string))
         else: # Using the urdf from the parameter server
-            urdf_string = ros_client.get_param(path)
+            urdf_string = rospy.get_param(path)
             path = cach_dir +  name + ".urdf"
             with open(path, mode="w") as f:
                 f.write(_correct_urdf_string(urdf_string))
