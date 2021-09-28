@@ -1,5 +1,4 @@
 from .designator import Designator, DesignatorError, DesignatorDescription
-from .process_module import ProcessModule
 from typing import List
 
 
@@ -31,10 +30,7 @@ class ObjectDesignator(Designator):
         return self._description.get_slots()
 
     def __str__(self):
-        return "MotionDesignator({})".format(self._description.__dict__)
-
-    def perform(self):
-        return ProcessModule.perform(self)
+        return "ObjectDesignator({})".format(self._description.__dict__)
 
 
 class ObjectDesignatorDescription(DesignatorDescription):
@@ -50,9 +46,11 @@ class ObjectDesignatorDescription(DesignatorDescription):
 class LocatedObjectDesignatorDescription(ObjectDesignatorDescription):
     pose: List[float]
     reference_frame: str
+    timestamp: float
 
     def __init__(self, type_: str = None, name: str = None, pose: List[float] = None, reference_frame: str = "world",
-                 resolver="grounding"):
+                 timestamp: float = None, resolver="grounding"):
         super().__init__(type_, name, resolver)
         self.pose = pose
         self.reference_frame = reference_frame
+        self.timestamp = timestamp
