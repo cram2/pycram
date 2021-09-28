@@ -3,7 +3,7 @@ from numbers import Number
 import logging
 import re
 
-from ros_pycram.rosbridge import ros_client
+from ros.rosbridge import ros_client
 
 class ChainDescription:
     """

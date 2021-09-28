@@ -1,4 +1,3 @@
-import json
 from typing import List
 
 from neem_interface_python.rosprolog_client import atom
@@ -36,13 +35,11 @@ def object_pose(object_iri: str, reference_cs: str = "world", timestamp=None) ->
 
 
 def grasp_pose(object_iri: str) -> List[float]:
-    query = f""""
+    query = f"""
     kb_call(has_grasp_point({atom(object_iri)}, GraspPointName)),
-    current_scope(QS),
-    tf_get_pose(GraspPointName, [world, Pos, Ori], QS, _)
+    mem_tf_get(GraspPointName, world, Pos, Ori)
     """
-    print(query)
     res = knowrob.once(query)
-    pos = json.loads(res["Pos"])
-    ori = json.loads(res["Ori"])
+    pos = res["Pos"]
+    ori = res["Ori"]
     return pos + ori
