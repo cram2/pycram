@@ -56,6 +56,9 @@ docs/_build/
 # PyBuilder
 target/
 
+# PyCharm unit tests
+_trial_temp/
+
 # Additional
 pycram_pr2_demo/*.swp
 pycram_pr2_demo/*.save

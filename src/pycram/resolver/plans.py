@@ -1,6 +1,6 @@
+from pycram.object_designator import ObjectDesignator
 from pycram.task import with_tree
 from pycram.process_module import ProcessModule
-from pycram.designator import ObjectDesignator
 from pycram.motion_designator import *
 from pycram.action_designator import *
 from pycram.plan_failures import PlanFailure
