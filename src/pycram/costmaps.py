@@ -31,6 +31,7 @@ class Costmap():
         self.width = width
         self.origin = origin
         self.map = map
+        self.vis_id = None
 
     def visualize(self):
         """
@@ -81,8 +82,10 @@ class Costmap():
             linkInertialFrameOrientations=link_orientations,linkParentIndices=link_parent,
             linkJointTypes=link_joints, linkJointAxis=link_joint_axis,
             linkCollisionShapeIndices=link_collision)
-        return map_obj
+        self.vis_id = map_obj
 
+    def close_visualization(self):
+        p.removeBody(self.vis_id)
 
     def _find_consectuive_line(self, start, map):
         """
@@ -221,12 +224,13 @@ class VisibilityCostmap(Costmap):
     please look here: https://mediatum.ub.tum.de/doc/1239461/1239461.pdf (page 173)
     """
 
-    def __init__(self, location, resolution, min_height, max_height, map_size=100):
+    def __init__(self, location, resolution, min_height, max_height, map_size=100, world=None):
         """
         The constructor of the visibility costmap which assisgs the given paranmeter
         and triggeres the generation of the costmap.
         """
         #self.object = object
+        self.world = world
         self.location = location
         self.map = np.zeros((map_size, map_size))
         self.size = map_size
@@ -252,6 +256,7 @@ class VisibilityCostmap(Costmap):
         im_world = self._create_image_world()
         images = []
         camera_pose = [self.location, [0, 0, 0, 1]]
+        im_world = self.world
 
         images.append(_get_images_for_target([[self.location[0], self.location[1] +1, self.location[2]], [0, 0, 0, 1]],camera_pose, im_world, size=self.size )[1])
 
@@ -262,7 +267,7 @@ class VisibilityCostmap(Costmap):
         images.append(_get_images_for_target([[self.location[0] +1, self.location[1], self.location[2]], [0, 0, 0, 1]], camera_pose, im_world, size=self.size )[1])
 
         # images [0] = depth, [1] = seg_mask
-        im_world.exit()
+        #im_world.exit()
         for i in range(0, 4):
             images[i] = self._depth_buffer_to_meter(images[i])
         return images
@@ -285,12 +290,12 @@ class VisibilityCostmap(Costmap):
         :return: The reference to the new BulletWorld
         """
         world = BulletWorld.current_bullet_world.copy()
-        for obj in world.objects:
-            if BulletWorld.robot != None and obj.name == BulletWorld.robot.name \
-                and obj.type == BulletWorld.robot.type:
-                obj.remove
-            if obj.get_position() == self.location:
-                obj.remove
+        # for obj in world.objects:
+        #     if BulletWorld.robot != None and obj.name == BulletWorld.robot.name \
+        #         and obj.type == BulletWorld.robot.type:
+        #         obj.remove
+        #     if obj.get_position() == self.location:
+        #         obj.remove
         return world
 
     def _choose_image(self, index):
@@ -319,10 +324,26 @@ class VisibilityCostmap(Costmap):
         :param index: The index for which the column should be choosen
         :return: The Colum in the depth image.
         """
-        index_in_depth = [index[1], self.size - index[0]]
+        #index_in_depth = [index[1], self.size - index[0]]
+        index_in_depth = self._calculate_index_in_depth(index)
+        index_in_depth[0] = index_in_depth[0] - self.size/2
+        index_in_depth[1] = abs(self.size/2 - index_in_depth[1])
         column = (index_in_depth[0] / index_in_depth[1]) * (self.size / 2)
         column += self.size/2
         return round(column)
+
+    def _calculate_index_in_depth(self, index):
+        x, y = index
+        x += self.size/2
+        y += self.size/2
+        if y < self.size/2 and x >= y and x < (self.size - y):
+            return  [x, y]
+        elif x < self.size/2 and y > x and y < (self.size - x):
+            return [self.size-y-1, x]
+        elif y > self.size/2 and x< y and x >  (self.size - y - 1):
+            return [self.size-x-1, y]
+        else:
+            return [y, self.size-x-1]
 
     def _compute_column_range(self, index, min_height, max_height):
         """
@@ -360,15 +381,22 @@ class VisibilityCostmap(Costmap):
                 d = np.linalg.norm([x, y])
                 r_min, r_max = self._compute_column_range([x, y], self.min_height, self.max_height)
                 v = 0
+                #print(f"Collumn: {c} with range: {r_min} - {r_max}")
                 for r in range(r_min, r_max+1):
-                    if depth_imgs[depth_index][c][r] > d:
+                    #if depth_imgs[depth_index][c][r] > d:
+                    if depth_imgs[depth_index][r][c] > d * self.resolution:
                         v += 1
                         max_value += 1
 
                 if max_value > 0:
-                    x_i = x + int(self.size/2)
+                    x_i = abs(int(self.size/2) -x -1)
                     y_i = y + int(self.size/2)
                     self.map[x_i][y_i] = v / max_value
+
+class ReachabilityCostmap(Costmap):
+    def __init__(self):
+
+        Costmap.__init__(self,)
 
 
 cmap = colors.ListedColormap(['white', 'black', 'green', 'red', 'blue'])
