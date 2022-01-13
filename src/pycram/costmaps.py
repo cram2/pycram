@@ -31,7 +31,7 @@ class Costmap():
         self.width = width
         self.origin = origin
         self.map = map
-        self.vis_id = None
+        self.vis_ids = []
 
     def visualize(self):
         """
@@ -40,6 +40,9 @@ class Costmap():
         visual shapes.
         :return: The pybullet unique body id.
         """
+        if self.vis_ids != []:
+            return
+
         # working on a copy of the costmap, since found rectangles are deleted
         map = np.copy(self.map)
         curr_width = 0
@@ -63,29 +66,38 @@ class Costmap():
                 rgbaColor=[1, 0, 0, 0.6], visualFramePosition=[(box[0][0] + box[1]/2)*self.resolution, (box[0][1] + box[2]/2)*self.resolution, 0.])
             cells.append(visual)
 
-        # Dummy paramater since these are needed to spawn visual shapes as a
-        # multibody.
-        link_poses = [[0, 0, 0] for c in cells]
-        link_orientations =  [[0, 0, 0, 1] for c in cells]
-        link_masses = [1.0 for c in cells]
-        link_parent = [0 for c in cells]
-        link_joints = [p.JOINT_FIXED for c in cells]
-        link_collision = [-1 for c in cells]
-        link_joint_axis = [[1, 0, 0] for c in cells]
-        # The position at which the multibody will be spawned. Offset such that
-        # the origin referes to the centre of the costmap.
-        base_pose = [self.origin[0] + self.height/2*self.resolution, self.origin[1] + self.width / 2*self.resolution, self.origin[2]]
-        map_obj = p.createMultiBody(baseVisualShapeIndex=-1, linkVisualShapeIndices=cells,
-            basePosition=base_pose, baseOrientation=[0, 0, 1, 0], linkPositions=link_poses,
-            linkMasses=link_masses, linkOrientations=link_orientations,
-            linkInertialFramePositions=link_poses,
-            linkInertialFrameOrientations=link_orientations,linkParentIndices=link_parent,
-            linkJointTypes=link_joints, linkJointAxis=link_joint_axis,
-            linkCollisionShapeIndices=link_collision)
-        self.vis_id = map_obj
+        for cell_parts in self._chunks(cells, 255):
+            # Dummy paramater since these are needed to spawn visual shapes as a
+            # multibody.
+            link_poses = [[0, 0, 0] for c in cell_parts]
+            link_orientations =  [[0, 0, 0, 1] for c in cell_parts]
+            link_masses = [1.0 for c in cell_parts]
+            link_parent = [0 for c in cell_parts]
+            link_joints = [p.JOINT_FIXED for c in cell_parts]
+            link_collision = [-1 for c in cell_parts]
+            link_joint_axis = [[1, 0, 0] for c in cell_parts]
+            # The position at which the multibody will be spawned. Offset such that
+            # the origin referes to the centre of the costmap.
+            base_pose = [self.origin[0] + self.height/2*self.resolution, self.origin[1] + self.width / 2*self.resolution, self.origin[2]]
+            map_obj = p.createMultiBody(baseVisualShapeIndex=-1, linkVisualShapeIndices=cell_parts,
+                basePosition=base_pose, baseOrientation=[0, 0, 1, 0], linkPositions=link_poses,
+                linkMasses=link_masses, linkOrientations=link_orientations,
+                linkInertialFramePositions=link_poses,
+                linkInertialFrameOrientations=link_orientations,linkParentIndices=link_parent,
+                linkJointTypes=link_joints, linkJointAxis=link_joint_axis,
+                linkCollisionShapeIndices=link_collision)
+            self.vis_ids.append(map_obj)
+
+
+    def _chunks(self, lst, n):
+        """Yield successive n-sized chunks from lst."""
+        for i in range(0, len(lst), n):
+            yield lst[i:i + n]
 
     def close_visualization(self):
-        p.removeBody(self.vis_id)
+        for id in self.vis_ids:
+            p.removeBody(id)
+        self.vis_ids =  []
 
     def _find_consectuive_line(self, start, map):
         """
