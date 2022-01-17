@@ -2,8 +2,11 @@ import numpy as np
 import pybullet as p
 import rospy
 import time
+from scipy import signal
+from pycram.robot_description import InitializedRobotDescription as robot_description
 from .bullet_world import BulletWorld
 from .bullet_world_reasoning import _get_images_for_target
+from .ik import request_ik, IKError
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 
 import matplotlib.pyplot as plt
@@ -56,14 +59,15 @@ class Costmap():
                     curr_width = self._find_consectuive_line((i, j), map)
                     curr_pose = (i, j)
                     curr_height = self._find_max_box_height((i,j), curr_width, map)
-                    boxes.append([curr_pose, curr_height, curr_width])
+                    avg = np.average(map[i:i+curr_height, j:j+curr_width])
+                    boxes.append([curr_pose, curr_height, curr_width, avg])
                     map[i:i+curr_height, j:j+curr_width] = 0
         cells = []
         # Creation of the visual shapes, for documentation of the visual shapes
         # please look here: https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#heading=h.q1gn7v6o58bf
         for box in boxes:
             visual = p.createVisualShape(p.GEOM_BOX, halfExtents=[(box[1] *self.resolution) / 2, (box[2]*self.resolution) / 2, 0.001],
-                rgbaColor=[1, 0, 0, 0.6], visualFramePosition=[(box[0][0] + box[1]/2)*self.resolution, (box[0][1] + box[2]/2)*self.resolution, 0.])
+                rgbaColor=[1, 0, 0, 0.6], visualFramePosition=[(box[0][0] + box[1]/2)*self.resolution, (box[0][1] + box[2]/2)*self.resolution, box[3]])
             cells.append(visual)
 
         for cell_parts in self._chunks(cells, 255):
@@ -136,6 +140,22 @@ class Costmap():
                     return curr_height
             curr_height += 1
         return curr_height
+
+    def merge(self, other_cm):
+        if self.size != other_cm.size:
+            print("To merge costmaps, the size has to be equal")
+            return
+        elif self.origin != other_cm.origin:
+            print("To merge costmaps, the origin has to be equal")
+            return
+        elif self.resolution != other_cm.resolution:
+            print("To merge cotsmaps, the resoulution has to be equal")
+            return
+        new_map = np.zeros((self.size, self.size))
+        for x in range(0, self.size):
+            for y in range(0, self.size):
+                new_map[x][y] = self.map[x][y] * other_cm.map[x][y]
+        return Costmap(self.resolution, self.height, self.width, self.origin, new_map)
 
 
 class OccupancyMap(Costmap):
@@ -321,13 +341,13 @@ class VisibilityCostmap(Costmap):
         angle = np.arctan2(index[0], index[1]) + np.pi
         # return of np.arctan2 is between 2pi and pi
         if angle <= np.pi * 0.25 or angle >= np.pi * 1.75:
-            return 0
+            return 0 #0
         elif angle >= np.pi * 1.25 and angle < np.pi * 1.75:
-            return 1
+            return 3 #1
         elif angle >= np.pi * 0.75 and angle < np.pi * 1.25:
-            return 2
+            return 2 #2
         elif angle >= np.pi * 0.25 and angle < np.pi * 0.75:
-            return 3
+            return 1 #3
 
     def _choose_column(self, index):
         """
@@ -401,14 +421,56 @@ class VisibilityCostmap(Costmap):
                         max_value += 1
 
                 if max_value > 0:
-                    x_i = abs(int(self.size/2) -x -1)
-                    y_i = y + int(self.size/2)
+                    #x_i = abs(int(self.size/2) -x -1)
+                    #y_i = y + int(self.size/2)
+
+                    x_i = int(self.size/2) - x- 1
+                    y_i = int(self.size/2) + y-1
                     self.map[x_i][y_i] = v / max_value
 
 class ReachabilityCostmap(Costmap):
-    def __init__(self):
+    def __init__(self, robot_object, location, arm, resolution, size, origin):
+        self.size = size
+        self.orientations = [[0,0,-1,1], [0, 0, 1, 1]]
+        self.map = np.zeros((size, size))
+        self.robot = robot_object
 
-        Costmap.__init__(self,)
+        #self.root_link = robot_description.i._safely_access_chains(arm).links[0]
+        self.root_link = robot_description.i.base_frame
+        self.tip_link = robot_description.i.get_tool_frame(arm)
+        self.arm_joints = robot_description.i._safely_access_chains(arm).joints
+
+
+        Costmap.__init__(self, resolution, size, size, origin, self.map)
+
+    def _create_reachablility_map(self):
+        t0 = time.time()
+        self.reach_map = np.zeros((self.size, self.size, self.size))
+        for z in range(-int(self.size/2), int(self.size/2)):
+            for y in range(-int(self.size/2), int(self.size/2)):
+                for x in range(-int(self.size/2), int(self.size/2)):
+                    for o in self.orientations:
+                        try:
+                            pose = np.array([x, y, z]) * self.resolution
+                            inv = request_ik(robot_description.i.base_frame, self.tip_link,
+                                        [pose, o], self.robot, self.arm_joints)
+                            self.reach_map[x][y][z] = 1
+                        except IKError as e:
+                            pass
+        t1 = time.time()
+        print(t1-t0)
+
+    def _create_inverse_reachablility_map(self):
+        pass
+
+class GaussianCostmap(Costmap):
+    def __init__(self, mean, sigma, resolution, origin):
+        #self.gau = np.random.normal(mean, sigma, mean)
+        self.gau = signal.gaussian(mean, sigma)
+        self.map = np.outer(self.gau, self.gau)
+        self.size = mean
+        self.origin = origin
+        Costmap.__init__(self, resolution, mean, mean, origin, self.map)
 
 
 cmap = colors.ListedColormap(['white', 'black', 'green', 'red', 'blue'])
