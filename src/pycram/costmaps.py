@@ -30,6 +30,7 @@ class Costmap():
         :param map: The costmap represents as a 2D numpy array.
         """
         self.resolution = resolution
+        self.size = height
         self.height = height
         self.width = width
         self.origin = origin
@@ -63,14 +64,15 @@ class Costmap():
                     boxes.append([curr_pose, curr_height, curr_width, avg])
                     map[i:i+curr_height, j:j+curr_width] = 0
         cells = []
+        #print(boxes)
         # Creation of the visual shapes, for documentation of the visual shapes
         # please look here: https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#heading=h.q1gn7v6o58bf
         for box in boxes:
             visual = p.createVisualShape(p.GEOM_BOX, halfExtents=[(box[1] *self.resolution) / 2, (box[2]*self.resolution) / 2, 0.001],
-                rgbaColor=[1, 0, 0, 0.6], visualFramePosition=[(box[0][0] + box[1]/2)*self.resolution, (box[0][1] + box[2]/2)*self.resolution, box[3]])
+                rgbaColor=[1, 0, 0, 0.6], visualFramePosition=[(box[0][0] + box[1]/2)*self.resolution, (box[0][1] + box[2]/2)*self.resolution, 0.])
             cells.append(visual)
-
-        for cell_parts in self._chunks(cells, 255):
+        # Set to 127 for since this is the maximal amount of links in a multibody
+        for cell_parts in self._chunks(cells, 127):
             # Dummy paramater since these are needed to spawn visual shapes as a
             # multibody.
             link_poses = [[0, 0, 0] for c in cell_parts]
@@ -133,7 +135,7 @@ class Costmap():
         :return: The height of the rectangle.
         """
         height, width = map.shape
-        curr_height = 0
+        curr_height = 1
         for i in range(start[0], height):
             for j in range(start[1], start[1] + lenght):
                 if map[i][j] <= 0:
@@ -142,6 +144,12 @@ class Costmap():
         return curr_height
 
     def merge(self, other_cm):
+        """
+        Merges the values of two costmaps and returns a new costmap that has for
+        every cell the merged values of both inputs. To merge two costmaps they
+        have to be the same size, resolution and posess the same origin.
+        :param other_cm: The other costmap with which this costmap should be merged.
+        """
         if self.size != other_cm.size:
             print("To merge costmaps, the size has to be equal")
             return
@@ -154,16 +162,27 @@ class Costmap():
         new_map = np.zeros((self.size, self.size))
         for x in range(0, self.size):
             for y in range(0, self.size):
-                new_map[x][y] = self.map[x][y] * other_cm.map[x][y]
+                if self.map[x][y] == 0 or other_cm.map[x][y] == 0:
+                    new_map[x][y] = 0
+                else:
+                    new_map[x][y] = self.map[x][y] * other_cm.map[x][y]
+
+        new_map /= np.max(np.abs(new_map))
         return Costmap(self.resolution, self.height, self.width, self.origin, new_map)
 
+    def __add__(self, other):
+        if isinstance(other, Costmap):
+            return self.merge(other)
+        else:
+            print("Can only combine two costmaps")
+            return None
 
 class OccupancyMap(Costmap):
     """
     The occupancy Costmap represents a map of the environment where obstacles or
     positions which are inaccessiable for a robot have a value of -1.
     """
-    def __init__(self, distance_to_obstacle):
+    def __init__(self, distance_to_obstacle, from_ros=False, size=100, resolution=0.02, origin=[0,0,0], world=None):
         """
         The constructor for the Occupancy costmap, the actual costmap is received
         from the ROS map_server and wrapped by this class. Meta data about the
@@ -172,11 +191,44 @@ class OccupancyMap(Costmap):
         inflated. Meaning that obstacles in the costmap are growing bigger by this
         distance.
         """
-        meta = self._get_map_metadata()
-        Costmap.__init__(self, meta.resolution, meta.height, meta.width, [meta.origin.x, meta.origin.y, meta.origin.z],
-                    np.reshape(self._get_map(), (self.width, self.height)))
-        # Nunber of cells that have to be between a valid cell and an obstacle
-        self.distance_obstacle = int(distance_to_obstacle / self.resolution)
+        if from_ros:
+            meta = self._get_map_metadata()
+            self.original_map = np.reshape(self._get_map(), (meta.height, meta.width))
+            self.meta_origin = [meta.origin.position.x, meta.origin.position.y, meta.origin.position.z]
+            self.resolution = meta.resolution
+            self.height = meta.height
+            self.width = meta.width
+            # Nunber of cells that have to be between a valid cell and an obstacle
+            self.distance_obstacle = int(distance_to_obstacle / self.resolution)
+            Costmap.__init__(self, meta.resolution, meta.height, meta.width,
+                        self._calculate_diff_origin(meta.height, meta.width),
+                        np.rot90(np.flip(self._convert_map(self.original_map, self.height), 0)))
+        else:
+            self.size = size
+            self.origin = origin
+            self.resolution = resolution
+            self.distance_obstacle = int(distance_to_obstacle / self.resolution)
+            self.map = self._create_from_bullet(world, size, resolution, origin)
+            Costmap.__init__(self, resolution, size, size, self.origin, self.map)
+
+
+
+
+
+    def _calculate_diff_origin(self, height, width):
+        """
+        This method calculates the difference between the origin of the costmap
+        as stated by the meta data and the actual middle of the costmap which
+        is used by PyCRAM to visualize the cotsmap. The origin as stated by the
+        meta data referes to the position of the global coordinate frame with
+        the bottom left corner as reference.
+        :param height: The Hieght of the costmap
+        :param width: The width of the costmap
+        :return: The difference between the actual origin and center of the costmap
+        """
+        actual_origin = [int(height/2) * self.resolution, int(width/2) * self.resolution, 0]
+        origin = np.array(self.meta_origin) + np.array(actual_origin)
+        return origin
 
     @staticmethod
     def _get_map():
@@ -194,7 +246,7 @@ class OccupancyMap(Costmap):
         """
         Receives the meta data about the costmap from the map_server and returns it.
         The meta data contains things like, height, width, origin and resolution.
-        :return The meta data for the costmap array.
+        :return: The meta data for the costmap array.
         """
         print("Waiting for Map Meta Data")
         meta = rospy.wait_for_message("/map_metadata", MapMetaData)
@@ -231,23 +283,93 @@ class OccupancyMap(Costmap):
                 valid.append((w,h))
         return valid
 
-    def _merge_cells(self):
-        new_map = np.zeros((int(self.width/2)+1, int(self.height/2)+1))
-        new_width = 0
-        new_height = 0
-        for i in range(0, self.width, 2):
-            for j in range(0, self.height, 2):
-                sum = self.map[i][j] + self.map[i+1][j] + self.map[i][j+1] + self.map[i+1][j+1]
-                avg = sum / 4
-                new_map[new_width][new_height] = avg
-                new_height += 1
-            new_height = 0
-            new_width += 1
-        self.width = int(self.width/2)
-        self.height = int(self.height/2)
-        self.map = new_map
-        self.resolution *= 2
-        self.distance_obstacle = int(self.distance_obstacle/2)
+    def _convert_map(self, map, size):
+        """
+        This Method converts the Occupancy Map received from ROS to be more consistent
+        with how PyCRAM handles its costmap. Every possible cell for a robot to stand
+        is set to one while anything else is set to zero. Additionally this method
+        also takes into account the distance_to_obstacle parameter and sets cell values
+        that are too close to an obstacle to 0.
+        :param map: The map that should be converted. Represented as 2d numpy array
+        :return: The converted map. Represented as 2d numpy array.
+        """
+        new_map = np.zeros((size, size))
+        for x in range(0, size):
+            for y in range(size):
+                # Surrounding cells with respect to distance to obstacle
+                surrounding_cells = map[x - self.distance_obstacle: x + self.distance_obstacle,
+                                        y - self.distance_obstacle: y + self.distance_obstacle]
+                # Checks if there are any cells with values greater than zero in
+                # surrounding_cells.
+                if np.sum(surrounding_cells) == 0 and surrounding_cells.size != 0:
+                    new_map[x][y] = 1
+        return new_map
+        #return Costmap(self.resolution, self.height, self.width, self.origin, new_map)
+
+    def _create_sub_map(self, sub_origin, size):
+        """
+        Creates a smaller map from the overall occupancy map, the new map is centered
+        around the point specified by "sub_origin" and has the size "size". The
+        resolution of the costmap stayes the same for the sub costmap.
+        :param sub_origin: The point in global coordinate frame, around which the
+            sub costmap should be centered.
+        :param size: The size the sub costmap should have.
+        :return The sub costmap, represented as 2d numpy array.
+        """
+        # To ensure this is a numpy array
+        sub_origin = np.array(sub_origin)
+        # Since origin obtained from the meta data uses bottom left corner as reference.
+        sub_origin *= -1
+        # Calculates origin of sub costmap as vector between origin and given sub_origin
+        new_origin = np.array(self.meta_origin) + sub_origin
+        # Convert from vector in meter to index values
+        new_origin /= self.resolution
+        #new_origin = np.array([abs(int(x)) for x in new_origin])
+        new_origin = np.abs(new_origin)
+        # Offset to top left corner, for easier slicing
+        new_origin = (new_origin - size/2).astype(int)
+        print(new_origin)
+
+        # slices a submap with size "size" around the given origin
+        sub_map = self.original_map[new_origin[1]: new_origin[1] + size,
+                            new_origin[0]: new_origin[0] + size]
+        # Convert map to fit with the other costmaps
+        sub_map = np.rot90(np.flip(self._convert_map(sub_map, size), 0))
+        return Costmap(self.resolution, size, size, list(sub_origin * -1), sub_map)
+
+    def _create_from_bullet(self, world, size, resolution, origin):
+        rays = []
+        for x in range(int(origin[0] - size/2), int(origin[0] + size/2)):
+            for y in range(int(origin[1] - size/2), int(origin[1] + size/2)):
+                rays.append(([x * resolution, y * resolution, 0],
+                            [x * resolution, y * resolution, 10]))
+
+        res = []
+        for n in self._chunks(np.array(rays), 16383):
+            r_t = p.rayTestBatch(n[:,0], n[:,1],numThreads=0)
+            res += (1 if ray[0] == -1 else 0 for ray in r_t)
+
+        res = np.flip(np.reshape(np.array(res), (size, size)))
+        new_map = np.zeros((size, size))
+        for x in range(0, size):
+            for y in range(0, size):
+                surrounding_cells = res[x - self.distance_obstacle: x+self.distance_obstacle,
+                                        y - self.distance_obstacle: y+self.distance_obstacle]
+                #print(np.sum(surrounding_cells))
+                if np.sum(surrounding_cells) == (self.distance_obstacle * 2) ** 2  and surrounding_cells.size != 0:
+                    new_map[x][y] = 1
+                    print
+
+        return new_map
+
+
+
+    def _chunks(self, lst, n):
+        """Yield successive n-sized chunks from lst."""
+        for i in range(0, len(lst), n):
+            yield lst[i:i + n]
+
+
 
 class VisibilityCostmap(Costmap):
     """
@@ -421,57 +543,65 @@ class VisibilityCostmap(Costmap):
                         max_value += 1
 
                 if max_value > 0:
-                    #x_i = abs(int(self.size/2) -x -1)
-                    #y_i = y + int(self.size/2)
-
                     x_i = int(self.size/2) - x- 1
                     y_i = int(self.size/2) + y-1
                     self.map[x_i][y_i] = v / max_value
 
-class ReachabilityCostmap(Costmap):
-    def __init__(self, robot_object, location, arm, resolution, size, origin):
-        self.size = size
-        self.orientations = [[0,0,-1,1], [0, 0, 1, 1]]
-        self.map = np.zeros((size, size))
-        self.robot = robot_object
-
-        #self.root_link = robot_description.i._safely_access_chains(arm).links[0]
-        self.root_link = robot_description.i.base_frame
-        self.tip_link = robot_description.i.get_tool_frame(arm)
-        self.arm_joints = robot_description.i._safely_access_chains(arm).joints
-
-
-        Costmap.__init__(self, resolution, size, size, origin, self.map)
-
-    def _create_reachablility_map(self):
-        t0 = time.time()
-        self.reach_map = np.zeros((self.size, self.size, self.size))
-        for z in range(-int(self.size/2), int(self.size/2)):
-            for y in range(-int(self.size/2), int(self.size/2)):
-                for x in range(-int(self.size/2), int(self.size/2)):
-                    for o in self.orientations:
-                        try:
-                            pose = np.array([x, y, z]) * self.resolution
-                            inv = request_ik(robot_description.i.base_frame, self.tip_link,
-                                        [pose, o], self.robot, self.arm_joints)
-                            self.reach_map[x][y][z] = 1
-                        except IKError as e:
-                            pass
-        t1 = time.time()
-        print(t1-t0)
-
-    def _create_inverse_reachablility_map(self):
-        pass
+# class ReachabilityCostmap(Costmap):
+#     def __init__(self, robot_object, location, arm, resolution, size, origin):
+#         self.size = size
+#         self.orientations = [[0,0,-1,1], [0, 0, 1, 1]]
+#         self.map = np.zeros((size, size))
+#         self.robot = robot_object
+#
+#         #self.root_link = robot_description.i._safely_access_chains(arm).links[0]
+#         self.root_link = robot_description.i.base_frame
+#         self.tip_link = robot_description.i.get_tool_frame(arm)
+#         self.arm_joints = robot_description.i._safely_access_chains(arm).joints
+#
+#
+#         Costmap.__init__(self, resolution, size, size, origin, self.map)
+#
+#     def _create_reachablility_map(self):
+#         t0 = time.time()
+#         self.reach_map = np.zeros((self.size, self.size, self.size))
+#         for z in range(-int(self.size/2), int(self.size/2)):
+#             for y in range(-int(self.size/2), int(self.size/2)):
+#                 for x in range(-int(self.size/2), int(self.size/2)):
+#                     for o in self.orientations:
+#                         try:
+#                             pose = np.array([x, y, z]) * self.resolution
+#                             inv = request_ik(robot_description.i.base_frame, self.tip_link,
+#                                         [pose, o], self.robot, self.arm_joints)
+#                             self.reach_map[x][y][z] = 1
+#                         except IKError as e:
+#                             pass
+#         t1 = time.time()
+#         print(t1-t0)
+#
+#     def _create_inverse_reachablility_map(self):
+#         pass
 
 class GaussianCostmap(Costmap):
     def __init__(self, mean, sigma, resolution, origin):
         #self.gau = np.random.normal(mean, sigma, mean)
         self.gau = signal.gaussian(mean, sigma)
+        self.gau = self._gaussian_window(mean, sigma)
         self.map = np.outer(self.gau, self.gau)
         self.size = mean
         self.origin = origin
         Costmap.__init__(self, resolution, mean, mean, origin, self.map)
 
+    def _gaussian_window(self, mean, std):
+        """
+        This method creates a window of values with a gaussian distribution of
+        size "mean" and standart deviation "std".
+        Code from: https://github.com/scipy/scipy/blob/v0.14.0/scipy/signal/windows.py#L976
+        """
+        n = np.arange(0, mean) - (mean - 1.0) / 2.0
+        sig2 = 2 * std * std
+        w = np.exp(-n ** 2 / sig2)
+        return w
 
 cmap = colors.ListedColormap(['white', 'black', 'green', 'red', 'blue'])
 
