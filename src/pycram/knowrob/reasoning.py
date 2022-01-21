@@ -9,7 +9,8 @@ def object_type(object_iri: str) -> str:
     """
     :param object_iri: The name (identifier) of the object individual in the KnowRob knowledge base
     """
-    return knowrob.once(f"kb_call(instance_of({atom(object_iri)}, Class))")["Class"]
+    res = knowrob.once(f"kb_call(instance_of({atom(object_iri)}, Class))")
+    return res["Class"]
 
 
 def instances_of(type_: str) -> List[str]:

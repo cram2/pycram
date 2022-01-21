@@ -17,10 +17,9 @@ def ground_located_object(description: LocatedObjectDesignatorDescription):
             description.name = object_name
             _ground_pose(description)
             yield description.__dict__
-    else:
-        # Fetch the object pose and yield the grounded description
-        _ground_pose(description)
-        return description.__dict__
+    # Fetch the object pose and yield the grounded description
+    _ground_pose(description)
+    yield description.__dict__
 
 
 def call_ground(desig):
