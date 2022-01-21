@@ -1,5 +1,6 @@
 <launch>
   <arg name="robot" default="pr2" />
+  <arg name="use_knowrob" default="true"/>
 
   <node pkg="kdl_ik_service" type="start_ros_server.py" name="kdl_ik_service" output="screen" />
 
@@ -27,4 +28,8 @@
   <include file="$(find iai_boxy_description)/launch/upload_boxy.launch" />
 -->
 <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
+
+<group if="$(eval use_knowrob)">
+    <include file="$(find knowrob)/launch/knowrob.launch"/>
+</group>
 </launch>
