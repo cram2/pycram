@@ -605,6 +605,7 @@ class GaussianCostmap(Costmap):
 
 cmap = colors.ListedColormap(['white', 'black', 'green', 'red', 'blue'])
 
+# Mainly used for debugging 
 def plot_grid(data):
     rows = data.shape[0]
     cols = data.shape[1]
