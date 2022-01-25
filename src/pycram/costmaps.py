@@ -159,9 +159,9 @@ class Costmap():
         elif self.resolution != other_cm.resolution:
             print("To merge cotsmaps, the resoulution has to be equal")
             return
-        new_map = np.zeros((self.size, self.size))
-        for x in range(0, self.size):
-            for y in range(0, self.size):
+        new_map = np.zeros((self.height, self.width))
+        for x in range(0, self.height):
+            for y in range(0, self.width):
                 if self.map[x][y] == 0 or other_cm.map[x][y] == 0:
                     new_map[x][y] = 0
                 else:
@@ -190,6 +190,20 @@ class OccupancyMap(Costmap):
         :param distance_obstacle: The distance by which the obstacles should be
         inflated. Meaning that obstacles in the costmap are growing bigger by this
         distance.
+        :param from_ros: This determines if the Occupancy map should be created
+            from the map provided by the ROS map_server or from the BulletWorld.
+            If True then the map from the ROS map_server will be used otherwise
+            the Occupancy map will be created from the BulletWorld.
+        :param size: The lenght of the side of the costmap. The costmap will be created
+            as a square. This will only be used if from_ros is False.
+        :param resolution: The resolution of this costmap. This determines how much
+            meter one pixel in the costmap represents. This is only used if from_ros
+            is Flase.
+        :param origin: This determines the origin of the costmap. The origin will
+            be in the middle of the costmap. This parameter is only used if from_ros
+            is False.
+        :param world: This parameter specifies the BulletWorld for which a Occupancy
+            costmap should be created. This parameter is only used if from_ros is False.
         """
         if from_ros:
             meta = self._get_map_metadata()
@@ -210,10 +224,6 @@ class OccupancyMap(Costmap):
             self.distance_obstacle = int(distance_to_obstacle / self.resolution)
             self.map = self._create_from_bullet(world, size, resolution, origin)
             Costmap.__init__(self, resolution, size, size, self.origin, self.map)
-
-
-
-
 
     def _calculate_diff_origin(self, height, width):
         """
@@ -338,19 +348,37 @@ class OccupancyMap(Costmap):
         return Costmap(self.resolution, size, size, list(sub_origin * -1), sub_map)
 
     def _create_from_bullet(self, world, size, resolution, origin):
+        """
+        This method creates a Occupancy Costmap for the specified BulletWorld.
+        This map marks every position as valid that has no object above it. After
+        creating the costmap the distance to obstacle parameter is applied.
+        :param world: The BulletWorld for which the Occupancy Costmap should
+            be created
+        :param size: The size of this costmap. The size specifies the lenght of one
+            side of the costmap. The costmap is created as a square.
+        :param resolution: The resolution of this costmap. This determies how much
+            meter a pixel in the costmap represents.
+        :param origin: The origin of the costmap, this is the position in world coordinate
+            frame around which the cotsmap should be created.
+
+        """
         rays = []
+        # Creating a 2D array with positions in world coordinate frame for every cell
         for x in range(int(origin[0] - size/2), int(origin[0] + size/2)):
             for y in range(int(origin[1] - size/2), int(origin[1] + size/2)):
                 rays.append(([x * resolution, y * resolution, 0],
                             [x * resolution, y * resolution, 10]))
 
         res = []
+        # Using the PyBullet rayTest to check if there is an object above the position
+        # if there is no object the position is marked as valid
         for n in self._chunks(np.array(rays), 16383):
             r_t = p.rayTestBatch(n[:,0], n[:,1],numThreads=0)
             res += (1 if ray[0] == -1 else 0 for ray in r_t)
 
         res = np.flip(np.reshape(np.array(res), (size, size)))
         new_map = np.zeros((size, size))
+        # Apply the distance to obstacle paramter
         for x in range(0, size):
             for y in range(0, size):
                 surrounding_cells = res[x - self.distance_obstacle: x+self.distance_obstacle,
@@ -361,8 +389,6 @@ class OccupancyMap(Costmap):
                     print
 
         return new_map
-
-
 
     def _chunks(self, lst, n):
         """Yield successive n-sized chunks from lst."""
@@ -378,16 +404,27 @@ class VisibilityCostmap(Costmap):
     please look here: https://mediatum.ub.tum.de/doc/1239461/1239461.pdf (page 173)
     """
 
-    def __init__(self, location, resolution, min_height, max_height, map_size=100, world=None):
+    def __init__(self, min_height, max_height, size=100, resolution=0.02, origin=[0,0,0], world=None):
         """
         The constructor of the visibility costmap which assisgs the given paranmeter
         and triggeres the generation of the costmap.
+        :param min_height: This is the minimal height the camera can be. This parameter
+            is mostly relevant if the vertical position of the camera can change.
+        :param max_height: This is the maximal height the camera can be. This is
+            mostly revelevant if teh vertical position of the camera can change.
+        :param size: The lenght of the side of the costmap, the costmap is created
+            as a square.
+        :param resolution: This parameter specifies how much meter a pixel in the
+            costmap represents.
+        :param origin: The position in world coordinate frame around which the
+            costmap should be created.
+        :param world: The BulletWorld for which the costmap should be created.
         """
         #self.object = object
-        self.world = world
+        self.world = world if world else BulletWorld.current_bullet_world
         self.location = location
         self.map = np.zeros((map_size, map_size))
-        self.size = map_size
+        self.size = size
         self.resolution = resolution
         # for pr2 = 1.27
         self.max_height = max_height
@@ -410,7 +447,6 @@ class VisibilityCostmap(Costmap):
         im_world = self._create_image_world()
         images = []
         camera_pose = [self.location, [0, 0, 0, 1]]
-        im_world = self.world
 
         images.append(_get_images_for_target([[self.location[0], self.location[1] +1, self.location[2]], [0, 0, 0, 1]],camera_pose, im_world, size=self.size )[1])
 
@@ -421,7 +457,7 @@ class VisibilityCostmap(Costmap):
         images.append(_get_images_for_target([[self.location[0] +1, self.location[1], self.location[2]], [0, 0, 0, 1]], camera_pose, im_world, size=self.size )[1])
 
         # images [0] = depth, [1] = seg_mask
-        #im_world.exit()
+        im_world.exit()
         for i in range(0, 4):
             images[i] = self._depth_buffer_to_meter(images[i])
         return images
@@ -443,7 +479,7 @@ class VisibilityCostmap(Costmap):
         object, this is also removed.
         :return: The reference to the new BulletWorld
         """
-        world = BulletWorld.current_bullet_world.copy()
+        world = self.world.copy()
         # for obj in world.objects:
         #     if BulletWorld.robot != None and obj.name == BulletWorld.robot.name \
         #         and obj.type == BulletWorld.robot.type:
@@ -487,6 +523,13 @@ class VisibilityCostmap(Costmap):
         return round(column)
 
     def _calculate_index_in_depth(self, index):
+        """
+        This method calulates the index in the depth image for a given index in
+        the costmap.
+        :param index: The index in the costmap, this index is with the origin in
+            the middle of the costmap
+        :return: The corresponding index in the depth image
+        """
         x, y = index
         x += self.size/2
         y += self.size/2
@@ -547,43 +590,20 @@ class VisibilityCostmap(Costmap):
                     y_i = int(self.size/2) + y-1
                     self.map[x_i][y_i] = v / max_value
 
-# class ReachabilityCostmap(Costmap):
-#     def __init__(self, robot_object, location, arm, resolution, size, origin):
-#         self.size = size
-#         self.orientations = [[0,0,-1,1], [0, 0, 1, 1]]
-#         self.map = np.zeros((size, size))
-#         self.robot = robot_object
-#
-#         #self.root_link = robot_description.i._safely_access_chains(arm).links[0]
-#         self.root_link = robot_description.i.base_frame
-#         self.tip_link = robot_description.i.get_tool_frame(arm)
-#         self.arm_joints = robot_description.i._safely_access_chains(arm).joints
-#
-#
-#         Costmap.__init__(self, resolution, size, size, origin, self.map)
-#
-#     def _create_reachablility_map(self):
-#         t0 = time.time()
-#         self.reach_map = np.zeros((self.size, self.size, self.size))
-#         for z in range(-int(self.size/2), int(self.size/2)):
-#             for y in range(-int(self.size/2), int(self.size/2)):
-#                 for x in range(-int(self.size/2), int(self.size/2)):
-#                     for o in self.orientations:
-#                         try:
-#                             pose = np.array([x, y, z]) * self.resolution
-#                             inv = request_ik(robot_description.i.base_frame, self.tip_link,
-#                                         [pose, o], self.robot, self.arm_joints)
-#                             self.reach_map[x][y][z] = 1
-#                         except IKError as e:
-#                             pass
-#         t1 = time.time()
-#         print(t1-t0)
-#
-#     def _create_inverse_reachablility_map(self):
-#         pass
 
 class GaussianCostmap(Costmap):
-    def __init__(self, mean, sigma, resolution, origin):
+    def __init__(self, mean, sigma, resolution=0.02, origin=[0,0,0]):
+        """
+        This Costmap creates a 2D gaussian distribution around the origin with
+        the specified size.
+        :param mean: The mean input for the gaussian distribution, this also specifies
+            the lenght of the side of the resulting cotsmap. The costmap is Created
+            as a square.
+        :param sigma: The sigma input for the gaussian distribution.
+        :parma resolution: The resolution of the costmap, this specifies how much
+            meter a pixel represents.
+        :param origin: The origin of the costmap around which it will be created.
+        """
         #self.gau = np.random.normal(mean, sigma, mean)
         self.gau = signal.gaussian(mean, sigma)
         self.gau = self._gaussian_window(mean, sigma)
@@ -605,7 +625,7 @@ class GaussianCostmap(Costmap):
 
 cmap = colors.ListedColormap(['white', 'black', 'green', 'red', 'blue'])
 
-# Mainly used for debugging 
+# Mainly used for debugging
 def plot_grid(data):
     rows = data.shape[0]
     cols = data.shape[1]
