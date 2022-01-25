@@ -7,6 +7,11 @@ Classes:
 GeneratorList -- implementation of generator list wrappers.
 """
 from inspect import isgeneratorfunction
+from typing import List
+
+import numpy as np
+from pytransform3d.rotations import quaternion_wxyz_from_xyzw, quaternion_xyzw_from_wxyz
+from pytransform3d.transformations import transform_from_pq, transform_from, pq_from_transform
 
 from macropy.core.quotes import macros, ast_literal, q
 import pybullet as p
@@ -55,12 +60,21 @@ def _transform_to_torso(pose_and_rotation, robot):
     torso_T_target = p.multiplyTransforms(torso_T_map[0], torso_T_map[1], map_T_target[0], map_T_target[1])
     return torso_T_target
 
-def transform(pose,
-              transformation):  # TODO: if pose is a list of position and orientation calculate new pose w/ orientation too
-    res = [0, 0, 0]
-    for i in range(0, 3):
-        res[i] = pose[i] - transformation[i]
-    return res
+def transform(pose: List[float],
+              transformation: List[float], local_coords=False):  # TODO: if pose is a list of position and orientation calculate new pose w/ orientation too
+    input_has_rotation = len(pose) == 7
+    transformation_has_rotation = len(transformation) == 7
+    pose_tf = transform_from_pq(np.concatenate((pose[:3], quaternion_wxyz_from_xyzw(pose[3:])))) if input_has_rotation else transform_from(np.eye(3), pose)
+    transformation_tf = transform_from_pq(np.concatenate((transformation[:3], quaternion_wxyz_from_xyzw(transformation[3:])))) if transformation_has_rotation else transform_from(np.eye(3), transformation)
+    if local_coords:
+        res = pose_tf @ transformation_tf
+    else:
+        res = transformation_tf @ pose_tf
+    res = pq_from_transform(res)
+    res[3:] = quaternion_xyzw_from_wxyz(res[3:])
+    if not input_has_rotation:
+        return res[:3].tolist()
+    return res.tolist()
 
 
 def _block(tree):

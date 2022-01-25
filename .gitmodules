@@ -1,3 +1,6 @@
 [submodule "pycram/src/macropy"]
 	path = src/macropy
 	url = git@github.com:Tigul/macropy.git
+[submodule "src/neem-interface"]
+	path = src/neem-interface
+	url = git@github.com:benjaminalt/neem-interface.git
