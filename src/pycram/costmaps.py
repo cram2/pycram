@@ -422,17 +422,16 @@ class VisibilityCostmap(Costmap):
         """
         #self.object = object
         self.world = world if world else BulletWorld.current_bullet_world
-        self.location = location
-        self.map = np.zeros((map_size, map_size))
+        self.map = np.zeros((size, size))
         self.size = size
         self.resolution = resolution
         # for pr2 = 1.27
         self.max_height = max_height
         #for pr2 = 1.6
         self.min_height = min_height
-        self.origin = [location,  [0, 0, 0, 1]]
+        self.origin = origin
         self._generate_map()
-        Costmap.__init__(self, resolution, map_size, map_size, location, self.map)
+        Costmap.__init__(self, resolution, size, size, origin, self.map)
 
 
     def _create_images(self):
@@ -446,15 +445,15 @@ class VisibilityCostmap(Costmap):
         #object_pose = self.object.get_position_and_orientation()
         im_world = self._create_image_world()
         images = []
-        camera_pose = [self.location, [0, 0, 0, 1]]
+        camera_pose = [self.origin, [0, 0, 0, 1]]
 
-        images.append(_get_images_for_target([[self.location[0], self.location[1] +1, self.location[2]], [0, 0, 0, 1]],camera_pose, im_world, size=self.size )[1])
+        images.append(_get_images_for_target([[self.origin[0], self.origin[1] +1, self.origin[2]], [0, 0, 0, 1]],camera_pose, im_world, size=self.size )[1])
 
-        images.append(_get_images_for_target([[self.location[0] -1, self.location[1], self.location[2]], [0, 0, 0, 1]], camera_pose, im_world, size=self.size )[1])
+        images.append(_get_images_for_target([[self.origin[0] -1, self.origin[1], self.origin[2]], [0, 0, 0, 1]], camera_pose, im_world, size=self.size )[1])
 
-        images.append(_get_images_for_target([[self.location[0], self.location[1] -1, self.location[2]], [0, 0, 0, 1]],camera_pose, im_world, size=self.size )[1])
+        images.append(_get_images_for_target([[self.origin[0], self.origin[1] -1, self.origin[2]], [0, 0, 0, 1]],camera_pose, im_world, size=self.size )[1])
 
-        images.append(_get_images_for_target([[self.location[0] +1, self.location[1], self.location[2]], [0, 0, 0, 1]], camera_pose, im_world, size=self.size )[1])
+        images.append(_get_images_for_target([[self.origin[0] +1, self.origin[1], self.origin[2]], [0, 0, 0, 1]], camera_pose, im_world, size=self.size )[1])
 
         # images [0] = depth, [1] = seg_mask
         im_world.exit()
@@ -484,7 +483,7 @@ class VisibilityCostmap(Costmap):
         #     if BulletWorld.robot != None and obj.name == BulletWorld.robot.name \
         #         and obj.type == BulletWorld.robot.type:
         #         obj.remove
-        #     if obj.get_position() == self.location:
+        #     if obj.get_position() == self.origin:
         #         obj.remove
         return world
 
@@ -553,7 +552,7 @@ class VisibilityCostmap(Costmap):
         depth image.
         """
         #obj_z = self.object.get_position()[2]
-        height = self.location[2]
+        height = self.origin[2]
         distance = np.linalg.norm(index)
         if distance == 0:
             return 0, 0
