@@ -52,6 +52,7 @@ class BulletWorld:
         self.last_bullet_world = BulletWorld.current_bullet_world
         BulletWorld.current_bullet_world = self
         self.vis_axis = None
+        self.coll_callbacks = {}
 
     def get_objects_by_name(self, name):
         return list(filter(lambda obj: obj.name == name, self.objects))
@@ -80,12 +81,19 @@ class BulletWorld:
     def set_robot(self, robot):
         BulletWorld.robot = robot
 
-    def simulate(self, seconds):
-        for i in range(0, int(seconds * 240)):  # PyBullet runs at 240 Hz
+    def simulate(self, seconds, real_time=False):
+        for i in range(0, int(seconds * 240)):
             p.stepSimulation(self.client_id)
-            if self.type == "GUI":
-                time.sleep(0.0042)
-
+            for objects, callback in self.coll_callbacks.items():
+                contact_points = p.getContactPoints(objects[0].id, objects[1].id, physicsClientId=self.client_id)
+                #contact_points = p.getClosestPoints(objects[0].id, objects[1].id, 0.02)
+                #print(contact_points[0][5])
+                if contact_points != ():
+                    callback[0]()
+                elif callback[1] != None: # Call no collision callback
+                    callback[1]()
+            if real_time:
+                time.sleep(1/240)
 
     def exit(self):
         BulletWorld.current_bullet_world = self.last_bullet_world
@@ -157,6 +165,18 @@ class BulletWorld:
             linkCollisionShapeIndices=[-1, -1, -1])
 
         self.vis_axis = obj
+
+
+    def register_collision_callback(self, objectA, objectB, callback_collision, callback_no_collision=None):
+        """
+        This function regsiters can register two callbacks, one if objectA and objectB are in contact
+        and another if they are not in contact.
+        :param A: An object in the BulletWorld
+        :param B: Another object in the BulletWorld
+        :param callback_collision: A function that should be called if the obejcts are in contact
+        :param callback_no_collision: A funtion that should be called if the objects are not in contact
+        """
+        self.coll_callbacks[(objectA, objectB)] = (callback_collision, callback_no_collision)
 
 
 
