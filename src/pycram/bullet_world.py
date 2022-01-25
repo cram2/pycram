@@ -232,6 +232,7 @@ class Object:
         for obj in self.attachments.keys():
             self.detach(obj)
         p.removeBody(self.id, physicsClientId=self.world.client_id)
+        self.world.objects.remove(self)
 
     def attach(self, object, link=None, loose=False):
         """
