@@ -1,5 +1,6 @@
 <launch>
   <arg name="robot" default="pr2" />
+  <arg name="use_knowrob" default="true"/>
 
   <node pkg="kdl_ik_service" type="start_ros_server.py" name="kdl_ik_service" output="screen" />
 
@@ -21,6 +22,9 @@
               textfile="$(find pycram)/resources/donbot.urdf"/>
   </group>
 
+  <group if="$(eval use_knowrob)">
+      <include file="$(find knowrob)/launch/knowrob.launch"/>
+  </group>
 
 <!--
   In ROS Noetic the xacro file for boxy doesnt seem to work, as a quick fix use the line above
@@ -29,4 +33,5 @@
 <!--
 <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
 -->
+
 </launch>
