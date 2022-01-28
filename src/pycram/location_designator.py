@@ -2,6 +2,7 @@ from .designator import Designator, DesignatorError, DesignatorDescription
 from typing import List
 
 from .object_designator import ObjectDesignator
+from .bullet_world import Object
 
 
 class LocationDesignator(Designator):
@@ -53,3 +54,14 @@ class ObjectRelativeLocationDesignatorDescription(LocationDesignatorDescription)
         super().__init__(pose=None, resolver=resolver)
         self.relative_pose = relative_pose
         self.reference_object = reference_object
+
+class CostmapLocationDesignatorDescription(LocationDesignatorDescription):
+    reachable_for: Object
+    visible_for: Object
+    pose: list
+
+    def __init__(self, pose, reachable_for=None, visible_for=None):
+        super().__init__(pose=None, resolver="costmap")
+        self.pose = pose
+        self.reachable_for = reachable_for
+        self.visible_for = visible_for
