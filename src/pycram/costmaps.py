@@ -177,7 +177,7 @@ class Costmap():
             print("Can only combine two costmaps")
             return None
 
-class OccupancyMap(Costmap):
+class OccupancyCostmap(Costmap):
     """
     The occupancy Costmap represents a map of the environment where obstacles or
     positions which are inaccessiable for a robot have a value of -1.
@@ -364,10 +364,10 @@ class OccupancyMap(Costmap):
         """
         rays = []
         # Creating a 2D array with positions in world coordinate frame for every cell
-        for x in range(int(origin[0] - size/2), int(origin[0] + size/2)):
-            for y in range(int(origin[1] - size/2), int(origin[1] + size/2)):
-                rays.append(([x * resolution, y * resolution, 0],
-                            [x * resolution, y * resolution, 10]))
+        for x in range(int(-size/2), int(size/2)):
+            for y in range(int(-size/2), int(size/2)):
+                rays.append(([origin[0] + x * resolution, origin[1] + y * resolution, 0],
+                            [origin[0] + x * resolution,origin[0] + y * resolution, 10]))
 
         res = []
         # Using the PyBullet rayTest to check if there is an object above the position
@@ -386,7 +386,6 @@ class OccupancyMap(Costmap):
                 #print(np.sum(surrounding_cells))
                 if np.sum(surrounding_cells) == (self.distance_obstacle * 2) ** 2  and surrounding_cells.size != 0:
                     new_map[x][y] = 1
-                    print
 
         return new_map
 
