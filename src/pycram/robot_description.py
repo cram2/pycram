@@ -833,7 +833,7 @@ def update_robot_description(robot_name=None, from_ros=None):
         except Exception as e:
             logging.error("(robot-description) Could not get robot name from parameter server. Try again.")
             return None
-        res = re.findall(r"robot\ *name\ *=\ *\"\ *[a-zA-Z_1-9]*\ *\"", urdf)
+        res = re.findall(r"robot\ *name\ *=\ *\"\ *[a-zA-Z_0-9]*\ *\"", urdf)
         if len(res) == 1:
             begin = res[0].find("\"")
             end = res[0][begin + 1:].find("\"")
