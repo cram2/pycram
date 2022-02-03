@@ -13,6 +13,7 @@ import time
 import pathlib
 import logging
 import rospkg
+import re
 
 #from ros.rosbridge import ros_client
 import rospy
@@ -56,6 +57,7 @@ class BulletWorld:
         BulletWorld.current_bullet_world = self
         self.vis_axis = None
         self.coll_callbacks = {}
+        self.data_directory = [os.path.dirname(__file__) + "/../../resources"]
 
     def get_objects_by_name(self, name):
         return list(filter(lambda obj: obj.name == name, self.objects))
@@ -180,6 +182,9 @@ class BulletWorld:
         :param callback_no_collision: A funtion that should be called if the objects are not in contact
         """
         self.coll_callbacks[(objectA, objectB)] = (callback_collision, callback_no_collision)
+
+    def add_additional_resource_path(self, path):
+        self.data_directory.append(path)
 
 
 
@@ -440,6 +445,12 @@ class Object:
 def filter_contact_points(contact_points, exclude_ids):
     return list(filter(lambda cp: cp[2] not in exclude_ids, contact_points))
 
+def get_path_from_data_dir(file_name, data_directory):
+    dir = pathlib.Path(data_directory)
+    for file in os.listdir(data_directory):
+        if file == file_name:
+            return data_directory + f"/{file_name}"
+
 def _load_object(name, path, position, orientation, world, color, ignoreCachedFiles):
     """
     This method loads an object to the given BulletWorld with the given position and orientation. The color will only be
@@ -460,8 +471,13 @@ def _load_object(name, path, position, orientation, world, color, ignoreCachedFi
     pa = pathlib.Path(path)
     extension = pa.suffix
     world, world_id = _world_and_id(world)
-    rospack = rospkg.RosPack()
-    cach_dir = rospack.get_path('pycram') + '/resources/cached/'
+    if re.match("[a-zA-Z_0-9].[a-zA-Z0-9]", path):
+        for dir in world.data_directory:
+            path = get_path_from_data_dir(path, dir)
+            if path: break 
+    #rospack = rospkg.RosPack()
+    #cach_dir = rospack.get_path('pycram') + '/resources/cached/'
+    cach_dir = world.data_directory[0] + '/cached/'
     if not pathlib.Path(cach_dir).exists():
         os.mkdir(cach_dir)
 
@@ -482,7 +498,7 @@ def _load_object(name, path, position, orientation, world, color, ignoreCachedFi
                 f.write(_correct_urdf_string(urdf_string))
     # save correct path in case the file is already in the cache directory
     elif extension == ".obj" or extension == ".stl":
-        path = cach_dir + name  + ".urdf"
+        path = cach_dir + pa.stem  + ".urdf"
     elif extension == ".urdf":
         path = cach_dir + pa.name
     else:
