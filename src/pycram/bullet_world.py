@@ -492,7 +492,6 @@ def _load_object(name, path, position, orientation, world, color, ignoreCachedFi
         obj = p.loadURDF(path, basePosition=position, baseOrientation=orientation, physicsClientId=world_id)
         return obj
     except p.error as e:
-        print(e)
         logging.error("The File could not be loaded. Plese note that the path has to be either a URDF, stl or obj file or the name of an URDF string on the parameter server.")
         os.remove(path)
         raise(e)
