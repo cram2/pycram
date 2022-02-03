@@ -48,6 +48,9 @@ class BulletWorld:
         self.type = type
         self._gui_thread = Gui(self, type)
         self._gui_thread.start()
+        # This disables file caching from PyBullet, since this would also cache
+        # files that can not be loaded
+        p.setPhysicsEngineParameter(enableFileCaching=0)
         time.sleep(1) # 0.1
         self.last_bullet_world = BulletWorld.current_bullet_world
         BulletWorld.current_bullet_world = self
@@ -491,6 +494,8 @@ def _load_object(name, path, position, orientation, world, color, ignoreCachedFi
     except p.error as e:
         print(e)
         logging.error("The File could not be loaded. Plese note that the path has to be either a URDF, stl or obj file or the name of an URDF string on the parameter server.")
+        os.remove(path)
+        raise(e)
         #print(f"{bcolors.BOLD}{bcolors.WARNING}The path has to be either a path to a URDf file, stl file, obj file or the name of a URDF on the parameter server.{bcolors.ENDC}")
 
 
