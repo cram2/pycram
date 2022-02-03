@@ -474,7 +474,7 @@ def _load_object(name, path, position, orientation, world, color, ignoreCachedFi
     if re.match("[a-zA-Z_0-9].[a-zA-Z0-9]", path):
         for dir in world.data_directory:
             path = get_path_from_data_dir(path, dir)
-            if path: break 
+            if path: break
     #rospack = rospkg.RosPack()
     #cach_dir = rospack.get_path('pycram') + '/resources/cached/'
     cach_dir = world.data_directory[0] + '/cached/'
@@ -490,7 +490,11 @@ def _load_object(name, path, position, orientation, world, color, ignoreCachedFi
                 urdf_string = f.read()
             path = cach_dir +  pa.name
             with open(path, mode="w") as f:
-                f.write(_correct_urdf_string(urdf_string))
+                try:
+                    f.write(_correct_urdf_string(urdf_string))
+                except rospkg.ResourceNotFound as e:
+                    os.remove(path)
+                    raise e
         else: # Using the urdf from the parameter server
             urdf_string = rospy.get_param(path)
             path = cach_dir +  name + ".urdf"
