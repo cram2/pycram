@@ -307,8 +307,8 @@ class OccupancyCostmap(Costmap):
         for x in range(0, size):
             for y in range(size):
                 # Surrounding cells with respect to distance to obstacle
-                surrounding_cells = map[x - self.distance_obstacle: x + self.distance_obstacle,
-                                        y - self.distance_obstacle: y + self.distance_obstacle]
+                surrounding_cells = map[x - self.distance_obstacle: x + self.distance_obstacle + 1,
+                                        y - self.distance_obstacle: y + self.distance_obstacle + 1]
                 # Checks if there are any cells with values greater than zero in
                 # surrounding_cells.
                 if np.sum(surrounding_cells) == 0 and surrounding_cells.size != 0:
@@ -381,8 +381,8 @@ class OccupancyCostmap(Costmap):
         # Apply the distance to obstacle paramter
         for x in range(0, size):
             for y in range(0, size):
-                surrounding_cells = res[x - self.distance_obstacle: x+self.distance_obstacle,
-                                        y - self.distance_obstacle: y+self.distance_obstacle]
+                surrounding_cells = res[x - self.distance_obstacle: x+self.distance_obstacle + 1,
+                                        y - self.distance_obstacle: y+self.distance_obstacle + 1]
                 #print(np.sum(surrounding_cells))
                 if np.sum(surrounding_cells) == (self.distance_obstacle * 2) ** 2  and surrounding_cells.size != 0:
                     new_map[x][y] = 1
