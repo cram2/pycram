@@ -17,11 +17,13 @@ from geometry_msgs.msg import Pose
 
 
 def pose_generator(costmap):
-    indices = np.argpartition(costmap.map.flatten(), -100)[-100:]
-    indices = np.dstack(np.unravel_index(indices, costmap.map.shape)).reshape(100, 2)
+    number_of_samples = 100
+    #indices = np.argpartition(costmap.map.flatten(), -100)[-100:]
+    indices = np.argsort(costmap.map.flatten())[-number_of_samples:]
+    indices = np.dstack(np.unravel_index(indices, costmap.map.shape)).reshape(number_of_samples, 2)
     size = costmap.map.shape[0]
     for ind in indices:
-        position = [(ind[0]- size/2) * costmap.resolution, (ind[1] - size/2) * costmap.resolution, 0]
+        position = [(ind[0]- size/2) * costmap.resolution + costmap.origin[0], (ind[1] - size/2) * costmap.resolution + costmap.origin[1], 0]
         orientation = generate_orientation(position, costmap.origin)
         yield (list(position), orientation)
 
@@ -69,11 +71,8 @@ def reachability_validator(pose, robot, target, world):
     if resp.error_code.val == -31:
         ik_msg_right = _make_request_msg(robot_description.i.base_frame, right_gripper, target_torso, robot, right_joints)
         resp = ik(ik_msg_right)
-        print(resp.error_code.val)
         res = resp.error_code.val == 1
     else:
         res = True
-    print(pose)
-    #print(res)
     robot.set_position_and_orientation(robot_pose[0], robot_pose[1])
     return res

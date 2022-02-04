@@ -36,7 +36,7 @@ def call_ground(desig):
 def gen_from_costmap(desig):
     min_height = list(robot_description.i.cameras.values())[0].min_height
     max_height = list(robot_description.i.cameras.values())[0].max_height
-    occupancy = OccupancyCostmap(0., False, 200, 0.02, desig._description.pose, BulletWorld.current_bullet_world)
+    occupancy = OccupancyCostmap(0.1, False, 200, 0.02, desig._description.pose, BulletWorld.current_bullet_world)
     final_map = occupancy
     if desig._description.reachable_for:
         gaussian = GaussianCostmap(200, 15, 0.02, desig._description.pose)
@@ -57,7 +57,6 @@ def gen_from_costmap(desig):
             res = res and reachability_validator(maybe_pose, test_robot, desig._description.pose, test_world)
 
         if res:
-            #print(maybe_pose)
             yield {'position': maybe_pose[0], 'orientation': maybe_pose[1]}
     test_world.exit()
 
