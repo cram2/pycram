@@ -18,8 +18,8 @@ from geometry_msgs.msg import Pose
 
 def pose_generator(costmap):
     number_of_samples = 100
-    #indices = np.argpartition(costmap.map.flatten(), -100)[-100:]
-    indices = np.argsort(costmap.map.flatten())[-number_of_samples:]
+    indices = np.argpartition(costmap.map.flatten(), -100)[-100:]
+    #indices = np.argsort(costmap.map.flatten())[-number_of_samples:]
     indices = np.dstack(np.unravel_index(indices, costmap.map.shape)).reshape(number_of_samples, 2)
     size = costmap.map.shape[0]
     for ind in indices:
