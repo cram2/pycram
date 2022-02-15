@@ -33,7 +33,7 @@ class LocationDesignator(Designator):
         return self._description.get_slots()
 
     def __str__(self):
-        return "ObjectDesignator({})".format(self._description.__dict__)
+        return "LocationDesignator({})".format(self._description.__dict__)
 
 
 class LocationDesignatorDescription(DesignatorDescription):
@@ -58,10 +58,10 @@ class ObjectRelativeLocationDesignatorDescription(LocationDesignatorDescription)
 class CostmapLocationDesignatorDescription(LocationDesignatorDescription):
     reachable_for: Object
     visible_for: Object
-    pose: list
+    target: list
 
-    def __init__(self, pose, reachable_for=None, visible_for=None):
+    def __init__(self, target, reachable_for=None, visible_for=None):
         super().__init__(pose=None, resolver="costmap")
-        self.pose = pose
+        self.target = target
         self.reachable_for = reachable_for
         self.visible_for = visible_for
