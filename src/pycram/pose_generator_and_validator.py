@@ -17,14 +17,34 @@ from geometry_msgs.msg import Pose
 
 
 def pose_generator(costmap):
+    # Determines how many positions should be sampled from the costmap
     number_of_samples = 100
     indices = np.argpartition(costmap.map.flatten(), -100)[-100:]
     #indices = np.argsort(costmap.map.flatten())[-number_of_samples:]
     indices = np.dstack(np.unravel_index(indices, costmap.map.shape)).reshape(number_of_samples, 2)
     size = costmap.map.shape[0]
     for ind in indices:
-        position = [(ind[0]- size/2) * costmap.resolution + costmap.origin[0], (ind[1] - size/2) * costmap.resolution + costmap.origin[1], 0]
+        if costmap.map[ind[0]][ind[1]] == 0:
+            continue
+        # The "-1" in the Formaula is needed since the logical coordinate system
+        # is inverted against the one in the BulletWorld.
+        # This is the logical assumption of the Costmap
+        # ---------
+        # |    x  |
+        # |   --> |
+        # |  |    |
+        # |  | y  |
+        # --------
+        # And this is the coordinate system in BulletWorld. Both have the same rotation
+        # ----------
+        # |   | x  |
+        # |   |    |
+        # |<--     |
+        # | y      |
+        # ----------
+        position = [(ind[0]- size/2) *-1 * costmap.resolution + costmap.origin[0], (ind[1] - size/2) * -1 * costmap.resolution + costmap.origin[1], 0]
         orientation = generate_orientation(position, costmap.origin)
+        print(f"Indicies: {ind}, Position: {position}")
         yield (list(position), orientation)
 
 def height_generator():
