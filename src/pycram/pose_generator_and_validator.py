@@ -41,7 +41,10 @@ def visibility_validator(pose, robot, object_or_pose, world):
     if type(object_or_pose) == Object:
         robot.set_position_and_orientation(pose[0], pose[1])
         camera_pose = robot.get_link_position_and_orientation(robot_description.i.get_camera_frame())
-        res = visible(object_or_pose, camera_pose, world=world)
+        robot.set_position_and_orientation([100, 100, 0], [0, 0, 0, 1])
+        ray = p.rayTest(camera_pose[0], object_or_pose.get_position(), physicsClientId=world.client_id)
+        res = ray[0][0] == object_or_pose.id
+        #res = visible(object_or_pose, camera_pose, world=world)
     else:
         robot.set_position_and_orientation(pose[0], pose[1])
         camera_pose = robot.get_link_position_and_orientation(robot_description.i.get_camera_frame())
@@ -53,6 +56,9 @@ def visibility_validator(pose, robot, object_or_pose, world):
 
 
 def reachability_validator(pose, robot, target, world):
+    if type(target) == Object:
+        target = target.get_position()
+
     robot_pose = robot.get_position_and_orientation()
     robot.set_position_and_orientation(pose[0], pose[1])
 
