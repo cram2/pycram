@@ -34,8 +34,22 @@ def call_ground(desig):
 
 
 def gen_from_costmap(desig):
+    """
+    Generates positions for a given set of constrains from a costmap and returns
+    them. The generation is based of a costmap which itself is the product of
+    merging costmaps, each for a different purpose. In any case a occupancy costmap
+    is used as the base, then according to the given constrains a visibility or
+    gaussian costmap is also merged with this. Once the costmaps are merged,
+    a generator generates pose candidates from the costmap. Each pose candidate
+    is then validated against the constrains given by the designator if all validators
+    pass the pose is considered valid and added to the list of valid poses.
+    After a maximum of 15 valid poses are found the validation of poses stops
+    and the found valid poses are yielded as soultions for the designator.
+    :param desig: The location designator for which poses should be found.
+    :yield: The found valid poses for the constrains given by the designator.
+    """
     min_height = list(robot_description.i.cameras.values())[0].min_height
-    max_height = list(robot_description.i.cameras.values())[0].max_height
+    min_height = list(robot_description.i.cameras.values())[0].min_height
     # This ensures that the costmaps always get a position as their origin.
     if type(desig._description.target) == Object:
         target_pose = desig._description.target.get_position()
@@ -50,6 +64,7 @@ def gen_from_costmap(desig):
     if desig._description.visible_for:
         visible = VisibilityCostmap(min_height, max_height, 200, 0.02, target_pose)
         final_map += visible
+    #plot_grid(final_map.map)
     test_world = BulletWorld.current_bullet_world.copy()
     robot_object = desig._description.visible_for if desig._description.visible_for else desig._description.reachable_for
     test_robot = test_world.get_objects_by_name(robot_object.name)[0]
@@ -64,6 +79,7 @@ def gen_from_costmap(desig):
 
         if res:
             valid_poses.append(maybe_pose)
+            #print(f"Valid: {maybe_pose}")
             # This number defines the total valid poses by this generator
             if len(valid_poses) == 15: break
             #yield {'position': maybe_pose[0], 'orientation': maybe_pose[1]}
