@@ -213,7 +213,7 @@ class OccupancyCostmap(Costmap):
             self.height = meta.height
             self.width = meta.width
             # Nunber of cells that have to be between a valid cell and an obstacle
-            self.distance_obstacle = int(distance_to_obstacle / self.resolution)
+            self.distance_obstacle = max(int(distance_to_obstacle / self.resolution), 1)
             Costmap.__init__(self, meta.resolution, meta.height, meta.width,
                         self._calculate_diff_origin(meta.height, meta.width),
                         np.rot90(np.flip(self._convert_map(self.original_map, self.height), 0)))
