@@ -221,7 +221,7 @@ class OccupancyCostmap(Costmap):
             self.size = size
             self.origin = origin
             self.resolution = resolution
-            self.distance_obstacle = int(distance_to_obstacle / self.resolution)
+            self.distance_obstacle = max(int(distance_to_obstacle / self.resolution), 1)
             self.map = self._create_from_bullet(world, size, resolution, origin)
             Costmap.__init__(self, resolution, size, size, self.origin, self.map)
 
@@ -374,15 +374,18 @@ class OccupancyCostmap(Costmap):
         # if there is no object the position is marked as valid
         for n in self._chunks(np.array(rays), 16383):
             r_t = p.rayTestBatch(n[:,0], n[:,1],numThreads=0)
-            res += (1 if ray[0] == -1 else 0 for ray in r_t)
+            if BulletWorld.robot:
+                res += (1 if ray[0] == -1 or ray[0] == BulletWorld.robot.id else 0 for ray in r_t)
+            else:
+                res += (1 if ray[0] == -1  else 0 for ray in r_t)
 
         res = np.flip(np.reshape(np.array(res), (size, size)))
         new_map = np.zeros((size, size))
         # Apply the distance to obstacle paramter
         for x in range(0, size):
             for y in range(0, size):
-                surrounding_cells = res[x - self.distance_obstacle: x+self.distance_obstacle + 1,
-                                        y - self.distance_obstacle: y+self.distance_obstacle + 1]
+                surrounding_cells = res[x - self.distance_obstacle: x+self.distance_obstacle ,
+                                        y - self.distance_obstacle: y+self.distance_obstacle ]
                 #print(np.sum(surrounding_cells))
                 if np.sum(surrounding_cells) == (self.distance_obstacle * 2) ** 2  and surrounding_cells.size != 0:
                     new_map[x][y] = 1
