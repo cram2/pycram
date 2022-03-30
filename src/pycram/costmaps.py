@@ -2,7 +2,6 @@ import numpy as np
 import pybullet as p
 import rospy
 import time
-from scipy import signal
 from pycram.robot_description import InitializedRobotDescription as robot_description
 from .bullet_world import BulletWorld
 from .bullet_world_reasoning import _get_images_for_target
@@ -64,7 +63,6 @@ class Costmap():
                     boxes.append([curr_pose, curr_height, curr_width, avg])
                     map[i:i+curr_height, j:j+curr_width] = 0
         cells = []
-        #print(boxes)
         # Creation of the visual shapes, for documentation of the visual shapes
         # please look here: https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#heading=h.q1gn7v6o58bf
         for box in boxes:
@@ -314,9 +312,8 @@ class OccupancyCostmap(Costmap):
                 if np.sum(surrounding_cells) == 0 and surrounding_cells.size != 0:
                     new_map[x][y] = 1
         return new_map
-        #return Costmap(self.resolution, self.height, self.width, self.origin, new_map)
 
-    def _create_sub_map(self, sub_origin, size):
+    def create_sub_map(self, sub_origin, size):
         """
         Creates a smaller map from the overall occupancy map, the new map is centered
         around the point specified by "sub_origin" and has the size "size". The
@@ -334,11 +331,9 @@ class OccupancyCostmap(Costmap):
         new_origin = np.array(self.meta_origin) + sub_origin
         # Convert from vector in meter to index values
         new_origin /= self.resolution
-        #new_origin = np.array([abs(int(x)) for x in new_origin])
         new_origin = np.abs(new_origin)
         # Offset to top left corner, for easier slicing
         new_origin = (new_origin - size/2).astype(int)
-        print(new_origin)
 
         # slices a submap with size "size" around the given origin
         sub_map = self.original_map[new_origin[1]: new_origin[1] + size,
@@ -386,7 +381,6 @@ class OccupancyCostmap(Costmap):
             for y in range(0, size):
                 surrounding_cells = res[x - self.distance_obstacle: x+self.distance_obstacle ,
                                         y - self.distance_obstacle: y+self.distance_obstacle ]
-                #print(np.sum(surrounding_cells))
                 if np.sum(surrounding_cells) == (self.distance_obstacle * 2) ** 2  and surrounding_cells.size != 0:
                     new_map[x][y] = 1
 
@@ -409,7 +403,9 @@ class VisibilityCostmap(Costmap):
     def __init__(self, min_height, max_height, size=100, resolution=0.02, origin=[0,0,0], world=None):
         """
         The constructor of the visibility costmap which assisgs the given paranmeter
-        and triggeres the generation of the costmap.
+        and triggeres the generation of the costmap. If you want the visibility for
+        an object just put the position of the object as the origin and the costmap
+        will create the visibility for this.
         :param min_height: This is the minimal height the camera can be. This parameter
             is mostly relevant if the vertical position of the camera can change.
         :param max_height: This is the maximal height the camera can be. This is
@@ -422,7 +418,6 @@ class VisibilityCostmap(Costmap):
             costmap should be created.
         :param world: The BulletWorld for which the costmap should be created.
         """
-        #self.object = object
         self.world = world if world else BulletWorld.current_bullet_world
         self.map = np.zeros((size, size))
         self.size = size
@@ -481,6 +476,9 @@ class VisibilityCostmap(Costmap):
         :return: The reference to the new BulletWorld
         """
         world = self.world.copy()
+        for obj in world.objects:
+            if obj.get_position() == self.origin:
+                obj.remove()
         # for obj in world.objects:
         #     if BulletWorld.robot != None and obj.name == BulletWorld.robot.name \
         #         and obj.type == BulletWorld.robot.type:
@@ -515,7 +513,6 @@ class VisibilityCostmap(Costmap):
         :param index: The index for which the column should be choosen
         :return: The Colum in the depth image.
         """
-        #index_in_depth = [index[1], self.size - index[0]]
         index_in_depth = self._calculate_index_in_depth(index)
         index_in_depth[0] = index_in_depth[0] - self.size/2
         index_in_depth[1] = abs(self.size/2 - index_in_depth[1])
@@ -553,7 +550,6 @@ class VisibilityCostmap(Costmap):
         :return: The two indicies which determine the range in the column in the
         depth image.
         """
-        #obj_z = self.object.get_position()[2]
         height = self.origin[2]
         distance = np.linalg.norm(index)
         if distance == 0:
@@ -562,7 +558,7 @@ class VisibilityCostmap(Costmap):
         r_max = np.arctan((max_height-height) / distance) * self.size
         r_min += self.size/2
         r_max += self.size/2
-        return min(round(r_min), self.size-1), min(round(r_max), self.size-1)
+        return int(min(round(r_min), self.size-1)), int(min(round(r_max), self.size-1))
 
     def _generate_map(self):
         """
@@ -579,9 +575,7 @@ class VisibilityCostmap(Costmap):
                 d = np.linalg.norm([x, y])
                 r_min, r_max = self._compute_column_range([x, y], self.min_height, self.max_height)
                 v = 0
-                #print(f"Collumn: {c} with range: {r_min} - {r_max}")
                 for r in range(r_min, r_max+1):
-                    #if depth_imgs[depth_index][c][r] > d:
                     if depth_imgs[depth_index][r][c] > d * self.resolution:
                         v += 1
                         max_value += 1
@@ -605,8 +599,6 @@ class GaussianCostmap(Costmap):
             meter a pixel represents.
         :param origin: The origin of the costmap around which it will be created.
         """
-        #self.gau = np.random.normal(mean, sigma, mean)
-        self.gau = signal.gaussian(mean, sigma)
         self.gau = self._gaussian_window(mean, sigma)
         self.map = np.outer(self.gau, self.gau)
         self.size = mean
