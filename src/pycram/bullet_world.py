@@ -18,6 +18,7 @@ import re
 #from ros.rosbridge import ros_client
 import rospy
 from .event import Event
+from .robot_description import InitializedRobotDescription as robot_description
 #from .helper import transform
 
 
@@ -240,14 +241,21 @@ class Object:
         self.world = world if world is not None else BulletWorld.current_bullet_world
         self.name = name
         self.type = type
-        self.path = path
+        #self.path = path
         self.color = color
-        self.id = _load_object(name, path, position, orientation, world, color, ignoreCachedFiles)
+        self.id, self.path = _load_object(name, path, position, orientation, world, color, ignoreCachedFiles)
         self.joints = self._joint_or_link_name_to_id("joint")
         self.links = self._joint_or_link_name_to_id("link")
         self.attachments = {}
         self.cids = {}
         self.world.objects.append(self)
+
+        if re.search("[a-zA-Z0-9].urdf", self.path):
+            with open(self.path, mode="r") as f:
+                urdf_string = f.read()
+            robot_name = _get_robot_name_from_urdf(urdf_string)
+            if robot_name == robot_description.i.name:
+                BulletWorld.robot = self
 
     def remove(self):
         """
@@ -259,6 +267,7 @@ class Object:
         """
         for obj in self.attachments.keys():
             self.detach(obj)
+        self.world.objects.remove(self)
         p.removeBody(self.id, physicsClientId=self.world.client_id)
 
     def attach(self, object, link=None, loose=False):
@@ -451,6 +460,14 @@ def get_path_from_data_dir(file_name, data_directory):
         if file == file_name:
             return data_directory + f"/{file_name}"
 
+def _get_robot_name_from_urdf(urdf_string):
+    res = re.findall(r"robot\ *name\ *=\ *\"\ *[a-zA-Z_0-9]*\ *\"", urdf_string)
+    if len(res) == 1:
+        begin = res[0].find("\"")
+        end = res[0][begin + 1:].find("\"")
+        robot = res[0][begin + 1:begin + 1 + end].lower()
+    return robot
+
 def _load_object(name, path, position, orientation, world, color, ignoreCachedFiles):
     """
     This method loads an object to the given BulletWorld with the given position and orientation. The color will only be
@@ -510,7 +527,7 @@ def _load_object(name, path, position, orientation, world, color, ignoreCachedFi
 
     try:
         obj = p.loadURDF(path, basePosition=position, baseOrientation=orientation, physicsClientId=world_id)
-        return obj
+        return obj, path
     except p.error as e:
         logging.error("The File could not be loaded. Plese note that the path has to be either a URDF, stl or obj file or the name of an URDF string on the parameter server.")
         os.remove(path)
