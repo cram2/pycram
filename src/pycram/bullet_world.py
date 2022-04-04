@@ -93,7 +93,8 @@ class BulletWorld:
                 elif callback[1] != None: # Call no collision callback
                     callback[1]()
             if real_time:
-                time.sleep(1/240)
+                # Simulation runs at 240 Hz
+                time.sleep(0.004167)
 
     def exit(self):
         BulletWorld.current_bullet_world = self.last_bullet_world

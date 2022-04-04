@@ -1,6 +1,6 @@
 <launch>
   <arg name="robot" default="pr2" />
-  <arg name="use_knowrob" default="true"/>
+  <arg name="use_knowrob" default="false"/>
 
   <node pkg="kdl_ik_service" type="start_ros_server.py" name="kdl_ik_service" output="screen" />
 
@@ -15,6 +15,11 @@
   <group if="$(eval robot == 'boxy')">
     <param name="robot_description"
               textfile="$(find pycram)/resources/boxy.urdf"/>
+  </group>
+
+  <group if="$(eval robot == 'ur5')">
+    <param name="robot_description"
+              textfile="$(find pycram)/resources/ur5_robotiq.urdf"/>
   </group>
 
   <group if="$(eval robot == 'donbot')">

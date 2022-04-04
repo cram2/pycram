@@ -4,18 +4,23 @@ import time
 from pytransform3d.rotations import quaternion_xyzw_from_wxyz, quaternion_wxyz_from_xyzw, quaternion_from_matrix, \
     active_matrix_from_extrinsic_euler_xzx
 from pytransform3d.transformations import transform_from_pq, pq_from_transform
+from pycram.helper_deprecated import list2tfstamped
 
 from pycram.robot_description import InitializedRobotDescription as robot_description
 from ros.ros_topic_publisher import ROSTopicPublisher
 
-import roslibpy
+#import roslibpy
+import rospy
 
 import rospkg
 import numpy as np
 
 from urdf_parser_py.urdf import URDF
 
-from ros.rosbridge import ros_client
+from geometry_msgs.msg import TransformStamped
+from tf2_msgs.msg import TFMessage
+from std_msgs.msg import Header
+#from ros.rosbridge import ros_client
 
 
 class Pose(object):
@@ -45,8 +50,10 @@ class TFBroadcaster(ROSTopicPublisher):
         super().__init__()
         self.world = bullet_world
 
-        self.tf_static_publisher = roslibpy.Topic(ros_client, "/tf_static", "geometry_msgs/TransformStamped")
-        self.tf_publisher = roslibpy.Topic(ros_client, "/tf", "geometry_msgs/TransformStamped")
+        self.tf_static_publisher = rospy.Publisher("/tf_static", TransformStamped, queue_size=10)
+        #self.tf_static_publisher = roslibpy.Topic(ros_client, "/tf_static", "geometry_msgs/TransformStamped")
+        #self.tf_publisher = roslibpy.Topic(ros_client, "/tf", "geometry_msgs/TransformStamped")
+        self.tf_publisher = rospy.Publisher("/tf", TransformStamped, queue_size=10)
         self.thread = None
         self.kill_event = threading.Event()
         self.interval = interval
@@ -63,18 +70,22 @@ class TFBroadcaster(ROSTopicPublisher):
         self.init_transforms_from_urdf()
 
     @staticmethod
-    def make_tf_stamped(source_frame: str, target_frame: str, trans: np.ndarray, quat_xyzw: np.ndarray) -> roslibpy.Message:
+    def make_tf_stamped(source_frame: str, target_frame: str, trans: np.ndarray, quat_xyzw: np.ndarray) -> TransformStamped:
         """
         http://docs.ros.org/en/melodic/api/geometry_msgs/html/msg/TransformStamped.html
         """
-        return roslibpy.Message({
-            "header": roslibpy.Header(0, roslibpy.Time.now(), source_frame),
-            "child_frame_id": target_frame,
-            "transform": {
-                "translation": dict(zip(["x", "y", "z"], trans.tolist())),
-                "rotation": dict(zip(["x", "y", "z", "w"], quat_xyzw.tolist()))
-            }
-        })
+        tf_stamped = list2tfstamped(source_frame, target_frame, [trans, quat_xyzw], rospy.Time.now())
+        msg = TFMessage()
+        msg.transforms.append(tf_stamped)
+        return tf_stamped
+        # return roslibpy.Message({
+        #     "header": roslibpy.Header(0, roslibpy.Time.now(), source_frame),
+        #     "child_frame_id": target_frame,
+        #     "transform": {
+        #         "translation": dict(zip(["x", "y", "z"], trans.tolist())),
+        #         "rotation": dict(zip(["x", "y", "z", "w"], quat_xyzw.tolist()))
+        #     }
+        # })
 
     def init_transforms_from_urdf(self):
         """
@@ -154,13 +165,14 @@ class TFBroadcaster(ROSTopicPublisher):
             # First publish (static) joint states to tf
             # Update tf stampeds which might have changed
             for tf_stamped in self.tf_stampeds:
-                source_frame = tf_stamped.data["header"].data["frame_id"]
-                target_frame = tf_stamped.data["child_frame_id"]
+                source_frame = tf_stamped.header.frame_id
+                target_frame = tf_stamped.child_frame_id
+                #source_frame = tf_stamped.data["header"].data["frame_id"]
+                #target_frame = tf_stamped.data["child_frame_id"]
                 # Push calculated transformation to the local transformer
                 p, q = robot.get_link_relative_to_other_link(source_frame.replace(self.projection_namespace + "/", ""),
                                                              target_frame.replace(self.projection_namespace + "/", ""))
                 self.tf_publisher.publish(self.make_tf_stamped(source_frame, target_frame, np.array(p), np.array(q)))
-
             # Update the static transforms
             for static_tf_stamped in self.static_tf_stampeds:
                 self.tf_static_publisher.publish(static_tf_stamped)
