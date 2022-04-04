@@ -1,8 +1,9 @@
 import logging
 import threading
+import rospy
 from abc import ABC, abstractmethod
 
-from ros.rosbridge import ros_client
+#from ros.rosbridge import ros_client
 
 
 class ROSTopicPublisher(ABC):
@@ -12,8 +13,8 @@ class ROSTopicPublisher(ABC):
 
     def start_publishing(self):
         logging.info(f"{self.__class__.__name__}::start_publishing: Starting publisher thread...")
-        if not ros_client.is_connected:
-            raise RuntimeError(f"{self.__class__.__name__}: Cannot start publishing, ROS client not connected")
+        # if not ros_client.is_connected:
+        #     raise RuntimeError(f"{self.__class__.__name__}: Cannot start publishing, ROS client not connected")
         if self.kill_event.is_set():
             self.kill_event.clear()
         self.thread = threading.Thread(target=self._publish)
