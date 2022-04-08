@@ -17,3 +17,4 @@ helper -- implementation of helper classes and functions for internal usage only
 language -- implementation of the CRAM language.
 process_module -- implementation of process modules.
 """
+from .resolver import *
