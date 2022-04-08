@@ -230,7 +230,8 @@ def reachable(pose, robot, gripper_name, world=None, threshold=0.01):
 
     _apply_ik(robot, inv, gripper_name)
 
-    newp = p.getLinkState(robot.id, robot.get_link_id(gripper_name), physicsClientId=world_id)[4]
+#    newp = p.getLinkState(robot.id, robot.get_link_id(gripper_name), physicsClientId=world_id)[4]
+    newp = robot.get_link_position(gripper_name)
     diff = [pose[0] - newp[0], pose[1] - newp[1],  pose[2] - newp[2]]
     p.restoreState(state, physicsClientId=world_id)
     return np.sqrt(diff[0] ** 2 + diff[1] ** 2 + diff[2] ** 2) < threshold
