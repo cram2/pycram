@@ -13,10 +13,12 @@ import time
 import pathlib
 import logging
 import rospkg
+import re
 
 #from ros.rosbridge import ros_client
 import rospy
 from .event import Event
+from .robot_description import InitializedRobotDescription as robot_description
 #from .helper import transform
 
 
@@ -48,11 +50,15 @@ class BulletWorld:
         self.type = type
         self._gui_thread = Gui(self, type)
         self._gui_thread.start()
+        # This disables file caching from PyBullet, since this would also cache
+        # files that can not be loaded
+        p.setPhysicsEngineParameter(enableFileCaching=0)
         time.sleep(1) # 0.1
         self.last_bullet_world = BulletWorld.current_bullet_world
         BulletWorld.current_bullet_world = self
         self.vis_axis = None
         self.coll_callbacks = {}
+        self.data_directory = [os.path.dirname(__file__) + "/../../resources"]
 
     def get_objects_by_name(self, name):
         return list(filter(lambda obj: obj.name == name, self.objects))
@@ -179,6 +185,9 @@ class BulletWorld:
         """
         self.coll_callbacks[(objectA, objectB)] = (callback_collision, callback_no_collision)
 
+    def add_additional_resource_path(self, path):
+        self.data_directory.append(path)
+
 
 
 
@@ -233,14 +242,21 @@ class Object:
         self.world = world if world is not None else BulletWorld.current_bullet_world
         self.name = name
         self.type = type
-        self.path = path
+        #self.path = path
         self.color = color
-        self.id = _load_object(name, path, position, orientation, world, color, ignoreCachedFiles)
+        self.id, self.path = _load_object(name, path, position, orientation, world, color, ignoreCachedFiles)
         self.joints = self._joint_or_link_name_to_id("joint")
         self.links = self._joint_or_link_name_to_id("link")
         self.attachments = {}
         self.cids = {}
         self.world.objects.append(self)
+
+        if re.search("[a-zA-Z0-9].urdf", self.path):
+            with open(self.path, mode="r") as f:
+                urdf_string = f.read()
+            robot_name = _get_robot_name_from_urdf(urdf_string)
+            if robot_name == robot_description.i.name:
+                BulletWorld.robot = self
 
     def remove(self):
         """
@@ -252,6 +268,7 @@ class Object:
         """
         for obj in self.attachments.keys():
             self.detach(obj)
+        self.world.objects.remove(self)
         p.removeBody(self.id, physicsClientId=self.world.client_id)
         self.world.objects.remove(self)
 
@@ -439,6 +456,20 @@ class Object:
 def filter_contact_points(contact_points, exclude_ids):
     return list(filter(lambda cp: cp[2] not in exclude_ids, contact_points))
 
+def get_path_from_data_dir(file_name, data_directory):
+    dir = pathlib.Path(data_directory)
+    for file in os.listdir(data_directory):
+        if file == file_name:
+            return data_directory + f"/{file_name}"
+
+def _get_robot_name_from_urdf(urdf_string):
+    res = re.findall(r"robot\ *name\ *=\ *\"\ *[a-zA-Z_0-9]*\ *\"", urdf_string)
+    if len(res) == 1:
+        begin = res[0].find("\"")
+        end = res[0][begin + 1:].find("\"")
+        robot = res[0][begin + 1:begin + 1 + end].lower()
+    return robot
+
 def _load_object(name, path, position, orientation, world, color, ignoreCachedFiles):
     """
     This method loads an object to the given BulletWorld with the given position and orientation. The color will only be
@@ -459,8 +490,13 @@ def _load_object(name, path, position, orientation, world, color, ignoreCachedFi
     pa = pathlib.Path(path)
     extension = pa.suffix
     world, world_id = _world_and_id(world)
-    rospack = rospkg.RosPack()
-    cach_dir = rospack.get_path('pycram') + '/resources/cached/'
+    if re.match("[a-zA-Z_0-9].[a-zA-Z0-9]", path):
+        for dir in world.data_directory:
+            path = get_path_from_data_dir(path, dir)
+            if path: break
+    #rospack = rospkg.RosPack()
+    #cach_dir = rospack.get_path('pycram') + '/resources/cached/'
+    cach_dir = world.data_directory[0] + '/cached/'
     if not pathlib.Path(cach_dir).exists():
         os.mkdir(cach_dir)
 
@@ -473,7 +509,11 @@ def _load_object(name, path, position, orientation, world, color, ignoreCachedFi
                 urdf_string = f.read()
             path = cach_dir +  pa.name
             with open(path, mode="w") as f:
-                f.write(_correct_urdf_string(urdf_string))
+                try:
+                    f.write(_correct_urdf_string(urdf_string))
+                except rospkg.ResourceNotFound as e:
+                    os.remove(path)
+                    raise e
         else: # Using the urdf from the parameter server
             urdf_string = rospy.get_param(path)
             path = cach_dir +  name + ".urdf"
@@ -481,7 +521,7 @@ def _load_object(name, path, position, orientation, world, color, ignoreCachedFi
                 f.write(_correct_urdf_string(urdf_string))
     # save correct path in case the file is already in the cache directory
     elif extension == ".obj" or extension == ".stl":
-        path = cach_dir + name  + ".urdf"
+        path = cach_dir + pa.stem  + ".urdf"
     elif extension == ".urdf":
         path = cach_dir + pa.name
     else:
@@ -489,10 +529,11 @@ def _load_object(name, path, position, orientation, world, color, ignoreCachedFi
 
     try:
         obj = p.loadURDF(path, basePosition=position, baseOrientation=orientation, physicsClientId=world_id)
-        return obj
+        return obj, path
     except p.error as e:
-        print(e)
         logging.error("The File could not be loaded. Plese note that the path has to be either a URDF, stl or obj file or the name of an URDF string on the parameter server.")
+        os.remove(path)
+        raise(e)
         #print(f"{bcolors.BOLD}{bcolors.WARNING}The path has to be either a path to a URDf file, stl file, obj file or the name of a URDF on the parameter server.{bcolors.ENDC}")
 
 
