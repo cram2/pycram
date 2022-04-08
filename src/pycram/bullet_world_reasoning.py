@@ -27,25 +27,26 @@ def _get_joint_names(robot, tip_link):
     return res
 
 
-def _get_seg_mask_for_target(target_position, cam_position, world=None):
+def _get_images_for_target(target_position, cam_position, world=None, size=256):
     """
     Calculates the view and projection Matrix and returns the Segmentation mask
     The segmentation mask indicates for every pixel the visible Object.
     :param cam_position: The position of the Camera as a list of x,y,z and orientation as quaternion
     :param target_position: The position to which the camera should point as a list of x,y,z and orientation as quaternion
-    :return: The Segmentation mask from the camera position
+    :param size: The height and width of the images in pixel
+    :return: A list containing a RGB and depth image as well as a segmentation mask, in this order. 
     """
     world, world_id = _world_and_id(world)
     # TODO: Might depend on robot cameras, if so please add these camera parameters to RobotDescription object
     # TODO: of your robot with a CameraDescription object.
-    fov = 300
-    aspect = 256 / 256
+    fov = 90
+    aspect = size / size
     near = 0.2
-    far = 10
+    far = 100
 
-    view_matrix = p.computeViewMatrix(cam_position[0], target_position[0], [0, 0, -1])
+    view_matrix = p.computeViewMatrix(cam_position[0], target_position[0], [0, 0, 1])
     projection_matrix = p.computeProjectionMatrixFOV(fov, aspect, near, far)
-    return p.getCameraImage(256, 256, view_matrix, projection_matrix, physicsClientId=world_id)[4]
+    return list(p.getCameraImage(size, size, view_matrix, projection_matrix, physicsClientId=world_id))[2:5]
 
 
 def _get_joint_ranges(robot):
@@ -139,7 +140,7 @@ def visible(object, camera_position_and_orientation, front_facing_axis=None, thr
     cam_T_point = list(np.multiply(front_facing_axis, 2))
     target_point = p.multiplyTransforms(world_T_cam[0], world_T_cam[1], cam_T_point, [0, 0, 0, 1])
 
-    seg_mask = _get_seg_mask_for_target(target_point, world_T_cam, det_world)
+    seg_mask = _get_images_for_target(target_point, world_T_cam, det_world)[2]
     flat_list = list(itertools.chain.from_iterable(seg_mask))
     max_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
     p.restoreState(state, physicsClientId=det_world.client_id)
@@ -148,7 +149,7 @@ def visible(object, camera_position_and_orientation, front_facing_axis=None, thr
         # Object is not visible
         return False
 
-    seg_mask = _get_seg_mask_for_target(target_point, world_T_cam, world)
+    seg_mask = _get_images_for_target(target_point, world_T_cam, world)[2]
     flat_list = list(itertools.chain.from_iterable(seg_mask))
     real_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
 
@@ -185,7 +186,7 @@ def occluding(object, camera_position_and_orientation, front_facing_axis, world=
     cam_T_point = list(np.multiply(front_facing_axis, 2))
     target_point = p.multiplyTransforms(world_T_cam[0], world_T_cam[1], cam_T_point, [0, 0, 0, 1])
 
-    seg_mask = _get_seg_mask_for_target(target_point, world_T_cam, occ_world)
+    seg_mask = _get_images_for_target(target_point, world_T_cam, occ_world)[2]
     pixels = []
     for i in range(0, 256):
         for j in range(0, 256):
@@ -194,7 +195,7 @@ def occluding(object, camera_position_and_orientation, front_facing_axis, world=
     p.restoreState(state, physicsClientId=occ_world.client_id)
 
     occluding = []
-    seg_mask = _get_seg_mask_for_target(target_point, world_T_cam, occ_world)
+    seg_mask = _get_images_for_target(target_point, world_T_cam, occ_world)[2]
     for c in pixels:
         if not seg_mask[c[0]][c[1]] == object.id:
             occluding.append(seg_mask[c[0]][c[1]])
