@@ -27,14 +27,15 @@ The demo works for both real and simulated UR5s.
     * Drag the cereal box around
     * Grab the robot by the gripper and move it
    
-    You can see the poses of all objects published to `/tf`, and the joint positions and velocities to 
-   `/pycram/joint_state`:
+    You can see the poses of all objects published to `/tf`, the joint positions and velocities to 
+   `/pycram/joint_state` and the forces and torques at the TCP to `/pycram/fts`:
     ```
     #  In a new shell
     source ~/catkin_ws/devel/setup.bash
     
    rostopic echo /tf
     rostopic echo /pycram/joint_state
+   rostopic echo /pycram/fts
     ```
     
    `/tf` will only be updated when object poses actually change. Moving the cereal box around will cause updates to `/tf`.
