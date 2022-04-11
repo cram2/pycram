@@ -301,17 +301,26 @@ class OccupancyCostmap(Costmap):
         :param map: The map that should be converted. Represented as 2d numpy array
         :return: The converted map. Represented as 2d numpy array.
         """
-        new_map = np.zeros((size, size))
-        for x in range(0, size):
-            for y in range(size):
-                # Surrounding cells with respect to distance to obstacle
-                surrounding_cells = map[x - self.distance_obstacle: x + self.distance_obstacle + 1,
-                                        y - self.distance_obstacle: y + self.distance_obstacle + 1]
-                # Checks if there are any cells with values greater than zero in
-                # surrounding_cells.
-                if np.sum(surrounding_cells) == 0 and surrounding_cells.size != 0:
-                    new_map[x][y] = 1
-        return new_map
+        # new_map = np.zeros((size, size))
+        # for x in range(0, size):
+        #     for y in range(size):
+        #         # Surrounding cells with respect to distance to obstacle
+        #         surrounding_cells = map[x - self.distance_obstacle: x + self.distance_obstacle + 1,
+        #                                 y - self.distance_obstacle: y + self.distance_obstacle + 1]
+        #         # Checks if there are any cells with values greater than zero in
+        #         # surrounding_cells.
+        #         if np.sum(surrounding_cells) == 0 and surrounding_cells.size != 0:
+        #             new_map[x][y] = 1
+        map = np.pad(map, (int(self.distance_obstacle/2), int(self.distance_obstacle/2)))
+
+        sub_shape = (self.distance_obstacle, self.distance_obstacle)
+        view_shape = tuple(np.subtract(map.shape, sub_shape) + 1) + sub_shape
+        strides = map.strides + map.strides
+
+        sub_matrices = np.lib.stride_tricks.as_strided(map,view_shape,strides)
+        sub_matrices = sub_matrices.reshape(sub_matrices.shape[:-2] + (-1,))
+        sum = np.sum(sub_matrices, axis=2)
+        return (sum == 0).astype('uint8')
 
     def create_sub_map(self, sub_origin, size):
         """
@@ -359,14 +368,25 @@ class OccupancyCostmap(Costmap):
         """
         rays = []
         # Creating a 2D array with positions in world coordinate frame for every cell
-        for x in range(int(-size/2), int(size/2)):
-            for y in range(int(-size/2), int(size/2)):
-                rays.append(([origin[0] + x * resolution, origin[1] + y * resolution, 0],
-                            [origin[0] + x * resolution,origin[0] + y * resolution, 10]))
+        # for x in range(int(-size/2), int(size/2)):
+        #     for y in range(int(-size/2), int(size/2)):
+        #         rays.append(([origin[0] + x * resolution, origin[1] + y * resolution, 0],
+        #                     [origin[0] + x * resolution,origin[0] + y * resolution, 10]))
+
+        # Generate 2d grid with indices
+        indices = np.concatenate(np.dstack(np.mgrid[int(-size/2):int(size/2),int(-size/2):int(size/2)]), axis=0) * resolution + np.array(origin[:2])
+        # Add the z-coordinate to the grid, which is either 0 or 10
+        indices_0 = np.pad(indices, (0, 1), mode='constant', constant_values=0)[:-1]
+        indices_10 = np.pad(indices, (0,1), mode='constant', constant_values=10)[:-1]
+        # Zips both arrays such that there are tuples for every coordinate that
+        # only differ in the z-coordinate
+        stack = np.dstack(np.dstack((indices_0, indices_10))).T
+        rays = stack
 
         res = []
         # Using the PyBullet rayTest to check if there is an object above the position
         # if there is no object the position is marked as valid
+        # 16383 is the maximal number of rays that can be processed in a batch
         for n in self._chunks(np.array(rays), 16383):
             r_t = p.rayTestBatch(n[:,0], n[:,1],numThreads=0)
             if BulletWorld.robot:
@@ -375,16 +395,31 @@ class OccupancyCostmap(Costmap):
                 res += (1 if ray[0] == -1  else 0 for ray in r_t)
 
         res = np.flip(np.reshape(np.array(res), (size, size)))
-        new_map = np.zeros((size, size))
-        # Apply the distance to obstacle paramter
-        for x in range(0, size):
-            for y in range(0, size):
-                surrounding_cells = res[x - self.distance_obstacle: x+self.distance_obstacle ,
-                                        y - self.distance_obstacle: y+self.distance_obstacle ]
-                if np.sum(surrounding_cells) == (self.distance_obstacle * 2) ** 2  and surrounding_cells.size != 0:
-                    new_map[x][y] = 1
 
-        return new_map
+        map = np.pad(res, (int(self.distance_obstacle/2), int(self.distance_obstacle/2)))
+
+        sub_shape = (self.distance_obstacle*2, self.distance_obstacle*2)
+        view_shape = tuple(np.subtract(map.shape, sub_shape) + 1) + sub_shape
+        strides = map.strides + map.strides
+
+        sub_matrices = np.lib.stride_tricks.as_strided(map,view_shape,strides)
+        sub_matrices = sub_matrices.reshape(sub_matrices.shape[:-2] + (-1,))
+
+        sum = np.sum(sub_matrices, axis=2)
+        #print(sum)
+        return (sum == (self.distance_obstacle*2) ** 2).astype('uint8')
+
+
+        # new_map = np.zeros((size, size))
+        # # Apply the distance to obstacle paramter
+        # for x in range(0, size):
+        #     for y in range(0, size):
+        #         surrounding_cells = res[x - self.distance_obstacle: x+self.distance_obstacle ,
+        #                                 y - self.distance_obstacle: y+self.distance_obstacle ]
+        #         if np.sum(surrounding_cells) == (self.distance_obstacle * 2) ** 2  and surrounding_cells.size != 0:
+        #             new_map[x][y] = 1
+        #
+        # return new_map
 
     def _chunks(self, lst, n):
         """Yield successive n-sized chunks from lst."""
