@@ -530,6 +530,8 @@ class VisibilityCostmap(Costmap):
         """
         # Because the (0, 0) is in the middle of the map, this returns the angele
         # between the origin and the given index
+
+
         angle = np.arctan2(index[0], index[1]) + np.pi
         # return of np.arctan2 is between 2pi and pi
         if angle <= np.pi * 0.25 or angle >= np.pi * 1.75:
@@ -543,8 +545,9 @@ class VisibilityCostmap(Costmap):
 
     def _choose_column(self, index):
         """
-        Choooses the column in the depth image for an index. The values of this
-        column are then used to calculate the value of the index in the costmap.
+        Choooses the column in the depth image for a given index from the costmap.
+        The values of this column are then used to calculate the value of the index \
+        in the costmap.
         :param index: The index for which the column should be choosen
         :return: The Colum in the depth image.
         """
@@ -572,10 +575,10 @@ class VisibilityCostmap(Costmap):
             return [self.size-y-1, x]
         elif y > self.size/2 and x< y and x >  (self.size - y - 1):
             return [self.size-x-1, y]
-        else:
+        else: # between 45 and 135 or 0.25pi and 0.75 pi
             return [y, self.size-x-1]
 
-    def _compute_column_range(self, index, min_height, max_height):
+    def _compute_column_range(self, index, min_height, max_height, distance):
         """
         The indices which determine the range of entries in the depth image which
         are used for calulating the entry in the costmap.
@@ -586,7 +589,7 @@ class VisibilityCostmap(Costmap):
         depth image.
         """
         height = self.origin[2]
-        distance = np.linalg.norm(index)
+        #distance = np.linalg.norm(index)
         if distance == 0:
             return 0, 0
         r_min = np.arctan((min_height-height) / distance) * self.size
@@ -601,6 +604,19 @@ class VisibilityCostmap(Costmap):
         in Lorenz Mösenlechners PhD thesis: https://mediatum.ub.tum.de/doc/1239461/1239461.pdf p.178
         The resulting density map is then saved to self.map
         """
+        tan = np.arctan2(np.mgrid[-int(self.size/2): int(self.size/2),-int(self.size/2): int(self.size/2)][0], \
+                        np.mgrid[-int(self.size/2): int(self.size/2),-int(self.size/2): int(self.size/2)][1]) + np.pi
+        res = np.zeros(tan.shape)
+
+        # Just for completion, since the res array has zeros in every position this
+        # operation is not neccessary.
+        #res[np.logical_and(tan <= np.pi * 0.25, tan >= np.pi * 1.75)] = 0
+        res[np.logical_and(tan >= np.pi * 1.25, tan <= np.pi * 1.75)] = 3
+        res[np.logical_and(tan >= np.pi * 0.75, tan < np.pi * 1.25)] = 2
+        res[np.logical_and(tan >= np.pi * 0.25, tan < np.pi * 0.75)] = 1
+        plot_grid(res)
+
+
         depth_imgs = self._create_images()
         for x in range(int(-self.size/2), int(self.size/2)):
             for y in range(int(-self.size/2), int(self.size/2)):
@@ -608,7 +624,7 @@ class VisibilityCostmap(Costmap):
                 depth_index = self._choose_image([x, y])
                 c = self._choose_column([x, y])
                 d = np.linalg.norm([x, y])
-                r_min, r_max = self._compute_column_range([x, y], self.min_height, self.max_height)
+                r_min, r_max = self._compute_column_range([x, y], self.min_height, self.max_height, d)
                 v = 0
                 for r in range(r_min, r_max+1):
                     if depth_imgs[depth_index][r][c] > d * self.resolution:
