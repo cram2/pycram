@@ -55,7 +55,8 @@ class BulletWorld:
         p.setPhysicsEngineParameter(enableFileCaching=0)
         time.sleep(1) # 0.1
         self.last_bullet_world = BulletWorld.current_bullet_world
-        BulletWorld.current_bullet_world = self
+        if BulletWorld.current_bullet_world == None:
+            BulletWorld.current_bullet_world = self
         self.vis_axis = None
         self.coll_callbacks = {}
         self.data_directory = [os.path.dirname(__file__) + "/../../resources"]
@@ -255,7 +256,7 @@ class Object:
             with open(self.path, mode="r") as f:
                 urdf_string = f.read()
             robot_name = _get_robot_name_from_urdf(urdf_string)
-            if robot_name == robot_description.i.name:
+            if robot_name == robot_description.i.name and BulletWorld.robot == None:
                 BulletWorld.robot = self
 
     def remove(self):
