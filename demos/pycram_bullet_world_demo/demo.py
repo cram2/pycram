@@ -13,7 +13,7 @@ from pycram.language import macros, par
 
 world = BulletWorld()
 world.set_gravity([0, 0, -9.8])
-plane = Object("floor", "environment", "../../resources/plane.urdf", world=world)
+plane = Object("floor", "environment", "plane.urdf", world=world)
 robot = Object("boxy", "robot", "../../resources/" + robot_description.i.name + ".urdf")
 
 spawning_poses = {
@@ -24,15 +24,15 @@ spawning_poses = {
 }
 
 
-kitchen = Object("kitchen", "environment", "../../resources/kitchen.urdf")
-milk = Object("milk", "milk", "../../resources/milk.stl", spawning_poses["milk"])
-spoon = Object("spoon", "spoon", "../../resources/spoon.stl", spawning_poses["spoon"])
+kitchen = Object("kitchen", "environment", "kitchen.urdf")
+milk = Object("milk", "milk", "milk.stl", spawning_poses["milk"])
+spoon = Object("spoon", "spoon", "spoon.stl", spawning_poses["spoon"])
 if robot_description.i.name == "boxy":
     spoon.set_orientation([0, 0, 1, 0])
 kitchen.attach(spoon, link="sink_area_left_upper_drawer_main")
-cereal = Object("cereal", "cereal", "../../resources/breakfast_cereal.stl", spawning_poses["cereal"])
-bowl = Object("bowl", "bowl", "../../resources/bowl.stl", spawning_poses["bowl"])
-BulletWorld.robot = robot
+cereal = Object("cereal", "cereal", "breakfast_cereal.stl", spawning_poses["cereal"])
+bowl = Object("bowl", "bowl", "bowl.stl", spawning_poses["bowl"])
+#BulletWorld.robot = robot
 robot.set_joint_state(robot_description.i.torso_joint, 0.24)
 
 robot_description.i.grasps.add_graspings_for_object(["left", "right", "front"], milk)
