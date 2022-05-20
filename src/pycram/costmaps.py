@@ -604,6 +604,8 @@ class VisibilityCostmap(Costmap):
         in Lorenz Mösenlechners PhD thesis: https://mediatum.ub.tum.de/doc/1239461/1239461.pdf p.178
         The resulting density map is then saved to self.map
         """
+        depth_imgs = self._create_images()
+        t1 = time.time()
         tan = np.arctan2(np.mgrid[-int(self.size/2): int(self.size/2),-int(self.size/2): int(self.size/2)][0], \
                         np.mgrid[-int(self.size/2): int(self.size/2),-int(self.size/2): int(self.size/2)][1]) + np.pi
         res = np.zeros(tan.shape)
@@ -643,7 +645,7 @@ class VisibilityCostmap(Costmap):
         depth_indices[:, :, 1:2] = np.absolute(depth_indices[:, :, 1:2] - self.size/2)
 
         # Calculate columns for the respective position in the costmap
-        columns = np.around(((depth_indices[:, :, :1]/depth_indices[:, :, 1:2]) * self.size/2) + self.size/2)
+        columns = np.around(((depth_indices[:, :, :1]/depth_indices[:, :, 1:2]) * self.size/2) + self.size/2).astype('int8')
         # The middle of the costmap is a special case where the calculation yields infinite
         columns[columns == -np.inf] = 0
 
@@ -659,36 +661,49 @@ class VisibilityCostmap(Costmap):
         r_min = np.minimum(np.around(r_min), self.size-1).astype('int8')
         r_max = np.minimum(np.around(r_max), self.size-1).astype('int8')
 
-        depth_imgs = self._create_images()
+
         values = np.zeros((self.size, self.size))
-        mask = np.logical_and(r_min <= np.arange(self.size)[:, None, None], r_max+1 > np.arange(self.size)[:, None, None])
-        print(mask.shape)
 
 
-        #print(depth_imgs[0][mask, columns[res==0].astype('int8')] > distances[res==0] * self.resolution)
-        #print(mask)
-        #print(depth_imgs[0][r_min[res==0]: r_max[res==0], columns[res==0].astype('int8')])  #> distances[res==0])
+        rs = np.dstack((r_min, r_max+1)).reshape((self.size**2, 2))
+        #ncols = self.size
+        r = np.arange(self.size)
+        mask = ((rs[:,0,None] <= r) & (rs[:,1,None] > r)).reshape((self.size, self.size, self.size))
 
 
+        map = np.zeros((self.size, self.size))
+        for i in range(4):
+            row_masks = mask[res==i]
+            values = depth_imgs[i][columns[res==i].flatten(),:] > np.tile(distances[res==i][:, None], (1, self.size)) * self.resolution
+            masked = np.ma.masked_array(values, mask=~row_masks)
+            map[res==i] = np.sum(masked, axis=1)
+        map /= np.max(map)
+        map = np.flip(map)
+        self.map = map
+        t2 = time.time()
+        print(t2-t1)
 
-
-        for x in range(int(-self.size/2), int(self.size/2)):
-            for y in range(int(-self.size/2), int(self.size/2)):
-                max_value = 0
-                depth_index = self._choose_image([x, y])
-                c = self._choose_column([x, y])
-                d = np.linalg.norm([x, y])
-                r_min, r_max = self._compute_column_range([x, y], self.min_height, self.max_height, d)
-                v = 0
-                for r in range(r_min, r_max+1):
-                    if depth_imgs[depth_index][r][c] > d * self.resolution:
-                        v += 1
-                        max_value += 1
-
-                if max_value > 0:
-                    x_i = int(self.size/2) - x- 1
-                    y_i = int(self.size/2) + y-1
-                    self.map[x_i][y_i] = v / max_value
+        # t1 = time.time()
+        # for x in range(int(-self.size/2), int(self.size/2)):
+        #     for y in range(int(-self.size/2), int(self.size/2)):
+        #         max_value = 0
+        #         depth_index = self._choose_image([x, y])
+        #         c = self._choose_column([x, y])
+        #         d = np.linalg.norm([x, y])
+        #         r_min, r_max = self._compute_column_range([x, y], self.min_height, self.max_height, d)
+        #         v = 0
+        #         for r in range(r_min, r_max+1):
+        #             if depth_imgs[depth_index][r][c] > d * self.resolution:
+        #                 v += 1
+        #                 max_value += 1
+        #
+        #         if max_value > 0:
+        #             x_i = int(self.size/2) - x- 1
+        #             y_i = int(self.size/2) + y-1
+        #             self.map[x_i][y_i] = v / max_value
+        # t2 = time.time()
+        # print(t2-t1)
+        #self.map = map
 
 
 class GaussianCostmap(Costmap):
