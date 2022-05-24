@@ -569,18 +569,13 @@ class VisibilityCostmap(Costmap):
         x, y = index
         x += self.size/2
         y += self.size/2
-        arctan = np.arctan2(index[0], index[1]) + np.pi
         if y < self.size/2 and x >= y and x < (self.size - y):
-            print(f"index: {index}, value: 0, angle: {arctan}")
             return  [x, y]
         elif x < self.size/2 and y > x and y < (self.size - x):
-            print(f"index: {index}, value: 1, angle: {arctan}")
             return [self.size-y-1, x]
         elif y > self.size/2 and x< y and x >  (self.size - y - 1):
-            print(f"index: {index}, value: 2, angle: {arctan}")
             return [self.size-x-1, y]
         else: # between 45 and 135 or 0.25pi and 0.75 piW
-            print(f"index: {index}, value: 3, angle: {arctan}")
             return [y, self.size-x-1]
 
     def _compute_column_range(self, index, min_height, max_height, distance):
@@ -611,6 +606,9 @@ class VisibilityCostmap(Costmap):
         """
         depth_imgs = self._create_images()
         t1 = time.time()
+        # A 2D array where every cell contains the arctan2 value with respect to
+        # the middle of the array. Additionally the interval is shifted such that
+        # it is between 0 and 2pi
         tan = np.arctan2(np.mgrid[-int(self.size/2): int(self.size/2),-int(self.size/2): int(self.size/2)][0], \
                         np.mgrid[-int(self.size/2): int(self.size/2),-int(self.size/2): int(self.size/2)][1]) + np.pi
         res = np.zeros(tan.shape)
@@ -624,7 +622,6 @@ class VisibilityCostmap(Costmap):
         res[np.logical_and(tan >= np.pi * 1.25, tan <= np.pi * 1.75)] = 3
         res[np.logical_and(tan >= np.pi * 0.75, tan < np.pi * 1.25)] = 2
         res[np.logical_and(tan >= np.pi * 0.25, tan < np.pi * 0.75)] = 1
-        plot_grid(res)
 
 
         indices = np.dstack(np.mgrid[0: self.size, 0: self.size])
@@ -651,71 +648,98 @@ class VisibilityCostmap(Costmap):
 
         # Convert back to origin in the middle of the costmap
         depth_indices[:, :, :1] -= self.size/2
-        depth_indices[:, :, 1:2] = np.absolute(depth_indices[:, :, 1:2] - self.size/2)
+        depth_indices[:, :, 1:2] = np.absolute(self.size/2 - depth_indices[:, :, 1:2] )
+
+        # Sets the y index for the coordinates of the middle of the costmap to 1,
+        # the computed value is 0 which would cause an error in the next step where
+        # the calculation divides the x coordinates by the y coordinates
+        depth_indices[int(self.size/2), int(self.size/2), 1] = 1
+
 
         # Calculate columns for the respective position in the costmap
-        columns = np.around(((depth_indices[:, :, :1]/depth_indices[:, :, 1:2]) * self.size/2) + self.size/2).astype('int8')
-        # The middle of the costmap is a special case where the calculation yields infinite
-        columns[columns == -np.inf] = 0
-        # print(columns[res==2])
-        # print(columns[res==2].shape)
+        columns = np.around(((depth_indices[:, :, :1]/depth_indices[:, :, 1:2]) \
+            * (self.size/2)) + self.size/2).reshape((self.size, self.size)).astype('int16')
 
         # An array with size * size that contains the euclidian distance to the
         # orgin (in the middle of the costmap) from every cell
         distances = np.maximum(np.linalg.norm(np.dstack(np.mgrid[-int(self.size/2): int(self.size/2), \
                                                         -int(self.size/2): int(self.size/2)]), axis=2), 0.001)
 
-
+        # Row ranges
+        # Calculation of the ranges of coordinates in the row which have to be
+        # taken into accoount. The range is from r_min to r_max.
+        # This are two arrays with shape: size*size, the r_min constains the beginig
+        # of the range for every coordinate and r_max contains the end for each
+        # coordinate
         r_min = (np.arctan((self.min_height-self.origin[2]) / distances) * self.size) + self.size/2
         r_max = (np.arctan((self.max_height-self.origin[2]) / distances) * self.size) + self.size/2
 
-        r_min = np.minimum(np.around(r_min), self.size-1).astype('int8')
-        r_max = np.minimum(np.around(r_max), self.size-1).astype('int8')
+        r_min = np.minimum(np.around(r_min), self.size-1).astype('int16')
+        r_max = np.minimum(np.around(r_max), self.size-1).astype('int16')
 
-
-        values = np.zeros((self.size, self.size))
 
 
         rs = np.dstack((r_min, r_max+1)).reshape((self.size**2, 2))
-        #ncols = self.size
         r = np.arange(self.size)
+        # Calculates a mask from the r_min and r_max values. This mask is for every
+        # coordinate respectivly and determines which values from the computed column
+        # of the depth image should be taken into account for the costmap.
+        # A Mask of a single coordinate has the length of the column of the depth image
+        # and together with the computed column at this coordinate determines which
+        # values of the depth image make up the value of the visibility costmap at this
+        # point.
         mask = ((rs[:,0,None] <= r) & (rs[:,1,None] > r)).reshape((self.size, self.size, self.size))
 
 
+        values = np.zeros((self.size, self.size))
         map = np.zeros((self.size, self.size))
+        # This is done to itterate over the depth images one at a time
         for i in range(4):
             row_masks = mask[res==i].T
-            values = depth_imgs[i][:,columns[res==i].flatten()] > np.tile(distances[res==i][:, None], (1, self.size)).T * self.resolution
+            # This statment does several things, first it takes the values from
+            # the depth image for this quater of the costmap. The values taken are
+            # the complete columns of the depth image (which where computed beforehand)
+            # and checks if the values in them are greater than the distance to the
+            # respective coordinates. This does not take the row ranges into account.
+            values = depth_imgs[i][:,columns[res==i].flatten()] > \
+                        np.tile(distances[res==i][:, None], (1, self.size)).T * self.resolution
+            # This applies the created mask of the row ranges to the values of
+            # the columns which are compared in the previous statment
             masked = np.ma.masked_array(values, mask=~row_masks)
+            # The calculated values are added to the costmap
             map[res==i] = np.sum(masked, axis=0)
         map /= np.max(map)
-        # map = np.flip(map, axis=1)
+        #map = np.flip(map, axis=1)
         map = np.flip(map, axis=0)
         self.map = map
         t2 = time.time()
         print(t2-t1)
 
-        t1 = time.time()
-        for x in range(int(-self.size/2), int(self.size/2)):
-            for y in range(int(-self.size/2), int(self.size/2)):
-                max_value = 0
-                depth_index = self._choose_image([x, y])
-                c = self._choose_column([x, y])
-                d = np.linalg.norm([x, y])
-                r_min, r_max = self._compute_column_range([x, y], self.min_height, self.max_height, d)
-                v = 0
-                for r in range(r_min, r_max+1):
-                    if depth_imgs[depth_index][r][c] > d * self.resolution:
-                        v += 1
-                        max_value += 1
-
-                if max_value > 0:
-                    x_i = int(self.size/2) - x- 1
-                    y_i = int(self.size/2) + y-1
-                    self.map[x_i][y_i] = v / max_value
-        t2 = time.time()
-        print(t2-t1)
-        self.map = map
+        # #depth_indices = np.flip(depth_indices, axis=0)
+        # t1 = time.time()
+        # for x in range(int(-self.size/2), int(self.size/2)):
+        #     for y in range(int(-self.size/2), int(self.size/2)):
+        #         max_value = 0
+        #         depth_index = self._choose_image([x, y])
+        #         #print(f"Index1: {self._calculate_index_in_depth([x, y])}, Index2: {depth_indices[x,y]}")
+        #         c = self._choose_column([x, y])
+        #         # print(f"x: {x}, y:{y}")
+        #         # print(f"Column1: {c}, Column2: {columns[x, y]}")
+        #         d = np.linalg.norm([x, y])
+        #         r_min, r_max = self._compute_column_range([x, y], self.min_height, self.max_height, d)
+        #         v = 0
+        #         for r in range(r_min, r_max+1):
+        #             if depth_imgs[depth_index][r][c] > d * self.resolution:
+        #                 v += 1
+        #                 max_value += 1
+        #
+        #         if max_value > 0:
+        #             x_i = int(self.size/2) - x- 1
+        #             y_i = int(self.size/2) + y-1
+        #             self.map[x_i][y_i] = v / max_value
+        # t2 = time.time()
+        # print(t2-t1)
+        # self.map2 = map
 
 
 class GaussianCostmap(Costmap):
