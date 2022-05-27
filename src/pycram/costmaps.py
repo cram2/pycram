@@ -1,6 +1,7 @@
 import numpy as np
 import pybullet as p
 import rospy
+import psutil
 import time
 from pycram.robot_description import InitializedRobotDescription as robot_description
 from .bullet_world import BulletWorld
@@ -54,7 +55,7 @@ class Costmap():
         boxes = []
         # Finding all rectangles in the costmap
         for i in range(0, map.shape[0]):
-            for j in range(0, map.shape[0]):
+            for j in range(0, map.shape[1]):
                 if map[i][j] > 0:
                     curr_width = self._find_consectuive_line((i, j), map)
                     curr_pose = (i, j)
@@ -391,6 +392,9 @@ class VisibilityCostmap(Costmap):
             costmap should be created.
         :param world: The BulletWorld for which the costmap should be created.
         """
+        if (11*size**2 +size**3)*2 > psutil.virtual_memory().available:
+            raise OSError("Not enough free RAM to calculate a costmap of this size")
+
         self.world = world if world else BulletWorld.current_bullet_world
         self.map = np.zeros((size, size))
         self.size = size
@@ -604,6 +608,27 @@ class GaussianCostmap(Costmap):
         sig2 = 2 * std * std
         w = np.exp(-n ** 2 / sig2)
         return w
+
+class SemanticCostmap(Costmap):
+    def __init__(self, object, urdf_link_name, resolution, world):
+        self.object = object
+        self.link = urdf_link_name
+        self.resolution = resolution
+        self.origin = object.get_link_position(urdf_link_name)
+        self.height = 0
+        self.width = 0
+        self.generate_map()
+
+        Costmap.__init__(self, resolution, self.height, self.width, self.origin, self.map)
+
+
+    def generate_map(self):
+        link_position = self.object.get_link_position(self.link)
+        min, max = self.object.get_AABB(self.link)
+        self.height = int((max[0] - min[0]) / self.resolution)
+        self.width = int((max[1] - min[1]) / self.resolution)
+        self.map = np.ones((self.height, self.width))
+        self.origin = [self.origin[0], self.origin[1], max[2] + 0.05]
 
 cmap = colors.ListedColormap(['white', 'black', 'green', 'red', 'blue'])
 
