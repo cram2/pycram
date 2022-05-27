@@ -158,14 +158,9 @@ class Costmap():
             print("To merge cotsmaps, the resoulution has to be equal")
             return
         new_map = np.zeros((self.height, self.width))
-        for x in range(0, self.height):
-            for y in range(0, self.width):
-                if self.map[x][y] == 0 or other_cm.map[x][y] == 0:
-                    new_map[x][y] = 0
-                else:
-                    new_map[x][y] = self.map[x][y] * other_cm.map[x][y]
-
-        new_map /= np.max(np.abs(new_map))
+        merge = np.logical_and(self.map > 0, other_cm.map > 0)
+        new_map[merge] = self.map[merge] * other_cm.map[merge]
+        new_map = (new_map / np.max(new_map)).reshape((self.height, self.width))
         return Costmap(self.resolution, self.height, self.width, self.origin, new_map)
 
     def __add__(self, other):
