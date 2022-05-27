@@ -158,6 +158,7 @@ class Costmap():
             print("To merge cotsmaps, the resoulution has to be equal")
             return
         new_map = np.zeros((self.height, self.width))
+        # A nunpy array of the positions where both costmaps are greater than 0
         merge = np.logical_and(self.map > 0, other_cm.map > 0)
         new_map[merge] = self.map[merge] * other_cm.map[merge]
         new_map = (new_map / np.max(new_map)).reshape((self.height, self.width))
@@ -256,36 +257,6 @@ class OccupancyCostmap(Costmap):
         print("Recived Meta Data")
         return meta
 
-    def find_all_non_negativ(self):
-        """
-        Finds and returns all indicies for entry in the array which are greater
-        than zero.
-        :return: A list of tuple which are entries that are greater than zero.
-        """
-        indices = []
-        for i in range(0, self.width):
-            for j in range(0, self.height):
-                if self.map[i][j] >= 0:
-                    indices.append((i, j))
-        return indices
-
-    def find_all_valid_non_negativ(self):
-        """
-        Finds all entries in the costmap that are greater than zero and are further
-        than distance_to_obstacle from any obstacle.
-        :return: A list of tuple which represent entries in the costmap which are
-        further than distance_to_obstacle from any obstacle.
-        """
-        non_zero = self.find_all_non_negativ()
-        valid = []
-        for w, h in non_zero:
-            sub = self.map[w-self.distance_obstacle: w+self.distance_obstacle, h-self.distance_obstacle:h+self.distance_obstacle]
-            if -1 in sub:
-                continue
-            else:
-                valid.append((w,h))
-        return valid
-
     def _convert_map(self, map, size):
         """
         This Method converts the Occupancy Map received from ROS to be more consistent
@@ -296,16 +267,6 @@ class OccupancyCostmap(Costmap):
         :param map: The map that should be converted. Represented as 2d numpy array
         :return: The converted map. Represented as 2d numpy array.
         """
-        # new_map = np.zeros((size, size))
-        # for x in range(0, size):
-        #     for y in range(size):
-        #         # Surrounding cells with respect to distance to obstacle
-        #         surrounding_cells = map[x - self.distance_obstacle: x + self.distance_obstacle + 1,
-        #                                 y - self.distance_obstacle: y + self.distance_obstacle + 1]
-        #         # Checks if there are any cells with values greater than zero in
-        #         # surrounding_cells.
-        #         if np.sum(surrounding_cells) == 0 and surrounding_cells.size != 0:
-        #             new_map[x][y] = 1
         map = np.pad(map, (int(self.distance_obstacle/2), int(self.distance_obstacle/2)))
 
         sub_shape = (self.distance_obstacle, self.distance_obstacle)
@@ -315,7 +276,7 @@ class OccupancyCostmap(Costmap):
         sub_matrices = np.lib.stride_tricks.as_strided(map,view_shape,strides)
         sub_matrices = sub_matrices.reshape(sub_matrices.shape[:-2] + (-1,))
         sum = np.sum(sub_matrices, axis=2)
-        return (sum == 0).astype('uint8')
+        return (sum == 0).astype('int16')
 
     def create_sub_map(self, sub_origin, size):
         """
@@ -362,11 +323,6 @@ class OccupancyCostmap(Costmap):
 
         """
         rays = []
-        # Creating a 2D array with positions in world coordinate frame for every cell
-        # for x in range(int(-size/2), int(size/2)):
-        #     for y in range(int(-size/2), int(size/2)):
-        #         rays.append(([origin[0] + x * resolution, origin[1] + y * resolution, 0],
-        #                     [origin[0] + x * resolution,origin[0] + y * resolution, 10]))
 
         # Generate 2d grid with indices
         indices = np.concatenate(np.dstack(np.mgrid[int(-size/2):int(size/2),int(-size/2):int(size/2)]), axis=0) * resolution + np.array(origin[:2])
@@ -375,8 +331,7 @@ class OccupancyCostmap(Costmap):
         indices_10 = np.pad(indices, (0,1), mode='constant', constant_values=10)[:-1]
         # Zips both arrays such that there are tuples for every coordinate that
         # only differ in the z-coordinate
-        stack = np.dstack(np.dstack((indices_0, indices_10))).T
-        rays = stack
+        rays = np.dstack(np.dstack((indices_0, indices_10))).T
 
         res = []
         # Using the PyBullet rayTest to check if there is an object above the position
@@ -401,20 +356,8 @@ class OccupancyCostmap(Costmap):
         sub_matrices = sub_matrices.reshape(sub_matrices.shape[:-2] + (-1,))
 
         sum = np.sum(sub_matrices, axis=2)
-        #print(sum)
-        return (sum == (self.distance_obstacle*2) ** 2).astype('uint8')
+        return (sum == (self.distance_obstacle*2) ** 2).astype('int16')
 
-
-        # new_map = np.zeros((size, size))
-        # # Apply the distance to obstacle paramter
-        # for x in range(0, size):
-        #     for y in range(0, size):
-        #         surrounding_cells = res[x - self.distance_obstacle: x+self.distance_obstacle ,
-        #                                 y - self.distance_obstacle: y+self.distance_obstacle ]
-        #         if np.sum(surrounding_cells) == (self.distance_obstacle * 2) ** 2  and surrounding_cells.size != 0:
-        #             new_map[x][y] = 1
-        #
-        # return new_map
 
     def _chunks(self, lst, n):
         """Yield successive n-sized chunks from lst."""
@@ -517,82 +460,6 @@ class VisibilityCostmap(Costmap):
         #         obj.remove
         return world
 
-    def _choose_image(self, index):
-        """
-        Chooses the corresponding depth image for an index in the costmap.
-        :param index: The index for which the depth image should be found.
-        :return: The index of the corresponding depth image.
-        """
-        # Because the (0, 0) is in the middle of the map, this returns the angele
-        # between the origin and the given index
-
-
-        angle = np.arctan2(index[0], index[1]) + np.pi
-        # return of np.arctan2 is between 2pi and pi
-        if angle <= np.pi * 0.25 or angle >= np.pi * 1.75:
-            return 0 #0
-        elif angle >= np.pi * 1.25 and angle < np.pi * 1.75:
-            return 3 #1
-        elif angle >= np.pi * 0.75 and angle < np.pi * 1.25:
-            return 2 #2
-        elif angle >= np.pi * 0.25 and angle < np.pi * 0.75:
-            return 1 #3
-
-    def _choose_column(self, index):
-        """
-        Choooses the column in the depth image for a given index from the costmap.
-        The values of this column are then used to calculate the value of the index \
-        in the costmap.
-        :param index: The index for which the column should be choosen
-        :return: The Colum in the depth image.
-        """
-        index_in_depth = self._calculate_index_in_depth(index)
-        index_in_depth[0] = index_in_depth[0] - self.size/2
-        index_in_depth[1] = abs(self.size/2 - index_in_depth[1])
-        column = (index_in_depth[0] / index_in_depth[1]) * (self.size / 2)
-        column += self.size/2
-        return round(column)
-
-    def _calculate_index_in_depth(self, index):
-        """
-        This method calulates the index in the depth image for a given index in
-        the costmap.
-        :param index: The index in the costmap, this index is with the origin in
-            the middle of the costmap
-        :return: The corresponding index in the depth image
-        """
-        x, y = index
-        x += self.size/2
-        y += self.size/2
-        if y < self.size/2 and x >= y and x < (self.size - y):
-            return  [x, y]
-        elif x < self.size/2 and y > x and y < (self.size - x):
-            return [self.size-y-1, x]
-        elif y > self.size/2 and x< y and x >  (self.size - y - 1):
-            return [self.size-x-1, y]
-        else: # between 45 and 135 or 0.25pi and 0.75 piW
-            return [y, self.size-x-1]
-
-    def _compute_column_range(self, index, min_height, max_height, distance):
-        """
-        The indices which determine the range of entries in the depth image which
-        are used for calulating the entry in the costmap.
-        :param index: The index in the costmap for which the range should be calculated.
-        :param min_height: The minimal height on which the camera on the robot can be.
-        :param max_height: The maximal height on which the camera on the robot can be.
-        :return: The two indicies which determine the range in the column in the
-        depth image.
-        """
-        height = self.origin[2]
-        #distance = np.linalg.norm(index)
-        if distance == 0:
-            return 0, 0
-        r_min = np.arctan((min_height-height) / distance) * self.size
-        r_max = np.arctan((max_height-height) / distance) * self.size
-        r_min += self.size/2
-        r_max += self.size/2
-        return int(min(round(r_min), self.size-1)), int(min(round(r_max), self.size-1))
-
     def _generate_map(self):
         """
         This method generates the resulting density map by using the algorithm explained
@@ -600,7 +467,6 @@ class VisibilityCostmap(Costmap):
         The resulting density map is then saved to self.map
         """
         depth_imgs = self._create_images()
-        t1 = time.time()
         # A 2D array where every cell contains the arctan2 value with respect to
         # the middle of the array. Additionally the interval is shifted such that
         # it is between 0 and 2pi
@@ -707,34 +573,6 @@ class VisibilityCostmap(Costmap):
         #map = np.flip(map, axis=1)
         map = np.flip(map, axis=0)
         self.map = map
-        t2 = time.time()
-        print(t2-t1)
-
-        # #depth_indices = np.flip(depth_indices, axis=0)
-        # t1 = time.time()
-        # for x in range(int(-self.size/2), int(self.size/2)):
-        #     for y in range(int(-self.size/2), int(self.size/2)):
-        #         max_value = 0
-        #         depth_index = self._choose_image([x, y])
-        #         #print(f"Index1: {self._calculate_index_in_depth([x, y])}, Index2: {depth_indices[x,y]}")
-        #         c = self._choose_column([x, y])
-        #         # print(f"x: {x}, y:{y}")
-        #         # print(f"Column1: {c}, Column2: {columns[x, y]}")
-        #         d = np.linalg.norm([x, y])
-        #         r_min, r_max = self._compute_column_range([x, y], self.min_height, self.max_height, d)
-        #         v = 0
-        #         for r in range(r_min, r_max+1):
-        #             if depth_imgs[depth_index][r][c] > d * self.resolution:
-        #                 v += 1
-        #                 max_value += 1
-        #
-        #         if max_value > 0:
-        #             x_i = int(self.size/2) - x- 1
-        #             y_i = int(self.size/2) + y-1
-        #             self.map[x_i][y_i] = v / max_value
-        # t2 = time.time()
-        # print(t2-t1)
-        # self.map2 = map
 
 
 class GaussianCostmap(Costmap):
