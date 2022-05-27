@@ -454,6 +454,9 @@ class Object:
         self.world.restore_state(*s)
         return contact_points
 
+    def get_AABB(self, link_name):
+        return p.getAABB(self.id, self.links[link_name], self.world.client_id)
+
 def filter_contact_points(contact_points, exclude_ids):
     return list(filter(lambda cp: cp[2] not in exclude_ids, contact_points))
 
