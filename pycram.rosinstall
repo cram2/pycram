@@ -7,10 +7,6 @@ repositories:
     type: git
     url: git@github.com:code-iai/iai_robots.git
     version: master
-  knowrob:
-    type: git
-    url: git@github.com:knowrob/knowrob.git
-    version: master
   pycram:
     type: git
     url: git@github.com:cram2/pycram.git
