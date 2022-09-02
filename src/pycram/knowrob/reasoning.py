@@ -1,8 +1,20 @@
 from typing import List
+import rosservice
+import rospy
+import logging
 
-from neem_interface_python.rosprolog_client import atom
+#logging.setLoggerClass(logging.Logger)
+logger = logging.getLogger(__name__)
+from pycram import ch
 
-from pycram.knowrob import knowrob
+logger.addHandler(ch)
+logger.setLevel(logging.DEBUG)
+
+if 'rosprolog/query' in rosservice.get_service_list():
+    from neem_interface_python.rosprolog_client import atom
+    from pycram.knowrob import knowrob
+else:
+    logger.warning("No KnowRob services found, knowrob is not available")
 
 
 def object_type(object_iri: str) -> str:

@@ -17,4 +17,14 @@ helper -- implementation of helper classes and functions for internal usage only
 language -- implementation of the CRAM language.
 process_module -- implementation of process modules.
 """
+import logging
+import logging.config
+
+logging.basicConfig(level=logging.WARNING, format='%(levelname)s - %(name)s  - Line:%(lineno)d - %(message)s')
+
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(levelname)s - %(name)s  - Line:%(lineno)d - %(message)s')
+ch.setFormatter(formatter)
+
 from .resolver import *
