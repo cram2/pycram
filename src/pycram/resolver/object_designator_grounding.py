@@ -1,4 +1,4 @@
-#from pycram.knowrob.reasoning import object_type, instances_of, object_pose
+from pycram.knowrob.reasoning import object_type, instances_of, object_pose
 from pycram.object_designator import LocatedObjectDesignatorDescription, ObjectDesignator
 
 
