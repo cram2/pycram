@@ -14,6 +14,7 @@ import pathlib
 import logging
 import rospkg
 import re
+from queue import Queue
 
 #from ros.rosbridge import ros_client
 import rospy
@@ -34,7 +35,7 @@ class BulletWorld:
     robot = None
     rospy.init_node('pycram')
 
-    def __init__(self, type="GUI"):
+    def __init__(self, type="GUI", shadow_world=False):
         """
         The constructor initializes a new simulation. The parameter decides if the Simulation should be graphical or
         non-graphical. It can only exist one graphical simulation at the time, but an arbitrary amount of non-graphical.
@@ -60,6 +61,10 @@ class BulletWorld:
         self.vis_axis = None
         self.coll_callbacks = {}
         self.data_directory = [os.path.dirname(__file__) + "/../../resources"]
+        self.shadow_world = BulletWorld("DIRECT", True) if not shadow_world else None
+        self.world_sync = World_Sync(self, self.shadow_world) if not shadow_world else None
+        if not shadow_world:
+            self.world_sync.start()
 
     def get_objects_by_name(self, name):
         return list(filter(lambda obj: obj.name == name, self.objects))
@@ -105,6 +110,10 @@ class BulletWorld:
 
     def exit(self):
         BulletWorld.current_bullet_world = self.last_bullet_world
+        if self.shadow_world:
+            self.world_sync.terminate = True
+            self.world_sync.join()
+            self.shadow_world.exit()
         p.disconnect(self.client_id)
         self._gui_thread.join()
 
@@ -194,6 +203,66 @@ class BulletWorld:
 
 current_bullet_world = BulletWorld.current_bullet_world
 
+class Use_shadow_world():
+    def __init__(self):
+        self.prev_world = None
+    def __enter__(self):
+        self.prev_world = BulletWorld.current_bullet_world
+        BulletWorld.current_bullet_world = BulletWorld.current_bullet_world.shadow_world
+    def __exit__(self):
+        BulletWorld.current_bullet_world = self.prev_world
+
+
+class World_Sync(threading.Thread):
+    """
+
+    """
+    def __init__(self, world, shadow_world):
+        threading.Thread.__init__(self)
+        self.world = world
+        self.shadow_world = shadow_world
+        self.terminate = False
+        self.add_obj_queue = Queue()
+        self.remove_obj_queue = Queue()
+        self.pause_sync = False
+
+
+    def run(self):
+        while not self.terminate:
+            self.check_for_pause()
+            for i in range(self.add_obj_queue.qsize()):
+                obj = self.add_obj_queue.get()
+                Object(obj[0], obj[1], obj[2], obj[3], obj[4], obj[5], obj[6])
+            for i in range(self.remove_obj_queue.qsize()):
+                # Find object reference in shadow world. Object is identified by name and position
+                obj = self.remove_obj_queue.get()
+                name, position = obj
+                ref = self.shadow_world.get_objects_by_name(name)
+                for o in ref:
+                    if o.get_position() == position:
+                        o.remove()
+                        break
+            for i in range(len(self.world.objects)):
+                obj = self.world.objects[i]
+                shadow_obj = self.shadow_world.objects[i]
+
+                shadow_obj.set_position(obj.get_position())
+                shadow_obj.set_orientation(obj.get_orientation())
+
+                # Manage joint positions
+                if len(obj.joints) > 2:
+                    for joint_name in obj.joints.keys():
+                        shadow_obj.set_joint_state(joint_name, obj.get_joint_state(joint_name))
+            self.check_for_pause()
+            time.sleep(0.1)
+
+        self.add_obj_queue.join()
+        self.remove_obj_queue.join()
+
+    def check_for_pause(self):
+        while self.pause_sync:
+            time.sleep(0.1)
+
 
 class Gui(threading.Thread):
     """
@@ -251,6 +320,9 @@ class Object:
         self.attachments = {}
         self.cids = {}
         self.world.objects.append(self)
+        # This means "world" is not the shadow world since it has a reference to a shadow worldS
+        if self.world.shadow_world != None:
+            self.world.world_sync.add_obj_queue.put([name, type, path, position, orientation, self.world.shadow_world, color])
 
         if re.search("[a-zA-Z0-9].urdf", self.path):
             with open(self.path, mode="r") as f:
@@ -270,8 +342,13 @@ class Object:
         for obj in self.attachments.keys():
             self.detach(obj)
         self.world.objects.remove(self)
+        # This means the current world of the object is not the shaow world, since it
+        # has a reference to the shadow world
+        if self.world.shadow_world != None:
+            self.world.world_sync.remove_obj_queue.put([self.name, self.get_position()])
         p.removeBody(self.id, physicsClientId=self.world.client_id)
-        self.world.objects.remove(self)
+        #self.world.objects.remove(self)
+
 
     def attach(self, object, link=None, loose=False):
         """
