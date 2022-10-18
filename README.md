@@ -1,5 +1,3 @@
-# PyCRAM README
-
 ![](images/pycram_logo.png)
 
 # What is PyCRAM
