@@ -110,7 +110,7 @@ class BulletWorld:
 
     def exit(self):
         BulletWorld.current_bullet_world = self.last_bullet_world
-        if self.shadow_world:
+        if not self.shadow_world:
             self.world_sync.terminate = True
             self.world_sync.join()
             self.shadow_world.exit()
@@ -208,14 +208,22 @@ class Use_shadow_world():
         self.prev_world = None
     def __enter__(self):
         self.prev_world = BulletWorld.current_bullet_world
+        BulletWorld.current_bullet_world.world_sync.pause_sync = True
         BulletWorld.current_bullet_world = BulletWorld.current_bullet_world.shadow_world
     def __exit__(self):
         BulletWorld.current_bullet_world = self.prev_world
+        BulletWorld.current_bullet_world.world_sync.pause_sync = False
 
 
 class World_Sync(threading.Thread):
     """
-
+    This class synchronizes the state between the BulletWorld and its shadow world.
+    Meaning the cartesian and joint position of everything the shadow world will be
+    synchronized with the BulletWorld.
+    Addding and removing objects is done via queues, such that loading times of objects
+    in the shadow world does not affect the BulletWorld.
+    The class provides the possibility to pause the synchronization, this can be used
+    if reasoning should be done in the shadow world to guarantee a consistant state.
     """
     def __init__(self, world, shadow_world):
         threading.Thread.__init__(self)
@@ -225,14 +233,25 @@ class World_Sync(threading.Thread):
         self.add_obj_queue = Queue()
         self.remove_obj_queue = Queue()
         self.pause_sync = False
+        self.object_mapping = {}
 
 
     def run(self):
+        """
+        The main method of the synchronization, this thread runs in a loop until the
+        terminate flag is set.
+        While this loop runs it contilously checks the cartesian and joint position of
+        every object in the BulletWorld and updates the corresponding object in the
+        shadow world.
+        """
         while not self.terminate:
             self.check_for_pause()
             for i in range(self.add_obj_queue.qsize()):
                 obj = self.add_obj_queue.get()
-                Object(obj[0], obj[1], obj[2], obj[3], obj[4], obj[5], obj[6])
+                # [name, type, path, position, orientation, self.world.shadow_world, color, bulletworld object]
+                o = Object(obj[0], obj[1], obj[2], obj[3], obj[4], obj[5], obj[6])
+                # Maps the BulletWorld object to the shadow world object
+                self.object_mapping[obj[7]] = o
             for i in range(self.remove_obj_queue.qsize()):
                 # Find object reference in shadow world. Object is identified by name and position
                 obj = self.remove_obj_queue.get()
@@ -241,18 +260,29 @@ class World_Sync(threading.Thread):
                 for o in ref:
                     if o.get_position() == position:
                         o.remove()
+                        del self.object_mapping[obj]
                         break
-            for i in range(len(self.world.objects)):
-                obj = self.world.objects[i]
-                shadow_obj = self.shadow_world.objects[i]
 
-                shadow_obj.set_position(obj.get_position())
-                shadow_obj.set_orientation(obj.get_orientation())
+            for bulletworld_obj, shadow_obj in self.object_mapping.items():
+                shadow_obj.set_position(bulletworld_obj.get_position())
+                shadow_obj.set_orientation(bulletworld_obj.get_orientation())
 
                 # Manage joint positions
-                if len(obj.joints) > 2:
-                    for joint_name in obj.joints.keys():
-                        shadow_obj.set_joint_state(joint_name, obj.get_joint_state(joint_name))
+                if len(bulletworld_obj.joints) > 2:
+                    for joint_name in bulletworld_obj.joints.keys():
+                        shadow_obj.set_joint_state(joint_name, bulletworld_obj.get_joint_state(joint_name))
+
+            # for i in range(len(self.world.objects)):
+            #     obj = self.world.objects[i]
+            #     shadow_obj = self.shadow_world.objects[i]
+            #
+            #     shadow_obj.set_position(obj.get_position())
+            #     shadow_obj.set_orientation(obj.get_orientation())
+            #
+            #     # Manage joint positions
+            #     if len(obj.joints) > 2:
+            #         for joint_name in obj.joints.keys():
+            #             shadow_obj.set_joint_state(joint_name, obj.get_joint_state(joint_name))
             self.check_for_pause()
             time.sleep(0.1)
 
@@ -322,7 +352,7 @@ class Object:
         self.world.objects.append(self)
         # This means "world" is not the shadow world since it has a reference to a shadow worldS
         if self.world.shadow_world != None:
-            self.world.world_sync.add_obj_queue.put([name, type, path, position, orientation, self.world.shadow_world, color])
+            self.world.world_sync.add_obj_queue.put([name, type, path, position, orientation, self.world.shadow_world, color, self])
 
         if re.search("[a-zA-Z0-9].urdf", self.path):
             with open(self.path, mode="r") as f:
