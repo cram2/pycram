@@ -202,6 +202,17 @@ class BulletWorld:
     def add_additional_resource_path(self, path):
         self.data_directory.append(path)
 
+    def get_shadow_object(self, object):
+        """
+        Returns the corresponding object from the shadow world for the given object.
+        :param object: The object for which the shadow worlds object should be returned.
+        :return: The corresponding object in the shadow world.
+        """
+        return self.world_sync.object_mapping[object]
+
+    def get_bullet_object_for_shadow(self,object):
+        map = self.world_sync.object_mapping
+        return list(map.keys())[list(map.values()).index(object)]
 
 
 
@@ -214,7 +225,7 @@ class Use_shadow_world():
         self.prev_world = BulletWorld.current_bullet_world
         BulletWorld.current_bullet_world.world_sync.pause_sync = True
         BulletWorld.current_bullet_world = BulletWorld.current_bullet_world.shadow_world
-    def __exit__(self):
+    def __exit__(self, *args):
         BulletWorld.current_bullet_world = self.prev_world
         BulletWorld.current_bullet_world.world_sync.pause_sync = False
 
@@ -330,7 +341,6 @@ class Object:
         :param color: The color with which the object should be spawned.
         """
         self.world = world if world is not None else BulletWorld.current_bullet_world
-        print(self.world)
         self.name = name
         self.type = type
         #self.path = path
