@@ -35,7 +35,7 @@ class BulletWorld:
     robot = None
     rospy.init_node('pycram')
 
-    def __init__(self, type="GUI", shadow_world=False):
+    def __init__(self, type="GUI", is_shadow_world=False):
         """
         The constructor initializes a new simulation. The parameter decides if the Simulation should be graphical or
         non-graphical. It can only exist one graphical simulation at the time, but an arbitrary amount of non-graphical.
@@ -55,15 +55,15 @@ class BulletWorld:
         # files that can not be loaded
         p.setPhysicsEngineParameter(enableFileCaching=0)
         time.sleep(1) # 0.1
-        self.last_bullet_world = BulletWorld.current_bullet_world
+        #self.last_bullet_world = BulletWorld.current_bullet_world
         if BulletWorld.current_bullet_world == None:
             BulletWorld.current_bullet_world = self
         self.vis_axis = None
         self.coll_callbacks = {}
         self.data_directory = [os.path.dirname(__file__) + "/../../resources"]
-        self.shadow_world = BulletWorld("DIRECT", True) if not shadow_world else None
-        self.world_sync = World_Sync(self, self.shadow_world) if not shadow_world else None
-        if not shadow_world:
+        self.shadow_world = BulletWorld("DIRECT", True) if not is_shadow_world else None
+        self.world_sync = World_Sync(self, self.shadow_world) if not is_shadow_world else None
+        if not is_shadow_world:
             self.world_sync.start()
 
     def get_objects_by_name(self, name):
@@ -109,13 +109,17 @@ class BulletWorld:
                 time.sleep(0.004167)
 
     def exit(self):
-        BulletWorld.current_bullet_world = self.last_bullet_world
-        if not self.shadow_world:
+        #BulletWorld.current_bullet_world = self.last_bullet_world
+        if self.shadow_world:
             self.world_sync.terminate = True
             self.world_sync.join()
             self.shadow_world.exit()
         p.disconnect(self.client_id)
-        self._gui_thread.join()
+        if self._gui_thread:
+            self._gui_thread.join()
+        if BulletWorld.current_bullet_world == self:
+            BulletWorld.current_bullet_world = None
+
 
     def save_state(self):
         """
@@ -201,7 +205,7 @@ class BulletWorld:
 
 
 
-current_bullet_world = BulletWorld.current_bullet_world
+#current_bullet_world = BulletWorld.current_bullet_world
 
 class Use_shadow_world():
     def __init__(self):
@@ -233,6 +237,7 @@ class World_Sync(threading.Thread):
         self.add_obj_queue = Queue()
         self.remove_obj_queue = Queue()
         self.pause_sync = False
+        # Maps bullet to shadow world objects
         self.object_mapping = {}
 
 
@@ -253,15 +258,11 @@ class World_Sync(threading.Thread):
                 # Maps the BulletWorld object to the shadow world object
                 self.object_mapping[obj[7]] = o
             for i in range(self.remove_obj_queue.qsize()):
-                # Find object reference in shadow world. Object is identified by name and position
                 obj = self.remove_obj_queue.get()
-                name, position = obj
-                ref = self.shadow_world.get_objects_by_name(name)
-                for o in ref:
-                    if o.get_position() == position:
-                        o.remove()
-                        del self.object_mapping[obj]
-                        break
+                # Get shadow world object reference from object mapping
+                shaow_obj = self.object_mapping[obj]
+                shadow_obj.remove()
+                del self.object_mapping[obj]
 
             for bulletworld_obj, shadow_obj in self.object_mapping.items():
                 shadow_obj.set_position(bulletworld_obj.get_position())
@@ -272,17 +273,6 @@ class World_Sync(threading.Thread):
                     for joint_name in bulletworld_obj.joints.keys():
                         shadow_obj.set_joint_state(joint_name, bulletworld_obj.get_joint_state(joint_name))
 
-            # for i in range(len(self.world.objects)):
-            #     obj = self.world.objects[i]
-            #     shadow_obj = self.shadow_world.objects[i]
-            #
-            #     shadow_obj.set_position(obj.get_position())
-            #     shadow_obj.set_orientation(obj.get_orientation())
-            #
-            #     # Manage joint positions
-            #     if len(obj.joints) > 2:
-            #         for joint_name in obj.joints.keys():
-            #             shadow_obj.set_joint_state(joint_name, obj.get_joint_state(joint_name))
             self.check_for_pause()
             time.sleep(0.1)
 
@@ -340,17 +330,18 @@ class Object:
         :param color: The color with which the object should be spawned.
         """
         self.world = world if world is not None else BulletWorld.current_bullet_world
+        print(self.world)
         self.name = name
         self.type = type
         #self.path = path
         self.color = color
-        self.id, self.path = _load_object(name, path, position, orientation, world, color, ignoreCachedFiles)
+        self.id, self.path = _load_object(name, path, position, orientation, self.world, color, ignoreCachedFiles)
         self.joints = self._joint_or_link_name_to_id("joint")
         self.links = self._joint_or_link_name_to_id("link")
         self.attachments = {}
         self.cids = {}
         self.world.objects.append(self)
-        # This means "world" is not the shadow world since it has a reference to a shadow worldS
+        # This means "world" is not the shadow world since it has a reference to a shadow world
         if self.world.shadow_world != None:
             self.world.world_sync.add_obj_queue.put([name, type, path, position, orientation, self.world.shadow_world, color, self])
 
@@ -375,9 +366,8 @@ class Object:
         # This means the current world of the object is not the shaow world, since it
         # has a reference to the shadow world
         if self.world.shadow_world != None:
-            self.world.world_sync.remove_obj_queue.put([self.name, self.get_position()])
+            self.world.world_sync.remove_obj_queue.put(self)
         p.removeBody(self.id, physicsClientId=self.world.client_id)
-        #self.world.objects.remove(self)
 
 
     def attach(self, object, link=None, loose=False):
