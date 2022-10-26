@@ -81,18 +81,22 @@ def stable(object, world=None):
     :return: True if the given object is stable in the world False else
     """
     world, world_id = _world_and_id(world)
-    coords_prev = p.getBasePositionAndOrientation(object.id, physicsClientId=world_id)[0]
-    state = p.saveState(physicsClientId=world_id)
-    p.setGravity(0, 0, -9.8, world_id)
+    shadow_obj = BulletWorld.current_bullet_world.get_shadow_object(object)
+    with Use_shadow_world():
+        #coords_prev = p.getBasePositionAndOrientation(object.id, physicsClientId=BulletWorld.current_bullet_world.client_id)[0]
+        coords_prev = shadow_obj.get_position()
+        state = p.saveState(physicsClientId=BulletWorld.current_bullet_world.client_id)
+        p.setGravity(0, 0, -9.8, BulletWorld.current_bullet_world.client_id)
 
-    # one Step is approximately 1/240 seconds
-    world.simulate(2)
-    coords_past = p.getBasePositionAndOrientation(object.id, physicsClientId=world_id)[0]
+        # one Step is approximately 1/240 seconds
+        BulletWorld.current_bullet_world.simulate(2)
+        #coords_past = p.getBasePositionAndOrientation(object.id, physicsClientId=world_id)[0]
+        coords_past = shadow_obj.get_position()
 
-    p.restoreState(state, physicsClientId=world_id)
-    coords_prev = list(map(lambda n: round(n, 3), coords_prev))
-    coords_past = list(map(lambda n: round(n, 3), coords_past))
-    return coords_past == coords_prev
+        #p.restoreState(state, physicsClientId=BulletWorld.current_bullet_world.client_id)
+        coords_prev = list(map(lambda n: round(n, 3), coords_prev))
+        coords_past = list(map(lambda n: round(n, 3), coords_past))
+        return coords_past == coords_prev
 
 
 def contact(object1, object2, world=None):
@@ -103,11 +107,15 @@ def contact(object1, object2, world=None):
     :param world: The BulletWorld if more than one BulletWorld is active
     :return: True if the two objects are in contact False else
     """
+    # World is the graphical BulletWorld
     world, world_id = _world_and_id(world)
-    p.stepSimulation(world_id)
-    con_points = p.getContactPoints(object1.id, object2.id, physicsClientId=world_id)
+    shadow_obj1 = world.get_shadow_object(object1)
+    shadow_obj2 = world.get_shadow_object(object2)
+    with Use_shadow_world():
+        p.stepSimulation(BulletWorld.current_bullet_world.client_id)
+        con_points = p.getContactPoints(shadow_obj1.id, shadow_obj2.id, physicsClientId=BulletWorld.current_bullet_world.client_id)
 
-    return con_points != ()
+        return con_points != ()
 
 
 def visible(object, camera_position_and_orientation, front_facing_axis=None, threshold=0.8, world=None):
@@ -130,6 +138,7 @@ def visible(object, camera_position_and_orientation, front_facing_axis=None, thr
     #det_world = world.copy()
     #state = p.saveState(physicsClientId=det_world.client_id)
     with Use_shadow_world():
+        state = p.saveState(physicsClientId=BulletWorld.current_bullet_world.client_id)
         for obj in BulletWorld.current_bullet_world.objects:
             if obj.name == BulletWorld.robot.name:
                 continue
@@ -145,7 +154,7 @@ def visible(object, camera_position_and_orientation, front_facing_axis=None, thr
         seg_mask = _get_images_for_target(target_point, world_T_cam, BulletWorld.current_bullet_world)[2]
         flat_list = list(itertools.chain.from_iterable(seg_mask))
         max_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
-        #p.restoreState(state, physicsClientId=det_world.client_id)
+        p.restoreState(state, physicsClientId=BulletWorld.current_bullet_world.client_id)
         if max_pixel == 0:
             # Object is not visible
             return False
@@ -154,7 +163,6 @@ def visible(object, camera_position_and_orientation, front_facing_axis=None, thr
         flat_list = list(itertools.chain.from_iterable(seg_mask))
         real_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
 
-        #det_world.exit()
         return real_pixel / max_pixel > threshold > 0
 
 
