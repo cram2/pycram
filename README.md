@@ -1,49 +1,85 @@
-# PyCRAM
+![](images/pycram_logo.png)
 
-Python 3 implementation of CRAM.
+# What is PyCRAM
+
+PyCRAM is the Python 3 re-implementation of [CRAM](https://github.com/cram2/cram).
+PyCRAM is a toolbox for designing, implementing and deploying software on autonomous robots. The framework provides various tools and libraries for aiding in robot software development as well as geometric reasoning and fast simulation mechanisms to develop cognition-enabled control programs that achieve high levels of robot autonomy. 
+
+PyCRAM is developed in Python with support for the ROS middleware which is used for communication with different software components as well as the robot. 
+
+This framework is tested with Ubuntu 20.04, ROS Noetic and Python 3.8
+
+
+## Simple Demonstartion
+PyCRAM allows the execution of the same high-level plan on different robot platforms. Below you can see an example of this where the plan is executed on the PR2 and the IAIs Boxy. 
+
+Boxy            |  PR2
+:-------------------------:|:-------------------------:
+![image alt](images/boxy.gif)  |  ![](images/pr2.gif)
+
+The plan that both robots execute is a relativly simple pick and place plan:
+* They start at the world origin 
+* park their arms 
+* move to the counter 
+* observe the object 
+* pickup the object 
+* move to the kitchen island
+* place the object 
+* move to the world origin
+
+The code for this plan can be seen below.
+```
+@with_simulated_robot
+def plan():
+    MotionDesignator(MoveArmJointsMotionDescription(left_arm_config='park',
+                right_arm_config='park')).perform()
+
+    MotionDesignator(MoveMotionDescription(target=moving_targets[robot_name]["sink"][0],
+                  orientation=moving_targets[robot_name]["sink"][1])).perform()
+
+    det_obj = MotionDesignator(DetectingMotionDescription(object_type="milk")).perform()
+
+    MotionDesignator(PickUpMotionDescription(object=milk, arm="left", grasp="front")).perform()
+
+
+    MotionDesignator(MoveMotionDescription(target=moving_targets[robot_name]["island"][0],
+                    orientation=moving_targets[robot_name]["island"][1])).perform()
+                    
+    MotionDesignator(PlaceMotionDescription(object=milk, target=[-0.9, 1, 0.93], arm="left")).perform()
+
+    MotionDesignator(MoveArmJointsMotionDescription(left_arm_config='park', 
+                        right_arm_config='park')).perform()
+
+    MotionDesignator(MoveMotionDescription(target=[0.0, 0.0, 0],
+                                            orientation=[0, 0, 0, 1])).perform()
+
+```
+
+
+
+## Installation 
+For information on installing PyCRAM please check the guid on the website:
+[Website](http://cram-system.org/pycram/installation)
+
+## Documentation
+
+The documentation for the different parts of PyCRAM can be found [here](http://cram-system.org/pycram#documentation). 
+
+
+## Tutorials 
+There are a handful of tutorials to get you started on using PyCRAM. These tutorials are:
+* [Setup your Python REPL](http://cram-system.org/tutorials/pycram/repl)
+* [Interact with the BulletWorld](http://cram-system.org/tutorials/pycram/bullet_world)
+* [Add your own robot](http://cram-system.org/tutorials/pycram/own_robot)
+ 
+
 
 ## Authors
 
+* **Jonas Dech** <jdech@uni-bremen.de>
 * **Andy Augsten** <a.augsten@uni-bremen.de>
 * **Dustin Augsten** <augsten@uni-bremen.de>
-* **Jonas Dech** <jdech@uni-bremen.de>
 * **Christopher Pollok** <cpollok@uni-bremen.de>
 * **Thomas Lipps** <tlipps@uni-bremen.de>
+* **Benjamin Alt** <benjamin.alt@uni-bremen.de>
 
-## Dependecies
-To work with the Bullet World of PyCRAM the follwing packages are required.
-* PyBullet
-* pathlib
-* numpy
-* rospkg 
-* atexit
-* urdfpy
-* graphviz 
-* urdf-parser-py
-
-### Macropy
-
-Additionally a specific fork of macropy is needed, which is already included in this repo as a submodule.
-To get this submodule just run the following commands in the Repo.
-```
-git submodule init
-```
-
-```
-git submodule update
-```
-
-## Run the Demo
-### Prerequisites
-To run the demo one needs, all files in the resources folder along with the [pr2 description](https://github.com/PR2/pr2_common/tree/melodic-devel/pr2_description) and the description of the [kitchen](https://github.com/code-iai/iai_maps/tree/master/iai_kitchen). Both descriptions should be placed in the resource directory.
-
-### Execute
-To run the demo the following command has to be executed:
-
-```
-python3 <path-to-demo-directory>/run.py
-```
-
-## Documentation
-A complete documentation for all modules of PyCRAM can be found [here](http://cram-system.org/doc#pycram). 
-There are also a list of tutorial which explain how to setup PyCRAM and how to integrate your own robot. The tutorials can be found [here](http://cram-system.org/tutorials#pycram)
