@@ -2,11 +2,12 @@ import pybullet as p
 import itertools
 import numpy as np
 import time
-from .bullet_world import _world_and_id, Object
+from .bullet_world import _world_and_id, Object, Use_shadow_world, BulletWorld
 from .ik import request_ik
 from .robot_description import InitializedRobotDescription as robot_description
 from .helper import _transform_to_torso, _apply_ik
 
+import matplotlib.pyplot as plt
 
 class ReasoningError(Exception):
     def __init__(self, *args, **kwargs):
@@ -34,7 +35,7 @@ def _get_images_for_target(target_position, cam_position, world=None, size=256):
     :param cam_position: The position of the Camera as a list of x,y,z and orientation as quaternion
     :param target_position: The position to which the camera should point as a list of x,y,z and orientation as quaternion
     :param size: The height and width of the images in pixel
-    :return: A list containing a RGB and depth image as well as a segmentation mask, in this order. 
+    :return: A list containing a RGB and depth image as well as a segmentation mask, in this order.
     """
     world, world_id = _world_and_id(world)
     # TODO: Might depend on robot cameras, if so please add these camera parameters to RobotDescription object
@@ -80,18 +81,22 @@ def stable(object, world=None):
     :return: True if the given object is stable in the world False else
     """
     world, world_id = _world_and_id(world)
-    coords_prev = p.getBasePositionAndOrientation(object.id, physicsClientId=world_id)[0]
-    state = p.saveState(physicsClientId=world_id)
-    p.setGravity(0, 0, -9.8, world_id)
+    shadow_obj = BulletWorld.current_bullet_world.get_shadow_object(object)
+    with Use_shadow_world():
+        #coords_prev = p.getBasePositionAndOrientation(object.id, physicsClientId=BulletWorld.current_bullet_world.client_id)[0]
+        coords_prev = shadow_obj.get_position()
+        state = p.saveState(physicsClientId=BulletWorld.current_bullet_world.client_id)
+        p.setGravity(0, 0, -9.8, BulletWorld.current_bullet_world.client_id)
 
-    # one Step is approximately 1/240 seconds
-    world.simulate(2)
-    coords_past = p.getBasePositionAndOrientation(object.id, physicsClientId=world_id)[0]
+        # one Step is approximately 1/240 seconds
+        BulletWorld.current_bullet_world.simulate(2)
+        #coords_past = p.getBasePositionAndOrientation(object.id, physicsClientId=world_id)[0]
+        coords_past = shadow_obj.get_position()
 
-    p.restoreState(state, physicsClientId=world_id)
-    coords_prev = list(map(lambda n: round(n, 3), coords_prev))
-    coords_past = list(map(lambda n: round(n, 3), coords_past))
-    return coords_past == coords_prev
+        #p.restoreState(state, physicsClientId=BulletWorld.current_bullet_world.client_id)
+        coords_prev = list(map(lambda n: round(n, 3), coords_prev))
+        coords_past = list(map(lambda n: round(n, 3), coords_past))
+        return coords_past == coords_prev
 
 
 def contact(object1, object2, world=None):
@@ -102,11 +107,15 @@ def contact(object1, object2, world=None):
     :param world: The BulletWorld if more than one BulletWorld is active
     :return: True if the two objects are in contact False else
     """
+    # World is the graphical BulletWorld
     world, world_id = _world_and_id(world)
-    p.stepSimulation(world_id)
-    con_points = p.getContactPoints(object1.id, object2.id, physicsClientId=world_id)
+    shadow_obj1 = world.get_shadow_object(object1)
+    shadow_obj2 = world.get_shadow_object(object2)
+    with Use_shadow_world():
+        p.stepSimulation(BulletWorld.current_bullet_world.client_id)
+        con_points = p.getContactPoints(shadow_obj1.id, shadow_obj2.id, physicsClientId=BulletWorld.current_bullet_world.client_id)
 
-    return con_points is not ()
+        return con_points != ()
 
 
 def visible(object, camera_position_and_orientation, front_facing_axis=None, threshold=0.8, world=None):
@@ -124,37 +133,37 @@ def visible(object, camera_position_and_orientation, front_facing_axis=None, thr
     :param world: The BulletWorld if more than one BulletWorld is active
     :return: True if the object is visible from the camera_position False if not
     """
-    world, world_id = _world_and_id(world)
+    #world, world_id = _world_and_id(world)
     front_facing_axis = robot_description.i.front_facing_axis if front_facing_axis == None else front_facing_axis
-    det_world = world.copy()
-    state = p.saveState(physicsClientId=det_world.client_id)
-    for obj in det_world.objects:
-        if obj.name == world.robot.name:
-            continue
-        elif object.get_position_and_orientation() == obj.get_position_and_orientation():
-            object = obj
-        else:
-            p.resetBasePositionAndOrientation(obj.id, [100, 100, 100], [0, 0, 0, 1], det_world.client_id)
+    #det_world = world.copy()
+    #state = p.saveState(physicsClientId=det_world.client_id)
+    with Use_shadow_world():
+        state = p.saveState(physicsClientId=BulletWorld.current_bullet_world.client_id)
+        for obj in BulletWorld.current_bullet_world.objects:
+            if obj.name == BulletWorld.robot.name:
+                continue
+            elif object.get_position_and_orientation() == obj.get_position_and_orientation():
+                object = obj
+            else:
+                obj.set_position_and_orientation([100, 100, 0], [0, 0, 0, 1])
 
-    world_T_cam = camera_position_and_orientation
-    cam_T_point = list(np.multiply(front_facing_axis, 2))
-    target_point = p.multiplyTransforms(world_T_cam[0], world_T_cam[1], cam_T_point, [0, 0, 0, 1])
+        world_T_cam = camera_position_and_orientation
+        cam_T_point = list(np.multiply(front_facing_axis, 2))
+        target_point = p.multiplyTransforms(world_T_cam[0], world_T_cam[1], cam_T_point, [0, 0, 0, 1])
 
-    seg_mask = _get_images_for_target(target_point, world_T_cam, det_world)[2]
-    flat_list = list(itertools.chain.from_iterable(seg_mask))
-    max_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
-    p.restoreState(state, physicsClientId=det_world.client_id)
+        seg_mask = _get_images_for_target(target_point, world_T_cam, BulletWorld.current_bullet_world)[2]
+        flat_list = list(itertools.chain.from_iterable(seg_mask))
+        max_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
+        p.restoreState(state, physicsClientId=BulletWorld.current_bullet_world.client_id)
+        if max_pixel == 0:
+            # Object is not visible
+            return False
 
-    if max_pixel == 0:
-        # Object is not visible
-        return False
+        seg_mask = _get_images_for_target(target_point, world_T_cam, BulletWorld.current_bullet_world)[2]
+        flat_list = list(itertools.chain.from_iterable(seg_mask))
+        real_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
 
-    seg_mask = _get_images_for_target(target_point, world_T_cam, world)[2]
-    flat_list = list(itertools.chain.from_iterable(seg_mask))
-    real_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
-
-    det_world.exit()
-    return real_pixel / max_pixel > threshold > 0
+        return real_pixel / max_pixel > threshold > 0
 
 
 def occluding(object, camera_position_and_orientation, front_facing_axis, world=None):
@@ -172,38 +181,41 @@ def occluding(object, camera_position_and_orientation, front_facing_axis, world=
     :return: A list of occluding objects
     """
     world, world_id = _world_and_id(world)
-    occ_world = world.copy()
-    state = p.saveState(physicsClientId=occ_world.client_id)
-    for obj in occ_world.objects:
-        if obj.name == world.robot.name:
-            continue
-        elif object.get_position_and_orientation() == obj.get_position_and_orientation():
-            object = obj
-        else:
-            p.resetBasePositionAndOrientation(obj.id, [100, 100, 100], [0, 0, 0, 1], occ_world.client_id)
+    #occ_world = world.copy()
+    #state = p.saveState(physicsClientId=occ_world.client_id)
+    with Use_shadow_world():
+        state = p.saveState(physicsClientId=BulletWorld.current_bullet_world.client_id)
+        for obj in BulletWorld.current_bullet_world.objects:
+            if obj.name == BulletWorld.robot.name:
+                continue
+            elif object.get_position_and_orientation() == obj.get_position_and_orientation():
+                object = obj
+            else:
+                obj.set_position_and_orientation([100, 100, 0], [0, 0, 0, 1])
+                #p.resetBasePositionAndOrientation(obj.id, [100, 100, 100], [0, 0, 0, 1], occ_world.client_id)
 
-    world_T_cam = camera_position_and_orientation
-    cam_T_point = list(np.multiply(front_facing_axis, 2))
-    target_point = p.multiplyTransforms(world_T_cam[0], world_T_cam[1], cam_T_point, [0, 0, 0, 1])
+        world_T_cam = camera_position_and_orientation
+        cam_T_point = list(np.multiply(front_facing_axis, 2))
+        target_point = p.multiplyTransforms(world_T_cam[0], world_T_cam[1], cam_T_point, [0, 0, 0, 1])
 
-    seg_mask = _get_images_for_target(target_point, world_T_cam, occ_world)[2]
-    pixels = []
-    for i in range(0, 256):
-        for j in range(0, 256):
-            if seg_mask[i][j] == object.id:
-                pixels.append((i, j))
-    p.restoreState(state, physicsClientId=occ_world.client_id)
+        seg_mask = _get_images_for_target(target_point, world_T_cam, BulletWorld.current_bullet_world)[2]
 
-    occluding = []
-    seg_mask = _get_images_for_target(target_point, world_T_cam, occ_world)[2]
-    for c in pixels:
-        if not seg_mask[c[0]][c[1]] == object.id:
-            occluding.append(seg_mask[c[0]][c[1]])
+        # All indices where the object that could be occluded is in the image
+        # [0] at the end is to reduce by one dimension because dstack adds an unnecessary dimension
+        pix = np.dstack((seg_mask==object.id).nonzero())[0]
 
-    occ_objects = list(set(map(lambda x: occ_world.get_object_by_id(x), occluding)))
-    occ_world.exit()
+        p.restoreState(state, physicsClientId=BulletWorld.current_bullet_world.client_id)
 
-    return occ_objects
+        occluding = []
+        seg_mask = _get_images_for_target(target_point, world_T_cam, BulletWorld.current_bullet_world)[2]
+        for c in pix:
+            if not seg_mask[c[0]][c[1]] == object.id:
+                occluding.append(seg_mask[c[0]][c[1]])
+
+        occ_objects = list(set(map(BulletWorld.current_bullet_world.get_object_by_id, occluding)))
+        occ_objects = list(map(world.get_bullet_object_for_shadow, occ_objects))
+
+        return occ_objects
 
 
 def reachable(pose, robot, gripper_name, world=None, threshold=0.01):
