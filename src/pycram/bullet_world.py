@@ -61,6 +61,10 @@ class BulletWorld:
         self.coll_callbacks = {}
         self.data_directory = [os.path.dirname(__file__) + "/../../resources"]
 
+        # Some default settings
+        self.set_gravity([0, 0, -9.8])
+        plane = Object("floor", "environment", "plane.urdf", world=self)
+
     def get_objects_by_name(self, name):
         return list(filter(lambda obj: obj.name == name, self.objects))
 
