@@ -68,7 +68,8 @@ class BulletWorld:
 
         # Some default settings
         self.set_gravity([0, 0, -9.8])
-        plane = Object("floor", "environment", "plane.urdf", world=self)
+        if not is_shadow_world:
+            plane = Object("floor", "environment", "plane.urdf", world=self)
 
     def get_objects_by_name(self, name):
         return list(filter(lambda obj: obj.name == name, self.objects))
@@ -113,7 +114,8 @@ class BulletWorld:
                 time.sleep(0.004167)
 
     def exit(self):
-        #BulletWorld.current_bullet_world = self.last_bullet_world
+        # True if this is NOT the shadow world since it has a reference to the
+        # Shadow world
         if self.shadow_world:
             self.world_sync.terminate = True
             self.world_sync.join()
@@ -272,12 +274,14 @@ class World_Sync(threading.Thread):
                 o = Object(obj[0], obj[1], obj[2], obj[3], obj[4], obj[5], obj[6])
                 # Maps the BulletWorld object to the shadow world object
                 self.object_mapping[obj[7]] = o
+                self.add_obj_queue.task_done()
             for i in range(self.remove_obj_queue.qsize()):
                 obj = self.remove_obj_queue.get()
                 # Get shadow world object reference from object mapping
                 shaow_obj = self.object_mapping[obj]
                 shadow_obj.remove()
                 del self.object_mapping[obj]
+                self.remove_obj_queue.task_done()
 
             for bulletworld_obj, shadow_obj in self.object_mapping.items():
                 shadow_obj.set_position(bulletworld_obj.get_position())
@@ -288,9 +292,9 @@ class World_Sync(threading.Thread):
                     for joint_name in bulletworld_obj.joints.keys():
                         shadow_obj.set_joint_state(joint_name, bulletworld_obj.get_joint_state(joint_name))
 
+
             self.check_for_pause()
             time.sleep(0.1)
-
         self.add_obj_queue.join()
         self.remove_obj_queue.join()
 
