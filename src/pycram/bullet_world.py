@@ -508,7 +508,7 @@ def _load_object(name, path, position, orientation, world, color, ignoreCachedFi
         elif extension == ".urdf":
             with open(path, mode="r") as f:
                 urdf_string = f.read()
-            path = cach_dir +  pa.name
+            path = cach_dir + pa.name
             with open(path, mode="w") as f:
                 try:
                     f.write(_correct_urdf_string(urdf_string))
@@ -517,7 +517,7 @@ def _load_object(name, path, position, orientation, world, color, ignoreCachedFi
                     raise e
         else: # Using the urdf from the parameter server
             urdf_string = rospy.get_param(path)
-            path = cach_dir +  name + ".urdf"
+            path = cach_dir + name + ".urdf"
             with open(path, mode="w") as f:
                 f.write(_correct_urdf_string(urdf_string))
     # save correct path in case the file is already in the cache directory
@@ -552,7 +552,9 @@ def _is_cached(path, name, cach_dir):
     p = pathlib.Path(cach_dir + file_name)
     if p.exists():
         return True
-    p = pathlib.Path(cach_dir + name + ".urdf")
+    # Returns filename without the filetype, e.g. returns "test" for "test.txt"
+    file_stem = pathlib.Path(path).stem
+    p = pathlib.Path(cach_dir + file_stem + ".urdf")
     if p.exists():
         return True
     return False
@@ -590,7 +592,7 @@ def _generate_urdf_file(name, path, color, cach_dir):
     :return: The name of the generated .urdf file
     """
     urdf_template = '<?xml version="0.0" ?> \n \
-                        <robot name="~a"> \n \
+                        <robot name="~a_object"> \n \
                          <link name="~a_main"> \n \
                             <visual> \n \
                                 <geometry>\n \
@@ -608,11 +610,12 @@ def _generate_urdf_file(name, path, color, cach_dir):
                         </link> \n \
                         </robot>'
     rgb = " ".join(list(map(str, color)))
-    path = str(pathlib.Path(path).resolve())
+    pathlib_obj = pathlib.Path(path)
+    path = str(pathlib_obj.resolve())
     content = urdf_template.replace("~a", name).replace("~b", path).replace("~c", rgb)
-    with open(cach_dir + name + ".urdf", "w", encoding="utf-8") as file:
+    with open(cach_dir + pathlib_obj.stem + ".urdf", "w", encoding="utf-8") as file:
         file.write(content)
-    return cach_dir + name + ".urdf"
+    return cach_dir + pathlib_obj.stem + ".urdf"
 
 
 def _world_and_id(world):
