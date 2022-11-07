@@ -455,6 +455,9 @@ class Object:
         return contact_points
 
     def get_AABB(self, link_name):
+        """
+        Returns the axis aligned bounding box of the given link name
+        """
         return p.getAABB(self.id, self.links[link_name], self.world.client_id)
 
 def filter_contact_points(contact_points, exclude_ids):
