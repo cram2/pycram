@@ -417,20 +417,20 @@ class VisibilityCostmap(Costmap):
         :return: A list of four depth images, the images are represented as 2D arrays.
         """
         #object_pose = self.object.get_position_and_orientation()
-        im_world = self._create_image_world()
+        #im_world = self._create_image_world()
         images = []
         camera_pose = [self.origin, [0, 0, 0, 1]]
 
-        images.append(_get_images_for_target([[self.origin[0], self.origin[1] +1, self.origin[2]], [0, 0, 0, 1]],camera_pose, im_world, size=self.size )[1])
+        images.append(_get_images_for_target([[self.origin[0], self.origin[1] +1, self.origin[2]], [0, 0, 0, 1]],camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
 
-        images.append(_get_images_for_target([[self.origin[0] -1, self.origin[1], self.origin[2]], [0, 0, 0, 1]], camera_pose, im_world, size=self.size )[1])
+        images.append(_get_images_for_target([[self.origin[0] -1, self.origin[1], self.origin[2]], [0, 0, 0, 1]], camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
 
-        images.append(_get_images_for_target([[self.origin[0], self.origin[1] -1, self.origin[2]], [0, 0, 0, 1]],camera_pose, im_world, size=self.size )[1])
+        images.append(_get_images_for_target([[self.origin[0], self.origin[1] -1, self.origin[2]], [0, 0, 0, 1]],camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
 
-        images.append(_get_images_for_target([[self.origin[0] +1, self.origin[1], self.origin[2]], [0, 0, 0, 1]], camera_pose, im_world, size=self.size )[1])
+        images.append(_get_images_for_target([[self.origin[0] +1, self.origin[1], self.origin[2]], [0, 0, 0, 1]], camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
 
         # images [0] = depth, [1] = seg_mask
-        im_world.exit()
+        #im_world.exit()
         for i in range(0, 4):
             images[i] = self._depth_buffer_to_meter(images[i])
         return images
@@ -445,24 +445,6 @@ class VisibilityCostmap(Costmap):
         far = 100
         return far * near / (far - (far-near)*buffer)
 
-    def _create_image_world(self):
-        """
-        Creates a new BulletWorld which is used for creating the depth images.
-        From the new Bullet World the robot and, if the costmap is created for an
-        object, this is also removed.
-        :return: The reference to the new BulletWorld
-        """
-        world = self.world.copy()
-        for obj in world.objects:
-            if obj.get_position() == self.origin:
-                obj.remove()
-        # for obj in world.objects:
-        #     if BulletWorld.robot != None and obj.name == BulletWorld.robot.name \
-        #         and obj.type == BulletWorld.robot.type:
-        #         obj.remove
-        #     if obj.get_position() == self.origin:
-        #         obj.remove
-        return world
 
     def _generate_map(self):
         """
@@ -624,11 +606,18 @@ class SemanticCostmap(Costmap):
 
     def generate_map(self):
         link_position = self.object.get_link_position(self.link)
-        min, max = self.object.get_AABB(self.link)
+        min, max = self.get_aabb_for_link()
         self.height = int((max[0] - min[0]) / self.resolution)
         self.width = int((max[1] - min[1]) / self.resolution)
         self.map = np.ones((self.height, self.width))
         self.origin = [self.origin[0], self.origin[1], max[2] + 0.05]
+
+    def get_aabb_for_link(self):
+        self.object.set_orientation([0, 0, 0, 1])
+        link_orientation = self.object.get_link_orientation(self.link)
+        inverse_orientation = p.invertTransform([0, 0, 0], link_orientation)[1]
+        self.object.set_orientation(inverse_orientation)
+        return self.object.get_AABB(self.link)
 
 cmap = colors.ListedColormap(['white', 'black', 'green', 'red', 'blue'])
 
