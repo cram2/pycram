@@ -5,6 +5,11 @@ import re
 import rospy
 #from ros_pycram.rosbridge import ros_client
 
+logger = logging.getLogger(__name__)
+from pycram import ch
+#logger.addHandler(ch)
+logger.setLevel(logging.DEBUG)
+
 class ChainDescription:
     """
     This class saves a kinematic chain by saving the links and the joints.
@@ -38,7 +43,7 @@ class ChainDescription:
         """
         for configuration, joint_states in static_joint_states.items():
             if not self.add_static_joint_chain(configuration, joint_states):
-                logging.error("(robot_description) Could not add all static_joint_states for the chain %s.", self.name)
+                logger.error("(robot_description) Could not add all static_joint_states for the chain %s.", self.name)
                 break
 
     def add_static_joint_chain(self, configuration, static_joint_states):
@@ -58,10 +63,10 @@ class ChainDescription:
                     self.static_joint_states[configuration] = static_joint_states
                     return True
                 else:
-                    logging.warning("(robot_description) The chain %s already has static joint values "
+                    logger.warning("(robot_description) The chain %s already has static joint values "
                             "for the config %s.", self.name, configuration)
             else:
-                logging.error("(robot_description) The number of the joint values does not equal the amount of the joints"
+                logger.error("(robot_description) The number of the joint values does not equal the amount of the joints"
                        "for the chain %s.", self.name)
 
     def get_static_joint_chain(self, configuration):
@@ -75,7 +80,7 @@ class ChainDescription:
         try:
             joint_values = self.static_joint_states[configuration]
         except KeyError:
-            logging.error("(robot_description) Configuration %s is unknown for the chain %s.", configuration, self.name)
+            logger.error("(robot_description) Configuration %s is unknown for the chain %s.", configuration, self.name)
             return None
         return dict(zip(self.joints, joint_values))
 
@@ -244,7 +249,7 @@ class RobotDescription:
             chain_description = self.chains[chain_name]
         except KeyError:
             if verbose:
-                logging.warning("(robot_description) Chain name %s is unknown.", chain_name)
+                logger.warning("(robot_description) Chain name %s is unknown.", chain_name)
             return None
         return chain_description
 
@@ -265,10 +270,10 @@ class RobotDescription:
                 if type(chain_description) is description_type:
                     return chain_description
                 else:
-                    logging.error("(robot_description) The chain %s is not of type %s, but of type %s.",
+                    logger.error("(robot_description) The chain %s is not of type %s, but of type %s.",
                            chain_name, description_type, type(chain_description))
         else:
-            logging.warning("(robot_description) Only subclasses of ChainDescription are allowed.")
+            logger.warning("(robot_description) Only subclasses of ChainDescription are allowed.")
 
     def get_tool_frame(self, manipulator_name: str):
         """
@@ -280,7 +285,7 @@ class RobotDescription:
         if manipulator_description:
             return manipulator_description.tool_frame
         else:
-            logging.error("(robot_description) Could not get the tool frame of the manipulator %s.", manipulator_name)
+            logger.error("(robot_description) Could not get the tool frame of the manipulator %s.", manipulator_name)
 
     def get_static_joint_chain(self, chain_name: str, configuration: str):
         """
@@ -292,7 +297,7 @@ class RobotDescription:
         if chain_description:
             return chain_description.get_static_joint_chain(configuration)
         else:
-            logging.error("(robot_description) Could not get static joint chain called %s of the chain %s.",
+            logger.error("(robot_description) Could not get static joint chain called %s of the chain %s.",
                    configuration, chain_name)
 
     def get_static_tf(self, base_link: str, target_link: str):
@@ -308,11 +313,11 @@ class RobotDescription:
         """
         if issubclass(type(chain_description), ChainDescription):
             if self._safely_access_chains(name, verbose=False):
-                logging.warning("(robot_description) Replacing the chain description of the name %s.", name)
+                logger.warning("(robot_description) Replacing the chain description of the name %s.", name)
             self.chains[name] = chain_description
             return True
         else:
-            logging.error("(robot_description) Given chain_description object is no subclass of ChainDescription.")
+            logger.error("(robot_description) Given chain_description object is no subclass of ChainDescription.")
 
     def add_chains(self, chains_dict):
         """
@@ -324,7 +329,7 @@ class RobotDescription:
         """
         for name, chain in chains_dict.items():
             if not self.add_chain(name, chain):
-                logging.error("(robot_description) Could not add the chain object of name %s.", name)
+                logger.error("(robot_description) Could not add the chain object of name %s.", name)
                 break
 
     def add_camera(self, name: str, camera_description: CameraDescription):
@@ -339,11 +344,11 @@ class RobotDescription:
             except KeyError:
                 found = False
             if found:
-                logging.warning("(robot_description) Replacing the camera description of the name %s.", name)
+                logger.warning("(robot_description) Replacing the camera description of the name %s.", name)
             self.cameras[name] = camera_description
             return True
         else:
-            logging.error("(robot_description) Given camera_description object is not of type CameraDescription.")
+            logger.error("(robot_description) Given camera_description object is not of type CameraDescription.")
 
     def add_cameras(self, cameras_dict):
         """
@@ -355,7 +360,7 @@ class RobotDescription:
         """
         for name, camera in cameras_dict.items():
             if not self.add_camera(name, camera):
-                logging.error("(robot_description) Could not add the camera object of name %s.", name)
+                logger.error("(robot_description) Could not add the camera object of name %s.", name)
                 break
 
     def get_camera_frame(self, camera_name):
@@ -367,7 +372,7 @@ class RobotDescription:
         try:
             camera_description = self.cameras[camera_name]
         except KeyError:
-            logging.error("(robot_description) Camera name %s is unknown.", camera_name)
+            logger.error("(robot_description) Camera name %s is unknown.", camera_name)
             return None
         return camera_description.frame
 
@@ -390,7 +395,7 @@ class RobotDescription:
         """
         for configuration, joint_states in static_joint_states.items():
             if not self.add_static_joint_chain(chain_name, configuration, joint_states):
-                logging.error("(robot_description) Could not add the static joint chain called %s for chain %s.",
+                logger.error("(robot_description) Could not add the static joint chain called %s for chain %s.",
                        configuration, chain_name)
                 break
 
@@ -417,7 +422,7 @@ class RobotDescription:
         """
         for configuration, joint_states in static_joint_states.items():
             if not self.add_static_gripper_chain(manipulator_name, configuration, joint_states):
-                logging.error("(robot_description) Could not add static gripper chain called %s for manipulator chain %s.",
+                logger.error("(robot_description) Could not add static gripper chain called %s for manipulator chain %s.",
                        configuration, manipulator_name)
                 break
 
@@ -820,7 +825,7 @@ class InitializedRobotDescription():
                 InitializedRobotDescription.current_description_loaded is not robot_description:
             InitializedRobotDescription.current_description_loaded = robot_description
             InitializedRobotDescription.i = robot_description()
-            logging.info("(robot-description) (Re)Loaded Description of robot %s.", self.i.name)
+            logger.info("(robot-description) (Re)Loaded Description of robot %s.", self.i.name)
 
 
 def update_robot_description(robot_name=None, from_ros=None):
@@ -831,7 +836,7 @@ def update_robot_description(robot_name=None, from_ros=None):
         try:
             urdf = rospy.get_param('robot_description')
         except Exception as e:
-            logging.error("(robot-description) Could not get robot name from parameter server. Try again.")
+            logger.error("(robot-description) Could not get robot name from parameter server. Try again.")
             return None
         res = re.findall(r"robot\ *name\ *=\ *\"\ *[a-zA-Z_0-9]*\ *\"", urdf)
         if len(res) == 1:
@@ -853,7 +858,7 @@ def update_robot_description(robot_name=None, from_ros=None):
     elif "ur5_robotiq" in robot:
         description = UR5RobotiqDescription
     else:
-        logging.error("(robot-description) The given robot name %s has no description class.", robot_name)
+        logger.error("(robot-description) The given robot name %s has no description class.", robot_name)
         return None
     return InitializedRobotDescription(description)
 

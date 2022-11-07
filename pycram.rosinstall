@@ -2,19 +2,15 @@ repositories:
   iai_maps:
     type: git
     url: git@github.com:code-iai/iai_maps.git
-    version: dm_room-gazebo
+    version: master
   iai_robots:
     type: git
     url: git@github.com:code-iai/iai_robots.git
-    version: boxy-noetic
-  knowrob:
-    type: git
-    url: git@github.com:knowrob/knowrob.git
     version: master
   pycram:
     type: git
     url: git@github.com:cram2/pycram.git
-    version: master
+    version: dev
   pr2_common:
     type: git
     url: git@github.com:PR2/pr2_common.git
@@ -22,4 +18,4 @@ repositories:
   kdl_ik_services:
     type: git
     url: git@github.com:cram2/kdl_ik_service.git
-    verison: c0f58a9986670f6568c19b051ce6acc3c2eef878
+    verison: master
