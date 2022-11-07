@@ -55,11 +55,7 @@ class BulletWorld:
         # files that can not be loaded
         p.setPhysicsEngineParameter(enableFileCaching=0)
         time.sleep(1) # 0.1
-<<<<<<< HEAD
-        self.last_bullet_world = BulletWorld.current_bullet_world
-=======
         #self.last_bullet_world = BulletWorld.current_bullet_world
->>>>>>> d14a696b75cd86205bec2773a17a6ee3ea248ab5
         if BulletWorld.current_bullet_world == None:
             BulletWorld.current_bullet_world = self
         self.vis_axis = None
@@ -231,7 +227,7 @@ class BulletWorld:
         world an error will be logged.
         :param object: The object for which the corresponding object in the
             main Bullet World should be found
-        :return: The object in the main Bullet World 
+        :return: The object in the main Bullet World
         """
         map = self.world_sync.object_mapping
         try:

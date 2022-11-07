@@ -4,7 +4,7 @@ import rospy
 import psutil
 import time
 from pycram.robot_description import InitializedRobotDescription as robot_description
-from .bullet_world import BulletWorld
+from .bullet_world import BulletWorld, Use_shadow_world
 from .bullet_world_reasoning import _get_images_for_target
 from .ik import request_ik, IKError
 from nav_msgs.msg import OccupancyGrid, MapMetaData
@@ -83,9 +83,12 @@ class Costmap():
             link_joint_axis = [[1, 0, 0] for c in cell_parts]
             # The position at which the multibody will be spawned. Offset such that
             # the origin referes to the centre of the costmap.
-            base_pose = [self.origin[0] + self.height/2*self.resolution, self.origin[1] + self.width / 2*self.resolution, self.origin[2]]
+            origin_pose = self.origin[0]
+            base_pose = [origin_pose[0] + self.height/2*self.resolution, origin_pose[1] + self.width / 2*self.resolution, origin_pose[2]]
+            #base_pose = self.origin[0]
+            print(base_pose)
             map_obj = p.createMultiBody(baseVisualShapeIndex=-1, linkVisualShapeIndices=cell_parts,
-                basePosition=base_pose, baseOrientation=[0, 0, 1, 0], linkPositions=link_poses,
+                basePosition=base_pose, baseOrientation=self.origin[1], linkPositions=link_poses, # [0, 0, 1, 0]
                 linkMasses=link_masses, linkOrientations=link_orientations,
                 linkInertialFramePositions=link_poses,
                 linkInertialFrameOrientations=link_orientations,linkParentIndices=link_parent,
@@ -592,13 +595,15 @@ class GaussianCostmap(Costmap):
         return w
 
 class SemanticCostmap(Costmap):
-    def __init__(self, object, urdf_link_name, resolution, world):
+    def __init__(self, object, urdf_link_name, size=100, resolution=0.02, origin=[0, 0, 0], world=None):
+        self.world = world if world else BulletWorld.current_bullet_world
         self.object = object
         self.link = urdf_link_name
         self.resolution = resolution
-        self.origin = object.get_link_position(urdf_link_name)
+        self.origin = object.get_link_position_and_orientation(urdf_link_name)
         self.height = 0
         self.width = 0
+        self.map = []
         self.generate_map()
 
         Costmap.__init__(self, resolution, self.height, self.width, self.origin, self.map)
@@ -607,17 +612,20 @@ class SemanticCostmap(Costmap):
     def generate_map(self):
         link_position = self.object.get_link_position(self.link)
         min, max = self.get_aabb_for_link()
+        print(min, max)
         self.height = int((max[0] - min[0]) / self.resolution)
         self.width = int((max[1] - min[1]) / self.resolution)
         self.map = np.ones((self.height, self.width))
         self.origin = [self.origin[0], self.origin[1], max[2] + 0.05]
 
     def get_aabb_for_link(self):
-        self.object.set_orientation([0, 0, 0, 1])
-        link_orientation = self.object.get_link_orientation(self.link)
-        inverse_orientation = p.invertTransform([0, 0, 0], link_orientation)[1]
-        self.object.set_orientation(inverse_orientation)
-        return self.object.get_AABB(self.link)
+        shadow_obj = BulletWorld.current_bullet_world.get_shadow_object(self.object)
+        with Use_shadow_world():
+            shadow_obj.set_orientation([0, 0, 0, 1])
+            link_orientation = shadow_obj.get_link_orientation(self.link)
+            inverse_orientation = p.invertTransform([0, 0, 0], link_orientation)[1]
+            shadow_obj.set_orientation(inverse_orientation)
+            return shadow_obj.get_AABB(self.link)
 
 cmap = colors.ListedColormap(['white', 'black', 'green', 'red', 'blue'])
 
