@@ -14,6 +14,7 @@ import pathlib
 import logging
 import rospkg
 import re
+from queue import Queue
 
 #from ros.rosbridge import ros_client
 import rospy
@@ -34,7 +35,7 @@ class BulletWorld:
     robot = None
     rospy.init_node('pycram')
 
-    def __init__(self, type="GUI"):
+    def __init__(self, type="GUI", is_shadow_world=False):
         """
         The constructor initializes a new simulation. The parameter decides if the Simulation should be graphical or
         non-graphical. It can only exist one graphical simulation at the time, but an arbitrary amount of non-graphical.
@@ -54,12 +55,26 @@ class BulletWorld:
         # files that can not be loaded
         p.setPhysicsEngineParameter(enableFileCaching=0)
         time.sleep(1) # 0.1
+<<<<<<< HEAD
         self.last_bullet_world = BulletWorld.current_bullet_world
+=======
+        #self.last_bullet_world = BulletWorld.current_bullet_world
+>>>>>>> d14a696b75cd86205bec2773a17a6ee3ea248ab5
         if BulletWorld.current_bullet_world == None:
             BulletWorld.current_bullet_world = self
         self.vis_axis = None
         self.coll_callbacks = {}
         self.data_directory = [os.path.dirname(__file__) + "/../../resources"]
+        self.shadow_world = BulletWorld("DIRECT", True) if not is_shadow_world else None
+        self.world_sync = World_Sync(self, self.shadow_world) if not is_shadow_world else None
+        self.is_shadow_world = is_shadow_world
+        if not is_shadow_world:
+            self.world_sync.start()
+
+        # Some default settings
+        self.set_gravity([0, 0, -9.8])
+        if not is_shadow_world:
+            plane = Object("floor", "environment", "plane.urdf", world=self)
 
     def get_objects_by_name(self, name):
         return list(filter(lambda obj: obj.name == name, self.objects))
@@ -104,9 +119,18 @@ class BulletWorld:
                 time.sleep(0.004167)
 
     def exit(self):
-        BulletWorld.current_bullet_world = self.last_bullet_world
+        # True if this is NOT the shadow world since it has a reference to the
+        # Shadow world
+        if self.shadow_world:
+            self.world_sync.terminate = True
+            self.world_sync.join()
+            self.shadow_world.exit()
         p.disconnect(self.client_id)
-        self._gui_thread.join()
+        if self._gui_thread:
+            self._gui_thread.join()
+        if BulletWorld.current_bullet_world == self:
+            BulletWorld.current_bullet_world = None
+
 
     def save_state(self):
         """
@@ -189,10 +213,115 @@ class BulletWorld:
     def add_additional_resource_path(self, path):
         self.data_directory.append(path)
 
+    def get_shadow_object(self, object):
+        """
+        Returns the corresponding object from the shadow world for the given object.
+        :param object: The object for which the shadow worlds object should be returned.
+        :return: The corresponding object in the shadow world.
+        """
+        try:
+            return self.world_sync.object_mapping[object]
+        except KeyError:
+            rospy.logerr("Given object is not in the main Bullet World")
+
+    def get_bullet_object_for_shadow(self,object):
+        """
+        Returns the corresponding object from the main Bullet World for a given
+        object in the shadow world. If the  given object is not in the shadow
+        world an error will be logged.
+        :param object: The object for which the corresponding object in the
+            main Bullet World should be found
+        :return: The object in the main Bullet World 
+        """
+        map = self.world_sync.object_mapping
+        try:
+            return list(map.keys())[list(map.values()).index(object)]
+        except ValueError:
+            rospy.logerr("The given object is not in the shadow world")
 
 
 
-current_bullet_world = BulletWorld.current_bullet_world
+#current_bullet_world = BulletWorld.current_bullet_world
+
+class Use_shadow_world():
+    def __init__(self):
+        self.prev_world = None
+    def __enter__(self):
+        self.prev_world = BulletWorld.current_bullet_world
+        BulletWorld.current_bullet_world.world_sync.pause_sync = True
+        BulletWorld.current_bullet_world = BulletWorld.current_bullet_world.shadow_world
+    def __exit__(self, *args):
+        BulletWorld.current_bullet_world = self.prev_world
+        BulletWorld.current_bullet_world.world_sync.pause_sync = False
+
+
+class World_Sync(threading.Thread):
+    """
+    This class synchronizes the state between the BulletWorld and its shadow world.
+    Meaning the cartesian and joint position of everything the shadow world will be
+    synchronized with the BulletWorld.
+    Addding and removing objects is done via queues, such that loading times of objects
+    in the shadow world does not affect the BulletWorld.
+    The class provides the possibility to pause the synchronization, this can be used
+    if reasoning should be done in the shadow world to guarantee a consistant state.
+    """
+    def __init__(self, world, shadow_world):
+        threading.Thread.__init__(self)
+        self.world = world
+        self.shadow_world = shadow_world
+        self.shadow_world.world_sync = self
+
+        self.terminate = False
+        self.add_obj_queue = Queue()
+        self.remove_obj_queue = Queue()
+        self.pause_sync = False
+        # Maps bullet to shadow world objects
+        self.object_mapping = {}
+
+
+    def run(self):
+        """
+        The main method of the synchronization, this thread runs in a loop until the
+        terminate flag is set.
+        While this loop runs it contilously checks the cartesian and joint position of
+        every object in the BulletWorld and updates the corresponding object in the
+        shadow world.
+        """
+        while not self.terminate:
+            self.check_for_pause()
+            for i in range(self.add_obj_queue.qsize()):
+                obj = self.add_obj_queue.get()
+                # [name, type, path, position, orientation, self.world.shadow_world, color, bulletworld object]
+                o = Object(obj[0], obj[1], obj[2], obj[3], obj[4], obj[5], obj[6])
+                # Maps the BulletWorld object to the shadow world object
+                self.object_mapping[obj[7]] = o
+                self.add_obj_queue.task_done()
+            for i in range(self.remove_obj_queue.qsize()):
+                obj = self.remove_obj_queue.get()
+                # Get shadow world object reference from object mapping
+                shaow_obj = self.object_mapping[obj]
+                shadow_obj.remove()
+                del self.object_mapping[obj]
+                self.remove_obj_queue.task_done()
+
+            for bulletworld_obj, shadow_obj in self.object_mapping.items():
+                shadow_obj.set_position(bulletworld_obj.get_position())
+                shadow_obj.set_orientation(bulletworld_obj.get_orientation())
+
+                # Manage joint positions
+                if len(bulletworld_obj.joints) > 2:
+                    for joint_name in bulletworld_obj.joints.keys():
+                        shadow_obj.set_joint_state(joint_name, bulletworld_obj.get_joint_state(joint_name))
+
+
+            self.check_for_pause()
+            time.sleep(0.1)
+        self.add_obj_queue.join()
+        self.remove_obj_queue.join()
+
+    def check_for_pause(self):
+        while self.pause_sync:
+            time.sleep(0.1)
 
 
 class Gui(threading.Thread):
@@ -245,12 +374,15 @@ class Object:
         self.type = type
         #self.path = path
         self.color = color
-        self.id, self.path = _load_object(name, path, position, orientation, world, color, ignoreCachedFiles)
+        self.id, self.path = _load_object(name, path, position, orientation, self.world, color, ignoreCachedFiles)
         self.joints = self._joint_or_link_name_to_id("joint")
         self.links = self._joint_or_link_name_to_id("link")
         self.attachments = {}
         self.cids = {}
         self.world.objects.append(self)
+        # This means "world" is not the shadow world since it has a reference to a shadow world
+        if self.world.shadow_world != None:
+            self.world.world_sync.add_obj_queue.put([name, type, path, position, orientation, self.world.shadow_world, color, self])
 
         if re.search("[a-zA-Z0-9].urdf", self.path):
             with open(self.path, mode="r") as f:
@@ -270,8 +402,12 @@ class Object:
         for obj in self.attachments.keys():
             self.detach(obj)
         self.world.objects.remove(self)
+        # This means the current world of the object is not the shaow world, since it
+        # has a reference to the shadow world
+        if self.world.shadow_world != None:
+            self.world.world_sync.remove_obj_queue.put(self)
         p.removeBody(self.id, physicsClientId=self.world.client_id)
-        self.world.objects.remove(self)
+
 
     def attach(self, object, link=None, loose=False):
         """
@@ -514,7 +650,7 @@ def _load_object(name, path, position, orientation, world, color, ignoreCachedFi
         elif extension == ".urdf":
             with open(path, mode="r") as f:
                 urdf_string = f.read()
-            path = cach_dir +  pa.name
+            path = cach_dir + pa.name
             with open(path, mode="w") as f:
                 try:
                     f.write(_correct_urdf_string(urdf_string))
@@ -523,7 +659,7 @@ def _load_object(name, path, position, orientation, world, color, ignoreCachedFi
                     raise e
         else: # Using the urdf from the parameter server
             urdf_string = rospy.get_param(path)
-            path = cach_dir +  name + ".urdf"
+            path = cach_dir + name + ".urdf"
             with open(path, mode="w") as f:
                 f.write(_correct_urdf_string(urdf_string))
     # save correct path in case the file is already in the cache directory
@@ -558,7 +694,9 @@ def _is_cached(path, name, cach_dir):
     p = pathlib.Path(cach_dir + file_name)
     if p.exists():
         return True
-    p = pathlib.Path(cach_dir + name + ".urdf")
+    # Returns filename without the filetype, e.g. returns "test" for "test.txt"
+    file_stem = pathlib.Path(path).stem
+    p = pathlib.Path(cach_dir + file_stem + ".urdf")
     if p.exists():
         return True
     return False
@@ -596,7 +734,7 @@ def _generate_urdf_file(name, path, color, cach_dir):
     :return: The name of the generated .urdf file
     """
     urdf_template = '<?xml version="0.0" ?> \n \
-                        <robot name="~a"> \n \
+                        <robot name="~a_object"> \n \
                          <link name="~a_main"> \n \
                             <visual> \n \
                                 <geometry>\n \
@@ -614,11 +752,12 @@ def _generate_urdf_file(name, path, color, cach_dir):
                         </link> \n \
                         </robot>'
     rgb = " ".join(list(map(str, color)))
-    path = str(pathlib.Path(path).resolve())
+    pathlib_obj = pathlib.Path(path)
+    path = str(pathlib_obj.resolve())
     content = urdf_template.replace("~a", name).replace("~b", path).replace("~c", rgb)
-    with open(cach_dir + name + ".urdf", "w", encoding="utf-8") as file:
+    with open(cach_dir + pathlib_obj.stem + ".urdf", "w", encoding="utf-8") as file:
         file.write(content)
-    return cach_dir + name + ".urdf"
+    return cach_dir + pathlib_obj.stem + ".urdf"
 
 
 def _world_and_id(world):

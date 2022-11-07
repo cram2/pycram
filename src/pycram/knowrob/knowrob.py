@@ -7,8 +7,12 @@ import sys
 SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(os.path.join(SCRIPT_DIR, os.pardir, os.pardir, "neem-interface", "src"))
 
-from neem_interface_python.neem_interface import NEEMInterface
-from neem_interface_python.rosprolog_client import Prolog, PrologException
+import rosservice
+if 'rosprolog/query' in rosservice.get_service_list():
+    from neem_interface_python.neem_interface import NEEMInterface
+    from neem_interface_python.rosprolog_client import Prolog, PrologException
+else:
+    logging.warning("No KnowRob services found, knowrob is not available")
 
 neem_interface = NEEMInterface()
 prolog = Prolog()
