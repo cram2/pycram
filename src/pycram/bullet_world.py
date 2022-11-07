@@ -63,6 +63,7 @@ class BulletWorld:
         self.data_directory = [os.path.dirname(__file__) + "/../../resources"]
         self.shadow_world = BulletWorld("DIRECT", True) if not is_shadow_world else None
         self.world_sync = World_Sync(self, self.shadow_world) if not is_shadow_world else None
+        self.is_shadow_world = is_shadow_world
         if not is_shadow_world:
             self.world_sync.start()
 
@@ -214,11 +215,25 @@ class BulletWorld:
         :param object: The object for which the shadow worlds object should be returned.
         :return: The corresponding object in the shadow world.
         """
-        return self.world_sync.object_mapping[object]
+        try:
+            return self.world_sync.object_mapping[object]
+        except KeyError:
+            rospy.logerr("Given object is not in the main Bullet World")
 
     def get_bullet_object_for_shadow(self,object):
+        """
+        Returns the corresponding object from the main Bullet World for a given
+        object in the shadow world. If the  given object is not in the shadow
+        world an error will be logged.
+        :param object: The object for which the corresponding object in the
+            main Bullet World should be found
+        :return: The object in the main Bullet World 
+        """
         map = self.world_sync.object_mapping
-        return list(map.keys())[list(map.values()).index(object)]
+        try:
+            return list(map.keys())[list(map.values()).index(object)]
+        except ValueError:
+            rospy.logerr("The given object is not in the shadow world")
 
 
 
@@ -250,6 +265,8 @@ class World_Sync(threading.Thread):
         threading.Thread.__init__(self)
         self.world = world
         self.shadow_world = shadow_world
+        self.shadow_world.world_sync = self
+
         self.terminate = False
         self.add_obj_queue = Queue()
         self.remove_obj_queue = Queue()
