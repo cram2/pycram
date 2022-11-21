@@ -10,24 +10,29 @@ from giskard_msgs.srv import UpdateWorldRequest, WorldBody
 giskard_wrapper = GiskardWrapper()
 giskard_update_service = rospy.ServiceProxy("/giskard/update_world", UpdateWorld)
 
+
+""" Belive state managment betwenn pycram and giskard """
+
+def initial_adding_objects():
+    groups = giskard_wrapper.get_group_names()
+    for obj in BulletWorld.current_bullet_world.objects:
+        name = obj.name + "_" + str(id)
+        if name not in groups:
+            spawn_object(obj)
+
 def sync_worlds():
+    initial_adding_objects()
     for obj in BulletWorld.current_bullet_world.objects:
         if obj == BulletWorld.robot:
             continue
         update_pose(obj)
 
 def update_pose(object):
-    msg = UpdateWorldRequest()
-    msg.operation = UpdateWorldRequest.UPDATE_POSE
-    msg.group_name = objet.name
-    msg.body = make_world_body(object)
-    msg.pose = make_pose_stamped(object.get_position_and_orientation())
-    msg.timeout = 2
-
-    return giskard_update_service.call(msg)
+    return giskard_wrapper.update_group_pose(objet.name + "_" + str(object.id), \
+            make_pose_stamped(object.get_position_and_orientation()))
 
 def spawn_object(object):
-    spawn_urdf(object.name, object.path, object.get_position_and_orientation())
+    spawn_urdf(object.name + "_" + str(object.id), object.path, object.get_position_and_orientation())
 
 def spawn_urdf(name, urdf_path, pose):
     urdf_string = ""
@@ -37,13 +42,20 @@ def spawn_urdf(name, urdf_path, pose):
 
     return giskard_wrapper.add_urdf(name, urdf_sting, pose_stamped, "map")
 
+""" Sending Goals to Giskard """
+
 def achive_joint_goal(joint, position):
+    sync_worlds()
     giskard_wrapper.set_joint_goal({joint: position})
     return giskard_wrapper.plan_and_exeute()
 
 def achive_cartisan_goal(goal_pose, tip_link, root_link):
+    sync_worlds()
     giskard_wrapper.set_cart_goal(make_pose_stamped(goal_pose), tip_link, root_link)
     return giskard_wrapper.plan_and_exeute()
+
+
+""" Creating ROS messages """
 
 def make_world_body(object):
     urdf_string = ""
