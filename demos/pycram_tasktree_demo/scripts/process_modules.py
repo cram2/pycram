@@ -1,4 +1,4 @@
-from pycram.process_module import ProcessModule
+from pycram.process_modules.process_module import ProcessModule
 from pycram.bullet_world import BulletWorld
 from pycram.helper import transform
 import pycram.bullet_world_reasoning as btr

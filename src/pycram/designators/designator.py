@@ -10,7 +10,7 @@ from copy import copy
 from inspect import isgenerator, isgeneratorfunction
 from typing import List, get_type_hints
 
-from .helper import GeneratorList, bcolors
+from pycram.helper import GeneratorList, bcolors
 from threading import Lock
 from time import time
 import logging

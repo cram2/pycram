@@ -1,8 +1,8 @@
-from .designator import Designator, DesignatorError, DesignatorDescription
+from pycram.designators.designator import Designator, DesignatorError, DesignatorDescription
 from typing import List
 
-from .object_designator import ObjectDesignator
-from .bullet_world import Object
+from pycram.designators.object_designator import ObjectDesignator
+from pycram.bullet_world import Object
 
 
 class LocationDesignator(Designator):

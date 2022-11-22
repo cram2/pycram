@@ -1,12 +1,11 @@
 import rospy
 
 from pycram.robot_description import InitializedRobotDescription as robot_description
-import available_process_modules
+from pycram.process_modules import available_process_modules
 #import motion_designator_grounding  # Needs to be imported to load Process Modules and designator solutions
 import pycram.bullet_world_reasoning as btr
-from pycram.motion_designator import *
-from pycram.process_module import ProcessModule
-from pycram.process_module import ProcessModule, with_simulated_robot
+from pycram.designators.motion_designator import *
+from pycram.process_modules.process_module import with_simulated_robot
 from pycram.bullet_world import BulletWorld, Object
 from pycram.language import macros, par
 
