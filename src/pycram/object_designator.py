@@ -1,4 +1,4 @@
-from pycram.designators.designator import Designator, DesignatorError, DesignatorDescription
+from .designator import Designator, DesignatorError, DesignatorDescription
 from typing import List
 
 

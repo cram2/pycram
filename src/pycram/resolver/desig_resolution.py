@@ -1,6 +1,6 @@
-from pycram.designators.designator import DesignatorError
-from pycram.designators.object_designator import ObjectDesignator
-from pycram.designators.action_designator import *
+from pycram.designator import DesignatorError
+from pycram.object_designator import ObjectDesignator
+from pycram.action_designator import *
 from .plans import open_gripper, close_gripper, pick_up, place, navigate, park_arms, detect, look_at, transport, \
     open_container, close_container
 from enum import Enum, auto

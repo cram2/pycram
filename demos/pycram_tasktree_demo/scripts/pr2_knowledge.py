@@ -1,10 +1,10 @@
 from enum import Enum, auto
 
-from pycram.designators.object_designator import ObjectDesignator
+from pycram.designator import ObjectDesignator
+
 
 OBJECT_HELD_LEFT = None
 OBJECT_HELD_RIGHT = None
-
 
 def free_arms():
     if not OBJECT_HELD_LEFT and not OBJECT_HELD_RIGHT:
@@ -16,22 +16,20 @@ def free_arms():
     else:
         return []
 
-
 def reach_position_generator(target):
     if type(target) is ObjectDesignator:
         if target.prop_value('name') in ['sink_area_left_middle_drawer', 'sink_area_left_upper_drawer']:
-            yield [0.3, 0.9, 0], [0, 0, 0, 1]
-            yield [0.4, 0.9, 0], [0, 0, 0, 1]
-            yield [0.5, 0.9, 0], [0, 0, 0, 1]
-            yield [0.6, 0.9, 0], [0, 0, 0, 1]
+            yield [0.3, 0.9, 0], [0,0,0,1]
+            yield [0.4, 0.9, 0], [0,0,0,1]
+            yield [0.5, 0.9, 0], [0,0,0,1]
+            yield [0.6, 0.9, 0], [0,0,0,1]
         elif target.prop_value('name') is 'iai_fridge':
             yield [0.5, -0.4, 0], [0, 0, -0.258819, 0.9659258]
         else:
-            yield [0.6, 0.9, 0], [0, 0, 0, 1]
+            yield [0.6, 0.9, 0], [0,0,0,1]
     else:
-        yield [-1.8, 1, 0], [0, 0, 0, 1]
-        yield [-0.4, 1, 0], [0, 0, 1, 0]
-
+        yield [-1.8, 1, 0], [0,0,0,1]
+        yield [-0.4, 1, 0], [0,0,1,0]
 
 def container_opening_distance_generator(object_designator):
     if object_designator:
@@ -46,7 +44,6 @@ def container_opening_distance_generator(object_designator):
             yield 0.4
     else:
         yield 0.4
-
 
 def object_fetching_location_generator(object_designator):
     object_type = object_designator.prop_value('type')
@@ -66,7 +63,6 @@ def object_fetching_location_generator(object_designator):
         yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_middle_drawer'), ('part-of', "kitchen")])
         yield ObjectDesignator([('type', 'fridge'), ('name', 'iai_fridge'), ('part-of', "kitchen")])
 
-
 def object_placing_location_generator(object_designator, destination):
     if destination == "kitchen_island_countertop":
         object_type = object_designator.prop_value("type")
@@ -85,17 +81,14 @@ def object_placing_location_generator(object_designator, destination):
     else:
         raise NotImplementedError("This is just a hack for now.")
 
-
 class Arms(Enum):
     LEFT = auto()
     RIGHT = auto()
     BOTH = auto()
 
-
 class ArmConfiguration(Enum):
     PARK = auto()
     CARRY = auto()
-
 
 class Grasp(Enum):
     TOP = auto()
