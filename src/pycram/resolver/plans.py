@@ -1,10 +1,10 @@
-from pycram.object_designator import ObjectDesignator
+from pycram.designators.object_designator import ObjectDesignator
 from pycram.task import with_tree
 from pycram.process_modules.process_module import ProcessModule
-from pycram.motion_designator import *
-from pycram.action_designator import *
+from pycram.designators.motion_designator import *
+from pycram.designators.action_designator import *
 from pycram.plan_failures import PlanFailure
-#from pr2_knowledge import reach_position_generator, object_fetching_location_generator, free_arms, Arms
+# from pr2_knowledge import reach_position_generator, object_fetching_location_generator, free_arms, Arms
 from enum import Enum, auto
 
 from pycram.bullet_world import BulletWorld, filter_contact_points
@@ -20,20 +20,21 @@ def free_arms():
     else:
         return []
 
+
 def reach_position_generator(target):
     if type(target) is ObjectDesignator:
         if target.prop_value('name') in ['sink_area_left_middle_drawer', 'sink_area_left_upper_drawer']:
-            yield [0.3, 0.9, 0], [0,0,0,1]
-            yield [0.4, 0.9, 0], [0,0,0,1]
-            yield [0.5, 0.9, 0], [0,0,0,1]
-            yield [0.6, 0.9, 0], [0,0,0,1]
+            yield [0.3, 0.9, 0], [0, 0, 0, 1]
+            yield [0.4, 0.9, 0], [0, 0, 0, 1]
+            yield [0.5, 0.9, 0], [0, 0, 0, 1]
+            yield [0.6, 0.9, 0], [0, 0, 0, 1]
         elif target.prop_value('name') == 'iai_fridge':
             yield [0.5, -0.4, 0], [0, 0, -0.258819, 0.9659258]
         else:
-            yield [0.6, 0.9, 0], [0,0,0,1]
+            yield [0.6, 0.9, 0], [0, 0, 0, 1]
     else:
-        yield [-1.8, 1, 0], [0,0,0,1]
-        yield [-0.4, 1, 0], [0,0,1,0]
+        yield [-1.8, 1, 0], [0, 0, 0, 1]
+        yield [-0.4, 1, 0], [0, 0, 1, 0]
 
 
 def object_fetching_location_generator(object_designator):
@@ -61,16 +62,17 @@ class Arms(Enum):
     BOTH = auto()
 
 
-
 @with_tree
 def open_gripper(gripper):
     print("Opening gripper {}".format(gripper))
     ProcessModule.perform(MotionDesignator([('type', 'opening-gripper'), ('gripper', gripper)]))
 
+
 @with_tree
 def close_gripper(gripper):
     print("Closing gripper {}.".format(gripper))
     ProcessModule.perform(MotionDesignator([('type', 'closing-gripper'), ('gripper', gripper)]))
+
 
 @with_tree
 def pick_up(arm, btr_object):
@@ -84,18 +86,22 @@ def pick_up(arm, btr_object):
     ProcessModule.perform(MotionDesignator([('type', 'pick-up'), ('object', btr_object), ('arm', motion_arm)]))
     # ActionDesignator(ParkArmsDescription(arm=arm)).perform()
 
+
 @with_tree
 def place(arm, btr_object, target):
     print("Placing {} with {} at {}.".format(btr_object, arm, target))
     motion_arm = "left" if arm is Arms.LEFT else "right"
-    ProcessModule.perform(MotionDesignator([('type', 'place'), ('object', btr_object), ('arm', motion_arm), ('target', target)]))
-    if filter_contact_points(btr_object.prop_value("bullet_obj").contact_points_simulated(), [0,1,2]):
+    ProcessModule.perform(
+        MotionDesignator([('type', 'place'), ('object', btr_object), ('arm', motion_arm), ('target', target)]))
+    if filter_contact_points(btr_object.prop_value("bullet_obj").contact_points_simulated(), [0, 1, 2]):
         raise PlanFailure()
+
 
 @with_tree
 def navigate(target, orientation=[0, 0, 0, 1]):
     print("Moving to {}. Orientation: {}.".format(target, orientation))
     ProcessModule.perform(MotionDesignator([('type', 'moving'), ('target', target), ('orientation', orientation)]))
+
 
 @with_tree
 def park_arms(arms):
@@ -104,20 +110,24 @@ def park_arms(arms):
     right_arm = [('right-arm', 'park')] if arms in [Arms.RIGHT, Arms.BOTH] else []
     ProcessModule.perform(MotionDesignator([('type', 'move-arm-joints')] + left_arm + right_arm))
 
+
 @with_tree
 def detect(object_designator):
     print("Detecting object of type {}.".format(object_designator.prop_value("type")))
-    det_object =  ProcessModule.perform(MotionDesignator([('type', 'detecting'), ('object', object_designator.prop_value("type"))]))
+    det_object = ProcessModule.perform(
+        MotionDesignator([('type', 'detecting'), ('object', object_designator.prop_value("type"))]))
     if det_object is None:
         raise PlanFailure("No object detected.")
     detected_obj_desig = object_designator.copy([("pose", det_object.get_pose()), ("bullet_obj", det_object)])
     detected_obj_desig.equate(object_designator)
     return detected_obj_desig
 
+
 @with_tree
 def look_at(target):
     print("Looking at {}.".format(target))
     ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', target)]))
+
 
 @with_tree
 def transport(object_designator, arm, target_location):
@@ -156,7 +166,7 @@ def transport(object_designator, arm, target_location):
     ## Deliver
     # Navigate
     deliver_robot_position_generator = reach_position_generator(target_location)
-    pos, rot = next(deliver_robot_position_generator) #[-1.8, 1, 0], [0,0,0,1]
+    pos, rot = next(deliver_robot_position_generator)  # [-1.8, 1, 0], [0,0,0,1]
     ActionDesignator(NavigateDescription(target_position=pos, target_orientation=rot)).perform()
 
     # Place
@@ -175,6 +185,7 @@ def get_container_joint_and_handle(container_desig):
     else:
         raise NotImplementedError()
 
+
 @with_tree
 def open_container(object_designator, arm, distance):
     object_type = object_designator.prop_value('type')
@@ -192,6 +203,7 @@ def open_container(object_designator, arm, distance):
         [('type', motion_type), ('joint', joint),
          ('handle', handle), ('arm', arm), ('distance', distance),
          ('part-of', environment)]))
+
 
 @with_tree
 def close_container(object_designator, arm):
