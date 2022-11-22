@@ -3,7 +3,8 @@
 Classes:
 ProcessModule -- implementation of process modules.
 """
-from .fluent import Fluent
+
+from pycram.fluent import Fluent
 
 class ProcessModule:
 	"""Implementation of process modules.

@@ -1,6 +1,6 @@
 import pycram.helper_deprecated as helper_deprecated
 from pycram.robot_description import InitializedRobotDescription as robot_description
-from pycram.process_module import ProcessModule
+from pycram.process_modules.process_module import ProcessModule
 from pycram.bullet_world import BulletWorld
 from pycram.ik import request_ik
 from pycram.local_transformer import local_transformer as local_tf

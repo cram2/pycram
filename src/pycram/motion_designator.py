@@ -1,7 +1,6 @@
-from .designator import Designator, DesignatorError, ResolutionError, DesignatorDescription
+from .designator import Designator, DesignatorError, DesignatorDescription
 from .bullet_world import Object
-from .process_module import ProcessModule
-
+from pycram.process_modules.process_module import ProcessModule
 
 class MotionDesignator(Designator):
 	"""
