@@ -3,12 +3,11 @@ from unittest import TestCase
 import numpy as np
 
 from pycram.knowrob import knowrob
-from pycram.location_designator import ObjectRelativeLocationDesignatorDescription, LocationDesignator, \
+from pycram.designators.location_designator import ObjectRelativeLocationDesignatorDescription, LocationDesignator, \
     LocationDesignatorDescription
-from pycram.object_designator import LocatedObjectDesignatorDescription, ObjectDesignator
+from pycram.designators.object_designator import LocatedObjectDesignatorDescription, ObjectDesignator
 from pycram.resolver import location_designator_grounding     # do not remove
-from pycram.resolver import object_designator_grounding       # do not remove
-
+from pycram.resolver import object_designator_grounding   # do not remove
 
 class TestLocationDesignatorGrounding(TestCase):
     def setUp(self) -> None:
