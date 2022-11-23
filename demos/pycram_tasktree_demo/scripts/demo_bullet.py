@@ -6,13 +6,13 @@ import pybullet
 
 from typing import Optional
 from pycram.designator import ObjectDesignator
-from pycram.action_designator import *
+from pycram.designators.action_designator import *
 from pycram.bullet_world import BulletWorld, Object
 from pycram.task import with_tree, TaskTreeNode, SimulatedTaskTree
 from pycram.plan_failures import PlanFailure
-from pr2_knowledge import reach_position_generator, container_opening_distance_generator, object_fetching_location_generator, object_placing_location_generator, Arms
+from pr2_knowledge import reach_position_generator, container_opening_distance_generator, \
+    object_placing_location_generator, Arms
 
-import process_modules
 #import motion_designators
 #import desig_resolution
 
