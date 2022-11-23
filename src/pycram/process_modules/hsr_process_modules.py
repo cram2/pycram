@@ -1,7 +1,7 @@
-from pycram.robot_description import InitializedRobotDescription as robot_description
-from pycram.process_module import ProcessModule
-from pycram.bullet_world import BulletWorld
-from pycram.helper import _apply_ik
+from ..robot_description import InitializedRobotDescription as robot_description
+from ..process_module import ProcessModule
+from ..bullet_world import BulletWorld
+from ..helper import _apply_ik
 import pycram.bullet_world_reasoning as btr
 import pybullet as p
 import logging
@@ -120,7 +120,7 @@ class HSRMoveHead(ProcessModule):
         solutions = desig.reference()
         if solutions['cmd'] == 'looking':
             target = solutions['target']
-            if target is 'forward' or target is 'down':
+            if target == 'forward' or target == 'down':
                 robot = BulletWorld.robot
                 for joint, state in robot_description.i.get_static_joint_chain("neck", target).items():
                     robot.set_joint_state(joint, state)

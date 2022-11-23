@@ -1,8 +1,8 @@
 import pycram.helper_deprecated as helper_deprecated
-from pycram.robot_description import InitializedRobotDescription as robot_description
-from pycram.process_module import ProcessModule
-from pycram.bullet_world import BulletWorld
-from pycram.local_transformer import local_transformer
+from ..robot_description import InitializedRobotDescription as robot_description
+from ..process_module import ProcessModule
+from ..bullet_world import BulletWorld
+from ..local_transformer import local_transformer
 import pycram.helper as helper
 import pycram.bullet_world_reasoning as btr
 import pybullet as p
