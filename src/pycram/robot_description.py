@@ -6,7 +6,7 @@ import rospy
 #from ros_pycram.rosbridge import ros_client
 
 logger = logging.getLogger(__name__)
-from pycram import ch
+#from pycram import ch
 #logger.addHandler(ch)
 logger.setLevel(logging.DEBUG)
 
