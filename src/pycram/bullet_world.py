@@ -17,6 +17,7 @@ import re
 from queue import Queue
 
 import rospy
+from typing import List, Optional
 from .event import Event
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 
@@ -226,7 +227,7 @@ class BulletWorld:
         world an error will be logged.
         :param object: The object for which the corresponding object in the
             main Bullet World should be found
-        :return: The object in the main Bullet World 
+        :return: The object in the main Bullet World
         """
         map = self.world_sync.object_mapping
         try:
@@ -584,6 +585,21 @@ class Object:
         contact_points = self.contact_points()
         self.world.restore_state(*s)
         return contact_points
+
+    def set_color(self, color:  List[float], link: Optional[str] = "") -> None:
+        """
+        Changes the color of this object, the color has to be given as a list
+        of RGBA values. Optionaly a link name can can be provided, if no link
+        name is provided all links of this object will be colored.
+        :param color: The color as RGBA values between 0 and 1
+        :param link: The link name of the link which should be colored
+        """
+        if link == "":
+            for link_id in self.links.values():
+                p.changeVisualShape(self.id, link_id, rgbaColor=color, physicsClientId=self.world.client_id)
+        else:
+            p.changeVisualShape(self.id, self.links[link], rgbaColor=color, physicsClientId=self.world.client_id)
+
 
 def filter_contact_points(contact_points, exclude_ids):
     return list(filter(lambda cp: cp[2] not in exclude_ids, contact_points))
