@@ -2,7 +2,7 @@ import numpy as np
 import pybullet as p
 import rospy
 import time
-from pycram.robot_description import InitializedRobotDescription as robot_description
+from pycram.robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from .bullet_world import BulletWorld
 from .bullet_world_reasoning import _get_images_for_target
 from .external_interfaces.ik import request_ik, IKError
