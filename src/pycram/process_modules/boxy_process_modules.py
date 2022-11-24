@@ -2,7 +2,7 @@ import pycram.helper_deprecated as helper_deprecated
 from ..robot_description import InitializedRobotDescription as robot_description
 from ..process_module import ProcessModule
 from ..bullet_world import BulletWorld
-from ..ik import request_ik
+from ..external_interfaces.ik import request_ik
 from ..local_transformer import local_transformer as local_tf
 import pycram.helper as helper
 import pycram.bullet_world_reasoning as btr
