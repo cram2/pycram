@@ -5,7 +5,7 @@ import time
 from pycram.robot_description import InitializedRobotDescription as robot_description
 from .bullet_world import BulletWorld
 from .bullet_world_reasoning import _get_images_for_target
-from .ik import request_ik, IKError
+from .external_interfaces.ik import request_ik, IKError
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 
 import matplotlib.pyplot as plt
