@@ -15,7 +15,7 @@ from pytransform3d.transformations import transform_from_pq, transform_from, pq_
 
 from macropy.core.quotes import macros, ast_literal, q
 import pybullet as p
-from .robot_description import InitializedRobotDescription as robot_description
+from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 
 
 class bcolors:
