@@ -2,11 +2,11 @@ import tf
 import numpy as np
 import rospy
 import pybullet as p
+
 from .bullet_world import Object
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
-from pycram.external_interfaces.ik import _make_request_msg
+from .external_interfaces.ik import _make_request_msg
 from .helper import _transform_to_torso
-
 from moveit_msgs.srv import GetPositionIK
 
 

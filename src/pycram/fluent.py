@@ -7,12 +7,13 @@ Classes:
 Behavior -- enumeration to describe how to handle missed pulses in the whenever macro.
 Fluent -- implementation of fluents.
 """
+import operator
+
 from pycram.helper import _block
 from enum import Enum
 from macropy.core.macros import Macros
 from macropy.core.hquotes import macros, hq
 from macropy.core.quotes import macros, ast_literal
-import operator
 from threading import Condition, Lock
 from uuid import uuid4
 

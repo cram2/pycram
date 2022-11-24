@@ -1,14 +1,8 @@
+import logging
 from copy import deepcopy
 from numbers import Number
-import logging
-import re
-import rospy
-#from ros_pycram.rosbridge import ros_client
-
 
 logger = logging.getLogger(__name__)
-#from pycram import ch
-#logger.addHandler(ch)
 logger.setLevel(logging.DEBUG)
 
 class ChainDescription:
