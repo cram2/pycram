@@ -1,6 +1,6 @@
 from enum import Enum, auto
 
-from pycram.designator import ObjectDesignator
+from pycram.designators.object_designator import ObjectDesignator
 
 
 OBJECT_HELD_LEFT = None
@@ -66,16 +66,16 @@ def object_fetching_location_generator(object_designator):
 def object_placing_location_generator(object_designator, destination):
     if destination == "kitchen_island_countertop":
         object_type = object_designator.prop_value("type")
-        if object_type is "milk":
+        if object_type == "milk":
             yield [-1.15, 1.2, 0.95]
             yield [-1.05, 1.2, 0.95]
-        elif object_type is "cereal":
+        elif object_type == "cereal":
             yield [-1.15, 1.0, 0.95]
             yield [-1.05, 1.0, 0.95]
-        elif object_type is "bowl":
+        elif object_type == "bowl":
             yield [-1.35, 1.1, 0.95]
             yield [-0.9, 1.1, 0.95]
-        elif object_type is "spoon":
+        elif object_type == "spoon":
             yield [-1.35, 0.95, 0.95]
             yield [-0.9, 1.3, 0.95]
     else:
