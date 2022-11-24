@@ -2,7 +2,7 @@ from ..robot_description import InitializedRobotDescription as robot_description
 from ..process_module import ProcessModule
 from ..bullet_world import BulletWorld
 from ..helper import transform
-from ..ik import request_ik
+from ..external_interfaces.ik import request_ik
 from ..helper import _transform_to_torso, _apply_ik
 from ..local_transformer import local_transformer
 import pycram.bullet_world_reasoning as btr
