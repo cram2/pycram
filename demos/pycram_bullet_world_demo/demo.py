@@ -1,7 +1,7 @@
 import rospy
 import pycram.bullet_world_reasoning as btr
 
-from pycram.robot_description import InitializedRobotDescription as robot_description
+from pycram.robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 import pycram.bullet_world_reasoning as btr
 from pycram.designators.motion_designator import *
 from pycram.process_module import ProcessModule, with_simulated_robot

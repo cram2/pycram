@@ -20,7 +20,7 @@ process_module -- implementation of process modules.
 import logging
 import logging.config
 import pycram.process_modules.available_process_modules
-
+import pycram.robot_descriptions.robot_description_handler
 
 logging.basicConfig(level=logging.WARNING, format='%(levelname)s - %(name)s  - Line:%(lineno)d - %(message)s')
 

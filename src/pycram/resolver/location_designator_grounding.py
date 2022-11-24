@@ -3,7 +3,7 @@ from pycram.helper import transform
 from pycram.designators.location_designator import ObjectRelativeLocationDesignatorDescription, LocationDesignator, \
     LocationDesignatorDescription
 from pycram.costmaps import GaussianCostmap, OccupancyCostmap, VisibilityCostmap
-from pycram.robot_description import InitializedRobotDescription as robot_description
+from pycram.robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from pycram.bullet_world import BulletWorld, Object
 from pycram.pose_generator_and_validator import pose_generator, visibility_validator, reachability_validator
 

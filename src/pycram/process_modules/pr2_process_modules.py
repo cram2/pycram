@@ -1,4 +1,4 @@
-from ..robot_description import InitializedRobotDescription as robot_description
+from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from ..process_module import ProcessModule
 from ..bullet_world import BulletWorld
 from ..helper import transform

@@ -1,6 +1,6 @@
 import pycram.helper_deprecated
 from .helper_deprecated import pose_stamped2tuple
-from .robot_description import InitializedRobotDescription as robot_description
+from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from . import helper
 
 import sys
