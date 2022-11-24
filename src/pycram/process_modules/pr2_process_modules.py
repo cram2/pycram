@@ -1,3 +1,7 @@
+import pycram.bullet_world_reasoning as btr
+import numpy as np
+import time
+
 from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from ..process_module import ProcessModule
 from ..bullet_world import BulletWorld
@@ -5,10 +9,7 @@ from ..helper import transform
 from ..external_interfaces.ik import request_ik
 from ..helper import _transform_to_torso, _apply_ik
 from ..local_transformer import local_transformer
-import pycram.bullet_world_reasoning as btr
-import pybullet as p
-import numpy as np
-import time
+
 
 
 def _park_arms(arm):

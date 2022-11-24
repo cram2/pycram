@@ -6,15 +6,15 @@ _block -- wrap multiple statements into a single block.
 Classes:
 GeneratorList -- implementation of generator list wrappers.
 """
+import numpy as np
+
 from inspect import isgeneratorfunction
 from typing import List
+import pybullet as p
 
-import numpy as np
 from pytransform3d.rotations import quaternion_wxyz_from_xyzw, quaternion_xyzw_from_wxyz
 from pytransform3d.transformations import transform_from_pq, transform_from, pq_from_transform
-
 from macropy.core.quotes import macros, ast_literal, q
-import pybullet as p
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 
 

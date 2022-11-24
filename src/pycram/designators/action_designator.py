@@ -16,8 +16,7 @@ __all__ = ["ActionDesignator",
            "CloseActionDescription"]
 
 from typing import List
-from ..task import with_tree
-from ..designator import Designator
+
 
 class ActionDesignator: # (Designator):
     resolver = {}

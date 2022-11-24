@@ -1,8 +1,8 @@
-from ..designator import Designator, DesignatorError, DesignatorDescription
 from typing import List
 
 from .object_designator import ObjectDesignator
 from ..bullet_world import Object
+from ..designator import Designator, DesignatorError, DesignatorDescription
 
 
 class LocationDesignator(Designator):
