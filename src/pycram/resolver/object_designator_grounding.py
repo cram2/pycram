@@ -1,5 +1,5 @@
-from pycram.knowrob.reasoning import object_type, instances_of, object_pose
-from pycram.designators.object_designator import LocatedObjectDesignatorDescription, ObjectDesignator
+from ..external_interfaces.knowrob import object_type, instances_of, object_pose
+from ..designators.object_designator import LocatedObjectDesignatorDescription, ObjectDesignator
 
 
 def ground_located_object(description: LocatedObjectDesignatorDescription):
