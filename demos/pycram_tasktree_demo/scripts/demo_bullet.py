@@ -5,7 +5,7 @@ import pycram
 import pybullet
 
 from typing import Optional
-from pycram.designator import ObjectDesignator
+from pycram.designators.object_designator import ObjectDesignator
 from pycram.designators.action_designator import *
 from pycram.bullet_world import BulletWorld, Object
 from pycram.task import with_tree, TaskTreeNode, SimulatedTaskTree
