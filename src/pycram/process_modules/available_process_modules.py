@@ -1,4 +1,4 @@
-from ..robot_description import InitializedRobotDescription as robot_description
+from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from ..process_module import ProcessModule
 from .pr2_process_modules import PR2ProcessModulesSimulated, PR2ProcessModulesReal
 from .boxy_process_modules import BoxyProcessModulesSimulated, BoxyProcessModulesReal

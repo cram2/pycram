@@ -1,6 +1,6 @@
 from pycram.designators.motion_designator import *
 from pycram.bullet_world import BulletWorld
-from pycram.robot_description import InitializedRobotDescription as robot_description
+from pycram.robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 import logging
 
 """
