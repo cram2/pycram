@@ -364,8 +364,3 @@ class DesignatorDescription():
                 current_type[k] = type(attributes[k])
         if missing != [] or wrong_type != {}:
             raise ResolutionError(missing, wrong_type, current_type, desig)
-
-
-class LocationDesignator(Designator):
-    def __str__(self):
-        return "LocationDesignator({})".format(self._properties)

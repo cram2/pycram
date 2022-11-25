@@ -1,19 +1,13 @@
 import tf
 import numpy as np
 import rospy
-from .bullet_world_reasoning import visible, reachable
 import pybullet as p
-from .bullet_world import Object
-from .robot_description import InitializedRobotDescription as robot_description
-from .ik import _make_request_msg
-from .helper import _transform_to_torso
 
+from .bullet_world import Object
+from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from .external_interfaces.ik import _make_request_msg
+from .helper import _transform_to_torso
 from moveit_msgs.srv import GetPositionIK
-from moveit_msgs.msg import PositionIKRequest
-from moveit_msgs.msg import RobotState
-from sensor_msgs.msg import JointState
-from geometry_msgs.msg import PoseStamped
-from geometry_msgs.msg import Pose
 
 
 def pose_generator(costmap):

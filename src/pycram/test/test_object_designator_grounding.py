@@ -1,8 +1,8 @@
 from copy import deepcopy
 from unittest import TestCase
 
-from pycram.knowrob import knowrob
-from pycram.object_designator import LocatedObjectDesignatorDescription, ObjectDesignator
+from ..external_interfaces import knowrob
+from ..designators.object_designator import LocatedObjectDesignatorDescription, ObjectDesignator
 from pycram.resolver import object_designator_grounding     # do not remove
 
 

@@ -1,23 +1,20 @@
 import pycram.helper_deprecated
-from .helper_deprecated import pose_stamped2tuple
-from .robot_description import InitializedRobotDescription as robot_description
-from . import helper
-
 import sys
 import logging
 if 'bullet_world' in sys.modules:
     logging.warning("(publisher) Make sure that you are not loading this module from pycram.bullet_world.")
 from .bullet_world import BulletWorld
-
 import rospkg
 import atexit
-from threading import Thread, currentThread
 
+from threading import Thread, currentThread
 from tf import TransformerROS, transformations
 from rospy import Duration, logerr, Rate, is_shutdown
 from urdf_parser_py.urdf import URDF
 from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped
+from .helper_deprecated import pose_stamped2tuple
+from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 
 
 # Boolean for publishing frequently poses/states
