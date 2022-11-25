@@ -1,7 +1,7 @@
 import rospy
 
-from .robot_description import InitializedRobotDescription as robot_description
-from .bullet_world import BulletWorld, Object
+from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from ..bullet_world import BulletWorld, Object
 from giskardpy.python_interface import GiskardWrapper
 from geometry_msgs.msg import PoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
 from giskard_msgs.msg import WorldBody
