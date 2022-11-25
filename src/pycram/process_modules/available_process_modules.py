@@ -1,10 +1,11 @@
-from pycram.robot_description import InitializedRobotDescription as robot_description
-from pycram.process_module import ProcessModule
-from pr2_process_modules import PR2ProcessModulesSimulated, PR2ProcessModulesReal
-from boxy_process_modules import BoxyProcessModulesSimulated, BoxyProcessModulesReal
-from donbot_process_modules import DonbotProcessModulesSimulated, DonbotProcessModulesReal
-from hsr_process_modules import HSRProcessModulesSimulated, HSRProcessModulesReal
 from rospy import logerr
+
+from .boxy_process_modules import BoxyProcessModulesSimulated, BoxyProcessModulesReal
+from .donbot_process_modules import DonbotProcessModulesSimulated, DonbotProcessModulesReal
+from .hsr_process_modules import HSRProcessModulesSimulated, HSRProcessModulesReal
+from .pr2_process_modules import PR2ProcessModulesSimulated, PR2ProcessModulesReal
+from ..process_module import ProcessModule
+from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 
 
 def available_process_modules(desig):

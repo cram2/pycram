@@ -16,11 +16,10 @@ import rospkg
 import re
 from queue import Queue
 
-#from ros.rosbridge import ros_client
 import rospy
 from .event import Event
-from .robot_description import InitializedRobotDescription as robot_description
-#from .helper import transform
+from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+
 
 
 class BulletWorld:
