@@ -19,7 +19,7 @@ from queue import Queue
 import rospy
 from .event import Event
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
-
+from typing import List, Optional, Dict, Tuple, Callable
 
 
 class BulletWorld:
@@ -30,11 +30,11 @@ class BulletWorld:
     of this BulletWorld will be called the previous 'current_bullet_world' becomes the new 'current_bullet_world'.
     """
 
-    current_bullet_world = None
-    robot = None
+    current_bullet_world: BulletWorld = None
+    robot: Object = None
     rospy.init_node('pycram')
 
-    def __init__(self, type="GUI", is_shadow_world=False):
+    def __init__(self, type: str = "GUI", is_shadow_world: bool = False):
         """
         The constructor initializes a new simulation. The parameter decides if the Simulation should be graphical or
         non-graphical. It can only exist one graphical simulation at the time, but an arbitrary amount of non-graphical.
@@ -42,13 +42,13 @@ class BulletWorld:
         The BulletWorld object also initializes the Events for attachment, detachment and for manipulating the world.
         :param type: Can either be "GUI" for graphical or "DIRECT" for non-graphical. The default parameter is "GUI"
         """
-        self.objects = []
-        self.client_id = -1
-        self.detachment_event = Event()
-        self.attachment_event = Event()
-        self.manipulation_event = Event()
-        self.type = type
-        self._gui_thread = Gui(self, type)
+        self.objects: List[Object] = []
+        self.client_id: int = -1
+        self.detachment_event: Event = Event()
+        self.attachment_event: Event = Event()
+        self.manipulation_event: Event = Event()
+        self.type: str = type
+        self._gui_thread: Gui = Gui(self, type)
         self._gui_thread.start()
         # This disables file caching from PyBullet, since this would also cache
         # files that can not be loaded
@@ -57,12 +57,12 @@ class BulletWorld:
         #self.last_bullet_world = BulletWorld.current_bullet_world
         if BulletWorld.current_bullet_world == None:
             BulletWorld.current_bullet_world = self
-        self.vis_axis = None
-        self.coll_callbacks = {}
-        self.data_directory = [os.path.dirname(__file__) + "/../../resources"]
-        self.shadow_world = BulletWorld("DIRECT", True) if not is_shadow_world else None
-        self.world_sync = World_Sync(self, self.shadow_world) if not is_shadow_world else None
-        self.is_shadow_world = is_shadow_world
+        self.vis_axis: Object = None
+        self.coll_callbacks: Dict[Tuple[Object, Object], Tuple[Callable, Callable]] = {}
+        self.data_directory: List[str] = [os.path.dirname(__file__) + "/../../resources"]
+        self.shadow_world: BulletWorld = BulletWorld("DIRECT", True) if not is_shadow_world else None
+        self.world_sync: World_Sync = World_Sync(self, self.shadow_world) if not is_shadow_world else None
+        self.is_shadow_world: bool = is_shadow_world
         if not is_shadow_world:
             self.world_sync.start()
 
@@ -71,34 +71,34 @@ class BulletWorld:
         if not is_shadow_world:
             plane = Object("floor", "environment", "plane.urdf", world=self)
 
-    def get_objects_by_name(self, name):
+    def get_objects_by_name(self, name: str) -> List[Object]:
         return list(filter(lambda obj: obj.name == name, self.objects))
 
-    def get_objects_by_type(self, obj_type):
+    def get_objects_by_type(self, obj_type: str) -> List[Object]:
         return list(filter(lambda obj: obj.type == obj_type, self.objects))
 
-    def get_object_by_id(self, id):
+    def get_object_by_id(self, id: int) -> Object:
         return list(filter(lambda obj: obj.id == id, self.objects))[0]
 
-    def get_attachment_event(self):
+    def get_attachment_event(self) -> Event:
         return self.attachment_event
 
-    def get_detachment_event(self):
+    def get_detachment_event(self) -> Event:
         return self.detachment_event
 
-    def get_manipulation_event(self):
+    def get_manipulation_event(self) -> Event:
         return self.manipulation_event
 
-    def set_realtime(self, real_time):
+    def set_realtime(self, real_time: bool) -> None:
         p.setRealTimeSimulation(1 if real_time else 0, self.client_id)
 
-    def set_gravity(self, velocity):
+    def set_gravity(self, velocity: List[float]) -> None:
         p.setGravity(velocity[0], velocity[1], velocity[2], physicsClientId=self.client_id)
 
-    def set_robot(self, robot):
+    def set_robot(self, robot: Object) -> None:
         BulletWorld.robot = robot
 
-    def simulate(self, seconds, real_time=False):
+    def simulate(self, seconds: float, real_time: Optional[float] = False) -> None:
         for i in range(0, int(seconds * 240)):
             p.stepSimulation(self.client_id)
             for objects, callback in self.coll_callbacks.items():
@@ -113,7 +113,7 @@ class BulletWorld:
                 # Simulation runs at 240 Hz
                 time.sleep(0.004167)
 
-    def exit(self):
+    def exit(self) -> None:
         # True if this is NOT the shadow world since it has a reference to the
         # Shadow world
         if self.shadow_world:
@@ -127,16 +127,17 @@ class BulletWorld:
             BulletWorld.current_bullet_world = None
 
 
-    def save_state(self):
+    def save_state(self) -> int:
         """
         Returns the id of the saved state of the BulletWorld
         """
         objects2attached = {}
+        # ToDo find out what this is for and where it is used
         for o in self.objects:
             objects2attached[o] = (o.attachments.copy(), o.cids.copy())
         return p.saveState(self.client_id), objects2attached
 
-    def restore_state(self, state, objects2attached={}):
+    def restore_state(self, state, objects2attached: Dict={}) -> None:
         """
         Restores the state of the BulletWorld according to the given state id
         """
@@ -147,7 +148,7 @@ class BulletWorld:
             except KeyError:
                 continue
 
-    def copy(self):
+    def copy(self) -> BulletWorld:
         """
         Copies this Bullet World into another and returns it. The other BulletWorld
         will be in Direct mode.
@@ -161,7 +162,7 @@ class BulletWorld:
                 o.set_joint_state(joint, obj.get_joint_state(joint))
         return world
 
-    def add_vis_axis(self, position_and_orientation, length=0.2):
+    def add_vis_axis(self, position_and_orientation: Tuple[List[float], List[float]], length: Optional[float] = 0.2) -> Object:
         """
         Creates a Visual object which represents the coordinate frame at the given
         position and orientation. There can only be one vis axis at a time. If this
@@ -194,7 +195,7 @@ class BulletWorld:
         self.vis_axis = obj
 
 
-    def register_collision_callback(self, objectA, objectB, callback_collision, callback_no_collision=None):
+    def register_collision_callback(self, objectA: Object, objectB: Object, callback_collision: Callable, callback_no_collision: Optional[Callable] = None) -> None:
         """
         This function regsiters can register two callbacks, one if objectA and objectB are in contact
         and another if they are not in contact.
@@ -205,10 +206,10 @@ class BulletWorld:
         """
         self.coll_callbacks[(objectA, objectB)] = (callback_collision, callback_no_collision)
 
-    def add_additional_resource_path(self, path):
+    def add_additional_resource_path(self, path: str):
         self.data_directory.append(path)
 
-    def get_shadow_object(self, object):
+    def get_shadow_object(self, object: Object) -> Object:
         """
         Returns the corresponding object from the shadow world for the given object.
         :param object: The object for which the shadow worlds object should be returned.
@@ -219,7 +220,7 @@ class BulletWorld:
         except KeyError:
             rospy.logerr("Given object is not in the main Bullet World")
 
-    def get_bullet_object_for_shadow(self,object):
+    def get_bullet_object_for_shadow(self, object: Object) -> Object:
         """
         Returns the corresponding object from the main Bullet World for a given
         object in the shadow world. If the  given object is not in the shadow
@@ -240,7 +241,7 @@ class BulletWorld:
 
 class Use_shadow_world():
     def __init__(self):
-        self.prev_world = None
+        self.prev_world: BulletWorld = None
     def __enter__(self):
         self.prev_world = BulletWorld.current_bullet_world
         BulletWorld.current_bullet_world.world_sync.pause_sync = True
@@ -260,18 +261,18 @@ class World_Sync(threading.Thread):
     The class provides the possibility to pause the synchronization, this can be used
     if reasoning should be done in the shadow world to guarantee a consistant state.
     """
-    def __init__(self, world, shadow_world):
+    def __init__(self, world: BulletWorld, shadow_world: BulletWorld):
         threading.Thread.__init__(self)
-        self.world = world
-        self.shadow_world = shadow_world
-        self.shadow_world.world_sync = self
+        self.world: BulletWorld = world
+        self.shadow_world: BulletWorld = shadow_world
+        self.shadow_world.world_sync: World_Sync = self
 
-        self.terminate = False
-        self.add_obj_queue = Queue()
-        self.remove_obj_queue = Queue()
-        self.pause_sync = False
+        self.terminate: bool = False
+        self.add_obj_queue: Queue = Queue()
+        self.remove_obj_queue: Queue = Queue()
+        self.pause_sync: bool = False
         # Maps bullet to shadow world objects
-        self.object_mapping = {}
+        self.object_mapping: Dict[Object, Object] = {}
 
 
     def run(self):
@@ -308,7 +309,6 @@ class World_Sync(threading.Thread):
                     for joint_name in bulletworld_obj.joints.keys():
                         shadow_obj.set_joint_state(joint_name, bulletworld_obj.get_joint_state(joint_name))
 
-
             self.check_for_pause()
             time.sleep(0.1)
         self.add_obj_queue.join()
@@ -326,8 +326,8 @@ class Gui(threading.Thread):
     """
     def __init__(self, world, type):
         threading.Thread.__init__(self)
-        self.world = world
-        self.type = type
+        self.world: BulletWorld = world
+        self.type: str = type
 
     def run(self):
         """
@@ -350,7 +350,12 @@ class Object:
     This class represents an object in the BulletWorld.
     """
 
-    def __init__(self, name, type, path, position=[0, 0, 0], orientation=[0, 0, 0, 1], world=None, color=[1, 1, 1, 1], ignoreCachedFiles=False):
+    def __init__(self, name: str, type: str, path: str,
+                 position: Optional[List[float]]=[0, 0, 0],
+                 orientation: Optional[List[float]]=[0, 0, 0, 1],
+                 world: BulletWorld=None,
+                 color: Optional[List[float]]=[1, 1, 1, 1],
+                 ignoreCachedFiles: Optional[bool]=False):
         """
         The constructor loads the urdf file into the given BulletWorld, if no BulletWorld is specified the
         'current_bullet_world' will be used. It is also possible to load .obj and .stl file into the BulletWorld.
@@ -364,14 +369,13 @@ class Object:
         :param world: The BulletWorld in which the object should be spawned, if no world is specified the 'current_bullet_world' will be used
         :param color: The color with which the object should be spawned.
         """
-        self.world = world if world is not None else BulletWorld.current_bullet_world
-        self.name = name
-        self.type = type
-        #self.path = path
-        self.color = color
+        self.world: BulletWorld = world if world is not None else BulletWorld.current_bullet_world
+        self.name: str = name
+        self.type: str = type
+        self.color: List[float] = color
         self.id, self.path = _load_object(name, path, position, orientation, self.world, color, ignoreCachedFiles)
-        self.joints = self._joint_or_link_name_to_id("joint")
-        self.links = self._joint_or_link_name_to_id("link")
+        self.joints: Dict[str, int] = self._joint_or_link_name_to_id("joint")
+        self.links: Dict[str, int] = self._joint_or_link_name_to_id("link")
         self.attachments = {}
         self.cids = {}
         self.world.objects.append(self)
@@ -386,7 +390,7 @@ class Object:
             if robot_name == robot_description.i.name and BulletWorld.robot == None:
                 BulletWorld.robot = self
 
-    def remove(self):
+    def remove(self) -> None:
         """
         This method removes this object from the BulletWorld it currently
         resides in.
@@ -404,7 +408,7 @@ class Object:
         p.removeBody(self.id, physicsClientId=self.world.client_id)
 
 
-    def attach(self, object, link=None, loose=False):
+    def attach(self, object: Object, link: Optional[str] = None, loose: Optional[bool] = False) -> None:
         """
         This method attaches an other object to this object. This is done by
         saving the transformation between the given link, if there is one, and
@@ -412,8 +416,10 @@ class Object:
         which the obejct is attached, will be saved.
         Furthermore, a constraint of pybullet will be created so the attachment
         also works in the simulation.
+        Loose attachments means that the attachment will only be one-directional
         :param object: The other object that should be attached
         :param link: The link of this obejct to which the other object should be
+        :param loose: If the attachment should be a loose attachment.
         attached.
         """
         link_id = self.get_link_id(link) if link else -1
@@ -428,7 +434,7 @@ class Object:
         self.world.attachment_event(self, [self, object])
 
 
-    def detach(self, object):
+    def detach(self, object: Object) -> None:
         """
         This method detaches an other object from this object. This is done by
         deleting the attachment from the attachments dictionaty of both obejects
@@ -446,7 +452,7 @@ class Object:
         del object.cids[self]
         self.world.detachment_event(self, [self, object])
 
-    def detach_all(self):
+    def detach_all(self) -> None:
         """
         Detach all objects attached to this object.
         :return:
@@ -455,23 +461,23 @@ class Object:
         for att in attachments.keys():
             self.detach(att)
 
-    def get_position(self):
+    def get_position(self) -> List[float]:
         return p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id)[0]
 
-    def get_pose(self):
+    def get_pose(self) -> List[float]:
         return self.get_position()
 
-    def get_orientation(self):
+    def get_orientation(self) -> List[float]:
         return p.getBasePositionAndOrientation(self.id, self.world.client_id)[1]
 
-    def get_position_and_orientation(self):
+    def get_position_and_orientation(self) -> Tuple[List[float], List[float]]:
         return p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id)[:2]
 
-    def set_position_and_orientation(self, position, orientation):
+    def set_position_and_orientation(self, position, orientation) -> None:
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
         self._set_attached_objects([self])
 
-    def _set_attached_objects(self, prev_object):
+    def _set_attached_objects(self, prev_object: Object) -> None:
         """
         This method updates the positions of all attached objects. This is done
         by calculating the new pose in world coordinate frame and setting the
@@ -504,7 +510,15 @@ class Object:
                 p.resetBasePositionAndOrientation(obj.id, world_T_object[0], world_T_object[1])
                 obj._set_attached_objects(prev_object + [self])
 
-    def _calculate_transform(self, obj, link):
+    def _calculate_transform(self, obj: Object, link: str) -> Tuple[List[float], List[float]]:
+        """
+        This method calculates the transformation between another object and the given
+        link of this object. If no link is provided then the base position will be used.
+        :param obj: The other object for which the transformation should be calculated
+        :param link: The optional link name
+        :return: The transformation from the link (or base position) to the other objects
+            base position
+        """
         link_id = self.get_link_id(link) if link else -1
         world_T_link =  self.get_link_position_and_orientation(link) if link else self.get_position_and_orientation()
         link_T_world = p.invertTransform(world_T_link[0], world_T_link[1])
@@ -513,16 +527,16 @@ class Object:
                                               world_T_object[0], world_T_object [1], self.world.client_id)
         return link_T_object
 
-    def set_position(self, position):
+    def set_position(self, position: List[float]) -> None:
         self.set_position_and_orientation(position, self.get_orientation())
 
-    def set_orientation(self, orientation):
+    def set_orientation(self, orientation: List[float]) -> None:
         self.set_position_and_orientation(self.get_position(), orientation)
 
-    def set_pose(self, position):
+    def set_pose(self, position: List[float]) -> None:
         self.set_position(position)
 
-    def _joint_or_link_name_to_id(self, type):
+    def _joint_or_link_name_to_id(self, type: str) -> Dict[str, int]:
         nJoints = p.getNumJoints(self.id, self.world.client_id)
         joint_name_to_id = {}
         info = 1 if type == "joint" else 12
@@ -531,13 +545,13 @@ class Object:
             joint_name_to_id[joint_info[info].decode('utf-8')] = joint_info[0]
         return joint_name_to_id
 
-    def get_joint_id(self, name):
+    def get_joint_id(self, name: str) -> int:
         return self.joints[name]
 
-    def get_link_id(self, name):
+    def get_link_id(self, name: str) -> int:
         return self.links[name]
 
-    def get_link_relative_to_other_link(self, source_frame, target_frame):
+    def get_link_relative_to_other_link(self, source_frame: str, target_frame: str) -> Tuple[List[float], List[float]]:
 
         # Get pose of source_frame in map (although pose is returned we use the transform style for clarity)
         map_T_source_trans, map_T_source_rot = self.get_link_position_and_orientation(source_frame)
@@ -551,16 +565,16 @@ class Object:
                                                                           map_T_target_trans, map_T_target_rot)
         return source_T_target_trans, source_T_target_rot
 
-    def get_link_position_and_orientation(self, name):
+    def get_link_position_and_orientation(self, name: str) -> List[float]:
         return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[4:6]
 
-    def get_link_position(self, name):
+    def get_link_position(self, name: str) -> List[float]:
         return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[4]
 
-    def get_link_orientation(self, name):
+    def get_link_orientation(self, name: str) -> List[float]:
         return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[5]
 
-    def set_joint_state(self, joint_name, joint_pose):
+    def set_joint_state(self, joint_name: str, joint_pose: float) -> None:
         up_lim, low_lim = p.getJointInfo(self.id, self.joints[joint_name], physicsClientId=self.world.client_id)[8:10]
         if low_lim > up_lim:
             low_lim, up_lim = up_lim, low_lim
@@ -572,29 +586,29 @@ class Object:
         p.resetJointState(self.id, self.joints[joint_name], joint_pose, physicsClientId=self.world.client_id)
         self._set_attached_objects([self])
 
-    def get_joint_state(self, joint_name):
+    def get_joint_state(self, joint_name: str) -> float:
         return p.getJointState(self.id, self.joints[joint_name], physicsClientId=self.world.client_id)[0]
 
-    def contact_points(self):
+    def contact_points(self) -> List:
         return p.getContactPoints(self.id)
 
-    def contact_points_simulated(self):
+    def contact_points_simulated(self) -> List:
         s = self.world.save_state()
         p.stepSimulation(self.world.client_id)
         contact_points = self.contact_points()
         self.world.restore_state(*s)
         return contact_points
 
-def filter_contact_points(contact_points, exclude_ids):
+def filter_contact_points(contact_points, exclude_ids) -> List:
     return list(filter(lambda cp: cp[2] not in exclude_ids, contact_points))
 
-def get_path_from_data_dir(file_name, data_directory):
+def get_path_from_data_dir(file_name: str, data_directory: str) -> str:
     dir = pathlib.Path(data_directory)
     for file in os.listdir(data_directory):
         if file == file_name:
             return data_directory + f"/{file_name}"
 
-def _get_robot_name_from_urdf(urdf_string):
+def _get_robot_name_from_urdf(urdf_string: str) -> str:
     res = re.findall(r"robot\ *name\ *=\ *\"\ *[a-zA-Z_0-9]*\ *\"", urdf_string)
     if len(res) == 1:
         begin = res[0].find("\"")
@@ -602,7 +616,7 @@ def _get_robot_name_from_urdf(urdf_string):
         robot = res[0][begin + 1:begin + 1 + end].lower()
     return robot
 
-def _load_object(name, path, position, orientation, world, color, ignoreCachedFiles):
+def _load_object(name: str, path: str, position: List[float], orientation: List[float], world: BulletWorld, color: List[float], ignoreCachedFiles: bool) -> Tuple[int, str]:
     """
     This method loads an object to the given BulletWorld with the given position and orientation. The color will only be
     used when an .obj or .stl file is given.
@@ -669,7 +683,7 @@ def _load_object(name, path, position, orientation, world, color, ignoreCachedFi
         #print(f"{bcolors.BOLD}{bcolors.WARNING}The path has to be either a path to a URDf file, stl file, obj file or the name of a URDF on the parameter server.{bcolors.ENDC}")
 
 
-def _is_cached(path, name, cach_dir):
+def _is_cached(path: str, name: str, cach_dir: str) -> bool:
     """
     This method checks if the file in the given path is already cached or if
     there is already a cached file with the given name, this is the case if a .stl,
@@ -691,7 +705,7 @@ def _is_cached(path, name, cach_dir):
     return False
 
 
-def _correct_urdf_string(urdf_string):
+def _correct_urdf_string(urdf_string: str) -> str:
     """
     This method gets the name of a urdf description and feteches it from the ROS
     parameter server. Afterwards the URDF will be traversed and references to ROS packages
@@ -711,7 +725,7 @@ def _correct_urdf_string(urdf_string):
 
     return new_urdf_string
 
-def _generate_urdf_file(name, path, color, cach_dir):
+def _generate_urdf_file(name: str, path: str, color: List[float], cach_dir: str) -> str:
     """
     This method generates an .urdf file with the given .obj or .stl file as mesh. In addition the given color will be
     used to crate a material tag in the URDF. The resulting file will then be saved in the cach_dir path with the name
@@ -749,7 +763,7 @@ def _generate_urdf_file(name, path, color, cach_dir):
     return cach_dir + pathlib_obj.stem + ".urdf"
 
 
-def _world_and_id(world):
+def _world_and_id(world: BulletWorld) -> Tuple[BulletWorld, int]:
     """
     This method selects the world to be used. If the given world is None the 'current_bullet_world' is used.
     :param world: The world which should be used or None if 'current_bullet_world' should be used
