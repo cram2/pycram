@@ -5,6 +5,8 @@ BulletWorld -- The Representation of the physics simulation
 Gui -- Starts a new thread to keep the gui persistent
 Object -- Representation of an object in the BulletWorld
 """
+# used for delayed evaluation of typing until python 3.11 becomes mainstream
+from __future__ import annotations
 
 import pybullet as p
 import os
@@ -19,7 +21,8 @@ from queue import Queue
 import rospy
 from .event import Event
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
-from typing import List, Optional, Dict, Tuple, Callable
+from typing import List, Optional, Dict, Tuple, Callable, Type
+
 
 
 class BulletWorld:
@@ -162,7 +165,7 @@ class BulletWorld:
                 o.set_joint_state(joint, obj.get_joint_state(joint))
         return world
 
-    def add_vis_axis(self, position_and_orientation: Tuple[List[float], List[float]], length: Optional[float] = 0.2) -> Object:
+    def add_vis_axis(self, position_and_orientation: Tuple[List[float], List[float]], length: Optional[float] = 0.2) -> None:
         """
         Creates a Visual object which represents the coordinate frame at the given
         position and orientation. There can only be one vis axis at a time. If this
@@ -194,8 +197,8 @@ class BulletWorld:
 
         self.vis_axis = obj
 
-
-    def register_collision_callback(self, objectA: Object, objectB: Object, callback_collision: Callable, callback_no_collision: Optional[Callable] = None) -> None:
+    def register_collision_callback(self, objectA: Object, objectB: Object,
+                                    callback_collision: Callable, callback_no_collision: Optional[Callable] = None) -> None:
         """
         This function regsiters can register two callbacks, one if objectA and objectB are in contact
         and another if they are not in contact.
@@ -240,12 +243,15 @@ class BulletWorld:
 #current_bullet_world = BulletWorld.current_bullet_world
 
 class Use_shadow_world():
+
     def __init__(self):
         self.prev_world: BulletWorld = None
+
     def __enter__(self):
         self.prev_world = BulletWorld.current_bullet_world
         BulletWorld.current_bullet_world.world_sync.pause_sync = True
         BulletWorld.current_bullet_world = BulletWorld.current_bullet_world.shadow_world
+
     def __exit__(self, *args):
         BulletWorld.current_bullet_world = self.prev_world
         BulletWorld.current_bullet_world.world_sync.pause_sync = False
@@ -274,7 +280,6 @@ class World_Sync(threading.Thread):
         # Maps bullet to shadow world objects
         self.object_mapping: Dict[Object, Object] = {}
 
-
     def run(self):
         """
         The main method of the synchronization, this thread runs in a loop until the
@@ -295,7 +300,7 @@ class World_Sync(threading.Thread):
             for i in range(self.remove_obj_queue.qsize()):
                 obj = self.remove_obj_queue.get()
                 # Get shadow world object reference from object mapping
-                shaow_obj = self.object_mapping[obj]
+                shadow_obj = self.object_mapping[obj]
                 shadow_obj.remove()
                 del self.object_mapping[obj]
                 self.remove_obj_queue.task_done()
@@ -376,8 +381,8 @@ class Object:
         self.id, self.path = _load_object(name, path, position, orientation, self.world, color, ignoreCachedFiles)
         self.joints: Dict[str, int] = self._joint_or_link_name_to_id("joint")
         self.links: Dict[str, int] = self._joint_or_link_name_to_id("link")
-        self.attachments = {}
-        self.cids = {}
+        self.attachments: Dict[Object, List] = {}
+        self.cids: Dict[Object, int] = {}
         self.world.objects.append(self)
         # This means "world" is not the shadow world since it has a reference to a shadow world
         if self.world.shadow_world != None:
@@ -477,7 +482,7 @@ class Object:
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
         self._set_attached_objects([self])
 
-    def _set_attached_objects(self, prev_object: Object) -> None:
+    def _set_attached_objects(self, prev_object: List[Object]) -> None:
         """
         This method updates the positions of all attached objects. This is done
         by calculating the new pose in world coordinate frame and setting the
@@ -599,14 +604,17 @@ class Object:
         self.world.restore_state(*s)
         return contact_points
 
+
 def filter_contact_points(contact_points, exclude_ids) -> List:
     return list(filter(lambda cp: cp[2] not in exclude_ids, contact_points))
+
 
 def get_path_from_data_dir(file_name: str, data_directory: str) -> str:
     dir = pathlib.Path(data_directory)
     for file in os.listdir(data_directory):
         if file == file_name:
             return data_directory + f"/{file_name}"
+
 
 def _get_robot_name_from_urdf(urdf_string: str) -> str:
     res = re.findall(r"robot\ *name\ *=\ *\"\ *[a-zA-Z_0-9]*\ *\"", urdf_string)
@@ -616,7 +624,14 @@ def _get_robot_name_from_urdf(urdf_string: str) -> str:
         robot = res[0][begin + 1:begin + 1 + end].lower()
     return robot
 
-def _load_object(name: str, path: str, position: List[float], orientation: List[float], world: BulletWorld, color: List[float], ignoreCachedFiles: bool) -> Tuple[int, str]:
+
+def _load_object(name: str,
+                 path: str,
+                 position: List[float],
+                 orientation: List[float],
+                 world: BulletWorld,
+                 color: List[float],
+                 ignoreCachedFiles: bool) -> Tuple[int, str]:
     """
     This method loads an object to the given BulletWorld with the given position and orientation. The color will only be
     used when an .obj or .stl file is given.
@@ -724,6 +739,7 @@ def _correct_urdf_string(urdf_string: str) -> str:
         new_urdf_string += line + '\n'
 
     return new_urdf_string
+
 
 def _generate_urdf_file(name: str, path: str, color: List[float], cach_dir: str) -> str:
     """
