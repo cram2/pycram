@@ -1,3 +1,6 @@
+# used for delayed evaluation of typing until python 3.11 becomes mainstream
+from __future__ import annotations
+
 import numpy as np
 import pybullet as p
 import rospy
@@ -6,6 +9,7 @@ from matplotlib import colors
 from .bullet_world import BulletWorld
 from .bullet_world_reasoning import _get_images_for_target
 from nav_msgs.msg import OccupancyGrid, MapMetaData
+from typing import Tuple, List, Union, Optional
 
 
 
@@ -14,7 +18,11 @@ class Costmap():
     The base class of all Costmaps which implemnets the visualization of costmaps
     in the BulletWorld.
     """
-    def __init__(self, resolution, height, width, origin, map):
+    def __init__(self, resolution: float,
+                 height: int,
+                 width: int,
+                 origin: Tuple[List[float], List[float]],
+                 map: np.ndarray):
         """
         The constaructor of the base class of all Costmaps.
         :param resolution: The distance in metre in the real world which is represented
@@ -26,15 +34,15 @@ class Costmap():
         of the origin is a list of x,y,z.
         :param map: The costmap represents as a 2D numpy array.
         """
-        self.resolution = resolution
-        self.size = height
-        self.height = height
-        self.width = width
-        self.origin = origin
-        self.map = map
-        self.vis_ids = []
+        self.resolution: float = resolution
+        self.size: int = height
+        self.height: int = height
+        self.width: int = width
+        self.origin: Tuple[List[float], List[float]] = origin
+        self.map: np.ndarray = map
+        self.vis_ids: List[int] = []
 
-    def visualize(self):
+    def visualize(self) -> None:
         """
         Visualizes a costmap in the BulletWorld, the visualisation works by
         subdividing the costmap in rectangles which are then visualized as pybullet
@@ -91,17 +99,17 @@ class Costmap():
             self.vis_ids.append(map_obj)
 
 
-    def _chunks(self, lst, n):
+    def _chunks(self, lst: List, n: int) -> List:
         """Yield successive n-sized chunks from lst."""
         for i in range(0, len(lst), n):
             yield lst[i:i + n]
 
-    def close_visualization(self):
+    def close_visualization(self) -> None:
         for id in self.vis_ids:
             p.removeBody(id)
         self.vis_ids =  []
 
-    def _find_consectuive_line(self, start, map):
+    def _find_consectuive_line(self, start: Tuple[int, int], map: np.ndarray) -> int:
         """
         Finds the number of consectuive entrys in the costmap which are greater
         than zero.
@@ -119,7 +127,7 @@ class Costmap():
                 return lenght
         return lenght
 
-    def _find_max_box_height(self, start, lenght, map):
+    def _find_max_box_height(self, start: Tuple[int, int], lenght: int, map: np.ndarray) -> int:
         """
         Finds the maximal height for a rectangle for a given width in a costmap.
         The method traverses one row at a time and checks if all entrys for the
@@ -139,7 +147,7 @@ class Costmap():
             curr_height += 1
         return curr_height
 
-    def merge(self, other_cm):
+    def merge(self, other_cm: Costmap) -> Union[None, Costmap]:
         """
         Merges the values of two costmaps and returns a new costmap that has for
         every cell the merged values of both inputs. To merge two costmaps they
@@ -178,14 +186,19 @@ class OccupancyCostmap(Costmap):
     The occupancy Costmap represents a map of the environment where obstacles or
     positions which are inaccessiable for a robot have a value of -1.
     """
-    def __init__(self, distance_to_obstacle, from_ros=False, size=100, resolution=0.02, origin=[0,0,0], world=None):
+    def __init__(self, distance_to_obstacle: float,
+                 from_ros: Optional[bool] = False,
+                 size: Optional[int] = 100,
+                 resolution: Optional[float] = 0.02,
+                 origin: Optional[List[float]] = [0,0,0],
+                 world: Optional[BulletWorld] = None):
         """
         The constructor for the Occupancy costmap, the actual costmap is received
         from the ROS map_server and wrapped by this class. Meta data about the
         costmap is also received from the map_server.
         :param distance_obstacle: The distance by which the obstacles should be
-        inflated. Meaning that obstacles in the costmap are growing bigger by this
-        distance.
+            inflated. Meaning that obstacles in the costmap are growing bigger by this
+            distance.
         :param from_ros: This determines if the Occupancy map should be created
             from the map provided by the ROS map_server or from the BulletWorld.
             If True then the map from the ROS map_server will be used otherwise
@@ -221,7 +234,7 @@ class OccupancyCostmap(Costmap):
             self.map = self._create_from_bullet(world, size, resolution, origin)
             Costmap.__init__(self, resolution, size, size, self.origin, self.map)
 
-    def _calculate_diff_origin(self, height, width):
+    def _calculate_diff_origin(self, height: int, width: int) -> List[float]:
         """
         This method calculates the difference between the origin of the costmap
         as stated by the meta data and the actual middle of the costmap which
@@ -237,7 +250,7 @@ class OccupancyCostmap(Costmap):
         return origin
 
     @staticmethod
-    def _get_map():
+    def _get_map() -> np.ndarray:
         """
         Receives the map array from the map_server converts it into a numpy array.
         :return: The costmap as a numpy array.
@@ -248,7 +261,7 @@ class OccupancyCostmap(Costmap):
         return np.array(map.data)
 
     @staticmethod
-    def _get_map_metadata():
+    def _get_map_metadata() -> MapMetaData:
         """
         Receives the meta data about the costmap from the map_server and returns it.
         The meta data contains things like, height, width, origin and resolution.
@@ -259,7 +272,7 @@ class OccupancyCostmap(Costmap):
         print("Recived Meta Data")
         return meta
 
-    def find_all_non_negativ(self):
+    def find_all_non_negativ(self) -> List[Tuple[int, int]]:
         """
         Finds and returns all indicies for entry in the array which are greater
         than zero.
@@ -272,7 +285,7 @@ class OccupancyCostmap(Costmap):
                     indices.append((i, j))
         return indices
 
-    def find_all_valid_non_negativ(self):
+    def find_all_valid_non_negativ(self) -> List[Tuple[int, int]]:
         """
         Finds all entries in the costmap that are greater than zero and are further
         than distance_to_obstacle from any obstacle.
@@ -289,7 +302,7 @@ class OccupancyCostmap(Costmap):
                 valid.append((w,h))
         return valid
 
-    def _convert_map(self, map, size):
+    def _convert_map(self, map: np.ndarray, size: int) -> np.ndarray:
         """
         This Method converts the Occupancy Map received from ROS to be more consistent
         with how PyCRAM handles its costmap. Every possible cell for a robot to stand
@@ -311,7 +324,7 @@ class OccupancyCostmap(Costmap):
                     new_map[x][y] = 1
         return new_map
 
-    def create_sub_map(self, sub_origin, size):
+    def create_sub_map(self, sub_origin: List[float], size: int) -> Costmap:
         """
         Creates a smaller map from the overall occupancy map, the new map is centered
         around the point specified by "sub_origin" and has the size "size". The
@@ -340,7 +353,7 @@ class OccupancyCostmap(Costmap):
         sub_map = np.rot90(np.flip(self._convert_map(sub_map, size), 0))
         return Costmap(self.resolution, size, size, list(sub_origin * -1), sub_map)
 
-    def _create_from_bullet(self, world, size, resolution, origin):
+    def _create_from_bullet(self, world: BulletWorld, size: int, resolution: float, origin: List[float]):
         """
         This method creates a Occupancy Costmap for the specified BulletWorld.
         This map marks every position as valid that has no object above it. After
@@ -366,11 +379,11 @@ class OccupancyCostmap(Costmap):
         # Using the PyBullet rayTest to check if there is an object above the position
         # if there is no object the position is marked as valid
         for n in self._chunks(np.array(rays), 16383):
-            r_t = p.rayTestBatch(n[:,0], n[:,1],numThreads=0)
+            r_t = p.rayTestBatch(n[:, 0], n[:, 1], numThreads=0)
             if BulletWorld.robot:
                 res += (1 if ray[0] == -1 or ray[0] == BulletWorld.robot.id else 0 for ray in r_t)
             else:
-                res += (1 if ray[0] == -1  else 0 for ray in r_t)
+                res += (1 if ray[0] == -1 else 0 for ray in r_t)
 
         res = np.flip(np.reshape(np.array(res), (size, size)))
         new_map = np.zeros((size, size))
@@ -379,16 +392,15 @@ class OccupancyCostmap(Costmap):
             for y in range(0, size):
                 surrounding_cells = res[x - self.distance_obstacle: x+self.distance_obstacle ,
                                         y - self.distance_obstacle: y+self.distance_obstacle ]
-                if np.sum(surrounding_cells) == (self.distance_obstacle * 2) ** 2  and surrounding_cells.size != 0:
+                if np.sum(surrounding_cells) == (self.distance_obstacle * 2) ** 2 and surrounding_cells.size != 0:
                     new_map[x][y] = 1
 
         return new_map
 
-    def _chunks(self, lst, n):
+    def _chunks(self, lst: List, n: int) -> List:
         """Yield successive n-sized chunks from lst."""
         for i in range(0, len(lst), n):
             yield lst[i:i + n]
-
 
 
 class VisibilityCostmap(Costmap):
@@ -398,7 +410,12 @@ class VisibilityCostmap(Costmap):
     please look here: https://mediatum.ub.tum.de/doc/1239461/1239461.pdf (page 173)
     """
 
-    def __init__(self, min_height, max_height, size=100, resolution=0.02, origin=[0,0,0], world=None):
+    def __init__(self, min_height: float,
+                 max_height: float,
+                 size: Optional[int] = 100,
+                 resolution: Optional[float] = 0.02,
+                 origin: Optional[List[float]] = [0,0,0],
+                 world: Optional[BulletWorld] = None):
         """
         The constructor of the visibility costmap which assisgs the given paranmeter
         and triggeres the generation of the costmap. If you want the visibility for
@@ -416,20 +433,19 @@ class VisibilityCostmap(Costmap):
             costmap should be created.
         :param world: The BulletWorld for which the costmap should be created.
         """
-        self.world = world if world else BulletWorld.current_bullet_world
-        self.map = np.zeros((size, size))
-        self.size = size
-        self.resolution = resolution
+        self.world: BulletWorld = world if world else BulletWorld.current_bullet_world
+        self.map: np.ndarray = np.zeros((size, size))
+        self.size: int = size
+        self.resolution: float = resolution
         # for pr2 = 1.27
-        self.max_height = max_height
+        self.max_height: float = max_height
         #for pr2 = 1.6
-        self.min_height = min_height
-        self.origin = origin
+        self.min_height: float = min_height
+        self.origin: List[float] = origin
         self._generate_map()
         Costmap.__init__(self, resolution, size, size, origin, self.map)
 
-
-    def _create_images(self):
+    def _create_images(self) -> List[np.ndarray]:
         """
         This method creates four depth images in every direction around the point
         for which the costmap should be created. The depoth images are converted
@@ -456,7 +472,7 @@ class VisibilityCostmap(Costmap):
             images[i] = self._depth_buffer_to_meter(images[i])
         return images
 
-    def _depth_buffer_to_meter(self, buffer):
+    def _depth_buffer_to_meter(self, buffer: np.ndarray) -> np.ndarray:
         """
         This method converts the depth images generated by PyBullet to represent
         each position in metre.
@@ -466,7 +482,7 @@ class VisibilityCostmap(Costmap):
         far = 100
         return far * near / (far - (far-near)*buffer)
 
-    def _create_image_world(self):
+    def _create_image_world(self) -> BulletWorld:
         """
         Creates a new BulletWorld which is used for creating the depth images.
         From the new Bullet World the robot and, if the costmap is created for an
@@ -485,7 +501,7 @@ class VisibilityCostmap(Costmap):
         #         obj.remove
         return world
 
-    def _choose_image(self, index):
+    def _choose_image(self, index: Tuple[int, int]) -> int:
         """
         Chooses the corresponding depth image for an index in the costmap.
         :param index: The index for which the depth image should be found.
@@ -504,7 +520,7 @@ class VisibilityCostmap(Costmap):
         elif angle >= np.pi * 0.25 and angle < np.pi * 0.75:
             return 1 #3
 
-    def _choose_column(self, index):
+    def _choose_column(self, index: Tuple[int, int]) -> int:
         """
         Choooses the column in the depth image for an index. The values of this
         column are then used to calculate the value of the index in the costmap.
@@ -518,7 +534,7 @@ class VisibilityCostmap(Costmap):
         column += self.size/2
         return round(column)
 
-    def _calculate_index_in_depth(self, index):
+    def _calculate_index_in_depth(self, index: Tuple[int, int]) -> Tuple[int, int]:
         """
         This method calulates the index in the depth image for a given index in
         the costmap.
@@ -538,7 +554,7 @@ class VisibilityCostmap(Costmap):
         else:
             return [y, self.size-x-1]
 
-    def _compute_column_range(self, index, min_height, max_height):
+    def _compute_column_range(self, index: Tuple[int, int], min_height: float, max_height: float) -> Tuple[int, int]:
         """
         The indices which determine the range of entries in the depth image which
         are used for calulating the entry in the costmap.
@@ -558,7 +574,7 @@ class VisibilityCostmap(Costmap):
         r_max += self.size/2
         return int(min(round(r_min), self.size-1)), int(min(round(r_max), self.size-1))
 
-    def _generate_map(self):
+    def _generate_map(self) -> None:
         """
         This method generates the resulting density map by using the algorithm explained
         in Lorenz Mösenlechners PhD thesis: https://mediatum.ub.tum.de/doc/1239461/1239461.pdf p.178
@@ -585,7 +601,7 @@ class VisibilityCostmap(Costmap):
 
 
 class GaussianCostmap(Costmap):
-    def __init__(self, mean, sigma, resolution=0.02, origin=[0,0,0]):
+    def __init__(self, mean: int, sigma: float, resolution: Optional[float] = 0.02, origin: Optional[List[float]] = [0,0,0]):
         """
         This Costmap creates a 2D gaussian distribution around the origin with
         the specified size.
@@ -597,13 +613,13 @@ class GaussianCostmap(Costmap):
             meter a pixel represents.
         :param origin: The origin of the costmap around which it will be created.
         """
-        self.gau = self._gaussian_window(mean, sigma)
-        self.map = np.outer(self.gau, self.gau)
-        self.size = mean
-        self.origin = origin
+        self.gau: np.ndarray = self._gaussian_window(mean, sigma)
+        self.map: np.ndarray = np.outer(self.gau, self.gau)
+        self.size: float = mean
+        self.origin: List[float] = origin
         Costmap.__init__(self, resolution, mean, mean, origin, self.map)
 
-    def _gaussian_window(self, mean, std):
+    def _gaussian_window(self, mean: int, std: float) -> np.ndarray:
         """
         This method creates a window of values with a gaussian distribution of
         size "mean" and standart deviation "std".
@@ -614,10 +630,13 @@ class GaussianCostmap(Costmap):
         w = np.exp(-n ** 2 / sig2)
         return w
 
+
 cmap = colors.ListedColormap(['white', 'black', 'green', 'red', 'blue'])
 
+
 # Mainly used for debugging
-def plot_grid(data):
+# Data is 2d array
+def plot_grid(data: np.ndarray) -> None:
     rows = data.shape[0]
     cols = data.shape[1]
     fig, ax = plt.subplots()
