@@ -5,14 +5,18 @@ DesignatorError -- implementation of designator errors.
 Designator -- implementation of designators.
 MotionDesignator -- implementation of motion designators.
 """
+# used for delayed evaluation of typing until python 3.11 becomes mainstream
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from copy import copy
 from inspect import isgenerator, isgeneratorfunction
-from typing import List, get_type_hints
 
 from .helper import GeneratorList, bcolors
 from threading import Lock
 from time import time
+from typing import List, Dict, Any, Type, Optional, Union, get_type_hints, Self
+
 import logging
 
 
@@ -25,7 +29,7 @@ class DesignatorError(Exception):
 
 
 class ResolutionError(Exception):
-    def __init__(self, missing_properties, wrong_type, current_type, designator):
+    def __init__(self, missing_properties: List[str], wrong_type: Dict, current_type: Any, designator: Designator):
         self.error = f"\nSome requiered properties where missing or had the wrong type when grounding the Designator: {designator}.\n"
         self.missing = f"The missing properties where: {missing_properties}\n"
         self.wrong = f"The properties with the wrong type along with the currrent -and right type :\n"
@@ -70,27 +74,27 @@ class Designator(ABC):
     argument and return a list of solutions. A solution can also be a generator. """
     resolvers = {}
 
-    def __init__(self, description, parent=None):
+    def __init__(self, description: Type[DesignatorDescription], parent: Optional[Designator] = None):
         """Create a new desginator.
 
         Arguments:
         properties -- a list of tuples (key-value pairs) describing this designator.
         parent -- the parent to equate with (default is None).
         """
-        self._mutex = Lock()
-        self._parent = None
-        self._successor = None
-        self._effective = False
-        self._data = None
+        self._mutex: Lock = Lock()
+        self._parent: Union[Designator, None] = None
+        self._successor: Union[Designator, None] = None
+        self._effective: bool = False
+        self._data: Any = None
         self._solutions = None
-        self._index = 0
+        self._index: int = 0
         self.timestamp = None
-        self._description = description
+        self._description: Type[DesignatorDescription] = description
 
         if parent is not None:
             self.equate(parent)
 
-    def equate(self, parent):
+    def equate(self, parent: Designator) -> None:
         """Equate the designator with the given parent.
 
         Arguments:
@@ -109,7 +113,7 @@ class Designator(ABC):
         self._parent = youngest_parent
         youngest_parent._successor = self
 
-    def equal(self, other):
+    def equal(self, other: Designator) -> bool:
         """Check if the designator describes the same entity as another designator, i.e. if they are equated.
 
         Arguments:
@@ -124,7 +128,7 @@ class Designator(ABC):
 
         return self._parent.first()
 
-    def current(self):
+    def current(self) -> Designator:
         """Return the newest designator, i.e. that one that has been equated last to the designator or one of its equated designators."""
         if self._successor is None:
             return self
@@ -307,8 +311,8 @@ class Designator(ABC):
 class DesignatorDescription():
     resolver: str
 
-    def __init__(self, resolver="grounding"):
-        self.resolver = resolver
+    def __init__(self, resolver: Optional[str] = "grounding"):
+        self.resolver: str = resolver
 
     def make_dictionary(self, properties: List[str]):
         """
@@ -325,23 +329,23 @@ class DesignatorDescription():
                 ret[att] = attributes[att]
         return ret
 
-    def ground(self):
+    def ground(self) -> Any:
         """
         Should be overwritten with an actual grounding function which infers missing properties.
         """
         return self
 
-    def get_slots(self):
+    def get_slots(self) -> List[str]:
         """
         Returns a list of all slots of this description. Can be used for inspecting different descriptions and debugging.
         :return: A list of all slots.
         """
         return list(self.__dict__.keys())
 
-    def copy(self):
-        return copy(self)
+    def copy(self) -> Type[DesignatorDescription]:
+        return self
 
-    def _check_properties(self, desig: str, exclude=[]):
+    def _check_properties(self, desig: str, exclude: List[str] = []) -> None:
         """
         Checks the properties of this description. It will be checked if any attribute is
         None and if any attribute has to wrong type according to the type hints in
