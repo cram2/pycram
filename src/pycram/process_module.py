@@ -4,6 +4,8 @@ Classes:
 ProcessModule -- implementation of process modules.
 """
 from .fluent import Fluent
+from .designator import Designator
+from typing import Callable, List, Type, Any
 
 
 class ProcessModule:
@@ -21,14 +23,13 @@ class ProcessModule:
     execute -- execute the given designator.
     """
 
-    resolvers = []
+    resolvers: Callable = []
     """List of all process module resolvers. Process module resolvers are functions which take a designator as argument and return a process module."""
-    robot_type = ""
+    robot_type: str = ""
     """The type of the robot, either real or simulated. Is used to determine which Process Module is choosen for execution."""
 
-
     @staticmethod
-    def perform(designator):
+    def perform(designator: Type[Designator]) -> None:
         """Automatically choose a process module and execute the given designator.
 
         Arguments:
@@ -42,17 +43,17 @@ class ProcessModule:
 
     def __init__(self):
         """Create a new process module."""
-        self._running = Fluent(False)
-        self._designators = []
+        self._running: Fluent = Fluent(False)
+        self._designators: List[MotionDesignator] = []
 
-    def _execute(self, designator):
+    def _execute(self, designator: Type[Designator]):
         """This is a helper method for internal usage only.
 
         This method is to be overwritten instead of the execute method.
         """
         pass
 
-    def execute(self, designator):
+    def execute(self, designator: Type[Designator]) -> Any:
         """Execute the given designator. If the process module is already executing another designator, it queues the given designator and executes them in order.
 
         Arguments:
@@ -70,7 +71,7 @@ class ProcessModule:
 
 class real_robot():
     def __init__(self):
-        self.pre = ""
+        self.pre: str = ""
 
     def __enter__(self):
         self.pre = ProcessModule.robot_type
@@ -85,7 +86,7 @@ class real_robot():
 
 class simulated_robot():
     def __init__(self):
-        self.pre = ""
+        self.pre: str = ""
 
     def __enter__(self):
         self.pre = ProcessModule.robot_type
@@ -98,7 +99,7 @@ class simulated_robot():
         return self
 
 
-def with_real_robot(func):
+def with_real_robot(func: Callable) -> Callable:
     def wrapper(*args, **kwargs):
         pre = ProcessModule.robot_type
         ProcessModule.robot_type = "real"
@@ -107,7 +108,7 @@ def with_real_robot(func):
     return wrapper
 
 
-def with_simulated_robot(func):
+def with_simulated_robot(func: Callable) -> Callable:
     def wrapper(*args, **kwargs):
         pre = ProcessModule.robot_type
         ProcessModule.robot_type = "simulated"
