@@ -7,6 +7,10 @@ Classes:
 Behavior -- enumeration to describe how to handle missed pulses in the whenever macro.
 Fluent -- implementation of fluents.
 """
+
+# used for delayed evaluation of typing until python 3.11 becomes mainstream
+from __future__ import annotations
+
 import operator
 
 from pycram.helper import _block
@@ -16,12 +20,13 @@ from macropy.core.hquotes import macros, hq
 from macropy.core.quotes import macros, ast_literal
 from threading import Condition, Lock
 from uuid import uuid4
+from typing import Any, Optional, List, Union, Tuple
 
 macros = Macros()
 """Must be imported before macros defined in this module can be imported."""
 
 @macros.block
-def whenever(tree, args, **kw):
+def whenever(tree: List[_ast.Pass], args: Tuple[_ast.Name, _ast.Constant], **kw) -> None:
 	"""Execute the body as long as the value of the fluent passed as argument is not None. If the value is None the macro waits for it to become not None. A break statement is required to stop.
 
 	If the passed fluent was created by the pulsed method of a fluent, the body gets executed whenever the parent gets pulsed.
@@ -92,26 +97,26 @@ class Fluent:
 	NOT -- create a fluent which value is True if the value of its parent expresses False, None otherwise.
 	"""
 
-	def __init__(self, value = None, name = None):
+	def __init__(self, value: Optional[Any] = None, name: str = None):
 		"""Create a new fluent.
 
 		Arguments:
 		value -- the value of the fluent which can also be a function to create user defined operators (default is None).
 		name -- the name of the fluent (default is a random string).
 		"""
-		self._cv = Condition()
-		self._mutex = Lock()
-		self._pulses = 0
-		self._children = []
+		self._cv: Condition = Condition()
+		self._mutex: Lock = Lock()
+		self._pulses: int = 0
+		self._children: List[Fluent] = []
 		self._handle_missed = Behavior.NEVER
-		self._value = value
+		self._value: Any = value
 
 		if name is not None:
-			self.name = name
+			self.name: str = name
 		else:
-			self.name = str(uuid4())
+			self.name: str = str(uuid4())
 
-	def pulsed(self, handle_missed = 2):
+	def pulsed(self, handle_missed: Behavior = 2) -> Fluent:
 		"""Create a fluent which changes its value from None to True whenever the parent gets pulsed.
 
 		Arguments:
@@ -130,7 +135,7 @@ class Fluent:
 		self.add_child(fluent)
 		return fluent
 
-	def pulse(self):
+	def pulse(self) -> None:
 		"""Pulse a fluent without changing its value."""
 		for child in self._children:
 			with child._mutex:
@@ -141,7 +146,7 @@ class Fluent:
 		with self._cv:
 			self._cv.notify()
 
-	def add_child(self, child):
+	def add_child(self, child: Fluent) -> None:
 		"""Add a child to the fluent which gets pulsed whenever this fluent gets pulsed, too.
 
 		Arguments:
@@ -149,7 +154,7 @@ class Fluent:
 		"""
 		self._children.append(child)
 
-	def get_value(self):
+	def get_value(self) -> Any:
 		"""Return the value of the fluent."""
 		with self._mutex:
 			if callable(self._value):
@@ -157,7 +162,7 @@ class Fluent:
 
 			return self._value
 
-	def set_value(self, value):
+	def set_value(self, value: Any) -> None:
 		"""Change the value of the fluent.
 
 		Changing the value will also pulse the fluent.
@@ -170,7 +175,7 @@ class Fluent:
 
 		self.pulse()
 
-	def wait_for(self, timeout = None):
+	def wait_for(self, timeout: float = None):
 		"""Block the current thread if the value of the fluent is None, until it is not None or until it timed out.
 
 		If the fluent was created by the pulsed method of a fluent, the method blocks until the parent gets pulsed.
@@ -183,7 +188,7 @@ class Fluent:
 		with self._cv:
 			return self._cv.wait_for(lambda: self.get_value() is not None, timeout)
 
-	def _compare(self, operator, other):
+	def _compare(self, operator, other: Fluent) -> FLuent:
 		"""This is a helper method for internal usage only.
 
 		Create a fluent which value is a function returning True or None depending on the given comparison operator applied to the operands.
@@ -213,7 +218,7 @@ class Fluent:
 		fluent.set_value(value)
 		return fluent
 
-	def __lt__(self, other):
+	def __lt__(self, other: Fluent) -> Fluent:
 		"""Overload the < comparsion operator.
 
 		Arguments:
@@ -221,7 +226,7 @@ class Fluent:
 		"""
 		return self._compare(operator.lt, other)
 
-	def __leq__(self, other):
+	def __leq__(self, other: Fluent) -> Fluent:
 		"""Overload the <= comparsion operator.
 
 		Arguments:
@@ -229,7 +234,7 @@ class Fluent:
 		"""
 		return self._compare(operator.leq, other)
 
-	def __eq__(self, other):
+	def __eq__(self, other: Fluent) -> Fluent:
 		"""Overload the == comparsion operator.
 
 		Arguments:
@@ -237,7 +242,7 @@ class Fluent:
 		"""
 		return self._compare(operator.eq, other)
 
-	def __ne__(self, other):
+	def __ne__(self, other: Fluent) -> Fluent:
 		"""Overload the != comparsion operator.
 
 		Arguments:
@@ -245,7 +250,7 @@ class Fluent:
 		"""
 		return self._compare(operator.ne, other)
 
-	def IS(self, other):
+	def IS(self, other: Fluent) -> Fluent:
 		"""Create a fluent which value is True if the value of its parent is the value of the given operand, None otherwise.
 
 		Arguments:
@@ -253,7 +258,7 @@ class Fluent:
 		"""
 		return self._compare(operator.is_, other)
 
-	def IS_NOT(self, other):
+	def IS_NOT(self, other: Fluent) -> Fluent:
 		"""Create a fluent which value is True if the value of its parent is not the value of the given operand, None otherwise.
 
 		Arguments:
@@ -261,7 +266,7 @@ class Fluent:
 		"""
 		return self._compare(operator.is_not, other)
 
-	def __gt__(self, other):
+	def __gt__(self, other: Fluent) -> Fluent:
 		"""Overload the > comparsion operator.
 
 		Arguments:
@@ -269,7 +274,7 @@ class Fluent:
 		"""
 		return self._compare(operator.gt, other)
 
-	def __geq__(self, other):
+	def __geq__(self, other: Fluent) -> Fluent:
 		"""Overload the >= comparsion operator.
 
 		Arguments:
@@ -277,7 +282,7 @@ class Fluent:
 		"""
 		return self._compare(operator.geq, other)
 
-	def _math(self, operator, operand, other):
+	def _math(self, operator: Callable, operand: Fluent, other: Fluent) -> Fluent:
 		"""This is a helper method for internal usage only.
 
 		Create a fluent which value is a function returning the value of the given math operator applied to the operands.
@@ -304,7 +309,7 @@ class Fluent:
 		fluent.set_value(value)
 		return fluent
 
-	def __add__(self, other):
+	def __add__(self, other: Fluent) -> Fluent:
 		"""Overload the + math operator.
 
 		Arguments:
@@ -312,7 +317,7 @@ class Fluent:
 		"""
 		return self._math(operator.add, self, other)
 
-	def __radd__(self, other):
+	def __radd__(self, other: Fluent) -> Fluent:
 		"""Overload the + math operator with the first operand not being a fluent.
 
 		Arguments:
@@ -320,7 +325,7 @@ class Fluent:
 		"""
 		return self._math(operator.add, other, self)
 
-	def __sub__(self, other):
+	def __sub__(self, other: Fluent) -> Fluent:
 		"""Overload the - math operator.
 
 		Arguments:
@@ -328,7 +333,7 @@ class Fluent:
 		"""
 		return self._math(operator.sub, self, other)
 
-	def __rsub__(self, other):
+	def __rsub__(self, other: Fluent) -> Fluent:
 		"""Overload the - math operator with the first operand not being a fluent.
 
 		Arguments:
@@ -336,7 +341,7 @@ class Fluent:
 		"""
 		return self._math(operator.sub, other, self)
 
-	def __mul__(self, other):
+	def __mul__(self, other: Fluent) -> Fluent:
 		"""Overload the * math operator.
 
 		Arguments:
@@ -344,7 +349,7 @@ class Fluent:
 		"""
 		return self._math(operator.mul, self, other)
 
-	def __rmul__(self, other):
+	def __rmul__(self, other: Fluent) -> Fluent:
 		"""Overload the * math operator with the first operand not being a fluent.
 
 		Arguments:
@@ -352,7 +357,7 @@ class Fluent:
 		"""
 		return self._math(operator.mul, other, self)
 
-	def __truediv__(self, other):
+	def __truediv__(self, other: Fluent) -> Fluent:
 		"""Overload the / math operator.
 
 		Arguments:
@@ -360,7 +365,7 @@ class Fluent:
 		"""
 		return self._math(operator.truediv, self, other)
 
-	def __rtruediv__(self, other):
+	def __rtruediv__(self, other) -> Fluent:
 		"""Overload the / math operator with the first operand not being a fluent.
 
 		Arguments:
@@ -368,7 +373,7 @@ class Fluent:
 		"""
 		return self._math(operator.truediv, other, self)
 
-	def AND(self, other):
+	def AND(self, other: Fluent) -> Fluent:
 		"""Create a fluent which value is True if both, the value of its parent and the other operand express True, None otherwise.
 
 		Arguments:
@@ -395,7 +400,7 @@ class Fluent:
 		fluent.set_value(value)
 		return fluent
 
-	def OR(self, other):
+	def OR(self, other: Fluent) -> Fluent:
 		"""Create a fluent which value is True if either the value of its parent or the other operand express True, None otherwise.
 
 		Arguments:
@@ -422,7 +427,7 @@ class Fluent:
 		fluent.set_value(value)
 		return fluent
 
-	def NOT(self):
+	def NOT(self) -> Fluent:
 		"""Create a fluent which value is True if the value of its parent expresses False, None otherwise."""
 		def value():
 			if not self.get_value():
