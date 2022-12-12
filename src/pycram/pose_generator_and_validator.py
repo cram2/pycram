@@ -3,14 +3,16 @@ import numpy as np
 import rospy
 import pybullet as p
 
-from .bullet_world import Object
+from .bullet_world import Object, BulletWorld
+from .costmaps import Costmap
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from .external_interfaces.ik import _make_request_msg
 from .helper import _transform_to_torso
 from moveit_msgs.srv import GetPositionIK
+from typing import Type, Tuple, List, Union
 
 
-def pose_generator(costmap):
+def pose_generator(costmap: Type[Costmap]) -> Tuple[List[float], List[float]]:
     """
     A generator that crates pose candidates from a given costmap. The generator
     selects the highest 100 values and returns the corresponding positions.
@@ -48,11 +50,12 @@ def pose_generator(costmap):
         print(f"Indicies: {ind}, Position: {position}")
         yield (list(position), orientation)
 
-def height_generator():
+
+def height_generator() -> float:
     pass
 
 
-def generate_orientation(position, origin):
+def generate_orientation(position: List[float], origin: List[float]) -> List[float]:
     """
     This method generates the orientation for a given position in a costmap. The
     orientation is calculated such that the robot faces the origin of the costmap.
@@ -68,7 +71,11 @@ def generate_orientation(position, origin):
     quaternion = list(tf.transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
     return quaternion
 
-def visibility_validator(pose, robot, object_or_pose, world):
+
+def visibility_validator(pose: Tuple[List[float], List[float]],
+                         robot: Object,
+                         object_or_pose: Union[Object, Tuple[List[float], List[float]]],
+                         world: BulletWorld) -> bool:
     """
     This method validates if the robot can see the target position from a given
     pose candidate. The target position can either be a position, in world coordinate
@@ -100,7 +107,10 @@ def visibility_validator(pose, robot, object_or_pose, world):
     return res
 
 
-def reachability_validator(pose, robot, target, world):
+def reachability_validator(pose: Tuple[List[float], List[float]],
+                           robot: Object,
+                           target: Union[Object, Tuple[List[float], List[float]]],
+                           world: BulletWorld) -> bool:
     """
     This method validates if a target position is reachable for a pose candidate.
     This is done by asking the ik solver if there is a valid solution if the
