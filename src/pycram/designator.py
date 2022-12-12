@@ -15,7 +15,7 @@ from inspect import isgenerator, isgeneratorfunction
 from .helper import GeneratorList, bcolors
 from threading import Lock
 from time import time
-from typing import List, Dict, Any, Type, Optional, Union, get_type_hints, Self
+from typing import List, Dict, Any, Type, Optional, Union, get_type_hints
 
 import logging
 
