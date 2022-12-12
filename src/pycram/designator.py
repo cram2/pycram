@@ -121,7 +121,7 @@ class Designator(ABC):
         """
         return other.first() is self.first()
 
-    def first(self):
+    def first(self) -> Designator:
         """Return the first ancestor in the chain of equated designators."""
         if self._parent is None:
             return self
@@ -135,7 +135,7 @@ class Designator(ABC):
 
         return self._successor.current()
 
-    def _reference(self):
+    def _reference(self) -> Any:
         """This is a helper method for internal usage only.
 
         This method is to be overwritten instead of the reference method.
@@ -167,7 +167,7 @@ class Designator(ABC):
         except StopIteration:
             raise DesignatorError('There was no Solution for this Object Designator')
 
-    def reference(self):
+    def reference(self) -> Any:
         """Try to dereference the designator and return its data object or raise DesignatorError if it is not an
         effective designator. """
         with self._mutex:
@@ -187,7 +187,7 @@ class Designator(ABC):
         entity. """
         pass
 
-    def solutions(self, from_root=None):
+    def solutions(self, from_root: Optional[Designator] = None):
         """Return a generator for all solutions of the designator.
 
         Arguments:
@@ -209,7 +209,7 @@ class Designator(ABC):
 
         return generator(desig)
 
-    def copy(self, new_properties=None):
+    def copy(self, new_properties: Optional[List] = None) -> Designator:
         """Construct a new designator with the same properties as this one. If new properties are specified, these will be merged with the old ones while the new properties are dominant in this relation.
 
         Arguments:
@@ -224,7 +224,9 @@ class Designator(ABC):
 
         return self.__class__(description)
 
-    def make_effective(self, properties=None, data=None, timestamp=None):
+    def make_effective(self, properties: Optional[List] = None,
+                       data: Optional[Any] = None,
+                       timestamp: Optional[float] = None) -> Designator:
         """Create a new effective designator of the same type as this one. If no properties are specified, this ones are used.
 
         Arguments:
@@ -246,7 +248,7 @@ class Designator(ABC):
 
         return desig
 
-    def newest_effective(self):
+    def newest_effective(self) -> Designator:
         """Return the newest effective designator."""
 
         def find_effective(desig):
@@ -257,7 +259,7 @@ class Designator(ABC):
 
         return find_effective(self.current())
 
-    def prop_value(self, key):
+    def prop_value(self, key: str) -> Any:
         """Return the first value matching the specified property key.
 
         Arguments:
@@ -269,7 +271,7 @@ class Designator(ABC):
             logging.error(f"The given key '{key}' is not in this Designator")
             return None
 
-    def check_constraints(self, properties):
+    def check_constraints(self, properties: List) -> bool:
         """Return True if all the given properties match, False otherwise.
 
         Arguments:
@@ -287,7 +289,7 @@ class Designator(ABC):
 
         return True
 
-    def make_dictionary(self, properties):
+    def make_dictionary(self, properties: List) -> Dict:
         """ DEPRECATED, Moved to the description. Function only keept because of
         backward compatability.
         Return the given properties as dictionary.
@@ -298,7 +300,7 @@ class Designator(ABC):
 
         return self._description.make_dictionary(properties)
 
-    def rename_prop(self, old, new):
+    def rename_prop(self, old: str, new: str) -> Designator:
         old_value = self.prop_value(old)
         if old_value is not None:
             self._description.__dict__[new] = old_value
