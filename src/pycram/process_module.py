@@ -23,7 +23,7 @@ class ProcessModule:
     execute -- execute the given designator.
     """
 
-    resolvers: Callable = []
+    resolvers: List[Callable] = []
     """List of all process module resolvers. Process module resolvers are functions which take a designator as argument and return a process module."""
     robot_type: str = ""
     """The type of the robot, either real or simulated. Is used to determine which Process Module is choosen for execution."""
@@ -44,7 +44,7 @@ class ProcessModule:
     def __init__(self):
         """Create a new process module."""
         self._running: Fluent = Fluent(False)
-        self._designators: List[MotionDesignator] = []
+        self._designators: List[Designator] = []
 
     def _execute(self, designator: Type[Designator]):
         """This is a helper method for internal usage only.
