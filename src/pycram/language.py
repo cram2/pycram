@@ -84,7 +84,7 @@ def _exceptions(tree: List[Union['_ast.Assign', '_ast.If']], args: Tuple) -> Non
         with hq as new_tree:
             ast_literal[ast.Name(args[0].id, ast.Store())] = unhygienic[_exceptions]
 
-    tree.append(new_tree)
+        tree.append(new_tree)
 
 
 def _thread(tree: List) -> None:
