@@ -11,6 +11,10 @@ failure_handling -- macro to wrap the body into a function named retry which can
 Classes:
 State -- enumeration to describe the result of a macro.
 """
+# used for delayed evaluation of typing until python 3.11 becomes mainstream
+from __future__ import annotations
+
+import _ast
 import ast
 from .fluent import Fluent
 from .helper import _block
@@ -19,11 +23,13 @@ from macropy.core.macros import Macros
 from macropy.core.hquotes import macros, hq
 from macropy.core.quotes import macros, ast_literal, q
 from threading import Thread
+from typing import Optional, List, Tuple, Union
 
 macros = Macros()
 """Must be imported before macros defined in this module can be imported."""
 
-def _state(target, state = None):
+
+def _state(target: '_ast.Name', state: Optional[State] = None) -> List['_ast.If']:
     """This is a helper function for internal usage only.
 
     Set the state which macros return as result. If it's already set, nothing happens. If the given argument "state" is None, the current state is returned.
@@ -43,7 +49,8 @@ def _state(target, state = None):
 
     return tree
 
-def _init(target, threads = True):
+
+def _init(target: '_ast.Name', threads: Optional[bool] = True) -> List['_ast.Assign']:
     """This is a helper function for internal usage only.
 
     Initialize variables which macros need.
@@ -60,11 +67,11 @@ def _init(target, threads = True):
         with q as temp_tree:
             _threads = []
 
-    tree.append(temp_tree)
-
+        tree.append(temp_tree)
     return tree
 
-def _exceptions(tree, args):
+
+def _exceptions(tree: List[Union['_ast.Assign', '_ast.If']], args: Tuple) -> None:
     """This is a helper function for internal usage only.
 
     Store the list of exceptions if the argument is given.
@@ -79,7 +86,8 @@ def _exceptions(tree, args):
 
     tree.append(new_tree)
 
-def _thread(tree):
+
+def _thread(tree: List) -> None:
     """This is a helper function for internal usage only.
 
     Create a thread and start it.
@@ -94,7 +102,8 @@ def _thread(tree):
 
     tree.append(new_tree)
 
-def _join(tree):
+
+def _join(tree: List) -> None:
     """This is a helper function for internal usage only.
 
     Join all threads (wait for them to finish).
@@ -108,8 +117,9 @@ def _join(tree):
 
     tree.append(new_tree)
 
+
 @macros.block
-def seq(tree, target, args, **kw):
+def seq(tree: List, target: '_ast.Name', args: Tuple, **kw) -> List:
     """Execute statements sequentially and fail if one fails, succeed after all succeeded. If one failed, the others are not executed anymore.
     The result is returned as fluent. One can access the state within the macro, too.
     Exceptions do not terminate the current thread, they get stored as list into a variable passed as optional argument instead.
@@ -142,8 +152,9 @@ def seq(tree, target, args, **kw):
     _exceptions(new_tree, args)
     return _block(new_tree)
 
+
 @macros.block
-def par(tree, target, args, **kw):
+def par(tree: List, target: '_ast.Name', args: Tuple, **kw) -> List:
     """Execute statements in parallel and fail if one fails, succeed after all succeeded.
     The result is returned as fluent. One can access the state within the macro, too. This is especially useful to evaporate all statements if one finished.
     Exceptions do not terminate the current thread, they get stored as list into a variable passed as optional argument instead.
@@ -176,8 +187,9 @@ def par(tree, target, args, **kw):
     _exceptions(new_tree, args)
     return _block(new_tree)
 
+
 @macros.block
-def pursue(tree, target, args, **kw):
+def pursue(tree: List, target: '_ast.Name', args: Tuple, **kw) -> List:
     """Execute statements in parallel and fail if one fails, succeed after one succeeded.
     The result is returned as fluent. One can access the state within the macro, too. This is especially useful to evaporate all statements if one finished.
     Exceptions do not terminate the current thread, they get stored as list into a variable passed as optional argument instead.
@@ -210,8 +222,9 @@ def pursue(tree, target, args, **kw):
     _exceptions(new_tree, args)
     return _block(new_tree)
 
+
 @macros.block
-def try_all(tree, target, args, **kw):
+def try_all(tree: List, target: '_ast.Name', args: Tuple, **kw) -> List:
     """Execute statements in parallel and fail if all fail, succeed after one succeeded.
     The result is returned as fluent. One can access the state within the macro, too. This is especially useful to evaporate all statements if one finished.
     Exceptions do not terminate the current thread, they get stored as list into a variable passed as optional argument instead.
@@ -244,8 +257,9 @@ def try_all(tree, target, args, **kw):
     _exceptions(new_tree, args)
     return _block(new_tree)
 
+
 @macros.block
-def try_in_order(tree, target, args, **kw):
+def try_in_order(tree: List, target: '_ast.Name', args: Tuple, **kw) -> List:
     """Execute statements sequentially and fail if all fail, succeed after one succeeded. If one succeeded, the others are not executed anymore.
     The result is returned as fluent. One can access the state within the macro, too.
     Exceptions do not terminate the current thread, they get stored as list into a variable passed as optional argument instead.
@@ -276,8 +290,9 @@ def try_in_order(tree, target, args, **kw):
     _exceptions(new_tree, args)
     return _block(new_tree)
 
+
 @macros.block
-def failure_handling(tree, args, **kw):
+def failure_handling(tree: List, args: Tuple, **kw) -> List:
     """Wrap the body into a function named retry which can be called to execute it again, for example in case of an exception being raised.
     The maximum number of retries can be specified.
 
@@ -308,6 +323,7 @@ def failure_handling(tree, args, **kw):
         retry()
 
     return _block(new_tree)
+
 
 class State(Enum):
     """Enumeration which describes the result of a macro.
