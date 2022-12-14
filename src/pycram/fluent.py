@@ -20,13 +20,13 @@ from macropy.core.hquotes import macros, hq
 from macropy.core.quotes import macros, ast_literal
 from threading import Condition, Lock
 from uuid import uuid4
-from typing import Any, Optional, List, Union, Tuple
+from typing import Any, Optional, List, Union, Tuple, Callable
 
 macros = Macros()
 """Must be imported before macros defined in this module can be imported."""
 
 @macros.block
-def whenever(tree: List[_ast.Pass], args: Tuple[_ast.Name, _ast.Constant], **kw) -> None:
+def whenever(tree: List['_ast.Pass'], args: Tuple['_ast.Name, _ast.Constant'], **kw) -> None:
     """Execute the body as long as the value of the fluent passed as argument is not None. If the value is None the macro waits for it to become not None. A break statement is required to stop.
 
     If the passed fluent was created by the pulsed method of a fluent, the body gets executed whenever the parent gets pulsed.
@@ -58,6 +58,7 @@ def whenever(tree: List[_ast.Pass], args: Tuple[_ast.Name, _ast.Constant], **kw)
 
     return _block(new_tree)
 
+
 class Behavior(Enum):
     """Enumeration which can be passed as argument to the pulsed method of fluents to describe how to handle missed pulses in the whenever macro.
 
@@ -69,6 +70,7 @@ class Behavior(Enum):
     NEVER = 1
     ONCE = 2
     ALWAYS = 3
+
 
 class Fluent:
     """Implementation of fluents.
@@ -188,7 +190,7 @@ class Fluent:
         with self._cv:
             return self._cv.wait_for(lambda: self.get_value() is not None, timeout)
 
-    def _compare(self, operator, other: Fluent) -> FLuent:
+    def _compare(self, operator, other: Fluent) -> Fluent:
         """This is a helper method for internal usage only.
 
         Create a fluent which value is a function returning True or None depending on the given comparison operator applied to the operands.
