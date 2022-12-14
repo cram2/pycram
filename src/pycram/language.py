@@ -136,7 +136,7 @@ def seq(tree, target, args, **kw):
                     ast_literal[_state(target, State.FAILED)]
                     unhygienic[_exceptions].append(e)
 
-    new_tree.append(temp_tree);
+        new_tree.append(temp_tree);
 
     new_tree.append(_state(target, State.SUCCEEDED))
     _exceptions(new_tree, args)

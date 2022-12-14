@@ -49,7 +49,7 @@ def gen_from_costmap(desig):
     :yield: The found valid poses for the constrains given by the designator.
     """
     min_height = list(robot_description.i.cameras.values())[0].min_height
-    min_height = list(robot_description.i.cameras.values())[0].min_height
+    max_height = list(robot_description.i.cameras.values())[0].max_height
     # This ensures that the costmaps always get a position as their origin.
     if type(desig._description.target) == Object:
         target_pose = desig._description.target.get_position()
