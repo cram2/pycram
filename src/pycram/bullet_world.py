@@ -17,6 +17,7 @@ import re
 from queue import Queue
 
 import rospy
+from typing import List, Optional, Union, Dict
 from .event import Event
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 
@@ -226,7 +227,7 @@ class BulletWorld:
         world an error will be logged.
         :param object: The object for which the corresponding object in the
             main Bullet World should be found
-        :return: The object in the main Bullet World 
+        :return: The object in the main Bullet World
         """
         map = self.world_sync.object_mapping
         try:
@@ -584,6 +585,63 @@ class Object:
         contact_points = self.contact_points()
         self.world.restore_state(*s)
         return contact_points
+
+    def set_color(self, color:  List[float], link: Optional[str] = "") -> None:
+        """
+        Changes the color of this object, the color has to be given as a list
+        of RGBA values. Optionaly a link name can can be provided, if no link
+        name is provided all links of this object will be colored.
+        :param color: The color as RGBA values between 0 and 1
+        :param link: The link name of the link which should be colored
+        """
+        if link == "":
+            # Check if there is only one link, this is the case for primitive
+            # forms or if loaded from an .stl or .obj file
+            if self.links != {}:
+                for link_id in self.links.values():
+                    p.changeVisualShape(self.id, link_id, rgbaColor=color, physicsClientId=self.world.client_id)
+            else:
+                p.changeVisualShape(self.id, -1, rgbaColor=color, physicsClientId=self.world.client_id)
+        else:
+            p.changeVisualShape(self.id, self.links[link], rgbaColor=color, physicsClientId=self.world.client_id)
+
+    def get_color(self, link: Optional[str] = None) -> Union[List[float], Dict[str, List[float]], None]:
+        """
+        This method returns the color of this object or a link of this obejct. If no link is given then the
+        return is either:
+            1. A list with the color as RGBA values, this is the case if the object only has one link (this
+                happens for example if the object is spawned from a .obj or .stl file)
+            2. A dict with the link name as key and the color as value. The color is given as RGBA values.
+                Please keep in mind that not every link may have a color. This is dependent on the URDF from which the
+                object is spawned.
+        If a link is specified then the return is a list with RGBA values representing the color of this link.
+        It may be that this link has no color, in this case the return is None as well as an error message.
+        :param link: the link name for which the color should be returned.
+        :return: The color of the object or link, or a dictionary containing every colored link with its color
+
+        """
+        visual_data = p.getVisualShapeData(self.id, physicsClientId=self.world.client_id)
+        swap = {v: k for k, v in self.links.items()}
+        links = list(map(lambda x: swap[x[1]] if x[1] != -1 else "base", visual_data))
+        colors = list(map(lambda x: x[7], visual_data))
+        link_to_color = dict(zip(links, colors))
+
+        if link:
+            if link in link_to_color.keys():
+                return link_to_color[link]
+            elif link not in self.links.keys():
+                rospy.logerr(f"The link '{link}' is not part of this obejct")
+                return None
+            else:
+                rospy.logerr(f"The link '{link}' has no color")
+                return None
+
+        if len(visual_data) == 1:
+            return list(visual_data[0][7])
+        else:
+            return link_to_color
+
+
 
 def filter_contact_points(contact_points, exclude_ids):
     return list(filter(lambda cp: cp[2] not in exclude_ids, contact_points))
