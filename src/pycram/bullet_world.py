@@ -19,6 +19,7 @@ from queue import Queue
 import rospy
 from .event import Event
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from sensor_msgs.msg import JointState
 
 
 
@@ -584,6 +585,14 @@ class Object:
         contact_points = self.contact_points()
         self.world.restore_state(*s)
         return contact_points
+
+    def updte_joint_from_topic(self, topic_name: str) -> None:
+        msg = rospy.wait_for_message(topic_name, JointState)
+        joint_names = msg.name
+        joint_positions = msg.position
+        if set(joint_names).issubset(self.joints.keys()):
+            for i in range(len(joint_names)):
+                self.set_joint_state(joint_names[i], joint_positions[i])
 
 def filter_contact_points(contact_points, exclude_ids):
     return list(filter(lambda cp: cp[2] not in exclude_ids, contact_points))
