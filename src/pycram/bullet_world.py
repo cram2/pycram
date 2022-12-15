@@ -606,6 +606,20 @@ class Object:
             p.changeVisualShape(self.id, self.links[link], rgbaColor=color, physicsClientId=self.world.client_id)
 
     def get_color(self, link: Optional[str] = None) -> Union[List[float], Dict[str, List[float]], None]:
+        """
+        This method returns the color of this object or a link of this obejct. If no link is given then the
+        return is either:
+            1. A list with the color as RGBA values, this is the case if the object only has one link (this
+                happens for example if the object is spawned from a .obj or .stl file)
+            2. A dict with the link name as key and the color as value. The color is given as RGBA values.
+                Please keep in mind that not every link may have a color. This is dependent on the URDF from which the
+                object is spawned.
+        If a link is specified then the return is a list with RGBA values representing the color of this link.
+        It may be that this link has no color, in this case the return is None as well as an error message.
+        :param link: the link name for which the color should be returned.
+        :return: The color of the object or link, or a dictionary containing every colored link with its color
+
+        """
         visual_data = p.getVisualShapeData(self.id, physicsClientId=self.world.client_id)
         swap = {v: k for k, v in self.links.items()}
         if link:
