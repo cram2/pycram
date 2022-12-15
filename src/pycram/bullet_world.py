@@ -15,11 +15,14 @@ import logging
 import rospkg
 import re
 from queue import Queue
+import tf
 
 import rospy
 from .event import Event
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+#from .local_transformer import local_transformer
 from sensor_msgs.msg import JointState
+
 
 
 
@@ -586,13 +589,23 @@ class Object:
         self.world.restore_state(*s)
         return contact_points
 
-    def updte_joint_from_topic(self, topic_name: str) -> None:
+    def update_joints_from_topic(self, topic_name: str) -> None:
         msg = rospy.wait_for_message(topic_name, JointState)
         joint_names = msg.name
         joint_positions = msg.position
         if set(joint_names).issubset(self.joints.keys()):
             for i in range(len(joint_names)):
                 self.set_joint_state(joint_names[i], joint_positions[i])
+        else:
+            add_joints = set(joint_names) - set(joint_names).intersection(set(self.joints.keys()))
+            rospy.logerr(f"There are joints in the published joint state which are not in this model: /n \
+                        The following joint{'s' if len(add_joints) != 1 else ''}: {add_joints}")
+
+    def update_position_from_tf(self) -> None:
+        tf_listener = tf.TransformListener()
+        time.sleep(0.5)
+        position = tf_listener.lookupTransform(robot_description.i.base_frame, "map", rospy.Time(0))
+        self.set_position(position)
 
 def filter_contact_points(contact_points, exclude_ids):
     return list(filter(lambda cp: cp[2] not in exclude_ids, contact_points))
