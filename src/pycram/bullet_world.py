@@ -17,7 +17,7 @@ import re
 from queue import Queue
 
 import rospy
-from typing import List, Optional
+from typing import List, Optional, Union, Dict
 from .event import Event
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 
@@ -595,10 +595,33 @@ class Object:
         :param link: The link name of the link which should be colored
         """
         if link == "":
-            for link_id in self.links.values():
-                p.changeVisualShape(self.id, link_id, rgbaColor=color, physicsClientId=self.world.client_id)
+            # Check if there is only one link, this is the case for primitive
+            # forms or if loaded from an .stl or .obj file
+            if self.links != {}:
+                for link_id in self.links.values():
+                    p.changeVisualShape(self.id, link_id, rgbaColor=color, physicsClientId=self.world.client_id)
+            else:
+                p.changeVisualShape(self.id, -1, rgbaColor=color, physicsClientId=self.world.client_id)
         else:
             p.changeVisualShape(self.id, self.links[link], rgbaColor=color, physicsClientId=self.world.client_id)
+
+    def get_color(self, link: Optional[str] = None) -> Union[List[float], Dict[str, List[float]], None]:
+        visual_data = p.getVisualShapeData(self.id, physicsClientId=self.world.client_id)
+        swap = {v: k for k, v in self.links.items()}
+        if link:
+            if link in swap.keys():
+                return swap[link]
+            else:
+                rospy.logerr(f"The link: {link} has no color")
+                return None
+
+        if len(visual_data) == 1:
+            return visual_data[0][7]
+        else:
+            links = list(map(lambda x: swap[x[1]] if x[1] != -1 else "base", visual_data))
+            colors = list(map(lambda x: x[7], visual_data))
+            return dict(zip(links, colors))
+
 
 
 def filter_contact_points(contact_points, exclude_ids):
