@@ -20,7 +20,6 @@ import tf
 import rospy
 from .event import Event
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
-#from .local_transformer import local_transformer
 from sensor_msgs.msg import JointState
 
 
@@ -605,7 +604,10 @@ class Object:
         tf_listener = tf.TransformListener()
         time.sleep(0.5)
         position = tf_listener.lookupTransform(robot_description.i.base_frame, "map", rospy.Time(0))
-        self.set_position(position)
+        self.set_position([position[0][0] * -1,
+                           position[0][1] * -1,
+                           position[0][2],
+                           position[1]])
 
 def filter_contact_points(contact_points, exclude_ids):
     return list(filter(lambda cp: cp[2] not in exclude_ids, contact_points))
