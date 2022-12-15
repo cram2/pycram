@@ -622,19 +622,24 @@ class Object:
         """
         visual_data = p.getVisualShapeData(self.id, physicsClientId=self.world.client_id)
         swap = {v: k for k, v in self.links.items()}
+        links = list(map(lambda x: swap[x[1]] if x[1] != -1 else "base", visual_data))
+        colors = list(map(lambda x: x[7], visual_data))
+        link_to_color = dict(zip(links, colors))
+
         if link:
-            if link in swap.keys():
-                return swap[link]
+            if link in link_to_color.keys():
+                return link_to_color[link]
+            elif link not in self.links.keys():
+                rospy.logerr(f"The link '{link}' is not part of this obejct")
+                return None
             else:
-                rospy.logerr(f"The link: {link} has no color")
+                rospy.logerr(f"The link '{link}' has no color")
                 return None
 
         if len(visual_data) == 1:
-            return visual_data[0][7]
+            return list(visual_data[0][7])
         else:
-            links = list(map(lambda x: swap[x[1]] if x[1] != -1 else "base", visual_data))
-            colors = list(map(lambda x: x[7], visual_data))
-            return dict(zip(links, colors))
+            return link_to_color
 
 
 
