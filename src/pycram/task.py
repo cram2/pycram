@@ -9,11 +9,14 @@ GeneratorList -- implementation of generator list wrappers.
 TODO
 """
 
+# used for delayed evaluation of typing until python 3.11 becomes mainstream
+from __future__ import annotations
+
 import time
 import pybullet
 
 from graphviz import Digraph
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Callable, Any, Union
 from enum import Enum, auto
 from .taskpath import TaskPath
 from .bullet_world import BulletWorld
@@ -21,23 +24,28 @@ from .bullet_world import BulletWorld
 TASK_TREE = None
 CURRENT_TASK_TREE_NODE = None
 
+
 class TaskStatus(Enum):
     CREATED = auto()
     RUNNING = auto()
     SUCCEEDED = auto()
     FAILED = auto()
 
-class Code:
-    def __init__(self, body, function=None, args : Tuple=(), kwargs : Dict={}):
-        self.body = body
-        self.function = function
-        self.args = args
-        self.kwargs = kwargs
 
-    def execute(self):
+class Code:
+    def __init__(self, body, function: Optional[Callable] = None,
+                 args: Optional[Tuple] = (),
+                 kwargs: Optional[Dict] = {}):
+        self.body = body
+        self.function: Callable = function
+        self.args: Tuple = args
+        self.kwargs: Dict = kwargs
+
+    def execute(self) -> Any:
         return self.function(*self.args, **self.kwargs)
 
-    def pp(self):
+    # maybe pp stands for pretty print ???
+    def pp(self) -> str:
         if self.function:
             pp = self.function.__name__ + '('
             for arg in self.args:
@@ -52,29 +60,31 @@ class Code:
             pp = self.body
         return pp
 
+
 class NoopCode(Code):
     def __init__(self):
         # noop = type(None)  # alternative, but can't take arguments
-        noop = lambda *args, **kwargs: None
+        noop: Callable = lambda *args, **kwargs: None
         super().__init__("", noop)
 
+
 class TaskTreeNode:
-    def __init__(self, code=None, parent:"TaskTreeNode"=None, path:str=""):
+    def __init__(self, code=None, parent: Optional[TaskTreeNode] = None, path: Optional[str] = ""):
         self.code = code
-        self.parent : Optional["TaskTreeNode"] = parent
-        self.children : List["TaskTreeNode"] = []
-        self.path : str = path
-        self.exec_parent_prev : Optional["TaskTreeNode"] = None
-        self.exec_parent_next : Optional["TaskTreeNode"] = None
-        self.exec_child_prev : Optional["TaskTreeNode"] = None
-        self.exec_child_next : Optional["TaskTreeNode"] = None
+        self.parent: Optional[TaskTreeNode] = parent
+        self.children: List[TaskTreeNode] = []
+        self.path: str = path
+        self.exec_parent_prev: Optional[TaskTreeNode] = None
+        self.exec_parent_next: Optional[TaskTreeNode] = None
+        self.exec_child_prev: Optional[TaskTreeNode] = None
+        self.exec_child_next: Optional[TaskTreeNode] = None
         self.exec_step = 0
-        self.status : TaskStatus = TaskStatus.CREATED
+        self.status: TaskStatus = TaskStatus.CREATED
         self.failure = None
         self.start_time = None
         self.end_time = None
 
-    def pp(self):
+    def pp(self) -> str:
         # return nothing, when whole exec_child_tree is deleted
         if type(self.code) is NoopCode:
             return ""
@@ -112,7 +122,7 @@ class TaskTreeNode:
 
         return pretty
 
-    def generate_dot(self, dot=None, verbose=True):
+    def generate_dot(self, dot: Optional[Digraph] = None, verbose: Optional[bool] = True) -> Digraph:
         if not dot:
             dot = Digraph()
         if self.exec_child_prev:
@@ -135,7 +145,7 @@ class TaskTreeNode:
             dot = self.exec_child_next.generate_dot(dot, verbose)
         return dot
 
-    def execute(self):
+    def execute(self) -> Any:
         self.execute_prev()
         self.exec_step = 0
         self.status = TaskStatus.RUNNING
@@ -155,22 +165,22 @@ class TaskTreeNode:
         self.execute_next()
         return result
 
-    def execute_prev(self):
+    def execute_prev(self) -> Any:
         if self.exec_child_prev:
             return self.exec_child_prev.execute()
 
-    def execute_next(self):
+    def execute_next(self) -> Any:
         if self.exec_child_next:
             return self.exec_child_next.execute()
 
-    def execute_child(self):
+    def execute_child(self) -> Any:
         try:
             result = self.children[self.exec_step].execute()
         finally:
             self.exec_step += 1
         return result
 
-    def delete(self):
+    def delete(self) -> None:
         # Not an ExecNode
         if not (self.exec_parent_prev or self.exec_parent_next):
             self.code = NoopCode()
@@ -199,23 +209,23 @@ class TaskTreeNode:
             elif self.exec_parent_next:
                 self.exec_parent_next.exec_child_prev = None
 
-    def copy(self):
+    def copy(self) -> TaskTreeNode:
         copy_node = TaskTreeNode(self.code)
         copy_node.children = self.children
         return copy_node
 
-    def add_child(self, child:"TaskTreeNode"):
+    def add_child(self, child: TaskTreeNode) -> None:
         self.children.append(child)
         child.fix_path()
 
-    def set_exec_child_prev(self, child : "TaskTreeNode"):
+    def set_exec_child_prev(self, child: TaskTreeNode) -> None:
         self.exec_child_prev = child
         child.exec_parent_next = self
         child.exec_child_prev = None
         child.parent = self.parent
         child.fix_path()
 
-    def set_exec_child_next(self, child : "TaskTreeNode"):
+    def set_exec_child_next(self, child: TaskTreeNode) -> None:
         self.exec_child_next = child
         child.exec_parent_prev = self
         child.exec_parent_next = None
@@ -223,13 +233,13 @@ class TaskTreeNode:
         child.fix_path()
 
     # TODO(?): Remove noop nodes from list?
-    def gen_children_list(self):
+    def gen_children_list(self) -> List[TaskTreeNode]:
         result = []
         for c in self.children:
             result += c.gen_sibling_list()
         return result
 
-    def gen_sibling_list(self):
+    def gen_sibling_list(self) -> List[TaskTreeNode]:
         """
         Generate a list of exec_tree children/siblings
         :return:
@@ -243,7 +253,7 @@ class TaskTreeNode:
         else:
             return [self]
 
-    def fix_path(self):
+    def fix_path(self) -> None:
         if self.parent and self.parent.path:
             # fix path
             max_i = -1
@@ -260,7 +270,7 @@ class TaskTreeNode:
         else:
             self.parent.fix_path()
 
-    def get_child_by_path(self, path):
+    def get_child_by_path(self, path: Union[str, TaskPath]) -> Union[None, TaskTreeNode]:
         if type(path) is str:
             path = TaskPath(path)
         children = self.gen_children_list()
@@ -274,7 +284,7 @@ class TaskTreeNode:
         except IndexError:
             raise IndexError("Node at path {} does not have child with name {} at number {}.".format(self.path, path.path[0].name, path.path[0].n))
 
-    def insert_before(self, node):
+    def insert_before(self, node: TaskTreeNode) -> None:
         if self.exec_child_prev:
             n = self.exec_child_prev
             while n.exec_child_next:
@@ -284,7 +294,7 @@ class TaskTreeNode:
             self.set_exec_child_prev(node)
         node.fix_path()
 
-    def insert_after(self, node):
+    def insert_after(self, node: TaskTreeNode) -> None:
         if self.exec_child_next:
             n = self.exec_child_next
             while n.exec_child_prev:
@@ -294,7 +304,7 @@ class TaskTreeNode:
             self.set_exec_child_next(node)
         node.fix_path()
 
-    def replace_child(self, node, new_node):
+    def replace_child(self, node: TaskTreeNode, new_node: TaskTreeNode) -> bool:
         for i in range(len(self.children)):
             child = self.children[i]
             if child is node:
@@ -308,7 +318,7 @@ class TaskTreeNode:
                 return True
         return False
 
-    def replace_exec_child(self, node, new_node):
+    def replace_exec_child(self, node: TaskTreeNode, new_node: TaskTreeNode) -> bool:
         if self.exec_child_prev is node:
             new_node.exec_child_prev = self.exec_child_prev.exec_child_prev
             new_node.exec_child_next = self.exec_child_prev.exec_child_next
@@ -328,7 +338,7 @@ class TaskTreeNode:
     def params(self):
         return self.code.args, self.code.kwargs
 
-    def delete_following(self, inclusive=False):
+    def delete_following(self, inclusive: Optional[bool] = False) -> None:
         kill = False
         for c in self.parent.gen_children_list():
             if kill:
@@ -338,7 +348,7 @@ class TaskTreeNode:
         if inclusive:
             self.delete()
 
-    def delete_previous(self, inclusive=False):
+    def delete_previous(self, inclusive: Optional[bool] = False) -> None:
         kill = False
         children = self.parent.gen_children_list()
         children.reverse()
@@ -350,7 +360,7 @@ class TaskTreeNode:
         if inclusive:
             self.delete()
 
-    def get_successful_params_ctx_after(self, name, ctx):
+    def get_successful_params_ctx_after(self, name: str, ctx: str) -> List:
         params = []
         noi = None  # Node of Interest
         for c in self.gen_children_list():
@@ -360,6 +370,7 @@ class TaskTreeNode:
                 params.append(noi.params())
                 noi = None
         return params
+
 
 class SimulatedTaskTree:
     def __enter__(self):
@@ -383,7 +394,7 @@ class SimulatedTaskTree:
         BulletWorld.current_bullet_world.restore_state(self.world_state, self.objects2attached)
         pybullet.removeAllUserDebugItems()
 
-    def get_successful_params_ctx_after(self, name, ctx):
+    def get_successful_params_ctx_after(self, name: str, ctx: str) -> List:
         # This only works for very specific contexts
         # And only if there are no other actions with NAME before the context of interest
         params = []
@@ -396,7 +407,8 @@ class SimulatedTaskTree:
                 noi = None
         return params
 
-def move_node_to_path(node, path, where=1):
+
+def move_node_to_path(node: TaskTreeNode, path: TaskPath, where: Optional[int] = 1) -> Union[None, TaskTreeNode]:
     """
     Move a node to a path.
     :param node: TaskTreeNode
@@ -409,13 +421,13 @@ def move_node_to_path(node, path, where=1):
     for c in node_copy.gen_children_list():
         c.parent = None
     node_copy.children = []
-    if where==-1:
+    if where == -1:
         node.delete()
         node_at_path.insert_before(node_copy)
-    elif where==1:
+    elif where == 1:
         node.delete()
         node_at_path.insert_after(node_copy)
-    elif where==0:
+    elif where == 0:
         node.delete()
         node_at_path.parent.replace_child(node_at_path, node_copy)
     else:
@@ -423,14 +435,16 @@ def move_node_to_path(node, path, where=1):
         return
     return node_copy
 
-def get_successful_params(nodes : List[TaskTreeNode]):
+
+def get_successful_params(nodes: List[TaskTreeNode]) -> List:
     p = []
     for n in nodes:
         if n.status == TaskStatus.SUCCEEDED:
             p.append(n.params())
     return p
 
-def with_tree(fun):
+
+def with_tree(fun: Callable) -> Callable:
     def handle_tree(*args, **kwargs):
         global TASK_TREE
         global CURRENT_TASK_TREE_NODE

@@ -9,6 +9,11 @@ GeneratorList -- implementation of generator list wrappers.
 TODO
 """
 
+# used for delayed evaluation of typing until python 3.11 becomes mainstream
+from __future__ import annotations
+from typing import Optional, Union, List
+
+
 class PathStringMalformed(Exception):
     """Implementation of path string exceptions."""
 
@@ -16,13 +21,15 @@ class PathStringMalformed(Exception):
         """Create a new PathStringMalformed exception."""
         Exception.__init__(self, *args)
 
+
 class TaskPathNode:
-    def __init__(self, name, n=0):
-        self.name = name
-        self.n = n
+    def __init__(self, name: str, n: Optional[int] = 0):
+        self.name: str = name
+        self.n: int = n
+
 
 class TaskPath:
-    def __init__(self, path):
+    def __init__(self, path: Union[str, List]):
         if type(path) is str:
             if path == "":
                 raise PathStringMalformed("No empty paths allowed.")
@@ -47,6 +54,6 @@ class TaskPath:
         return len(self.path)
 
     # TODO: Implement accessors with slice support?
-    def cut_off_head(self):
+    def cut_off_head(self) -> TaskPath:
         return TaskPath(self.path[1:])
 

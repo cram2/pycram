@@ -6,6 +6,7 @@ from .bullet_world import _world_and_id, Object, Use_shadow_world, BulletWorld
 from .external_interfaces.ik import request_ik
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from .helper import _transform_to_torso, _apply_ik
+from typing import List, Tuple, Optional, Union
 
 
 class ReasoningError(Exception):
@@ -18,7 +19,7 @@ class CollisionError(Exception):
         Exception.__init__(self, *args, **kwargs)
 
 
-def _get_joint_names(robot, tip_link):
+def _get_joint_names(robot: Object, tip_link: str) -> List[str]:
     res = []
     for i in range(p.getNumJoints(robot.id)):
         info = p.getJointInfo(robot.id, i)
@@ -27,7 +28,10 @@ def _get_joint_names(robot, tip_link):
     return res
 
 
-def _get_images_for_target(target_position, cam_position, world=None, size=256):
+def _get_images_for_target(target_position: Tuple[List[float], List[float]],
+                           cam_position: Tuple[List[float], List[float]],
+                           world: Optional[BulletWorld] = None,
+                           size: Optional[int] = 256) -> List[np.ndarray]:
     """
     Calculates the view and projection Matrix and returns the Segmentation mask
     The segmentation mask indicates for every pixel the visible Object.
@@ -49,7 +53,7 @@ def _get_images_for_target(target_position, cam_position, world=None, size=256):
     return list(p.getCameraImage(size, size, view_matrix, projection_matrix, physicsClientId=world_id))[2:5]
 
 
-def _get_joint_ranges(robot):
+def _get_joint_ranges(robot: Object) -> Tuple[List, List, List, List, List]:
     """
     Calculates the lower and upper limits, the joint ranges and the joint damping. For a given multibody.
     The rest poses are the current poses of the joints.
@@ -71,7 +75,8 @@ def _get_joint_ranges(robot):
     return ll, ul, jr, rp, jd
 
 
-def stable(object, world=None):
+def stable(object: Object,
+           world: Optional[BulletWorld] = None) -> bool:
     """
     This reasoning query checks if an object is stable in the world. This will be done by simulating the world for 10 seconds
     and compare the previous coordinates with the coordinates after the simulation.
@@ -98,7 +103,9 @@ def stable(object, world=None):
         return coords_past == coords_prev
 
 
-def contact(object1, object2, world=None):
+def contact(object1: Object,
+            object2: Object,
+            world: Optional[BulletWorld] = None) -> bool:
     """
     This reasoning query checks if two objects are in contact or not.
     :param object1: The first object
@@ -117,7 +124,11 @@ def contact(object1, object2, world=None):
         return con_points != ()
 
 
-def visible(object, camera_position_and_orientation, front_facing_axis=None, threshold=0.8, world=None):
+def visible(object: Object,
+            camera_position_and_orientation: Tuple[List[float], List[float]],
+            front_facing_axis: Optional[List[float]] = None,
+            threshold: float = 0.8,
+            world: Optional[BulletWorld] = None) -> bool:
     """
     This reasoning query checks if an object is visible from a given position. This will be achieved by rendering the object
     alone and counting the visible pixel, then rendering the complete scene and compare the visible pixels with the
@@ -125,9 +136,9 @@ def visible(object, camera_position_and_orientation, front_facing_axis=None, thr
     :param object: The object for which the visibility should be checked
     :param camera_position_and_orientation: The position and orientation of the
     camera in world coordinate fram
-    :front_facing_axis: The axis, of the camera frame, which faces to the front of
+    :param front_facing_axis: The axis, of the camera frame, which faces to the front of
     the robot. Given as list of x, y, z
-    :threshold: The minimum percentage of the object that needs to be visibile
+    :param threshold: The minimum percentage of the object that needs to be visibile
     for this method to return true
     :param world: The BulletWorld if more than one BulletWorld is active
     :return: True if the object is visible from the camera_position False if not
@@ -165,7 +176,10 @@ def visible(object, camera_position_and_orientation, front_facing_axis=None, thr
         return real_pixel / max_pixel > threshold > 0
 
 
-def occluding(object, camera_position_and_orientation, front_facing_axis, world=None):
+def occluding(object: Object,
+              camera_position_and_orientation: Tuple[List[float], List[float]],
+              front_facing_axis: Tuple[List[float], List[float]],
+              world: Optional[BulletWorld] = None) -> bool:
     """
     This reasoning query lists the objects which are occluding a given object. This works similar to 'visible'.
     First the object alone will be rendered and the position of the pixels of the object in the picture will be saved.
@@ -174,7 +188,7 @@ def occluding(object, camera_position_and_orientation, front_facing_axis, world=
     :param object: The object for which occluding should be checked
     :param camera_position_and_orientation: The position and orientation of the
     camera in world coordinate frame
-    :front_facing_axis: The axis, of the camera frame, which faces to the front of
+    :param front_facing_axis: The axis, of the camera frame, which faces to the front of
     the robot. Given as list of x, y, z
     :param world: The BulletWorld if more than one BulletWorld is active
     :return: A list of occluding objects
@@ -217,7 +231,11 @@ def occluding(object, camera_position_and_orientation, front_facing_axis, world=
         return occ_objects
 
 
-def reachable(pose, robot, gripper_name, world=None, threshold=0.01):
+def reachable(pose: Union[Object, Tuple[List[float], List[float]]],
+              robot: Object,
+              gripper_name: str,
+              world: Optional[BulletWorld] = None,
+              threshold: float = 0.01) -> bool:
     """
     This reasoning query checks if the robot can reach a given position. To determine this the inverse kinematics are
     calculated and applied. Afterwards the distance between the position and the given end effector is calculated, if
@@ -249,7 +267,11 @@ def reachable(pose, robot, gripper_name, world=None, threshold=0.01):
     return np.sqrt(diff[0] ** 2 + diff[1] ** 2 + diff[2] ** 2) < threshold
 
 
-def blocking(object, robot, gripper_name, world=None, grasp=None):
+def blocking(object: Object,
+             robot: Object,
+             gripper_name: str,
+             world: Optional[BulletWorld] = None,
+             grasp: str = None) -> bool:
     """
     This reasoning query checks if any objects are blocking an other object when an robot tries to pick it. This works
     similar to the reachable predicate. First the inverse kinematics between the robot and the object will be calculated
@@ -258,6 +280,7 @@ def blocking(object, robot, gripper_name, world=None, grasp=None):
     :param robot: The robot who reaches for the object
     :param gripper_name: The name of the end effector of the robot
     :param world: The BulletWorld if more than one BulletWorld is active
+    :param grasp: The grasp type with which the object should be grasped
     :return: A list of objects the robot is in collision with when reaching for the specified object
     """
     world, world_id = _world_and_id(world)
@@ -283,7 +306,9 @@ def blocking(object, robot, gripper_name, world=None, grasp=None):
     return block
 
 
-def supporting(object1, object2, world=None):
+def supporting(object1: Object,
+               object2: Object,
+               world: Optional[BulletWorld] = None) -> bool:
     """
     This reasoning query checks if one object is supporting an other obkect. An object supports an other object if they are in
     contact and the second object is above the first one. (e.g. a Bottle will be supported by a table)
@@ -293,4 +318,4 @@ def supporting(object1, object2, world=None):
     :return: True if the second object is in contact with the first one and the second one ist above the first False else
     """
     world, world_id = _world_and_id(world)
-    return contact(object1, object2, world) and object2.getposition()[2] > object1.get_position()[2]
+    return contact(object1, object2, world) and object2.get_position()[2] > object1.get_position()[2]
