@@ -16,6 +16,7 @@ from pytransform3d.rotations import quaternion_wxyz_from_xyzw, quaternion_xyzw_f
 from pytransform3d.transformations import transform_from_pq, transform_from, pq_from_transform
 from macropy.core.quotes import macros, ast_literal, q
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from .bullet_world import Object, Tuple, Callable
 
 
 class bcolors:
@@ -37,7 +38,7 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
-def _apply_ik(robot, joint_poses, gripper):
+def _apply_ik(robot: Object, joint_poses: List[float], gripper: str) -> None:
     """
     Apllies a list of joint poses calculated by an inverse kinematics solver to a robot
     :param robot: The robot the joint poses should be applied on
@@ -52,7 +53,7 @@ def _apply_ik(robot, joint_poses, gripper):
         robot.set_joint_state(ik_joints[i], joint_poses[i])
 
 
-def _transform_to_torso(pose_and_rotation, robot):
+def _transform_to_torso(pose_and_rotation: Tuple[List[float], List[float]], robot: Object) -> Tuple[List[float], List[float]]:
     #map_T_torso = robot.get_link_position_and_orientation("base_footprint")
     map_T_torso = robot.get_position_and_orientation()
     torso_T_map = p.invertTransform(map_T_torso[0], map_T_torso[1])
@@ -104,7 +105,7 @@ class GeneratorList:
     has -- check if an element at a specific index exists.
     """
 
-    def __init__(self, generator):
+    def __init__(self, generator: Callable):
         """Create a new generator list.
 
         Arguments:
@@ -117,7 +118,7 @@ class GeneratorList:
 
         self._generated = []
 
-    def get(self, index=0):
+    def get(self, index: int = 0):
         """Get the element at a specific index or raise StopIteration if it doesn't exist.
 
         Arguments:
@@ -128,7 +129,7 @@ class GeneratorList:
 
         return self._generated[index]
 
-    def has(self, index):
+    def has(self, index: int) -> bool:
         """Check if an element at a specific index exists and return True or False.
 
         Arguments:
