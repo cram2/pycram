@@ -596,7 +596,7 @@ class Object:
             for i in range(len(joint_names)):
                 self.set_joint_state(joint_names[i], joint_positions[i])
         else:
-            add_joints = set(joint_names) - set(joint_names).intersection(set(self.joints.keys()))
+            add_joints = set(joint_names) - set(self.joints.keys())
             rospy.logerr(f"There are joints in the published joint state which are not in this model: /n \
                         The following joint{'s' if len(add_joints) != 1 else ''}: {add_joints}")
 
