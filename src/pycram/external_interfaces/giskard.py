@@ -2,6 +2,7 @@ import rospy
 
 from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from ..bullet_world import BulletWorld, Object
+from ..process_module import ProcessModule
 from giskardpy.python_interface import GiskardWrapper
 from geometry_msgs.msg import PoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
 from giskard_msgs.msg import WorldBody
@@ -46,13 +47,18 @@ def sync_worlds():
     belief state such that it matches the objects present in the BulletWorld and moving the robot to the position it is
     currently at in the BulletWorld.
     """
+    bullet_object_names = set(map(lambda obj: obj.name + "_" + str(obj.id), BulletWorld.current_bullet_world.objects))
+    giskard_object_names = set(giskard_wrapper.get_group_names())
+    robot_name = {robot_description.i.name}
+    if giskard_object_names - bullet_object_names - robot_name != set():
+        giskard_wrapper.clear_world()
     initial_adding_objects()
-    for obj in BulletWorld.current_bullet_world.objects:
-        if obj is BulletWorld.robot:
-            giskard_wrapper.set_cart_goal(make_pose_stamped(obj.get_position_and_orientation()), robot_description.i.base_frame, "map")
-            giskard_wrapper.plan_and_execute()
-            continue
-        update_pose(obj)
+    #for obj in BulletWorld.current_bullet_world.objects:
+    #    if obj is BulletWorld.robot:
+    #        giskard_wrapper.set_cart_goal(make_pose_stamped(obj.get_position_and_orientation()), robot_description.i.base_frame, "map")
+    #        giskard_wrapper.plan_and_execute()
+    #        continue
+    #    update_pose(obj)
 
 
 def update_pose(object: Object):
