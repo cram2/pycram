@@ -182,7 +182,7 @@ class OccupancyCostmap(Costmap):
     The occupancy Costmap represents a map of the environment where obstacles or
     positions which are inaccessiable for a robot have a value of -1.
     """
-    def __init__(self, distance_to_obstacle, from_ros=False, size=100, resolution=0.02, origin=[0, 0, 0], world=None):
+    def __init__(self, distance_to_obstacle, from_ros=False, size=100, resolution=0.02, origin=[[0, 0, 0], [0, 0, 0, 1]], world=None):
         """
         The constructor for the Occupancy costmap, the actual costmap is received
         from the ROS map_server and wrapped by this class. Meta data about the
@@ -219,7 +219,7 @@ class OccupancyCostmap(Costmap):
                         np.rot90(np.flip(self._convert_map(self.original_map, self.height), 0)))
         else:
             self.size = size
-            self.origin = [origin, [0, 0, 0, 1]]
+            self.origin = origin
             self.resolution = resolution
             self.distance_obstacle = max(int(distance_to_obstacle / self.resolution), 1)
             self.map = self._create_from_bullet(world, size, resolution, origin)
@@ -330,8 +330,9 @@ class OccupancyCostmap(Costmap):
         """
         rays = []
 
+        origin_position = self.origin[0]
         # Generate 2d grid with indices
-        indices = np.concatenate(np.dstack(np.mgrid[int(-size/2):int(size/2),int(-size/2):int(size/2)]), axis=0) * resolution + np.array(origin[:2])
+        indices = np.concatenate(np.dstack(np.mgrid[int(-size/2):int(size/2),int(-size/2):int(size/2)]), axis=0) * resolution + np.array(origin_position[:2])
         # Add the z-coordinate to the grid, which is either 0 or 10
         indices_0 = np.pad(indices, (0, 1), mode='constant', constant_values=0)[:-1]
         indices_10 = np.pad(indices, (0,1), mode='constant', constant_values=10)[:-1]
@@ -348,7 +349,7 @@ class OccupancyCostmap(Costmap):
             if BulletWorld.robot:
                 res += (1 if ray[0] == -1 or ray[0] == BulletWorld.robot.id else 0 for ray in r_t)
             else:
-                res += (1 if ray[0] == -1  else 0 for ray in r_t)
+                res += (1 if ray[0] == -1 else 0 for ray in r_t)
 
         res = np.flip(np.reshape(np.array(res), (size, size)))
 
@@ -362,7 +363,8 @@ class OccupancyCostmap(Costmap):
         sub_matrices = sub_matrices.reshape(sub_matrices.shape[:-2] + (-1,))
 
         sum = np.sum(sub_matrices, axis=2)
-        return (sum == (self.distance_obstacle*2) ** 2).astype('int16')
+        map = (sum == (self.distance_obstacle*2) ** 2).astype('int16')
+        return np.flip(map)
 
 
     def _chunks(self, lst, n):
@@ -379,7 +381,7 @@ class VisibilityCostmap(Costmap):
     please look here: https://mediatum.ub.tum.de/doc/1239461/1239461.pdf (page 173)
     """
 
-    def __init__(self, min_height, max_height, size=100, resolution=0.02, origin=[0,0,0], world=None):
+    def __init__(self, min_height, max_height, size=100, resolution=0.02, origin=[[0,0,0], [0, 0, 0, 1]], world=None):
         """
         The constructor of the visibility costmap which assisgs the given paranmeter
         and triggeres the generation of the costmap. If you want the visibility for
@@ -410,7 +412,7 @@ class VisibilityCostmap(Costmap):
         self.min_height = min_height
         self.origin = origin
         self._generate_map()
-        Costmap.__init__(self, resolution, size, size, origin, self.map)
+        Costmap.__init__(self, resolution, size, size, self.origin, self.map)
 
 
     def _create_images(self):
@@ -424,15 +426,15 @@ class VisibilityCostmap(Costmap):
         #object_pose = self.object.get_position_and_orientation()
         #im_world = self._create_image_world()
         images = []
-        camera_pose = [self.origin, [0, 0, 0, 1]]
+        camera_pose = self.origin
 
-        images.append(_get_images_for_target([[self.origin[0], self.origin[1] +1, self.origin[2]], [0, 0, 0, 1]],camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
+        images.append(_get_images_for_target([[self.origin[0][0], self.origin[0][1] +1, self.origin[0][2]], [0, 0, 0, 1]],camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
 
-        images.append(_get_images_for_target([[self.origin[0] -1, self.origin[1], self.origin[2]], [0, 0, 0, 1]], camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
+        images.append(_get_images_for_target([[self.origin[0][0] -1, self.origin[0][1], self.origin[0][2]], [0, 0, 0, 1]], camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
 
-        images.append(_get_images_for_target([[self.origin[0], self.origin[1] -1, self.origin[2]], [0, 0, 0, 1]],camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
+        images.append(_get_images_for_target([[self.origin[0][0], self.origin[0][1] -1, self.origin[0][2]], [0, 0, 0, 1]],camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
 
-        images.append(_get_images_for_target([[self.origin[0] +1, self.origin[1], self.origin[2]], [0, 0, 0, 1]], camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
+        images.append(_get_images_for_target([[self.origin[0][0] +1, self.origin[0][1], self.origin[0][2]], [0, 0, 0, 1]], camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
 
         # images [0] = depth, [1] = seg_mask
         #im_world.exit()
@@ -523,8 +525,8 @@ class VisibilityCostmap(Costmap):
         # This are two arrays with shape: size*size, the r_min constains the beginig
         # of the range for every coordinate and r_max contains the end for each
         # coordinate
-        r_min = (np.arctan((self.min_height-self.origin[2]) / distances) * self.size) + self.size/2
-        r_max = (np.arctan((self.max_height-self.origin[2]) / distances) * self.size) + self.size/2
+        r_min = (np.arctan((self.min_height-self.origin[0][2]) / distances) * self.size) + self.size/2
+        r_max = (np.arctan((self.max_height-self.origin[0][2]) / distances) * self.size) + self.size/2
 
         r_min = np.minimum(np.around(r_min), self.size-1).astype('int16')
         r_max = np.minimum(np.around(r_max), self.size-1).astype('int16')
@@ -561,13 +563,15 @@ class VisibilityCostmap(Costmap):
             # The calculated values are added to the costmap
             map[res==i] = np.sum(masked, axis=0)
         map /= np.max(map)
-        #map = np.flip(map, axis=1)
+        # Weird flipping shit so that the map fits the orientation of the visualization.
+        # the costmap in itself is consistant and just needs to be flipped to fit the world coordinate system
         map = np.flip(map, axis=0)
+        map = np.flip(map)
         self.map = map
 
 
 class GaussianCostmap(Costmap):
-    def __init__(self, mean, sigma, resolution=0.02, origin=[0,0,0]):
+    def __init__(self, mean, sigma, resolution=0.02, origin=[[0,0,0], [0, 0, 0, 1]]):
         """
         This Costmap creates a 2D gaussian distribution around the origin with
         the specified size.
