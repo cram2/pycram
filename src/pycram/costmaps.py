@@ -67,15 +67,15 @@ class Costmap():
         # Creation of the visual shapes, for documentation of the visual shapes
         # please look here: https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#heading=h.q1gn7v6o58bf
         for box in boxes:
-            visual = p.createVisualShape(p.GEOM_BOX, halfExtents=[(box[1] *self.resolution) / 2, (box[2]*self.resolution) / 2, 0.001],
-                rgbaColor=[1, 0, 0, 0.6], visualFramePosition=[(box[0][0] + box[1]/2)*self.resolution, (box[0][1] + box[2]/2)*self.resolution, 0.])
+            visual = p.createVisualShape(p.GEOM_BOX, halfExtents=[(box[1] * self.resolution) / 2, (box[2] * self.resolution) / 2, 0.001],
+                rgbaColor=[1, 0, 0, 0.6], visualFramePosition=[(box[0][0] + box[1]/2) * self.resolution, (box[0][1] + box[2]/2) * self.resolution, 0.])
             cells.append(visual)
         # Set to 127 for since this is the maximal amount of links in a multibody
         for cell_parts in self._chunks(cells, 127):
             # Dummy paramater since these are needed to spawn visual shapes as a
             # multibody.
             link_poses = [[0, 0, 0] for c in cell_parts]
-            link_orientations =  [[0, 0, 0, 1] for c in cell_parts]
+            link_orientations = [[0, 0, 0, 1] for c in cell_parts]
             link_masses = [1.0 for c in cell_parts]
             link_parent = [0 for c in cell_parts]
             link_joints = [p.JOINT_FIXED for c in cell_parts]
@@ -84,11 +84,13 @@ class Costmap():
             # The position at which the multibody will be spawned. Offset such that
             # the origin referes to the centre of the costmap.
             origin_pose = self.origin[0]
-            base_pose = [origin_pose[0] + self.height/2*self.resolution, origin_pose[1] + self.width / 2*self.resolution, origin_pose[2]]
-            #base_pose = self.origin[0]
-            print(base_pose)
+            base_pose = [origin_pose[0] - self.height/2*self.resolution, origin_pose[1] - self.width / 2*self.resolution, origin_pose[2]]
+
+            offset = [[-self.height/2*self.resolution, -self.width/2 *self.resolution, 0.05], [0, 0, 0, 1]]
+            new_pose = p.multiplyTransforms(self.origin[0], self.origin[1], offset[0], offset[1])
+
             map_obj = p.createMultiBody(baseVisualShapeIndex=-1, linkVisualShapeIndices=cell_parts,
-                basePosition=base_pose, baseOrientation=self.origin[1], linkPositions=link_poses, # [0, 0, 1, 0]
+                basePosition=new_pose[0], baseOrientation=new_pose[1], linkPositions=link_poses, # [0, 0, 1, 0]
                 linkMasses=link_masses, linkOrientations=link_orientations,
                 linkInertialFramePositions=link_poses,
                 linkInertialFrameOrientations=link_orientations,linkParentIndices=link_parent,
@@ -180,7 +182,7 @@ class OccupancyCostmap(Costmap):
     The occupancy Costmap represents a map of the environment where obstacles or
     positions which are inaccessiable for a robot have a value of -1.
     """
-    def __init__(self, distance_to_obstacle, from_ros=False, size=100, resolution=0.02, origin=[0,0,0], world=None):
+    def __init__(self, distance_to_obstacle, from_ros=False, size=100, resolution=0.02, origin=[0, 0, 0], world=None):
         """
         The constructor for the Occupancy costmap, the actual costmap is received
         from the ROS map_server and wrapped by this class. Meta data about the
@@ -217,7 +219,7 @@ class OccupancyCostmap(Costmap):
                         np.rot90(np.flip(self._convert_map(self.original_map, self.height), 0)))
         else:
             self.size = size
-            self.origin = origin
+            self.origin = [origin, [0, 0, 0, 1]]
             self.resolution = resolution
             self.distance_obstacle = max(int(distance_to_obstacle / self.resolution), 1)
             self.map = self._create_from_bullet(world, size, resolution, origin)
@@ -594,6 +596,7 @@ class GaussianCostmap(Costmap):
         w = np.exp(-n ** 2 / sig2)
         return w
 
+
 class SemanticCostmap(Costmap):
     def __init__(self, object, urdf_link_name, size=100, resolution=0.02, origin=[0, 0, 0], world=None):
         self.world = world if world else BulletWorld.current_bullet_world
@@ -608,15 +611,14 @@ class SemanticCostmap(Costmap):
 
         Costmap.__init__(self, resolution, self.height, self.width, self.origin, self.map)
 
-
     def generate_map(self):
         link_position = self.object.get_link_position(self.link)
         min, max = self.get_aabb_for_link()
         print(min, max)
-        self.height = int((max[0] - min[0]) / self.resolution)
-        self.width = int((max[1] - min[1]) / self.resolution)
+        self.height = int((max[0] - min[0]) // self.resolution)
+        self.width = int((max[1] - min[1]) // self.resolution)
         self.map = np.ones((self.height, self.width))
-        self.origin = [self.origin[0], self.origin[1], max[2] + 0.05]
+        self.origin = [self.origin[0], self.origin[1]]
 
     def get_aabb_for_link(self):
         shadow_obj = BulletWorld.current_bullet_world.get_shadow_object(self.object)
@@ -626,6 +628,7 @@ class SemanticCostmap(Costmap):
             inverse_orientation = p.invertTransform([0, 0, 0], link_orientation)[1]
             shadow_obj.set_orientation(inverse_orientation)
             return shadow_obj.get_AABB(self.link)
+
 
 cmap = colors.ListedColormap(['white', 'black', 'green', 'red', 'blue'])
 
