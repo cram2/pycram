@@ -12,7 +12,8 @@ from nav_msgs.msg import OccupancyGrid, MapMetaData
 import matplotlib.pyplot as plt
 from matplotlib import colors
 
-class Costmap():
+
+class Costmap:
     """
     The base class of all Costmaps which implemnets the visualization of costmaps
     in the BulletWorld.
@@ -98,7 +99,6 @@ class Costmap():
                 linkCollisionShapeIndices=link_collision)
             self.vis_ids.append(map_obj)
 
-
     def _chunks(self, lst, n):
         """Yield successive n-sized chunks from lst."""
         for i in range(0, len(lst), n):
@@ -176,6 +176,7 @@ class Costmap():
         else:
             print("Can only combine two costmaps")
             return None
+
 
 class OccupancyCostmap(Costmap):
     """
@@ -366,12 +367,10 @@ class OccupancyCostmap(Costmap):
         map = (sum == (self.distance_obstacle*2) ** 2).astype('int16')
         return np.flip(map)
 
-
     def _chunks(self, lst, n):
         """Yield successive n-sized chunks from lst."""
         for i in range(0, len(lst), n):
             yield lst[i:i + n]
-
 
 
 class VisibilityCostmap(Costmap):
@@ -414,7 +413,6 @@ class VisibilityCostmap(Costmap):
         self._generate_map()
         Costmap.__init__(self, resolution, size, size, self.origin, self.map)
 
-
     def _create_images(self):
         """
         This method creates four depth images in every direction around the point
@@ -451,7 +449,6 @@ class VisibilityCostmap(Costmap):
         near = 0.2
         far = 100
         return far * near / (far - (far-near)*buffer)
-
 
     def _generate_map(self):
         """
@@ -618,7 +615,6 @@ class SemanticCostmap(Costmap):
     def generate_map(self):
         link_position = self.object.get_link_position(self.link)
         min, max = self.get_aabb_for_link()
-        print(min, max)
         self.height = int((max[0] - min[0]) // self.resolution)
         self.width = int((max[1] - min[1]) // self.resolution)
         self.map = np.ones((self.height, self.width))
@@ -635,6 +631,7 @@ class SemanticCostmap(Costmap):
 
 
 cmap = colors.ListedColormap(['white', 'black', 'green', 'red', 'blue'])
+
 
 # Mainly used for debugging
 def plot_grid(data):
