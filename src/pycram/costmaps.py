@@ -426,13 +426,14 @@ class VisibilityCostmap(Costmap):
         images = []
         camera_pose = self.origin
 
-        images.append(_get_images_for_target([[self.origin[0][0], self.origin[0][1] +1, self.origin[0][2]], [0, 0, 0, 1]],camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
+        with Use_shadow_world():
+            images.append(_get_images_for_target([[self.origin[0][0], self.origin[0][1] +1, self.origin[0][2]], [0, 0, 0, 1]],camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
 
-        images.append(_get_images_for_target([[self.origin[0][0] -1, self.origin[0][1], self.origin[0][2]], [0, 0, 0, 1]], camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
+            images.append(_get_images_for_target([[self.origin[0][0] -1, self.origin[0][1], self.origin[0][2]], [0, 0, 0, 1]], camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
 
-        images.append(_get_images_for_target([[self.origin[0][0], self.origin[0][1] -1, self.origin[0][2]], [0, 0, 0, 1]],camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
+            images.append(_get_images_for_target([[self.origin[0][0], self.origin[0][1] -1, self.origin[0][2]], [0, 0, 0, 1]],camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
 
-        images.append(_get_images_for_target([[self.origin[0][0] +1, self.origin[0][1], self.origin[0][2]], [0, 0, 0, 1]], camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
+            images.append(_get_images_for_target([[self.origin[0][0] +1, self.origin[0][1], self.origin[0][2]], [0, 0, 0, 1]], camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
 
         # images [0] = depth, [1] = seg_mask
         #im_world.exit()
