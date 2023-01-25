@@ -341,16 +341,22 @@ class OccupancyCostmap(Costmap):
         # only differ in the z-coordinate
         rays = np.dstack(np.dstack((indices_0, indices_10))).T
 
-        res = []
+        res = np.zeros(len(rays))
         # Using the PyBullet rayTest to check if there is an object above the position
         # if there is no object the position is marked as valid
         # 16383 is the maximal number of rays that can be processed in a batch
+        i = 0
+        j = 0
         for n in self._chunks(np.array(rays), 16383):
             r_t = p.rayTestBatch(n[:,0], n[:,1],numThreads=0)
+            j += len(n)
             if BulletWorld.robot:
-                res += (1 if ray[0] == -1 or ray[0] == BulletWorld.robot.id else 0 for ray in r_t)
+                res[i:j] = [1 if ray[0] == -1 or ray[0] == BulletWorld.robot.id else 0 for ray in r_t]
             else:
-                res += (1 if ray[0] == -1 else 0 for ray in r_t)
+                # There were some cases of an error on this line where r_t would be None.
+                # If this occurs again please contact the maintainer
+                res[i:j] = [1 if ray[0] == -1 else 0 for ray in r_t]
+            i += len(n)
 
         res = np.flip(np.reshape(np.array(res), (size, size)))
 
