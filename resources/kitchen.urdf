@@ -1491,7 +1491,7 @@
     </collision>
   </link>
   <joint name="kitchen_island_footprint_joint" type="fixed">
-    <origin rpy="0 0 1" xyz="-1.365 0.59 0"/>
+    <origin rpy="0 0 0" xyz="-1.365 0.59 0"/>
     <child link="kitchen_island_footprint"/>
     <parent link="room_link"/>
   </joint>
