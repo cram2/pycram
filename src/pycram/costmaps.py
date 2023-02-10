@@ -371,6 +371,7 @@ class OccupancyCostmap(Costmap):
 
         sum = np.sum(sub_matrices, axis=2)
         map = (sum == (self.distance_obstacle*2) ** 2).astype('int16')
+        map = np.pad(map, (4, 5))
         return np.flip(map)
 
     def _chunks(self, lst, n):
@@ -529,8 +530,8 @@ class VisibilityCostmap(Costmap):
         # This are two arrays with shape: size*size, the r_min constains the beginig
         # of the range for every coordinate and r_max contains the end for each
         # coordinate
-        r_min = (np.arctan((self.min_height-self.origin[0][2]) / distances) * self.size) + self.size/2
-        r_max = (np.arctan((self.max_height-self.origin[0][2]) / distances) * self.size) + self.size/2
+        r_min = (np.arctan((self.min_height-self.origin[0][2] ) / distances) * self.size) + self.size/2
+        r_max = (np.arctan((self.max_height-self.origin[0][2] ) / distances) * self.size) + self.size/2
 
         r_min = np.minimum(np.around(r_min), self.size-1).astype('int16')
         r_max = np.minimum(np.around(r_max), self.size-1).astype('int16')
