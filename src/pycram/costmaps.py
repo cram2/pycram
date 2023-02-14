@@ -371,7 +371,12 @@ class OccupancyCostmap(Costmap):
 
         sum = np.sum(sub_matrices, axis=2)
         map = (sum == (self.distance_obstacle*2) ** 2).astype('int16')
-        map = np.pad(map, (4, 5))
+        # The map loses some size due to the strides and because I dont want to
+        # deal with indices outside of the index range
+        offset = self.size - map.shape[0]
+        odd = 0 if offset % 2 == 0 else 1
+        map = np.pad(map, (offset // 2, offset // 2 + odd))
+
         return np.flip(map)
 
     def _chunks(self, lst, n):
