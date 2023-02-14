@@ -67,9 +67,9 @@ def gen_from_costmap(desig):
         final_map += visible
     #plot_grid(final_map.map)
 
-    test_world = BulletWorld.current_bullet_world.copy()
+    #test_world = BulletWorld.current_bullet_world.copy()
     robot_object = desig._description.visible_for if desig._description.visible_for else desig._description.reachable_for
-    test_robot = test_world.get_objects_by_name(robot_object.name)[0]
+    #test_robot = test_world.get_objects_by_name(robot_object.name)[0]
 
     with Use_shadow_world():
         test_robot = BulletWorld.current_bullet_world.get_shadow_object(robot_object)

@@ -22,7 +22,7 @@ def _get_position_for_joints(robot, joints):
     :return: A list of joint states according and in the same order as the joint
     names in the joints parameter
     """
-    return list(map(lambda x: p.getJointState(robot.id, robot.get_joint_id(x))[0], joints))
+    return list(map(lambda x: p.getJointState(robot.id, robot.get_joint_id(x),physicsClientId=robot.world.client_id)[0], joints))
 
 
 def _make_request_msg(root_link, tip_link, target_pose, robot_object, joints):

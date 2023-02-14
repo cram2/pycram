@@ -32,7 +32,7 @@ def pose_generator(costmap):
             continue
         # The position is calculated by creating a vector from the 2D position in the costmap (given by x and y)
         # and the center of the costmap (since this is the origin). This vector is then turned into a transformation
-        # and muiltiplied with the transformation of the origin. 
+        # and muiltiplied with the transformation of the origin.
         vector_to_origin = center - ind
         transform_to_origin = [[vector_to_origin[0] * costmap.resolution, vector_to_origin[1] * costmap.resolution, 0], [0, 0, 0, 1]]
         world_pose = p.multiplyTransforms(costmap.origin[0], costmap.origin[1], transform_to_origin[0], transform_to_origin[1])
@@ -122,7 +122,7 @@ def reachability_validator(pose, robot, target, world):
     left_joints = joints = robot_description.i._safely_access_chains('left').joints
     right_joints = joints = robot_description.i._safely_access_chains('right').joints
     # TODO Make orientation adhere to grasping orientation
-    target_torso = _transform_to_torso([target, [0, 0, 0, 1]], robot)
+    target_torso = _transform_to_torso(pose, robot)
 
     ik_msg_left = _make_request_msg(robot_description.i.base_frame, left_gripper, target_torso, robot, left_joints)
 
