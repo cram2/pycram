@@ -1,5 +1,5 @@
 from .designator import Designator, DesignatorError, DesignatorDescription
-from typing import List
+from typing import List, Tuple, Union
 
 from .object_designator import ObjectDesignator
 from .bullet_world import Object
@@ -58,7 +58,7 @@ class ObjectRelativeLocationDesignatorDescription(LocationDesignatorDescription)
 class CostmapLocationDesignatorDescription(LocationDesignatorDescription):
     reachable_for: Object
     visible_for: Object
-    target: list
+    target: Union[Tuple[List[float], List[float]], Object]
 
     def __init__(self, target, reachable_for=None, visible_for=None):
         super().__init__(pose=None, resolver="costmap")

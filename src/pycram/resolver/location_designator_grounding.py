@@ -52,7 +52,7 @@ def gen_from_costmap(desig):
     min_height = list(robot_description.i.cameras.values())[0].min_height
     # This ensures that the costmaps always get a position as their origin.
     if type(desig._description.target) == Object:
-        target_pose = desig._description.target.get_position()
+        target_pose = desig._description.target.get_position_and_orientation()
     else:
         target_pose = desig._description.target
     occupancy = OccupancyCostmap(0.2, False, 200, 0.02, target_pose, BulletWorld.current_bullet_world)
