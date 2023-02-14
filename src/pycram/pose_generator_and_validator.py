@@ -26,29 +26,23 @@ def pose_generator(costmap: Type[Costmap]) -> Tuple[List[float], List[float]]:
     #indices = np.argsort(costmap.map.flatten())[-number_of_samples:]
     indices = np.dstack(np.unravel_index(indices, costmap.map.shape)).reshape(number_of_samples, 2)
     size = costmap.map.shape[0]
+    height = costmap.map.shape[0]
+    width = costmap.map.shape[1]
+    center = np.array([height // 2, width // 2])
     for ind in indices:
         if costmap.map[ind[0]][ind[1]] == 0:
             continue
-        # The "-1" in the Formaula is needed since the logical coordinate system
-        # is inverted against the one in the BulletWorld.
-        # This is the logical assumption of the Costmap
-        # ---------
-        # |    x  |
-        # |   --> |
-        # |  |    |
-        # |  | y  |
-        # --------
-        # And this is the coordinate system in BulletWorld. Both have the same rotation
-        # ----------
-        # |   | y  |
-        # |   |    |
-        # |<--     |
-        # | x      |
-        # ----------
-        position = [(ind[0]- size/2) *-1 * costmap.resolution + costmap.origin[0], (ind[1] - size/2) * -1 * costmap.resolution + costmap.origin[1], 0]
-        orientation = generate_orientation(position, costmap.origin)
-        print(f"Indicies: {ind}, Position: {position}")
-        yield (list(position), orientation)
+        # The position is calculated by creating a vector from the 2D position in the costmap (given by x and y)
+        # and the center of the costmap (since this is the origin). This vector is then turned into a transformation
+        # and muiltiplied with the transformation of the origin.
+        vector_to_origin = center - ind
+        transform_to_origin = [[vector_to_origin[0] * costmap.resolution, vector_to_origin[1] * costmap.resolution, 0], [0, 0, 0, 1]]
+        world_pose = p.multiplyTransforms(costmap.origin[0], costmap.origin[1], transform_to_origin[0], transform_to_origin[1])
+
+        #position = [(ind[0]- size/2) *-1 * costmap.resolution + costmap.origin[0][0], (ind[1] - size/2) * -1 * costmap.resolution + costmap.origin[0][1], 0]
+        orientation = generate_orientation(world_pose[0], costmap.origin)
+        yield world_pose[0], orientation
+
 
 
 def height_generator() -> float:
@@ -67,7 +61,7 @@ def generate_orientation(position: List[float], origin: List[float]) -> List[flo
         robot should face.
     :return: A quanternion of the calculated orientation
     """
-    angle = np.arctan2(position[1]-origin[1],position[0]-origin[0]) + np.pi
+    angle = np.arctan2(position[1]-origin[0][1], position[0]-origin[0][0]) + np.pi
     quaternion = list(tf.transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
     return quaternion
 
@@ -137,7 +131,7 @@ def reachability_validator(pose: Tuple[List[float], List[float]],
     left_joints = joints = robot_description.i._safely_access_chains('left').joints
     right_joints = joints = robot_description.i._safely_access_chains('right').joints
     # TODO Make orientation adhere to grasping orientation
-    target_torso = _transform_to_torso([target, [0, 0, 0, 1]], robot)
+    target_torso = _transform_to_torso(pose, robot)
 
     ik_msg_left = _make_request_msg(robot_description.i.base_frame, left_gripper, target_torso, robot, left_joints)
 

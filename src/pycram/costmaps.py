@@ -6,14 +6,18 @@ import pybullet as p
 import rospy
 import matplotlib.pyplot as plt
 from matplotlib import colors
-from .bullet_world import BulletWorld
+import psutil
+import time
+from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from .bullet_world import BulletWorld, Use_shadow_world
 from .bullet_world_reasoning import _get_images_for_target
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 from typing import Tuple, List, Union, Optional
 
 
 
-class Costmap():
+
+class Costmap:
     """
     The base class of all Costmaps which implemnets the visualization of costmaps
     in the BulletWorld.
@@ -60,7 +64,7 @@ class Costmap():
         boxes = []
         # Finding all rectangles in the costmap
         for i in range(0, map.shape[0]):
-            for j in range(0, map.shape[0]):
+            for j in range(0, map.shape[1]):
                 if map[i][j] > 0:
                     curr_width = self._find_consectuive_line((i, j), map)
                     curr_pose = (i, j)
@@ -72,15 +76,15 @@ class Costmap():
         # Creation of the visual shapes, for documentation of the visual shapes
         # please look here: https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#heading=h.q1gn7v6o58bf
         for box in boxes:
-            visual = p.createVisualShape(p.GEOM_BOX, halfExtents=[(box[1] *self.resolution) / 2, (box[2]*self.resolution) / 2, 0.001],
-                rgbaColor=[1, 0, 0, 0.6], visualFramePosition=[(box[0][0] + box[1]/2)*self.resolution, (box[0][1] + box[2]/2)*self.resolution, 0.])
+            visual = p.createVisualShape(p.GEOM_BOX, halfExtents=[(box[1] * self.resolution) / 2, (box[2] * self.resolution) / 2, 0.001],
+                rgbaColor=[1, 0, 0, 0.6], visualFramePosition=[(box[0][0] + box[1]/2) * self.resolution, (box[0][1] + box[2]/2) * self.resolution, 0.])
             cells.append(visual)
         # Set to 127 for since this is the maximal amount of links in a multibody
         for cell_parts in self._chunks(cells, 127):
             # Dummy paramater since these are needed to spawn visual shapes as a
             # multibody.
             link_poses = [[0, 0, 0] for c in cell_parts]
-            link_orientations =  [[0, 0, 0, 1] for c in cell_parts]
+            link_orientations = [[0, 0, 0, 1] for c in cell_parts]
             link_masses = [1.0 for c in cell_parts]
             link_parent = [0 for c in cell_parts]
             link_joints = [p.JOINT_FIXED for c in cell_parts]
@@ -88,9 +92,14 @@ class Costmap():
             link_joint_axis = [[1, 0, 0] for c in cell_parts]
             # The position at which the multibody will be spawned. Offset such that
             # the origin referes to the centre of the costmap.
-            base_pose = [self.origin[0] + self.height/2*self.resolution, self.origin[1] + self.width / 2*self.resolution, self.origin[2]]
+            origin_pose = self.origin[0]
+            base_pose = [origin_pose[0] - self.height/2*self.resolution, origin_pose[1] - self.width / 2*self.resolution, origin_pose[2]]
+
+            offset = [[-self.height/2*self.resolution, -self.width/2 *self.resolution, 0.05], [0, 0, 0, 1]]
+            new_pose = p.multiplyTransforms(self.origin[0], self.origin[1], offset[0], offset[1])
+
             map_obj = p.createMultiBody(baseVisualShapeIndex=-1, linkVisualShapeIndices=cell_parts,
-                basePosition=base_pose, baseOrientation=[0, 0, 1, 0], linkPositions=link_poses,
+                basePosition=new_pose[0], baseOrientation=new_pose[1], linkPositions=link_poses, # [0, 0, 1, 0]
                 linkMasses=link_masses, linkOrientations=link_orientations,
                 linkInertialFramePositions=link_poses,
                 linkInertialFrameOrientations=link_orientations,linkParentIndices=link_parent,
@@ -164,14 +173,10 @@ class Costmap():
             print("To merge cotsmaps, the resoulution has to be equal")
             return
         new_map = np.zeros((self.height, self.width))
-        for x in range(0, self.height):
-            for y in range(0, self.width):
-                if self.map[x][y] == 0 or other_cm.map[x][y] == 0:
-                    new_map[x][y] = 0
-                else:
-                    new_map[x][y] = self.map[x][y] * other_cm.map[x][y]
-
-        new_map /= np.max(np.abs(new_map))
+        # A nunpy array of the positions where both costmaps are greater than 0
+        merge = np.logical_and(self.map > 0, other_cm.map > 0)
+        new_map[merge] = self.map[merge] * other_cm.map[merge]
+        new_map = (new_map / np.max(new_map)).reshape((self.height, self.width))
         return Costmap(self.resolution, self.height, self.width, self.origin, new_map)
 
     def __add__(self, other):
@@ -180,6 +185,7 @@ class Costmap():
         else:
             print("Can only combine two costmaps")
             return None
+
 
 class OccupancyCostmap(Costmap):
     """
@@ -272,36 +278,6 @@ class OccupancyCostmap(Costmap):
         print("Recived Meta Data")
         return meta
 
-    def find_all_non_negativ(self) -> List[Tuple[int, int]]:
-        """
-        Finds and returns all indicies for entry in the array which are greater
-        than zero.
-        :return: A list of tuple which are entries that are greater than zero.
-        """
-        indices = []
-        for i in range(0, self.width):
-            for j in range(0, self.height):
-                if self.map[i][j] >= 0:
-                    indices.append((i, j))
-        return indices
-
-    def find_all_valid_non_negativ(self) -> List[Tuple[int, int]]:
-        """
-        Finds all entries in the costmap that are greater than zero and are further
-        than distance_to_obstacle from any obstacle.
-        :return: A list of tuple which represent entries in the costmap which are
-        further than distance_to_obstacle from any obstacle.
-        """
-        non_zero = self.find_all_non_negativ()
-        valid = []
-        for w, h in non_zero:
-            sub = self.map[w-self.distance_obstacle: w+self.distance_obstacle, h-self.distance_obstacle:h+self.distance_obstacle]
-            if -1 in sub:
-                continue
-            else:
-                valid.append((w,h))
-        return valid
-
     def _convert_map(self, map: np.ndarray, size: int) -> np.ndarray:
         """
         This Method converts the Occupancy Map received from ROS to be more consistent
@@ -312,17 +288,16 @@ class OccupancyCostmap(Costmap):
         :param map: The map that should be converted. Represented as 2d numpy array
         :return: The converted map. Represented as 2d numpy array.
         """
-        new_map = np.zeros((size, size))
-        for x in range(0, size):
-            for y in range(size):
-                # Surrounding cells with respect to distance to obstacle
-                surrounding_cells = map[x - self.distance_obstacle: x + self.distance_obstacle + 1,
-                                        y - self.distance_obstacle: y + self.distance_obstacle + 1]
-                # Checks if there are any cells with values greater than zero in
-                # surrounding_cells.
-                if np.sum(surrounding_cells) == 0 and surrounding_cells.size != 0:
-                    new_map[x][y] = 1
-        return new_map
+        map = np.pad(map, (int(self.distance_obstacle/2), int(self.distance_obstacle/2)))
+
+        sub_shape = (self.distance_obstacle, self.distance_obstacle)
+        view_shape = tuple(np.subtract(map.shape, sub_shape) + 1) + sub_shape
+        strides = map.strides + map.strides
+
+        sub_matrices = np.lib.stride_tricks.as_strided(map,view_shape,strides)
+        sub_matrices = sub_matrices.reshape(sub_matrices.shape[:-2] + (-1,))
+        sum = np.sum(sub_matrices, axis=2)
+        return (sum == 0).astype('int16')
 
     def create_sub_map(self, sub_origin: List[float], size: int) -> Costmap:
         """
@@ -369,33 +344,54 @@ class OccupancyCostmap(Costmap):
 
         """
         rays = []
-        # Creating a 2D array with positions in world coordinate frame for every cell
-        for x in range(int(-size/2), int(size/2)):
-            for y in range(int(-size/2), int(size/2)):
-                rays.append(([origin[0] + x * resolution, origin[1] + y * resolution, 0],
-                            [origin[0] + x * resolution,origin[0] + y * resolution, 10]))
 
-        res = []
+        origin_position = self.origin[0]
+        # Generate 2d grid with indices
+        indices = np.concatenate(np.dstack(np.mgrid[int(-size/2):int(size/2),int(-size/2):int(size/2)]), axis=0) * resolution + np.array(origin_position[:2])
+        # Add the z-coordinate to the grid, which is either 0 or 10
+        indices_0 = np.pad(indices, (0, 1), mode='constant', constant_values=0)[:-1]
+        indices_10 = np.pad(indices, (0,1), mode='constant', constant_values=10)[:-1]
+        # Zips both arrays such that there are tuples for every coordinate that
+        # only differ in the z-coordinate
+        rays = np.dstack(np.dstack((indices_0, indices_10))).T
+
+        res = np.zeros(len(rays))
         # Using the PyBullet rayTest to check if there is an object above the position
         # if there is no object the position is marked as valid
+        # 16383 is the maximal number of rays that can be processed in a batch
+        i = 0
+        j = 0
         for n in self._chunks(np.array(rays), 16383):
-            r_t = p.rayTestBatch(n[:, 0], n[:, 1], numThreads=0)
+            r_t = p.rayTestBatch(n[:,0], n[:,1],numThreads=0)
+            j += len(n)
             if BulletWorld.robot:
-                res += (1 if ray[0] == -1 or ray[0] == BulletWorld.robot.id else 0 for ray in r_t)
+                res[i:j] = [1 if ray[0] == -1 or ray[0] == BulletWorld.robot.id else 0 for ray in r_t]
             else:
-                res += (1 if ray[0] == -1 else 0 for ray in r_t)
+                # There were some cases of an error on this line where r_t would be None.
+                # If this occurs again please contact the maintainer
+                res[i:j] = [1 if ray[0] == -1 else 0 for ray in r_t]
+            i += len(n)
 
         res = np.flip(np.reshape(np.array(res), (size, size)))
-        new_map = np.zeros((size, size))
-        # Apply the distance to obstacle paramter
-        for x in range(0, size):
-            for y in range(0, size):
-                surrounding_cells = res[x - self.distance_obstacle: x+self.distance_obstacle ,
-                                        y - self.distance_obstacle: y+self.distance_obstacle ]
-                if np.sum(surrounding_cells) == (self.distance_obstacle * 2) ** 2 and surrounding_cells.size != 0:
-                    new_map[x][y] = 1
 
-        return new_map
+        map = np.pad(res, (int(self.distance_obstacle/2), int(self.distance_obstacle/2)))
+
+        sub_shape = (self.distance_obstacle*2, self.distance_obstacle*2)
+        view_shape = tuple(np.subtract(map.shape, sub_shape) + 1) + sub_shape
+        strides = map.strides + map.strides
+
+        sub_matrices = np.lib.stride_tricks.as_strided(map,view_shape,strides)
+        sub_matrices = sub_matrices.reshape(sub_matrices.shape[:-2] + (-1,))
+
+        sum = np.sum(sub_matrices, axis=2)
+        map = (sum == (self.distance_obstacle*2) ** 2).astype('int16')
+        # The map loses some size due to the strides and because I dont want to
+        # deal with indices outside of the index range
+        offset = self.size - map.shape[0]
+        odd = 0 if offset % 2 == 0 else 1
+        map = np.pad(map, (offset // 2, offset // 2 + odd))
+
+        return np.flip(map)
 
     def _chunks(self, lst: List, n: int) -> List:
         """Yield successive n-sized chunks from lst."""
@@ -433,17 +429,20 @@ class VisibilityCostmap(Costmap):
             costmap should be created.
         :param world: The BulletWorld for which the costmap should be created.
         """
-        self.world: BulletWorld = world if world else BulletWorld.current_bullet_world
-        self.map: np.ndarray = np.zeros((size, size))
-        self.size: int = size
-        self.resolution: float = resolution
+        if (11*size**2 +size**3)*2 > psutil.virtual_memory().available:
+            raise OSError("Not enough free RAM to calculate a costmap of this size")
+
+        self.world = world if world else BulletWorld.current_bullet_world
+        self.map = np.zeros((size, size))
+        self.size = size
+        self.resolution = resolution
         # for pr2 = 1.27
         self.max_height: float = max_height
         #for pr2 = 1.6
         self.min_height: float = min_height
         self.origin: List[float] = origin
         self._generate_map()
-        Costmap.__init__(self, resolution, size, size, origin, self.map)
+        Costmap.__init__(self, resolution, size, size, self.origin, self.map)
 
     def _create_images(self) -> List[np.ndarray]:
         """
@@ -454,20 +453,21 @@ class VisibilityCostmap(Costmap):
         :return: A list of four depth images, the images are represented as 2D arrays.
         """
         #object_pose = self.object.get_position_and_orientation()
-        im_world = self._create_image_world()
+        #im_world = self._create_image_world()
         images = []
-        camera_pose = [self.origin, [0, 0, 0, 1]]
+        camera_pose = self.origin
 
-        images.append(_get_images_for_target([[self.origin[0], self.origin[1] +1, self.origin[2]], [0, 0, 0, 1]],camera_pose, im_world, size=self.size )[1])
+        with Use_shadow_world():
+            images.append(_get_images_for_target([[self.origin[0][0], self.origin[0][1] +1, self.origin[0][2]], [0, 0, 0, 1]],camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
 
-        images.append(_get_images_for_target([[self.origin[0] -1, self.origin[1], self.origin[2]], [0, 0, 0, 1]], camera_pose, im_world, size=self.size )[1])
+            images.append(_get_images_for_target([[self.origin[0][0] -1, self.origin[0][1], self.origin[0][2]], [0, 0, 0, 1]], camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
 
-        images.append(_get_images_for_target([[self.origin[0], self.origin[1] -1, self.origin[2]], [0, 0, 0, 1]],camera_pose, im_world, size=self.size )[1])
+            images.append(_get_images_for_target([[self.origin[0][0], self.origin[0][1] -1, self.origin[0][2]], [0, 0, 0, 1]],camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
 
-        images.append(_get_images_for_target([[self.origin[0] +1, self.origin[1], self.origin[2]], [0, 0, 0, 1]], camera_pose, im_world, size=self.size )[1])
+            images.append(_get_images_for_target([[self.origin[0][0] +1, self.origin[0][1], self.origin[0][2]], [0, 0, 0, 1]], camera_pose, BulletWorld.current_bullet_world, size=self.size )[1])
 
         # images [0] = depth, [1] = seg_mask
-        im_world.exit()
+        #im_world.exit()
         for i in range(0, 4):
             images[i] = self._depth_buffer_to_meter(images[i])
         return images
@@ -482,122 +482,121 @@ class VisibilityCostmap(Costmap):
         far = 100
         return far * near / (far - (far-near)*buffer)
 
-    def _create_image_world(self) -> BulletWorld:
-        """
-        Creates a new BulletWorld which is used for creating the depth images.
-        From the new Bullet World the robot and, if the costmap is created for an
-        object, this is also removed.
-        :return: The reference to the new BulletWorld
-        """
-        world = self.world.copy()
-        for obj in world.objects:
-            if obj.get_position() == self.origin:
-                obj.remove()
-        # for obj in world.objects:
-        #     if BulletWorld.robot != None and obj.name == BulletWorld.robot.name \
-        #         and obj.type == BulletWorld.robot.type:
-        #         obj.remove
-        #     if obj.get_position() == self.origin:
-        #         obj.remove
-        return world
-
-    def _choose_image(self, index: Tuple[int, int]) -> int:
-        """
-        Chooses the corresponding depth image for an index in the costmap.
-        :param index: The index for which the depth image should be found.
-        :return: The index of the corresponding depth image.
-        """
-        # Because the (0, 0) is in the middle of the map, this returns the angele
-        # between the origin and the given index
-        angle = np.arctan2(index[0], index[1]) + np.pi
-        # return of np.arctan2 is between 2pi and pi
-        if angle <= np.pi * 0.25 or angle >= np.pi * 1.75:
-            return 0 #0
-        elif angle >= np.pi * 1.25 and angle < np.pi * 1.75:
-            return 3 #1
-        elif angle >= np.pi * 0.75 and angle < np.pi * 1.25:
-            return 2 #2
-        elif angle >= np.pi * 0.25 and angle < np.pi * 0.75:
-            return 1 #3
-
-    def _choose_column(self, index: Tuple[int, int]) -> int:
-        """
-        Choooses the column in the depth image for an index. The values of this
-        column are then used to calculate the value of the index in the costmap.
-        :param index: The index for which the column should be choosen
-        :return: The Colum in the depth image.
-        """
-        index_in_depth = self._calculate_index_in_depth(index)
-        index_in_depth[0] = index_in_depth[0] - self.size/2
-        index_in_depth[1] = abs(self.size/2 - index_in_depth[1])
-        column = (index_in_depth[0] / index_in_depth[1]) * (self.size / 2)
-        column += self.size/2
-        return round(column)
-
-    def _calculate_index_in_depth(self, index: Tuple[int, int]) -> Tuple[int, int]:
-        """
-        This method calulates the index in the depth image for a given index in
-        the costmap.
-        :param index: The index in the costmap, this index is with the origin in
-            the middle of the costmap
-        :return: The corresponding index in the depth image
-        """
-        x, y = index
-        x += self.size/2
-        y += self.size/2
-        if y < self.size/2 and x >= y and x < (self.size - y):
-            return  [x, y]
-        elif x < self.size/2 and y > x and y < (self.size - x):
-            return [self.size-y-1, x]
-        elif y > self.size/2 and x< y and x >  (self.size - y - 1):
-            return [self.size-x-1, y]
-        else:
-            return [y, self.size-x-1]
-
-    def _compute_column_range(self, index: Tuple[int, int], min_height: float, max_height: float) -> Tuple[int, int]:
-        """
-        The indices which determine the range of entries in the depth image which
-        are used for calulating the entry in the costmap.
-        :param index: The index in the costmap for which the range should be calculated.
-        :param min_height: The minimal height on which the camera on the robot can be.
-        :param max_height: The maximal height on which the camera on the robot can be.
-        :return: The two indicies which determine the range in the column in the
-        depth image.
-        """
-        height = self.origin[2]
-        distance = np.linalg.norm(index)
-        if distance == 0:
-            return 0, 0
-        r_min = np.arctan((min_height-height) / distance) * self.size
-        r_max = np.arctan((max_height-height) / distance) * self.size
-        r_min += self.size/2
-        r_max += self.size/2
-        return int(min(round(r_min), self.size-1)), int(min(round(r_max), self.size-1))
-
-    def _generate_map(self) -> None:
+    def _generate_map(self):
         """
         This method generates the resulting density map by using the algorithm explained
         in Lorenz Mösenlechners PhD thesis: https://mediatum.ub.tum.de/doc/1239461/1239461.pdf p.178
         The resulting density map is then saved to self.map
         """
         depth_imgs = self._create_images()
-        for x in range(int(-self.size/2), int(self.size/2)):
-            for y in range(int(-self.size/2), int(self.size/2)):
-                max_value = 0
-                depth_index = self._choose_image([x, y])
-                c = self._choose_column([x, y])
-                d = np.linalg.norm([x, y])
-                r_min, r_max = self._compute_column_range([x, y], self.min_height, self.max_height)
-                v = 0
-                for r in range(r_min, r_max+1):
-                    if depth_imgs[depth_index][r][c] > d * self.resolution:
-                        v += 1
-                        max_value += 1
+        # A 2D array where every cell contains the arctan2 value with respect to
+        # the middle of the array. Additionally the interval is shifted such that
+        # it is between 0 and 2pi
+        tan = np.arctan2(np.mgrid[-int(self.size/2): int(self.size/2),-int(self.size/2): int(self.size/2)][0], \
+                        np.mgrid[-int(self.size/2): int(self.size/2),-int(self.size/2): int(self.size/2)][1]) + np.pi
+        res = np.zeros(tan.shape)
 
-                if max_value > 0:
-                    x_i = int(self.size/2) - x- 1
-                    y_i = int(self.size/2) + y-1
-                    self.map[x_i][y_i] = v / max_value
+        # Just for completion, since the res array has zeros in every position this
+        # operation is not neccessary.
+        #res[np.logical_and(tan <= np.pi * 0.25, tan >= np.pi * 1.75)] = 0
+
+        # Creates a 2D array which contains the index of the depth image for every
+        # coordinate
+        res[np.logical_and(tan >= np.pi * 1.25, tan <= np.pi * 1.75)] = 3
+        res[np.logical_and(tan >= np.pi * 0.75, tan < np.pi * 1.25)] = 2
+        res[np.logical_and(tan >= np.pi * 0.25, tan < np.pi * 0.75)] = 1
+
+
+        indices = np.dstack(np.mgrid[0: self.size, 0: self.size])
+        depth_indices = np.zeros(indices.shape)
+        # x-value of index: res == n, :1
+        # y-value of index: res == n, 1:2
+
+        # (y, size-x-1) for index between 1.25 pi and 1.75 pi
+        depth_indices[res == 3, :1] = indices[res == 3, 1:2]
+        depth_indices[res == 3, 1:2] = self.size - indices[res == 3,:1] -1
+
+
+        # (size-x-1, y) for index between 0.75 pi and 1.25 pi
+        depth_indices[res == 2, :1] = self.size - indices[res == 2,:1] -1
+        depth_indices[res == 2, 1:2] = indices[res == 2, 1:2]
+
+        # (size-y-1, x) for index between 0.25 pi and 0.75 pi
+        depth_indices[res==1, :1] = self.size - indices[res==1, 1:2] - 1
+        depth_indices[res==1, 1:2] = indices[res==1, :1]
+
+        # (x, y) for index between 0.25 pi and 1.75 pi
+        depth_indices[res==0, :1] = indices[res ==0, :1]
+        depth_indices[res==0, 1:2] = indices[res==0, 1:2]
+
+        # Convert back to origin in the middle of the costmap
+        depth_indices[:, :, :1] -= self.size/2
+        depth_indices[:, :, 1:2] = np.absolute(self.size/2 - depth_indices[:, :, 1:2] )
+
+        # Sets the y index for the coordinates of the middle of the costmap to 1,
+        # the computed value is 0 which would cause an error in the next step where
+        # the calculation divides the x coordinates by the y coordinates
+        depth_indices[int(self.size/2), int(self.size/2), 1] = 1
+
+
+        # Calculate columns for the respective position in the costmap
+        columns = np.around(((depth_indices[:, :, :1]/depth_indices[:, :, 1:2]) \
+            * (self.size/2)) + self.size/2).reshape((self.size, self.size)).astype('int16')
+
+        # An array with size * size that contains the euclidian distance to the
+        # orgin (in the middle of the costmap) from every cell
+        distances = np.maximum(np.linalg.norm(np.dstack(np.mgrid[-int(self.size/2): int(self.size/2), \
+                                                        -int(self.size/2): int(self.size/2)]), axis=2), 0.001)
+
+        # Row ranges
+        # Calculation of the ranges of coordinates in the row which have to be
+        # taken into accoount. The range is from r_min to r_max.
+        # This are two arrays with shape: size*size, the r_min constains the beginig
+        # of the range for every coordinate and r_max contains the end for each
+        # coordinate
+        r_min = (np.arctan((self.min_height-self.origin[0][2] ) / distances) * self.size) + self.size/2
+        r_max = (np.arctan((self.max_height-self.origin[0][2] ) / distances) * self.size) + self.size/2
+
+        r_min = np.minimum(np.around(r_min), self.size-1).astype('int16')
+        r_max = np.minimum(np.around(r_max), self.size-1).astype('int16')
+
+
+
+        rs = np.dstack((r_min, r_max+1)).reshape((self.size**2, 2))
+        r = np.arange(self.size)
+        # Calculates a mask from the r_min and r_max values. This mask is for every
+        # coordinate respectivly and determines which values from the computed column
+        # of the depth image should be taken into account for the costmap.
+        # A Mask of a single coordinate has the length of the column of the depth image
+        # and together with the computed column at this coordinate determines which
+        # values of the depth image make up the value of the visibility costmap at this
+        # point.
+        mask = ((rs[:,0,None] <= r) & (rs[:,1,None] > r)).reshape((self.size, self.size, self.size))
+
+
+        values = np.zeros((self.size, self.size))
+        map = np.zeros((self.size, self.size))
+        # This is done to itterate over the depth images one at a time
+        for i in range(4):
+            row_masks = mask[res==i].T
+            # This statment does several things, first it takes the values from
+            # the depth image for this quater of the costmap. The values taken are
+            # the complete columns of the depth image (which where computed beforehand)
+            # and checks if the values in them are greater than the distance to the
+            # respective coordinates. This does not take the row ranges into account.
+            values = depth_imgs[i][:,columns[res==i].flatten()] > \
+                        np.tile(distances[res==i][:, None], (1, self.size)).T * self.resolution
+            # This applies the created mask of the row ranges to the values of
+            # the columns which are compared in the previous statment
+            masked = np.ma.masked_array(values, mask=~row_masks)
+            # The calculated values are added to the costmap
+            map[res==i] = np.sum(masked, axis=0)
+        map /= np.max(map)
+        # Weird flipping shit so that the map fits the orientation of the visualization.
+        # the costmap in itself is consistant and just needs to be flipped to fit the world coordinate system
+        map = np.flip(map, axis=0)
+        map = np.flip(map)
+        self.map = map
 
 
 class GaussianCostmap(Costmap):
@@ -629,6 +628,38 @@ class GaussianCostmap(Costmap):
         sig2 = 2 * std * std
         w = np.exp(-n ** 2 / sig2)
         return w
+
+
+class SemanticCostmap(Costmap):
+    def __init__(self, object, urdf_link_name, size=100, resolution=0.02, origin=[0, 0, 0], world=None):
+        self.world = world if world else BulletWorld.current_bullet_world
+        self.object = object
+        self.link = urdf_link_name
+        self.resolution = resolution
+        self.origin = object.get_link_position_and_orientation(urdf_link_name)
+        self.height = 0
+        self.width = 0
+        self.map = []
+        self.generate_map()
+
+        Costmap.__init__(self, resolution, self.height, self.width, self.origin, self.map)
+
+    def generate_map(self):
+        link_position = self.object.get_link_position(self.link)
+        min, max = self.get_aabb_for_link()
+        self.height = int((max[0] - min[0]) // self.resolution)
+        self.width = int((max[1] - min[1]) // self.resolution)
+        self.map = np.ones((self.height, self.width))
+        self.origin = [self.origin[0], self.origin[1]]
+
+    def get_aabb_for_link(self):
+        shadow_obj = BulletWorld.current_bullet_world.get_shadow_object(self.object)
+        with Use_shadow_world():
+            shadow_obj.set_orientation([0, 0, 0, 1])
+            link_orientation = shadow_obj.get_link_orientation(self.link)
+            inverse_orientation = p.invertTransform([0, 0, 0], link_orientation)[1]
+            shadow_obj.set_orientation(inverse_orientation)
+            return shadow_obj.get_AABB(self.link)
 
 
 cmap = colors.ListedColormap(['white', 'black', 'green', 'red', 'blue'])

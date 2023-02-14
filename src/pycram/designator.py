@@ -70,7 +70,7 @@ class Designator(ABC):
     make_dictionary -- return the given parameters as dictionary.
     """
 
-    """List of all designator resolvers. Designator resolvers are functions which take a designator as 
+    """List of all designator resolvers. Designator resolvers are functions which take a designator as
     argument and return a list of solutions. A solution can also be a generator. """
     resolvers = {}
 
@@ -165,7 +165,7 @@ class Designator(ABC):
             self._data = self._solutions.get(self._index)
             return self._data
         except StopIteration:
-            raise DesignatorError('There was no Solution for this Object Designator')
+            raise DesignatorError('There was no Solution for this Designator')
 
     def reference(self) -> Any:
         """Try to dereference the designator and return its data object or raise DesignatorError if it is not an
