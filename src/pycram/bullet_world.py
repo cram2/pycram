@@ -660,6 +660,12 @@ class Object:
         else:
             return link_to_color
 
+    def get_AABB(self, link_name: str) -> Tuple[List[float], List[float]]:
+        """
+        Returns the axis aligned bounding box of the given link name
+        """
+        return p.getAABB(self.id, self.links[link_name], self.world.client_id)
+
 
 
 def filter_contact_points(contact_points, exclude_ids) -> List:

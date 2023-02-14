@@ -150,7 +150,7 @@ def visible(object: Object,
     with Use_shadow_world():
         state = p.saveState(physicsClientId=BulletWorld.current_bullet_world.client_id)
         for obj in BulletWorld.current_bullet_world.objects:
-            if obj.name == BulletWorld.robot.name:
+            if BulletWorld.robot and obj.name == BulletWorld.robot.name:
                 continue
             elif object.get_position_and_orientation() == obj.get_position_and_orientation():
                 object = obj
