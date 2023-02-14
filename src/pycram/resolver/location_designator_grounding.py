@@ -4,7 +4,7 @@ from pycram.location_designator import ObjectRelativeLocationDesignatorDescripti
     LocationDesignatorDescription
 from pycram.costmaps import GaussianCostmap, OccupancyCostmap, VisibilityCostmap, plot_grid
 from pycram.robot_description import InitializedRobotDescription as robot_description
-from pycram.bullet_world import BulletWorld, Object
+from pycram.bullet_world import BulletWorld, Object, Use_shadow_world
 from pycram.pose_generator_and_validator import pose_generator, visibility_validator, reachability_validator
 
 
@@ -49,12 +49,13 @@ def gen_from_costmap(desig):
     :yield: The found valid poses for the constrains given by the designator.
     """
     min_height = list(robot_description.i.cameras.values())[0].min_height
-    min_height = list(robot_description.i.cameras.values())[0].min_height
+    max_height = list(robot_description.i.cameras.values())[0].max_height
     # This ensures that the costmaps always get a position as their origin.
     if type(desig._description.target) == Object:
         target_pose = desig._description.target.get_position_and_orientation()
     else:
         target_pose = desig._description.target
+
     occupancy = OccupancyCostmap(0.2, False, 200, 0.02, target_pose, BulletWorld.current_bullet_world)
     final_map = occupancy
 
@@ -65,25 +66,28 @@ def gen_from_costmap(desig):
         visible = VisibilityCostmap(min_height, max_height, 200, 0.02, target_pose)
         final_map += visible
     #plot_grid(final_map.map)
+
     test_world = BulletWorld.current_bullet_world.copy()
     robot_object = desig._description.visible_for if desig._description.visible_for else desig._description.reachable_for
     test_robot = test_world.get_objects_by_name(robot_object.name)[0]
 
-    valid_poses = []
-    for maybe_pose in pose_generator(final_map):
-        res = True
-        if desig._description.visible_for:
-            res = res and visibility_validator(maybe_pose, test_robot, desig._description.target, test_world)
-        if desig._description.reachable_for:
-            res = res and reachability_validator(maybe_pose, test_robot, desig._description.target, test_world)
+    with Use_shadow_world():
+        test_robot = BulletWorld.current_bullet_world.get_shadow_object(robot_object)
+        valid_poses = []
+        for maybe_pose in pose_generator(final_map):
+            res = True
+            if desig._description.visible_for:
+                res = res and visibility_validator(maybe_pose, test_robot, desig._description.target, BulletWorld.current_bullet_world)
+            if desig._description.reachable_for:
+                res = res and reachability_validator(maybe_pose, test_robot, desig._description.target, BulletWorld.current_bullet_world)
 
-        if res:
-            valid_poses.append(maybe_pose)
-            #print(f"Valid: {maybe_pose}")
-            # This number defines the total valid poses by this generator
-            if len(valid_poses) == 15: break
-            #yield {'position': maybe_pose[0], 'orientation': maybe_pose[1]}
-    test_world.exit()
+            if res:
+                valid_poses.append(maybe_pose)
+                #print(f"Valid: {maybe_pose}")
+                # This number defines the total valid poses by this generator
+                if len(valid_poses) == 15: break
+                #yield {'position': maybe_pose[0], 'orientation': maybe_pose[1]}
+    #test_world.exit()
     for pose in valid_poses:
         yield {'position': pose[0], 'orientation': pose[1]}
 
