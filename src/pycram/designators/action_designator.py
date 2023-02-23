@@ -26,12 +26,13 @@ class ActionDesignator: # (Designator):
     def reference(self):
         resolver = ActionDesignator.resolver[self.description.resolver]
         solution = resolver(self)
-        return self
+        return solution
 
 
     def perform(self):
         #desc = self.description.ground()
         desc = self.reference()
+        print(desc)
         return desc.function()
 
     def __call__(self, *args, **kwargs):

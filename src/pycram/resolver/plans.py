@@ -65,12 +65,14 @@ class Arms(Enum):
 @with_tree
 def open_gripper(gripper):
     print("Opening gripper {}".format(gripper))
-    ProcessModule.perform(MotionDesignator([('type', 'opening-gripper'), ('gripper', gripper)]))
+    MotionDesignator(MoveGripperMotionDescription(gripper=gripper, motion="open")).perform()
+    #ProcessModule.perform(MotionDesignator([('type', 'opening-gripper'), ('gripper', gripper)]))
 
 @with_tree
 def close_gripper(gripper):
     print("Closing gripper {}.".format(gripper))
-    ProcessModule.perform(MotionDesignator([('type', 'closing-gripper'), ('gripper', gripper)]))
+    MotionDesignator(MoveGripperMotionDescription(gripper=gripper, motion="close")).perform()
+    #ProcessModule.perform(MotionDesignator([('type', 'closing-gripper'), ('gripper', gripper)]))
 
 @with_tree
 def pick_up(arm, btr_object):
@@ -81,33 +83,38 @@ def pick_up(arm, btr_object):
         btr_object.prop_value('bullet_obj').detach(BulletWorld.current_bullet_world.get_objects_by_name("kitchen")[0])
     except KeyError:
         print("Not attached to anything!")
-    ProcessModule.perform(MotionDesignator([('type', 'pick-up'), ('object', btr_object), ('arm', motion_arm)]))
+    MotionDesignator(PickUpMotionDescription(object=object, arm=motion_arm)).perform()
+    #ProcessModule.perform(MotionDesignator([('type', 'pick-up'), ('object', btr_object), ('arm', motion_arm)]))
     # ActionDesignator(ParkArmsDescription(arm=arm)).perform()
 
 @with_tree
 def place(arm, btr_object, target):
     print("Placing {} with {} at {}.".format(btr_object, arm, target))
     motion_arm = "left" if arm is Arms.LEFT else "right"
-    ProcessModule.perform(MotionDesignator([('type', 'place'), ('object', btr_object), ('arm', motion_arm), ('target', target)]))
+    MotionDesignator(PlaceMotionDescription(object=object, arm=motion_arm, target=target)).perform()
+    #ProcessModule.perform(MotionDesignator([('type', 'place'), ('object', btr_object), ('arm', motion_arm), ('target', target)]))
     if filter_contact_points(btr_object.prop_value("bullet_obj").contact_points_simulated(), [0,1,2]):
         raise PlanFailure()
 
 @with_tree
 def navigate(target, orientation=[0, 0, 0, 1]):
     print("Moving to {}. Orientation: {}.".format(target, orientation))
-    ProcessModule.perform(MotionDesignator([('type', 'moving'), ('target', target), ('orientation', orientation)]))
+    MotionDesignator(MoveMotionDescription(target=target, orientation=orientation)).perform()
+    #ProcessModule.perform(MotionDesignator([('type', 'moving'), ('target', target), ('orientation', orientation)]))
 
 @with_tree
 def park_arms(arms):
     print("Parking arms {}.".format(arms))
     left_arm = [('left-arm', 'park')] if arms in [Arms.LEFT, Arms.BOTH] else []
     right_arm = [('right-arm', 'park')] if arms in [Arms.RIGHT, Arms.BOTH] else []
-    ProcessModule.perform(MotionDesignator([('type', 'move-arm-joints')] + left_arm + right_arm))
+    MotionDesignator(MoveArmJointsMotionDescription(left_arm_config="park", right_arm_config="park")).perform()
+    #ProcessModule.perform(MotionDesignator([('type', 'move-arm-joints')] + left_arm + right_arm))
 
 @with_tree
 def detect(object_designator):
     print("Detecting object of type {}.".format(object_designator.prop_value("type")))
-    det_object =  ProcessModule.perform(MotionDesignator([('type', 'detecting'), ('object', object_designator.prop_value("type"))]))
+    #det_object =  ProcessModule.perform(MotionDesignator([('type', 'detecting'), ('object', object_designator.prop_value("type"))]))
+    det_object = MotionDesignator(DetectingMotionDescription(object_type=object_designator.prop_value("type"))).perform()
     if det_object is None:
         raise PlanFailure("No object detected.")
     detected_obj_desig = object_designator.copy([("pose", det_object.get_pose()), ("bullet_obj", det_object)])
@@ -117,7 +124,8 @@ def detect(object_designator):
 @with_tree
 def look_at(target):
     print("Looking at {}.".format(target))
-    ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', target)]))
+    MotionDesignator(LookingMotionDescription(target=target)).perform()
+    #ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', target)]))
 
 @with_tree
 def transport(object_designator, arm, target_location):
