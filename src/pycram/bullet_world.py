@@ -8,6 +8,7 @@ Object -- Representation of an object in the BulletWorld
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+import numpy as np
 import pybullet as p
 import os
 import threading
@@ -347,8 +348,160 @@ class Gui(threading.Thread):
         else:
             self.world.client_id = p.connect(p.DIRECT)
 
-        while p.isConnected(self.world.client_id):
-            time.sleep(0.5)
+            # Get the initial camera target location
+            cameraTargetPosition = p.getDebugVisualizerCamera()[11]
+
+            sphereVisualId = p.createVisualShape(p.GEOM_SPHERE, radius=0.05, rgbaColor=[1, 0, 0, 1])
+
+            # Create a sphere with a radius of 0.05 and a mass of 0
+            sphereUid = p.createMultiBody(baseMass=0.0,
+                                          baseInertialFramePosition=[0, 0, 0],
+                                          baseVisualShapeIndex=sphereVisualId,
+                                          basePosition=cameraTargetPosition)
+
+            # Define the maxSpeed, used in calculations
+            maxSpeed = 16
+
+            # Set initial Camera Rotation
+            cameraYaw = 50
+            cameraPitch = -35
+
+            # Keep track of the mouse state
+            mouseState = [0, 0, 0]
+            oldMouseX, oldMouseY = 0, 0
+
+            # Determines if the sphere at cameraTargetPosition is visible
+            visible = 1
+
+            # Loop to update the camera position based on keyboard events
+            while p.isConnected(self.world.client_id):
+                # Monitor user input
+                keys = p.getKeyboardEvents()
+                mouse = p.getMouseEvents()
+
+                # Get infos about the camera
+                width, height, dist = p.getDebugVisualizerCamera()[0], p.getDebugVisualizerCamera()[1], \
+                    p.getDebugVisualizerCamera()[10]
+                cameraTargetPosition = p.getDebugVisualizerCamera()[11]
+
+                # Get vectors used for movement on x,y,z Vector
+                xVec = [p.getDebugVisualizerCamera()[2][i] for i in [0, 4, 8]]
+                yVec = [p.getDebugVisualizerCamera()[2][i] for i in [2, 6, 10]]
+                zVec = (0, 0, 1)  # [p.getDebugVisualizerCamera()[2][i] for i in [1, 5, 9]]
+
+                # Check the mouse state
+                if mouse:
+                    for m in mouse:
+                        mouseX = m[2]
+                        mouseY = m[1]
+
+                        # update mouseState
+                        if m[0] == 2 and m[3] == 2:
+                            mouseState[2] = m[4]
+                        if m[0] == 2 and m[3] == 0:
+                            mouseState[0] = m[4]
+
+                        # change visibility by clicking the mousewheel
+                        if m[4] == 6 and m[3] == 1 and visible == 1:
+                            visible = 0
+                        elif m[4] == 6 and visible == 0:
+                            visible = 1
+
+                        # camera movement when the left mouse button is pressed
+                        if mouseState[0] == 3:
+                            speedX = abs(oldMouseX - mouseX) if (abs(oldMouseX - mouseX)) < maxSpeed else maxSpeed
+                            speedY = abs(oldMouseY - mouseY) if (abs(oldMouseY - mouseY)) < maxSpeed else maxSpeed
+
+                            # max angle of 89.5 and -89.5 to make sure the camera does not flip (is annoying)
+                            if mouseX < oldMouseX:
+                                if (cameraPitch + speedX) < 89.5:
+                                    cameraPitch += (speedX / 4) + 1
+                            elif mouseX > oldMouseX:
+                                if (cameraPitch - speedX) > -89.5:
+                                    cameraPitch -= (speedX / 4) + 1
+
+                            if mouseY < oldMouseY:
+                                cameraYaw += (speedY / 4) + 1
+                            elif mouseY > oldMouseY:
+                                cameraYaw -= (speedY / 4) + 1
+
+                        # camera movement when the right mouse button is pressed
+                        if mouseState[2] == 3:
+                            speedX = abs(oldMouseX - mouseX) if (abs(oldMouseX - mouseX)) < 5 else 5
+                            speedY = abs(oldMouseY - mouseY) if (abs(oldMouseY - mouseY)) < 5 else 5
+                            factor = 0.05
+
+                            if mouseX < oldMouseX:
+                                cameraTargetPosition = np.subtract(cameraTargetPosition,
+                                                                   np.multiply(np.multiply(zVec, factor), speedX))
+                            elif mouseX > oldMouseX:
+                                cameraTargetPosition = np.add(cameraTargetPosition,
+                                                              np.multiply(np.multiply(zVec, factor), speedX))
+
+                            if mouseY < oldMouseY:
+                                cameraTargetPosition = np.add(cameraTargetPosition,
+                                                              np.multiply(np.multiply(xVec, factor), speedY))
+                            elif mouseY > oldMouseY:
+                                cameraTargetPosition = np.subtract(cameraTargetPosition,
+                                                                   np.multiply(np.multiply(xVec, factor), speedY))
+                        # update oldMouse values
+                        oldMouseY, oldMouseX = mouseY, mouseX
+
+                # check the keyboard state
+                if keys:
+                    # if shift is pressed, double the speed
+                    if p.B3G_SHIFT in keys:
+                        speedMult = 2
+                    else:
+                        speedMult = 1
+
+                    if p.B3G_CONTROL in keys:
+                        if p.B3G_DOWN_ARROW in keys:
+                            cameraTargetPosition = np.subtract(cameraTargetPosition,
+                                                               np.multiply(np.multiply(zVec, 0.03), speedMult))
+                        elif p.B3G_UP_ARROW in keys:
+                            cameraTargetPosition = np.add(cameraTargetPosition,
+                                                          np.multiply(np.multiply(zVec, 0.03), speedMult))
+
+                        if p.B3G_LEFT_ARROW in keys:
+                            cameraTargetPosition = np.subtract(cameraTargetPosition,
+                                                               np.multiply(np.multiply(xVec, 0.03), speedMult))
+                        elif p.B3G_RIGHT_ARROW in keys:
+                            cameraTargetPosition = np.add(cameraTargetPosition,
+                                                          np.multiply(np.multiply(xVec, 0.03), speedMult))
+
+                        if ord("+") in keys:
+                            cameraTargetPosition = np.subtract(cameraTargetPosition,
+                                                               np.multiply(np.multiply(yVec, 0.03), speedMult))
+                        elif ord("-") in keys:
+                            cameraTargetPosition = np.add(cameraTargetPosition,
+                                                          np.multiply(np.multiply(yVec, 0.03), speedMult))
+
+                    else:
+                        if p.B3G_RIGHT_ARROW in keys:
+                            cameraYaw += (360 / width) * speedMult
+                        elif p.B3G_LEFT_ARROW in keys:
+                            cameraYaw -= (360 / width) * speedMult
+
+                        if p.B3G_DOWN_ARROW in keys:
+                            if (cameraPitch + (360 / height) * speedMult) < 89.5:
+                                cameraPitch += (360 / height) * speedMult
+                        elif p.B3G_UP_ARROW in keys:
+                            if (cameraPitch - (360 / height)) * speedMult > -89.5:
+                                cameraPitch -= (360 / height) * speedMult
+
+                        if ord("+") in keys:
+                            if (dist - (dist * 0.02) * speedMult) > 0.1:
+                                dist -= dist * 0.02 * speedMult
+                        elif ord("-") in keys:
+                            dist += dist * 0.02 * speedMult
+
+                p.resetDebugVisualizerCamera(cameraDistance=dist, cameraYaw=cameraYaw, cameraPitch=cameraPitch,
+                                             cameraTargetPosition=cameraTargetPosition)
+                if visible == 0:
+                    cameraTargetPosition = (0.0, -50, 50)
+                p.resetBasePositionAndOrientation(sphereUid, cameraTargetPosition, [0, 0, 0, 1])
+                time.sleep(1. / 240.)
 
 
 class Object:
