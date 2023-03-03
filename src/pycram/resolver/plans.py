@@ -1,4 +1,4 @@
-from pycram.designators.object_designator import ObjectDesignator
+from pycram.designators.object_designator import *
 from pycram.task import with_tree
 from pycram.process_module import ProcessModule
 from pycram.designators.motion_designator import *
@@ -21,7 +21,7 @@ def free_arms():
         return []
 
 def reach_position_generator(target):
-    if type(target) is ObjectDesignator:
+    if target.__class__.__name__ is ObjectDesignator.__name__:
         if target.prop_value('name') in ['sink_area_left_middle_drawer', 'sink_area_left_upper_drawer']:
             yield [0.3, 0.9, 0], [0,0,0,1]
             yield [0.4, 0.9, 0], [0,0,0,1]
@@ -38,21 +38,28 @@ def reach_position_generator(target):
 
 def object_fetching_location_generator(object_designator):
     object_type = object_designator.prop_value('type')
+    kitchen_designator = ObjectDesignator(ObjectDesignatorDescription(type="environment", name="kitchen"))
     if object_type == "spoon":
-        yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_upper_drawer'), ('part-of', "kitchen")])
+        #yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_upper_drawer'), ('part-of', "kitchen")])
+        yield ObjectDesignator(ObjectPartDescription(type='drawer', name='sink_area_left_upper_drawer', part_of=kitchen_designator))
     elif object_type == "bowl":
-        yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_middle_drawer'), ('part-of', "kitchen")])
+        #yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_middle_drawer'), ('part-of', "kitchen")])
+        yield ObjectDesignator(ObjectPartDescription(type='drawer', name='sink_area_left_middle_drawer', part_of=kitchen_designator))
     elif object_type == "milk":
-        yield ObjectDesignator([('type', 'fridge'), ('name', 'iai_fridge'), ('part-of', "kitchen")])
+        #yield ObjectDesignator([('type', 'fridge'), ('name', 'iai_fridge'), ('part-of', "kitchen")])
+        yield ObjectDesignator(ObjectPartDescription(type='drawer', name='iai_fridge', part_of=kitchen_designator))
         yield [1.3, 0.8, 0.95]  # Location on counter top
     elif object_type == "cereal":
         yield [1.3, 0.8, 0.95]  # Location on counter top
     else:
         # Otherwise just look everywhere
         yield [1.3, 0.8, 0.95]
-        yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_upper_drawer'), ('part-of', "kitchen")])
-        yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_middle_drawer'), ('part-of', "kitchen")])
-        yield ObjectDesignator([('type', 'fridge'), ('name', 'iai_fridge'), ('part-of', "kitchen")])
+        #yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_upper_drawer'), ('part-of', "kitchen")])
+        yield ObjectDesignator(ObjectPartDescription(type='drawer', name='sink_area_left_upper_drawer', part_of=kitchen_designator))
+        #yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_middle_drawer'), ('part-of', "kitchen")])
+        yield ObjectDesignator(ObjectPartDescription(type='drawer', name='sink_area_left_middle_drawer', part_of=kitchen_designator))
+        #yield ObjectDesignator([('type', 'fridge'), ('name', 'iai_fridge'), ('part-of', "kitchen")])
+        yield ObjectDesignator(ObjectPartDescription(type='drawer', name='iai_fridge', part_of=kitchen_designator))
 
 
 class Arms(Enum):
