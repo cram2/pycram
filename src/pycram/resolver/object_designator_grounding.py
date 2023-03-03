@@ -73,7 +73,6 @@ def ground_object(description: ObjectDesignatorDescription):
         description.pose = intersection[0].get_position_and_orientation()
 
 def ground_part_of(description):
-    print(description.part_of)
     if type(description.part_of) == ObjectDesignator and not description.part_of._description.object:
         ref = description.part_of.reference()
         description.part_of = ref
