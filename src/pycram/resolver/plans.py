@@ -21,7 +21,7 @@ def free_arms():
         return []
 
 def reach_position_generator(target):
-    if target.__class__.__name__ is ObjectDesignator.__name__:
+    if type(target) is ObjectDesignator:
         if target.prop_value('name') in ['sink_area_left_middle_drawer', 'sink_area_left_upper_drawer']:
             yield [0.3, 0.9, 0], [0,0,0,1]
             yield [0.4, 0.9, 0], [0,0,0,1]
