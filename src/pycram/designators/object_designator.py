@@ -40,11 +40,11 @@ class ObjectDesignatorDescription(DesignatorDescription):
     object: Object
     pose: Tuple[List[float], List[float]]
 
-    def __init__(self, type: str = None, name: str = None, part_of: Object = None, resolver="grounding"):
+    def __init__(self, type: str = None, name: str = None, object: Object = None, resolver="grounding"):
         super().__init__(resolver)
         self.type = type
         self.name = name
-        self.object = None
+        self.object = object
 
 class ObjectPartDescription(DesignatorDescription):
     type: str

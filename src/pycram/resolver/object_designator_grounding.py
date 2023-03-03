@@ -2,6 +2,7 @@ from ..external_interfaces.knowrob import object_type, instances_of, object_pose
 from ..designators.object_designator import *
 from ..bullet_world import BulletWorld
 from ..designator import ResolutionError, DesignatorError
+from ..designators.object_designator import ObjectDesignator
 
 
 def ground_located_object(description: LocatedObjectDesignatorDescription):
@@ -25,12 +26,21 @@ def ground_located_object(description: LocatedObjectDesignatorDescription):
 
 
 def ground_object(description: ObjectDesignatorDescription):
+    # If there already is an object reference fillout the rest of the Arguments
+    if description.object:
+        if not description.name:
+            description.name = description.object.name
+        if not descripition.type:
+            description.type = descrption.object.type
+        description.pose = description.object.get_position_and_orientation()
+        return description.__dict__
+
     # If there is a name get every fitting object and if there is no type or Only
     # one object that fits the name return the object designator for it
     if description.name:
         objs_name = BulletWorld.current_bullet_world.get_objects_by_name(description.name)
         if len(objs_name) == 0:
-            print("Problem")
+            raise DesignatorError("No suitable object found")
         if len(objs_name) == 1 or not description.type:
             description.object = objs_name[0]
             description.type = objs_name[0].type
@@ -55,12 +65,18 @@ def ground_object(description: ObjectDesignatorDescription):
     # just return the first found.
     if describtion.name and describtion.type:
         intersection = set(objs_name).intersection(objs_type)
+        if len(intersection) == 0:
+            raise DesignatorError("No suitable object found")
         describtion.type = intersection[0].type
         describtion.name = intersection[0].name
         describtion.object = intersection[0]
         description.pose = intersection[0].get_position_and_orientation()
 
 def ground_part_of(description):
+    if type(description.part_of) == ObjectDesignator and not description.part_of._description.object:
+        ref = description.part_of.reference()
+        description.part_of = ref
+
     if description.part_of:
         return description.__dict__
     # Try to find the name as the name of a link in an object of the BulletWorld
