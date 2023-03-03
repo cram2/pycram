@@ -1,5 +1,6 @@
 from ..designator import Designator, DesignatorError, DesignatorDescription
-from typing import List
+from ..bullet_world import Object
+from typing import List, Tuple, Union
 
 
 class ObjectDesignator(Designator):
@@ -36,11 +37,25 @@ class ObjectDesignator(Designator):
 class ObjectDesignatorDescription(DesignatorDescription):
     type: str
     name: str
+    object: Object
+    pose: Tuple[List[float], List[float]]
 
-    def __init__(self, type_: str = None, name: str = None, resolver="grounding"):
+    def __init__(self, type: str = None, name: str = None, object: Object = None, resolver="grounding"):
         super().__init__(resolver)
-        self.type = type_
+        self.type = type
         self.name = name
+        self.object = object
+
+class ObjectPartDescription(DesignatorDescription):
+    type: str
+    name: str
+    part_of: Union[Object, ObjectDesignator]
+
+    def __init__(self, type: str, name: str, part_of: Object = None, resolver="grounding"):
+        super().__init__(resolver)
+        self.type = type
+        self.name = name
+        self.part_of = part_of
 
 
 class LocatedObjectDesignatorDescription(ObjectDesignatorDescription):
