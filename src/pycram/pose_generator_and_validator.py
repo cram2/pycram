@@ -128,18 +128,27 @@ def reachability_validator(pose: Tuple[List[float], List[float]],
 
     left_gripper = robot_description.i.get_tool_frame('left')
     right_gripper = robot_description.i.get_tool_frame('right')
+
     left_joints = joints = robot_description.i._safely_access_chains('left').joints
     right_joints = joints = robot_description.i._safely_access_chains('right').joints
     # TODO Make orientation adhere to grasping orientation
     target_torso = _transform_to_torso(pose, robot)
 
-    ik_msg_left = _make_request_msg(robot_description.i.base_frame, left_gripper, target_torso, robot, left_joints)
+    # Get Link before first joint in chain
+    base_link = robot_description.i.get_parent(left_joints[0])
+    # Get link after last joint in chain
+    end_effector = robot_description.i.get_child(left_joints[-1])
+    ik_msg_left = _make_request_msg(base_frame, end_effector, target_torso, robot, left_joints)
 
     rospy.wait_for_service('/kdl_ik_service/get_ik')
     ik = rospy.ServiceProxy('/kdl_ik_service/get_ik', GetPositionIK)
     resp = ik(ik_msg_left)
 
     if resp.error_code.val == -31:
+        # Get Link before first joint in chain
+        base_link = robot_description.i.get_parent(right_joints[0])
+        # Get link after last joint in chain
+        end_effector = robot_description.i.get_child(right_joints[-1])
         ik_msg_right = _make_request_msg(robot_description.i.base_frame, right_gripper, target_torso, robot, right_joints)
         resp = ik(ik_msg_right)
         #res = resp.error_code.val == 1
