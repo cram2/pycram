@@ -2,6 +2,8 @@ from ..designator import Designator, DesignatorError, ResolutionError, Designato
 from ..bullet_world import Object
 from ..process_module import ProcessModule
 
+from typing import List
+
 
 class MotionDesignator(Designator):
 	"""
@@ -155,7 +157,7 @@ class MoveArmJointsMotionDescription(MotionDesignatorDescription):
 	def __init__(self, left_arm_config=None, right_arm_config=None, left_arm_poses=None, right_arm_poses=None,
 				 resolver="grounding"):
 		super().__init__(resolver)
-		self.cmd = 'move-joints'
+		self.cmd = 'move-arm-joints'
 		self.left_arm_config = left_arm_config
 		self.right_arm_config = right_arm_config
 		self.left_arm_poses = left_arm_poses
@@ -167,3 +169,12 @@ class WorldStateDetectingMotionDescription(MotionDesignatorDescription):
 		super().__init__(resolver)
 		self.cmd = 'world-state-detecting'
 		self.object_type = object_type
+
+class MoveJointsMotion(MotionDesignatorDescription):
+	positions: list
+	names: list
+	def __init__(self, names, positions, resolver="grounding"):
+		super().__init__(resolver)
+		self.cmd = "move-joints"
+		self.positions = positions
+		self.names = names

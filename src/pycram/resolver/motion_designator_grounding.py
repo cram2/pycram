@@ -1,6 +1,7 @@
 from pycram.designators.motion_designator import *
 from pycram.bullet_world import BulletWorld
 from pycram.robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from pycram.designator import DesignatorError
 import logging
 
 """
@@ -86,6 +87,17 @@ def ground_world_state_detecting(description):
     description._check_properties("[Motion Designator] World-state-detecting")
     return description.__dict__
 
+def ground_move_joints(description):
+    description._check_properties("[Motion Designator] Move Joints")
+    robot = BulletWorld.robot
+    if len(description.names) != len(description.positions):
+        raise DesignatorError("[Motion Designator][Move Joints] The length of names and positions does not match")
+    for i in range(len(description.names)):
+        lower, upper = robot.get_joint_limits(description.names[i])
+        if description.positions[i] < lower or description.positions[i] > upper:
+            raise DesignatorError(f"[Motion Designator][Move Joints] The given configuration for the Joint {description.names[i]} violates its limits")
+    return description.__dict__
+
 
 def call_ground(desig):
     type_to_function = {MoveMotionDescription : ground_move,
@@ -97,7 +109,8 @@ def call_ground(desig):
                         MoveGripperMotionDescription: ground_move_gripper,
                         DetectingMotionDescription: ground_detect,
                         MoveArmJointsMotionDescription: ground_move_arm,
-                        WorldStateDetectingMotionDescription: ground_world_state_detecting}
+                        WorldStateDetectingMotionDescription: ground_world_state_detecting,
+                        MoveJointsMotion: ground_move_joints}
 
     ground_function = type_to_function[type(desig._description)]
     return ground_function(desig._description)

@@ -666,6 +666,20 @@ class Object:
         """
         return p.getAABB(self.id, self.links[link_name], self.world.client_id)
 
+    def get_joint_limits(self, joint: str) -> Tuple[float, float]:
+        """
+        Returns the lower and upper limit of a joint, if the lower limit is higher
+        than the upper they are swaped to ensure the lower limit is always the smaller one.
+        :param joint: The name of the joint for which the limits should be found
+        :return: The lower and upper limit of the joint
+        """
+        if joint not in self.joints.keys():
+            raise KeyError(f"The given Joint: {joint} is not part of this object")
+        lower, upper = p.getJointInfo(self.id, self.joints[joint], self.world.client_id)[8: 10]
+        if lower > upper:
+            lower, upper = upper, lower
+        return lower, upper
+
 
 
 def filter_contact_points(contact_points, exclude_ids) -> List:

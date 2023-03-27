@@ -240,7 +240,7 @@ class Pr2MoveTCP(ProcessModule):
             time.sleep(0.5)
 
 
-class Pr2MoveJoints(ProcessModule):
+class Pr2MoveArmJoints(ProcessModule):
     """
     This process modules moves the joints of either the right or the left arm. The joint states can be given as
     list that should be applied or a pre-defined position can be used, such as "parking"
@@ -248,7 +248,7 @@ class Pr2MoveJoints(ProcessModule):
 
     def _execute(self, desig):
         solution = desig.reference()
-        if solution['cmd'] == "move-joints":
+        if solution['cmd'] == "move-arm-joints":
             robot = BulletWorld.robot
             right_arm_poses = solution['right_arm_poses']
             left_arm_poses = solution['left_arm_poses']
@@ -265,6 +265,15 @@ class Pr2MoveJoints(ProcessModule):
             elif type(right_arm_poses) == str and left_arm_poses == "park":
                 _park_arms("left")
 
+            time.sleep(0.5)
+
+class PR2MoveJoints(ProcessModule):
+    def _execute(self, desig):
+        solution = desig.reference()
+        if solution["cmd"] == "move-joints":
+            robot = BulletWorld.robot
+            for joint, pose in zip(solution["names"], solution["positions"]):
+                robot.set_joint_state(joint, pose)
             time.sleep(0.5)
 
 
@@ -288,7 +297,8 @@ PR2ProcessModulesSimulated = {'navigate' : Pr2Navigation(),
                               'closing_gripper' : Pr2MoveGripper(),
                               'detecting' : Pr2Detecting(),
                               'move-tcp' : Pr2MoveTCP(),
-                              'move-joints' : Pr2MoveJoints(),
-                              'world-state-detecting' : Pr2WorldStateDetecting()}
+                              'move-arm-joints' : Pr2MoveArmJoints(),
+                              'world-state-detecting' : Pr2WorldStateDetecting(),
+                              'move-joints': PR2MoveJoints()}
 
 PR2ProcessModulesReal = {}

@@ -223,3 +223,7 @@ def close_container(object_designator, arm):
     ProcessModule.perform(MotionDesignator(
         [('type', motion_type), ('joint', joint),
          ('handle', handle), ('arm', arm), ('part-of', environment)]))
+
+@with_tree
+def move_torso(position):
+    MotionDesignator(MoveJointsMotion(["torso_lift_joint"], [position])).perform()
