@@ -1,19 +1,19 @@
 __all__ = ["ActionDesignator",
-           "MoveTorsoActionDescription",
-           "SetGripperActionDescription",
-           "ReleaseActionDescription",
-           "GripActionDescription",
-           "MoveArmsInSequenceDescription",
-           "MoveArmsIntoConfigurationDescription",
-           "ParkArmsDescription",
-           "PickUpDescription",
-           "PlaceDescription",
-           "NavigateDescription",
-           "TransportObjectDescription",
-           "LookAtActionDescription",
-           "DetectActionDescription",
-           "OpenActionDescription",
-           "CloseActionDescription"]
+           "MoveTorsoAction",
+           "SetGripperAction",
+           "ReleaseAction",
+           "GripAction",
+           "MoveArmsInSequenceAction",
+           "MoveArmsIntoConfigurationAction",
+           "ParkArmsAction",
+           "PickUpAction",
+           "PlaceAction",
+           "NavigateAction",
+           "TransportAction",
+           "LookAtAction",
+           "DetectAction",
+           "OpenAction",
+           "CloseAction"]
 
 from typing import List
 
@@ -43,24 +43,24 @@ class ActionDesignatorDescription:
     def ground(self):
         return self
 
-class MoveTorsoActionDescription(ActionDesignatorDescription):
+class MoveTorsoAction(ActionDesignatorDescription):
     def __init__(self, position, resolver="grounding"):
         self.position = position
         self.resolver = resolver
 
-class SetGripperActionDescription(ActionDesignatorDescription):
+class SetGripperAction(ActionDesignatorDescription):
     def __init__(self, gripper, opening, resolver="grounding"):
         self.gripper = gripper
         self.opening = opening
         self.resolver = resolver
 
-class ReleaseActionDescription(ActionDesignatorDescription):
+class ReleaseAction(ActionDesignatorDescription):
     def __init__(self, gripper, object_designator=None, resolver="grounding"):
         self.gripper = gripper
         self.object_designator = object_designator
         self.resolver = resolver
 
-class GripActionDescription(ActionDesignatorDescription):
+class GripAction(ActionDesignatorDescription):
     def __init__(self, gripper, object_designator=None, effort=None, resolver="grounding"):
         self.gripper = gripper
         self.object_designator = object_designator
@@ -68,7 +68,7 @@ class GripActionDescription(ActionDesignatorDescription):
         self.grasped_object = None
         self.resolver = resolver
 
-class MoveArmsIntoConfigurationDescription(ActionDesignatorDescription):
+class MoveArmsIntoConfigurationAction(ActionDesignatorDescription):
     def __init__(self, left_configuration=None, right_configuration=None, resolver="grounding"):
         self.left_configuration = left_configuration
         self.right_configuration = right_configuration
@@ -76,18 +76,18 @@ class MoveArmsIntoConfigurationDescription(ActionDesignatorDescription):
         self.right_joint_states = {}
         self.resolver = resolver
 
-class MoveArmsInSequenceDescription(ActionDesignatorDescription):
+class MoveArmsInSequenceAction(ActionDesignatorDescription):
     def __init__(self, left_trajectory : List = [], right_trajectory : List = [], resolver="grounding"):
         self.left_trajectory = left_trajectory
         self.right_trajectory = right_trajectory
         self.resolver = resolver
 
-class ParkArmsDescription(ActionDesignatorDescription):
+class ParkArmsAction(ActionDesignatorDescription):
     def __init__(self, arm, resolver="grounding"):
         self.arm = arm
         self.resolver = resolver
 
-class PickUpDescription(ActionDesignatorDescription):
+class PickUpAction(ActionDesignatorDescription):
     def __init__(self, object_designator, arm=None, grasp=None, resolver="grounding"):
         self.object_designator = object_designator
         self.arm = arm
@@ -104,7 +104,7 @@ class PickUpDescription(ActionDesignatorDescription):
         # self.left_lift_poses = []
         # self.right_lift_poses = []
 
-class PlaceDescription(ActionDesignatorDescription):
+class PlaceAction(ActionDesignatorDescription):
     def __init__(self, object_designator, target_location, arm=None, resolver="grounding"):
         self.object_designator = object_designator
         self.target_location = target_location
@@ -119,7 +119,7 @@ class PlaceDescription(ActionDesignatorDescription):
         # self.left_retract_poses = []
         # self.right_retract_poses = []
 
-class NavigateDescription(ActionDesignatorDescription):
+class NavigateAction(ActionDesignatorDescription):
     def __init__(self, object_designator=None, target_location=None, target_position=None, target_orientation=None, resolver="grounding"):
         if object_designator and target_location:
             print("Warning: When providing both an object and a target location to navigate, only the object designator"
@@ -130,31 +130,31 @@ class NavigateDescription(ActionDesignatorDescription):
         self.target_orientation = target_orientation
         self.resolver = resolver
 
-class TransportObjectDescription(ActionDesignatorDescription):
+class TransportAction(ActionDesignatorDescription):
     def __init__(self, object_designator, arm, target_location, resolver="grounding"):
         self.object_designator = object_designator
         self.arm = arm
         self.target_location = target_location
         self.resolver = resolver
 
-class LookAtActionDescription(ActionDesignatorDescription):
+class LookAtAction(ActionDesignatorDescription):
     def __init__(self, target, resolver="grounding"):
         self.target = target
         self.resolver = resolver
 
-class DetectActionDescription(ActionDesignatorDescription):
+class DetectAction(ActionDesignatorDescription):
     def __init__(self, object_designator, resolver="grounding"):
         self.object_designator = object_designator
         self.resolver = resolver
 
-class OpenActionDescription(ActionDesignatorDescription):
+class OpenAction(ActionDesignatorDescription):
     def __init__(self, object_designator, arm, distance=None, resolver="grounding"):
         self.object_designator = object_designator
         self.arm = arm
         self.distance = distance
         self.resolver = resolver
 
-class CloseActionDescription(ActionDesignatorDescription):
+class CloseAction(ActionDesignatorDescription):
     def __init__(self, object_designator, arm, resolver="grounding"):
         self.object_designator = object_designator
         self.arm = arm

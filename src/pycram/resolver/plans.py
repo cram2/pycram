@@ -147,36 +147,36 @@ def transport(object_designator, arm, target_location):
 
     ## Fetch
     # Navigate
-    ActionDesignator(ParkArmsDescription(Arms.BOTH)).perform()
-    ActionDesignator(NavigateDescription(target_position=pos, target_orientation=rot)).perform()
+    ActionDesignator(ParkArmsAction(Arms.BOTH)).perform()
+    ActionDesignator(NavigateAction(target_position=pos, target_orientation=rot)).perform()
 
     # Access
     if type(fetch_object_location) is ObjectDesignator:
-        ActionDesignator(OpenActionDescription(fetch_object_location, arm)).perform()
-        ActionDesignator(ParkArmsDescription(arm)).perform()
+        ActionDesignator(OpenAction(fetch_object_location, arm)).perform()
+        ActionDesignator(ParkArmsAction(arm)).perform()
 
     # Pick Up
-    ActionDesignator(LookAtActionDescription(fetch_object_location)).perform()
-    obj = ActionDesignator(DetectActionDescription(object_designator)).perform()
-    ActionDesignator(PickUpDescription(obj, arm=arm)).perform()
-    ActionDesignator(ParkArmsDescription(arm)).perform()
+    ActionDesignator(LookAtAction(fetch_object_location)).perform()
+    obj = ActionDesignator(DetectAction(object_designator)).perform()
+    ActionDesignator(PickUpAction(obj, arm=arm)).perform()
+    ActionDesignator(ParkArmsAction(arm)).perform()
 
     # Seal
     if type(fetch_object_location) is ObjectDesignator:
         arms_free = free_arms()
         if arms_free:
-            ActionDesignator(CloseActionDescription(fetch_object_location, arms_free[0])).perform()
-            ActionDesignator(ParkArmsDescription(arms_free[0])).perform()
+            ActionDesignator(CloseAction(fetch_object_location, arms_free[0])).perform()
+            ActionDesignator(ParkArmsAction(arms_free[0])).perform()
 
     ## Deliver
     # Navigate
     deliver_robot_position_generator = reach_position_generator(target_location)
     pos, rot = next(deliver_robot_position_generator) #[-1.8, 1, 0], [0,0,0,1]
-    ActionDesignator(NavigateDescription(target_position=pos, target_orientation=rot)).perform()
+    ActionDesignator(NavigateAction(target_position=pos, target_orientation=rot)).perform()
 
     # Place
-    ActionDesignator(PlaceDescription(obj, target_location=target_location, arm=arm)).perform()
-    ActionDesignator(ParkArmsDescription(arm)).perform()
+    ActionDesignator(PlaceAction(obj, target_location=target_location, arm=arm)).perform()
+    ActionDesignator(ParkArmsAction(arm)).perform()
 
 
 def get_container_joint_and_handle(container_desig):
