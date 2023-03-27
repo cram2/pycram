@@ -718,6 +718,9 @@ def _load_object(name: str,
         for dir in world.data_directory:
             path = get_path_from_data_dir(path, dir)
             if path: break
+
+    if not path:
+        raise FileNotFoundError(f"File {pa.name} could not be found in the resource directory {world.data_directory}")
     #rospack = rospkg.RosPack()
     #cach_dir = rospack.get_path('pycram') + '/resources/cached/'
     cach_dir = world.data_directory[0] + '/cached/'
