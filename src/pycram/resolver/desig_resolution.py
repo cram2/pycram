@@ -2,7 +2,7 @@ from pycram.designator import DesignatorError
 from pycram.designators.object_designator import ObjectDesignator
 from pycram.designators.action_designator import *
 from .plans import open_gripper, close_gripper, pick_up, place, navigate, park_arms, detect, look_at, transport, \
-    open_container, close_container
+    open_container, close_container, move_torso
 from enum import Enum, auto
 
 class Arms(Enum):
@@ -92,6 +92,7 @@ def ground_close(self:CloseActionDescription):
     return super(CloseActionDescription, self).ground()
 
 def ground_move_torso(self):
+    self.function = lambda : move_torso(self.position)
     return super(MoveTorsoActionDescription, self).ground()
 
 # SetGripperActionDescription.ground = ground_set_gripper
