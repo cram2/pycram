@@ -63,7 +63,10 @@ class ProcessModule:
         (self._running == False).wait_for()
         self._running.set_value(True)
         designator = self._designators[0]
-        ret = self._execute(designator)
+        try:
+            ret = self._execute(designator)
+        finally:
+            self._running.set_value(False)
         self._designators.remove(designator)
         self._running.set_value(False)
         return ret
