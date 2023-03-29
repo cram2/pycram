@@ -57,9 +57,11 @@ class Pr2PickUp(ProcessModule):
             grasp = robot_description.i.grasps.get_orientation_for_grasp(solution['grasp'])
             target = [object.get_position(), grasp]
             target = _transform_to_torso(target, robot)
-            diff = calculate_wrist_tool_offset("r_wrist_roll_link", "r_gripper_tool_frame", robot)
-            target = inverseTimes(target, diff)
             arm = solution["arm"]
+            arm_short = "r" if arm == "right" else "l"
+            diff = calculate_wrist_tool_offset(arm_short + "_wrist_roll_link", arm_short + "_gripper_tool_frame", robot)
+            target = inverseTimes(target, diff)
+
             joints = robot_description.i._safely_access_chains(arm).joints
 
             # Get Link before first joint in chain
@@ -84,10 +86,11 @@ class Pr2Place(ProcessModule):
             robot = BulletWorld.robot
             target = [solution['target'], [0, 0, 0, 1]]
             target = _transform_to_torso(target, robot)
-            target = (target[0], [0, 0, 0, 1])
-            diff = calculate_wrist_tool_offset("r_wrist_roll_link", "r_gripper_tool_frame", robot)
-            target = inverseTimes(target, diff)
+            #target = (target[0], [0, 0, 0, 1])
             arm = solution["arm"]
+            arm_short = "r" if arm == "right" else "l"
+            diff = calculate_wrist_tool_offset(arm_short + "_wrist_roll_link", arm_short + "_gripper_tool_frame", robot)
+            target = inverseTimes(target, diff)
             joints = robot_description.i._safely_access_chains(arm).joints
 
             # Get Link before first joint in chain

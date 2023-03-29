@@ -82,25 +82,30 @@ def close_gripper(gripper):
     #ProcessModule.perform(MotionDesignator([('type', 'closing-gripper'), ('gripper', gripper)]))
 
 @with_tree
-def pick_up(arm, btr_object):
-    print("Picking up {} with {}.".format(btr_object, arm))
-    motion_arm = "left" if arm is Arms.LEFT else "right"
+def pick_up(arm, object_desig, grasp):
+    print("Picking up {} with {}.".format(object_desig, arm))
+    #motion_arm = "left" if arm is Arms.LEFT else "right"
+
     # TODO: Hack to detach from kitchen.. (Should go into process module maybe)
+    object_desig.reference()
+    object = object_desig.prop_value('object')
     try:
-        btr_object.prop_value('bullet_obj').detach(BulletWorld.current_bullet_world.get_objects_by_name("kitchen")[0])
+        object_desig.prop_value('object').detach(BulletWorld.current_bullet_world.get_objects_by_name("kitchen")[0])
     except KeyError:
         print("Not attached to anything!")
-    MotionDesignator(PickUpMotionDescription(object=object, arm=motion_arm)).perform()
+
+    MotionDesignator(PickUpMotionDescription(object=object, arm=arm, grasp=grasp)).perform()
     #ProcessModule.perform(MotionDesignator([('type', 'pick-up'), ('object', btr_object), ('arm', motion_arm)]))
     # ActionDesignator(ParkArmsDescription(arm=arm)).perform()
 
 @with_tree
-def place(arm, btr_object, target):
-    print("Placing {} with {} at {}.".format(btr_object, arm, target))
-    motion_arm = "left" if arm is Arms.LEFT else "right"
-    MotionDesignator(PlaceMotionDescription(object=object, arm=motion_arm, target=target)).perform()
+def place(arm, object_desig, target):
+    print("Placing {} with {} at {}.".format(object_desig, arm, target))
+    #motion_arm = "left" if arm is Arms.LEFT else "right"
+    object_desig.reference()
+    MotionDesignator(PlaceMotionDescription(object=object_desig.prop_value("object"), arm=arm, target=target)).perform()
     #ProcessModule.perform(MotionDesignator([('type', 'place'), ('object', btr_object), ('arm', motion_arm), ('target', target)]))
-    if filter_contact_points(btr_object.prop_value("bullet_obj").contact_points_simulated(), [0,1,2]):
+    if filter_contact_points(object_desig.prop_value("object").contact_points_simulated(), [0,1,2]):
         raise PlanFailure()
 
 @with_tree

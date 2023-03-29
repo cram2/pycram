@@ -54,12 +54,15 @@ class SetGripperAction(ActionDesignatorDescription):
         self.opening = opening
         self.resolver = resolver
 
+# No resolving structure
 class ReleaseAction(ActionDesignatorDescription):
     def __init__(self, gripper, object_designator=None, resolver="grounding"):
         self.gripper = gripper
         self.object_designator = object_designator
         self.resolver = resolver
 
+# This Action can not be resolved, beacuse there is no resolving structure. And
+# Just from the name it is not clear what it should do
 class GripAction(ActionDesignatorDescription):
     def __init__(self, gripper, object_designator=None, effort=None, resolver="grounding"):
         self.gripper = gripper
@@ -67,7 +70,7 @@ class GripAction(ActionDesignatorDescription):
         self.effort = effort
         self.grasped_object = None
         self.resolver = resolver
-
+# No Resolving Structure
 class MoveArmsIntoConfigurationAction(ActionDesignatorDescription):
     def __init__(self, left_configuration=None, right_configuration=None, resolver="grounding"):
         self.left_configuration = left_configuration
@@ -75,7 +78,7 @@ class MoveArmsIntoConfigurationAction(ActionDesignatorDescription):
         self.left_joint_states = {}
         self.right_joint_states = {}
         self.resolver = resolver
-
+# No Resolving structure
 class MoveArmsInSequenceAction(ActionDesignatorDescription):
     def __init__(self, left_trajectory : List = [], right_trajectory : List = [], resolver="grounding"):
         self.left_trajectory = left_trajectory
@@ -120,12 +123,7 @@ class PlaceAction(ActionDesignatorDescription):
         # self.right_retract_poses = []
 
 class NavigateAction(ActionDesignatorDescription):
-    def __init__(self, object_designator=None, target_location=None, target_position=None, target_orientation=None, resolver="grounding"):
-        if object_designator and target_location:
-            print("Warning: When providing both an object and a target location to navigate, only the object designator"
-                  "will be considered.")
-        self.object_designator = object_designator
-        self.target_location = target_location
+    def __init__(self, target_position, target_orientation=None, resolver="grounding"):
         self.target_position = target_position
         self.target_orientation = target_orientation
         self.resolver = resolver
