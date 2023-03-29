@@ -163,14 +163,20 @@ class Pr2MoveHead(ProcessModule):
                     if local_transformer.projection_namespace \
                     else target
                 target = local_transformer.tf_transform(local_transformer.map_frame, target_frame)[0]
-            pose_in_pan = transform(target, robot.get_link_position("head_pan_link"))
-            pose_in_tilt = transform(target, robot.get_link_position("head_tilt_link"))
 
-            new_pan = np.arctan([pose_in_pan[1], pose_in_pan[0]])
-            new_tilt = np.arctan([-pose_in_tilt[2], pose_in_tilt[0] ** 2 + pose_in_tilt[1] ** 2])
+            pan_transform = np.array(robot.get_link_position("head_pan_link")) * -1
+            tilt_transform = np.array(robot.get_link_position("head_tilt_link")) * -1
+            pose_in_pan = transform(target, pan_transform)
+            pose_in_tilt = transform(target, tilt_transform)
 
-            robot.set_joint_state("head_pan_joint", new_pan[0])
-            robot.set_joint_state("head_tilt_joint", new_tilt[0])
+            new_pan = np.arctan2(pose_in_pan[1], pose_in_pan[0])
+            new_tilt = np.arctan2(pose_in_tilt[2], pose_in_tilt[0] ** 2 + pose_in_tilt[1] ** 2) * -1
+
+            pan_state = robot.get_joint_state("head_pan_joint")
+            tilt_state = robot.get_joint_state("head_tilt_joint")
+
+            robot.set_joint_state("head_pan_joint", new_pan)
+            robot.set_joint_state("head_tilt_joint", new_tilt)
 
 
 class Pr2MoveGripper(ProcessModule):
@@ -299,6 +305,7 @@ PR2ProcessModulesSimulated = {'navigate' : Pr2Navigation(),
                               'move-tcp' : Pr2MoveTCP(),
                               'move-arm-joints' : Pr2MoveArmJoints(),
                               'world-state-detecting' : Pr2WorldStateDetecting(),
-                              'move-joints': PR2MoveJoints()}
+                              'move-joints': PR2MoveJoints(),
+                              'move-gripper': Pr2MoveGripper()}
 
 PR2ProcessModulesReal = {}
