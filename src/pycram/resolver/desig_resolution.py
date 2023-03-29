@@ -26,9 +26,9 @@ def ground_pick_up(self):
     if not self.arm:
         self.arm = Arms.LEFT
     if not self.grasp:
-        self.grasp = Grasp.TOP
+        self.grasp = "top"
     self.gripper_opening = 0.9
-    self.function = lambda: pick_up(self.arm, self.object_designator)
+    self.function = lambda: pick_up(self.arm, self.object_designator, self.grasp)
     return super(PickUpAction, self).ground()
 
 def ground_place(self):
@@ -41,14 +41,14 @@ def ground_place(self):
     self.function = lambda: place(self.arm, self.object_designator, self.target_location)
     return super(PlaceAction, self).ground()
 
-def ground_navigate(self : NavigateDescription):
+def ground_navigate(self : NavigateAction):
     if self.target_orientation:
         self.function = lambda : navigate(self.target_position, self.target_orientation)
     else:
         self.function = lambda : navigate(self.target_position)
     return super(NavigateAction, self).ground()
 
-def ground_park_arms(self : ParkArmsDescription):
+def ground_park_arms(self : ParkArmsAction):
     self.function = lambda : park_arms(self.arm)
     return super(ParkArmsAction, self).ground()
 
@@ -74,7 +74,7 @@ def ground_look_at(self):
         raise DesignatorError()
     return super(LookAtAction, self).ground()
 
-def ground_transport(self:TransportObjectDescription):
+def ground_transport(self:TransportAction):
     self.function = lambda : transport(self.object_designator, self.arm, self.target_location)
     return super(TransportAction, self).ground()
 
