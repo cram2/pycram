@@ -183,8 +183,7 @@ class Costmap:
         if isinstance(other, Costmap):
             return self.merge(other)
         else:
-            print("Can only combine two costmaps")
-            return None
+            raise ValueError(f"Can only combine two costmaps other type was {type(other)}")
 
 
 class OccupancyCostmap(Costmap):
@@ -362,7 +361,7 @@ class OccupancyCostmap(Costmap):
         i = 0
         j = 0
         for n in self._chunks(np.array(rays), 16383):
-            r_t = p.rayTestBatch(n[:,0], n[:,1],numThreads=0)
+            r_t = p.rayTestBatch(n[:,0], n[:,1],numThreads=-1)
             time.sleep(0.1)
             j += len(n)
             if BulletWorld.robot:
