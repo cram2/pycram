@@ -25,7 +25,7 @@ def pose_generator(costmap: Type[Costmap]) -> Tuple[List[float], List[float]]:
     indices = np.argpartition(costmap.map.flatten(), -100)[-100:]
     #indices = np.argsort(costmap.map.flatten())[-number_of_samples:]
     indices = np.dstack(np.unravel_index(indices, costmap.map.shape)).reshape(number_of_samples, 2)
-    size = costmap.map.shape[0]
+
     height = costmap.map.shape[0]
     width = costmap.map.shape[1]
     center = np.array([height // 2, width // 2])
@@ -37,11 +37,14 @@ def pose_generator(costmap: Type[Costmap]) -> Tuple[List[float], List[float]]:
         # and muiltiplied with the transformation of the origin.
         vector_to_origin = center - ind
         transform_to_origin = [[vector_to_origin[0] * costmap.resolution, vector_to_origin[1] * costmap.resolution, 0], [0, 0, 0, 1]]
-        world_pose = p.multiplyTransforms(costmap.origin[0], costmap.origin[1], transform_to_origin[0], transform_to_origin[1])
+        origin_to_map = p.invertTransform(costmap.origin[0], costmap.origin[1])
+        point_to_map = p.multiplyTransforms(transform_to_origin[0], transform_to_origin[1], origin_to_map[0], origin_to_map[1])
+        map_to_point = p.invertTransform(point_to_map[0], point_to_map[1])
+        #world_pose = p.multiplyTransforms(costmap.origin[0], costmap.origin[1], transform_to_origin[0], transform_to_origin[1])
 
         #position = [(ind[0]- size/2) *-1 * costmap.resolution + costmap.origin[0][0], (ind[1] - size/2) * -1 * costmap.resolution + costmap.origin[0][1], 0]
-        orientation = generate_orientation(world_pose[0], costmap.origin)
-        yield world_pose[0], orientation
+        orientation = generate_orientation(map_to_point[0], costmap.origin)
+        yield list(map_to_point[0]), orientation
 
 
 
