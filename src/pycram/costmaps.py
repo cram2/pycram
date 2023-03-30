@@ -166,8 +166,8 @@ class Costmap:
         if self.size != other_cm.size:
             print("To merge costmaps, the size has to be equal")
             return
-        elif self.origin != other_cm.origin:
-            print("To merge costmaps, the origin has to be equal")
+        elif self.origin[0][0] != other_cm.origin[0][0] or self.origin[0][1] != other_cm.origin[0][1] or self.origin[1] != other_cm.origin[1]:
+            print("To merge costmaps, the x and y coordinate as well as the orientation must be equal")
             return
         elif self.resolution != other_cm.resolution:
             print("To merge cotsmaps, the resoulution has to be equal")

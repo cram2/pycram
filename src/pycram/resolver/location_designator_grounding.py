@@ -56,11 +56,14 @@ def gen_from_costmap(desig):
     else:
         target_pose = desig._description.target
 
-    occupancy = OccupancyCostmap(0.2, False, 200, 0.02, target_pose, BulletWorld.current_bullet_world)
+
+    ground_pose = [[target_pose[0][0], target_pose[0][1], 0], target_pose[1]]
+
+    occupancy = OccupancyCostmap(0.2, False, 200, 0.02, ground_pose, BulletWorld.current_bullet_world)
     final_map = occupancy
 
     if desig._description.reachable_for:
-        gaussian = GaussianCostmap(200, 15, 0.02, target_pose)
+        gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)
         final_map += gaussian
     if desig._description.visible_for:
         visible = VisibilityCostmap(min_height, max_height, 200, 0.02, target_pose)

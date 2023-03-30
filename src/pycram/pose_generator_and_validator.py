@@ -6,8 +6,8 @@ import pybullet as p
 from .bullet_world import Object, BulletWorld
 from .costmaps import Costmap
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
-from .external_interfaces.ik import _make_request_msg
-from .helper import _transform_to_torso
+from .external_interfaces.ik import _make_request_msg, request_ik, IKError
+from .helper import _transform_to_torso, calculate_wrist_tool_offset, inverseTimes
 from moveit_msgs.srv import GetPositionIK
 from typing import Type, Tuple, List, Union
 
@@ -132,28 +132,46 @@ def reachability_validator(pose: Tuple[List[float], List[float]],
     left_joints = joints = robot_description.i._safely_access_chains('left').joints
     right_joints = joints = robot_description.i._safely_access_chains('right').joints
     # TODO Make orientation adhere to grasping orientation
-    target_torso = _transform_to_torso(pose, robot)
+    target_torso = _transform_to_torso([target, [0, 0, 0, 1]], robot)
+
 
     # Get Link before first joint in chain
     base_link = robot_description.i.get_parent(left_joints[0])
     # Get link after last joint in chain
     end_effector = robot_description.i.get_child(left_joints[-1])
-    ik_msg_left = _make_request_msg(base_frame, end_effector, target_torso, robot, left_joints)
 
-    rospy.wait_for_service('/kdl_ik_service/get_ik')
-    ik = rospy.ServiceProxy('/kdl_ik_service/get_ik', GetPositionIK)
-    resp = ik(ik_msg_left)
+    diff = calculate_wrist_tool_offset(end_effector, robot_description.i.get_tool_frame("left"), robot)
+    target = inverseTimes(target_torso, diff)
 
-    if resp.error_code.val == -31:
-        # Get Link before first joint in chain
+    res = True
+    try:
+        resp = request_ik(base_link, end_effector, target_torso, robot, left_joints)
+    except IKError:
         base_link = robot_description.i.get_parent(right_joints[0])
         # Get link after last joint in chain
         end_effector = robot_description.i.get_child(right_joints[-1])
-        ik_msg_right = _make_request_msg(robot_description.i.base_frame, right_gripper, target_torso, robot, right_joints)
-        resp = ik(ik_msg_right)
+        diff = calculate_wrist_tool_offset(end_effector, robot_description.i.get_tool_frame("right"), robot)
+        target = inverseTimes(target_torso, diff)
+        try:
+            resp = request_ik(base_link, end_effector, target_torso, robot, right_joints)
+        except IKError:
+            res = False
+    #ik_msg_left = _make_request_msg(base_link, end_effector, target_torso, robot, left_joints)
+
+    #rospy.wait_for_service('/kdl_ik_service/get_ik')
+    #ik = rospy.ServiceProxy('/kdl_ik_service/get_ik', GetPositionIK)
+    #resp = ik(ik_msg_left)
+
+    #if resp.error_code.val == -31:
+        # Get Link before first joint in chain
+    #    base_link = robot_description.i.get_parent(right_joints[0])
+        # Get link after last joint in chain
+    #    end_effector = robot_description.i.get_child(right_joints[-1])
+    #    ik_msg_right = _make_request_msg(robot_description.i.base_frame, right_gripper, target_torso, robot, right_joints)
+    #    resp = ik(ik_msg_right)
         #res = resp.error_code.val == 1
-        res = False
-    else:
-        res = True
-    robot.set_position_and_orientation(robot_pose[0], robot_pose[1])
+    #    res = False
+    #else:
+    #    res = True
+    #robot.set_position_and_orientation(robot_pose[0], robot_pose[1])
     return res
