@@ -59,7 +59,7 @@ def gen_from_costmap(desig):
 
     ground_pose = [[target_pose[0][0], target_pose[0][1], 0], target_pose[1]]
 
-    occupancy = OccupancyCostmap(0.2, False, 200, 0.02, ground_pose, BulletWorld.current_bullet_world)
+    occupancy = OccupancyCostmap(0.4, False, 200, 0.02, ground_pose, BulletWorld.current_bullet_world)
     final_map = occupancy
 
     if desig._description.reachable_for:

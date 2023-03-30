@@ -124,7 +124,7 @@ def reachability_validator(pose: Tuple[List[float], List[float]],
         case.
     """
     if type(target) == Object:
-        target = target.get_position()
+        target = target.get_position_and_orientation()
 
     robot_pose = robot.get_position_and_orientation()
     robot.set_position_and_orientation(pose[0], pose[1])
@@ -135,7 +135,7 @@ def reachability_validator(pose: Tuple[List[float], List[float]],
     left_joints = joints = robot_description.i._safely_access_chains('left').joints
     right_joints = joints = robot_description.i._safely_access_chains('right').joints
     # TODO Make orientation adhere to grasping orientation
-    target_torso = _transform_to_torso([target, [0, 0, 0, 1]], robot)
+    target_torso = _transform_to_torso(target, robot)
 
 
     # Get Link before first joint in chain
