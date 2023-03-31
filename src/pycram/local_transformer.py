@@ -26,7 +26,7 @@ from typing import List, Optional, Tuple, Union, Callable
 # which would destroy the validate local tf tree. Therefore, this mode is NOT activated.
 # Instead to update the local tf tree, please call the memeber function update_local_transformer_from_btr()
 # on the object local_transformer of class LocalTransformer.
-publish_frequently = True
+publish_frequently = False
 
 
 class LocalTransformer:

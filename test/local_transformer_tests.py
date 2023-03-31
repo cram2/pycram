@@ -4,9 +4,9 @@ from time import sleep
 
 rospy.init_node('pycram')
 
-from ..bullet_world import BulletWorld, Object
-from ..local_transformer import LocalTransformer, LocalTransformerFreqPublisher
-from ..robot_description import InitializedRobotDescription as robot_description
+from src.pycram.bullet_world import BulletWorld, Object
+from src.pycram.local_transformer import LocalTransformer, LocalTransformerFreqPublisher
+from src.pycram.robot_description import InitializedRobotDescription as robot_description
 
 world = None
 robot = None
