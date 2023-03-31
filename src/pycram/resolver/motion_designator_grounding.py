@@ -52,11 +52,13 @@ def ground_looking(description):
     if description.target and description.object:
         logging.warning(f"[Looking Designator Resolution] Target and Object parameter provided. Only Object will be used.")
         return {'cmd': description.cmd,
-                'target': BulletWorld.current_bullet_world.get_objects_by_name(description.object)[0].get_pose}
+                'target': BulletWorld.current_bullet_world.get_objects_by_name(description.object)[0].get_pose()}
     if description.object:
         return {'cmd': description.cmd,
-                'target': BulletWorld.current_bullet_world.get_objects_by_name(description.object)[0].get_pose}
+                'target': BulletWorld.current_bullet_world.get_objects_by_name(description.object)[0].get_pose()}
     if description.target:
+        if len(description.target) == 3:
+            description.target = [description.target, [0, 0, 0, 1]]
         return description.make_dictionary(["cmd", "target"])
     if not description.target and not description.object:
         description._check_properties("[Motion Designator] Looking")
