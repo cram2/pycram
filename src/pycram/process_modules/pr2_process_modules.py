@@ -169,9 +169,6 @@ class Pr2MoveHead(ProcessModule):
                     else target
                 target = local_transformer.tf_transform(local_transformer.map_frame, target_frame)[0]
 
-
-            #pan_transform = np.array(robot.get_link_position("head_pan_link")) * -1
-            print(target)
             pan_transform = p.invertTransform(robot.get_link_position("head_pan_link"), robot.get_link_orientation("head_pan_link"))
             pan_transform = [i for sublist in pan_transform for i in sublist]
             #tilt_transform = np.array(robot.get_link_position("head_tilt_link")) * -1
