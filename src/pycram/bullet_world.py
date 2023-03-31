@@ -660,11 +660,14 @@ class Object:
         else:
             return link_to_color
 
-    def get_AABB(self, link_name: str) -> Tuple[List[float], List[float]]:
+    def get_AABB(self, link_name: Optional[str] = None) -> Tuple[List[float], List[float]]:
         """
         Returns the axis aligned bounding box of the given link name
         """
-        return p.getAABB(self.id, self.links[link_name], self.world.client_id)
+        if link_name:
+            return p.getAABB(self.id, self.links[link_name], self.world.client_id)
+        else:
+            return p.getAABB(self.id, physicsClientId=self.world.client_id)
 
     def get_joint_limits(self, joint: str) -> Tuple[float, float]:
         """
