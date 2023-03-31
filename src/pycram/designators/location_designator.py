@@ -60,8 +60,21 @@ class CostmapLocationDesignatorDescription(LocationDesignatorDescription):
     visible_for: Object
     target: Union[Tuple[List[float], List[float]], Object]
 
-    def __init__(self, target, reachable_for=None, visible_for=None):
+    def __init__(self, target, reachable_for=None, visible_for=None, reachable_arm=None):
         super().__init__(pose=None, resolver="costmap")
         self.target = target
         self.reachable_for = reachable_for
         self.visible_for = visible_for
+        self.reachable_arm = reachable_arm
+
+
+class SemanticCostmapLocation(LocationDesignatorDescription):
+    urdf_link_name: str
+    part_of: Object
+    for_object: Object
+
+    def __init__(self, urdf_link_name, part_of, for_object=None):
+        super().__init__(pose=None, resolver="semantic-costmap")
+        self.urdf_link_name = urdf_link_name
+        self.part_of = part_of
+        self.for_object = for_object

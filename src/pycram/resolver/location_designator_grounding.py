@@ -2,7 +2,7 @@ from pycram.designator import DesignatorError
 from pycram.helper import transform
 from pycram.designators.location_designator import ObjectRelativeLocationDesignatorDescription, LocationDesignator, \
     LocationDesignatorDescription
-from pycram.costmaps import GaussianCostmap, OccupancyCostmap, VisibilityCostmap
+from pycram.costmaps import GaussianCostmap, OccupancyCostmap, VisibilityCostmap, SemanticCostmap
 from pycram.robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from pycram.bullet_world import BulletWorld, Object, Use_shadow_world
 from pycram.pose_generator_and_validator import pose_generator, visibility_validator, reachability_validator
@@ -84,7 +84,10 @@ def gen_from_costmap(desig):
                 res = res and visibility_validator(maybe_pose, test_robot, desig._description.target, BulletWorld.current_bullet_world)
             if desig._description.reachable_for:
                 valid, arms = reachability_validator(maybe_pose, test_robot, desig._description.target, BulletWorld.current_bullet_world)
-                res = res and valid
+                if desig._description.reachable_arm:
+                    res = res and valid and desig._description.reachable_arm in arms
+                else:
+                    res = res and valid
 
             if res:
                 valid_poses.append([maybe_pose, arms])
@@ -96,6 +99,16 @@ def gen_from_costmap(desig):
     for pose, arms in valid_poses:
         yield {'position': pose[0], 'orientation': pose[1], "arms": arms}
 
+def gen_from_sem_costmap(desig):
+    sem_costmap = SemanticCostmap(desig._description.part_of, desig._description.urdf_link_name)
+    height_offset = 0
+    if desig._description.for_object:
+        min, max = desig._description.for_object.get_AABB()
+        height_offset = (max[2] - min[2]) / 2
+    for maybe_pose in pose_generator(sem_costmap):
+        position = [maybe_pose[0][0], maybe_pose[0][1], maybe_pose[0][2] + height_offset]
+        yield {'position': position, 'orientation': maybe_pose[1]}
 
 LocationDesignator.resolvers['grounding'] = call_ground
 LocationDesignator.resolvers['costmap'] = gen_from_costmap
+LocationDesignator.resolvers['semantic-costmap'] = gen_from_sem_costmap
