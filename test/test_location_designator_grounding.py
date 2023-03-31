@@ -2,10 +2,10 @@ from unittest import TestCase
 
 import numpy as np
 
-from ..external_interfaces import knowrob
-from ..designators.location_designator import ObjectRelativeLocationDesignatorDescription, LocationDesignator, \
+from src.pycram.external_interfaces import knowrob
+from src.pycram.designators.location_designator import ObjectRelativeLocationDesignatorDescription, LocationDesignator, \
     LocationDesignatorDescription
-from ..designators.object_designator import LocatedObjectDesignatorDescription, ObjectDesignator
+from src.pycram.designators.object_designator import LocatedObjectDesignatorDescription, ObjectDesignator
 from pycram.resolver import location_designator_grounding     # do not remove
 from pycram.resolver import object_designator_grounding   # do not remove
 

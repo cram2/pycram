@@ -12,6 +12,7 @@ TODO
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+import inspect
 import time
 import pybullet
 
@@ -20,52 +21,102 @@ from typing import List, Dict, Optional, Tuple, Callable, Any, Union
 from enum import Enum, auto
 from .taskpath import TaskPath
 from .bullet_world import BulletWorld
+import anytree
+import datetime
+
 
 TASK_TREE = None
 CURRENT_TASK_TREE_NODE = None
+task_tree = None
+current_task_tree_node = None
 
 
 class TaskStatus(Enum):
-    CREATED = auto()
-    RUNNING = auto()
-    SUCCEEDED = auto()
-    FAILED = auto()
+    """
+    Enum for readable descriptions of a tasks' status.
+    """
+    CREATED = 0
+    RUNNING = 1
+    SUCCEEDED = 2
+    FAILED = 3
 
 
 class Code:
-    def __init__(self, body, function: Optional[Callable] = None,
-                 args: Optional[Tuple] = (),
-                 kwargs: Optional[Dict] = {}):
-        self.body = body
+    """
+    Represent an executed code block in a plan.
+    """
+    def __init__(self, function: Optional[Callable] = None,
+                 kwargs: Optional[Dict] = None):
+        """
+        Initialize a code call
+        :param function: The function that was called
+        :param kwargs: The keyword arguments of the function as dict
+        """
         self.function: Callable = function
-        self.args: Tuple = args
+
+        if kwargs is None:
+            kwargs = dict()
         self.kwargs: Dict = kwargs
 
     def execute(self) -> Any:
-        return self.function(*self.args, **self.kwargs)
+        return self.function(**self.kwargs)
 
     # maybe pp stands for pretty print ???
     def pp(self) -> str:
-        if self.function:
-            pp = self.function.__name__ + '('
-            for arg in self.args:
-                pp += str(arg) + ", "
-            for kw, kwarg in self.kwargs.items():
-                pp += kw + "=" + str(kwarg)
-                pp += ", "
-            if self.args or self.kwargs:
-                pp = pp[:-2]
-            pp += ')'
-        else:
-            pp = self.body
-        return pp
+        return str(self)
+
+    def __str__(self) -> str:
+        return "%s(%s)" % (self.function.__name__, ", ".join(["%s = %s" % (key, str(value))
+                                                              for key, value in self.kwargs.items()]))
+
+    def important_information(self):
+        return {"function": self.function.__name__, "kwargs": {**self.kwargs}}
 
 
-class NoopCode(Code):
+class NoOperation(Code):
+    """
+    Convenience class that represents no operation as code.
+    """
     def __init__(self):
-        # noop = type(None)  # alternative, but can't take arguments
-        noop: Callable = lambda *args, **kwargs: None
-        super().__init__("", noop)
+
+        # default no operation
+        def no_operation(): return None
+
+        # initialize a code block that does nothing
+        super().__init__(no_operation)
+
+
+class TaskTreeNode2(anytree.NodeMixin):
+    """Refactoring of TaskTreeNode"""
+
+    def __init__(self, code: Code = NoOperation(), parent=None, children=None):
+        super().__init__()
+        self.code: Code = code
+        self.exec_step: int = 0
+        self.status: TaskStatus = TaskStatus.CREATED
+        self.start_time: Optional[datetime.datetime] = None
+        self.end_time: Optional[datetime.datetime] = None
+        self.parent = parent
+
+        if children:
+            self.children = children
+
+    def execute(self):
+        """Try executing the task of this node."""
+        result = None
+        try:
+            result = self.code.execute()
+        finally:
+            self.exec_step += 1
+        return result
+
+    def __str__(self):
+        return "Code: %s " \
+               "start_time: %s"\
+               "" % (str(self.code), self.start_time)
+
+    def __repr__(self):
+        return str(self.code)
 
 
 class TaskTreeNode:
@@ -84,9 +135,19 @@ class TaskTreeNode:
         self.start_time = None
         self.end_time = None
 
+    def important_information(self):
+        return {
+            "status": self.status,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "failure": self.failure,
+            "path": self.path,
+            "code": self.code.important_information()
+        }
+
     def pp(self) -> str:
         # return nothing, when whole exec_child_tree is deleted
-        if type(self.code) is NoopCode:
+        if type(self.code) is NoOperation:
             return ""
 
         pretty = ""
@@ -128,7 +189,7 @@ class TaskTreeNode:
         if self.exec_child_prev:
             dot = self.exec_child_prev.generate_dot(dot, verbose)
 
-        if type(self.code) is not NoopCode:
+        if type(self.code) is not NoOperation:
             if verbose:
                 label = "\n".join([self.path.split("/")[-1], self.code.pp(), str(self.status), str(self.start_time), str(self.end_time)])
             else:
@@ -183,7 +244,7 @@ class TaskTreeNode:
     def delete(self) -> None:
         # Not an ExecNode
         if not (self.exec_parent_prev or self.exec_parent_next):
-            self.code = NoopCode()
+            self.code = NoOperation()
         # ExecNode and has one or two children
         elif self.exec_child_prev or self.exec_child_next:
             # Relink exec_children if necessary
@@ -445,19 +506,55 @@ def get_successful_params(nodes: List[TaskTreeNode]) -> List:
 
 
 def with_tree(fun: Callable) -> Callable:
+    """Decorator that records the function name, arguments and execution metadata in the task tree.
+
+    :param fun: The function to record the data from.
+    """
     def handle_tree(*args, **kwargs):
+
+        # get the global task tree
         global TASK_TREE
+        global task_tree
+
+        # get the current node in the global task tree
         global CURRENT_TASK_TREE_NODE
-        code = Code("", fun, args, kwargs)
+        global current_task_tree_node
+
+        # create the code object that gets executed
+        code = Code(fun, inspect.getcallargs(fun, *args, **kwargs))
+
+        # if there is no global task tree yet
         if CURRENT_TASK_TREE_NODE is None:
+
+            # create the root node
             TASK_TREE = TaskTreeNode(code, None, fun.__name__)
+            task_tree = TaskTreeNode2(code)
+
+            # update pointer to current node
             CURRENT_TASK_TREE_NODE = TASK_TREE
+            current_task_tree_node = task_tree
+
+            # execute the function
             result = CURRENT_TASK_TREE_NODE.execute()
+
+        # if a global task tree already exists
         else:
+
+            # if the number of children is not bigger than the number of tasks that should be executed
             if len(CURRENT_TASK_TREE_NODE.children) <= CURRENT_TASK_TREE_NODE.exec_step:
+
+                # create a new node
                 new_node = TaskTreeNode(code, CURRENT_TASK_TREE_NODE,
                                         '/'.join([CURRENT_TASK_TREE_NODE.path, fun.__name__]))
+                # create a new node and automatically add it to the tree
+                new_node2 = TaskTreeNode2(code, parent=current_task_tree_node)
+
+                # add it to the tree
                 CURRENT_TASK_TREE_NODE.add_child(new_node)
+
+            # execute the function
             result = CURRENT_TASK_TREE_NODE.execute_child()
         return result
+
+    # return function to execute for decorator wrapping
     return handle_tree
