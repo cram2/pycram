@@ -59,14 +59,14 @@ def gen_from_costmap(desig):
 
     ground_pose = [[target_pose[0][0], target_pose[0][1], 0], target_pose[1]]
 
-    occupancy = OccupancyCostmap(0.4, False, 200, 0.02, ground_pose, BulletWorld.current_bullet_world)
+    occupancy = OccupancyCostmap(0.4, False, 200, 0.02, [ground_pose[0], [0, 0, 0, 1]], BulletWorld.current_bullet_world)
     final_map = occupancy
 
     if desig._description.reachable_for:
-        gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)
+        gaussian = GaussianCostmap(200, 15, 0.02, [ground_pose[0], [0, 0, 0, 1]])
         final_map += gaussian
     if desig._description.visible_for:
-        visible = VisibilityCostmap(min_height, max_height, 200, 0.02, target_pose)
+        visible = VisibilityCostmap(min_height, max_height, 200, 0.02, [target_pose[0], [0, 0, 0, 1]])
         final_map += visible
     #plot_grid(final_map.map)
 
@@ -79,20 +79,22 @@ def gen_from_costmap(desig):
         valid_poses = []
         for maybe_pose in pose_generator(final_map):
             res = True
+            arms = None
             if desig._description.visible_for:
                 res = res and visibility_validator(maybe_pose, test_robot, desig._description.target, BulletWorld.current_bullet_world)
             if desig._description.reachable_for:
-                res = res and reachability_validator(maybe_pose, test_robot, desig._description.target, BulletWorld.current_bullet_world)
+                valid, arms = reachability_validator(maybe_pose, test_robot, desig._description.target, BulletWorld.current_bullet_world)
+                res = res and valid
 
             if res:
-                valid_poses.append(maybe_pose)
+                valid_poses.append([maybe_pose, arms])
                 #print(f"Valid: {maybe_pose}")
                 # This number defines the total valid poses by this generator
                 if len(valid_poses) == 15: break
                 #yield {'position': maybe_pose[0], 'orientation': maybe_pose[1]}
     #test_world.exit()
-    for pose in valid_poses:
-        yield {'position': pose[0], 'orientation': pose[1]}
+    for pose, arms in valid_poses:
+        yield {'position': pose[0], 'orientation': pose[1], "arms": arms}
 
 
 LocationDesignator.resolvers['grounding'] = call_ground
