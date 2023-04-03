@@ -239,6 +239,17 @@ class BulletWorld:
         except ValueError:
             rospy.logerr("The given object is not in the shadow world")
 
+    def reset_bullet_world(self):
+        for obj in self.objects:
+            if obj.attachments:
+                attached_objects = list(obj.attachments.keys())
+                for att_obj in attached_objects:
+                    obj.detach(att_obj)
+            for joint_name in obj.joints.keys():
+                obj.set_joint_state(joint_name, 0)
+            obj.set_position_and_orientation(obj.original_pose[0], obj.original_pose[1])
+
+
 
 
 #current_bullet_world = BulletWorld.current_bullet_world
@@ -385,6 +396,7 @@ class Object:
         self.attachments: Dict[Object, List] = {}
         self.cids: Dict[Object, int] = {}
         self.world.objects.append(self)
+        self.original_pose = [position, orientation]
         # This means "world" is not the shadow world since it has a reference to a shadow world
         if self.world.shadow_world != None:
             self.world.world_sync.add_obj_queue.put([name, type, path, position, orientation, self.world.shadow_world, color, self])
