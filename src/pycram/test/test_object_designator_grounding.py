@@ -2,7 +2,7 @@ from copy import deepcopy
 from unittest import TestCase
 
 from ..external_interfaces import knowrob
-from ..designators.object_designator import LocatedObjectDesignatorDescription, ObjectDesignator
+from ..designators.object_designator import LocatedObject, ObjectDesignator
 from pycram.resolver import object_designator_grounding     # do not remove
 
 
@@ -26,7 +26,7 @@ class TestObjectDesignatorGrounding(TestCase):
         Expected behavior: Repeated calls to desig.next_solution() successively yield groundings for all known objects
         of that type
         """
-        desc = LocatedObjectDesignatorDescription(type_="a")
+        desc = LocatedObject(type_="a")
         desig = ObjectDesignator(desc)
         all_solutions = self._get_all_solutions(desig)
         names = [sol["name"] for sol in all_solutions]
