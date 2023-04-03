@@ -44,7 +44,7 @@ class LocationDesignatorDescription(DesignatorDescription):
         self.pose = pose
 
 
-class ObjectRelativeLocationDesignatorDescription(LocationDesignatorDescription):
+class ObjectRelativeLocation(LocationDesignatorDescription):
     relative_pose: List[float]
     reference_object: ObjectDesignator
     timestamp: float
