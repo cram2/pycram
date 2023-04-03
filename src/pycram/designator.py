@@ -219,8 +219,10 @@ class Designator(ABC):
 
         if new_properties:
             for key, value in new_properties:
-                if key in description.__dict__.keys():
-                    description.__dict__[key] = value
+                description.__dict__[key] = value
+                #if key in description.__dict__.keys():
+                    #description.__dict__[key] = value
+
 
         return self.__class__(description)
 

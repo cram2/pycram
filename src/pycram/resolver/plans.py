@@ -127,9 +127,10 @@ def detect(object_designator):
     print("Detecting object of type {}.".format(object_designator.prop_value("type")))
     #det_object =  ProcessModule.perform(MotionDesignator([('type', 'detecting'), ('object', object_designator.prop_value("type"))]))
     det_object = MotionDesignator(DetectingMotionDescription(object_type=object_designator.prop_value("type"))).perform()
+
     if det_object is None:
         raise PlanFailure("No object detected.")
-    detected_obj_desig = object_designator.copy([("pose", det_object.get_pose()), ("bullet_obj", det_object)])
+    detected_obj_desig = object_designator.copy([("pose", det_object.get_position_and_orientation()), ("object", det_object)])
     detected_obj_desig.equate(object_designator)
     return detected_obj_desig
 
