@@ -5,7 +5,7 @@ import numpy as np
 from ..external_interfaces import knowrob
 from ..designators.location_designator import ObjectRelativeLocation, LocationDesignator, \
     LocationDesignatorDescription
-from ..designators.object_designator import LocatedObjectDesignatorDescription, ObjectDesignator
+from ..designators.object_designator import LocatedObject, ObjectDesignator
 from pycram.resolver import location_designator_grounding     # do not remove
 from pycram.resolver import object_designator_grounding   # do not remove
 
@@ -25,7 +25,7 @@ class TestLocationDesignatorGrounding(TestCase):
         Test grounding of ObjectRelativeLocationDesignator (generation of absolute poses in world frame, given an
         object and a relative transformation
         """
-        object_desig = ObjectDesignator(LocatedObjectDesignatorDescription(name="object1"))
+        object_desig = ObjectDesignator(LocatedObject(name="object1"))
         desc = ObjectRelativeLocation(relative_pose=[0.2, 0.1, 1.3, 0.0, 0.0, 0.0, 1.0],
                                                            reference_object=object_desig)
         desig = LocationDesignator(desc)
