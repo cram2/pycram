@@ -130,6 +130,21 @@ class BulletWorld:
         if BulletWorld.current_bullet_world == self:
             BulletWorld.current_bullet_world = None
 
+    def reset_bullet_world(self):
+        """
+        This function resets the BulletWorld to the state it was first spawned in.
+        All attached objects will be detached, all joints will be set to the
+        default position of 0 and all objects will be set to the position and
+        orientation in which they where spawned.
+        """
+        for obj in self.objects:
+            if obj.attachments:
+                attached_objects = list(obj.attachments.keys())
+                for att_obj in attached_objects:
+                    obj.detach(att_obj)
+            for joint_name in obj.joints.keys():
+                obj.set_joint_state(joint_name, 0)
+            obj.set_position_and_orientation(obj.original_pose[0], obj.original_pose[1])
 
     def save_state(self) -> int:
         """
@@ -342,6 +357,7 @@ class World_Sync(threading.Thread):
 
             self.check_for_pause()
             time.sleep(0.1)
+
         self.add_obj_queue.join()
         self.remove_obj_queue.join()
 
@@ -421,6 +437,7 @@ class Object:
             robot_name = _get_robot_name_from_urdf(urdf_string)
             if robot_name == robot_description.i.name and BulletWorld.robot == None:
                 BulletWorld.robot = self
+        self.original_pose = [position, orientation]
 
     def remove(self) -> None:
         """
