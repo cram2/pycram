@@ -28,7 +28,8 @@ def ground_location(description: LocationDesignatorDescription):
 
 def call_ground(desig):
     type_to_function = {ObjectRelativeLocation: ground_object_relative_location,
-                        LocationDesignatorDescription: ground_location}
+                        LocationDesignatorDescription: ground_location,
+                        Location: ground_location}
     ground_function = type_to_function[type(desig._description)]
     return ground_function(desig._description)
 
