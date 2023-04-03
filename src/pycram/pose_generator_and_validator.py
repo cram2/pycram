@@ -137,44 +137,33 @@ def reachability_validator(pose: Tuple[List[float], List[float]],
     # TODO Make orientation adhere to grasping orientation
     target_torso = _transform_to_torso(target, robot)
 
-
     # Get Link before first joint in chain
     base_link = robot_description.i.get_parent(left_joints[0])
     # Get link after last joint in chain
     end_effector = robot_description.i.get_child(left_joints[-1])
 
     diff = calculate_wrist_tool_offset(end_effector, robot_description.i.get_tool_frame("left"), robot)
-    target = inverseTimes(target_torso, diff)
+    target_diff = inverseTimes(target_torso, diff)
 
-    res = True
+    res = False
+    arms = []
     try:
-        resp = request_ik(base_link, end_effector, target_torso, robot, left_joints)
+        resp = request_ik(base_link, end_effector, target_diff, robot, left_joints)
+        arms.append("left")
+        res = True
     except IKError:
-        base_link = robot_description.i.get_parent(right_joints[0])
-        # Get link after last joint in chain
-        end_effector = robot_description.i.get_child(right_joints[-1])
-        diff = calculate_wrist_tool_offset(end_effector, robot_description.i.get_tool_frame("right"), robot)
-        target = inverseTimes(target_torso, diff)
-        try:
-            resp = request_ik(base_link, end_effector, target_torso, robot, right_joints)
-        except IKError:
-            res = False
-    #ik_msg_left = _make_request_msg(base_link, end_effector, target_torso, robot, left_joints)
+        pass
 
-    #rospy.wait_for_service('/kdl_ik_service/get_ik')
-    #ik = rospy.ServiceProxy('/kdl_ik_service/get_ik', GetPositionIK)
-    #resp = ik(ik_msg_left)
+    base_link = robot_description.i.get_parent(right_joints[0])
+    # Get link after last joint in chain
+    end_effector = robot_description.i.get_child(right_joints[-1])
+    diff = calculate_wrist_tool_offset(end_effector, robot_description.i.get_tool_frame("right"), robot)
+    target = inverseTimes(target_torso, diff)
+    try:
+        resp = request_ik(base_link, end_effector, target_diff, robot, right_joints)
+        arms.append("right")
+        res = True
+    except IKError:
+        pass
 
-    #if resp.error_code.val == -31:
-        # Get Link before first joint in chain
-    #    base_link = robot_description.i.get_parent(right_joints[0])
-        # Get link after last joint in chain
-    #    end_effector = robot_description.i.get_child(right_joints[-1])
-    #    ik_msg_right = _make_request_msg(robot_description.i.base_frame, right_gripper, target_torso, robot, right_joints)
-    #    resp = ik(ik_msg_right)
-        #res = resp.error_code.val == 1
-    #    res = False
-    #else:
-    #    res = True
-    #robot.set_position_and_orientation(robot_pose[0], robot_pose[1])
-    return res
+    return res, arms

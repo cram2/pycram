@@ -1,6 +1,7 @@
 import pycram.bullet_world_reasoning as btr
 import numpy as np
 import time
+import pybullet as p
 
 from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from ..process_module import ProcessModule
@@ -84,7 +85,8 @@ class Pr2Place(ProcessModule):
         if solution['cmd'] == 'place':
             object = solution['object']
             robot = BulletWorld.robot
-            target = [solution['target'], [0, 0, 0, 1]]
+            #target = [solution['target'], [0, 0, 0, 1]]
+            target = solution["target"]
             target = _transform_to_torso(target, robot)
             #target = (target[0], [0, 0, 0, 1])
             arm = solution["arm"]
@@ -167,10 +169,15 @@ class Pr2MoveHead(ProcessModule):
                     else target
                 target = local_transformer.tf_transform(local_transformer.map_frame, target_frame)[0]
 
-            pan_transform = np.array(robot.get_link_position("head_pan_link")) * -1
-            tilt_transform = np.array(robot.get_link_position("head_tilt_link")) * -1
-            pose_in_pan = transform(target, pan_transform)
-            pose_in_tilt = transform(target, tilt_transform)
+            pan_transform = p.invertTransform(robot.get_link_position("head_pan_link"), robot.get_link_orientation("head_pan_link"))
+            pan_transform = [i for sublist in pan_transform for i in sublist]
+            #tilt_transform = np.array(robot.get_link_position("head_tilt_link")) * -1
+            tilt_transform = p.invertTransform(robot.get_link_position("head_tilt_link"), robot.get_link_orientation("head_tilt_link"))
+            tilt_transform = [i for sublist in tilt_transform for i in sublist]
+
+            target = [i for sublist in target for i in sublist]
+            pose_in_pan = transform(target, pan_transform)[:3]
+            pose_in_tilt = transform(target, tilt_transform)[:3]
 
             new_pan = np.arctan2(pose_in_pan[1], pose_in_pan[0])
             new_tilt = np.arctan2(pose_in_tilt[2], pose_in_tilt[0] ** 2 + pose_in_tilt[1] ** 2) * -1
