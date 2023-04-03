@@ -45,7 +45,7 @@ class LocationDesignatorDescription(DesignatorDescription):
 
 class Location(LocationDesignatorDescription):
 
-    def __init__(self, position, orientation, resolver=grounding):
+    def __init__(self, position, orientation, resolver="grounding"):
         super().__init__(pose=None, resolver=resolver)
         self.position = position
         self.orientation = Orientation

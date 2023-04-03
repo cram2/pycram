@@ -80,7 +80,7 @@ graspings = {
 @with_simulated_robot
 def park_arms(robot_name):
     # Parking description
-    park_desc = MoveArmJointsMotionDescription(left_arm_config='park', right_arm_config='park')
+    park_desc = MoveArmJointsMotion(left_arm_config='park', right_arm_config='park')
     #if robot_name != 'donbot' and robot_name != 'hsr':
     #    park_desc.append(('right-arm', 'park'))
     # Perform Parking with MotionDesignator
@@ -89,7 +89,7 @@ def park_arms(robot_name):
 
 @with_simulated_robot
 def move_robot(robot_name, to, object):
-    MotionDesignator(MoveMotionDescription(target=moving_targets[robot_name][to][object][0],
+    MotionDesignator(MoveMotion(target=moving_targets[robot_name][to][object][0],
                                                 orientation=moving_targets[robot_name][to][object][1])).perform()
 
 @with_simulated_robot
@@ -104,26 +104,26 @@ def move_object(object_type, target, arm, robot_name):
 
     # Access object if needed
     if object_type == "spoon":
-        MotionDesignator(AccessingMotionDescription(drawer_joint='sink_area_left_upper_drawer_main_joint',
+        MotionDesignator(AccessingMotion(drawer_joint='sink_area_left_upper_drawer_main_joint',
                                             drawer_handle='sink_area_left_upper_drawer_handle', arm='left',
                                             distance=0.3, part_of=kitchen)).perform()
         if robot_name == "boxy":
             park_arms("boxy")
-            MotionDesignator(MoveMotionDescription(target=[-0.09, 0.61, 0], orientation=[0,0,0,1])).perform()
+            MotionDesignator(MoveMotion(target=[-0.09, 0.61, 0], orientation=[0,0,0,1])).perform()
 
     # Look at object
-    MotionDesignator(LookingMotionDescription(target=object_type)).perform()
+    MotionDesignator(LookingMotion(target=object_type)).perform()
 
     # Detect object
     # Try to detect object via camera, if this fails...
-    det_obj = MotionDesignator(DetectingMotionDescription(object_type=object_type)).perform()
+    det_obj = MotionDesignator(DetectingMotion(object_type=object_type)).perform()
     block_new = None
     if det_obj:
         block = btr.blocking(det_obj, BulletWorld.robot, gripper, grasp=graspings[object_type])
         block_new = list(filter(lambda obj: obj.type != "environment", block))
     else:
         # ... the robot grasps the object by using its knowledge of the environment.
-        det_obj = MotionDesignator(WorldStateDetectingMotionDescription(object_type=object_type)).perform()
+        det_obj = MotionDesignator(WorldStateDetectingMotion(object_type=object_type)).perform()
 
     # If something is in the way, move it first and then move back to the sink.
     if block_new:
@@ -134,18 +134,18 @@ def move_object(object_type, target, arm, robot_name):
         kitchen.detach(det_obj)
 
     # Pick up the object
-    MotionDesignator(PickUpMotionDescription(object=det_obj, arm=arm, grasp=graspings[object_type])).perform()
+    MotionDesignator(PickUpMotion(object=det_obj, arm=arm, grasp=graspings[object_type])).perform()
     park_arms(robot_name)
 
     # Move to island
     move_robot(robot_name, 'island', object_type)
 
     # Look at target (also quickfix for not colliding with kitchen if robot has odom frame :/ )
-    MotionDesignator(LookingMotionDescription(target=targets[object_type][0])).perform()
+    MotionDesignator(LookingMotion(target=targets[object_type][0])).perform()
 
     # Place object if target pose of object is reachable for the robots manipulator
     if btr.reachable(target, robot, gripper, threshold=0.1):
-        MotionDesignator(PlaceMotionDescription(object=det_obj, target=target, arm=arm)).perform()
+        MotionDesignator(PlaceMotion(object=det_obj, target=target, arm=arm)).perform()
     park_arms(robot_name)
     print("placed: ", object_type)
 
@@ -174,24 +174,24 @@ else:
     move_robot(robot_name, 'hsr_cereal')
     with simulated_robot:
         # Look at object
-        MotionDesignator(LookingMotionDescription(target='down')).perform()
+        MotionDesignator(LookingMotion(target='down')).perform()
         # Detect object
-        det_obj = MotionDesignator(DetectingMotionDescription(object_type='cereal')).perform()
+        det_obj = MotionDesignator(DetectingMotion(object_type='cereal')).perform()
         # Open Gripper
-        MotionDesignator(MoveGripperMotionDescription(motion='opening', gripper='left')).perform()
+        MotionDesignator(MoveGripperMotion(motion='opening', gripper='left')).perform()
         # Pick up detected object
-        MotionDesignator(PickUpMotionDescription(object=det_obj, arm='left')).perform()
+        MotionDesignator(PickUpMotion(object=det_obj, arm='left')).perform()
         # Close Gripper
-        MotionDesignator(MoveGripperMotionDescription(motion='closing', gripper='left')).perform()
+        MotionDesignator(MoveGripperMotion(motion='closing', gripper='left')).perform()
     # Park Arms
     park_arms(robot_name)
     # Move to kitchen entry
     move_robot(robot_name, 'kitchen_entry')
     # Drop the cereal box
     with simulated_robot:
-        MotionDesignator(PlaceMotionDescription(object=det_obj, target=[0.2,-2.5,0.4], arm='left')).perform()
+        MotionDesignator(PlaceMotion(object=det_obj, target=[0.2,-2.5,0.4], arm='left')).perform()
         # Open Gripper
-        MotionDesignator(MoveGripperMotionDescription(motion='opening', gripper='left')).perform()
+        MotionDesignator(MoveGripperMotion(motion='opening', gripper='left')).perform()
 
     # Park Arms
     park_arms(robot_name)
