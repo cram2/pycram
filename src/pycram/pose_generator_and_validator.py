@@ -137,19 +137,18 @@ def reachability_validator(pose: Tuple[List[float], List[float]],
     # TODO Make orientation adhere to grasping orientation
     target_torso = _transform_to_torso(target, robot)
 
-
     # Get Link before first joint in chain
     base_link = robot_description.i.get_parent(left_joints[0])
     # Get link after last joint in chain
     end_effector = robot_description.i.get_child(left_joints[-1])
 
     diff = calculate_wrist_tool_offset(end_effector, robot_description.i.get_tool_frame("left"), robot)
-    target = inverseTimes(target_torso, diff)
+    target_diff = inverseTimes(target_torso, diff)
 
     res = False
     arms = []
     try:
-        resp = request_ik(base_link, end_effector, target_torso, robot, left_joints)
+        resp = request_ik(base_link, end_effector, target_diff, robot, left_joints)
         arms.append("left")
         res = True
     except IKError:
@@ -161,7 +160,7 @@ def reachability_validator(pose: Tuple[List[float], List[float]],
     diff = calculate_wrist_tool_offset(end_effector, robot_description.i.get_tool_frame("right"), robot)
     target = inverseTimes(target_torso, diff)
     try:
-        resp = request_ik(base_link, end_effector, target_torso, robot, right_joints)
+        resp = request_ik(base_link, end_effector, target_diff, robot, right_joints)
         arms.append("right")
         res = True
     except IKError:
