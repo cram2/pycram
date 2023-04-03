@@ -198,6 +198,14 @@ class BulletWorld:
 
         self.vis_axis = obj
 
+    def remove_vis_axis(self):
+        """
+        Checks if there is a vis_axis objects in the BulletWorld and removes it,
+        if there is one.
+        """
+        if self.vis_axis:
+            p.removeBody(self.vis_axis)
+
     def register_collision_callback(self, objectA: Object, objectB: Object,
                                     callback_collision: Callable, callback_no_collision: Optional[Callable] = None) -> None:
         """
@@ -240,6 +248,12 @@ class BulletWorld:
             rospy.logerr("The given object is not in the shadow world")
 
     def reset_bullet_world(self):
+        """
+        This function resets the BulletWorld to the state it was first spawned in.
+        All attached objects will be detached, all joints will be set to the
+        default position of 0 and all objects will be set to the position and
+        orientation in which they where spawned.
+        """
         for obj in self.objects:
             if obj.attachments:
                 attached_objects = list(obj.attachments.keys())
