@@ -72,13 +72,13 @@ class Arms(Enum):
 @with_tree
 def open_gripper(gripper):
     print("Opening gripper {}".format(gripper))
-    MotionDesignator(MoveGripperMotionDescription(gripper=gripper, motion="open")).perform()
+    MotionDesignator(MoveGripperMotion(gripper=gripper, motion="open")).perform()
     #ProcessModule.perform(MotionDesignator([('type', 'opening-gripper'), ('gripper', gripper)]))
 
 @with_tree
 def close_gripper(gripper):
     print("Closing gripper {}.".format(gripper))
-    MotionDesignator(MoveGripperMotionDescription(gripper=gripper, motion="close")).perform()
+    MotionDesignator(MoveGripperMotion(gripper=gripper, motion="close")).perform()
     #ProcessModule.perform(MotionDesignator([('type', 'closing-gripper'), ('gripper', gripper)]))
 
 @with_tree
@@ -94,7 +94,7 @@ def pick_up(arm, object_desig, grasp):
     except KeyError:
         print("Not attached to anything!")
 
-    MotionDesignator(PickUpMotionDescription(object=object, arm=arm, grasp=grasp)).perform()
+    MotionDesignator(PickUpMotion(object=object, arm=arm, grasp=grasp)).perform()
     #ProcessModule.perform(MotionDesignator([('type', 'pick-up'), ('object', btr_object), ('arm', motion_arm)]))
     # ActionDesignator(ParkArmsDescription(arm=arm)).perform()
 
@@ -103,7 +103,7 @@ def place(arm, object_desig, target):
     print("Placing {} with {} at {}.".format(object_desig, arm, target))
     #motion_arm = "left" if arm is Arms.LEFT else "right"
     object_desig.reference()
-    MotionDesignator(PlaceMotionDescription(object=object_desig.prop_value("object"), arm=arm, target=target)).perform()
+    MotionDesignator(PlaceMotion(object=object_desig.prop_value("object"), arm=arm, target=target)).perform()
     #ProcessModule.perform(MotionDesignator([('type', 'place'), ('object', btr_object), ('arm', motion_arm), ('target', target)]))
     if filter_contact_points(object_desig.prop_value("object").contact_points_simulated(), [0,1,2]):
         raise PlanFailure()
@@ -111,7 +111,7 @@ def place(arm, object_desig, target):
 @with_tree
 def navigate(target, orientation=[0, 0, 0, 1]):
     print("Moving to {}. Orientation: {}.".format(target, orientation))
-    MotionDesignator(MoveMotionDescription(target=target, orientation=orientation)).perform()
+    MotionDesignator(MoveMotion(target=target, orientation=orientation)).perform()
     #ProcessModule.perform(MotionDesignator([('type', 'moving'), ('target', target), ('orientation', orientation)]))
 
 @with_tree
@@ -119,14 +119,14 @@ def park_arms(arms):
     print("Parking arms {}.".format(arms))
     left_arm = [('left-arm', 'park')] if arms in [Arms.LEFT, Arms.BOTH] else []
     right_arm = [('right-arm', 'park')] if arms in [Arms.RIGHT, Arms.BOTH] else []
-    MotionDesignator(MoveArmJointsMotionDescription(left_arm_config="park", right_arm_config="park")).perform()
+    MotionDesignator(MoveArmJointsMotion(left_arm_config="park", right_arm_config="park")).perform()
     #ProcessModule.perform(MotionDesignator([('type', 'move-arm-joints')] + left_arm + right_arm))
 
 @with_tree
 def detect(object_designator):
     print("Detecting object of type {}.".format(object_designator.prop_value("type")))
     #det_object =  ProcessModule.perform(MotionDesignator([('type', 'detecting'), ('object', object_designator.prop_value("type"))]))
-    det_object = MotionDesignator(DetectingMotionDescription(object_type=object_designator.prop_value("type"))).perform()
+    det_object = MotionDesignator(DetectingMotion(object_type=object_designator.prop_value("type"))).perform()
 
     if det_object is None:
         raise PlanFailure("No object detected.")
@@ -137,7 +137,7 @@ def detect(object_designator):
 @with_tree
 def look_at(target):
     print("Looking at {}.".format(target))
-    MotionDesignator(LookingMotionDescription(target=target)).perform()
+    MotionDesignator(LookingMotion(target=target)).perform()
     #ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', target)]))
 
 @with_tree
