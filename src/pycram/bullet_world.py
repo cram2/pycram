@@ -245,7 +245,9 @@ class BulletWorld:
         try:
             return self.world_sync.object_mapping[object]
         except KeyError:
-            rospy.logerr("Given object is not in the main Bullet World")
+            raise ValueError(f"There is no shadow object for the given object: {object}, \
+                    this could be the case if the object isn't anymore in the main (graphical) BulletWorld \
+                    or if the given object is already a shadow object. ")
 
     def get_bullet_object_for_shadow(self, object: Object) -> Object:
         """
@@ -260,9 +262,9 @@ class BulletWorld:
         try:
             return list(map.keys())[list(map.values()).index(object)]
         except ValueError:
-            rospy.logerr("The given object is not in the shadow world")
+            raise ValueError("The given object is not in the shadow world.")
 
-    def reset_bullet_world(self):
+    def reset_bullet_world(self) -> None:
         """
         This function resets the BulletWorld to the state it was first spawned in.
         All attached objects will be detached, all joints will be set to the
@@ -279,8 +281,6 @@ class BulletWorld:
             obj.set_position_and_orientation(obj.original_pose[0], obj.original_pose[1])
 
 
-
-
 #current_bullet_world = BulletWorld.current_bullet_world
 
 class Use_shadow_world():
@@ -289,13 +289,15 @@ class Use_shadow_world():
         self.prev_world: BulletWorld = None
 
     def __enter__(self):
-        self.prev_world = BulletWorld.current_bullet_world
-        BulletWorld.current_bullet_world.world_sync.pause_sync = True
-        BulletWorld.current_bullet_world = BulletWorld.current_bullet_world.shadow_world
+        if not BulletWorld.current_bullet_world.is_shadow_world:
+            self.prev_world = BulletWorld.current_bullet_world
+            BulletWorld.current_bullet_world.world_sync.pause_sync = True
+            BulletWorld.current_bullet_world = BulletWorld.current_bullet_world.shadow_world
 
     def __exit__(self, *args):
-        BulletWorld.current_bullet_world = self.prev_world
-        BulletWorld.current_bullet_world.world_sync.pause_sync = False
+        if not self.prev_world == None:
+            BulletWorld.current_bullet_world = self.prev_world
+            BulletWorld.current_bullet_world.world_sync.pause_sync = False
 
 
 class World_Sync(threading.Thread):
