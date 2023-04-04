@@ -132,8 +132,8 @@ def reachability_validator(pose: Tuple[List[float], List[float]],
     left_gripper = robot_description.i.get_tool_frame('left')
     right_gripper = robot_description.i.get_tool_frame('right')
 
-    left_joints = joints = robot_description.i._safely_access_chains('left').joints
-    right_joints = joints = robot_description.i._safely_access_chains('right').joints
+    left_joints = robot_description.i._safely_access_chains('left').joints
+    right_joints = robot_description.i._safely_access_chains('right').joints
     # TODO Make orientation adhere to grasping orientation
     target_torso = _transform_to_torso(target, robot)
 
