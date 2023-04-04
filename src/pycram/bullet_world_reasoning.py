@@ -5,7 +5,7 @@ import numpy as np
 from .bullet_world import _world_and_id, Object, Use_shadow_world, BulletWorld
 from .external_interfaces.ik import request_ik
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
-from .helper import _transform_to_torso, _apply_ik
+from .helper import _transform_to_torso, _apply_ik, calculate_wrist_tool_offset, inverseTimes
 from typing import List, Tuple, Optional, Union
 
 
@@ -104,19 +104,20 @@ def stable(object: Object,
 
 
 def contact(object1: Object,
-            object2: Object,
-            world: Optional[BulletWorld] = None) -> bool:
+            object2: Object) -> bool:
     """
     This reasoning query checks if two objects are in contact or not.
     :param object1: The first object
     :param object2: The second object
-    :param world: The BulletWorld if more than one BulletWorld is active
     :return: True if the two objects are in contact False else
     """
-    # World is the graphical BulletWorld
-    world, world_id = _world_and_id(world)
-    shadow_obj1 = world.get_shadow_object(object1)
-    shadow_obj2 = world.get_shadow_object(object2)
+
+    if BulletWorld.current_bullet_world.is_shadow_world:
+        shadow_obj1 = object1
+        shadow_obj2 = object2
+    else:
+        shadow_obj1 = BulletWorld.current_bullet_world.get_shadow_object(object1)
+        shadow_obj2 = BulletWorld.current_bullet_world.get_shadow_object(object2)
     with Use_shadow_world():
         p.stepSimulation(BulletWorld.current_bullet_world.client_id)
         con_points = p.getContactPoints(shadow_obj1.id, shadow_obj2.id, physicsClientId=BulletWorld.current_bullet_world.client_id)
@@ -234,75 +235,95 @@ def occluding(object: Object,
 def reachable(pose: Union[Object, Tuple[List[float], List[float]]],
               robot: Object,
               gripper_name: str,
-              world: Optional[BulletWorld] = None,
               threshold: float = 0.01) -> bool:
     """
     This reasoning query checks if the robot can reach a given position. To determine this the inverse kinematics are
     calculated and applied. Afterwards the distance between the position and the given end effector is calculated, if
     it is smaller than the threshold the reasoning query returns True, if not it returns False.
-    :param pose: The position or Object for which reachability should be checked.
+    :param pose: The position and rotation or Object for which reachability should be checked.
     :param robot: The robot that should reach for the position
     :param gripper_name: The name of the end effector
-    :param world: The BulletWorld in which the reasoning query should opperate
     :param threshold: The threshold between the end effector and the position.
     :return: True if the end effector is closer than the threshold True if the end effector is closer than the threshold
     to the target position, False in every other case to the target position, False in every other case
     """
     if type(pose) == Object:
-        pose = pose.get_position()
-    world, world_id = _world_and_id(world)
-    state = p.saveState(physicsClientId=world_id)
-    arm = "left" if gripper_name == robot_description.i.get_tool_frame("left") else "right"
-    joints = robot_description.i._safely_access_chains(arm).joints
-    target = _transform_to_torso([pose, [0, 0, 0, 1]], robot)
-    target = (target[0], [0, 0, 0, 1])
-    inv = request_ik(robot_description.i.base_frame, gripper_name, target, robot, joints)
+        pose = pose.get_position_and_orientation()
+    #world, world_id = _world_and_id(world)
+    #state = p.saveState(physicsClientId=world_id)
+    shadow_robot = BulletWorld.current_bullet_world.get_shadow_object(robot)
+    with Use_shadow_world():
+        arm = "left" if gripper_name == robot_description.i.get_tool_frame("left") else "right"
+        joints = robot_description.i._safely_access_chains(arm).joints
+        target_torso = _transform_to_torso(pose, shadow_robot)
 
-    _apply_ik(robot, inv, gripper_name)
+        # Get Link before first joint in chain
+        base_link = robot_description.i.get_parent(joints[0])
+        # Get link after last joint in chain
+        end_effector = robot_description.i.get_child(joints[-1])
 
-#    newp = p.getLinkState(robot.id, robot.get_link_id(gripper_name), physicsClientId=world_id)[4]
-    newp = robot.get_link_position(gripper_name)
-    diff = [pose[0] - newp[0], pose[1] - newp[1],  pose[2] - newp[2]]
-    p.restoreState(state, physicsClientId=world_id)
+        diff = calculate_wrist_tool_offset(end_effector, robot_description.i.get_tool_frame(arm), shadow_robot)
+        target_diff = inverseTimes(target_torso, diff)
+
+        inv = request_ik(base_link, end_effector, target_diff, shadow_robot, joints)
+
+        _apply_ik(shadow_robot, inv, joints)
+
+#        newp = p.getLinkState(robot.id, robot.get_link_id(gripper_name), physicsClientId=world_id)[4]
+        newp = shadow_robot.get_link_position(gripper_name)
+        diff = [pose[0][0] - newp[0], pose[0][1] - newp[1],  pose[0][2] - newp[2]]
+        #p.restoreState(state, physicsClientId=world_id)
     return np.sqrt(diff[0] ** 2 + diff[1] ** 2 + diff[2] ** 2) < threshold
 
 
-def blocking(object: Object,
+def blocking(pose_or_object: Object,
              robot: Object,
              gripper_name: str,
-             world: Optional[BulletWorld] = None,
              grasp: str = None) -> bool:
     """
     This reasoning query checks if any objects are blocking an other object when an robot tries to pick it. This works
     similar to the reachable predicate. First the inverse kinematics between the robot and the object will be calculated
     and applied. Then it will be checked if the robot is in contact with any object except the given one.
-    :param object: The object for which blocking objects should be found
+    :param object: The object or position for which blocking objects should be found
     :param robot: The robot who reaches for the object
     :param gripper_name: The name of the end effector of the robot
     :param world: The BulletWorld if more than one BulletWorld is active
     :param grasp: The grasp type with which the object should be grasped
     :return: A list of objects the robot is in collision with when reaching for the specified object
     """
-    world, world_id = _world_and_id(world)
-    state = p.saveState(physicsClientId=world_id)
-
-    arm = "left" if gripper_name == robot_description.i.get_tool_frame("left") else "right"
-    joints = robot_description.i._safely_access_chains(arm).joints
-    if grasp:
-        target = _transform_to_torso([object.get_position(), robot_description.i.grasps.get_orientation_for_grasp(grasp)], robot)
+    #world, world_id = _world_and_id(world)
+    if type(pose_or_object) == Object:
+        input_pose = object.get_position_and_orientation()
     else:
-        target = _transform_to_torso(object.get_position_and_orientation(), robot)
-    inv = request_ik(robot_description.i.base_frame, gripper_name, target, robot, joints)
+        input_pose = pose_or_object
 
-    _apply_ik(robot, inv, gripper_name)
+    shadow_robot = BulletWorld.current_bullet_world.get_shadow_object(robot)
+    with Use_shadow_world():
+        arm = "left" if gripper_name == robot_description.i.get_tool_frame("left") else "right"
+        joints = robot_description.i._safely_access_chains(arm).joints
 
-    block = []
-    for obj in world.objects:
-        if obj == object:
-            continue
-        if contact(robot, obj, world):
-            block.append(obj)
-    p.restoreState(state, physicsClientId=world_id)
+        if grasp:
+            target_torso = _transform_to_torso([input_pose[0], robot_description.i.grasps.get_orientation_for_grasp(grasp)], shadow_robot)
+        else:
+            target_torso = _transform_to_torso(input_pose, shadow_robot)
+
+        # Get Link before first joint in chain
+        base_link = robot_description.i.get_parent(joints[0])
+        # Get link after last joint in chain
+        end_effector = robot_description.i.get_child(joints[-1])
+
+        diff = calculate_wrist_tool_offset(end_effector, robot_description.i.get_tool_frame(arm), shadow_robot)
+        target_diff = inverseTimes(target_torso, diff)
+
+        inv = request_ik(base_link, end_effector, target_diff, shadow_robot, joints)
+
+        _apply_ik(shadow_robot, inv, joints)
+
+        block = []
+        for obj in BulletWorld.current_bullet_world.objects:
+            if contact(shadow_robot, obj):
+                block.append(BulletWorld.current_bullet_world.get_bullet_object_for_shadow(obj))
+
     return block
 
 
