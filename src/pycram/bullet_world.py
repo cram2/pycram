@@ -262,9 +262,9 @@ class BulletWorld:
         try:
             return list(map.keys())[list(map.values()).index(object)]
         except ValueError:
-            rospy.logerr("The given object is not in the shadow world")
+            raise ValueError("The given object is not in the shadow world.")
 
-    def reset_bullet_world(self):
+    def reset_bullet_world(self) -> None:
         """
         This function resets the BulletWorld to the state it was first spawned in.
         All attached objects will be detached, all joints will be set to the
@@ -279,8 +279,6 @@ class BulletWorld:
             for joint_name in obj.joints.keys():
                 obj.set_joint_state(joint_name, 0)
             obj.set_position_and_orientation(obj.original_pose[0], obj.original_pose[1])
-
-
 
 
 #current_bullet_world = BulletWorld.current_bullet_world

@@ -164,14 +164,11 @@ class Costmap:
         :param other_cm: The other costmap with which this costmap should be merged.
         """
         if self.size != other_cm.size:
-            print("To merge costmaps, the size has to be equal")
-            return
+            raise ValueError("You can only merge costmaps of the same size.")
         elif self.origin[0][0] != other_cm.origin[0][0] or self.origin[0][1] != other_cm.origin[0][1] or self.origin[1] != other_cm.origin[1]:
-            print("To merge costmaps, the x and y coordinate as well as the orientation must be equal")
-            return
+            raise ValueError("To merge costmaps, the x and y coordinate as well as the orientation must be equal."))
         elif self.resolution != other_cm.resolution:
-            print("To merge cotsmaps, the resoulution has to be equal")
-            return
+            raise ValueError("To merge two costmaps their resolution must be equal.")
         new_map = np.zeros((self.height, self.width))
         # A nunpy array of the positions where both costmaps are greater than 0
         merge = np.logical_and(self.map > 0, other_cm.map > 0)
