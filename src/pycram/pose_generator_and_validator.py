@@ -6,8 +6,8 @@ import pybullet as p
 from .bullet_world import Object, BulletWorld
 from .costmaps import Costmap
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
-from .external_interfaces.ik import _make_request_msg
-from .helper import _transform_to_torso
+from .external_interfaces.ik import _make_request_msg, request_ik, IKError
+from .helper import _transform_to_torso, calculate_wrist_tool_offset, inverseTimes
 from moveit_msgs.srv import GetPositionIK
 from typing import Type, Tuple, List, Union
 
@@ -25,7 +25,7 @@ def pose_generator(costmap: Type[Costmap]) -> Tuple[List[float], List[float]]:
     indices = np.argpartition(costmap.map.flatten(), -100)[-100:]
     #indices = np.argsort(costmap.map.flatten())[-number_of_samples:]
     indices = np.dstack(np.unravel_index(indices, costmap.map.shape)).reshape(number_of_samples, 2)
-    size = costmap.map.shape[0]
+
     height = costmap.map.shape[0]
     width = costmap.map.shape[1]
     center = np.array([height // 2, width // 2])
@@ -37,11 +37,14 @@ def pose_generator(costmap: Type[Costmap]) -> Tuple[List[float], List[float]]:
         # and muiltiplied with the transformation of the origin.
         vector_to_origin = center - ind
         transform_to_origin = [[vector_to_origin[0] * costmap.resolution, vector_to_origin[1] * costmap.resolution, 0], [0, 0, 0, 1]]
-        world_pose = p.multiplyTransforms(costmap.origin[0], costmap.origin[1], transform_to_origin[0], transform_to_origin[1])
+        origin_to_map = p.invertTransform(costmap.origin[0], costmap.origin[1])
+        point_to_map = p.multiplyTransforms(transform_to_origin[0], transform_to_origin[1], origin_to_map[0], origin_to_map[1])
+        map_to_point = p.invertTransform(point_to_map[0], point_to_map[1])
+        #world_pose = p.multiplyTransforms(costmap.origin[0], costmap.origin[1], transform_to_origin[0], transform_to_origin[1])
 
         #position = [(ind[0]- size/2) *-1 * costmap.resolution + costmap.origin[0][0], (ind[1] - size/2) * -1 * costmap.resolution + costmap.origin[0][1], 0]
-        orientation = generate_orientation(world_pose[0], costmap.origin)
-        yield world_pose[0], orientation
+        orientation = generate_orientation(map_to_point[0], costmap.origin)
+        yield list(map_to_point[0]), orientation
 
 
 
@@ -121,30 +124,46 @@ def reachability_validator(pose: Tuple[List[float], List[float]],
         case.
     """
     if type(target) == Object:
-        target = target.get_position()
+        target = target.get_position_and_orientation()
 
     robot_pose = robot.get_position_and_orientation()
     robot.set_position_and_orientation(pose[0], pose[1])
 
     left_gripper = robot_description.i.get_tool_frame('left')
     right_gripper = robot_description.i.get_tool_frame('right')
+
     left_joints = joints = robot_description.i._safely_access_chains('left').joints
     right_joints = joints = robot_description.i._safely_access_chains('right').joints
     # TODO Make orientation adhere to grasping orientation
-    target_torso = _transform_to_torso(pose, robot)
+    target_torso = _transform_to_torso(target, robot)
 
-    ik_msg_left = _make_request_msg(robot_description.i.base_frame, left_gripper, target_torso, robot, left_joints)
+    # Get Link before first joint in chain
+    base_link = robot_description.i.get_parent(left_joints[0])
+    # Get link after last joint in chain
+    end_effector = robot_description.i.get_child(left_joints[-1])
 
-    rospy.wait_for_service('/kdl_ik_service/get_ik')
-    ik = rospy.ServiceProxy('/kdl_ik_service/get_ik', GetPositionIK)
-    resp = ik(ik_msg_left)
+    diff = calculate_wrist_tool_offset(end_effector, robot_description.i.get_tool_frame("left"), robot)
+    target_diff = inverseTimes(target_torso, diff)
 
-    if resp.error_code.val == -31:
-        ik_msg_right = _make_request_msg(robot_description.i.base_frame, right_gripper, target_torso, robot, right_joints)
-        resp = ik(ik_msg_right)
-        #res = resp.error_code.val == 1
-        res = False
-    else:
+    res = False
+    arms = []
+    try:
+        resp = request_ik(base_link, end_effector, target_diff, robot, left_joints)
+        arms.append("left")
         res = True
-    robot.set_position_and_orientation(robot_pose[0], robot_pose[1])
-    return res
+    except IKError:
+        pass
+
+    base_link = robot_description.i.get_parent(right_joints[0])
+    # Get link after last joint in chain
+    end_effector = robot_description.i.get_child(right_joints[-1])
+    diff = calculate_wrist_tool_offset(end_effector, robot_description.i.get_tool_frame("right"), robot)
+    target = inverseTimes(target_torso, diff)
+    try:
+        resp = request_ik(base_link, end_effector, target_diff, robot, right_joints)
+        arms.append("right")
+        res = True
+    except IKError:
+        pass
+
+    return res, arms
