@@ -1,7 +1,11 @@
 import logging
+import rospy
+import rospkg
 from copy import deepcopy
 from numbers import Number
 from typing import List, Optional, Dict, Union, Type
+from urdf_parser_py.urdf import URDF
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -251,6 +255,11 @@ class RobotDescription:
         self.torso_link: str = torso_link
         self.torso_joint: str = torso_joint
 
+        rospack = rospkg.RosPack()
+        filename = rospack.get_path('pycram') + '/resources/' + name + '.urdf'
+        with open(filename) as f:
+            self.robot_urdf = URDF.from_xml_string(f.read())
+
     def _safely_access_chains(self, chain_name: str, verbose: Optional[bool] = True) -> Union[None, ChainDescription]:
         """
         This function returns the chain_description of the name chain_name or None, if there
@@ -460,6 +469,34 @@ class RobotDescription:
         if manipulator_description and manipulator_description.gripper:
             return manipulator_description.gripper.get_static_joint_chain(configuration)
 
+    def get_child(self, name):
+        """
+        Returns the child of a Joint or Link in the URDF. If 'name' is a Joint a
+        Link will be returned and vice versa.
+        :param name: The name of the Joint/Link for which the child will be returned.
+        :return: The child Joint/Link
+        """
+        if name in self.robot_urdf.joint_map.keys():
+            return self.robot_urdf.joint_map[name].child
+        elif name in self.robot_urdf.link_map.keys():
+            return self.robot_urdf.link_map[name].child
+        else:
+            rospy.logerr(f"The name: {name} is not part of this robot URDF")
+
+    def get_parent(self, name):
+        """
+        Returns the parent of a Joint or Link in the URDF. If 'name' is a Joint a
+        Link will be returned and vice versa.
+        :param name: The name of the Joint/Link for which the parent will be returned.
+        :return: The parent Joint/Link
+        """
+        if name in self.robot_urdf.joint_map.keys():
+            return self.robot_urdf.joint_map[name].parent
+        elif name in self.robot_urdf.link_map.keys():
+            return self.robot_urdf.link_map[name].parent
+        else:
+            rospy.logerr(f"The name: {name} is not part of this robot URDF")
+
     # @staticmethod
     # def from_urdf(urdf_path: str):
     #     # URDF Python library does not like ROS package paths --> replace
@@ -469,7 +506,3 @@ class RobotDescription:
     #         temp_urdf_file.write(urdf_resolved)
     #         urdf = URDF.load(temp_urdf_file)
     #     ik_joints = [joint.name for joint in urdf.actuated_joints]
-
-
-
-

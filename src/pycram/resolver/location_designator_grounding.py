@@ -1,17 +1,17 @@
 from pycram.designator import DesignatorError
 from pycram.helper import transform
-from pycram.designators.location_designator import ObjectRelativeLocationDesignatorDescription, LocationDesignator, \
+from pycram.designators.location_designator import ObjectRelativeLocation, LocationDesignator, \
     LocationDesignatorDescription
-from pycram.costmaps import GaussianCostmap, OccupancyCostmap, VisibilityCostmap
+from pycram.costmaps import GaussianCostmap, OccupancyCostmap, VisibilityCostmap, SemanticCostmap
 from pycram.robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from pycram.bullet_world import BulletWorld, Object, Use_shadow_world
 from pycram.pose_generator_and_validator import pose_generator, visibility_validator, reachability_validator
 
 
-def ground_object_relative_location(description: ObjectRelativeLocationDesignatorDescription):
+def ground_object_relative_location(description: ObjectRelativeLocation):
     if description.pose is None:
         if description.relative_pose is None or description.reference_object is None:
-            raise DesignatorError("Could not ground ObjectRelativeLocationDesignatorDescription: (Relative) pose and reference object must be given")
+            raise DesignatorError("Could not ground ObjectRelativeLocation: (Relative) pose and reference object must be given")
         # Fetch the object pose and yield the grounded description
         obj_grounded = description.reference_object.reference()
         obj_pose_world = obj_grounded["pose"]
@@ -27,8 +27,9 @@ def ground_location(description: LocationDesignatorDescription):
 
 
 def call_ground(desig):
-    type_to_function = {ObjectRelativeLocationDesignatorDescription: ground_object_relative_location,
-                        LocationDesignatorDescription: ground_location}
+    type_to_function = {ObjectRelativeLocation: ground_object_relative_location,
+                        LocationDesignatorDescription: ground_location,
+                        Location: ground_location}
     ground_function = type_to_function[type(desig._description)]
     return ground_function(desig._description)
 
@@ -56,14 +57,17 @@ def gen_from_costmap(desig):
     else:
         target_pose = desig._description.target
 
-    occupancy = OccupancyCostmap(0.2, False, 200, 0.02, target_pose, BulletWorld.current_bullet_world)
+
+    ground_pose = [[target_pose[0][0], target_pose[0][1], 0], target_pose[1]]
+
+    occupancy = OccupancyCostmap(0.4, False, 200, 0.02, [ground_pose[0], [0, 0, 0, 1]], BulletWorld.current_bullet_world)
     final_map = occupancy
 
     if desig._description.reachable_for:
-        gaussian = GaussianCostmap(200, 15, 0.02, target_pose)
+        gaussian = GaussianCostmap(200, 15, 0.02, [ground_pose[0], [0, 0, 0, 1]])
         final_map += gaussian
     if desig._description.visible_for:
-        visible = VisibilityCostmap(min_height, max_height, 200, 0.02, target_pose)
+        visible = VisibilityCostmap(min_height, max_height, 200, 0.02, [target_pose[0], [0, 0, 0, 1]])
         final_map += visible
     #plot_grid(final_map.map)
 
@@ -76,21 +80,36 @@ def gen_from_costmap(desig):
         valid_poses = []
         for maybe_pose in pose_generator(final_map):
             res = True
+            arms = None
             if desig._description.visible_for:
                 res = res and visibility_validator(maybe_pose, test_robot, desig._description.target, BulletWorld.current_bullet_world)
             if desig._description.reachable_for:
-                res = res and reachability_validator(maybe_pose, test_robot, desig._description.target, BulletWorld.current_bullet_world)
+                valid, arms = reachability_validator(maybe_pose, test_robot, desig._description.target, BulletWorld.current_bullet_world)
+                if desig._description.reachable_arm:
+                    res = res and valid and desig._description.reachable_arm in arms
+                else:
+                    res = res and valid
 
             if res:
-                valid_poses.append(maybe_pose)
+                valid_poses.append([maybe_pose, arms])
                 #print(f"Valid: {maybe_pose}")
                 # This number defines the total valid poses by this generator
                 if len(valid_poses) == 15: break
                 #yield {'position': maybe_pose[0], 'orientation': maybe_pose[1]}
     #test_world.exit()
-    for pose in valid_poses:
-        yield {'position': pose[0], 'orientation': pose[1]}
+    for pose, arms in valid_poses:
+        yield {'position': pose[0], 'orientation': pose[1], "arms": arms}
 
+def gen_from_sem_costmap(desig):
+    sem_costmap = SemanticCostmap(desig._description.part_of, desig._description.urdf_link_name)
+    height_offset = 0
+    if desig._description.for_object:
+        min, max = desig._description.for_object.get_AABB()
+        height_offset = (max[2] - min[2]) / 2
+    for maybe_pose in pose_generator(sem_costmap):
+        position = [maybe_pose[0][0], maybe_pose[0][1], maybe_pose[0][2] + height_offset]
+        yield {'position': position, 'orientation': maybe_pose[1]}
 
 LocationDesignator.resolvers['grounding'] = call_ground
 LocationDesignator.resolvers['costmap'] = gen_from_costmap
+LocationDesignator.resolvers['semantic-costmap'] = gen_from_sem_costmap

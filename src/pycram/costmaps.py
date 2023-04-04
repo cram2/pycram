@@ -166,8 +166,8 @@ class Costmap:
         if self.size != other_cm.size:
             print("To merge costmaps, the size has to be equal")
             return
-        elif self.origin != other_cm.origin:
-            print("To merge costmaps, the origin has to be equal")
+        elif self.origin[0][0] != other_cm.origin[0][0] or self.origin[0][1] != other_cm.origin[0][1] or self.origin[1] != other_cm.origin[1]:
+            print("To merge costmaps, the x and y coordinate as well as the orientation must be equal")
             return
         elif self.resolution != other_cm.resolution:
             print("To merge cotsmaps, the resoulution has to be equal")
@@ -183,8 +183,7 @@ class Costmap:
         if isinstance(other, Costmap):
             return self.merge(other)
         else:
-            print("Can only combine two costmaps")
-            return None
+            raise ValueError(f"Can only combine two costmaps other type was {type(other)}")
 
 
 class OccupancyCostmap(Costmap):
@@ -196,7 +195,7 @@ class OccupancyCostmap(Costmap):
                  from_ros: Optional[bool] = False,
                  size: Optional[int] = 100,
                  resolution: Optional[float] = 0.02,
-                 origin: Optional[List[float]] = [0,0,0],
+                 origin: Optional[List[float]] = [[0,0,0], [0, 0, 0, 1]],
                  world: Optional[BulletWorld] = None):
         """
         The constructor for the Occupancy costmap, the actual costmap is received
@@ -362,7 +361,8 @@ class OccupancyCostmap(Costmap):
         i = 0
         j = 0
         for n in self._chunks(np.array(rays), 16383):
-            r_t = p.rayTestBatch(n[:,0], n[:,1],numThreads=0)
+            r_t = p.rayTestBatch(n[:,0], n[:,1],numThreads=-1)
+            time.sleep(0.1)
             j += len(n)
             if BulletWorld.robot:
                 res[i:j] = [1 if ray[0] == -1 or ray[0] == BulletWorld.robot.id else 0 for ray in r_t]
@@ -410,7 +410,7 @@ class VisibilityCostmap(Costmap):
                  max_height: float,
                  size: Optional[int] = 100,
                  resolution: Optional[float] = 0.02,
-                 origin: Optional[List[float]] = [0,0,0],
+                 origin: Optional[List[float]] = [[0,0,0], [0, 0, 0, 1]],
                  world: Optional[BulletWorld] = None):
         """
         The constructor of the visibility costmap which assisgs the given paranmeter
@@ -600,7 +600,7 @@ class VisibilityCostmap(Costmap):
 
 
 class GaussianCostmap(Costmap):
-    def __init__(self, mean: int, sigma: float, resolution: Optional[float] = 0.02, origin: Optional[List[float]] = [0,0,0]):
+    def __init__(self, mean: int, sigma: float, resolution: Optional[float] = 0.02, origin: Optional[List[float]] = [[0,0,0], [0, 0, 0, 1]]):
         """
         This Costmap creates a 2D gaussian distribution around the origin with
         the specified size.
@@ -631,7 +631,7 @@ class GaussianCostmap(Costmap):
 
 
 class SemanticCostmap(Costmap):
-    def __init__(self, object, urdf_link_name, size=100, resolution=0.02, origin=[0, 0, 0], world=None):
+    def __init__(self, object, urdf_link_name, size=100, resolution=0.02, world=None):
         self.world = world if world else BulletWorld.current_bullet_world
         self.object = object
         self.link = urdf_link_name

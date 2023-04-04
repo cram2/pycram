@@ -130,6 +130,21 @@ class BulletWorld:
         if BulletWorld.current_bullet_world == self:
             BulletWorld.current_bullet_world = None
 
+    def reset_bullet_world(self):
+        """
+        This function resets the BulletWorld to the state it was first spawned in.
+        All attached objects will be detached, all joints will be set to the
+        default position of 0 and all objects will be set to the position and
+        orientation in which they where spawned.
+        """
+        for obj in self.objects:
+            if obj.attachments:
+                attached_objects = list(obj.attachments.keys())
+                for att_obj in attached_objects:
+                    obj.detach(att_obj)
+            for joint_name in obj.joints.keys():
+                obj.set_joint_state(joint_name, 0)
+            obj.set_position_and_orientation(obj.original_pose[0], obj.original_pose[1])
 
     def save_state(self) -> int:
         """
@@ -198,6 +213,14 @@ class BulletWorld:
 
         self.vis_axis = obj
 
+    def remove_vis_axis(self):
+        """
+        Checks if there is a vis_axis objects in the BulletWorld and removes it,
+        if there is one.
+        """
+        if self.vis_axis:
+            p.removeBody(self.vis_axis)
+
     def register_collision_callback(self, objectA: Object, objectB: Object,
                                     callback_collision: Callable, callback_no_collision: Optional[Callable] = None) -> None:
         """
@@ -238,6 +261,23 @@ class BulletWorld:
             return list(map.keys())[list(map.values()).index(object)]
         except ValueError:
             rospy.logerr("The given object is not in the shadow world")
+
+    def reset_bullet_world(self):
+        """
+        This function resets the BulletWorld to the state it was first spawned in.
+        All attached objects will be detached, all joints will be set to the
+        default position of 0 and all objects will be set to the position and
+        orientation in which they where spawned.
+        """
+        for obj in self.objects:
+            if obj.attachments:
+                attached_objects = list(obj.attachments.keys())
+                for att_obj in attached_objects:
+                    obj.detach(att_obj)
+            for joint_name in obj.joints.keys():
+                obj.set_joint_state(joint_name, 0)
+            obj.set_position_and_orientation(obj.original_pose[0], obj.original_pose[1])
+
 
 
 
@@ -317,6 +357,7 @@ class World_Sync(threading.Thread):
 
             self.check_for_pause()
             time.sleep(0.1)
+
         self.add_obj_queue.join()
         self.remove_obj_queue.join()
 
@@ -385,6 +426,7 @@ class Object:
         self.attachments: Dict[Object, List] = {}
         self.cids: Dict[Object, int] = {}
         self.world.objects.append(self)
+        self.original_pose = [position, orientation]
         # This means "world" is not the shadow world since it has a reference to a shadow world
         if self.world.shadow_world != None:
             self.world.world_sync.add_obj_queue.put([name, type, path, position, orientation, self.world.shadow_world, color, self])
@@ -395,6 +437,7 @@ class Object:
             robot_name = _get_robot_name_from_urdf(urdf_string)
             if robot_name == robot_description.i.name and BulletWorld.robot == None:
                 BulletWorld.robot = self
+        self.original_pose = [position, orientation]
 
     def remove(self) -> None:
         """
@@ -660,11 +703,28 @@ class Object:
         else:
             return link_to_color
 
-    def get_AABB(self, link_name: str) -> Tuple[List[float], List[float]]:
+    def get_AABB(self, link_name: Optional[str] = None) -> Tuple[List[float], List[float]]:
         """
         Returns the axis aligned bounding box of the given link name
         """
-        return p.getAABB(self.id, self.links[link_name], self.world.client_id)
+        if link_name:
+            return p.getAABB(self.id, self.links[link_name], self.world.client_id)
+        else:
+            return p.getAABB(self.id, physicsClientId=self.world.client_id)
+
+    def get_joint_limits(self, joint: str) -> Tuple[float, float]:
+        """
+        Returns the lower and upper limit of a joint, if the lower limit is higher
+        than the upper they are swaped to ensure the lower limit is always the smaller one.
+        :param joint: The name of the joint for which the limits should be found
+        :return: The lower and upper limit of the joint
+        """
+        if joint not in self.joints.keys():
+            raise KeyError(f"The given Joint: {joint} is not part of this object")
+        lower, upper = p.getJointInfo(self.id, self.joints[joint], self.world.client_id)[8: 10]
+        if lower > upper:
+            lower, upper = upper, lower
+        return lower, upper
 
 
 
@@ -718,6 +778,9 @@ def _load_object(name: str,
         for dir in world.data_directory:
             path = get_path_from_data_dir(path, dir)
             if path: break
+
+    if not path:
+        raise FileNotFoundError(f"File {pa.name} could not be found in the resource directory {world.data_directory}")
     #rospack = rospkg.RosPack()
     #cach_dir = rospack.get_path('pycram') + '/resources/cached/'
     cach_dir = world.data_directory[0] + '/cached/'

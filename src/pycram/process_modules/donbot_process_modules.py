@@ -218,7 +218,7 @@ class DonbotMoveJoints(ProcessModule):
 
     def _execute(self, desig):
         solution = desig.reference()
-        if solution['cmd'] == "move-joints":
+        if solution['cmd'] == "move-arm-joints":
             robot = BulletWorld.robot
             left_arm_poses = solution['left_arm_poses']
 
