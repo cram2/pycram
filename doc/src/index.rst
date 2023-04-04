@@ -7,7 +7,7 @@
 Welcome to pycram's documentation!
 ==================================
 
-.. image:: images/pycram_logo.png
+.. image:: ../images/pycram_logo.png
    :alt: Pycram Logo
 
 What is PyCRAM?
