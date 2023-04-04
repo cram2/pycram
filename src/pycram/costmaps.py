@@ -166,7 +166,7 @@ class Costmap:
         if self.size != other_cm.size:
             raise ValueError("You can only merge costmaps of the same size.")
         elif self.origin[0][0] != other_cm.origin[0][0] or self.origin[0][1] != other_cm.origin[0][1] or self.origin[1] != other_cm.origin[1]:
-            raise ValueError("To merge costmaps, the x and y coordinate as well as the orientation must be equal."))
+            raise ValueError("To merge costmaps, the x and y coordinate as well as the orientation must be equal.")
         elif self.resolution != other_cm.resolution:
             raise ValueError("To merge two costmaps their resolution must be equal.")
         new_map = np.zeros((self.height, self.width))
