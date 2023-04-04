@@ -5,12 +5,12 @@ from ..designator import ResolutionError, DesignatorError
 from ..designators.object_designator import ObjectDesignator
 
 
-def ground_located_object(description: LocatedObjectDesignatorDescription):
+def ground_located_object(description: LocatedObject):
     def _ground_pose(desc):
         desc.pose = object_pose(desc.name, desc.reference_frame, desc.timestamp)
 
     if not description.type and not description.name:
-        raise RuntimeError("Could not ground LocatedObjectDesignatorDescription: Either type or name must be given")
+        raise RuntimeError("Could not ground LocatedObject: Either type or name must be given")
     if not description.type:
         description.type = object_type(description.name)
     elif not description.name:
@@ -90,9 +90,10 @@ def ground_part_of(description):
 
 
 def call_ground(desig):
-    type_to_function = {LocatedObjectDesignatorDescription: ground_located_object,
+    type_to_function = {LocatedObject: ground_located_object,
                         ObjectDesignatorDescription: ground_object,
-                        ObjectPartDescription: ground_part_of}
+                        ObjectPart: ground_part_of,
+                        BelieveObject: ground_object}
     ground_function = type_to_function[type(desig._description)]
     return ground_function(desig._description)
 

@@ -25,8 +25,8 @@ class TestLocationDesignatorGrounding(TestCase):
         Test grounding of ObjectRelativeLocationDesignator (generation of absolute poses in world frame, given an
         object and a relative transformation
         """
-        object_desig = ObjectDesignator(LocatedObjectDesignatorDescription(name="object1"))
-        desc = ObjectRelativeLocationDesignatorDescription(relative_pose=[0.2, 0.1, 1.3, 0.0, 0.0, 0.0, 1.0],
+        object_desig = ObjectDesignator(LocatedObject(name="object1"))
+        desc = ObjectRelativeLocation(relative_pose=[0.2, 0.1, 1.3, 0.0, 0.0, 0.0, 1.0],
                                                            reference_object=object_desig)
         desig = LocationDesignator(desc)
         sol = desig.reference()

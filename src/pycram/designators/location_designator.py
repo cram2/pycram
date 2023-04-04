@@ -43,8 +43,16 @@ class LocationDesignatorDescription(DesignatorDescription):
         super().__init__(resolver)
         self.pose = pose
 
+class Location(LocationDesignatorDescription):
 
-class ObjectRelativeLocationDesignatorDescription(LocationDesignatorDescription):
+    def __init__(self, position, orientation, resolver="grounding"):
+        super().__init__(pose=None, resolver=resolver)
+        self.position = position
+        self.orientation = Orientation
+        self.pose = [position, orientation]
+
+
+class ObjectRelativeLocation(LocationDesignatorDescription):
     relative_pose: List[float]
     reference_object: ObjectDesignator
     timestamp: float
@@ -55,7 +63,7 @@ class ObjectRelativeLocationDesignatorDescription(LocationDesignatorDescription)
         self.relative_pose = relative_pose
         self.reference_object = reference_object
 
-class CostmapLocationDesignatorDescription(LocationDesignatorDescription):
+class CostmapLocation(LocationDesignatorDescription):
     reachable_for: Object
     visible_for: Object
     target: Union[Tuple[List[float], List[float]], Object]
