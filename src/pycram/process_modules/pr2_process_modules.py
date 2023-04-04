@@ -39,6 +39,7 @@ class Pr2Navigation(ProcessModule):
         if solution['cmd'] == 'navigate':
             robot = BulletWorld.robot
             robot.set_position_and_orientation(solution['target'], solution['orientation'])
+            print(robot.get_position())
             time.sleep(0.5)
             local_transformer.update_from_btr()
 

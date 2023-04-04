@@ -55,7 +55,7 @@ class MotionDesignatorDescription(DesignatorDescription):
 		return list(self.__dict__.keys()).remove('cmd')
 
 
-class MoveMotionDescription(MotionDesignatorDescription):
+class MoveMotion(MotionDesignatorDescription):
 	"""
 	Definition of types. Is used in _check_missing_properties for evaluating
 	the types of given properties.
@@ -68,7 +68,7 @@ class MoveMotionDescription(MotionDesignatorDescription):
 		self.target = target
 		self.orientation = orientation
 
-class PickUpMotionDescription(MotionDesignatorDescription):
+class PickUpMotion(MotionDesignatorDescription):
 	object: Object
 	arm: str
 	gripper: str
@@ -81,7 +81,7 @@ class PickUpMotionDescription(MotionDesignatorDescription):
 		self.gripper = None
 		self.grasp = grasp
 
-class PlaceMotionDescription(MotionDesignatorDescription):
+class PlaceMotion(MotionDesignatorDescription):
 	object: Object
 	target: list
 	arm: str
@@ -94,7 +94,7 @@ class PlaceMotionDescription(MotionDesignatorDescription):
 		self.arm = arm
 		self.gripper = None
 
-class AccessingMotionDescription(MotionDesignatorDescription):
+class AccessingMotion(MotionDesignatorDescription):
 	drawer_joint: str
 	drawer_handle: str
 	part_of: Object
@@ -111,7 +111,7 @@ class AccessingMotionDescription(MotionDesignatorDescription):
 		self.distance = distance
 		self.gripper = None
 
-class MoveTCPMotionDescription(MotionDesignatorDescription):
+class MoveTCPMotion(MotionDesignatorDescription):
 	target: list
 	arm: str
 	def __init__(self, target, arm=None, resolver="grounding"):
@@ -120,7 +120,7 @@ class MoveTCPMotionDescription(MotionDesignatorDescription):
 		self.target = target
 		self.arm = arm
 
-class LookingMotionDescription(MotionDesignatorDescription):
+class LookingMotion(MotionDesignatorDescription):
 	target: list
 	object: Object
 	def __init__(self, target=None, object=None, resolver="grounding"):
@@ -129,7 +129,7 @@ class LookingMotionDescription(MotionDesignatorDescription):
 		self.target = target
 		self.object = object
 
-class MoveGripperMotionDescription(MotionDesignatorDescription):
+class MoveGripperMotion(MotionDesignatorDescription):
 	motion: str
 	gripper: str
 	def __init__(self, motion, gripper, resolver="grounding"):
@@ -138,7 +138,7 @@ class MoveGripperMotionDescription(MotionDesignatorDescription):
 		self.motion = motion
 		self.gripper = gripper
 
-class DetectingMotionDescription(MotionDesignatorDescription):
+class DetectingMotion(MotionDesignatorDescription):
 	object_type: str
 	cam_frame: str
 	front_facing_axis: list
@@ -149,7 +149,7 @@ class DetectingMotionDescription(MotionDesignatorDescription):
 		self.cam_frame = cam_frame
 		self.front_facing_axis = front_facing_axis
 
-class MoveArmJointsMotionDescription(MotionDesignatorDescription):
+class MoveArmJointsMotion(MotionDesignatorDescription):
 	left_arm_config: str
 	right_arm_config: str
 	left_arm_poses: dict
@@ -163,7 +163,7 @@ class MoveArmJointsMotionDescription(MotionDesignatorDescription):
 		self.left_arm_poses = left_arm_poses
 		self.right_arm_poses = right_arm_poses
 
-class WorldStateDetectingMotionDescription(MotionDesignatorDescription):
+class WorldStateDetectingMotion(MotionDesignatorDescription):
 	object_type: str
 	def __init__(self, object_type, resolver="grounding"):
 		super().__init__(resolver)

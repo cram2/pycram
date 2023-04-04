@@ -45,27 +45,33 @@ class ObjectDesignatorDescription(DesignatorDescription):
         self.type = type
         self.name = name
         self.object = object
+        self.pose = None
 
-class ObjectPartDescription(DesignatorDescription):
+class BelieveObject(ObjectDesignatorDescription):
+
+    def __init__(type, name, object, resolver="grounding"):
+        super().__init__(type, name, object)
+
+class ObjectPart(ObjectDesignatorDescription):
     type: str
     name: str
     part_of: Union[Object, ObjectDesignator]
 
     def __init__(self, type: str, name: str, part_of: Object = None, resolver="grounding"):
-        super().__init__(resolver)
-        self.type = type
-        self.name = name
+        super().__init__(type, name, resolver)
+        #self.type = type
+        #self.name = name
         self.part_of = part_of
 
 
-class LocatedObjectDesignatorDescription(ObjectDesignatorDescription):
+class LocatedObject(ObjectDesignatorDescription):
     pose: List[float]
     reference_frame: str
     timestamp: float
 
-    def __init__(self, type_: str = None, name: str = None, pose: List[float] = None, reference_frame: str = "world",
+    def __init__(self, type: str = None, name: str = None, pose: List[float] = None, reference_frame: str = "world",
                  timestamp: float = None, resolver="grounding"):
-        super().__init__(type_, name, resolver)
+        super().__init__(type, name, resolver)
         self.pose = pose
         self.reference_frame = reference_frame
         self.timestamp = timestamp

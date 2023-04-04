@@ -102,16 +102,16 @@ def ground_move_joints(description):
 
 
 def call_ground(desig):
-    type_to_function = {MoveMotionDescription : ground_move,
-                        PickUpMotionDescription: ground_pick_up,
-                        PlaceMotionDescription: ground_place,
-                        AccessingMotionDescription: ground_accessing,
-                        MoveTCPMotionDescription: ground_move_tcp,
-                        LookingMotionDescription: ground_looking,
-                        MoveGripperMotionDescription: ground_move_gripper,
-                        DetectingMotionDescription: ground_detect,
-                        MoveArmJointsMotionDescription: ground_move_arm,
-                        WorldStateDetectingMotionDescription: ground_world_state_detecting,
+    type_to_function = {MoveMotion : ground_move,
+                        PickUpMotion: ground_pick_up,
+                        PlaceMotion: ground_place,
+                        AccessingMotion: ground_accessing,
+                        MoveTCPMotion: ground_move_tcp,
+                        LookingMotion: ground_looking,
+                        MoveGripperMotion: ground_move_gripper,
+                        DetectingMotion: ground_detect,
+                        MoveArmJointsMotion: ground_move_arm,
+                        WorldStateDetectingMotion: ground_world_state_detecting,
                         MoveJointsMotion: ground_move_joints}
 
     ground_function = type_to_function[type(desig._description)]
