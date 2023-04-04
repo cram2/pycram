@@ -1,4 +1,4 @@
-![](images/pycram_logo.png)
+![](doc/images/pycram_logo.png)
 
 # What is PyCRAM
 
@@ -15,7 +15,7 @@ PyCRAM allows the execution of the same high-level plan on different robot platf
 
 Boxy            |  PR2
 :-------------------------:|:-------------------------:
-![image alt](images/boxy.gif)  |  ![](images/pr2.gif)
+![image alt](doc/images/boxy.gif)  |  ![](doc/images/pr2.gif)
 
 The plan that both robots execute is a relativly simple pick and place plan:
 * They start at the world origin 
