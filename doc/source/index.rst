@@ -36,9 +36,9 @@ this where the plan is executed on the PR2 and the IAIs Boxy.
 
    *  - Boxy
       - PR2
-   *  - .. image:: images/boxy.gif
+   *  - .. image:: ../images/boxy.gif
             :alt: Boxy robot performing tasks using pycram
-      - .. image:: images/pr2.gif
+      - .. image:: ../images/pr2.gif
             :alt: PR2 robot performing tasks using pycram
 
 

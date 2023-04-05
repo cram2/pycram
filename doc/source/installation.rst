@@ -27,7 +27,10 @@ The dependencies you will need are:
     * vcstool
 These are available via the Ubuntu apt-repos and can be installed via the terminal:
 
-``sudo apt-get install python3-pip python3-vcstool``
+
+.. code-block:: console
+
+    sudo apt-get install python3-pip python3-vcstool
 
 PyCRAM on Ubuntu 20.04 (ROS Noetic)
 ===================================
@@ -44,7 +47,10 @@ Before installing PyCRAM you need to setup a ROS workspace into which PyCRAM can
 If ``catkin_make`` does not work this probably means that you did not source your ROS installation.
 Source it by invoking:
 
-``source /opt/ros/noetic/setup.bash``
+.. code-block:: console
+
+    source /opt/ros/noetic/setup.bash
+
 
 Now you can install PyCRAM into your ROS workspace.
 
@@ -76,12 +82,16 @@ Python Dependencies
 
 To install the Python dependencies Pip is used. To install Pip type the following command into a terminal.
 
-``sudo apt-get install python3-pip``
+.. code-block:: console
+
+    sudo apt-get install python3-pip
 
 Now the actual Python packages can be installed, these are summarized in the requirements.txt in the PyCRAM repo.
 For this first navigate to your PyCRAM repo.
 
-``cd <path-to-your-pycram-repo>``
+.. code-block:: console
+
+    cd <path-to-your-pycram-repo>
 
 Then install the Python packages in the requirements.txt file
 
@@ -221,3 +231,33 @@ This will copy python orocos kdl into your catkin workspace and clone the submod
     git clone git@github.com:ros/kdl_parser.git
     cd ../..
     catkin_make -DPYTHON_EXECUTABLE=/usr/bin/python3.6
+
+
+Building the documentation
+==========================
+
+The documentation uses sphinx as engine.
+Install sphinx on your device.
+
+.. code-block:: console
+
+    sudo apt install python3-sphinx
+
+Install the requirements in your python interpreter.
+
+.. code-block:: console
+
+    pip install -r requirements.txt
+
+Run pycram and build the docs.
+
+.. code-block:: console
+
+    roslaunch pycram ik_and_description.launch
+    make html
+
+Show the index.
+
+.. code-block::
+
+    firefox build/html/index.html
