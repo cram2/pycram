@@ -9,6 +9,8 @@ import pybullet
 from graphviz import Digraph
 from typing import List, Dict, Optional, Tuple, Callable, Any, Union
 from enum import Enum, auto
+
+import task
 from .bullet_world import BulletWorld
 import anytree
 import datetime
@@ -53,6 +55,10 @@ class Code:
         return isinstance(other, Code) and other.function.__name__ == self.function.__name__ \
                and other.kwargs == self.kwargs
 
+    def to_json(self) -> Dict:
+        """Create a dictionary that can be json serialized."""
+        return {"function": self.function.__name__, "kwargs": self.kwargs}
+
 
 class NoOperation(Code):
     """
@@ -68,9 +74,23 @@ class NoOperation(Code):
 
 
 class TaskTreeNode(anytree.NodeMixin):
-    """Refactoring of TaskTreeNode"""
+    """TaskTreeNode represents one function that was called during a pycram plan.
+    Additionally, meta information is stored.
 
-    def __init__(self, code: Code = NoOperation(), parent=None, children=None):
+    :ivar code: The function that was executed as Code object.
+    :ivar status: The status of the node from the TaskStatus enum.
+    :ivar start_time: The starting time of the function, optional
+    :ivar end_time: The ending time of the function, optional
+    """
+
+    def __init__(self, code: Code = NoOperation(), parent: Optional[TaskTreeNode] = None,
+                 children: Optional[List[TaskTreeNode]] = None):
+        """
+        Create a TaskTreeNode
+        :param code: The function and its arguments that got called as Code object, defaults to NoOperation()
+        :param parent: The parent function of this function. None if this the parent, optional
+        :param children: An iterable of TaskTreeNode with the ordered children, optional
+        """
         super().__init__()
         self.code: Code = code
         self.status: TaskStatus = TaskStatus.CREATED
@@ -83,13 +103,16 @@ class TaskTreeNode(anytree.NodeMixin):
 
     def __str__(self):
         return "Code: %s " \
-               "start_time: %s"\
-               "" % (str(self.code), self.start_time)
+               "start_time: %s" \
+               "Status: %s" \
+               "end_time: %s" \
+               "" % (str(self.code), self.start_time, self.status, self.end_time)
 
     def __repr__(self):
         return str(self.code)
 
     def __len__(self):
+        """Get the number of nodes that are in this subtree."""
         return 1 + sum([len(child) for child in self.children])
 
 
@@ -125,6 +148,8 @@ def reset_tree():
     # Reset task tree root to no operation
     global task_tree
     task_tree = TaskTreeNode(NoOperation())
+    task_tree.start_time = datetime.datetime.now()
+    task_tree.status = TaskStatus.RUNNING
 
 
 reset_tree()
