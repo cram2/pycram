@@ -10,7 +10,7 @@ from graphviz import Digraph
 from typing import List, Dict, Optional, Tuple, Callable, Any, Union
 from enum import Enum, auto
 
-import task
+import pycram.plan_failures
 from .bullet_world import BulletWorld
 import anytree
 import datetime
@@ -102,10 +102,10 @@ class TaskTreeNode(anytree.NodeMixin):
             self.children = children
 
     def __str__(self):
-        return "Code: %s " \
-               "start_time: %s" \
-               "Status: %s" \
-               "end_time: %s" \
+        return "Code: %s \n " \
+               "start_time: %s \n " \
+               "Status: %s \n " \
+               "end_time: %s \n " \
                "" % (str(self.code), self.start_time, self.status, self.end_time)
 
     def __repr__(self):
@@ -174,13 +174,13 @@ def with_tree(fun: Callable) -> Callable:
             task_tree.status = TaskStatus.CREATED
             task_tree.start_time = datetime.datetime.now()
             task_tree.code.execute()
-            task_tree.end_time = datetime.datetime.now()
             task_tree.status = TaskStatus.SUCCEEDED
 
-        except Exception as e:
+        except pycram.plan_failures.PlanFailure as e:
             logging.exception("Task execution failed at %s. Reason %s" % (str(task_tree.code), e))
             task_tree.status = TaskStatus.FAILED
 
+        task_tree.end_time = datetime.datetime.now()
         task_tree = task_tree.parent
 
     return handle_tree
