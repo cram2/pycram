@@ -88,6 +88,10 @@ class TestTaskTree(unittest.TestCase):
 
         self.tearDownBulletWorld()
 
+    def test_to_json(self):
+        """Test json serialization"""
+        pass
+
     def test_simulated_tree(self):
         self.setUpBulletWorld()
         with pycram.task.SimulatedTaskTree() as st:
