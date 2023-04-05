@@ -25,13 +25,13 @@ from .robot_descriptions.robot_description_handler import InitializedRobotDescri
 from typing import List, Optional, Dict, Tuple, Callable, Type
 
 
-
 class BulletWorld:
     """
     The BulletWorld Class represents the physics Simulation.
-    The Class variable 'current_bullet_world' always points to the latest initialized BulletWorld.
-    Every BulletWorld object holds the reference to the previous 'current_bullet_world' and if the 'exit' method
-    of this BulletWorld will be called the previous 'current_bullet_world' becomes the new 'current_bullet_world'.
+    The Class variable 'current_bullet_world' always points to the currently used BulletWorld, usually this is the
+    graphical one. However, if you are inside a Use_shadow_world() environment the current_bullet_world points to the
+    shadow world. In this way you can comfortably use the current_bullet_world which should point towards the BulletWorld
+    used at the moment.
     """
 
     current_bullet_world: BulletWorld = None
@@ -42,8 +42,8 @@ class BulletWorld:
         """
         The constructor initializes a new simulation. The parameter decides if the Simulation should be graphical or
         non-graphical. It can only exist one graphical simulation at the time, but an arbitrary amount of non-graphical.
-
         The BulletWorld object also initializes the Events for attachment, detachment and for manipulating the world.
+
         :param type: Can either be "GUI" for graphical or "DIRECT" for non-graphical. The default parameter is "GUI"
         """
         self.objects: List[Object] = []
@@ -76,12 +76,30 @@ class BulletWorld:
             plane = Object("floor", "environment", "plane.urdf", world=self)
 
     def get_objects_by_name(self, name: str) -> List[Object]:
+        """
+        Returns a list of all Objects in this BulletWorld with the same name as the given one.
+
+        :param name: The name of the Objects that should be returned.
+        :return: A list of all Objects with the name 'name'.
+        """
         return list(filter(lambda obj: obj.name == name, self.objects))
 
     def get_objects_by_type(self, obj_type: str) -> List[Object]:
+        """
+        Returns a list of all Objects which have the type 'obj_type'.
+
+        :param obj_type: The type of Objects that should be returned.
+        :return: A list of all Objects that have the type 'obj_type'.
+        """
         return list(filter(lambda obj: obj.type == obj_type, self.objects))
 
     def get_object_by_id(self, id: int) -> Object:
+        """
+        Returns the single Object that has the unique id.
+
+        :param id: The unique id for which the Object should be returned.
+        :return: The Object with the id 'id'.
+        """
         return list(filter(lambda obj: obj.id == id, self.objects))[0]
 
     def get_attachment_event(self) -> Event:
@@ -94,15 +112,39 @@ class BulletWorld:
         return self.manipulation_event
 
     def set_realtime(self, real_time: bool) -> None:
+        """
+        Enables the real time simulation of Physic in the BulletWorld. By default this is disabled and Physic is only
+        simulated to reason about it.
+
+        :param real_time: Whether the BulletWorld should simulate Physic in real time.
+        :return: None
+        """
         p.setRealTimeSimulation(1 if real_time else 0, self.client_id)
 
     def set_gravity(self, velocity: List[float]) -> None:
+        """
+        Sets the gravity that is used in the BullteWorld, by default the is the gravity on earth ([0, 0, -9.8]). Gravity
+        is given as a vector in x,y,z. Gravity is only applied while simulating Physic.
+
+        :param velocity: The gravity vector that should be used in the BulletWorld.
+        :return: None
+        """
         p.setGravity(velocity[0], velocity[1], velocity[2], physicsClientId=self.client_id)
 
     def set_robot(self, robot: Object) -> None:
         BulletWorld.robot = robot
 
     def simulate(self, seconds: float, real_time: Optional[float] = False) -> None:
+        """
+        Simulates Physic in the BulletWorld for a given amount of seconds. Usually this simulation is faster than real
+        time, meaning you can simulate for example 10 seconds of Physic in the BulletWorld in 1 second real time. By
+        setting the 'real_time' parameter this simulation is slowed down such that the simulated time is equal to real
+        time.
+
+        :param seconds: The amount of seconds that should be simulated.
+        :param real_time: If the simulation should happen in real time or faster.
+        :return: None
+        """
         for i in range(0, int(seconds * 240)):
             p.stepSimulation(self.client_id)
             for objects, callback in self.coll_callbacks.items():
@@ -171,6 +213,7 @@ class BulletWorld:
         """
         Copies this Bullet World into another and returns it. The other BulletWorld
         will be in Direct mode.
+
         :return: The reference to the new BulletWorld
         """
         world = BulletWorld("DIRECT")
@@ -186,6 +229,7 @@ class BulletWorld:
         Creates a Visual object which represents the coordinate frame at the given
         position and orientation. There can only be one vis axis at a time. If this
         method is called again the previous visualization will be deleted.
+
         :param position_and_orientation: The position as vector of x,y,z and the
         orientation as a quanternion
         :param length: Optional parameter to configure the length of the axes
@@ -226,6 +270,7 @@ class BulletWorld:
         """
         This function regsiters can register two callbacks, one if objectA and objectB are in contact
         and another if they are not in contact.
+
         :param A: An object in the BulletWorld
         :param B: Another object in the BulletWorld
         :param callback_collision: A function that should be called if the obejcts are in contact
@@ -239,6 +284,7 @@ class BulletWorld:
     def get_shadow_object(self, object: Object) -> Object:
         """
         Returns the corresponding object from the shadow world for the given object.
+
         :param object: The object for which the shadow worlds object should be returned.
         :return: The corresponding object in the shadow world.
         """
@@ -254,6 +300,7 @@ class BulletWorld:
         Returns the corresponding object from the main Bullet World for a given
         object in the shadow world. If the  given object is not in the shadow
         world an error will be logged.
+
         :param object: The object for which the corresponding object in the
             main Bullet World should be found
         :return: The object in the main Bullet World
@@ -410,6 +457,7 @@ class Object:
         'current_bullet_world' will be used. It is also possible to load .obj and .stl file into the BulletWorld.
         The color parameter takes the color as rgba. This is only used when spawning .obj or .stl files and will be
         ignored for .urdf files.
+
         :param name: The name of the object
         :param type; The type of the object
         :param path: The path to the source file, it can be either .urdf, .obj or .stl
@@ -468,6 +516,7 @@ class Object:
         Furthermore, a constraint of pybullet will be created so the attachment
         also works in the simulation.
         Loose attachments means that the attachment will only be one-directional
+
         :param object: The other object that should be attached
         :param link: The link of this obejct to which the other object should be
         :param loose: If the attachment should be a loose attachment.
@@ -492,6 +541,7 @@ class Object:
         and deleting the constraint of pybullet.
         After the detachment the detachment event of the
         corresponding BulletWorld w:ill be fired.
+
         :param object: The object which should be detached
         """
         del self.attachments[object]
@@ -506,6 +556,7 @@ class Object:
     def detach_all(self) -> None:
         """
         Detach all objects attached to this object.
+
         :return:
         """
         attachments = self.attachments.copy()
@@ -535,6 +586,7 @@ class Object:
         base pose of the attached objects to this new pose.
         After this the _set_attached_objects method of all attached objects
         will be called.
+
         :param prev_object: The object that called this method, this will be
         excluded to prevent recursion in the update.
         """
@@ -565,6 +617,7 @@ class Object:
         """
         This method calculates the transformation between another object and the given
         link of this object. If no link is provided then the base position will be used.
+
         :param obj: The other object for which the transformation should be calculated
         :param link: The optional link name
         :return: The transformation from the link (or base position) to the other objects
@@ -655,6 +708,7 @@ class Object:
         Changes the color of this object, the color has to be given as a list
         of RGBA values. Optionaly a link name can can be provided, if no link
         name is provided all links of this object will be colored.
+
         :param color: The color as RGBA values between 0 and 1
         :param link: The link name of the link which should be colored
         """
@@ -680,6 +734,7 @@ class Object:
                 object is spawned.
         If a link is specified then the return is a list with RGBA values representing the color of this link.
         It may be that this link has no color, in this case the return is None as well as an error message.
+
         :param link: the link name for which the color should be returned.
         :return: The color of the object or link, or a dictionary containing every colored link with its color
 
@@ -707,7 +762,12 @@ class Object:
 
     def get_AABB(self, link_name: Optional[str] = None) -> Tuple[List[float], List[float]]:
         """
-        Returns the axis aligned bounding box of the given link name
+        Returns the axis aligned bounding box of this object, optionally a link name can be provided in this case
+        the axis aligned bounding box of the link will be returned. The return of this method are two points in
+        world coordinate frame which define a bounding box.
+
+        :param link_name: The Optional name of a link of this object.
+        :return: Two lists of x,y,z which define the bouning box.
         """
         if link_name:
             return p.getAABB(self.id, self.links[link_name], self.world.client_id)
@@ -718,8 +778,9 @@ class Object:
         """
         Returns the lower and upper limit of a joint, if the lower limit is higher
         than the upper they are swaped to ensure the lower limit is always the smaller one.
-        :param joint: The name of the joint for which the limits should be found
-        :return: The lower and upper limit of the joint
+
+        :param joint: The name of the joint for which the limits should be found.
+        :return: The lower and upper limit of the joint.
         """
         if joint not in self.joints.keys():
             raise KeyError(f"The given Joint: {joint} is not part of this object")
@@ -735,6 +796,14 @@ def filter_contact_points(contact_points, exclude_ids) -> List:
 
 
 def get_path_from_data_dir(file_name: str, data_directory: str) -> str:
+    """
+    Returns the full path for a given file name in the given directory. If there is no file with the given filename
+    this method returns None.
+
+    :param file_name: The filename of the searched file.
+    :param data_directory: The directory in which to search for the file.
+    :return: The full path in the filesystem or None if there is no file with the filename in the directory
+    """
     dir = pathlib.Path(data_directory)
     for file in os.listdir(data_directory):
         if file == file_name:
@@ -742,6 +811,12 @@ def get_path_from_data_dir(file_name: str, data_directory: str) -> str:
 
 
 def _get_robot_name_from_urdf(urdf_string: str) -> str:
+    """
+    This Method extracts the robot name from the 'robot_name' tag of a URDF.
+
+    :param urdf_string: The URDF as string.
+    :return: The name of the robot described by the URDF.
+    """
     res = re.findall(r"robot\ *name\ *=\ *\"\ *[a-zA-Z_0-9]*\ *\"", urdf_string)
     if len(res) == 1:
         begin = res[0].find("\"")
@@ -765,12 +840,14 @@ def _load_object(name: str,
     When spawning a .urdf file a new file will be created in the cache directory, if there exists none.
     This new file will have resolved mesh file paths, meaning there will be no resferences
     to ROS packges instead there will be absolute file paths.
+
     :param name: The name of the object which should be spawned
     :param path: The path to the source file or the name on the ROS parameter server
     :param position: The position in which the object should be spawned
     :param orientation: The orientation in which the object should be spawned
     :param world: The BulletWorld to which the Object should be spawned
     :param color: The color of the object, only used when .obj or .stl file is given
+    :param ignoreCachedFiles: Whether to ignore files in the cache directory.
     :return: The unique id of the object
     """
     pa = pathlib.Path(path)
@@ -831,6 +908,7 @@ def _is_cached(path: str, name: str, cach_dir: str) -> bool:
     This method checks if the file in the given path is already cached or if
     there is already a cached file with the given name, this is the case if a .stl,
     .obj file or a descriotion from the parameter server is used.
+
     :param path The path given by the user to the source file.
     :param name The name for this object.
     :param cach_dir The absolute path the the cach directory in the pycram package.
@@ -853,6 +931,7 @@ def _correct_urdf_string(urdf_string: str) -> str:
     This method gets the name of a urdf description and feteches it from the ROS
     parameter server. Afterwards the URDF will be traversed and references to ROS packages
     will be replaced with the absolute path in the filesystem.
+
     :param urdf_name: The name of the URDf on the parameter server
     :return: The URDF string with paths in the filesystem instead of ROS packages
     """
@@ -874,6 +953,7 @@ def _generate_urdf_file(name: str, path: str, color: List[float], cach_dir: str)
     This method generates an .urdf file with the given .obj or .stl file as mesh. In addition the given color will be
     used to crate a material tag in the URDF. The resulting file will then be saved in the cach_dir path with the name
     as filename.
+
     :param name: The name of the object
     :param path: The path to the .obj or .stl file
     :param color: The color which should be used for the material tag
@@ -910,6 +990,7 @@ def _generate_urdf_file(name: str, path: str, color: List[float], cach_dir: str)
 def _world_and_id(world: BulletWorld) -> Tuple[BulletWorld, int]:
     """
     This method selects the world to be used. If the given world is None the 'current_bullet_world' is used.
+    
     :param world: The world which should be used or None if 'current_bullet_world' should be used
     :return: The BulletWorld object and the id of this BulletWorld
     """
