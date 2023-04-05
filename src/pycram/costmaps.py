@@ -358,8 +358,10 @@ class OccupancyCostmap(Costmap):
         i = 0
         j = 0
         for n in self._chunks(np.array(rays), 16383):
-            r_t = p.rayTestBatch(n[:,0], n[:,1],numThreads=-1)
-            time.sleep(0.1)
+            r_t = p.rayTestBatch(n[:,0], n[:,1],numThreads=0)
+            #time.sleep(0.1)
+            if r_t == None:
+                r_t = p.rayTestBatch(n[:,0], n[:,1],numThreads=0)
             j += len(n)
             if BulletWorld.robot:
                 res[i:j] = [1 if ray[0] == -1 or ray[0] == BulletWorld.robot.id else 0 for ray in r_t]
