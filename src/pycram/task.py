@@ -1,14 +1,15 @@
-"""Implementation of TaskTrees."""
+"""Implementation of TaskTrees using anytree."""
 
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
 import inspect
+import json
+
 import pybullet
 
-from graphviz import Digraph
-from typing import List, Dict, Optional, Tuple, Callable, Any, Union
-from enum import Enum, auto
+from typing import List, Dict, Optional, Callable, Any
+from enum import Enum
 
 import pycram.plan_failures
 from .bullet_world import BulletWorld
@@ -29,7 +30,10 @@ class TaskStatus(Enum):
 
 class Code:
     """
-    Represent an executed code block in a plan.
+    Executable code block in a plan.
+
+    :ivar function: The function (plan) that was called
+    :ivar kwargs: Dictionary holding the keyword arguments of the function
     """
     def __init__(self, function: Optional[Callable] = None,
                  kwargs: Optional[Dict] = None):
@@ -42,7 +46,7 @@ class Code:
 
         if kwargs is None:
             kwargs = dict()
-        self.kwargs: Dict = kwargs
+        self.kwargs: Dict[str, Any] = kwargs
 
     def execute(self) -> Any:
         return self.function(**self.kwargs)
@@ -57,7 +61,26 @@ class Code:
 
     def to_json(self) -> Dict:
         """Create a dictionary that can be json serialized."""
-        return {"function": self.function.__name__, "kwargs": self.kwargs}
+        return {"function": self.function.__name__, "kwargs": self.kwargs_to_json()}
+
+    def kwargs_to_json(self):
+        """Try to parse the keyword arguments to json. Checks if the objects given as arguments can be serialized
+        as standard object or have a to_json method. If not they are skipped. """
+        result = dict()
+        for keyword, argument in self.kwargs.items():
+            to_json_method = getattr(argument, 'to_json', None)
+
+            if to_json_method:
+                result[keyword] = argument.to_json()
+
+            else:
+                try:
+                    argument_ = json.loads(json.dumps(argument))
+                    result[keyword] = argument_
+                except (TypeError, OverflowError):
+                    logging.warning("Object of type %s cannot be JSON serialized. Skipping..." % type(argument))
+
+        return result
 
 
 class NoOperation(Code):
@@ -101,6 +124,15 @@ class TaskTreeNode(anytree.NodeMixin):
         if children:
             self.children = children
 
+    def to_json(self):
+        return {"code": self.code.to_json(),
+                "status": self.status.name,
+                "start_time": self.start_time.isoformat() if self.start_time else None,
+                "end_time": self.end_time.isoformat() if self.end_time else None,
+                "id": id(self),
+                "parent_id": id(self.parent) if self.parent else None
+                }
+
     def __str__(self):
         return "Code: %s \n " \
                "start_time: %s \n " \
@@ -120,7 +152,8 @@ class SimulatedTaskTree:
     """TaskTree for execution in a 'new' simulation."""
 
     def __enter__(self):
-        """ At the beginning"""
+        """At the beginning of a with statement the current task tree and bullet world will be suspended and remembered.
+        Fresh structures are then available inside the with statement."""
         global task_tree
 
         def simulation(): return None
@@ -134,18 +167,24 @@ class SimulatedTaskTree:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        Restore the old state at the end of a with block.
+        """
         global task_tree
         task_tree = self.suspended_tree
         BulletWorld.current_bullet_world.restore_state(self.world_state, self.objects2attached)
         pybullet.removeAllUserDebugItems()
 
 
-# initialize task tree
-task_tree = None
+task_tree: Optional[TaskTreeNode] = None
+"""Current TaskTreeNode"""
 
 
 def reset_tree():
-    # Reset task tree root to no operation
+    """
+    Reset the current task tree to an empty root (NoOperation) node.
+    :return:
+    """
     global task_tree
     task_tree = TaskTreeNode(NoOperation())
     task_tree.start_time = datetime.datetime.now()
@@ -170,16 +209,23 @@ def with_tree(fun: Callable) -> Callable:
 
         task_tree = TaskTreeNode(code, parent=task_tree)
 
+        # Try to execute the task
         try:
             task_tree.status = TaskStatus.CREATED
             task_tree.start_time = datetime.datetime.now()
             task_tree.code.execute()
+
+            # if it succeeded set the flag
             task_tree.status = TaskStatus.SUCCEEDED
 
+        # iff a PlanFailure occurs
         except pycram.plan_failures.PlanFailure as e:
+
+            # log the error and set the flag
             logging.exception("Task execution failed at %s. Reason %s" % (str(task_tree.code), e))
             task_tree.status = TaskStatus.FAILED
 
+        # set and time and update current node pointer
         task_tree.end_time = datetime.datetime.now()
         task_tree = task_tree.parent
 

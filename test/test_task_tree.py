@@ -66,7 +66,24 @@ class TestTaskTree(test_bullet_world.BulletWorldTest):
 
     def test_to_json(self):
         """Test json serialization"""
-        pass
+        self.plan()
+        tt = pycram.task.task_tree
+
+        root_json = tt.root.to_json()
+        self.assertEqual(root_json["code"]["function"], "no_operation")
+        self.assertEqual(root_json["code"]["kwargs"], dict())
+        self.assertEqual(root_json["status"], "RUNNING")
+        self.assertEqual(root_json["end_time"], None)
+        self.assertEqual(root_json["parent_id"], None)
+
+        plan_json = tt.root.children[0].to_json()
+        self.assertEqual(plan_json["code"]["function"], "plan")
+        self.assertEqual(plan_json["status"], "SUCCEEDED")
+        self.assertEqual(plan_json["parent_id"], id(tt.root))
+
+        move_json = tt.root.children[0].children[1].to_json()
+        self.assertEqual(move_json["code"]["function"], "navigate")
+        self.assertEqual(move_json["code"]["kwargs"]["target"], [0.7199999690055847, 1.0399999618530273, 0.0])
 
     def test_simulated_tree(self):
         with pycram.task.SimulatedTaskTree() as st:
