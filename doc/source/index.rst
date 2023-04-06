@@ -108,7 +108,8 @@ Authors
    :caption: Contents:
 
    installation
-
+   task_trees
+   remarks
 
 
 Indices and tables
