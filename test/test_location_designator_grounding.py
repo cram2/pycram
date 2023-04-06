@@ -1,16 +1,27 @@
+import unittest
 from unittest import TestCase
 
 import numpy as np
+import rosservice
 
-from src.pycram.external_interfaces import knowrob
-from src.pycram.designators.location_designator import ObjectRelativeLocationDesignatorDescription, LocationDesignator, \
+from pycram.external_interfaces import knowrob
+from pycram.designators.location_designator import ObjectRelativeLocation, LocationDesignator, \
     LocationDesignatorDescription
-from src.pycram.designators.object_designator import LocatedObjectDesignatorDescription, ObjectDesignator
-from pycram.resolver import location_designator_grounding     # do not remove
-from pycram.resolver import object_designator_grounding   # do not remove
+from pycram.designators.object_designator import LocatedObject, ObjectDesignator
+# from pycram.resolver import location_designator_grounding     # do not remove
+# from pycram.resolver import object_designator_grounding   # do not remove
 
+knowrob_available = 'rosprolog/query' in rosservice.get_service_list()
+
+
+@unittest.skipIf(not knowrob_available, "KnowRob is unavailable.")
 class TestLocationDesignatorGrounding(TestCase):
+
     def setUp(self) -> None:
+
+        if not knowrob_available:
+            return
+
         knowrob.clear_beliefstate()
         knowrob.once("""
             kb_project([is_individual(object1), instance_of(object1, objectType)]),
@@ -42,3 +53,7 @@ class TestLocationDesignatorGrounding(TestCase):
         sol = desig.reference()
         pose_world = sol["pose"]
         self.assertTrue(np.allclose(np.array(pose_world), np.array([1.0, 2.0, 3.0, 0.0, 0.0, 0.0, 1.0])))
+
+
+if __name__ == "__main__":
+    unittest.main()
