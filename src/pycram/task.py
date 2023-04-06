@@ -180,10 +180,9 @@ task_tree: Optional[TaskTreeNode] = None
 """Current TaskTreeNode"""
 
 
-def reset_tree():
+def reset_tree() -> None:
     """
     Reset the current task tree to an empty root (NoOperation) node.
-    :return:
     """
     global task_tree
     task_tree = TaskTreeNode(NoOperation())
