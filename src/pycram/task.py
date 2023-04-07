@@ -50,6 +50,11 @@ class Code:
         self.kwargs: Dict[str, Any] = kwargs
 
     def execute(self) -> Any:
+        """
+        Execute the code with its arguments
+
+        :returns: Anything that the function associated with this object will return.
+        """
         return self.function(**self.kwargs)
 
     def __str__(self) -> str:
@@ -149,10 +154,11 @@ class TaskTreeNode(anytree.NodeMixin):
         return 1 + sum([len(child) for child in self.children])
 
     def to_sql(self) -> pycram.orm.task.TaskTreeNode:
-        instance = pycram.orm.task.TaskTreeNode()
-        instance.id = id(self)
-        instance.start_time = self.start_time
-        return instance
+        """Convert this object to the corresponding object in the pycram.orm package.
+
+        :returns:  corresponding pycram.orm.task.TaskTreeNode object
+        """
+        return pycram.orm.task.TaskTreeNode(self.start_time, self.end_time, self.status.name, id(self.parent))
 
 
 class SimulatedTaskTree:
