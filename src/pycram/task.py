@@ -12,6 +12,7 @@ from typing import List, Dict, Optional, Callable, Any
 from enum import Enum
 
 import pycram.plan_failures
+import pycram.orm.task
 from .bullet_world import BulletWorld
 import anytree
 import datetime
@@ -146,6 +147,12 @@ class TaskTreeNode(anytree.NodeMixin):
     def __len__(self):
         """Get the number of nodes that are in this subtree."""
         return 1 + sum([len(child) for child in self.children])
+
+    def to_sql(self) -> pycram.orm.task.TaskTreeNode:
+        instance = pycram.orm.task.TaskTreeNode()
+        instance.id = id(self)
+        instance.start_time = self.start_time
+        return instance
 
 
 class SimulatedTaskTree:
