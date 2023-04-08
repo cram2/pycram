@@ -32,14 +32,15 @@ class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
         self.session.close()
 
     def test_node(self):
+        """Test if the number of rows in the node table is equal to the task tree size"""
         self.plan()
-        for node in anytree.PreOrderIter(pycram.task.task_tree.root):
-            node_ = node.to_sql()
-            self.session.add(node_)
-        self.session.commit()
-        results = self.session.query(pycram.orm.task.TaskTreeNode).all()
-        print(results)
-        self.assertEqual(len(results), len(pycram.task.task_tree.root))
+        pycram.task.task_tree.root.insert(self.session)
+        node_results = self.session.query(pycram.orm.task.TaskTreeNode).all()
+        code_results = self.session.query(pycram.orm.task.Code).all()
+        self.assertEqual(len(node_results), len(pycram.task.task_tree.root))
+        print(*code_results)
+        self.assertEqual(len(code_results), len(pycram.task.task_tree.root))
+
 
     @classmethod
     def TearDownClass(cls):
