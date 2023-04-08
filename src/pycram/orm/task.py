@@ -9,19 +9,29 @@ class TaskTreeNode(Base):
     """ORM equivalent of pycram.task.TaskTreeNode."""
 
     __tablename__ = "TaskTreeNode"
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    start_time: Mapped[datetime.datetime]
-    end_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
-    status: Mapped[str]
-    parent: Mapped["TaskTreeNode"] = mapped_column(sqlalchemy.ForeignKey("TaskTreeNode.id",), nullable=True)
+    id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
+    code = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Code.id"))
+    start_time = sqlalchemy.Column(sqlalchemy.types.DateTime)
+    end_time = sqlalchemy.Column(sqlalchemy.types.DateTime, nullable=True)
+    status = sqlalchemy.Column(sqlalchemy.types.String)
+    parent = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("TaskTreeNode.id"), nullable=True)
 
-
-    def __init__(self, start_time: datetime.datetime, end_time: datetime.datetime, status, parent):
+    def __init__(self, code: int = None, start_time: datetime.datetime = None, end_time: datetime.datetime = None,
+                 status: str = None, parent: int = None):
         super().__init__()
+        self.code = code
         self.status = status
         self.start_time = start_time
         self.end_time = end_time
         self.parent = parent
 
-    def __repr__(self):
-        return f"{self.id}, {self.start_time}, {self.end_time}, {self.status}"
+
+class Code(Base):
+
+    __tablename__ = "Code"
+    id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
+    function = sqlalchemy.Column(sqlalchemy.types.String)
+
+    def __init__(self, function: str = None):
+        super().__init__()
+        self.function = function

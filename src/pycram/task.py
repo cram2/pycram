@@ -11,6 +11,8 @@ import pybullet
 from typing import List, Dict, Optional, Callable, Any
 from enum import Enum
 
+import sqlalchemy.orm.session
+
 import pycram.plan_failures
 import pycram.orm.task
 from .bullet_world import BulletWorld
@@ -88,6 +90,15 @@ class Code:
 
         return result
 
+    def to_sql(self) -> pycram.orm.task.Code:
+        return pycram.orm.task.Code(self.function.__name__)
+
+    def insert(self, session: sqlalchemy.orm.session.Session) -> pycram.orm.task.Code:
+        code = self.to_sql()
+        session.add(code)
+        session.commit()
+        return code
+
 
 class NoOperation(Code):
     """
@@ -158,7 +169,40 @@ class TaskTreeNode(anytree.NodeMixin):
 
         :returns:  corresponding pycram.orm.task.TaskTreeNode object
         """
-        return pycram.orm.task.TaskTreeNode(self.start_time, self.end_time, self.status.name, id(self.parent))
+        return pycram.orm.task.TaskTreeNode(None, self.start_time, self.end_time, self.status.name,
+                                            id(self.parent) if self.parent else None)
+
+    def insert(self, session: sqlalchemy.orm.session.Session, recursive: bool = True,
+               parent_id: Optional[int] = None) -> pycram.orm.task.TaskTreeNode:
+        """
+        Insert this node into the database.
+
+        :param session: The current session with the database.
+        :param recursive: Rather if the entire tree should be inserted or just this node, defaults to True
+        :param parent_id: The primary key of the parent node, defaults to None
+
+        :return: The ORM object that got inserted
+        """
+
+        # insert code
+        code = self.code.insert(session)
+
+        # convert self to orm object
+        node = self.to_sql()
+        node.code = code.id
+
+        # set parent to id from constructor
+        node.parent = parent_id
+
+        # add the node to database to retrieve the new id
+        session.add(node)
+        session.commit()
+
+        # if recursive, insert all children
+        if recursive:
+            [child.insert(session, recursive, node.id) for child in self.children]
+
+        return node
 
 
 class SimulatedTaskTree:
