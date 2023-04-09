@@ -1,6 +1,5 @@
 """Implementation of ORM classes associated with pycram.task."""
 import sqlalchemy
-from sqlalchemy.orm import *
 from .base import Base
 import datetime
 
@@ -27,10 +26,12 @@ class TaskTreeNode(Base):
 
 
 class Code(Base):
+    """ORM equivalent of pycram.task.Code."""
 
     __tablename__ = "Code"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
     function = sqlalchemy.Column(sqlalchemy.types.String)
+    kwargs = sqlalchemy.Column(sqlalchemy.types.Integer, nullable=True)
 
     def __init__(self, function: str = None):
         super().__init__()

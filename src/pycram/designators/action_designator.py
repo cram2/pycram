@@ -16,10 +16,14 @@ __all__ = ["ActionDesignator",
            "CloseAction"]
 
 from typing import List
+import sqlalchemy.orm
+import pycram.orm.action_designator
+import pycram.orm.base
 
 
 class ActionDesignator: # (Designator):
     resolver = {}
+
     def __init__(self, description):
         self.description = description
 
@@ -27,7 +31,6 @@ class ActionDesignator: # (Designator):
         resolver = ActionDesignator.resolver[self.description.resolver]
         solution = resolver(self)
         return solution
-
 
     def perform(self):
         #desc = self.description.ground()
@@ -37,16 +40,25 @@ class ActionDesignator: # (Designator):
     def __call__(self, *args, **kwargs):
         return self.perform()
 
+    def to_sql(self) -> pycram.orm.base.Base:
+        raise NotImplementedError(f"{type(self)} has no implementation of to_sql.")
+
+    def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> pycram.orm.base.Base:
+        raise NotImplementedError(f"{type(self)} has no implementation of insert.")
+
+
 class ActionDesignatorDescription:
     function = None
 
     def ground(self):
         return self
 
+
 class MoveTorsoAction(ActionDesignatorDescription):
     def __init__(self, position, resolver="grounding"):
         self.position = position
         self.resolver = resolver
+
 
 class SetGripperAction(ActionDesignatorDescription):
     def __init__(self, gripper, opening, resolver="grounding"):
@@ -54,12 +66,14 @@ class SetGripperAction(ActionDesignatorDescription):
         self.opening = opening
         self.resolver = resolver
 
+
 # No resolving structure
 class ReleaseAction(ActionDesignatorDescription):
     def __init__(self, gripper, object_designator=None, resolver="grounding"):
         self.gripper = gripper
         self.object_designator = object_designator
         self.resolver = resolver
+
 
 # This Action can not be resolved, beacuse there is no resolving structure. And
 # Just from the name it is not clear what it should do
@@ -70,6 +84,8 @@ class GripAction(ActionDesignatorDescription):
         self.effort = effort
         self.grasped_object = None
         self.resolver = resolver
+
+
 # No Resolving Structure
 class MoveArmsIntoConfigurationAction(ActionDesignatorDescription):
     def __init__(self, left_configuration=None, right_configuration=None, resolver="grounding"):
@@ -78,6 +94,8 @@ class MoveArmsIntoConfigurationAction(ActionDesignatorDescription):
         self.left_joint_states = {}
         self.right_joint_states = {}
         self.resolver = resolver
+
+
 # No Resolving structure
 class MoveArmsInSequenceAction(ActionDesignatorDescription):
     def __init__(self, left_trajectory : List = [], right_trajectory : List = [], resolver="grounding"):
@@ -85,10 +103,20 @@ class MoveArmsInSequenceAction(ActionDesignatorDescription):
         self.right_trajectory = right_trajectory
         self.resolver = resolver
 
+
 class ParkArmsAction(ActionDesignatorDescription):
     def __init__(self, arm, resolver="grounding"):
         self.arm = arm
         self.resolver = resolver
+
+    def to_sql(self) -> pycram.orm.action_designator.ParkArmsDesignator:
+        return pycram.orm.action_designator.ParkArmsDesignator(self.arm.name)
+
+    def insert(self, session: sqlalchemy.orm.session.Session) -> pycram.orm.action_designator.ParkArmsDesignator:
+        action = self.to_sql()
+        session.add(action)
+        session.commit()
+        return action
 
 class PickUpAction(ActionDesignatorDescription):
     def __init__(self, object_designator, arm=None, grasp=None, resolver="grounding"):
@@ -107,6 +135,7 @@ class PickUpAction(ActionDesignatorDescription):
         # self.left_lift_poses = []
         # self.right_lift_poses = []
 
+
 class PlaceAction(ActionDesignatorDescription):
     def __init__(self, object_designator, target_location, arm=None, resolver="grounding"):
         self.object_designator = object_designator
@@ -122,11 +151,13 @@ class PlaceAction(ActionDesignatorDescription):
         # self.left_retract_poses = []
         # self.right_retract_poses = []
 
+
 class NavigateAction(ActionDesignatorDescription):
     def __init__(self, target_position, target_orientation=None, resolver="grounding"):
         self.target_position = target_position
         self.target_orientation = target_orientation
         self.resolver = resolver
+
 
 class TransportAction(ActionDesignatorDescription):
     def __init__(self, object_designator, arm, target_location, resolver="grounding"):
@@ -135,15 +166,18 @@ class TransportAction(ActionDesignatorDescription):
         self.target_location = target_location
         self.resolver = resolver
 
+
 class LookAtAction(ActionDesignatorDescription):
     def __init__(self, target, resolver="grounding"):
         self.target = target
         self.resolver = resolver
 
+
 class DetectAction(ActionDesignatorDescription):
     def __init__(self, object_designator, resolver="grounding"):
         self.object_designator = object_designator
         self.resolver = resolver
+
 
 class OpenAction(ActionDesignatorDescription):
     def __init__(self, object_designator, arm, distance=None, resolver="grounding"):
@@ -151,6 +185,7 @@ class OpenAction(ActionDesignatorDescription):
         self.arm = arm
         self.distance = distance
         self.resolver = resolver
+
 
 class CloseAction(ActionDesignatorDescription):
     def __init__(self, object_designator, arm, resolver="grounding"):
