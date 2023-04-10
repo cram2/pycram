@@ -187,7 +187,6 @@ class NavigateAction(ActionDesignatorDescription):
         return navigate_action
 
 
-
 class TransportAction(ActionDesignatorDescription):
     def __init__(self, object_designator, arm, target_location, resolver="grounding"):
         self.object_designator = object_designator

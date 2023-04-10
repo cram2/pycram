@@ -26,11 +26,13 @@ class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
         cls.engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=True)
 
     def setUp(self):
+        super().setUp()
         pycram.orm.base.Base.metadata.create_all(self.engine)
         self.session = sqlalchemy.orm.Session(bind=self.engine)
         self.session.commit()
 
     def tearDown(self):
+        super().tearDown()
         self.session.close()
 
     def test_node(self):
@@ -61,6 +63,7 @@ class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
 
     @classmethod
     def TearDownClass(cls):
+        super().TearDownClass()
         pycram.orm.base.Base.metadata.drop_all(cls.engine)
         cls.session.commit()
 
