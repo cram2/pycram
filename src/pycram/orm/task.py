@@ -33,7 +33,7 @@ class Code(Base):
     __tablename__ = "Code"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
     function = sqlalchemy.Column(sqlalchemy.types.String)
-    designator = sqlalchemy.Column(sqlalchemy.types.Integer, nullable=True)
+    designator = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), nullable=True)
 
     def __init__(self, function: str = None, designator: Optional[int] = None):
         super().__init__()
