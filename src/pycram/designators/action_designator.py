@@ -18,7 +18,7 @@ __all__ = ["ActionDesignator",
 from typing import List
 import sqlalchemy.orm
 import pycram.orm.action_designator
-import pycram.orm.base
+from pycram.orm.base import Base
 
 
 class ActionDesignator: # (Designator):
@@ -109,14 +109,15 @@ class ParkArmsAction(ActionDesignatorDescription):
         self.arm = arm
         self.resolver = resolver
 
-    def to_sql(self) -> pycram.orm.action_designator.ParkArmsDesignator:
-        return pycram.orm.action_designator.ParkArmsDesignator(self.arm.name)
+    def to_sql(self) -> pycram.orm.action_designator.ParkArmsAction:
+        return pycram.orm.action_designator.ParkArmsAction(self.arm.name)
 
-    def insert(self, session: sqlalchemy.orm.session.Session) -> pycram.orm.action_designator.ParkArmsDesignator:
+    def insert(self, session: sqlalchemy.orm.session.Session) -> pycram.orm.action_designator.ParkArmsAction:
         action = self.to_sql()
         session.add(action)
         session.commit()
         return action
+
 
 class PickUpAction(ActionDesignatorDescription):
     def __init__(self, object_designator, arm=None, grasp=None, resolver="grounding"):
@@ -157,6 +158,34 @@ class NavigateAction(ActionDesignatorDescription):
         self.target_position = target_position
         self.target_orientation = target_orientation
         self.resolver = resolver
+
+    def to_sql(self) -> pycram.orm.action_designator.NavigateAction:
+        return pycram.orm.action_designator.NavigateAction()
+
+    def insert(self, session) -> pycram.orm.action_designator.NavigateAction:
+
+        # initialize position and orientation
+        position = pycram.orm.base.Position(*self.target_position)
+        orientation = pycram.orm.base.Quaternion(*self.target_orientation)
+
+        # add those to the database and get the primary keys
+        session.add(position)
+        session.add(orientation)
+        session.commit()
+
+        # create the navigate action orm object
+        navigate_action = self.to_sql()
+
+        # set foreign keys
+        navigate_action.position = position.id
+        navigate_action.orientation = orientation.id
+
+        # add it to the db
+        session.add(navigate_action)
+        session.commit()
+
+        return navigate_action
+
 
 
 class TransportAction(ActionDesignatorDescription):
