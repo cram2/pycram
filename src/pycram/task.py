@@ -13,8 +13,9 @@ from enum import Enum
 
 import sqlalchemy.orm.session
 
-import pycram.plan_failures
-import pycram.orm.task
+import plan_failures
+import orm.task
+
 import pycram.designators.action_designator
 from .bullet_world import BulletWorld
 import anytree
@@ -38,6 +39,7 @@ class Code:
 
     :ivar function: The function (plan) that was called
     :ivar kwargs: Dictionary holding the keyword arguments of the function
+    :ivar designator: The designator description if it exists, defaults to None
     """
     def __init__(self, function: Optional[Callable] = None,
                  kwargs: Optional[Dict] = None,
@@ -99,10 +101,10 @@ class Code:
 
         return result
 
-    def to_sql(self) -> pycram.orm.task.Code:
-        return pycram.orm.task.Code(self.function.__name__)
+    def to_sql(self) -> orm.task.Code:
+        return orm.task.Code(self.function.__name__)
 
-    def insert(self, session: sqlalchemy.orm.session.Session) -> pycram.orm.task.Code:
+    def insert(self, session: sqlalchemy.orm.session.Session) -> orm.task.Code:
         code = self.to_sql()
 
         # set foreign key to designator if present
@@ -179,16 +181,16 @@ class TaskTreeNode(anytree.NodeMixin):
         """Get the number of nodes that are in this subtree."""
         return 1 + sum([len(child) for child in self.children])
 
-    def to_sql(self) -> pycram.orm.task.TaskTreeNode:
+    def to_sql(self) -> orm.task.TaskTreeNode:
         """Convert this object to the corresponding object in the pycram.orm package.
 
         :returns:  corresponding pycram.orm.task.TaskTreeNode object
         """
-        return pycram.orm.task.TaskTreeNode(None, self.start_time, self.end_time, self.status.name,
+        return orm.task.TaskTreeNode(None, self.start_time, self.end_time, self.status.name,
                                             id(self.parent) if self.parent else None)
 
     def insert(self, session: sqlalchemy.orm.session.Session, recursive: bool = True,
-               parent_id: Optional[int] = None) -> pycram.orm.task.TaskTreeNode:
+               parent_id: Optional[int] = None) -> orm.task.TaskTreeNode:
         """
         Insert this node into the database.
 
@@ -297,7 +299,7 @@ def with_tree(fun: Callable) -> Callable:
             task_tree.status = TaskStatus.SUCCEEDED
 
         # iff a PlanFailure occurs
-        except pycram.plan_failures.PlanFailure as e:
+        except plan_failures.PlanFailure as e:
 
             # log the error and set the flag
             logging.exception("Task execution failed at %s. Reason %s" % (str(task_tree.code), e))
