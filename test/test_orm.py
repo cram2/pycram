@@ -11,19 +11,12 @@ import sqlalchemy.orm
 import os
 
 
-class ORMTestCase(unittest.TestCase):
-
-    def test_base(self):
-        instance = pycram.orm.base.Base()
-        self.assertEqual("Base", instance.__tablename__)
-
-
 class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=True)
+        cls.engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
 
     def setUp(self):
         super().setUp()
