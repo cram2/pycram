@@ -1,4 +1,4 @@
-from pycram.robot_description import  *
+from pycram.robot_description import *
 
 
 class PR2Description(RobotDescription):
@@ -11,18 +11,18 @@ class PR2Description(RobotDescription):
         horizontal_angle = 0.99483
         vertical_angle = 0.75049
         kinect = CameraDescription("head_mount_kinect_rgb_optical_frame",
-                                      horizontal_angle=horizontal_angle, vertical_angle=vertical_angle,
-                                      minimal_height=minimal_height, maximal_height=maximal_height)
+                                   horizontal_angle=horizontal_angle, vertical_angle=vertical_angle,
+                                   minimal_height=minimal_height, maximal_height=maximal_height)
         openni = CameraDescription("openni_rgb_optical_frame",
-                                      horizontal_angle=horizontal_angle, vertical_angle=vertical_angle,
-                                      minimal_height=minimal_height, maximal_height=maximal_height)
+                                   horizontal_angle=horizontal_angle, vertical_angle=vertical_angle,
+                                   minimal_height=minimal_height, maximal_height=maximal_height)
         stereo = CameraDescription("narrow_stereo_optical_frame",
-                                      horizontal_angle=horizontal_angle, vertical_angle=vertical_angle,
-                                      minimal_height=minimal_height, maximal_height=maximal_height)
+                                   horizontal_angle=horizontal_angle, vertical_angle=vertical_angle,
+                                   minimal_height=minimal_height, maximal_height=maximal_height)
         wide_stereo_optical_frame = CameraDescription("wide_stereo_optical_frame",
-                                                         horizontal_angle=horizontal_angle,
-                                                         vertical_angle=vertical_angle,
-                                                         minimal_height=minimal_height, maximal_height=maximal_height)
+                                                      horizontal_angle=horizontal_angle,
+                                                      vertical_angle=vertical_angle,
+                                                      minimal_height=minimal_height, maximal_height=maximal_height)
         self.add_cameras({"optical_frame": wide_stereo_optical_frame, "kinect": kinect,
                           "openni": openni, "stereo": stereo})
 
@@ -32,8 +32,8 @@ class PR2Description(RobotDescription):
         neck_static_joints = {}
         neck_static_joints["forward"] = [0.0, 0.0]
         neck = ChainDescription("neck", ["head_pan_joint", "head_tilt_joint"],
-                                   ["head_pan_link", "head_tilt_link"],
-                                   static_joint_states=neck_static_joints)
+                                ["head_pan_link", "head_tilt_link"],
+                                static_joint_states=neck_static_joints)
         self.add_chain("neck", neck)
         # Arms
         r_joints = ["r_shoulder_pan_joint", "r_shoulder_lift_joint", "r_upper_arm_roll_joint",
@@ -68,18 +68,18 @@ class PR2Description(RobotDescription):
         right_inter = InteractionDescription(right, "r_wrist_roll_link")
         # Gripper
         left_gripper = GripperDescription("left_gripper", l_gripper_links, l_gripper_joints,
-                                             gripper_meter_to_jnt_multiplier=5.0,
-                                             gripper_minimal_position=0.013,
-                                             gripper_convergence_delta=0.005)
+                                          gripper_meter_to_jnt_multiplier=5.0,
+                                          gripper_minimal_position=0.013,
+                                          gripper_convergence_delta=0.005)
         right_gripper = GripperDescription("right_gripper", r_gripper_links, r_gripper_joints,
-                                              gripper_meter_to_jnt_multiplier=5.0,
-                                              gripper_minimal_position=0.013,
-                                              gripper_convergence_delta=0.005)
+                                           gripper_meter_to_jnt_multiplier=5.0,
+                                           gripper_minimal_position=0.013,
+                                           gripper_convergence_delta=0.005)
         # Adding Arm + Gripper
         left_arm = ManipulatorDescription(left_inter, tool_frame="l_gripper_tool_frame",
-                                             gripper_description=left_gripper)
+                                          gripper_description=left_gripper)
         right_arm = ManipulatorDescription(right_inter, tool_frame="r_gripper_tool_frame",
-                                              gripper_description=right_gripper)
+                                           gripper_description=right_gripper)
         self.add_chains({"left": left_arm, "right": right_arm})
         # Adding Static Joint Poses
         # Static Arm Positions
@@ -93,9 +93,9 @@ class PR2Description(RobotDescription):
         self.add_static_gripper_chains("right", gripper_confs)
 
         self.grasps = GraspingDescription({"front": [0, 0, 0, 1],
-                                              "left": [0, 0, -1, 1],
-                                              "right": [0, 0, 1, 1],
-                                              "top": [0, 1, 0, 1]})
+                                           "left": [0, 0, -1, 1],
+                                           "right": [0, 0, 1, 1],
+                                           "top": [0, 1, 0, 1]})
 
     def get_camera_frame(self, name="optical_frame"):
         # TODO: Hacky since only one optical camera frame from pr2 is used
