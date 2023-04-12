@@ -357,7 +357,7 @@ class OccupancyCostmap(Costmap):
         # 16383 is the maximal number of rays that can be processed in a batch
         i = 0
         j = 0
-        for n in self._chunks(np.array(rays), 8190):
+        for n in self._chunks(np.array(rays), 16380):
             with Use_shadow_world():
                 r_t = p.rayTestBatch(n[:, 0], n[:, 1], numThreads=0, physicsClientId=BulletWorld.current_bullet_world.client_id)
 
