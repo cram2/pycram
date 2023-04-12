@@ -11,11 +11,11 @@ class Action(Base):
     """
     __tablename__ = "Action"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
-    type = sqlalchemy.Column(sqlalchemy.types.String)
+    dtype = sqlalchemy.Column(sqlalchemy.types.String)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
-        "polymorphic_on": "type",
+        "polymorphic_on": "dtype",
     }
 
 
@@ -65,7 +65,7 @@ class MoveTorsoAction(Action):
 
 class SetGripperAction(Action):
     """ORM Class of pycram.designators.action_designator.SetGripperAction."""
-    __tablename__ = "MoveTorso"
+    __tablename__ = "SetGripper"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
     gripper = sqlalchemy.Column(sqlalchemy.types.String, nullable=False)
     opening = sqlalchemy.Column(sqlalchemy.types.Boolean, nullable=False)
@@ -80,7 +80,7 @@ class Release(Action):
     __tablename__ = "Release"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
     gripper = sqlalchemy.Column(sqlalchemy.types.String, nullable=False)
-    # TODO object designator missing
+    object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -93,7 +93,8 @@ class GripAction(Action):
     id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
     gripper = sqlalchemy.Column(sqlalchemy.types.String, nullable=False)
     effort = sqlalchemy.Column(sqlalchemy.types.Float, nullable=False)
-    # TODO object_designator, grasped_object
+    object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
+    # TODO grasped_object
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -106,7 +107,8 @@ class PickUpAction(Action):
     id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
     arm = sqlalchemy.Column(sqlalchemy.types.String, nullable=False)
     grasp = sqlalchemy.Column(sqlalchemy.types.Boolean, nullable=False)
-    # TODO gripper_opening, object_designator
+    object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
+    # TODO gripper_opening
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -120,7 +122,7 @@ class PlaceAction(Action):
     arm = sqlalchemy.Column(sqlalchemy.types.String, nullable=False)
     position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
     orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"))
-    # TODO object_designator
+    object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -134,7 +136,7 @@ class TransportAction(Action):
     arm = sqlalchemy.Column(sqlalchemy.types.String, nullable=False)
     position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
     orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"))
-    # TODO, object_designator
+    object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -156,8 +158,7 @@ class DetectAction(Action):
     """ORM Class of pycram.designators.action_designator.DetectAction."""
     __tablename__ = "Detect"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
-
-    # TODO object_designator
+    object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -170,8 +171,7 @@ class OpenAction(Action):
     id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
     arm = sqlalchemy.Column(sqlalchemy.types.String, nullable=False)
     distance = sqlalchemy.Column(sqlalchemy.types.Float, nullable=False)
-
-    # TODO object_designator
+    object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,

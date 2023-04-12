@@ -19,9 +19,7 @@ from typing import List
 import sqlalchemy.orm
 from ..orm.action_designator import ParkArmsAction as ORMParkArmsAction
 from ..orm.action_designator import NavigateAction as ORMNavigateAction
-#import orm.action_designator
 from ..orm.base import Quaternion, Position, Base
-#import orm.base
 
 
 class ActionDesignator: # (Designator):
