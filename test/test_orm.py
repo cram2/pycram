@@ -2,6 +2,7 @@ import unittest
 import pycram.orm.base
 import pycram.orm.task
 import pycram.orm.action_designator
+from pycram.orm import *
 import pycram.task
 from pycram.task import with_tree
 import test_task_tree
@@ -27,6 +28,27 @@ class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
     def tearDown(self):
         super().tearDown()
         self.session.close()
+
+    def test_tables(self):
+        tables = list(pycram.orm.base.Base.metadata.tables.keys())
+        self.assertTrue("Position" in tables)
+        self.assertTrue("Quaternion" in tables)
+        self.assertTrue("TaskTreeNode" in tables)
+        self.assertTrue("Code" in tables)
+        self.assertTrue("Action" in tables)
+        self.assertTrue("ParkArms" in tables)
+        self.assertTrue("Navigate" in tables)
+        self.assertTrue("MoveTorso" in tables)
+        self.assertTrue("SetGripper" in tables)
+        self.assertTrue("Release" in tables)
+        self.assertTrue("Grip" in tables)
+        self.assertTrue("PickUp" in tables)
+        self.assertTrue("Place" in tables)
+        self.assertTrue("Transport" in tables)
+        self.assertTrue("LookAt" in tables)
+        self.assertTrue("Detect" in tables)
+        self.assertTrue("Open" in tables)
+        self.assertTrue("Close" in tables)
 
     def test_node(self):
         """Test if the objects in the database is equal with the objects that got serialized."""
@@ -59,8 +81,6 @@ class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
         super().TearDownClass()
         pycram.orm.base.Base.metadata.drop_all(cls.engine)
         cls.session.commit()
-
-
 
 
 if __name__ == '__main__':
