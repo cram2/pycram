@@ -2,6 +2,7 @@ import unittest
 import pycram.orm.base
 import pycram.orm.task
 import pycram.orm.object_designator
+import pycram.orm.motion_designator
 import pycram.orm.action_designator
 import pycram.task
 from pycram.task import with_tree
