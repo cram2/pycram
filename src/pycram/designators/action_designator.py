@@ -17,8 +17,11 @@ __all__ = ["ActionDesignator",
 
 from typing import List
 import sqlalchemy.orm
-import orm.action_designator
-import orm.base
+from ..orm.action_designator import ParkArmsAction as ORMParkArmsAction
+from ..orm.action_designator import NavigateAction as ORMNavigateAction
+#import orm.action_designator
+from ..orm.base import Quaternion, Position, Base
+#import orm.base
 
 
 class ActionDesignator: # (Designator):
@@ -40,10 +43,10 @@ class ActionDesignator: # (Designator):
     def __call__(self, *args, **kwargs):
         return self.perform()
 
-    def to_sql(self) -> orm.base.Base:
+    def to_sql(self) -> Base:
         raise NotImplementedError(f"{type(self)} has no implementation of to_sql.")
 
-    def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> orm.base.Base:
+    def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
         raise NotImplementedError(f"{type(self)} has no implementation of insert.")
 
 
@@ -109,10 +112,11 @@ class ParkArmsAction(ActionDesignatorDescription):
         self.arm = arm
         self.resolver = resolver
 
-    def to_sql(self) -> orm.action_designator.ParkArmsAction:
-        return orm.action_designator.ParkArmsAction(self.arm.name)
+    def to_sql(self) -> ORMParkArmsAction:
+        return ORMParkArmsAction(self.arm.name)
+        #return orm.action_designator.ParkArmsAction(self.arm.name)
 
-    def insert(self, session: sqlalchemy.orm.session.Session) -> orm.action_designator.ParkArmsAction:
+    def insert(self, session: sqlalchemy.orm.session.Session) -> ORMParkArmsAction:
         action = self.to_sql()
         session.add(action)
         session.commit()
@@ -159,14 +163,14 @@ class NavigateAction(ActionDesignatorDescription):
         self.target_orientation = target_orientation
         self.resolver = resolver
 
-    def to_sql(self) -> orm.action_designator.NavigateAction:
-        return orm.action_designator.NavigateAction()
+    def to_sql(self) -> ORMNavigateAction:
+        return ORMNavigateAction()
 
-    def insert(self, session) -> orm.action_designator.NavigateAction:
+    def insert(self, session) -> ORMNavigateAction:
 
         # initialize position and orientation
-        position = orm.base.Position(*self.target_position)
-        orientation = orm.base.Quaternion(*self.target_orientation)
+        position = Position(*self.target_position)
+        orientation = Quaternion(*self.target_orientation)
 
         # add those to the database and get the primary keys
         session.add(position)
