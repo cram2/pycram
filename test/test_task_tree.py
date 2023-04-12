@@ -10,7 +10,7 @@ import test_bullet_world
 import pycram.plan_failures
 
 
-class TestTaskTree(test_bullet_world.BulletWorldTest):
+class TaskTreeTestCase(test_bullet_world.BulletWorldTest):
 
     @with_tree
     def plan(self):
