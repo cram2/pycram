@@ -31,6 +31,7 @@ class ObjectPart(ObjectDesignator):
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
+        "inherit_condition": ObjectDesignator.id == id
     }
 
 
