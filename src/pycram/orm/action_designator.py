@@ -108,7 +108,7 @@ class PickUpAction(Action):
     arm = sqlalchemy.Column(sqlalchemy.types.String, nullable=False)
     grasp = sqlalchemy.Column(sqlalchemy.types.Boolean, nullable=False)
     object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
-    # TODO gripper_opening
+    gripper_opening = sqlalchemy.Column(sqlalchemy.types.Float)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
