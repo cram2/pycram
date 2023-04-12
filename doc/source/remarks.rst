@@ -28,3 +28,9 @@ Adding notebooks to the documentation is done with the
 please put a symbolic link in the doc/source/notebooks folder, such that no duplication is done. Sphinx will
 automatically copy them during the build process. Use relative symbolic links since absolute paths won't work for
 different machines.
+
+Dirty Terminals
+===============
+
+If your terminal gets polluted by PyBullet complaining about incomplete URDF descriptions, you need to first fix your
+URDF files by inserting the missing tags and second delete the `resources/cached` folder.

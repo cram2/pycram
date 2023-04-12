@@ -13,7 +13,6 @@ class Action(Base):
     id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
     type = sqlalchemy.Column(sqlalchemy.types.String)
 
-
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
@@ -23,9 +22,8 @@ class Action(Base):
 class ParkArmsAction(Action):
     """ORM Class of pycram.designators.action_designator.ParkArmsDesignator."""
     __tablename__ = "ParkArms"
-    id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
+    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
     arm = sqlalchemy.Column(sqlalchemy.types.String, nullable=False)
-    action = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), nullable=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -40,10 +38,9 @@ class NavigateAction(Action):
     """ORM Class of pycram.designators.action_designator.NavigateAction."""
 
     __tablename__ = "Navigate"
-    id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
+    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
     position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
     orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"))
-    action = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), nullable=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
