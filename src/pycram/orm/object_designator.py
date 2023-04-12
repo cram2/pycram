@@ -7,7 +7,7 @@ import datetime
 
 class ObjectDesignator(Base):
     """ORM class of pycram.designators.object_designator.ObjectDesignator"""
-    __tablename__ = "ObjectDesignator"
+    __tablename__ = "Object"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
     type = sqlalchemy.Column(sqlalchemy.types.String)
 
@@ -21,7 +21,7 @@ class LocatedObject(ObjectDesignator):
     """ORM Class of pycram.designators.object_designator.LocatedObject."""
 
     __tablename__ = "LocatedObject"
-    id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
+    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Object.id"), primary_key=True)
     pose = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"), nullable=True)
     reference_frame = sqlalchemy.Column(sqlalchemy.types.String)
     timestamp = sqlalchemy.Column(sqlalchemy.types.DateTime)

@@ -56,21 +56,21 @@ class ActionDesignatorDescription:
 
 class MoveTorsoAction(ActionDesignatorDescription):
     def __init__(self, position, resolver="grounding"):
-        self.position = position
+        self.position: List[float] = position
         self.resolver = resolver
 
 
 class SetGripperAction(ActionDesignatorDescription):
     def __init__(self, gripper, opening, resolver="grounding"):
-        self.gripper = gripper
-        self.opening = opening
+        self.gripper: str = gripper
+        self.opening: bool = opening
         self.resolver = resolver
 
 
 # No resolving structure
 class ReleaseAction(ActionDesignatorDescription):
     def __init__(self, gripper, object_designator=None, resolver="grounding"):
-        self.gripper = gripper
+        self.gripper: str = gripper
         self.object_designator = object_designator
         self.resolver = resolver
 
@@ -79,9 +79,9 @@ class ReleaseAction(ActionDesignatorDescription):
 # Just from the name it is not clear what it should do
 class GripAction(ActionDesignatorDescription):
     def __init__(self, gripper, object_designator=None, effort=None, resolver="grounding"):
-        self.gripper = gripper
+        self.gripper: str = gripper
         self.object_designator = object_designator
-        self.effort = effort
+        self.effort: float = effort
         self.grasped_object = None
         self.resolver = resolver
 
@@ -122,7 +122,7 @@ class ParkArmsAction(ActionDesignatorDescription):
 class PickUpAction(ActionDesignatorDescription):
     def __init__(self, object_designator, arm=None, grasp=None, resolver="grounding"):
         self.object_designator = object_designator
-        self.arm = arm
+        self.arm: str = arm
         self.grasp = grasp
         self.resolver = resolver
 
@@ -141,7 +141,7 @@ class PlaceAction(ActionDesignatorDescription):
     def __init__(self, object_designator, target_location, arm=None, resolver="grounding"):
         self.object_designator = object_designator
         self.target_location = target_location
-        self.arm = arm
+        self.arm: str = arm
         self.resolver = resolver
 
         # Grounded attributes
@@ -191,7 +191,7 @@ class TransportAction(ActionDesignatorDescription):
     def __init__(self, object_designator, arm, target_location, resolver="grounding"):
         self.object_designator = object_designator
         self.arm = arm
-        self.target_location = target_location
+        self.target_location = target_location # orientation + location
         self.resolver = resolver
 
 
