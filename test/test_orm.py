@@ -1,8 +1,8 @@
 import unittest
 import pycram.orm.base
 import pycram.orm.task
+import pycram.orm.object_designator
 import pycram.orm.action_designator
-from pycram.orm import *
 import pycram.task
 from pycram.task import with_tree
 import test_task_tree
