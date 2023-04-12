@@ -144,17 +144,15 @@ def visible(object: Object,
     :param world: The BulletWorld if more than one BulletWorld is active
     :return: True if the object is visible from the camera_position False if not
     """
-    #world, world_id = _world_and_id(world)
     front_facing_axis = robot_description.i.front_facing_axis if front_facing_axis == None else front_facing_axis
-    #det_world = world.copy()
-    #state = p.saveState(physicsClientId=det_world.client_id)
     with Use_shadow_world():
+        shadow_obj = BulletWorld.current_bullet_world.get_shadow_object(object)
+        if BulletWorld.robot:
+            shadow_robot = BulletWorld.current_bullet_world.get_shadow_object(BulletWorld.robot)
         state = p.saveState(physicsClientId=BulletWorld.current_bullet_world.client_id)
         for obj in BulletWorld.current_bullet_world.objects:
-            if BulletWorld.robot and obj.name == BulletWorld.robot.name:
+            if obj == shadow_obj or BulletWorld.robot and obj == shadow_robot:
                 continue
-            elif object.get_position_and_orientation() == obj.get_position_and_orientation():
-                object = obj
             else:
                 obj.set_position_and_orientation([100, 100, 0], [0, 0, 0, 1])
 
@@ -164,7 +162,7 @@ def visible(object: Object,
 
         seg_mask = _get_images_for_target(target_point, world_T_cam, BulletWorld.current_bullet_world)[2]
         flat_list = list(itertools.chain.from_iterable(seg_mask))
-        max_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
+        max_pixel = sum(list(map(lambda x: 1 if x == shadow_obj.id else 0, flat_list)))
         p.restoreState(state, physicsClientId=BulletWorld.current_bullet_world.client_id)
         if max_pixel == 0:
             # Object is not visible
