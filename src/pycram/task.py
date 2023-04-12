@@ -13,8 +13,8 @@ from enum import Enum
 
 import sqlalchemy.orm.session
 
-import plan_failures
-import orm.task
+from .plan_failures import PlanFailure
+from .orm.task import (Code as ORMCode, TaskTreeNode as ORMTaskTreeNode)
 
 import pycram.designators.action_designator
 from .bullet_world import BulletWorld
@@ -41,6 +41,7 @@ class Code:
     :ivar kwargs: Dictionary holding the keyword arguments of the function
     :ivar designator: The designator description if it exists, defaults to None
     """
+
     def __init__(self, function: Optional[Callable] = None,
                  kwargs: Optional[Dict] = None,
                  designator: Optional[pycram.designators.action_designator.ActionDesignatorDescription] = None):
@@ -72,11 +73,11 @@ class Code:
             prefix = ""
 
         return prefix + "%s(%s)" % (self.function.__name__, ", ".join(["%s = %s" % (key, str(value)) for key, value in
-                                                                      self.kwargs.items()]))
+                                                                       self.kwargs.items()]))
 
     def __eq__(self, other):
         return isinstance(other, Code) and other.function.__name__ == self.function.__name__ \
-               and other.kwargs == self.kwargs and self.designator == other.designator
+            and other.kwargs == self.kwargs and self.designator == other.designator
 
     def to_json(self) -> Dict:
         """Create a dictionary that can be json serialized."""
@@ -101,10 +102,10 @@ class Code:
 
         return result
 
-    def to_sql(self) -> orm.task.Code:
-        return orm.task.Code(self.function.__name__)
+    def to_sql(self) -> ORMCode:
+        return ORMCode(self.function.__name__)
 
-    def insert(self, session: sqlalchemy.orm.session.Session) -> orm.task.Code:
+    def insert(self, session: sqlalchemy.orm.session.Session) -> ORMCode:
         code = self.to_sql()
 
         # set foreign key to designator if present
@@ -121,8 +122,8 @@ class NoOperation(Code):
     """
     Convenience class that represents no operation as code.
     """
-    def __init__(self):
 
+    def __init__(self):
         # default no operation
         def no_operation(): return None
 
@@ -181,16 +182,16 @@ class TaskTreeNode(anytree.NodeMixin):
         """Get the number of nodes that are in this subtree."""
         return 1 + sum([len(child) for child in self.children])
 
-    def to_sql(self) -> orm.task.TaskTreeNode:
+    def to_sql(self) -> ORMTaskTreeNode:
         """Convert this object to the corresponding object in the pycram.orm package.
 
         :returns:  corresponding pycram.orm.task.TaskTreeNode object
         """
-        return orm.task.TaskTreeNode(None, self.start_time, self.end_time, self.status.name,
-                                            id(self.parent) if self.parent else None)
+        return ORMTaskTreeNode(None, self.start_time, self.end_time, self.status.name,
+                                     id(self.parent) if self.parent else None)
 
     def insert(self, session: sqlalchemy.orm.session.Session, recursive: bool = True,
-               parent_id: Optional[int] = None) -> orm.task.TaskTreeNode:
+               parent_id: Optional[int] = None) -> ORMTaskTreeNode:
         """
         Insert this node into the database.
 
@@ -272,6 +273,7 @@ def with_tree(fun: Callable) -> Callable:
 
     :param fun: The function to record the data from.
     """
+
     def handle_tree(*args, **kwargs):
 
         # get the task tree
@@ -299,7 +301,7 @@ def with_tree(fun: Callable) -> Callable:
             task_tree.status = TaskStatus.SUCCEEDED
 
         # iff a PlanFailure occurs
-        except plan_failures.PlanFailure as e:
+        except PlanFailure as e:
 
             # log the error and set the flag
             logging.exception("Task execution failed at %s. Reason %s" % (str(task_tree.code), e))
