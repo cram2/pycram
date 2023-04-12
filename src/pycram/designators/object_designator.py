@@ -4,7 +4,6 @@ from typing import List, Tuple, Union
 
 
 class ObjectDesignator(Designator):
-
     resolvers = {}
 
     def __init__(self, description, parent=None):
@@ -47,10 +46,12 @@ class ObjectDesignatorDescription(DesignatorDescription):
         self.object = object
         self.pose = None
 
+
 class BelieveObject(ObjectDesignatorDescription):
 
     def __init__(type, name, object, resolver="grounding"):
         super().__init__(type, name, object)
+
 
 class ObjectPart(ObjectDesignatorDescription):
     type: str
@@ -59,8 +60,8 @@ class ObjectPart(ObjectDesignatorDescription):
 
     def __init__(self, type: str, name: str, part_of: Object = None, resolver="grounding"):
         super().__init__(type, name, resolver)
-        #self.type = type
-        #self.name = name
+        # self.type = type
+        # self.name = name
         self.part_of = part_of
 
 
