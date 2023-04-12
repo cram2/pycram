@@ -515,6 +515,7 @@
     <xacro:if value="simulated"/>
     -->
   <joint name="sink_area_dish_washer_main_joint" type="revolute">
+    <axis xyz="1 0 0" />
     <limit effort="300" lower="0" upper="0" velocity="10"/>
     <origin rpy="0 0 0" xyz="0.01 0.1 0.044 "/>
     <parent link="sink_area"/>
