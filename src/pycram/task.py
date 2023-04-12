@@ -11,7 +11,12 @@ import pybullet
 from typing import List, Dict, Optional, Callable, Any
 from enum import Enum
 
-import pycram.plan_failures
+import sqlalchemy.orm.session
+
+import plan_failures
+import orm.task
+
+import pycram.designators.action_designator
 from .bullet_world import BulletWorld
 import anytree
 import datetime
@@ -34,9 +39,11 @@ class Code:
 
     :ivar function: The function (plan) that was called
     :ivar kwargs: Dictionary holding the keyword arguments of the function
+    :ivar designator: The designator description if it exists, defaults to None
     """
     def __init__(self, function: Optional[Callable] = None,
-                 kwargs: Optional[Dict] = None):
+                 kwargs: Optional[Dict] = None,
+                 designator: Optional[pycram.designators.action_designator.ActionDesignatorDescription] = None):
         """
         Initialize a code call
         :param function: The function that was called
@@ -47,17 +54,29 @@ class Code:
         if kwargs is None:
             kwargs = dict()
         self.kwargs: Dict[str, Any] = kwargs
+        self.designator = designator
 
     def execute(self) -> Any:
+        """
+        Execute the code with its arguments
+
+        :returns: Anything that the function associated with this object will return.
+        """
         return self.function(**self.kwargs)
 
     def __str__(self) -> str:
-        return "%s(%s)" % (self.function.__name__, ", ".join(["%s = %s" % (key, str(value))
-                                                              for key, value in self.kwargs.items()]))
+
+        if self.designator:
+            prefix = f"{str(self.designator)}."
+        else:
+            prefix = ""
+
+        return prefix + "%s(%s)" % (self.function.__name__, ", ".join(["%s = %s" % (key, str(value)) for key, value in
+                                                                      self.kwargs.items()]))
 
     def __eq__(self, other):
         return isinstance(other, Code) and other.function.__name__ == self.function.__name__ \
-               and other.kwargs == self.kwargs
+               and other.kwargs == self.kwargs and self.designator == other.designator
 
     def to_json(self) -> Dict:
         """Create a dictionary that can be json serialized."""
@@ -81,6 +100,21 @@ class Code:
                     logging.warning("Object of type %s cannot be JSON serialized. Skipping..." % type(argument))
 
         return result
+
+    def to_sql(self) -> orm.task.Code:
+        return orm.task.Code(self.function.__name__)
+
+    def insert(self, session: sqlalchemy.orm.session.Session) -> orm.task.Code:
+        code = self.to_sql()
+
+        # set foreign key to designator if present
+        if self.designator:
+            designator = self.designator.insert(session)
+            code.designator = designator.id
+
+        session.add(code)
+        session.commit()
+        return code
 
 
 class NoOperation(Code):
@@ -147,6 +181,46 @@ class TaskTreeNode(anytree.NodeMixin):
         """Get the number of nodes that are in this subtree."""
         return 1 + sum([len(child) for child in self.children])
 
+    def to_sql(self) -> orm.task.TaskTreeNode:
+        """Convert this object to the corresponding object in the pycram.orm package.
+
+        :returns:  corresponding pycram.orm.task.TaskTreeNode object
+        """
+        return orm.task.TaskTreeNode(None, self.start_time, self.end_time, self.status.name,
+                                            id(self.parent) if self.parent else None)
+
+    def insert(self, session: sqlalchemy.orm.session.Session, recursive: bool = True,
+               parent_id: Optional[int] = None) -> orm.task.TaskTreeNode:
+        """
+        Insert this node into the database.
+
+        :param session: The current session with the database.
+        :param recursive: Rather if the entire tree should be inserted or just this node, defaults to True
+        :param parent_id: The primary key of the parent node, defaults to None
+
+        :return: The ORM object that got inserted
+        """
+
+        # insert code
+        code = self.code.insert(session)
+
+        # convert self to orm object
+        node = self.to_sql()
+        node.code = code.id
+
+        # set parent to id from constructor
+        node.parent = parent_id
+
+        # add the node to database to retrieve the new id
+        session.add(node)
+        session.commit()
+
+        # if recursive, insert all children
+        if recursive:
+            [child.insert(session, recursive, node.id) for child in self.children]
+
+        return node
+
 
 class SimulatedTaskTree:
     """TaskTree for execution in a 'new' simulation."""
@@ -203,8 +277,15 @@ def with_tree(fun: Callable) -> Callable:
         # get the task tree
         global task_tree
 
+        # get the "self" object:
+        self_ = inspect.currentframe().f_back.f_locals.get("self")
+
+        # if it is an action designator, save it for logging
+        if not isinstance(self_, pycram.designators.action_designator.ActionDesignatorDescription):
+            self_ = None
+
         # create the code object that gets executed
-        code = Code(fun, inspect.getcallargs(fun, *args, **kwargs))
+        code = Code(fun, inspect.getcallargs(fun, *args, **kwargs), self_)
 
         task_tree = TaskTreeNode(code, parent=task_tree)
 
@@ -218,7 +299,7 @@ def with_tree(fun: Callable) -> Callable:
             task_tree.status = TaskStatus.SUCCEEDED
 
         # iff a PlanFailure occurs
-        except pycram.plan_failures.PlanFailure as e:
+        except plan_failures.PlanFailure as e:
 
             # log the error and set the flag
             logging.exception("Task execution failed at %s. Reason %s" % (str(task_tree.code), e))

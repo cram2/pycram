@@ -1,7 +1,7 @@
 import unittest
 from pycram.bullet_world import BulletWorld, Object
 from pycram.robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
-
+import pybullet
 
 class BulletWorldTest(unittest.TestCase):
 
