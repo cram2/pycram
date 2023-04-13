@@ -360,7 +360,9 @@ class OccupancyCostmap(Costmap):
         for n in self._chunks(np.array(rays), 16380):
             with Use_shadow_world():
                 r_t = p.rayTestBatch(n[:, 0], n[:, 1], numThreads=0, physicsClientId=BulletWorld.current_bullet_world.client_id)
-
+                while r_t is None:
+                    r_t = p.rayTestBatch(n[:, 0], n[:, 1], numThreads=0,
+                                         physicsClientId=BulletWorld.current_bullet_world.client_id)
                 j += len(n)
                 if BulletWorld.robot:
                     res[i:j] = [1 if ray[0] == -1 or ray[0] == BulletWorld.robot.id else 0 for ray in r_t]
