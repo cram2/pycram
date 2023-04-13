@@ -15,14 +15,16 @@ __all__ = ["ActionDesignator",
            "OpenAction",
            "CloseAction"]
 
-from typing import List
+from typing import List, Optional
+
 import sqlalchemy.orm
-from ..orm.action_designator import ParkArmsAction as ORMParkArmsAction
-from ..orm.action_designator import NavigateAction as ORMNavigateAction
+
+from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, NavigateAction as ORMNavigateAction,
+                                     PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction)
 from ..orm.base import Quaternion, Position, Base
 
 
-class ActionDesignator: # (Designator):
+class ActionDesignator:  # (Designator):
     resolver = {}
 
     def __init__(self, description):
@@ -34,7 +36,7 @@ class ActionDesignator: # (Designator):
         return solution
 
     def perform(self):
-        #desc = self.description.ground()
+        # desc = self.description.ground()
         desc = self.reference()
         return desc.function()
 
@@ -99,7 +101,7 @@ class MoveArmsIntoConfigurationAction(ActionDesignatorDescription):
 
 # No Resolving structure
 class MoveArmsInSequenceAction(ActionDesignatorDescription):
-    def __init__(self, left_trajectory : List = [], right_trajectory : List = [], resolver="grounding"):
+    def __init__(self, left_trajectory: List = [], right_trajectory: List = [], resolver="grounding"):
         self.left_trajectory = left_trajectory
         self.right_trajectory = right_trajectory
         self.resolver = resolver
@@ -112,7 +114,7 @@ class ParkArmsAction(ActionDesignatorDescription):
 
     def to_sql(self) -> ORMParkArmsAction:
         return ORMParkArmsAction(self.arm.name)
-        #return orm.action_designator.ParkArmsAction(self.arm.name)
+        # return orm.action_designator.ParkArmsAction(self.arm.name)
 
     def insert(self, session: sqlalchemy.orm.session.Session) -> ORMParkArmsAction:
         action = self.to_sql()
@@ -122,14 +124,23 @@ class ParkArmsAction(ActionDesignatorDescription):
 
 
 class PickUpAction(ActionDesignatorDescription):
+    """
+    Class representing picking something up.
+
+    :ivar object_designator: The object designator that describes what to pick up.
+    :ivar arm: The arm to use as string.
+    :ivar grasp: The direction to grasp from.
+    :ivar gripper_opening: Float describing how far the gripper should open, optional
+    """
+
     def __init__(self, object_designator, arm=None, grasp=None, resolver="grounding"):
         self.object_designator = object_designator
         self.arm: str = arm
-        self.grasp = grasp
+        self.grasp: str = grasp
         self.resolver = resolver
 
         # Grounded attributes
-        self.gripper_opening = None
+        self.gripper_opening: Optional[float] = None
         # self.effort = None
         # self.left_reach_poses = []
         # self.right_reach_poses = []
@@ -137,6 +148,25 @@ class PickUpAction(ActionDesignatorDescription):
         # self.right_grasp_poses = []
         # self.left_lift_poses = []
         # self.right_lift_poses = []
+
+    def to_sql(self) -> ORMPickUpAction:
+        return ORMPickUpAction(self.arm, self.grasp, self.gripper_opening)
+
+    def insert(self, session: sqlalchemy.orm.session.Session):
+        action = self.to_sql()
+
+        # try to create the object designator
+        if self.object_designator:
+            # TODO discuss why it is _description
+            od = self.object_designator._description.insert(session)
+            action.object = od.id
+        else:
+            action.object = None
+
+        session.add(action)
+        session.commit()
+
+        return action
 
 
 class PlaceAction(ActionDesignatorDescription):
@@ -154,6 +184,35 @@ class PlaceAction(ActionDesignatorDescription):
         # self.left_retract_poses = []
         # self.right_retract_poses = []
 
+    def to_sql(self) -> ORMPlaceAction:
+        return ORMPlaceAction(self.arm)
+
+    def insert(self, session) -> ORMPlaceAction:
+        action = self.to_sql()
+
+        if self.object_designator:
+            # TODO discuss why it is _description
+            od = self.object_designator._description.insert(session)
+            action.object = od.id
+        else:
+            action.object = None
+
+        if self.target_location:
+            position = Position(*self.target_location[0])
+            orientation = Quaternion(*self.target_location[1])
+            session.add(position)
+            session.add(orientation)
+            session.commit()
+            action.position = position.id
+            action.orientation = orientation.id
+        else:
+            action.position = None
+            action.orientation = None
+
+        session.add(action)
+        session.commit()
+        return action
+
 
 class NavigateAction(ActionDesignatorDescription):
     def __init__(self, target_position, target_orientation=None, resolver="grounding"):
@@ -165,7 +224,6 @@ class NavigateAction(ActionDesignatorDescription):
         return ORMNavigateAction()
 
     def insert(self, session) -> ORMNavigateAction:
-
         # initialize position and orientation
         position = Position(*self.target_position)
         orientation = Quaternion(*self.target_orientation)
@@ -193,7 +251,7 @@ class TransportAction(ActionDesignatorDescription):
     def __init__(self, object_designator, arm, target_location, resolver="grounding"):
         self.object_designator = object_designator
         self.arm = arm
-        self.target_location = target_location # orientation + location
+        self.target_location = target_location  # orientation + location
         self.resolver = resolver
 
 

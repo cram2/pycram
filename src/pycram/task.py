@@ -3,24 +3,21 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+import datetime
 import inspect
 import json
-
-import pybullet
-
-from typing import List, Dict, Optional, Callable, Any
+import logging
 from enum import Enum
+from typing import List, Dict, Optional, Callable, Any
 
+import anytree
+import pybullet
 import sqlalchemy.orm.session
-
-from .plan_failures import PlanFailure
-from .orm.task import (Code as ORMCode, TaskTreeNode as ORMTaskTreeNode)
 
 import pycram.designators.action_designator
 from .bullet_world import BulletWorld
-import anytree
-import datetime
-import logging
+from .orm.task import (Code as ORMCode, TaskTreeNode as ORMTaskTreeNode)
+from .plan_failures import PlanFailure
 
 
 class TaskStatus(Enum):
@@ -67,17 +64,12 @@ class Code:
 
     def __str__(self) -> str:
 
-        if self.designator:
-            prefix = f"{str(self.designator)}."
-        else:
-            prefix = ""
-
-        return prefix + "%s(%s)" % (self.function.__name__, ", ".join(["%s = %s" % (key, str(value)) for key, value in
-                                                                       self.kwargs.items()]))
+        return "%s(%s)" % (self.function.__name__, ", ".join(["%s = %s" % (key, str(value)) for key, value in
+                                                              self.kwargs.items()]))
 
     def __eq__(self, other):
         return isinstance(other, Code) and other.function.__name__ == self.function.__name__ \
-            and other.kwargs == self.kwargs and self.designator == other.designator
+               and other.kwargs == self.kwargs and self.designator == other.designator
 
     def to_json(self) -> Dict:
         """Create a dictionary that can be json serialized."""
@@ -188,7 +180,7 @@ class TaskTreeNode(anytree.NodeMixin):
         :returns:  corresponding pycram.orm.task.TaskTreeNode object
         """
         return ORMTaskTreeNode(None, self.start_time, self.end_time, self.status.name,
-                                     id(self.parent) if self.parent else None)
+                               id(self.parent) if self.parent else None)
 
     def insert(self, session: sqlalchemy.orm.session.Session, recursive: bool = True,
                parent_id: Optional[int] = None) -> ORMTaskTreeNode:
