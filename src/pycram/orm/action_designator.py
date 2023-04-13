@@ -105,14 +105,20 @@ class PickUpAction(Action):
     """ORM Class of pycram.designators.action_designator.PickUpAction."""
     __tablename__ = "PickUp"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
-    arm = sqlalchemy.Column(sqlalchemy.types.String(255), nullable=False)
-    grasp = sqlalchemy.Column(sqlalchemy.types.Boolean, nullable=False)
+    arm = sqlalchemy.Column(sqlalchemy.types.String(255))
+    grasp = sqlalchemy.Column(sqlalchemy.types.String(255))
     object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
     gripper_opening = sqlalchemy.Column(sqlalchemy.types.Float)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
     }
+
+    def __init__(self, arm: str, grasp: bool, gripper_opening: float):
+        super(PickUpAction, self).__init__()
+        self.arm = arm
+        self.grasp = grasp
+        self.gripper_opening = gripper_opening
 
 
 class PlaceAction(Action):
@@ -127,6 +133,10 @@ class PlaceAction(Action):
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
     }
+
+    def __init__(self, arm: str):
+        super(PlaceAction, self).__init__()
+        self.arm = arm
 
 
 class TransportAction(Action):
