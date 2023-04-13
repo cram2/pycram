@@ -10,11 +10,16 @@ class ObjectDesignator(Base):
     __tablename__ = "Object"
 
     id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
-    dtype = sqlalchemy.Column(sqlalchemy.types.String)
-    type = sqlalchemy.Column(sqlalchemy.types.String)
-    name = sqlalchemy.Column(sqlalchemy.types.String)
+    dtype = sqlalchemy.Column(sqlalchemy.types.String(255))
+    type = sqlalchemy.Column(sqlalchemy.types.String(255))
+    name = sqlalchemy.Column(sqlalchemy.types.String(255))
     position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
     orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"))
+
+    def __init__(self, type: str, name: str):
+        super().__init__()
+        self.type = type
+        self.name = name
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -42,3 +47,6 @@ class BelieveObject(ObjectDesignator):
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
     }
+
+    def __init__(self, type: str, name: str):
+        super().__init__(type, name)

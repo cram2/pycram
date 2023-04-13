@@ -6,6 +6,7 @@ import pycram.orm.motion_designator
 import pycram.orm.action_designator
 import pycram.task
 from pycram.task import with_tree
+import test_bullet_world
 import test_task_tree
 import anytree
 import sqlalchemy
@@ -13,24 +14,13 @@ import sqlalchemy.orm
 import os
 
 
-class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
+class ORMTestSchema(unittest.TestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
-
-    def setUp(self):
-        super().setUp()
-        pycram.orm.base.Base.metadata.create_all(self.engine)
+    def test_schema_creation(self):
+        self.engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
         self.session = sqlalchemy.orm.Session(bind=self.engine)
+        pycram.orm.base.Base.metadata.create_all(self.engine)
         self.session.commit()
-
-    def tearDown(self):
-        super().tearDown()
-        self.session.close()
-
-    def test_tables(self):
         tables = list(pycram.orm.base.Base.metadata.tables.keys())
         self.assertTrue("Position" in tables)
         self.assertTrue("Quaternion" in tables)
@@ -50,6 +40,24 @@ class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
         self.assertTrue("Detect" in tables)
         self.assertTrue("Open" in tables)
         self.assertTrue("Close" in tables)
+
+
+class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
+
+    def setUp(self):
+        super().setUp()
+        pycram.orm.base.Base.metadata.create_all(self.engine)
+        self.session = sqlalchemy.orm.Session(bind=self.engine)
+        self.session.commit()
+
+    def tearDown(self):
+        super().tearDown()
+        self.session.close()
 
     def test_node(self):
         """Test if the objects in the database is equal with the objects that got serialized."""
