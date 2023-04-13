@@ -57,6 +57,8 @@ class Code:
         self.kwargs: Dict[str, Any] = kwargs
         self.designator = designator
 
+
+
     def execute(self) -> Any:
         """
         Execute the code with its arguments
@@ -66,14 +68,8 @@ class Code:
         return self.function(**self.kwargs)
 
     def __str__(self) -> str:
-
-        if self.designator:
-            prefix = f"{str(self.designator)}."
-        else:
-            prefix = ""
-
-        return prefix + "%s(%s)" % (self.function.__name__, ", ".join(["%s = %s" % (key, str(value)) for key, value in
-                                                                       self.kwargs.items()]))
+        return "%s(%s)" % (self.function.__name__, ", ".join(["%s = %s" % (key, str(value)) for key, value in
+                                                              self.kwargs.items()]))
 
     def __eq__(self, other):
         return isinstance(other, Code) and other.function.__name__ == self.function.__name__ \
@@ -159,6 +155,10 @@ class TaskTreeNode(anytree.NodeMixin):
         if children:
             self.children = children
 
+    @property
+    def name(self):
+        return str(self)
+
     def to_json(self):
         return {"code": self.code.to_json(),
                 "status": self.status.name,
@@ -188,7 +188,7 @@ class TaskTreeNode(anytree.NodeMixin):
         :returns:  corresponding pycram.orm.task.TaskTreeNode object
         """
         return ORMTaskTreeNode(None, self.start_time, self.end_time, self.status.name,
-                                     id(self.parent) if self.parent else None)
+                               id(self.parent) if self.parent else None)
 
     def insert(self, session: sqlalchemy.orm.session.Session, recursive: bool = True,
                parent_id: Optional[int] = None) -> ORMTaskTreeNode:
