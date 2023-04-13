@@ -21,7 +21,7 @@ class MotionDesignator(Base):
     __tablename__ = "Motion"
 
     id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
-    dtype = sqlalchemy.Column(sqlalchemy.types.String)
+    dtype = sqlalchemy.Column(sqlalchemy.types.String(255))
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -57,9 +57,9 @@ class PickUpMotion(MotionDesignator):
     __tablename__ = "PickUpMotion"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Motion.id"), primary_key=True)
     object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
-    arm = sqlalchemy.Column(sqlalchemy.types.String)
-    gripper = sqlalchemy.Column(sqlalchemy.types.String)
-    grasp = sqlalchemy.Column(sqlalchemy.types.String)
+    arm = sqlalchemy.Column(sqlalchemy.types.String(255))
+    gripper = sqlalchemy.Column(sqlalchemy.types.String(255))
+    grasp = sqlalchemy.Column(sqlalchemy.types.String(255))
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
     }
@@ -78,8 +78,8 @@ class PlaceMotion(MotionDesignator):
     __tablename__ = "PlaceMotion"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Motion.id"), primary_key=True)
     object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
-    arm = sqlalchemy.Column(sqlalchemy.types.String)
-    gripper = sqlalchemy.Column(sqlalchemy.types.String)
+    arm = sqlalchemy.Column(sqlalchemy.types.String(255))
+    gripper = sqlalchemy.Column(sqlalchemy.types.String(255))
     position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
     orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"))
     __mapper_args__ = {
@@ -100,11 +100,11 @@ class AccessingMotion(MotionDesignator):
     __tablename__ = "AccessingMotion"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Motion.id"), primary_key=True)
     part_of = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
-    arm = sqlalchemy.Column(sqlalchemy.types.String)
-    gripper = sqlalchemy.Column(sqlalchemy.types.String)
+    arm = sqlalchemy.Column(sqlalchemy.types.String(255))
+    gripper = sqlalchemy.Column(sqlalchemy.types.String(255))
     distance = sqlalchemy.Column(sqlalchemy.types.Float)
-    drawer_joint = sqlalchemy.Column(sqlalchemy.types.String)
-    drawer_handle = sqlalchemy.Column(sqlalchemy.types.String)
+    drawer_joint = sqlalchemy.Column(sqlalchemy.types.String(255))
+    drawer_handle = sqlalchemy.Column(sqlalchemy.types.String(255))
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -123,7 +123,7 @@ class MoveTCPMotion(MotionDesignator):
     id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Motion.id"), primary_key=True)
     position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
     orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"))
-    arm = sqlalchemy.Column(sqlalchemy.types.String)
+    arm = sqlalchemy.Column(sqlalchemy.types.String(255))
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -157,8 +157,8 @@ class MoveGripperMotion(MotionDesignator):
 
     __tablename__ = "MoveGripperMotion"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Motion.id"), primary_key=True)
-    motion = sqlalchemy.Column(sqlalchemy.types.String)
-    gripper = sqlalchemy.Column(sqlalchemy.types.String)
+    motion = sqlalchemy.Column(sqlalchemy.types.String(255))
+    gripper = sqlalchemy.Column(sqlalchemy.types.String(255))
     front_facing_axis = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -172,8 +172,8 @@ class DetectingMotion(MotionDesignator):
 
     __tablename__ = "DetectingMotion"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Motion.id"), primary_key=True)
-    object_type = sqlalchemy.Column(sqlalchemy.types.String)
-    cam_frame = sqlalchemy.Column(sqlalchemy.types.String)
+    object_type = sqlalchemy.Column(sqlalchemy.types.String(255))
+    cam_frame = sqlalchemy.Column(sqlalchemy.types.String(255))
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -187,7 +187,7 @@ class WorldStateDetectingMotion(MotionDesignator):
 
     __tablename__ = "WorldStateDetectingMotion"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Motion.id"), primary_key=True)
-    object_type = sqlalchemy.Column(sqlalchemy.types.String)
+    object_type = sqlalchemy.Column(sqlalchemy.types.String(255))
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
