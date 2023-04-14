@@ -106,7 +106,7 @@ class ORMObjectDesignatorTestCase(test_bullet_world.BulletWorldTest):
     def plan(self):
         with simulated_robot:
             ActionDesignator(ParkArmsAction(Arms.BOTH)).perform()
-
+            ActionDesignator(MoveTorsoAction(0.2)).perform()
             location = LocationDesignator(CostmapLocation(target=self.milk, reachable_for=self.robot))
             pose = location.reference()
             ActionDesignator(
@@ -141,16 +141,15 @@ class ORMObjectDesignatorTestCase(test_bullet_world.BulletWorldTest):
         cls.engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
         cls.milk_desig = ObjectDesignator(ObjectDesignatorDescription(name="milk", type="milk"))
         cls.cereal_desig = ObjectDesignator(ObjectDesignatorDescription(name="cereal", type="cereal"))
+        cls.session = sqlalchemy.orm.Session(bind=cls.engine)
 
     def setUp(self):
         super().setUp()
         pycram.orm.base.Base.metadata.create_all(self.engine)
-        self.session = sqlalchemy.orm.Session(bind=self.engine)
         self.session.commit()
 
     def tearDown(self):
         super().tearDown()
-        self.session.close()
         pycram.task.reset_tree()
 
     @classmethod
@@ -158,10 +157,12 @@ class ORMObjectDesignatorTestCase(test_bullet_world.BulletWorldTest):
         super().TearDownClass()
         pycram.orm.base.Base.metadata.drop_all(cls.engine)
         cls.session.commit()
+        cls.session.close()
 
     def test_plan_serialization(self):
         self.plan()
         tt = pycram.task.task_tree
+        print(anytree.RenderTree(tt))
         tt.insert(self.session)
         action_results = self.session.query(pycram.orm.action_designator.Action).all()
         self.assertEqual(len(tt) - 2, len(action_results))
