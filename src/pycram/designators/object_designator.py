@@ -1,11 +1,13 @@
-from ..designator import Designator, DesignatorError, DesignatorDescription
-from ..bullet_world import Object
 from typing import List, Tuple, Union
+
+import sqlalchemy.orm
+
+from ..bullet_world import Object
+from ..designator import Designator, DesignatorError, DesignatorDescription
+from ..orm.base import (Position as ORMPosition, Quaternion as ORMQuaternion)
 from ..orm.object_designator import (ObjectDesignator as ORMObjectDesignator,
                                      BelieveObject as ORMBelieveObject,
                                      ObjectPart as ORMObjectPart)
-from ..orm.base import (Position as ORMPosition, Quaternion as ORMQuaternion)
-import sqlalchemy.orm
 
 
 class ObjectDesignator(Designator):
@@ -90,6 +92,11 @@ class BelieveObject(ObjectDesignatorDescription):
 
 class ObjectPart(ObjectDesignatorDescription):
     part_of: Union[Object, ObjectDesignator]
+
+    def __init__(self, type: str = None, name: str = None, object: Object = None, part_of=None,
+                 resolver="grounding"):
+        super(ObjectPart, self).__init__(type, name, object, resolver)
+        self.part_of = part_of
 
     def to_sql(self) -> ORMObjectPart:
         return ORMObjectPart(self.type, self.name)
