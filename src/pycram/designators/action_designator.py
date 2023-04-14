@@ -20,7 +20,8 @@ from typing import List, Optional
 import sqlalchemy.orm
 
 from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, NavigateAction as ORMNavigateAction,
-                                     PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction)
+                                     PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction,
+                                     MoveTorsoAction as ORMMoveTorsoAction)
 from ..orm.base import Quaternion, Position, Base
 
 
@@ -56,11 +57,30 @@ class ActionDesignatorDescription:
     def ground(self):
         return self
 
+    def to_sql(self) -> Base:
+        raise NotImplementedError(f"{type(self)} has no implementation of to_sql. Feel free to implement it.")
+
+    def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
+        raise NotImplementedError(f"{type(self)} has no implementation of insert. Feel free to implement it.")
+
 
 class MoveTorsoAction(ActionDesignatorDescription):
+    """Action Designator for Moving the torso of the robot up and down.
+
+    :ivar position: Float describing the desired height in meters. For the PR2 it has to be in between 0 and 0.3.
+    """
     def __init__(self, position, resolver="grounding"):
-        self.position: List[float] = position
+        self.position: float = position
         self.resolver = resolver
+
+    def to_sql(self):
+        return ORMMoveTorsoAction(self.position)
+
+    def insert(self, session: sqlalchemy.orm.session.Session):
+        action = self.to_sql()
+        session.add(action)
+        session.commit()
+        return action
 
 
 class SetGripperAction(ActionDesignatorDescription):

@@ -56,11 +56,15 @@ class MoveTorsoAction(Action):
     """ORM Class of pycram.designators.action_designator.MoveTorsoAction."""
     __tablename__ = "MoveTorso"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
-    position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
+    position = sqlalchemy.Column(sqlalchemy.types.Float)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
     }
+
+    def __init__(self, position: Optional[float] = None):
+        super(MoveTorsoAction, self).__init__()
+        self.position = position
 
 
 class SetGripperAction(Action):
