@@ -3,11 +3,12 @@ import numpy as np
 import rospy
 import pybullet as p
 
-from .bullet_world import Object, BulletWorld
+from .bullet_world import Object, BulletWorld, Use_shadow_world
+from .bullet_world_reasoning import contact
 from .costmaps import Costmap
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from .external_interfaces.ik import _make_request_msg, request_ik, IKError
-from .helper import _transform_to_torso, calculate_wrist_tool_offset, inverseTimes
+from .helper import _transform_to_torso, calculate_wrist_tool_offset, inverseTimes, _apply_ik
 from moveit_msgs.srv import GetPositionIK
 from typing import Type, Tuple, List, Union
 
@@ -147,10 +148,20 @@ def reachability_validator(pose: Tuple[List[float], List[float]],
 
     res = False
     arms = []
+    in_contact = False
     try:
         resp = request_ik(base_link, end_effector, target_diff, robot, left_joints)
-        arms.append("left")
-        res = True
+
+        _apply_ik(robot, resp, left_joints)
+        for obj in BulletWorld.current_bullet_world.objects:
+            if obj == robot or obj.name == "floor":
+                continue
+            if contact(obj, robot):
+                in_contact = True
+                break
+        if not in_contact:
+            arms.append("left")
+            res = True
     except IKError:
         pass
 
@@ -158,11 +169,20 @@ def reachability_validator(pose: Tuple[List[float], List[float]],
     # Get link after last joint in chain
     end_effector = robot_description.i.get_child(right_joints[-1])
     diff = calculate_wrist_tool_offset(end_effector, robot_description.i.get_tool_frame("right"), robot)
-    target = inverseTimes(target_torso, diff)
+    target_diff = inverseTimes(target_torso, diff)
     try:
         resp = request_ik(base_link, end_effector, target_diff, robot, right_joints)
-        arms.append("right")
-        res = True
+
+        _apply_ik(robot, resp, right_joints)
+        for obj in BulletWorld.current_bullet_world.objects:
+            if obj == robot or obj.name == "floor":
+                continue
+            if contact(obj, robot):
+                in_contact = True
+                break
+        if not in_contact:
+            arms.append("right")
+            res = True
     except IKError:
         pass
 

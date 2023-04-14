@@ -63,7 +63,6 @@ class Code:
         return self.function(**self.kwargs)
 
     def __str__(self) -> str:
-
         return "%s(%s)" % (self.function.__name__, ", ".join(["%s = %s" % (key, str(value)) for key, value in
                                                               self.kwargs.items()]))
 
@@ -150,6 +149,10 @@ class TaskTreeNode(anytree.NodeMixin):
 
         if children:
             self.children = children
+
+    @property
+    def name(self):
+        return str(self)
 
     def to_json(self):
         return {"code": self.code.to_json(),
