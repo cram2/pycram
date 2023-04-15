@@ -86,13 +86,8 @@ def pick_up(arm, object_desig, grasp):
     print("Picking up {} with {}.".format(object_desig, arm))
     #motion_arm = "left" if arm is Arms.LEFT else "right"
 
-    # TODO: Hack to detach from kitchen.. (Should go into process module maybe)
     object_desig.reference()
     object = object_desig.prop_value('object')
-    try:
-        object_desig.prop_value('object').detach(BulletWorld.current_bullet_world.get_objects_by_name("kitchen")[0])
-    except KeyError:
-        print("Not attached to anything!")
 
     MotionDesignator(PickUpMotion(object=object, arm=arm, grasp=grasp)).perform()
     #ProcessModule.perform(MotionDesignator([('type', 'pick-up'), ('object', btr_object), ('arm', motion_arm)]))
