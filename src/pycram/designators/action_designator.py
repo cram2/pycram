@@ -15,7 +15,7 @@ __all__ = ["ActionDesignator",
            "OpenAction",
            "CloseAction"]
 
-from typing import List, Optional
+from typing import List, Optional, Callable
 
 import sqlalchemy.orm
 
@@ -32,6 +32,7 @@ class ActionDesignator:  # (Designator):
         self.description = description
 
     def reference(self):
+        raise NotImplementedError("Unspecified Action Designators cannot be grounded.")
         resolver = ActionDesignator.resolver[self.description.resolver]
         solution = resolver(self)
         return solution
@@ -52,26 +53,60 @@ class ActionDesignator:  # (Designator):
 
 
 class ActionDesignatorDescription:
-    function = None
+    """
+    Abstract class for action designator descriptions.
+    Descriptions hold possible parameter ranges for action designators.
 
-    def ground(self):
-        return self
+    :ivar resolver: The resolver function to use for this designator, defaults to self.ground
+    """
+
+    def __init__(self, grounding_method: Optional[Callable] = None):
+        """
+        Create an Action Designator description.
+
+        :param grounding_method: The grounding method used for the description.
+        The grounding method creates an action instance that matches the description.
+        """
+
+        if grounding_method is None:
+            self.resolver = self.ground
+
+    def ground(self) -> ActionDesignator:
+        """Fill all missing parameters and chose plan to execute. """
+        raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
 
     def to_sql(self) -> Base:
+        """
+        Create an ORM object that corresponds to this description.
+        :return: The created ORM object.
+        """
         raise NotImplementedError(f"{type(self)} has no implementation of to_sql. Feel free to implement it.")
 
     def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
+        """
+        Add and commit this and all related objects to the session.
+        Auto-Incrementing primary keys and foreign keys have to be filled by this method.
+
+        :param session: Session with a database that is used to add and commit the objects
+        :param args: Possible extra arguments
+        :param kwargs: Possible extra keyword arguments
+        :return: The completely instanced ORM object
+        """
         raise NotImplementedError(f"{type(self)} has no implementation of insert. Feel free to implement it.")
 
 
 class MoveTorsoAction(ActionDesignatorDescription):
     """Action Designator for Moving the torso of the robot up and down.
 
-    :ivar position: Float describing the desired height in meters. For the PR2 it has to be in between 0 and 0.3.
+    :ivar positions: Float describing the possible heights in meters.
+    For the PR2, it has to be in between 0 and 0.3.
     """
-    def __init__(self, position, resolver="grounding"):
-        self.position: float = position
-        self.resolver = resolver
+    def __init__(self, positions, resolver=None):
+        super().__init__(resolver)
+        self.positions: List[float] = positions
+
+    def ground(self):
+        pass
 
     def to_sql(self):
         return ORMMoveTorsoAction(self.position)
