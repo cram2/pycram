@@ -15,6 +15,14 @@ class TaskTreeTestCase(test_bullet_world.BulletWorldTest):
     @with_tree
     def plan(self):
         with simulated_robot:
+            # ParkArmsAction([Arms.BOTH]).ground().perform()
+            # ParkArmsAction([Arms.LEFT, Arms.RIGHT]).ground().perform()
+            # ActionDesignator(ParkArmsAction(Arms.BOTH)).perform()
+            # ActionDesignator(ParkArmsAction(Arms.BOTH)).description.ground().perform()
+            # for solution in iter(ADD, sort_by: add.heuristic.):
+                # try solution.perform()
+                # except planfailure as pf:
+                    # logger.warning
             ActionDesignator(ParkArmsAction(Arms.BOTH)).perform()
 
             location = LocationDesignator(CostmapLocation(target=self.milk, reachable_for=self.robot))
