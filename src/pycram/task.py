@@ -213,7 +213,7 @@ class TaskTreeNode(anytree.NodeMixin):
 
         # if recursive, insert all children
         if recursive:
-            [child.insert(session, recursive, node.id) for child in self.children]
+            [child.insert(session, ) for child in self.children]
 
         return node
 
