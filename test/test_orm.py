@@ -69,7 +69,7 @@ class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
     def test_node(self):
         """Test if the objects in the database is equal with the objects that got serialized."""
         self.plan()
-        pycram.task.task_tree.root.insert(self.session)
+        pycram.task.task_tree.root.insert(self.session, )
 
         node_results = self.session.query(pycram.orm.task.TaskTreeNode).all()
         self.assertEqual(len(node_results), len(pycram.task.task_tree.root))
