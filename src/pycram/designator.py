@@ -15,7 +15,7 @@ from inspect import isgenerator, isgeneratorfunction
 from .helper import GeneratorList, bcolors
 from threading import Lock
 from time import time
-from typing import List, Dict, Any, Type, Optional, Union, get_type_hints
+from typing import List, Dict, Any, Type, Optional, Union, get_type_hints, Callable
 
 import logging
 
@@ -312,11 +312,21 @@ class Designator(ABC):
         return self.current()
 
 
-class DesignatorDescription():
-    resolver: str
+class DesignatorDescription(ABC):
+    """
+    :ivar resolve: The resolver function to use for this designator, defaults to self.ground
+    """
 
-    def __init__(self, resolver: Optional[str] = "grounding"):
-        self.resolver: str = resolver
+    def __init__(self, grounding_method: Optional[Callable] = None):
+        """
+        Create a Designator description.
+
+        :param grounding_method: The grounding method used for the description.
+        The grounding method creates an action instance that matches the description.
+        """
+
+        if grounding_method is None:
+            self.resolve = self.ground
 
     def make_dictionary(self, properties: List[str]):
         """

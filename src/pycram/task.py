@@ -14,7 +14,7 @@ import anytree
 import pybullet
 import sqlalchemy.orm.session
 
-import pycram.designators.action_designator
+# import pycram.designators.action_designator
 from .bullet_world import BulletWorld
 from .orm.task import (Code as ORMCode, TaskTreeNode as ORMTaskTreeNode)
 from .plan_failures import PlanFailure
@@ -278,8 +278,9 @@ def with_tree(fun: Callable) -> Callable:
         self_ = inspect.currentframe().f_back.f_locals.get("self")
 
         # if it is an action designator, save it for logging
-        if not isinstance(self_, pycram.designators.action_designator.ActionDesignatorDescription):
-            self_ = None
+        # TODO check if this is correct
+        if not self_.__name__ == "pycram.designators.action_designator.ActionDesignatorDescription":
+          self_ = None
 
         # create the code object that gets executed
         code = Code(fun, inspect.getcallargs(fun, *args, **kwargs), self_)
