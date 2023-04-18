@@ -15,14 +15,19 @@ __all__ = ["ActionDesignator",
            "OpenAction",
            "CloseAction"]
 
-from typing import List, Optional, Callable
+import dataclasses
+from typing import List, Optional
+import random
 
 import sqlalchemy.orm
 
+from .motion_designator import *
 from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, NavigateAction as ORMNavigateAction,
                                      PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction,
                                      MoveTorsoAction as ORMMoveTorsoAction)
 from ..orm.base import Quaternion, Position, Base
+from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from ..task import with_tree
 
 
 class ActionDesignator:  # (Designator):
@@ -52,26 +57,16 @@ class ActionDesignator:  # (Designator):
         raise NotImplementedError(f"{type(self)} has no implementation of insert.")
 
 
-class ActionDesignatorDescription:
+class ActionDesignatorDescription(DesignatorDescription):
     """
     Abstract class for action designator descriptions.
     Descriptions hold possible parameter ranges for action designators.
-
-    :ivar resolver: The resolver function to use for this designator, defaults to self.ground
     """
 
-    def __init__(self, grounding_method: Optional[Callable] = None):
-        """
-        Create an Action Designator description.
+    class Action:
+        pass
 
-        :param grounding_method: The grounding method used for the description.
-        The grounding method creates an action instance that matches the description.
-        """
-
-        if grounding_method is None:
-            self.resolver = self.ground
-
-    def ground(self) -> ActionDesignator:
+    def ground(self) -> Action:
         """Fill all missing parameters and chose plan to execute. """
         raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
 
@@ -101,28 +96,40 @@ class MoveTorsoAction(ActionDesignatorDescription):
     :ivar positions: Float describing the possible heights in meters.
     For the PR2, it has to be in between 0 and 0.3.
     """
-    def __init__(self, positions, resolver=None):
+
+    @dataclasses.dataclass
+    class Action:
+        position: float
+
+        @with_tree
+        def perform(self):
+            MotionDesignator(MoveJointsMotion([robot_description.i.torso_joint], [self.position])).perform()
+
+        def to_sql(self):
+            return ORMMoveTorsoAction(self.position)
+
+        def insert(self, session: sqlalchemy.orm.session.Session):
+            action = self.to_sql()
+            session.add(action)
+            session.commit()
+            return action
+
+    def __init__(self, positions: List[float], resolver=None):
+        """
+        Create a designator description to move the torso of the robot up and down.
+        :param positions:
+        :param resolver:
+        """
         super().__init__(resolver)
         self.positions: List[float] = positions
 
-    def ground(self):
-        pass
+    def ground(self) -> Action:
+        return self.Action(self.positions[0])
 
-    def to_sql(self):
-        return ORMMoveTorsoAction(self.position)
+    def __iter__(self):
+        for position in self.positions:
+            yield self.Action(position)
 
-    def insert(self, session: sqlalchemy.orm.session.Session):
-        action = self.to_sql()
-        session.add(action)
-        session.commit()
-        return action
-
-
-class SetGripperAction(ActionDesignatorDescription):
-    def __init__(self, gripper, opening, resolver="grounding"):
-        self.gripper: str = gripper
-        self.opening: bool = opening
-        self.resolver = resolver
 
 
 # No resolving structure
