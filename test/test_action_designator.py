@@ -1,9 +1,10 @@
 import unittest
-from pycram.designators import action_designator
+from pycram.designators import action_designator, object_designator
 import pycram.enums
+import test_bullet_world
 
 
-class TestActionDesignatorGrounding(unittest.TestCase):
+class TestActionDesignatorGrounding(test_bullet_world.BulletWorldTest):
     """Testcase for the grounding methods of action designators."""
 
     def test_move_torso(self):
@@ -17,50 +18,58 @@ class TestActionDesignatorGrounding(unittest.TestCase):
         self.assertEqual(len(list(iter(description))), 2)
 
     def test_release(self):
-        description = action_designator.ReleaseAction(["left"], [1])
+        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        description = action_designator.ReleaseAction(["left"], object_description)
         self.assertEqual(description.ground().gripper, "left")
-        self.assertEqual(description.ground().object_designator, 1)
+        self.assertEqual(description.ground().object_designator.name, "milk")
 
     def test_grip(self):
-        description = action_designator.GripAction(["left"], [1], [0.5])
+        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        description = action_designator.GripAction(["left"], object_description, [0.5])
         self.assertEqual(description.ground().gripper, "left")
-        self.assertEqual(description.ground().object_designator, 1)
+        self.assertEqual(description.ground().object_designator.name, "milk")
 
     def test_park_arms(self):
         description = action_designator.ParkArmsAction([pycram.enums.Arms.BOTH])
         self.assertEqual(description.ground().arm, pycram.enums.Arms.BOTH)
 
     def test_pick_up(self):
-        description = action_designator.PickUpAction([0], ["left"], ["front"])
-        # TODO: test something
+        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        description = action_designator.PickUpAction(object_description, ["left"], ["front"])
+        self.assertEqual(description.ground().object_designator.name, "milk")
 
     def test_place(self):
-        description = action_designator.PlaceAction(0, [([0, 0, 0], [0, 0, 0, 1])], ["left"])
-        # TODO: test something
+        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        description = action_designator.PlaceAction(object_description, [([0, 0, 0], [0, 0, 0, 1])], ["left"])
+        self.assertEqual(description.ground().object_designator.name, "milk")
 
     def test_navigate(self):
         description = action_designator.NavigateAction([([0, 0, 0], [0, 0, 0, 1])])
         self.assertEqual(description.ground().target_location, ([0, 0, 0], [0, 0, 0, 1]))
 
     def test_transport(self):
-        description = action_designator.TransportAction(0, ["left"], [([0, 0, 0], [0, 0, 0, 1])])
-        # TODO: test something
+        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        description = action_designator.TransportAction(object_description, ["left"], [([0, 0, 0], [0, 0, 0, 1])])
+        self.assertEqual(description.ground().object_designator.name, "milk")
 
     def test_look_at(self):
         description = action_designator.LookAtAction([[0, 0, 0]])
         self.assertEqual(description.ground().target, [0, 0, 0])
 
     def test_detect(self):
-        description = action_designator.DetectAction(9)
-        # TODO: test something
+        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        description = action_designator.DetectAction(object_description)
+        self.assertEqual(description.ground().object_designator.name, "milk")
 
     def test_open(self):
-        description = action_designator.OpenAction(0, ["left"], [1])
-        # TODO: test something
+        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        description = action_designator.OpenAction(object_description, ["left"], [1])
+        self.assertEqual(description.ground().object_designator.name, "milk")
 
     def test_close(self):
-        description = action_designator.CloseAction(0, ["left"])
-        # TODO: test something
+        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        description = action_designator.CloseAction(object_description, ["left"])
+        self.assertEqual(description.ground().object_designator.name, "milk")
 
 
 if __name__ == '__main__':
