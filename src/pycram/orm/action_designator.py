@@ -78,6 +78,12 @@ class SetGripperAction(Action):
         "polymorphic_identity": __tablename__,
     }
 
+    def __init__(self, gripper: str, opening: bool):
+        super(SetGripperAction, self).__init__()
+        self.gripper = gripper
+        self.opening = opening
+
+
 
 class Release(Action):
     """ORM Class of pycram.designators.action_designator.Release."""
@@ -112,17 +118,16 @@ class PickUpAction(Action):
     arm = sqlalchemy.Column(sqlalchemy.types.String(255))
     grasp = sqlalchemy.Column(sqlalchemy.types.String(255))
     object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
-    gripper_opening = sqlalchemy.Column(sqlalchemy.types.Float)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
     }
 
-    def __init__(self, arm: str, grasp: bool, gripper_opening: float):
+    def __init__(self, arm: str, grasp: bool):
         super(PickUpAction, self).__init__()
         self.arm = arm
         self.grasp = grasp
-        self.gripper_opening = gripper_opening
+
 
 
 class PlaceAction(Action):
