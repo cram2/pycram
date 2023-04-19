@@ -108,6 +108,7 @@ Authors
    :caption: Contents:
 
    installation
+   designators
    task_trees
    orm
    remarks
