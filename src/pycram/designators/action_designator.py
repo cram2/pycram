@@ -19,6 +19,7 @@ from typing import List, Optional, Any, Tuple
 import sqlalchemy.orm
 
 from .motion_designator import *
+from .object_designator import ObjectDesignatorDescription
 from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, NavigateAction as ORMNavigateAction,
                                      PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction,
                                      MoveTorsoAction as ORMMoveTorsoAction, SetGripperAction as ORMSetGripperAction)
@@ -37,6 +38,9 @@ class ActionDesignatorDescription(DesignatorDescription):
 
     @dataclasses.dataclass
     class Action:
+        """
+        A single element that fits the description.
+        """
 
         @with_tree
         def perform(self) -> Any:
@@ -169,7 +173,7 @@ class ReleaseAction(ActionDesignatorDescription):
     class Action(ActionDesignatorDescription.Action):
 
         gripper: str
-        object_designator: Object
+        object_designator: ObjectDesignatorDescription.Object
 
         @with_tree
         def perform(self) -> Any:
@@ -181,13 +185,14 @@ class ReleaseAction(ActionDesignatorDescription):
         def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
             raise NotImplementedError()
 
-    def __init__(self, grippers: List[str], object_designators: List, grounding_method=None):
+    def __init__(self, grippers: List[str], object_designator_description: ObjectDesignatorDescription,
+                 grounding_method=None):
         super().__init__(grounding_method)
         self.grippers: List[str] = grippers
-        self.object_designators = object_designators
+        self.object_designator_description = object_designator_description
 
     def ground(self) -> Action:
-        return self.Action(self.grippers[0], self.object_designators[0])
+        return self.Action(self.grippers[0], self.object_designator_description.ground())
 
 
 class GripAction(ActionDesignatorDescription):
@@ -195,7 +200,7 @@ class GripAction(ActionDesignatorDescription):
     Grip an object with the robot.
 
     :ivar grippers: The grippers to consider
-    :ivar object_designators: The objects to consider
+    :ivar object_designator_description: The description of objects to consider
     :ivar efforts: The efforts to consider
 
     Note: This action is not used yet.
@@ -205,7 +210,7 @@ class GripAction(ActionDesignatorDescription):
     class Action(ActionDesignatorDescription.Action):
 
         gripper: str
-        object_designator: Object
+        object_designator: ObjectDesignatorDescription.Object
         effort: float
 
         @with_tree
@@ -218,15 +223,15 @@ class GripAction(ActionDesignatorDescription):
         def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
             raise NotImplementedError()
 
-    def __init__(self, grippers: List[str], object_designators: List, efforts: List[float],
-                 grounding_method=None):
+    def __init__(self, grippers: List[str], object_designator_description: ObjectDesignatorDescription,
+                 efforts: List[float], grounding_method=None):
         super(GripAction, self).__init__(grounding_method)
         self.grippers: List[str] = grippers
-        self.object_designators: List = object_designators
+        self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.efforts: List[float] = efforts
 
     def ground(self) -> Action:
-        return self.Action(self.grippers[0], self.object_designators[0], self.efforts[0])
+        return self.Action(self.grippers[0], self.object_designator_description.ground(), self.efforts[0])
 
 
 class ParkArmsAction(ActionDesignatorDescription):
@@ -285,7 +290,7 @@ class PickUpAction(ActionDesignatorDescription):
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
 
-        object_designator: Object
+        object_designator: ObjectDesignatorDescription.Object
         arm: str
         grasp: str
 
@@ -302,8 +307,7 @@ class PickUpAction(ActionDesignatorDescription):
 
             # try to create the object designator
             if self.object_designator:
-                # TODO discuss why it is _description
-                od = self.object_designator._description.insert(session, )
+                od = self.object_designator.insert(session, )
                 action.object = od.id
             else:
                 action.object = None
@@ -313,10 +317,10 @@ class PickUpAction(ActionDesignatorDescription):
 
             return action
 
-    def __init__(self, object_designator_description: object, arms: List[str],
+    def __init__(self, object_designator_description: ObjectDesignatorDescription, arms: List[str],
                  grasps: List[str], grounding_method=None):
         super(PickUpAction, self).__init__(grounding_method)
-        self.object_designator_description = object_designator_description
+        self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.arms: List[str] = arms
         self.grasps: List[str] = grasps
 
@@ -336,7 +340,7 @@ class PlaceAction(ActionDesignatorDescription):
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
 
-        object_designator: Object
+        object_designator: ObjectDesignatorDescription.Object
         arm: str
         target_location: Tuple[List[float], List[float]]
 
@@ -352,8 +356,7 @@ class PlaceAction(ActionDesignatorDescription):
             action = self.to_sql()
 
             if self.object_designator:
-                # TODO discuss why it is _description
-                od = self.object_designator._description.insert(session, )
+                od = self.object_designator.insert(session, )
                 action.object = od.id
             else:
                 action.object = None
@@ -374,7 +377,8 @@ class PlaceAction(ActionDesignatorDescription):
             session.commit()
             return action
 
-    def __init__(self, object_designator_description, target_locations: List[Tuple[List[float], List[float]]],
+    def __init__(self, object_designator_description: ObjectDesignatorDescription,
+                 target_locations: List[Tuple[List[float], List[float]]],
                  arms: List[str], grounding_method=None):
         """
         Create an Action Description to place an object
@@ -384,7 +388,7 @@ class PlaceAction(ActionDesignatorDescription):
         :param grounding_method: Grounding method to resolve this designator
         """
         super(PlaceAction, self).__init__(grounding_method)
-        self.object_designator_description = object_designator_description
+        self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.target_locations: List[Tuple[List[float], List[float]]] = target_locations
         self.arms: List[str] = arms
 
@@ -455,7 +459,7 @@ class TransportAction(ActionDesignatorDescription):
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
 
-        object_designator: Object
+        object_designator: ObjectDesignatorDescription.Object
         arm: str
         target_location: Tuple[List[float], List[float]]
 
@@ -464,6 +468,7 @@ class TransportAction(ActionDesignatorDescription):
             # TODO jonas has to look over this
             ParkArmsAction.Action(Arms.BOTH).perform()
             NavigateAction.Action(self.object_designator.pose).perform()
+            # TODO write from_object method for descriptions
             PickUpAction(self.object_designator, [self.arm], ["left", "right"]).ground().perform()
             NavigateAction.Action(self.target_location).perform()
             PlaceAction.Action(self.object_designator, self.arm, self.target_location)
@@ -475,10 +480,10 @@ class TransportAction(ActionDesignatorDescription):
         def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
             raise NotImplementedError()
 
-    def __init__(self, object_designator_description, arms: List[str],
+    def __init__(self, object_designator_description: ObjectDesignatorDescription, arms: List[str],
                  target_locations: List[Tuple[List[float], List[float]]], grounding_method=None):
         super(TransportAction, self).__init__(grounding_method)
-        self.object_designator_description = object_designator_description
+        self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.arms: List[str] = arms
         self.target_locations: List[Tuple[List[float], List[float]]] = target_locations
 
@@ -527,11 +532,11 @@ class DetectAction(ActionDesignatorDescription):
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
 
-        object_designator: Any
+        object_designator: ObjectDesignatorDescription.Object
 
         @with_tree
         def perform(self) -> Any:
-            det_object = MotionDesignator(DetectingMotion(object_type=self.object_designator.prop_value("type"))).\
+            det_object = MotionDesignator(DetectingMotion(object_type=self.object_designator.type)).\
                 perform()
 
             if det_object is None:
@@ -545,9 +550,9 @@ class DetectAction(ActionDesignatorDescription):
         def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
             raise NotImplementedError()
 
-    def __init__(self, object_designator_description: Any, grounding_method=None):
+    def __init__(self, object_designator_description: ObjectDesignatorDescription, grounding_method=None):
         super(DetectAction, self).__init__(grounding_method)
-        self.object_designator_description = object_designator_description
+        self.object_designator_description: ObjectDesignatorDescription = object_designator_description
 
     def ground(self) -> Action:
         return self.Action(self.object_designator_description.ground())
@@ -564,13 +569,13 @@ class OpenAction(ActionDesignatorDescription):
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
 
-        object_designator: Any
-        arm: Arms
+        object_designator: ObjectDesignatorDescription.Object
+        arm: str
         distance: float
 
         @with_tree
         def perform(self) -> Any:
-            object_type = self.object_designator.prop_value('type')
+            object_type = self.object_designator.type
             if object_type in ["container", "drawer"]:
                 motion_type = "opening-prismatic"
             elif object_type in ["fridge"]:
@@ -592,10 +597,10 @@ class OpenAction(ActionDesignatorDescription):
         def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
             raise NotImplementedError()
 
-    def __init__(self, object_designator_description: Any, arms: List[str], distances: List[float],
-                 grounding_method=None):
+    def __init__(self, object_designator_description: ObjectDesignatorDescription, arms: List[str],
+                 distances: List[float], grounding_method=None):
         super(OpenAction, self).__init__(grounding_method)
-        self.object_designator_description: Any = object_designator_description
+        self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.arms: List[str] = arms
         self.distances: List[float] = distances
 
@@ -613,8 +618,8 @@ class CloseAction(ActionDesignatorDescription):
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
 
-        object_designator: Any
-        arm: Arms
+        object_designator: ObjectDesignatorDescription.Object
+        arm: str
 
         def perform(self) -> Any:
             object_type = self.object_designator.prop_value('type')
@@ -637,9 +642,10 @@ class CloseAction(ActionDesignatorDescription):
         def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
             raise NotImplementedError()
 
-    def __init__(self, object_designator_description: Any, arms: List[str], grounding_method=None):
+    def __init__(self, object_designator_description: ObjectDesignatorDescription, arms: List[str],
+                 grounding_method=None):
         super(CloseAction, self).__init__(grounding_method)
-        self.object_designator_description: Any = object_designator_description
+        self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.arms: List[str] = arms
 
     def ground(self) -> Action:
