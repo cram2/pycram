@@ -1,5 +1,6 @@
 import dataclasses
 
+from .object_designator import ObjectDesignatorDescription
 from ..bullet_world import Object, BulletWorld
 from ..designator import Designator, DesignatorError, DesignatorDescription, ResolutionError
 from ..process_module import ProcessModule
@@ -53,12 +54,12 @@ class MotionDesignatorDescription(DesignatorDescription):
         None and if any attribute has to wrong type according to the type hints in
         the description class.
         It is possible to provide a list of attributes which should not be checked.
+
         :param desig: The current type of designator, will be used when raising an
                         Exception as output.
         :param exclude: A list of properties which should not be checked.
         """
         right_types = get_type_hints(self.Motion)
-        print(right_types)
         attributes = self.__dict__.copy()
         del attributes["resolve"]
         missing = []
@@ -123,15 +124,15 @@ class PickUpMotion(MotionDesignatorDescription):
     def ground(self):
         arm = "left" if not self.arm else self.arm
         grasp = "left" if not self.grasp else self.grasp
-        return self.Motion(self.cmd, self.object_desig, grasp, arm)
+        return self.Motion(self.cmd, self.object_desig, arm, grasp)
 
 
 class PlaceMotion(MotionDesignatorDescription):
     @dataclasses.dataclass
     class Motion(MotionDesignatorDescription.Motion):
         cmd: str
-        object: Object
-        target: list
+        object: ObjectDesignatorDescription.Object
+        target: Tuple[List[float], List[float]]
         arm: str
 
         def perform(self):
@@ -140,7 +141,7 @@ class PlaceMotion(MotionDesignatorDescription):
     def __init__(self, object_desig, target, arm=None, resolver=None):
         super().__init__(resolver)
         self.cmd: str = 'place'
-        self.objec_desig = object_desig
+        self.object_desig = object_desig
         self.target: Tuple[List[float], List[float]] = target
         self.arm: str = arm
 

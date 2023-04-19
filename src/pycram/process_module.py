@@ -43,7 +43,7 @@ class ProcessModule:
             pm = resolver(designator)
 
             if pm is not None:
-                return pm.exute(designator)
+                return pm.execute(designator)
         if ProcessModule.execution_delay:
             time.sleep(0.5)
 

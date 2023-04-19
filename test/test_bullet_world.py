@@ -9,7 +9,7 @@ class BulletWorldTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.world = BulletWorld("DIRECT")
+        cls.world = BulletWorld("GUI")
         cls.robot = Object(robot_description.i.name, "robot", robot_description.i.name + ".urdf")
         cls.kitchen = Object("kitchen", "environment", "kitchen.urdf")
         cls.milk = Object("milk", "milk", "milk.stl", position=[1.3, 1, 0.9])

@@ -1,17 +1,3 @@
-__all__ = ["MoveTorsoAction",
-           "SetGripperAction",
-           "ReleaseAction",
-           "GripAction",
-           "ParkArmsAction",
-           "PickUpAction",
-           "PlaceAction",
-           "NavigateAction",
-           "TransportAction",
-           "LookAtAction",
-           "DetectAction",
-           "OpenAction",
-           "CloseAction"]
-
 import dataclasses
 import itertools
 from typing import List, Optional, Any, Tuple
@@ -93,7 +79,7 @@ class MoveTorsoAction(ActionDesignatorDescription):
 
         @with_tree
         def perform(self) -> None:
-            MotionDesignator(MoveJointsMotion([robot_description.i.torso_joint], [self.position])).perform()
+            MoveJointsMotion([robot_description.i.torso_joint], [self.position]).resolve().perform()
 
         def to_sql(self):
             return ORMMoveTorsoAction(self.position)
@@ -126,22 +112,21 @@ class SetGripperAction(ActionDesignatorDescription):
     Set the gripper state of the robot
 
     :ivar grippers: List of grippers to use
-    :ivar openings: List of opening states to consider
+    :ivar motions: List of motion states to consider, either 'open' or 'close'
     """
 
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
 
         gripper: str
-        opening: bool
+        motion: str
 
         @with_tree
         def perform(self) -> None:
-            opening = "open" if self.opening else "close"
-            MotionDesignator(MoveGripperMotion(gripper=self.gripper, motion=opening)).perform()
+            MoveGripperMotion(gripper=self.gripper, motion=self.motion).resolve().perform()
 
         def to_sql(self) -> Base:
-            return ORMSetGripperAction(self.gripper, self.opening)
+            return ORMSetGripperAction(self.gripper, self.motion)
 
         def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
             action = self.to_sql()
@@ -149,16 +134,16 @@ class SetGripperAction(ActionDesignatorDescription):
             session.commit()
             return action
 
-    def __init__(self, grippers: List[str], openings: List[bool], grounding_method=None):
+    def __init__(self, grippers: List[str], motions: List[str], grounding_method=None):
         super(SetGripperAction, self).__init__(grounding_method)
         self.grippers: List[str] = grippers
-        self.openings: List[bool] = openings
+        self.motions: List[str] = motions
 
     def ground(self) -> Action:
-        return self.Action(self.grippers[0], self.openings[0])
+        return self.Action(self.grippers[0], self.motions[0])
 
     def __iter__(self):
-        for parameter_combination in itertools.product(self.grippers, self.openings):
+        for parameter_combination in itertools.product(self.grippers, self.motions):
             yield self.Action(*parameter_combination)
 
 
@@ -258,8 +243,7 @@ class ParkArmsAction(ActionDesignatorDescription):
             # add park right arm if wanted
             if self.arm in [Arms.RIGHT, Arms.BOTH]:
                 kwargs["right_arm_config"] = "park"
-
-            MotionDesignator(MoveArmJointsMotion(**kwargs)).perform()
+            MoveArmJointsMotion(**kwargs).resolve().perform()
 
         def to_sql(self) -> ORMParkArmsAction:
             return ORMParkArmsAction(self.arm.name)
@@ -296,8 +280,9 @@ class PickUpAction(ActionDesignatorDescription):
 
         @with_tree
         def perform(self) -> None:
-            MotionDesignator(PickUpMotion(object=self.object_designator.prop_value("object"),
-                                          arm=self.arm, grasp=self.grasp)).perform()
+            PickUpMotion(object_desig=self.object_designator, arm=self.arm, grasp=self.grasp).resolve().perform()
+            # MotionDesignator(PickUpMotion(object=self.object_designator.prop_value("object"),
+            #                               arm=self.arm, grasp=self.grasp)).perform()
 
         def to_sql(self) -> ORMPickUpAction:
             return ORMPickUpAction(self.arm, self.grasp)
@@ -346,8 +331,8 @@ class PlaceAction(ActionDesignatorDescription):
 
         @with_tree
         def perform(self) -> None:
-            MotionDesignator(PlaceMotion(object=self.object_designator.prop_value("object"),
-                                         arm=self.arm, target=self.target)).perform()
+            PlaceMotion(object_desig=self.object_designator, arm=self.arm, target=self.target_location).resolve().\
+                perform()
 
         def to_sql(self) -> ORMPlaceAction:
             return ORMPlaceAction(self.arm)
@@ -410,8 +395,9 @@ class NavigateAction(ActionDesignatorDescription):
 
         @with_tree
         def perform(self) -> None:
-            MotionDesignator(MoveMotion(target=self.target_location[0],
-                                        orientation=self.target_location[1])).perform()
+            MoveMotion(self.target_location).resolve().perform()
+            #MotionDesignator(MoveMotion(target=self.target_location[0],
+            #                            orientation=self.target_location[1])).perform()
 
         def to_sql(self) -> ORMNavigateAction:
             return ORMNavigateAction()

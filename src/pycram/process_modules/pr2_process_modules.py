@@ -36,7 +36,7 @@ class Pr2Navigation(ProcessModule):
 
     def _execute(self, desig: MoveMotion.Motion):
         robot = BulletWorld.robot
-        robot.set_position_and_orientation(desig.target, desig.orientation)
+        robot.set_position_and_orientation(desig.target[0], desig.target[1])
         local_transformer.update_from_btr()
 
 
@@ -47,7 +47,7 @@ class Pr2PickUp(ProcessModule):
     """
 
     def _execute(self, desig: PickUpMotion.Motion):
-        object = desig.object_desig.object
+        object = desig.object_desig.bullet_world_object
         robot = BulletWorld.robot
         grasp = robot_description.i.grasps.get_orientation_for_grasp(desig.grasp)
         target = [object.get_position(), grasp]
@@ -80,7 +80,7 @@ class Pr2Place(ProcessModule):
         :param desig: A PlaceMotion
         :return:
         """
-        object = desig.object_desig.object
+        object = desig.object.bullet_world_object
         robot = BulletWorld.robot
         target = desig.target
         target = _transform_to_torso(target, robot)

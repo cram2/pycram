@@ -72,16 +72,16 @@ class SetGripperAction(Action):
     __tablename__ = "SetGripper"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
     gripper = sqlalchemy.Column(sqlalchemy.types.String(255), nullable=False)
-    opening = sqlalchemy.Column(sqlalchemy.types.Boolean, nullable=False)
+    motion = sqlalchemy.Column(sqlalchemy.types.String(255), nullable=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
     }
 
-    def __init__(self, gripper: str, opening: bool):
+    def __init__(self, gripper: str, motion: str):
         super(SetGripperAction, self).__init__()
         self.gripper = gripper
-        self.opening = opening
+        self.motion = motion
 
 
 
