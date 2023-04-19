@@ -359,26 +359,4 @@ class DesignatorDescription(ABC):
     def copy(self) -> Type[DesignatorDescription]:
         return self
 
-    def _check_properties(self, desig: str, exclude: List[str] = []) -> None:
-        """
-        Checks the properties of this description. It will be checked if any attribute is
-        None and if any attribute has to wrong type according to the type hints in
-        the description class.
-        It is possible to provide a list of attributes which should not be checked.
-        :param desig: The current type of designator, will be used when raising an
-                        Exception as output.
-        :param exclude: A list of properties which should not be checked.
-        """
-        right_types = get_type_hints(type(self))
-        attributes = self.__dict__
-        missing = []
-        wrong_type = {}
-        current_type = {}
-        for k in attributes.keys():
-            if attributes[k] == None and not attributes[k] in exclude:
-                missing.append(k)
-            elif type(attributes[k]) != right_types[k] and not attributes[k] in exclude:
-                wrong_type[k] = right_types[k]
-                current_type[k] = type(attributes[k])
-        if missing != [] or wrong_type != {}:
-            raise ResolutionError(missing, wrong_type, current_type, desig)
+
