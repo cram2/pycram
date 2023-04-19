@@ -279,8 +279,9 @@ def with_tree(fun: Callable) -> Callable:
 
         # if it is an action designator, save it for logging
         # TODO check if this is correct
-        if not self_.__name__ == "pycram.designators.action_designator.ActionDesignatorDescription":
-          self_ = None
+        # if not self_.__name__ == "pycram.designators.action_designator.ActionDesignatorDescription":
+        #   self_ = None
+        self_ = None
 
         # create the code object that gets executed
         code = Code(fun, inspect.getcallargs(fun, *args, **kwargs), self_)
