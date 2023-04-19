@@ -3,6 +3,8 @@
 Classes:
 ProcessModule -- implementation of process modules.
 """
+import time
+
 from .fluent import Fluent
 from .designator import Designator
 from typing import Callable, List, Type, Any
@@ -27,6 +29,8 @@ class ProcessModule:
     """List of all process module resolvers. Process module resolvers are functions which take a designator as argument and return a process module."""
     robot_type: str = ""
     """The type of the robot, either real or simulated. Is used to determine which Process Module is choosen for execution."""
+    # Adds a delay of 0.5 seconds after executing a process module, to make the
+    execution_delay = True
 
     @staticmethod
     def perform(designator: Type[Designator]) -> None:
@@ -39,7 +43,9 @@ class ProcessModule:
             pm = resolver(designator)
 
             if pm is not None:
-                return pm.execute(designator)
+                return pm.exute(designator)
+        if ProcessModule.execution_delay:
+            time.sleep(0.5)
 
     def __init__(self):
         """Create a new process module."""
