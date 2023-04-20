@@ -74,13 +74,22 @@ class TestActionDesignatorGrounding(test_bullet_world.BulletWorldTest):
         self.assertFalse(object_description.resolve().bullet_world_object in self.robot.attachments.keys())
 
     def test_look_at(self):
-        description = action_designator.LookAtAction([[0, 0, 0]])
-        self.assertEqual(description.ground().target, [0, 0, 0])
+        description = action_designator.LookAtAction([[1, 0, 1]])
+        self.assertEqual(description.ground().target, [1, 0, 1])
+        with simulated_robot:
+            description.resolve().perform()
+        # TODO: Needs a way to test the approximate looking direction of the robot
 
     def test_detect(self):
+        self.milk.set_position([1.5, 0, 1.2])
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.DetectAction(object_description)
         self.assertEqual(description.ground().object_designator.name, "milk")
+        with simulated_robot:
+            detected_object = description.resolve().perform()
+        self.assertEqual(detected_object.name, "milk")
+        self.assertEqual(detected_object.type, "milk")
+        self.assertEqual(detected_object.bullet_world_object, self.milk)
 
     def test_open(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])

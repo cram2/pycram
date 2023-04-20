@@ -117,7 +117,6 @@ class SetGripperAction(ActionDesignatorDescription):
 
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
-
         gripper: str
         motion: str
 
@@ -156,7 +155,6 @@ class ReleaseAction(ActionDesignatorDescription):
 
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
-
         gripper: str
         object_designator: ObjectDesignatorDescription.Object
 
@@ -193,7 +191,6 @@ class GripAction(ActionDesignatorDescription):
 
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
-
         gripper: str
         object_designator: ObjectDesignatorDescription.Object
         effort: float
@@ -331,7 +328,7 @@ class PlaceAction(ActionDesignatorDescription):
 
         @with_tree
         def perform(self) -> None:
-            PlaceMotion(object_desig=self.object_designator, arm=self.arm, target=self.target_location).resolve().\
+            PlaceMotion(object_desig=self.object_designator, arm=self.arm, target=self.target_location).resolve(). \
                 perform()
 
         def to_sql(self) -> ORMPlaceAction:
@@ -396,8 +393,6 @@ class NavigateAction(ActionDesignatorDescription):
         @with_tree
         def perform(self) -> None:
             MoveMotion(self.target_location).resolve().perform()
-            #MotionDesignator(MoveMotion(target=self.target_location[0],
-            #                            orientation=self.target_location[1])).perform()
 
         def to_sql(self) -> ORMNavigateAction:
             return ORMNavigateAction()
@@ -425,7 +420,7 @@ class NavigateAction(ActionDesignatorDescription):
 
             return navigate_action
 
-    def __init__(self,  target_locations: List[Tuple[List[float], List[float]]], grounding_method=None):
+    def __init__(self, target_locations: List[Tuple[List[float], List[float]]], grounding_method=None):
         super(NavigateAction, self).__init__(grounding_method)
         self.target_locations: List[Tuple[List[float], List[float]]] = target_locations
 
@@ -444,7 +439,6 @@ class TransportAction(ActionDesignatorDescription):
 
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
-
         object_designator: ObjectDesignatorDescription.Object
         arm: str
         target_location: Tuple[List[float], List[float]]
@@ -487,12 +481,11 @@ class LookAtAction(ActionDesignatorDescription):
 
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
-
         target: List[float]
 
         @with_tree
         def perform(self) -> None:
-            MotionDesignator(LookingMotion(target=self.target)).perform()
+            LookingMotion(target=self.target).resolve().perform()
 
         def to_sql(self) -> Base:
             raise NotImplementedError()
@@ -517,18 +510,11 @@ class DetectAction(ActionDesignatorDescription):
 
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
-
         object_designator: ObjectDesignatorDescription.Object
 
         @with_tree
         def perform(self) -> Any:
-            det_object = MotionDesignator(DetectingMotion(object_type=self.object_designator.type)).\
-                perform()
-
-            if det_object is None:
-                raise PlanFailure(f"Object {str(self.object_designator)} could not be detected.")
-
-            return det_object
+            return DetectingMotion(object_type=self.object_designator.type).resolve().perform()
 
         def to_sql(self) -> Base:
             raise NotImplementedError()
