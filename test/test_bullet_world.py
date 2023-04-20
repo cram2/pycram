@@ -2,6 +2,7 @@ import unittest
 
 from pycram.bullet_world import BulletWorld, Object, fix_missing_inertial
 from pycram.robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from pycram.process_module import ProcessModule
 import os
 import xml.etree.ElementTree as ET
 
@@ -17,6 +18,7 @@ class BulletWorldTest(unittest.TestCase):
         cls.kitchen = Object("kitchen", "environment", "kitchen.urdf")
         cls.milk = Object("milk", "milk", "milk.stl", position=[1.3, 1, 0.9])
         cls.cereal = Object("cereal", "cereal", "breakfast_cereal.stl", position=[1.3, 0.7, 0.95])
+        ProcessModule.execution_delay = False
 
     def setUp(self):
         self.world.reset_bullet_world()
