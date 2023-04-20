@@ -87,7 +87,8 @@ class Code:
 
         # set foreign key to designator if present
         self_ = self.kwargs.get("self")
-        if self_ and getattr(self_, "insert"):
+
+        if self_ and getattr(self_, "insert", None):
             designator = self_.insert(session)
             code.designator = designator.id
 
