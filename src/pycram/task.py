@@ -292,7 +292,7 @@ def with_tree(fun: Callable) -> Callable:
         try:
             task_tree.status = TaskStatus.CREATED
             task_tree.start_time = datetime.datetime.now()
-            task_tree.code.execute()
+            result = task_tree.code.execute()
 
             # if it succeeded set the flag
             task_tree.status = TaskStatus.SUCCEEDED
@@ -303,9 +303,11 @@ def with_tree(fun: Callable) -> Callable:
             # log the error and set the flag
             logging.exception("Task execution failed at %s. Reason %s" % (str(task_tree.code), e))
             task_tree.status = TaskStatus.FAILED
-
-        # set and time and update current node pointer
-        task_tree.end_time = datetime.datetime.now()
-        task_tree = task_tree.parent
+            raise e
+        finally:
+            # set and time and update current node pointer
+            task_tree.end_time = datetime.datetime.now()
+            task_tree = task_tree.parent
+        return result
 
     return handle_tree
