@@ -36,7 +36,7 @@ These are available via the Ubuntu apt-repos and can be installed via the termin
 
 PyCRAM on Ubuntu 20.04 (ROS Noetic)
 ===================================
-.. _install_pycram:
+.. _install-pycram:
 
 Before installing PyCRAM you need to setup a ROS workspace into which PyCRAM can be cloned.
 
@@ -277,6 +277,7 @@ for the PyCRAM project.
 First, `install PyCharm Professional <https://www.jetbrains.com/help/pycharm/installation-guide.html#standalone>`_.
 
 Next, if you have virtual environments that you want to use, you need to make sure that they have rospy available.
+If you create a new environment, make sure to include  `--system-site-packages` in your creation command.
 You can check by activating your environment and calling the import
 
 .. code-block:: console
@@ -285,7 +286,7 @@ You can check by activating your environment and calling the import
     python -c "import rospy"
 
 If this returns no errors, you can be sure that rospy is usable in your virtual environment. Next you have to build the
-ros workspace including pycram and source it as described in :ref:`install_pycram`.
+ros workspace including pycram and source it as described in :ref:`install-pycram`.
 
 After that you have to start PyCharm from the terminal via
 
