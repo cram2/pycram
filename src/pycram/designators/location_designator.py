@@ -1,7 +1,7 @@
 import dataclasses
 from typing import List, Tuple, Union, Iterable
 
-from .object_designator import ObjectDesignator
+from .object_designator import ObjectDesignatorDescription
 from ..bullet_world import Object, BulletWorld, Use_shadow_world
 from ..designator import Designator, DesignatorError, DesignatorDescription
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
@@ -41,9 +41,9 @@ class ObjectRelativeLocation(LocationDesignatorDescription):
     @dataclasses.dataclass
     class Location(LocationDesignatorDescription.Location):
         relative_pose: List[float]
-        reference_object: ObjectDesignator
+        reference_object: ObjectDesignatorDescription.Object
 
-    def __init__(self, relative_pose: List[float] = None, reference_object: ObjectDesignator = None,
+    def __init__(self, relative_pose: List[float] = None, reference_object: ObjectDesignatorDescription.Object = None,
                  resolver=None):
         super().__init__(resolver=resolver)
         self.relative_pose = relative_pose
