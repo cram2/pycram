@@ -203,7 +203,7 @@ class TaskTreeNode(anytree.NodeMixin):
 
         # if recursive, insert all children
         if recursive:
-            [child.insert(session, ) for child in self.children]
+            [child.insert(session, parent_id=node.id) for child in self.children]
 
         return node
 
@@ -283,6 +283,7 @@ def with_tree(fun: Callable) -> Callable:
 
             # log the error and set the flag
             logging.exception("Task execution failed at %s. Reason %s" % (str(task_tree.code), e))
+            task_tree.reason = e
             task_tree.status = TaskStatus.FAILED
             raise e
         finally:
