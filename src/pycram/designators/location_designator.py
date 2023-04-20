@@ -74,10 +74,10 @@ class CostmapLocation(LocationDesignatorDescription):
 
     def __init__(self, target, reachable_for=None, visible_for=None, reachable_arm=None):
         super().__init__(resolver=None)
-        self.target: Union[Tuple[List[float], List[float]], Object] = target
-        self.reachable_for = reachable_for
-        self.visible_for = visible_for
-        self.reachable_arm = reachable_arm
+        self.target: Union[Tuple[List[float], List[float]], ObjectDesignatorDescription.Object] = target
+        self.reachable_for: ObjectDesignatorDescription.Object = reachable_for
+        self.visible_for: ObjectDesignatorDescription.Object = visible_for
+        self.reachable_arm: str = reachable_arm
 
     def ground(self) -> Location:
         return next(iter(self))
@@ -100,8 +100,8 @@ class CostmapLocation(LocationDesignatorDescription):
         min_height = list(robot_description.i.cameras.values())[0].min_height
         max_height = list(robot_description.i.cameras.values())[0].max_height
         # This ensures that the costmaps always get a position as their origin.
-        if type(self.target) == Object:
-            target_pose = self.target.get_position_and_orientation()
+        if type(self.target) == ObjectDesignatorDescription.Object:
+            target_pose = self.target.bullet_world_object.get_position_and_orientation()
         else:
             target_pose = self.target
 
@@ -118,7 +118,7 @@ class CostmapLocation(LocationDesignatorDescription):
             visible = VisibilityCostmap(min_height, max_height, 200, 0.02, [target_pose[0], [0, 0, 0, 1]])
             final_map += visible
 
-        robot_object = self.visible_for if self.visible_for else self.reachable_for
+        robot_object = self.visible_for.bullet_world_object if self.visible_for else self.reachable_for.bullet_world_object
 
         with Use_shadow_world():
             test_robot = BulletWorld.current_bullet_world.get_shadow_object(robot_object)
@@ -126,10 +126,10 @@ class CostmapLocation(LocationDesignatorDescription):
                 res = True
                 arms = None
                 if self.visible_for:
-                    res = res and visibility_validator(maybe_pose, test_robot, self.target,
+                    res = res and visibility_validator(maybe_pose, test_robot, target_pose,
                                                        BulletWorld.current_bullet_world)
                 if self.reachable_for:
-                    valid, arms = reachability_validator(maybe_pose, test_robot, self.target,
+                    valid, arms = reachability_validator(maybe_pose, test_robot, target_pose,
                                                          BulletWorld.current_bullet_world)
                     if self.reachable_arm:
                         res = res and valid and self.reachable_arm in arms
@@ -148,8 +148,8 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
     def __init__(self, urdf_link_name, part_of, for_object=None):
         super().__init__(resolver=None)
         self.urdf_link_name: str = urdf_link_name
-        self.part_of = part_of
-        self.for_object = for_object
+        self.part_of: ObjectDesignatorDescription.Object = part_of
+        self.for_object: ObjectDesignatorDescription.Object = for_object
 
     def ground(self) -> Location:
         return next(iter(self))
@@ -162,11 +162,11 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
 
         :return: An instancce of SemanticCostmapLocation.Location with the found valid position of the Costmap.
         """
-        sem_costmap = SemanticCostmap(self.part_of, self.urdf_link_name)
+        sem_costmap = SemanticCostmap(self.part_of.bullet_world_object, self.urdf_link_name)
         height_offset = 0
         if self.for_object:
-            min, max = self.for_object.get_AABB()
+            min, max = self.for_object.bullet_world_object.get_AABB()
             height_offset = (max[2] - min[2]) / 2
         for maybe_pose in pose_generator(sem_costmap):
             position = [maybe_pose[0][0], maybe_pose[0][1], maybe_pose[0][2] + height_offset]
-            yield self.Location([position, maybe_pose[0]])
+            yield self.Location([position, maybe_pose[1]])
