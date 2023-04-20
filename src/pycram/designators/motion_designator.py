@@ -3,6 +3,7 @@ import dataclasses
 from .object_designator import ObjectDesignatorDescription
 from ..bullet_world import Object, BulletWorld
 from ..designator import Designator, DesignatorError, DesignatorDescription, ResolutionError
+from ..plan_failures import PerceptionObjectNotFound
 from ..process_module import ProcessModule
 from ..orm.base import Quaternion, Position, Base
 from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
@@ -253,7 +254,13 @@ class DetectingMotion(MotionDesignatorDescription):
         object_type: str
 
         def perform(self):
-            return ProcessModule.perform(self)
+            bullet_world_object = ProcessModule.perform(self)
+            if not bullet_world_object:
+                raise PerceptionObjectNotFound(
+                    f"Could not find an object with the type {self.object_type} in the FOV of the robot")
+            return ObjectDesignatorDescription.Object(bullet_world_object.name, bullet_world_object.type,
+                                                      bullet_world_object.get_position_and_orientation(),
+                                                      bullet_world_object)
 
     def __init__(self, object_type, resolver=None):
         super().__init__(resolver)

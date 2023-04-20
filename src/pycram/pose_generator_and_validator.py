@@ -23,7 +23,7 @@ def pose_generator(costmap: Type[Costmap]) -> Tuple[List[float], List[float]]:
     """
     # Determines how many positions should be sampled from the costmap
     number_of_samples = 100
-    indices = np.argpartition(costmap.map.flatten(), -100)[-100:]
+    indices = np.argpartition(costmap.map.flatten(), -number_of_samples)[-number_of_samples:]
     #indices = np.argsort(costmap.map.flatten())[-number_of_samples:]
     indices = np.dstack(np.unravel_index(indices, costmap.map.shape)).reshape(number_of_samples, 2)
 
