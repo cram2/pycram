@@ -1,3 +1,5 @@
+import anytree
+
 import pycram.task
 from pycram.resolver.plans import Arms
 from pycram.designators.action_designator import *
@@ -10,12 +12,16 @@ from pycram.costmaps import SemanticCostmap
 from pycram.pose_generator_and_validator import pose_generator
 from pycram.external_interfaces.ik import IKError
 from time import sleep
+import tqdm
+import pycram.orm.base
+import pycram.orm.object_designator
+import pycram.orm.motion_designator
+import pycram.orm.action_designator
 
 
 def get_n_random_positions(pose_list, n=4, dist=0.5, random=True):
-    positions = [pos[0] for pos in pose_list[:1000]]
+    positions = [pos[0] for pos in pose_list]
     all_indices = list(range(len(positions)))
-    print(len(all_indices))
     pos_idx = np.random.choice(all_indices) if random else all_indices[0]
     all_indices.remove(pos_idx)
     n_positions = np.zeros((n, 3))
@@ -51,7 +57,6 @@ def plan(world, robot_desig, env_desig, obj_desig, torso=0.2, place="countertop"
         MoveTorsoAction.Action(torso).perform()
         location = CostmapLocation(target=obj_desig, reachable_for=robot_desig)
         pose = location.resolve()
-        print()
         NavigateAction.Action(pose.pose).perform()
         ParkArmsAction.Action(Arms.BOTH).perform()
         good_torso.append(torso)
@@ -78,11 +83,11 @@ def plan(world, robot_desig, env_desig, obj_desig, torso=0.2, place="countertop"
 class CRAMPlan:
     def __init__(self):
         # Define world, robot, and environment
-        self.world = BulletWorld()
+        self.world = BulletWorld("DIRECT")
         self.robot = Object(robot_description.i.name, "robot", robot_description.i.name + ".urdf")
         self.robot_desig = ObjectDesignatorDescription(names=['pr2']).resolve()
         self.apartment = Object("apartment", "environment",
-                                "/home/abassi/cram_ws/src/iai_maps/iai_apartment/urdf/apartment.urdf",
+                                "/home/tom_sch/catkin_ws/src/iai_maps/iai_apartment/urdf/apartment.urdf",
                                 position=[-1.5, -2.5, 0])
         self.apartment_desig = ObjectDesignatorDescription(names=['apartment']).resolve()
         self.table_top = self.apartment.get_link_position("cooktop")
@@ -92,17 +97,18 @@ class CRAMPlan:
         self.object_desig = {}
         self.place_objects(inistantiate=True)
         self.good_torsos = []
+        self.torso = 0
 
     def place_objects(self, inistantiate=False):
         # Define and place the objects
         scm = SemanticCostmap(self.apartment, "island_countertop")
+        scm.map[5:40, 16:140] = 0
         poses_list = list(pose_generator(scm, number_of_samples=-1))
+
         poses_list.sort(reverse=True, key=lambda x: np.linalg.norm(x[0]))
         object_poses = get_n_random_positions(poses_list)
         for obj_name, obj_pose in zip(self.object_names, object_poses):
             if inistantiate:
-                print(obj_name)
-                print(obj_pose)
                 self.objects[obj_name] = Object(obj_name, obj_name, obj_name + ".stl",
                                                 position=[obj_pose[0][0], obj_pose[0][1], self.table_top[2]])
                 self.object_desig[obj_name] = ObjectDesignatorDescription(names=[obj_name], types=[obj_name]).resolve()
@@ -113,8 +119,7 @@ class CRAMPlan:
             self.objects[obj_name].move_base_to_origin_pos()
             self.objects[obj_name].original_pose = self.objects[obj_name].get_position_and_orientation()
 
-        print(object_poses)
-
+    @with_tree
     def execute_plan(self):
         # Execute plan
         if len(self.object_names) > 0:
@@ -123,24 +128,34 @@ class CRAMPlan:
             self.place_objects(inistantiate=True)
         for obj_name in self.object_names:
             done = False
-            torso = 0.25 if len(self.good_torsos) == 0 else self.good_torsos[-1]
+            self.torso = 0.25 if len(self.good_torsos) == 0 else self.good_torsos[-1]
             while not done:
                 try:
-                    gt = plan(self.world, self.robot_desig, self.apartment_desig, self.object_desig[obj_name], torso=torso,
+                    gt = plan(self.world, self.robot_desig, self.apartment_desig, self.object_desig[obj_name], torso=self.torso,
                          place="island_countertop")
                     self.good_torsos.extend(gt)
                     done = True
                     self.objects[obj_name].original_pose = self.objects[obj_name].get_position_and_orientation()
                 except (StopIteration, IKError) as e:
-                    print(type(e))
-                    print(e)
-                    print("no solution")
-                    torso += 0.05
-                    if torso > 0.3:
-                        break
-        print(self.good_torsos)
+                    raise PlanFailure()
 
 
 if __name__ == '__main__':
+
+    engine = sqlalchemy.create_engine("mysql+pymysql://pycrorm@localhost/pycrorm?charset=utf8mb4")
+    session = sqlalchemy.orm.session.Session(bind=engine)
+    pycram.orm.base.Base.metadata.create_all(engine)
     cram_plan = CRAMPlan()
-    cram_plan.execute_plan()
+    for i in tqdm.tqdm(list(range(100000))):
+        try:
+            cram_plan.execute_plan()
+        except PlanFailure:
+            cram_plan.torso += 0.05
+            if cram_plan.torso > 0.3:
+                cram_plan.torso = 0.25
+        finally:
+            pycram.task.task_tree.insert(session)
+            # print(anytree.RenderTree(pycram.task.task_tree))
+            pycram.task.reset_tree()
+
+
