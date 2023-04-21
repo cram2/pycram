@@ -1,3 +1,5 @@
+.. _installation:
+
 ============
 Installation
 ============
@@ -34,6 +36,7 @@ These are available via the Ubuntu apt-repos and can be installed via the termin
 
 PyCRAM on Ubuntu 20.04 (ROS Noetic)
 ===================================
+.. _install-pycram:
 
 Before installing PyCRAM you need to setup a ROS workspace into which PyCRAM can be cloned.
 
@@ -237,7 +240,9 @@ Building the documentation
 ==========================
 
 The documentation uses sphinx as engine.
-Install sphinx on your device.
+Building sphinx based documentations requires `pandoc <https://pandoc.org/installing.html>`_
+to be installed.
+After installing pandoc, install sphinx on your device.
 
 .. code-block:: console
 
@@ -261,3 +266,45 @@ Show the index.
 .. code-block::
 
     firefox build/html/index.html
+
+
+Setting up PyCRAM with PyCharm
+==============================
+
+Setting up PyCharm with packages that rely on rospy is non trivial. Follow this guide to get correct syntax highlighting
+for the PyCRAM project.
+
+First, `install PyCharm Professional <https://www.jetbrains.com/help/pycharm/installation-guide.html#standalone>`_.
+
+Next, if you have virtual environments that you want to use, you need to make sure that they have rospy available.
+If you create a new environment, make sure to include  `--system-site-packages` in your creation command.
+You can check by activating your environment and calling the import
+
+.. code-block:: console
+
+    workon your_env
+    python -c "import rospy"
+
+If this returns no errors, you can be sure that rospy is usable in your virtual environment. Next you have to build the
+ros workspace including pycram and source it as described in :ref:`install-pycram`.
+
+After that you have to start PyCharm from the terminal via
+
+.. code-block:: console
+
+    pycharm-professional
+
+or
+
+.. code-block:: console
+
+    ~/pycharm/bin/pycharm.sh
+
+Select **File | Open** and select the root folder of the PyCRAM package.
+Next go to **File | Settings | Project: pycram | Python Interpreter** and set up your virtual environment with rospy and
+the sourced workspace available as the python interpreter.
+
+Finally, go to  **File | Settings | Project: pycram | Project Structure** and mark the src folder as Sources, the test
+folder as Tests and the resources as Resources.
+
+To verify that it works, you can execute any Testcase.

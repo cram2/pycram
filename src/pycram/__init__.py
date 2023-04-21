@@ -28,4 +28,4 @@ ch.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(levelname)s - %(name)s  - Line:%(lineno)d - %(message)s')
 ch.setFormatter(formatter)
 
-from .resolver import *
+#from .resolver import *
