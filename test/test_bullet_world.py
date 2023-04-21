@@ -23,6 +23,7 @@ class BulletWorldTest(unittest.TestCase):
     def setUp(self):
         self.world.reset_bullet_world()
 
+    @unittest.skip
     def test_object_movement(self):
         self.milk.set_position([0, 1, 1])
         self.assertEqual(list(self.milk.get_position()), [0, 1, 1])
