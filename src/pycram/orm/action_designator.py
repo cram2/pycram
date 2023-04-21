@@ -12,6 +12,7 @@ class Action(Base):
     __tablename__ = "Action"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
     dtype = sqlalchemy.Column(sqlalchemy.types.String(255))
+    robot_position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("RobotPosition.id"))
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -123,7 +124,7 @@ class PickUpAction(Action):
         "polymorphic_identity": __tablename__,
     }
 
-    def __init__(self, arm: str, grasp: bool):
+    def __init__(self, arm: str, grasp: str):
         super(PickUpAction, self).__init__()
         self.arm = arm
         self.grasp = grasp

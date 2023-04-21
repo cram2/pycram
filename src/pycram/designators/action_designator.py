@@ -4,16 +4,19 @@ from typing import List, Optional, Any, Tuple
 
 import sqlalchemy.orm
 
+import orm.action_designator
 from .motion_designator import *
 from .object_designator import ObjectDesignatorDescription
 from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, NavigateAction as ORMNavigateAction,
                                      PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction,
-                                     MoveTorsoAction as ORMMoveTorsoAction, SetGripperAction as ORMSetGripperAction)
-from ..orm.base import Quaternion, Position, Base
+                                     MoveTorsoAction as ORMMoveTorsoAction, SetGripperAction as ORMSetGripperAction,
+                                     Action as ORMAction)
+from ..orm.base import Quaternion, Position, Base, RobotPosition
 from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from ..task import with_tree
 from ..enums import Arms
 from ..plan_failures import *
+from ..bullet_world import BulletWorld
 
 
 class ActionDesignatorDescription(DesignatorDescription):
@@ -27,6 +30,10 @@ class ActionDesignatorDescription(DesignatorDescription):
         """
         A single element that fits the description.
         """
+        robot_position: Tuple[List[float], List[float]] = dataclasses.field(init=False)
+
+        def __post_init__(self):
+            self.robot_position = BulletWorld.robot.get_position_and_orientation()
 
         @with_tree
         def perform(self) -> Any:
@@ -42,17 +49,36 @@ class ActionDesignatorDescription(DesignatorDescription):
             """
             raise NotImplementedError(f"{type(self)} has no implementation of to_sql. Feel free to implement it.")
 
-        def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
+        def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> ORMAction:
             """
             Add and commit this and all related objects to the session.
             Auto-Incrementing primary keys and foreign keys have to be filled by this method.
 
             :param session: Session with a database that is used to add and commit the objects
+            :param action: The action to write the robot position primary key in.
             :param args: Possible extra arguments
             :param kwargs: Possible extra keyword arguments
             :return: The completely instanced ORM object
             """
-            raise NotImplementedError(f"{type(self)} has no implementation of insert. Feel free to implement it.")
+
+            # create position and orientation
+            position = Position(*self.robot_position[0])
+            orientation = Quaternion(*self.robot_position[1])
+            session.add_all([position, orientation])
+            session.commit()
+
+            # create robot position object
+            robot_position = RobotPosition()
+            robot_position.position = position.id
+            robot_position.orientation = orientation.id
+            session.add(robot_position)
+            session.commit()
+
+            # create action
+            action = self.to_sql()
+            action.robot_position = robot_position.id
+
+            return action
 
     def __init__(self, grounding_method=None):
         super(ActionDesignatorDescription, self).__init__(grounding_method)
@@ -285,8 +311,9 @@ class PickUpAction(ActionDesignatorDescription):
             return ORMPickUpAction(self.arm, self.grasp)
 
         def insert(self, session: sqlalchemy.orm.session.Session, **kwargs):
-            action = self.to_sql()
 
+            action = super().insert(session)
+            print(action)
             # try to create the object designator
             if self.object_designator:
                 od = self.object_designator.insert(session, )
@@ -335,7 +362,7 @@ class PlaceAction(ActionDesignatorDescription):
             return ORMPlaceAction(self.arm)
 
         def insert(self, session, *args, **kwargs) -> ORMPlaceAction:
-            action = self.to_sql()
+            action = super().insert(session)
 
             if self.object_designator:
                 od = self.object_designator.insert(session, )

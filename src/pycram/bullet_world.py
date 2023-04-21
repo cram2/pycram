@@ -552,6 +552,10 @@ class Object:
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
         self._set_attached_objects([self])
 
+    @property
+    def pose(self):
+        return self.get_pose()
+
     def move_base_to_origin_pos(self):
         """
         Move the object such that its base becomes at the current origin position.
