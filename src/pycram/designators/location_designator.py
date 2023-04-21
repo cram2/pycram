@@ -30,7 +30,7 @@ class Location(LocationDesignatorDescription):
         pose: Tuple[List[float], List[float]]
 
     def __init__(self, pose, resolver=None):
-        super().__init__(resolver=resolver)
+        super().__init__(resolver)
         self.pose: Tuple[List[float], List[float]] = pose
 
     def ground(self) -> Location:
@@ -45,7 +45,7 @@ class ObjectRelativeLocation(LocationDesignatorDescription):
 
     def __init__(self, relative_pose: List[float] = None, reference_object: ObjectDesignatorDescription.Object = None,
                  resolver=None):
-        super().__init__(resolver=resolver)
+        super().__init__(resolver)
         self.relative_pose = relative_pose
         self.reference_object = reference_object
 
@@ -72,8 +72,8 @@ class CostmapLocation(LocationDesignatorDescription):
         pose: Tuple[List[float], List[float]]
         reachable_arms: List[str]
 
-    def __init__(self, target, reachable_for=None, visible_for=None, reachable_arm=None):
-        super().__init__(resolver=None)
+    def __init__(self, target, reachable_for=None, visible_for=None, reachable_arm=None, resolver=None):
+        super().__init__(resolver)
         self.target: Union[Tuple[List[float], List[float]], ObjectDesignatorDescription.Object] = target
         self.reachable_for: ObjectDesignatorDescription.Object = reachable_for
         self.visible_for: ObjectDesignatorDescription.Object = visible_for
@@ -145,8 +145,8 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
     class Location(LocationDesignatorDescription.Location):
         pose: Tuple[List[float], List[float]]
 
-    def __init__(self, urdf_link_name, part_of, for_object=None):
-        super().__init__(resolver=None)
+    def __init__(self, urdf_link_name, part_of, for_object=None, resolver=None):
+        super().__init__(resolver)
         self.urdf_link_name: str = urdf_link_name
         self.part_of: ObjectDesignatorDescription.Object = part_of
         self.for_object: ObjectDesignatorDescription.Object = for_object

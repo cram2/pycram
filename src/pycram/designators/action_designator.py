@@ -54,8 +54,8 @@ class ActionDesignatorDescription(DesignatorDescription):
             """
             raise NotImplementedError(f"{type(self)} has no implementation of insert. Feel free to implement it.")
 
-    def __init__(self, grounding_method=None):
-        super(ActionDesignatorDescription, self).__init__(grounding_method)
+    def __init__(self, resolver=None):
+        super(ActionDesignatorDescription, self).__init__(resolver)
 
     def ground(self) -> Action:
         """Fill all missing parameters and chose plan to execute. """
@@ -90,13 +90,13 @@ class MoveTorsoAction(ActionDesignatorDescription):
             session.commit()
             return action
 
-    def __init__(self, positions: List[float], grounding_method=None):
+    def __init__(self, positions: List[float], resolver=None):
         """
         Create a designator description to move the torso of the robot up and down.
 
         :param positions: Possible positions of the robots torso
         """
-        super().__init__(grounding_method)
+        super().__init__(resolver)
         self.positions: List[float] = positions
 
     def ground(self) -> Action:
@@ -133,8 +133,8 @@ class SetGripperAction(ActionDesignatorDescription):
             session.commit()
             return action
 
-    def __init__(self, grippers: List[str], motions: List[str], grounding_method=None):
-        super(SetGripperAction, self).__init__(grounding_method)
+    def __init__(self, grippers: List[str], motions: List[str], resolver=None):
+        super(SetGripperAction, self).__init__(resolver)
         self.grippers: List[str] = grippers
         self.motions: List[str] = motions
 
@@ -169,8 +169,8 @@ class ReleaseAction(ActionDesignatorDescription):
             raise NotImplementedError()
 
     def __init__(self, grippers: List[str], object_designator_description: ObjectDesignatorDescription,
-                 grounding_method=None):
-        super().__init__(grounding_method)
+                 resolver=None):
+        super().__init__(resolver)
         self.grippers: List[str] = grippers
         self.object_designator_description = object_designator_description
 
@@ -206,8 +206,8 @@ class GripAction(ActionDesignatorDescription):
             raise NotImplementedError()
 
     def __init__(self, grippers: List[str], object_designator_description: ObjectDesignatorDescription,
-                 efforts: List[float], grounding_method=None):
-        super(GripAction, self).__init__(grounding_method)
+                 efforts: List[float], resolver=None):
+        super(GripAction, self).__init__(resolver)
         self.grippers: List[str] = grippers
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.efforts: List[float] = efforts
@@ -251,8 +251,8 @@ class ParkArmsAction(ActionDesignatorDescription):
             session.commit()
             return action
 
-    def __init__(self, arms: List[Arms], grounding_method=None):
-        super(ParkArmsAction, self).__init__(grounding_method)
+    def __init__(self, arms: List[Arms], resolver=None):
+        super(ParkArmsAction, self).__init__(resolver)
         self.arms: List[Arms] = arms
 
     def ground(self) -> Action:
@@ -300,8 +300,8 @@ class PickUpAction(ActionDesignatorDescription):
             return action
 
     def __init__(self, object_designator_description: ObjectDesignatorDescription, arms: List[str],
-                 grasps: List[str], grounding_method=None):
-        super(PickUpAction, self).__init__(grounding_method)
+                 grasps: List[str], resolver=None):
+        super(PickUpAction, self).__init__(resolver)
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.arms: List[str] = arms
         self.grasps: List[str] = grasps
@@ -361,15 +361,16 @@ class PlaceAction(ActionDesignatorDescription):
 
     def __init__(self, object_designator_description: ObjectDesignatorDescription,
                  target_locations: List[Tuple[List[float], List[float]]],
-                 arms: List[str], grounding_method=None):
+                 arms: List[str], resolver=None):
         """
         Create an Action Description to place an object
+
         :param object_designator_description: Description of possible objects to place.
         :param target_locations: List of possible positions/orientations to place the object
         :param arms: Possible arms to use
-        :param grounding_method: Grounding method to resolve this designator
+        :param resolver: Grounding method to resolve this designator
         """
-        super(PlaceAction, self).__init__(grounding_method)
+        super(PlaceAction, self).__init__(resolver)
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.target_locations: List[Tuple[List[float], List[float]]] = target_locations
         self.arms: List[str] = arms
@@ -420,8 +421,8 @@ class NavigateAction(ActionDesignatorDescription):
 
             return navigate_action
 
-    def __init__(self, target_locations: List[Tuple[List[float], List[float]]], grounding_method=None):
-        super(NavigateAction, self).__init__(grounding_method)
+    def __init__(self, target_locations: List[Tuple[List[float], List[float]]], resolver=None):
+        super(NavigateAction, self).__init__(resolver)
         self.target_locations: List[Tuple[List[float], List[float]]] = target_locations
 
     def ground(self) -> Action:
@@ -461,8 +462,8 @@ class TransportAction(ActionDesignatorDescription):
             raise NotImplementedError()
 
     def __init__(self, object_designator_description: ObjectDesignatorDescription, arms: List[str],
-                 target_locations: List[Tuple[List[float], List[float]]], grounding_method=None):
-        super(TransportAction, self).__init__(grounding_method)
+                 target_locations: List[Tuple[List[float], List[float]]], resolver=None):
+        super(TransportAction, self).__init__(resolver)
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.arms: List[str] = arms
         self.target_locations: List[Tuple[List[float], List[float]]] = target_locations
@@ -493,8 +494,8 @@ class LookAtAction(ActionDesignatorDescription):
         def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
             raise NotImplementedError()
 
-    def __init__(self, targets: List[List[float]], grounding_method=None):
-        super(LookAtAction, self).__init__(grounding_method)
+    def __init__(self, targets: List[List[float]], resolver=None):
+        super(LookAtAction, self).__init__(resolver)
         self.targets: List[List[float]] = targets
 
     def ground(self) -> Action:
@@ -522,8 +523,8 @@ class DetectAction(ActionDesignatorDescription):
         def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
             raise NotImplementedError()
 
-    def __init__(self, object_designator_description: ObjectDesignatorDescription, grounding_method=None):
-        super(DetectAction, self).__init__(grounding_method)
+    def __init__(self, object_designator_description: ObjectDesignatorDescription, resolver=None):
+        super(DetectAction, self).__init__(resolver)
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
 
     def ground(self) -> Action:
@@ -533,6 +534,7 @@ class DetectAction(ActionDesignatorDescription):
 class OpenAction(ActionDesignatorDescription):
     """
     Opens a container like object
+
     :ivar object_designator_description: The description of objects that should be detected
     :ivar arms: The arms to consider
     :ivar distances: Potential distances to consider TODO check if needed
@@ -570,8 +572,8 @@ class OpenAction(ActionDesignatorDescription):
             raise NotImplementedError()
 
     def __init__(self, object_designator_description: ObjectDesignatorDescription, arms: List[str],
-                 distances: List[float], grounding_method=None):
-        super(OpenAction, self).__init__(grounding_method)
+                 distances: List[float], resolver=None):
+        super(OpenAction, self).__init__(resolver)
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.arms: List[str] = arms
         self.distances: List[float] = distances
@@ -583,6 +585,7 @@ class OpenAction(ActionDesignatorDescription):
 class CloseAction(ActionDesignatorDescription):
     """
     Closes a container like object
+
     :ivar object_designator_description: The description of objects that should be detected
     :ivar arms: The arms to consider
     """
@@ -615,8 +618,8 @@ class CloseAction(ActionDesignatorDescription):
             raise NotImplementedError()
 
     def __init__(self, object_designator_description: ObjectDesignatorDescription, arms: List[str],
-                 grounding_method=None):
-        super(CloseAction, self).__init__(grounding_method)
+                 resolver=None):
+        super(CloseAction, self).__init__(resolver)
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.arms: List[str] = arms
 
@@ -628,6 +631,7 @@ def get_container_joint_and_handle(container_designator: Any):
     """
     Gets names of container joint and handle.
     TODO move this where it belongs
+
     :param container_designator: The object designator to get the names from.
     :return: (joint_name, handle_name)
     """
