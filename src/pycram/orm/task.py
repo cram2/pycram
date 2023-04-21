@@ -14,7 +14,7 @@ class TaskTreeNode(Base):
     code = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Code.id"))
     start_time = sqlalchemy.Column(sqlalchemy.types.DateTime)
     end_time = sqlalchemy.Column(sqlalchemy.types.DateTime, nullable=True)
-    status = sqlalchemy.Column(sqlalchemy.types.String)
+    status = sqlalchemy.Column(sqlalchemy.types.String(255))
     parent = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("TaskTreeNode.id"), nullable=True)
 
     def __init__(self, code: int = None, start_time: datetime.datetime = None, end_time: datetime.datetime = None,
@@ -32,7 +32,7 @@ class Code(Base):
 
     __tablename__ = "Code"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
-    function = sqlalchemy.Column(sqlalchemy.types.String)
+    function = sqlalchemy.Column(sqlalchemy.types.String(255))
     designator = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), nullable=True)
 
     def __init__(self, function: str = None, designator: Optional[int] = None):

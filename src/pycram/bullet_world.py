@@ -8,6 +8,7 @@ Object -- Representation of an object in the BulletWorld
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+import numpy as np
 import pybullet as p
 import os
 import threading
@@ -61,7 +62,7 @@ class BulletWorld:
         # self.last_bullet_world = BulletWorld.current_bullet_world
         if BulletWorld.current_bullet_world == None:
             BulletWorld.current_bullet_world = self
-        self.vis_axis: Object = None
+        self.vis_axis: Object = []
         self.coll_callbacks: Dict[Tuple[Object, Object], Tuple[Callable, Callable]] = {}
         self.data_directory: List[str] = [os.path.dirname(__file__) + "/../../resources"]
         self.shadow_world: BulletWorld = BulletWorld("DIRECT", True) if not is_shadow_world else None
@@ -191,8 +192,6 @@ class BulletWorld:
         orientation as a quanternion
         :param length: Optional parameter to configure the length of the axes
         """
-        if self.vis_axis:
-            p.removeBody(self.vis_axis)
 
         position = position_and_orientation[0]
         orientation = position_and_orientation[1]
@@ -215,15 +214,15 @@ class BulletWorld:
                                 linkJointAxis=[[1, 0, 0], [0, 1, 0], [0, 0, 1]],
                                 linkCollisionShapeIndices=[-1, -1, -1])
 
-        self.vis_axis = obj
+        self.vis_axis.append(obj)
 
     def remove_vis_axis(self):
         """
         Checks if there is a vis_axis objects in the BulletWorld and removes it,
         if there is one.
         """
-        if self.vis_axis:
-            p.removeBody(self.vis_axis)
+        for id in self.vis_axis:
+            p.removeBody(id)
 
     def register_collision_callback(self, objectA: Object, objectB: Object,
                                     callback_collision: Callable,
@@ -437,6 +436,8 @@ class Object:
         self.cids: Dict[Object, int] = {}
         self.world.objects.append(self)
         self.original_pose = [position, orientation]
+        self.base_origin_shift = np.array(position) - np.array(self.get_base_origin())
+
         # This means "world" is not the shadow world since it has a reference to a shadow world
         if self.world.shadow_world != None:
             self.world.world_sync.add_obj_queue.put(
@@ -533,9 +534,24 @@ class Object:
     def get_position_and_orientation(self) -> Tuple[List[float], List[float]]:
         return p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id)[:2]
 
-    def set_position_and_orientation(self, position, orientation) -> None:
+    def set_position_and_orientation(self, position, orientation, base=False) -> None:
+        """
+        Set the position and the orientation of the object in the bullet world
+        :param position: the x,y,z values to place the object at.
+        :param orientation: the x,y,z,w values to orient the object to.
+        :param base: if True place the object base instead of origin at the specified position and orientation
+        """
+        if base:
+            position = np.array(position) + self.base_origin_shift
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
         self._set_attached_objects([self])
+
+    def move_base_to_origin_pos(self):
+        """
+        Move the object such that its base becomes at the current origin position.
+        This is useful when placing objects on surfaces where you want the object base in contact with the surface.
+        """
+        self.set_position_and_orientation(*self.get_position_and_orientation(), base=True)
 
     def _set_attached_objects(self, prev_object: List[Object]) -> None:
         """
@@ -590,8 +606,8 @@ class Object:
                                              world_T_object[0], world_T_object[1], self.world.client_id)
         return link_T_object
 
-    def set_position(self, position: List[float]) -> None:
-        self.set_position_and_orientation(position, self.get_orientation())
+    def set_position(self, position: List[float], base=False) -> None:
+        self.set_position_and_orientation(position, self.get_orientation(), base=base)
 
     def set_orientation(self, orientation: List[float]) -> None:
         self.set_position_and_orientation(self.get_position(), orientation)
@@ -726,6 +742,15 @@ class Object:
             return p.getAABB(self.id, self.links[link_name], self.world.client_id)
         else:
             return p.getAABB(self.id, physicsClientId=self.world.client_id)
+
+    def get_base_origin(self, link_name: Optional[str] = None):
+        """
+        Returns the origin of the base/bottom of an object/link
+        """
+        aabb = self.get_AABB(link_name=link_name)
+        base_width = np.absolute(aabb[0][0] - aabb[1][0])
+        base_length = np.absolute(aabb[0][1] - aabb[1][1])
+        return [aabb[0][0] + base_width / 2, aabb[0][1] + base_length / 2, aabb[0][2]]
 
     def get_joint_limits(self, joint: str) -> Tuple[float, float]:
         """

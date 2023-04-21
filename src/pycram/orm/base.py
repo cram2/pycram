@@ -47,3 +47,23 @@ class Quaternion(Base):
         self.y = y
         self.z = z
         self.w = w
+
+
+class Color(Base):
+    """ORM Class for Colors."""
+
+    __tablename__ = "Color"
+
+    id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
+    r = sqlalchemy.Column(sqlalchemy.types.Float)
+    g = sqlalchemy.Column(sqlalchemy.types.Float)
+    b = sqlalchemy.Column(sqlalchemy.types.Float)
+    alpha = sqlalchemy.Column(sqlalchemy.types.Float)
+
+    def __init__(self, r: float, g: float, b: float, alpha: float):
+        super().__init__()
+        self.r = r
+        self.g = g
+        self.b = b
+        self.alpha = alpha
+
