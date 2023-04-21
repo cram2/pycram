@@ -15,16 +15,17 @@ __all__ = ["ActionDesignator",
            "OpenAction",
            "CloseAction"]
 
-from typing import List
+from typing import List, Optional
+
 import sqlalchemy.orm
-from ..orm.action_designator import ParkArmsAction as ORMParkArmsAction
-from ..orm.action_designator import NavigateAction as ORMNavigateAction
-#import orm.action_designator
+
+from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, NavigateAction as ORMNavigateAction,
+                                     PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction,
+                                     MoveTorsoAction as ORMMoveTorsoAction)
 from ..orm.base import Quaternion, Position, Base
-#import orm.base
 
 
-class ActionDesignator: # (Designator):
+class ActionDesignator:  # (Designator):
     resolver = {}
 
     def __init__(self, description):
@@ -36,7 +37,7 @@ class ActionDesignator: # (Designator):
         return solution
 
     def perform(self):
-        #desc = self.description.ground()
+        # desc = self.description.ground()
         desc = self.reference()
         return desc.function()
 
@@ -56,24 +57,43 @@ class ActionDesignatorDescription:
     def ground(self):
         return self
 
+    def to_sql(self) -> Base:
+        raise NotImplementedError(f"{type(self)} has no implementation of to_sql. Feel free to implement it.")
+
+    def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
+        raise NotImplementedError(f"{type(self)} has no implementation of insert. Feel free to implement it.")
+
 
 class MoveTorsoAction(ActionDesignatorDescription):
+    """Action Designator for Moving the torso of the robot up and down.
+
+    :ivar position: Float describing the desired height in meters. For the PR2 it has to be in between 0 and 0.3.
+    """
     def __init__(self, position, resolver="grounding"):
-        self.position = position
+        self.position: float = position
         self.resolver = resolver
+
+    def to_sql(self):
+        return ORMMoveTorsoAction(self.position)
+
+    def insert(self, session: sqlalchemy.orm.session.Session):
+        action = self.to_sql()
+        session.add(action)
+        session.commit()
+        return action
 
 
 class SetGripperAction(ActionDesignatorDescription):
     def __init__(self, gripper, opening, resolver="grounding"):
-        self.gripper = gripper
-        self.opening = opening
+        self.gripper: str = gripper
+        self.opening: bool = opening
         self.resolver = resolver
 
 
 # No resolving structure
 class ReleaseAction(ActionDesignatorDescription):
     def __init__(self, gripper, object_designator=None, resolver="grounding"):
-        self.gripper = gripper
+        self.gripper: str = gripper
         self.object_designator = object_designator
         self.resolver = resolver
 
@@ -82,9 +102,9 @@ class ReleaseAction(ActionDesignatorDescription):
 # Just from the name it is not clear what it should do
 class GripAction(ActionDesignatorDescription):
     def __init__(self, gripper, object_designator=None, effort=None, resolver="grounding"):
-        self.gripper = gripper
+        self.gripper: str = gripper
         self.object_designator = object_designator
-        self.effort = effort
+        self.effort: float = effort
         self.grasped_object = None
         self.resolver = resolver
 
@@ -101,7 +121,7 @@ class MoveArmsIntoConfigurationAction(ActionDesignatorDescription):
 
 # No Resolving structure
 class MoveArmsInSequenceAction(ActionDesignatorDescription):
-    def __init__(self, left_trajectory : List = [], right_trajectory : List = [], resolver="grounding"):
+    def __init__(self, left_trajectory: List = [], right_trajectory: List = [], resolver="grounding"):
         self.left_trajectory = left_trajectory
         self.right_trajectory = right_trajectory
         self.resolver = resolver
@@ -114,7 +134,7 @@ class ParkArmsAction(ActionDesignatorDescription):
 
     def to_sql(self) -> ORMParkArmsAction:
         return ORMParkArmsAction(self.arm.name)
-        #return orm.action_designator.ParkArmsAction(self.arm.name)
+        # return orm.action_designator.ParkArmsAction(self.arm.name)
 
     def insert(self, session: sqlalchemy.orm.session.Session) -> ORMParkArmsAction:
         action = self.to_sql()
@@ -124,14 +144,23 @@ class ParkArmsAction(ActionDesignatorDescription):
 
 
 class PickUpAction(ActionDesignatorDescription):
+    """
+    Class representing picking something up.
+
+    :ivar object_designator: The object designator that describes what to pick up.
+    :ivar arm: The arm to use as string.
+    :ivar grasp: The direction to grasp from.
+    :ivar gripper_opening: Float describing how far the gripper should open, optional
+    """
+
     def __init__(self, object_designator, arm=None, grasp=None, resolver="grounding"):
         self.object_designator = object_designator
-        self.arm = arm
-        self.grasp = grasp
+        self.arm: str = arm
+        self.grasp: str = grasp
         self.resolver = resolver
 
         # Grounded attributes
-        self.gripper_opening = None
+        self.gripper_opening: Optional[float] = None
         # self.effort = None
         # self.left_reach_poses = []
         # self.right_reach_poses = []
@@ -140,12 +169,31 @@ class PickUpAction(ActionDesignatorDescription):
         # self.left_lift_poses = []
         # self.right_lift_poses = []
 
+    def to_sql(self) -> ORMPickUpAction:
+        return ORMPickUpAction(self.arm, self.grasp, self.gripper_opening)
+
+    def insert(self, session: sqlalchemy.orm.session.Session):
+        action = self.to_sql()
+
+        # try to create the object designator
+        if self.object_designator:
+            # TODO discuss why it is _description
+            od = self.object_designator._description.insert(session)
+            action.object = od.id
+        else:
+            action.object = None
+
+        session.add(action)
+        session.commit()
+
+        return action
+
 
 class PlaceAction(ActionDesignatorDescription):
     def __init__(self, object_designator, target_location, arm=None, resolver="grounding"):
         self.object_designator = object_designator
         self.target_location = target_location
-        self.arm = arm
+        self.arm: str = arm
         self.resolver = resolver
 
         # Grounded attributes
@@ -155,6 +203,35 @@ class PlaceAction(ActionDesignatorDescription):
         # self.right_place_poses = []
         # self.left_retract_poses = []
         # self.right_retract_poses = []
+
+    def to_sql(self) -> ORMPlaceAction:
+        return ORMPlaceAction(self.arm)
+
+    def insert(self, session) -> ORMPlaceAction:
+        action = self.to_sql()
+
+        if self.object_designator:
+            # TODO discuss why it is _description
+            od = self.object_designator._description.insert(session)
+            action.object = od.id
+        else:
+            action.object = None
+
+        if self.target_location:
+            position = Position(*self.target_location[0])
+            orientation = Quaternion(*self.target_location[1])
+            session.add(position)
+            session.add(orientation)
+            session.commit()
+            action.position = position.id
+            action.orientation = orientation.id
+        else:
+            action.position = None
+            action.orientation = None
+
+        session.add(action)
+        session.commit()
+        return action
 
 
 class NavigateAction(ActionDesignatorDescription):
@@ -167,7 +244,6 @@ class NavigateAction(ActionDesignatorDescription):
         return ORMNavigateAction()
 
     def insert(self, session) -> ORMNavigateAction:
-
         # initialize position and orientation
         position = Position(*self.target_position)
         orientation = Quaternion(*self.target_orientation)
@@ -195,7 +271,7 @@ class TransportAction(ActionDesignatorDescription):
     def __init__(self, object_designator, arm, target_location, resolver="grounding"):
         self.object_designator = object_designator
         self.arm = arm
-        self.target_location = target_location
+        self.target_location = target_location  # orientation + location
         self.resolver = resolver
 
 

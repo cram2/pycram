@@ -11,11 +11,11 @@ class Action(Base):
     """
     __tablename__ = "Action"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
-    type = sqlalchemy.Column(sqlalchemy.types.String)
+    dtype = sqlalchemy.Column(sqlalchemy.types.String(255))
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
-        "polymorphic_on": "type",
+        "polymorphic_on": "dtype",
     }
 
 
@@ -23,7 +23,7 @@ class ParkArmsAction(Action):
     """ORM Class of pycram.designators.action_designator.ParkArmsDesignator."""
     __tablename__ = "ParkArms"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
-    arm = sqlalchemy.Column(sqlalchemy.types.String, nullable=False)
+    arm = sqlalchemy.Column(sqlalchemy.types.String(255), nullable=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -39,7 +39,7 @@ class NavigateAction(Action):
 
     __tablename__ = "Navigate"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
-    position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
+    position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id", ))
     orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"))
 
     __mapper_args__ = {
@@ -50,3 +50,154 @@ class NavigateAction(Action):
         super().__init__()
         self.position = position
         self.orientation = orientation
+
+
+class MoveTorsoAction(Action):
+    """ORM Class of pycram.designators.action_designator.MoveTorsoAction."""
+    __tablename__ = "MoveTorso"
+    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
+    position = sqlalchemy.Column(sqlalchemy.types.Float)
+
+    __mapper_args__ = {
+        "polymorphic_identity": __tablename__,
+    }
+
+    def __init__(self, position: Optional[float] = None):
+        super(MoveTorsoAction, self).__init__()
+        self.position = position
+
+
+class SetGripperAction(Action):
+    """ORM Class of pycram.designators.action_designator.SetGripperAction."""
+    __tablename__ = "SetGripper"
+    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
+    gripper = sqlalchemy.Column(sqlalchemy.types.String(255), nullable=False)
+    opening = sqlalchemy.Column(sqlalchemy.types.Boolean, nullable=False)
+
+    __mapper_args__ = {
+        "polymorphic_identity": __tablename__,
+    }
+
+
+class Release(Action):
+    """ORM Class of pycram.designators.action_designator.Release."""
+    __tablename__ = "Release"
+    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
+    gripper = sqlalchemy.Column(sqlalchemy.types.String(255), nullable=False)
+    object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
+
+    __mapper_args__ = {
+        "polymorphic_identity": __tablename__,
+    }
+
+
+class GripAction(Action):
+    """ORM Class of pycram.designators.action_designator.GripAction."""
+    __tablename__ = "Grip"
+    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
+    gripper = sqlalchemy.Column(sqlalchemy.types.String(255), nullable=False)
+    effort = sqlalchemy.Column(sqlalchemy.types.Float, nullable=False)
+    object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
+    # TODO grasped_object
+
+    __mapper_args__ = {
+        "polymorphic_identity": __tablename__,
+    }
+
+
+class PickUpAction(Action):
+    """ORM Class of pycram.designators.action_designator.PickUpAction."""
+    __tablename__ = "PickUp"
+    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
+    arm = sqlalchemy.Column(sqlalchemy.types.String(255))
+    grasp = sqlalchemy.Column(sqlalchemy.types.String(255))
+    object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
+    gripper_opening = sqlalchemy.Column(sqlalchemy.types.Float)
+
+    __mapper_args__ = {
+        "polymorphic_identity": __tablename__,
+    }
+
+    def __init__(self, arm: str, grasp: bool, gripper_opening: float):
+        super(PickUpAction, self).__init__()
+        self.arm = arm
+        self.grasp = grasp
+        self.gripper_opening = gripper_opening
+
+
+class PlaceAction(Action):
+    """ORM Class of pycram.designators.action_designator.PlaceAction."""
+    __tablename__ = "Place"
+    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
+    arm = sqlalchemy.Column(sqlalchemy.types.String(255), nullable=False)
+    position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
+    orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"))
+    object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
+
+    __mapper_args__ = {
+        "polymorphic_identity": __tablename__,
+    }
+
+    def __init__(self, arm: str):
+        super(PlaceAction, self).__init__()
+        self.arm = arm
+
+
+class TransportAction(Action):
+    """ORM Class of pycram.designators.action_designator.TransportAction."""
+    __tablename__ = "Transport"
+    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
+    arm = sqlalchemy.Column(sqlalchemy.types.String(255), nullable=False)
+    position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
+    orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"))
+    object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
+
+    __mapper_args__ = {
+        "polymorphic_identity": __tablename__,
+    }
+
+
+class LookAtAction(Action):
+    """ORM Class of pycram.designators.action_designator.LookAtAction."""
+    __tablename__ = "LookAt"
+    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
+    position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
+
+    __mapper_args__ = {
+        "polymorphic_identity": __tablename__,
+    }
+
+
+class DetectAction(Action):
+    """ORM Class of pycram.designators.action_designator.DetectAction."""
+    __tablename__ = "Detect"
+    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
+    object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
+
+    __mapper_args__ = {
+        "polymorphic_identity": __tablename__,
+    }
+
+
+class OpenAction(Action):
+    """ORM Class of pycram.designators.action_designator.OpenAction."""
+    __tablename__ = "Open"
+    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
+    arm = sqlalchemy.Column(sqlalchemy.types.String(255), nullable=False)
+    distance = sqlalchemy.Column(sqlalchemy.types.Float, nullable=False)
+    object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
+
+    __mapper_args__ = {
+        "polymorphic_identity": __tablename__,
+    }
+
+
+class CloseAction(Action):
+    """ORM Class of pycram.designators.action_designator.CloseAction."""
+    __tablename__ = "Close"
+    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
+    arm = sqlalchemy.Column(sqlalchemy.types.String(255), nullable=False)
+
+    __mapper_args__ = {
+        "polymorphic_identity": __tablename__,
+    }

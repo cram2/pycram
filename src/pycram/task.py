@@ -3,24 +3,21 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+import datetime
 import inspect
 import json
-
-import pybullet
-
-from typing import List, Dict, Optional, Callable, Any
+import logging
 from enum import Enum
+from typing import List, Dict, Optional, Callable, Any
 
+import anytree
+import pybullet
 import sqlalchemy.orm.session
-
-from .plan_failures import PlanFailure
-from .orm.task import (Code as ORMCode, TaskTreeNode as ORMTaskTreeNode)
 
 import pycram.designators.action_designator
 from .bullet_world import BulletWorld
-import anytree
-import datetime
-import logging
+from .orm.task import (Code as ORMCode, TaskTreeNode as ORMTaskTreeNode)
+from .plan_failures import PlanFailure
 
 
 class TaskStatus(Enum):
@@ -57,8 +54,6 @@ class Code:
         self.kwargs: Dict[str, Any] = kwargs
         self.designator = designator
 
-
-
     def execute(self) -> Any:
         """
         Execute the code with its arguments
@@ -73,7 +68,7 @@ class Code:
 
     def __eq__(self, other):
         return isinstance(other, Code) and other.function.__name__ == self.function.__name__ \
-            and other.kwargs == self.kwargs and self.designator == other.designator
+               and other.kwargs == self.kwargs and self.designator == other.designator
 
     def to_json(self) -> Dict:
         """Create a dictionary that can be json serialized."""
