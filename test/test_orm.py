@@ -12,16 +12,16 @@ import pycram.task
 import pycram.task
 import test_bullet_world
 import test_task_tree
-from pycram.designators.action_designator import *
-from pycram.designators.location_designator import *
-from pycram.designators.object_designator import *
+from pycram.designators import action_designator, object_designator
 from pycram.process_module import simulated_robot
-from pycram.resolver.plans import Arms
 from pycram.task import with_tree
 import anytree
 
 
 class ORMTestSchema(unittest.TestCase):
+
+    engine: sqlalchemy.engine.Engine
+    session: sqlalchemy.orm.Session
 
     def test_schema_creation(self):
         self.engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
@@ -51,6 +51,9 @@ class ORMTestSchema(unittest.TestCase):
 
 class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
 
+    engine: sqlalchemy.engine.Engine
+    session: sqlalchemy.orm.Session
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -78,23 +81,23 @@ class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
         self.assertEqual(len(code_results), len(pycram.task.task_tree.root))
 
         position_results = self.session.query(pycram.orm.base.Position).all()
-        self.assertEqual(len(position_results), 1)
+        self.assertEqual(4, len(position_results))
 
         quaternion_results = self.session.query(pycram.orm.base.Quaternion).all()
-        self.assertEqual(len(quaternion_results), 1)
+        self.assertEqual(4, len(quaternion_results))
 
         park_arms_results = self.session.query(pycram.orm.action_designator.ParkArmsAction).all()
-        self.assertEqual(len(park_arms_results), 2)
+        self.assertEqual(0, len(park_arms_results))
 
         navigate_results = self.session.query(pycram.orm.action_designator.NavigateAction).all()
-        self.assertEqual(len(navigate_results), 1)
+        self.assertEqual(1, len(navigate_results))
 
         action_results = self.session.query(pycram.orm.action_designator.Action).all()
-        self.assertEqual(len(action_results), 3)
+        self.assertEqual(4, len(action_results))
 
     @classmethod
     def TearDownClass(cls):
-        super().TearDownClass()
+        super().tearDownClass()
         pycram.orm.base.Base.metadata.drop_all(cls.engine)
         cls.session.commit()
 
@@ -102,45 +105,24 @@ class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
 class ORMObjectDesignatorTestCase(test_bullet_world.BulletWorldTest):
     """Test ORM functionality with a plan including object designators. """
 
+    engine: sqlalchemy.engine.Engine
+    session: sqlalchemy.orm.Session
+
     @with_tree
     def plan(self):
+        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        description = action_designator.PlaceAction(object_description, [([1.3, 1, 0.9], [0, 0, 0, 1])], ["left"])
+        self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
-            ActionDesignator(ParkArmsAction(Arms.BOTH)).perform()
-            ActionDesignator(MoveTorsoAction(0.2)).perform()
-            location = LocationDesignator(CostmapLocation(target=self.milk, reachable_for=self.robot))
-            pose = location.reference()
-            ActionDesignator(
-                NavigateAction(target_position=pose["position"], target_orientation=pose["orientation"])).perform()
-            ActionDesignator(ParkArmsAction(Arms.BOTH)).perform()
-
-            picked_up_arm = pose["arms"][0]
-            ActionDesignator(
-                PickUpAction(object_designator=self.milk_desig, arm=pose["arms"][0], grasp="front")).perform()
-
-            ActionDesignator(ParkArmsAction(Arms.BOTH)).perform()
-            place_island = LocationDesignator(
-                SemanticCostmapLocation("kitchen_island_surface", self.kitchen, self.milk_desig.prop_value("object")))
-            pose_island = place_island.reference()
-
-            place_location = LocationDesignator(
-                CostmapLocation(target=list(pose_island.values()), reachable_for=self.robot,
-                                reachable_arm=picked_up_arm))
-            pose = place_location.reference()
-
-            ActionDesignator(
-                NavigateAction(target_position=pose["position"], target_orientation=pose["orientation"])).perform()
-
-            ActionDesignator(PlaceAction(object_designator=self.milk_desig, target_location=list(pose_island.values()),
-                                         arm=picked_up_arm)).perform()
-
-            ActionDesignator(ParkArmsAction(Arms.BOTH)).perform()
+            action_designator.NavigateAction.Action(([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            action_designator.MoveTorsoAction.Action(0.3).perform()
+            action_designator.PickUpAction.Action(object_description.resolve(), "left", "front").perform()
+            description.resolve().perform()
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         cls.engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
-        cls.milk_desig = ObjectDesignator(ObjectDesignatorDescription(name="milk", type="milk"))
-        cls.cereal_desig = ObjectDesignator(ObjectDesignatorDescription(name="cereal", type="cereal"))
         cls.session = sqlalchemy.orm.Session(bind=cls.engine)
 
     def setUp(self):
@@ -153,8 +135,8 @@ class ORMObjectDesignatorTestCase(test_bullet_world.BulletWorldTest):
         pycram.task.reset_tree()
 
     @classmethod
-    def TearDownClass(cls):
-        super().TearDownClass()
+    def tearDownClass(cls):
+        super().tearDownClass()
         pycram.orm.base.Base.metadata.drop_all(cls.engine)
         cls.session.commit()
         cls.session.close()
@@ -162,7 +144,6 @@ class ORMObjectDesignatorTestCase(test_bullet_world.BulletWorldTest):
     def test_plan_serialization(self):
         self.plan()
         tt = pycram.task.task_tree
-        print(anytree.RenderTree(tt))
         tt.insert(self.session)
         action_results = self.session.query(pycram.orm.action_designator.Action).all()
         self.assertEqual(len(tt) - 2, len(action_results))
