@@ -51,6 +51,7 @@ extensions = [
 ]
 
 # auto api setup
+autoapi_type = 'python'
 autoapi_dirs = ['../../src/pycram']
 
 # Add any paths that contain templates here, relative to this directory.

@@ -72,11 +72,17 @@ class SetGripperAction(Action):
     __tablename__ = "SetGripper"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
     gripper = sqlalchemy.Column(sqlalchemy.types.String(255), nullable=False)
-    opening = sqlalchemy.Column(sqlalchemy.types.Boolean, nullable=False)
+    motion = sqlalchemy.Column(sqlalchemy.types.String(255), nullable=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
     }
+
+    def __init__(self, gripper: str, motion: str):
+        super(SetGripperAction, self).__init__()
+        self.gripper = gripper
+        self.motion = motion
+
 
 
 class Release(Action):
@@ -112,17 +118,16 @@ class PickUpAction(Action):
     arm = sqlalchemy.Column(sqlalchemy.types.String(255))
     grasp = sqlalchemy.Column(sqlalchemy.types.String(255))
     object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
-    gripper_opening = sqlalchemy.Column(sqlalchemy.types.Float)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
     }
 
-    def __init__(self, arm: str, grasp: bool, gripper_opening: float):
+    def __init__(self, arm: str, grasp: bool):
         super(PickUpAction, self).__init__()
         self.arm = arm
         self.grasp = grasp
-        self.gripper_opening = gripper_opening
+
 
 
 class PlaceAction(Action):

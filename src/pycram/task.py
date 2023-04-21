@@ -7,27 +7,16 @@ import datetime
 import inspect
 import json
 import logging
-from enum import Enum
 from typing import List, Dict, Optional, Callable, Any
 
 import anytree
 import pybullet
 import sqlalchemy.orm.session
 
-import pycram.designators.action_designator
 from .bullet_world import BulletWorld
 from .orm.task import (Code as ORMCode, TaskTreeNode as ORMTaskTreeNode)
 from .plan_failures import PlanFailure
-
-
-class TaskStatus(Enum):
-    """
-    Enum for readable descriptions of a tasks' status.
-    """
-    CREATED = 0
-    RUNNING = 1
-    SUCCEEDED = 2
-    FAILED = 3
+from .enums import TaskStatus
 
 
 class Code:
@@ -36,12 +25,10 @@ class Code:
 
     :ivar function: The function (plan) that was called
     :ivar kwargs: Dictionary holding the keyword arguments of the function
-    :ivar designator: The designator description if it exists, defaults to None
     """
 
     def __init__(self, function: Optional[Callable] = None,
-                 kwargs: Optional[Dict] = None,
-                 designator: Optional[pycram.designators.action_designator.ActionDesignatorDescription] = None):
+                 kwargs: Optional[Dict] = None):
         """
         Initialize a code call
         :param function: The function that was called
@@ -52,7 +39,6 @@ class Code:
         if kwargs is None:
             kwargs = dict()
         self.kwargs: Dict[str, Any] = kwargs
-        self.designator = designator
 
     def execute(self) -> Any:
         """
@@ -68,7 +54,7 @@ class Code:
 
     def __eq__(self, other):
         return isinstance(other, Code) and other.function.__name__ == self.function.__name__ \
-               and other.kwargs == self.kwargs and self.designator == other.designator
+               and other.kwargs == self.kwargs
 
     def to_json(self) -> Dict:
         """Create a dictionary that can be json serialized."""
@@ -100,8 +86,10 @@ class Code:
         code = self.to_sql()
 
         # set foreign key to designator if present
-        if self.designator:
-            designator = self.designator.insert(session)
+        self_ = self.kwargs.get("self")
+
+        if self_ and getattr(self_, "insert", None):
+            designator = self_.insert(session)
             code.designator = designator.id
 
         session.add(code)
@@ -130,10 +118,11 @@ class TaskTreeNode(anytree.NodeMixin):
     :ivar status: The status of the node from the TaskStatus enum.
     :ivar start_time: The starting time of the function, optional
     :ivar end_time: The ending time of the function, optional
+    :ivar reason: The reason why this task failed, optional
     """
 
     def __init__(self, code: Code = NoOperation(), parent: Optional[TaskTreeNode] = None,
-                 children: Optional[List[TaskTreeNode]] = None):
+                 children: Optional[List[TaskTreeNode]] = None, reason: Optional[Exception] = None):
         """
         Create a TaskTreeNode
         :param code: The function and its arguments that got called as Code object, defaults to NoOperation()
@@ -146,6 +135,7 @@ class TaskTreeNode(anytree.NodeMixin):
         self.start_time: Optional[datetime.datetime] = None
         self.end_time: Optional[datetime.datetime] = None
         self.parent = parent
+        self.reason: Optional[Exception] = reason
 
         if children:
             self.children = children
@@ -213,7 +203,7 @@ class TaskTreeNode(anytree.NodeMixin):
 
         # if recursive, insert all children
         if recursive:
-            [child.insert(session, recursive, node.id) for child in self.children]
+            [child.insert(session, parent_id=node.id) for child in self.children]
 
         return node
 
@@ -274,15 +264,8 @@ def with_tree(fun: Callable) -> Callable:
         # get the task tree
         global task_tree
 
-        # get the "self" object:
-        self_ = inspect.currentframe().f_back.f_locals.get("self")
-
-        # if it is an action designator, save it for logging
-        if not isinstance(self_, pycram.designators.action_designator.ActionDesignatorDescription):
-            self_ = None
-
         # create the code object that gets executed
-        code = Code(fun, inspect.getcallargs(fun, *args, **kwargs), self_)
+        code = Code(fun, inspect.getcallargs(fun, *args, **kwargs))
 
         task_tree = TaskTreeNode(code, parent=task_tree)
 
@@ -290,7 +273,7 @@ def with_tree(fun: Callable) -> Callable:
         try:
             task_tree.status = TaskStatus.CREATED
             task_tree.start_time = datetime.datetime.now()
-            task_tree.code.execute()
+            result = task_tree.code.execute()
 
             # if it succeeded set the flag
             task_tree.status = TaskStatus.SUCCEEDED
@@ -300,10 +283,13 @@ def with_tree(fun: Callable) -> Callable:
 
             # log the error and set the flag
             logging.exception("Task execution failed at %s. Reason %s" % (str(task_tree.code), e))
+            task_tree.reason = e
             task_tree.status = TaskStatus.FAILED
-
-        # set and time and update current node pointer
-        task_tree.end_time = datetime.datetime.now()
-        task_tree = task_tree.parent
+            raise e
+        finally:
+            # set and time and update current node pointer
+            task_tree.end_time = datetime.datetime.now()
+            task_tree = task_tree.parent
+        return result
 
     return handle_tree

@@ -1,8 +1,3 @@
-.. pycram documentation master file, created by
-   sphinx-quickstart on Mon Apr  3 15:29:54 2023.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 ==================================
 Welcome to pycram's documentation!
 ==================================
@@ -108,6 +103,7 @@ Authors
    :caption: Contents:
 
    installation
+   designators
    task_trees
    orm
    remarks
