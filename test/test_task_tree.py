@@ -31,7 +31,7 @@ class TaskTreeTestCase(test_bullet_world.BulletWorldTest):
         # self.tearDownBulletWorld()
         tt = pycram.task.task_tree
 
-        print(anytree.RenderTree(tt))
+        # print(anytree.RenderTree(tt))
 
         self.assertEqual(6, len(tt.root))
         self.assertEqual(4, len(tt.root.leaves))

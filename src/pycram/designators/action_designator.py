@@ -311,9 +311,7 @@ class PickUpAction(ActionDesignatorDescription):
             return ORMPickUpAction(self.arm, self.grasp)
 
         def insert(self, session: sqlalchemy.orm.session.Session, **kwargs):
-
             action = super().insert(session)
-            print(action)
             # try to create the object designator
             if self.object_designator:
                 od = self.object_designator.insert(session, )

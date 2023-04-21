@@ -72,7 +72,6 @@ def plan(world, robot_desig, env_desig, obj_desig, torso=0.2, place="countertop"
         pose = place_location.resolve()
 
         NavigateAction.Action(pose.pose).perform()
-
         PlaceAction.Action(object_designator=obj_desig, target_location=pose_island.pose, arm=picked_up_arm).perform()
 
         ParkArmsAction.Action(Arms.BOTH).perform()
@@ -95,11 +94,11 @@ class CRAMPlan:
         sleep(5)
         self.objects = {}
         self.object_desig = {}
-        self.place_objects(inistantiate=True)
+        self.place_objects(instantiate=True)
         self.good_torsos = []
         self.torso = 0
 
-    def place_objects(self, inistantiate=False):
+    def place_objects(self, instantiate=False):
         # Define and place the objects
         scm = SemanticCostmap(self.apartment, "island_countertop")
         scm.map[5:40, 16:140] = 0
@@ -108,7 +107,7 @@ class CRAMPlan:
         poses_list.sort(reverse=True, key=lambda x: np.linalg.norm(x[0]))
         object_poses = get_n_random_positions(poses_list)
         for obj_name, obj_pose in zip(self.object_names, object_poses):
-            if inistantiate:
+            if instantiate:
                 self.objects[obj_name] = Object(obj_name, obj_name, obj_name + ".stl",
                                                 position=[obj_pose[0][0], obj_pose[0][1], self.table_top[2]])
                 self.object_desig[obj_name] = ObjectDesignatorDescription(names=[obj_name], types=[obj_name]).resolve()
@@ -123,9 +122,9 @@ class CRAMPlan:
     def execute_plan(self):
         # Execute plan
         if len(self.object_names) > 0:
-            self.place_objects(inistantiate=False)
+            self.place_objects(instantiate=False)
         else:
-            self.place_objects(inistantiate=True)
+            self.place_objects(instantiate=True)
         for obj_name in self.object_names:
             done = False
             self.torso = 0.25 if len(self.good_torsos) == 0 else self.good_torsos[-1]
@@ -141,7 +140,7 @@ class CRAMPlan:
 
 
 if __name__ == '__main__':
-
+    exit()
     engine = sqlalchemy.create_engine("mysql+pymysql://pycrorm@localhost/pycrorm?charset=utf8mb4")
     session = sqlalchemy.orm.session.Session(bind=engine)
     pycram.orm.base.Base.metadata.create_all(engine)

@@ -13,6 +13,7 @@ from ..robot_description import RobotDescription
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+
 class InitializedRobotDescription():
     # singleton instance short named as 'i'
     i = None
@@ -25,7 +26,6 @@ class InitializedRobotDescription():
             InitializedRobotDescription.current_description_loaded = robot_description
             InitializedRobotDescription.i = robot_description()
             logger.info("(robot-description) (Re)Loaded Description of robot %s.", self.i.name)
-
 
 
 def update_robot_description(robot_name=None, from_ros=None):
@@ -63,4 +63,4 @@ def update_robot_description(robot_name=None, from_ros=None):
     return InitializedRobotDescription(description)
 
 
-update_robot_description(from_ros=True)#"ur5_robotiq")#  # todo: put in ros init
+update_robot_description(from_ros=True)  # "ur5_robotiq")#  # todo: put in ros init
