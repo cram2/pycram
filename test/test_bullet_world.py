@@ -1,4 +1,5 @@
 import unittest
+
 from pycram.bullet_world import BulletWorld, Object, fix_missing_inertial
 from pycram.robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from pycram.process_module import ProcessModule
@@ -7,6 +8,8 @@ import xml.etree.ElementTree as ET
 
 
 class BulletWorldTest(unittest.TestCase):
+
+    world: BulletWorld
 
     @classmethod
     def setUpClass(cls):
