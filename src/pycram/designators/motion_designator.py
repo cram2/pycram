@@ -41,6 +41,9 @@ class MotionDesignatorDescription(DesignatorDescription):
         """
         raise NotImplementedError(f"{type(self)} has no implementation of insert. Feel free to implement it.")
 
+    def __init__(self, resolver=None):
+        super().__init__(resolver)
+
     def get_slots(self):
         """
         Returns a list of all slots of this description. Can be used for inspecting
