@@ -4,7 +4,6 @@ from typing import List, Optional, Any, Tuple
 
 import sqlalchemy.orm
 
-import orm.action_designator
 from .motion_designator import *
 from .object_designator import ObjectDesignatorDescription
 from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, NavigateAction as ORMNavigateAction,

@@ -17,9 +17,14 @@ helper -- implementation of helper classes and functions for internal usage only
 language -- implementation of the CRAM language.
 process_module -- implementation of process modules.
 """
+
+from . import utils
+
 import logging
 import logging.config
-import pycram.process_modules.available_process_modules
+
+with utils.suppress_stdout_stderr():
+    import pycram.process_modules.available_process_modules
 
 logging.basicConfig(level=logging.WARNING, format='%(levelname)s - %(name)s  - Line:%(lineno)d - %(message)s')
 

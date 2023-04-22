@@ -8,6 +8,7 @@ from .donbot_description import DonbotDescription
 from .hsr_description import HSRDescription
 from .pr2_description import PR2Description
 from .ur5_description import UR5Description
+from .. import utils
 from ..robot_description import RobotDescription
 
 logger = logging.getLogger(__name__)
@@ -63,4 +64,5 @@ def update_robot_description(robot_name=None, from_ros=None):
     return InitializedRobotDescription(description)
 
 
-update_robot_description(from_ros=True)  # "ur5_robotiq")#  # todo: put in ros init
+with utils.suppress_stdout_stderr():
+    update_robot_description(from_ros=True)  # "ur5_robotiq")#  # todo: put in ros init
