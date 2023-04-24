@@ -451,11 +451,15 @@ class Gui(threading.Thread):
                 if keys:
                     # if shift is pressed, double the speed
                     if p.B3G_SHIFT in keys:
-                        speedMult = 2
+                        speedMult = 5
                     else:
-                        speedMult = 1
+                        speedMult = 2.5
 
+                    # if control is pressed, the movements caused by the arrowkeys, the '+' as well as the '-' key
+                    # change
                     if p.B3G_CONTROL in keys:
+
+                        # the up and down arrowkeys cause the targetPos to move along the z axis of the map
                         if p.B3G_DOWN_ARROW in keys:
                             cameraTargetPosition = np.subtract(cameraTargetPosition,
                                                                np.multiply(np.multiply(zVec, 0.03), speedMult))
@@ -463,6 +467,7 @@ class Gui(threading.Thread):
                             cameraTargetPosition = np.add(cameraTargetPosition,
                                                           np.multiply(np.multiply(zVec, 0.03), speedMult))
 
+                        # left and right arrowkeys cause the targetPos to move horizontally relative to the camera
                         if p.B3G_LEFT_ARROW in keys:
                             cameraTargetPosition = np.subtract(cameraTargetPosition,
                                                                np.multiply(np.multiply(xVec, 0.03), speedMult))
@@ -470,6 +475,8 @@ class Gui(threading.Thread):
                             cameraTargetPosition = np.add(cameraTargetPosition,
                                                           np.multiply(np.multiply(xVec, 0.03), speedMult))
 
+                        # the '+' and '-' keys cause the targetpos to move forwards and backwards relative to the camera
+                        # while the camera stays at a constant distance
                         if ord("+") in keys:
                             cameraTargetPosition = np.subtract(cameraTargetPosition,
                                                                np.multiply(np.multiply(yVec, 0.03), speedMult))
@@ -477,19 +484,25 @@ class Gui(threading.Thread):
                             cameraTargetPosition = np.add(cameraTargetPosition,
                                                           np.multiply(np.multiply(yVec, 0.03), speedMult))
 
+                    # standard bindings for thearrowkeys, the '+' as well as the '-' key
                     else:
+
+                        # left and right arrowkeys cause the camera to rotate around the yaw axis
                         if p.B3G_RIGHT_ARROW in keys:
                             cameraYaw += (360 / width) * speedMult
                         elif p.B3G_LEFT_ARROW in keys:
                             cameraYaw -= (360 / width) * speedMult
 
+                        # the up and down arrowkeys cause the camera to rotate around the pitch axis
                         if p.B3G_DOWN_ARROW in keys:
                             if (cameraPitch + (360 / height) * speedMult) < 89.5:
                                 cameraPitch += (360 / height) * speedMult
                         elif p.B3G_UP_ARROW in keys:
-                            if (cameraPitch - (360 / height)) * speedMult > -89.5:
+                            if (cameraPitch - (360 / height) * speedMult) > -89.5:
                                 cameraPitch -= (360 / height) * speedMult
 
+                        # the '+' and '-' keys cause the camera to zoom towards and away from the targetPos without
+                        # moving it
                         if ord("+") in keys:
                             if (dist - (dist * 0.02) * speedMult) > 0.1:
                                 dist -= dist * 0.02 * speedMult
@@ -501,7 +514,7 @@ class Gui(threading.Thread):
                 if visible == 0:
                     cameraTargetPosition = (0.0, -50, 50)
                 p.resetBasePositionAndOrientation(sphereUid, cameraTargetPosition, [0, 0, 0, 1])
-                time.sleep(1. / 240.)
+                time.sleep(1. / 80.)
 
 
 class Object:
