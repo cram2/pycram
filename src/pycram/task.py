@@ -48,9 +48,14 @@ class Code:
         """
         return self.function(**self.kwargs)
 
+    # def __str__(self) -> str:
+    #     return "%s(%s)" % (self.function.__name__, ", ".join(["%s = %s" % (key, str(value)) for key, value in
+    #                                                           self.kwargs.items()]))
+
     def __str__(self) -> str:
-        return "%s(%s)" % (self.function.__name__, ", ".join(["%s = %s" % (key, str(value)) for key, value in
-                                                              self.kwargs.items()]))
+        return "%s(%s)" % (
+            self.function.__name__, ", ".join(["%s, " % (str(value.__class__).split(".")[-2]) for value in
+                                               self.kwargs.values()]))
 
     def __eq__(self, other):
         return isinstance(other, Code) and other.function.__name__ == self.function.__name__ \
