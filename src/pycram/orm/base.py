@@ -67,3 +67,10 @@ class Color(Base):
         self.b = b
         self.alpha = alpha
 
+
+class RobotPosition(Base):
+    __tablename__ = "RobotPosition"
+
+    id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
+    position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
+    orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"))

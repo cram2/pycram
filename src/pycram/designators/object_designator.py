@@ -1,24 +1,22 @@
 import dataclasses
-from typing import List, Tuple, Union, Optional, Callable
+from typing import List, Union, Optional, Callable
 
 import sqlalchemy.orm
 
-from ..bullet_world import Object
-from ..designator import Designator, DesignatorError, DesignatorDescription
+from ..bullet_world import BulletWorld, Object as BulletWorldObject
+from ..designator import DesignatorDescription
 from ..orm.base import (Position as ORMPosition, Quaternion as ORMQuaternion)
 from ..orm.object_designator import (ObjectDesignator as ORMObjectDesignator,
                                      BelieveObject as ORMBelieveObject,
                                      ObjectPart as ORMObjectPart)
-from ..bullet_world import BulletWorld, Object as BulletWorldObject
 
 
 class ObjectDesignatorDescription(DesignatorDescription):
     """
     Class for object designator descriptions.
     Descriptions hold possible parameter ranges for object designators.
-    :ivar types: Types to cosnider
+    :ivar types: Types to consider
     :ivar names: Names to consider
-    :ivar poses: Poses to consider
     """
 
     @dataclasses.dataclass
@@ -28,7 +26,8 @@ class ObjectDesignatorDescription(DesignatorDescription):
         """
         name: str
         type: str
-        pose: Tuple[List[float], List[float]]
+        # pose:
+        # pose: Tuple[List[float], List[float]]
         bullet_world_object: Optional[BulletWorldObject]
 
         def to_sql(self) -> ORMObjectDesignator:
@@ -51,6 +50,15 @@ class ObjectDesignatorDescription(DesignatorDescription):
             session.add(obj)
             session.commit()
             return obj
+
+        @property
+        def pose(self):
+            return self.bullet_world_object.get_position_and_orientation()
+
+        def __repr__(self):
+            return self.__class__.__qualname__ + f"(" + ', '.join([f"{f.name}={self.__getattribute__(f.name)}"
+                                                                   for f in dataclasses.fields(self)] +
+                                                                  [f"pose={self.pose}"]) + ')'
 
     def __init__(self, names: Optional[List[str]] = None,
                  types: Optional[List[str]] = None,
@@ -78,7 +86,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
             if self.types and obj.type not in self.types:
                 continue
 
-            yield self.Object(obj.name, obj.type, obj.get_position_and_orientation(), obj)
+            yield self.Object(obj.name, obj.type, obj)
 
 
 class BelieveObject(ObjectDesignatorDescription):
