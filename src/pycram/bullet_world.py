@@ -8,23 +8,24 @@ Object -- Representation of an object in the BulletWorld
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-import numpy as np
-import pybullet as p
+import logging
 import os
+import pathlib
+import re
 import threading
 import time
-import pathlib
-import logging
-import rospkg
-import re
+import xml.etree.ElementTree
 from queue import Queue
+from typing import List, Optional, Dict, Tuple, Callable
+from typing import Union
 
+import numpy as np
+import pybullet as p
+import rospkg
 import rospy
-from typing import List, Optional, Union, Dict
+
 from .event import Event
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
-from typing import List, Optional, Dict, Tuple, Callable, Type
-import xml.etree.ElementTree
 
 
 class BulletWorld:
@@ -299,7 +300,7 @@ class Use_shadow_world():
         if not BulletWorld.current_bullet_world.is_shadow_world:
             time.sleep(3 / 240)
             while not BulletWorld.current_bullet_world.world_sync.add_obj_queue.empty():
-                time.sleep(5/240)
+                time.sleep(5 / 240)
 
             self.prev_world = BulletWorld.current_bullet_world
             BulletWorld.current_bullet_world.world_sync.pause_sync = True
@@ -458,6 +459,10 @@ class Object:
                 BulletWorld.robot = self
         self.original_pose = [position, orientation]
 
+    def __repr__(self):
+        return self.__class__.__qualname__ + f"(" + ', '.join(
+            [f"{key}={value}" for key, value in self.__dict__.items()]) + ")"
+
     def remove(self) -> None:
         """
         This method removes this object from the BulletWorld it currently
@@ -551,6 +556,10 @@ class Object:
             position = np.array(position) + self.base_origin_shift
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
         self._set_attached_objects([self])
+
+    @property
+    def pose(self):
+        return self.get_pose()
 
     def move_base_to_origin_pos(self):
         """

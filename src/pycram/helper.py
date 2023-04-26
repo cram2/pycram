@@ -18,6 +18,7 @@ from pytransform3d.transformations import transform_from_pq, transform_from, pq_
 from macropy.core.quotes import ast_literal, q
 from .bullet_world import Object as BulletWorldObject
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+import os
 
 
 class bcolors:

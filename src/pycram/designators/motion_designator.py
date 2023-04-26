@@ -111,7 +111,7 @@ class PickUpMotion(MotionDesignatorDescription):
     @dataclasses.dataclass
     class Motion(MotionDesignatorDescription.Motion):
         cmd: str
-        object_desig: Object
+        object_desig: ObjectDesignatorDescription.Object
         arm: str
         grasp: str
 
