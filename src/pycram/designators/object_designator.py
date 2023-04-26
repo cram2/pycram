@@ -62,8 +62,8 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
     def __init__(self, names: Optional[List[str]] = None,
                  types: Optional[List[str]] = None,
-                 grounding_method: Optional[Callable] = None):
-        super().__init__(grounding_method)
+                 resolver: Optional[Callable] = None):
+        super().__init__(resolver)
         self.types: Optional[List[str]] = types
         self.names: Optional[List[str]] = names
 
@@ -143,8 +143,8 @@ class ObjectPart(ObjectDesignatorDescription):
     def __init__(self, names: Optional[List[str]] = None,
                  types: Optional[List[str]] = None,
                  part_of: Optional[ObjectDesignatorDescription] = None,
-                 grounding_method: Optional[Callable] = None):
-        super().__init__(names, types, grounding_method)
+                 resolver: Optional[Callable] = None):
+        super().__init__(names, types, resolver)
 
         if not part_of:
             raise AttributeError("part_of cannot be None.")
@@ -181,7 +181,7 @@ class LocatedObject(ObjectDesignatorDescription):
         timestamp: float
 
     def __init__(self, names: List[str], types: List[str],
-                 reference_frames: List[str], timestamps: List[float], grounding_method: Optional[Callable] = None):
-        super(LocatedObject, self).__init__(names, types, grounding_method)
+                 reference_frames: List[str], timestamps: List[float], resolver: Optional[Callable] = None):
+        super(LocatedObject, self).__init__(names, types, resolver)
         self.reference_frames: List[str] = reference_frames
         self.timestamps: List[float] = timestamps

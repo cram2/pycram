@@ -33,7 +33,7 @@ class ProcessModule:
     execution_delay = True
 
     @staticmethod
-    def perform(designator: Type[Designator]) -> None:
+    def perform(designator: Type['MotionDesignatorDescription.Motion']) -> Any:
         """Automatically choose a process module and execute the given designator.
 
         Arguments:
