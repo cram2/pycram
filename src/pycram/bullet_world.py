@@ -299,8 +299,8 @@ class Use_shadow_world():
     def __enter__(self):
         if not BulletWorld.current_bullet_world.is_shadow_world:
             time.sleep(3 / 240)
-            while not BulletWorld.current_bullet_world.world_sync.add_obj_queue.empty():
-                time.sleep(5 / 240)
+            # blocks until the adding queue is ready
+            BulletWorld.current_bullet_world.world_sync.add_obj_queue.join()
 
             self.prev_world = BulletWorld.current_bullet_world
             BulletWorld.current_bullet_world.world_sync.pause_sync = True
@@ -399,13 +399,194 @@ class Gui(threading.Thread):
         thread will be suspended for 10 seconds, if it is not the method and
         thus the thread terminates.
         """
-        if self.type == "GUI":
-            self.world.client_id = p.connect(p.GUI)
-        else:
+        if self.type != "GUI":
             self.world.client_id = p.connect(p.DIRECT)
+        else:
+            self.world.client_id = p.connect(p.GUI)
 
-        while p.isConnected(self.world.client_id):
-            time.sleep(0.5)
+            # Get the initial camera target location
+            cameraTargetPosition = p.getDebugVisualizerCamera()[11]
+
+            sphereVisualId = p.createVisualShape(p.GEOM_SPHERE, radius=0.05, rgbaColor=[1, 0, 0, 1])
+
+            # Create a sphere with a radius of 0.05 and a mass of 0
+            sphereUid = p.createMultiBody(baseMass=0.0,
+                                          baseInertialFramePosition=[0, 0, 0],
+                                          baseVisualShapeIndex=sphereVisualId,
+                                          basePosition=cameraTargetPosition)
+
+            # Define the maxSpeed, used in calculations
+            maxSpeed = 16
+
+            # Set initial Camera Rotation
+            cameraYaw = 50
+            cameraPitch = -35
+
+            # Keep track of the mouse state
+            mouseState = [0, 0, 0]
+            oldMouseX, oldMouseY = 0, 0
+
+            # Determines if the sphere at cameraTargetPosition is visible
+            visible = 1
+
+            # Loop to update the camera position based on keyboard events
+            while p.isConnected(self.world.client_id):
+                # Monitor user input
+                keys = p.getKeyboardEvents()
+                mouse = p.getMouseEvents()
+
+                # Get infos about the camera
+                width, height, dist = p.getDebugVisualizerCamera()[0], p.getDebugVisualizerCamera()[1], \
+                    p.getDebugVisualizerCamera()[10]
+                cameraTargetPosition = p.getDebugVisualizerCamera()[11]
+
+                # Get vectors used for movement on x,y,z Vector
+                xVec = [p.getDebugVisualizerCamera()[2][i] for i in [0, 4, 8]]
+                yVec = [p.getDebugVisualizerCamera()[2][i] for i in [2, 6, 10]]
+                zVec = (0, 0, 1)  # [p.getDebugVisualizerCamera()[2][i] for i in [1, 5, 9]]
+
+                # Check the mouse state
+                if mouse:
+                    for m in mouse:
+
+                        mouseX = m[2]
+                        mouseY = m[1]
+
+                        # update mouseState
+                        # Left Mouse button
+                        if m[0] == 2 and m[3] == 0:
+                            mouseState[0] = m[4]
+                        # Middle mouse butto (scroll wheel)
+                        if m[0] == 2 and m[3] == 1:
+                            mouseState[1] = m[4]
+                        # right mouse button
+                        if m[0] == 2 and m[3] == 2:
+                            mouseState[2] = m[4]
+
+                        # change visibility by clicking the mousewheel
+                        if m[4] == 6 and m[3] == 1 and visible == 1:
+                            visible = 0
+                        elif m[4] == 6 and visible == 0:
+                            visible = 1
+
+                        # camera movement when the left mouse button is pressed
+                        if mouseState[0] == 3:
+                            speedX = abs(oldMouseX - mouseX) if (abs(oldMouseX - mouseX)) < maxSpeed else maxSpeed
+                            speedY = abs(oldMouseY - mouseY) if (abs(oldMouseY - mouseY)) < maxSpeed else maxSpeed
+
+                            # max angle of 89.5 and -89.5 to make sure the camera does not flip (is annoying)
+                            if mouseX < oldMouseX:
+                                if (cameraPitch + speedX) < 89.5:
+                                    cameraPitch += (speedX / 4) + 1
+                            elif mouseX > oldMouseX:
+                                if (cameraPitch - speedX) > -89.5:
+                                    cameraPitch -= (speedX / 4) + 1
+
+                            if mouseY < oldMouseY:
+                                cameraYaw += (speedY / 4) + 1
+                            elif mouseY > oldMouseY:
+                                cameraYaw -= (speedY / 4) + 1
+
+                        if mouseState[1] == 3:
+                            speedX = abs(oldMouseX - mouseX)
+                            factor = 0.05
+
+                            if mouseX < oldMouseX:
+                                dist = dist - speedX * factor
+                            elif mouseX > oldMouseX:
+                                dist = dist + speedX * factor
+                            dist = max(dist, 0.1)
+
+                        # camera movement when the right mouse button is pressed
+                        if mouseState[2] == 3:
+                            speedX = abs(oldMouseX - mouseX) if (abs(oldMouseX - mouseX)) < 5 else 5
+                            speedY = abs(oldMouseY - mouseY) if (abs(oldMouseY - mouseY)) < 5 else 5
+                            factor = 0.05
+
+                            if mouseX < oldMouseX:
+                                cameraTargetPosition = np.subtract(cameraTargetPosition,
+                                                                   np.multiply(np.multiply(zVec, factor), speedX))
+                            elif mouseX > oldMouseX:
+                                cameraTargetPosition = np.add(cameraTargetPosition,
+                                                              np.multiply(np.multiply(zVec, factor), speedX))
+
+                            if mouseY < oldMouseY:
+                                cameraTargetPosition = np.add(cameraTargetPosition,
+                                                              np.multiply(np.multiply(xVec, factor), speedY))
+                            elif mouseY > oldMouseY:
+                                cameraTargetPosition = np.subtract(cameraTargetPosition,
+                                                                   np.multiply(np.multiply(xVec, factor), speedY))
+                        # update oldMouse values
+                        oldMouseY, oldMouseX = mouseY, mouseX
+
+                # check the keyboard state
+                if keys:
+                    # if shift is pressed, double the speed
+                    if p.B3G_SHIFT in keys:
+                        speedMult = 5
+                    else:
+                        speedMult = 2.5
+
+                    # if control is pressed, the movements caused by the arrowkeys, the '+' as well as the '-' key
+                    # change
+                    if p.B3G_CONTROL in keys:
+
+                        # the up and down arrowkeys cause the targetPos to move along the z axis of the map
+                        if p.B3G_DOWN_ARROW in keys:
+                            cameraTargetPosition = np.subtract(cameraTargetPosition,
+                                                               np.multiply(np.multiply(zVec, 0.03), speedMult))
+                        elif p.B3G_UP_ARROW in keys:
+                            cameraTargetPosition = np.add(cameraTargetPosition,
+                                                          np.multiply(np.multiply(zVec, 0.03), speedMult))
+
+                        # left and right arrowkeys cause the targetPos to move horizontally relative to the camera
+                        if p.B3G_LEFT_ARROW in keys:
+                            cameraTargetPosition = np.subtract(cameraTargetPosition,
+                                                               np.multiply(np.multiply(xVec, 0.03), speedMult))
+                        elif p.B3G_RIGHT_ARROW in keys:
+                            cameraTargetPosition = np.add(cameraTargetPosition,
+                                                          np.multiply(np.multiply(xVec, 0.03), speedMult))
+
+                        # the '+' and '-' keys cause the targetpos to move forwards and backwards relative to the camera
+                        # while the camera stays at a constant distance. SHIFT + '=' is for US layout
+                        if ord("+") in keys or p.B3G_SHIFT in keys and ord("=") in keys:
+                            cameraTargetPosition = np.subtract(cameraTargetPosition,
+                                                               np.multiply(np.multiply(yVec, 0.03), speedMult))
+                        elif ord("-") in keys:
+                            cameraTargetPosition = np.add(cameraTargetPosition,
+                                                          np.multiply(np.multiply(yVec, 0.03), speedMult))
+
+                    # standard bindings for thearrowkeys, the '+' as well as the '-' key
+                    else:
+
+                        # left and right arrowkeys cause the camera to rotate around the yaw axis
+                        if p.B3G_RIGHT_ARROW in keys:
+                            cameraYaw += (360 / width) * speedMult
+                        elif p.B3G_LEFT_ARROW in keys:
+                            cameraYaw -= (360 / width) * speedMult
+
+                        # the up and down arrowkeys cause the camera to rotate around the pitch axis
+                        if p.B3G_DOWN_ARROW in keys:
+                            if (cameraPitch + (360 / height) * speedMult) < 89.5:
+                                cameraPitch += (360 / height) * speedMult
+                        elif p.B3G_UP_ARROW in keys:
+                            if (cameraPitch - (360 / height) * speedMult) > -89.5:
+                                cameraPitch -= (360 / height) * speedMult
+
+                        # the '+' and '-' keys cause the camera to zoom towards and away from the targetPos without
+                        # moving it. SHIFT + '=' is for US layout since the events can't handle shift plus something
+                        if ord("+") in keys or p.B3G_SHIFT in keys and ord("=") in keys:
+                            if (dist - (dist * 0.02) * speedMult) > 0.1:
+                                dist -= dist * 0.02 * speedMult
+                        elif ord("-") in keys:
+                            dist += dist * 0.02 * speedMult
+
+                p.resetDebugVisualizerCamera(cameraDistance=dist, cameraYaw=cameraYaw, cameraPitch=cameraPitch,
+                                             cameraTargetPosition=cameraTargetPosition)
+                if visible == 0:
+                    cameraTargetPosition = (0.0, -50, 50)
+                p.resetBasePositionAndOrientation(sphereUid, cameraTargetPosition, [0, 0, 0, 1])
+                time.sleep(1. / 80.)
 
 
 class Object:
