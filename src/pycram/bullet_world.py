@@ -299,8 +299,8 @@ class Use_shadow_world():
     def __enter__(self):
         if not BulletWorld.current_bullet_world.is_shadow_world:
             time.sleep(3 / 240)
-            while not BulletWorld.current_bullet_world.world_sync.add_obj_queue.empty():
-                time.sleep(5 / 240)
+
+            BulletWorld.current_bullet_world.world_sync.add_obj_queue.join()
 
             self.prev_world = BulletWorld.current_bullet_world
             BulletWorld.current_bullet_world.world_sync.pause_sync = True
