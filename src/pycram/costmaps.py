@@ -629,6 +629,7 @@ class GaussianCostmap(Costmap):
 
 
 class SemanticCostmap(Costmap):
+
     def __init__(self, object, urdf_link_name, size=100, resolution=0.02, world=None):
         self.world = world if world else BulletWorld.current_bullet_world
         self.object = object
