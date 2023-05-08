@@ -31,7 +31,7 @@ class TaskTreeTestCase(test_bullet_world.BulletWorldTest):
         # self.tearDownBulletWorld()
         tt = pycram.task.task_tree
 
-        print(anytree.RenderTree(tt))
+        # print(anytree.RenderTree(tt))
 
         self.assertEqual(6, len(tt.root))
         self.assertEqual(4, len(tt.root.leaves))
@@ -51,11 +51,15 @@ class TaskTreeTestCase(test_bullet_world.BulletWorldTest):
         def failing_plan():
             raise pycram.plan_failures.PlanFailure("PlanFailure for UnitTesting")
         pycram.task.reset_tree()
-        failing_plan()
+
+        self.assertRaises(pycram.plan_failures.PlanFailure, failing_plan)
+
         tt = pycram.task.task_tree
+
         for node in anytree.PreOrderIter(tt.root):
             if node.code != pycram.task.NoOperation():
                 self.assertEqual(node.status, pycram.task.TaskStatus.FAILED)
+                self.assertEqual(pycram.plan_failures.PlanFailure, type(node.reason))
 
     def test_execution(self):
         self.plan()

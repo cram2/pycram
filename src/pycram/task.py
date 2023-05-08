@@ -177,7 +177,13 @@ class TaskTreeNode(anytree.NodeMixin):
 
         :returns:  corresponding pycram.orm.task.TaskTreeNode object
         """
-        return ORMTaskTreeNode(None, self.start_time, self.end_time, self.status.name,
+
+        if self.reason:
+            reason = type(self.reason).__name__
+        else:
+            reason = None
+
+        return ORMTaskTreeNode(None, self.start_time, self.end_time, self.status.name, reason,
                                id(self.parent) if self.parent else None)
 
     def insert(self, session: sqlalchemy.orm.session.Session, recursive: bool = True,

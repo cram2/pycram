@@ -1,4 +1,4 @@
-from pycram.robot_description import *
+from ..robot_description import *
 
 
 class PR2Description(RobotDescription):
