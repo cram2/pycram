@@ -9,4 +9,6 @@ pytransform3d~=1.9.1
 # actionlib~=1.12.1
 urdf-parser-py~=0.0.3
 graphviz
-anytree
+anytree>=2.8.0
+SQLAlchemy>=2.0.9
+

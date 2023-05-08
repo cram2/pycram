@@ -15,7 +15,7 @@ from inspect import isgenerator, isgeneratorfunction
 from .helper import GeneratorList, bcolors
 from threading import Lock
 from time import time
-from typing import List, Dict, Any, Type, Optional, Union, get_type_hints
+from typing import List, Dict, Any, Type, Optional, Union, get_type_hints, Callable
 
 import logging
 
@@ -49,7 +49,8 @@ class ResolutionError(Exception):
 class Designator(ABC):
     """Implementation of designators.
 
-    Designators are objects containing sequences of key-value pairs. They can be resolved which means to generate real parameters for executing actions from these pairs of key and value.
+    Designators are objects containing sequences of key-value pairs. They can be resolved which means to generate real
+    parameters for executing actions from these pairs of key and value.
 
     Instance variables:
     timestamp -- the timestamp of creation of reference or None if still not referencing an object.
@@ -129,7 +130,8 @@ class Designator(ABC):
         return self._parent.first()
 
     def current(self) -> Designator:
-        """Return the newest designator, i.e. that one that has been equated last to the designator or one of its equated designators."""
+        """Return the newest designator, i.e. that one that has been equated last to the designator or one of its
+        equated designators."""
         if self._successor is None:
             return self
 
@@ -210,7 +212,8 @@ class Designator(ABC):
         return generator(desig)
 
     def copy(self, new_properties: Optional[List] = None) -> Designator:
-        """Construct a new designator with the same properties as this one. If new properties are specified, these will be merged with the old ones while the new properties are dominant in this relation.
+        """Construct a new designator with the same properties as this one. If new properties are specified, these will
+        be merged with the old ones while the new properties are dominant in this relation.
 
         Arguments:
         new_properties -- a list of new properties to merge into the old ones (default is None).
@@ -220,9 +223,6 @@ class Designator(ABC):
         if new_properties:
             for key, value in new_properties:
                 description.__dict__[key] = value
-                #if key in description.__dict__.keys():
-                    #description.__dict__[key] = value
-
 
         return self.__class__(description)
 
@@ -277,7 +277,9 @@ class Designator(ABC):
         """Return True if all the given properties match, False otherwise.
 
         Arguments:
-        properties -- the properties which have to match. A property can be a tuple in which case its first value is the key of a property which must equal the second value. Otherwise it's simply the key of a property which must be not None.
+        properties -- the properties which have to match. A property can be a tuple in which case its first value is the
+        key of a property which must equal the second value. Otherwise it's simply the key of a property which must be
+        not None.
         """
         for prop in properties:
             if type(prop) == tuple:
@@ -297,7 +299,9 @@ class Designator(ABC):
         Return the given properties as dictionary.
 
         Arguments:
-        properties -- the properties to create a dictionary of. A property can be a tuple in which case its first value is the dictionary key and the second value is the dictionary value. Otherwise it's simply the dictionary key and the key of a property which is the dictionary value.
+        properties -- the properties to create a dictionary of. A property can be a tuple in which case its first value
+        is the dictionary key and the second value is the dictionary value. Otherwise it's simply the dictionary key
+        and the key of a property which is the dictionary value.
         """
 
         return self._description.make_dictionary(properties)
@@ -312,16 +316,27 @@ class Designator(ABC):
         return self.current()
 
 
-class DesignatorDescription():
-    resolver: str
+class DesignatorDescription(ABC):
+    """
+    :ivar resolve: The resolver function to use for this designator, defaults to self.ground
+    """
 
-    def __init__(self, resolver: Optional[str] = "grounding"):
-        self.resolver: str = resolver
+    def __init__(self, resolver: Optional[Callable] = None):
+        """
+        Create a Designator description.
+
+        :param resolver: The grounding method used for the description.
+        The grounding method creates an action instance that matches the description.
+        """
+
+        if resolver is None:
+            self.resolve = self.ground
 
     def make_dictionary(self, properties: List[str]):
         """
         Creates a dictionary of this description with only the given properties
         included.
+
         :param properties: A list of properties that should be included in the dictionary.
                             The given properties have to be an attribute of this description.
         :return: A dictionary with the properties as keys.
@@ -342,33 +357,10 @@ class DesignatorDescription():
     def get_slots(self) -> List[str]:
         """
         Returns a list of all slots of this description. Can be used for inspecting different descriptions and debugging.
+
         :return: A list of all slots.
         """
         return list(self.__dict__.keys())
 
     def copy(self) -> Type[DesignatorDescription]:
         return self
-
-    def _check_properties(self, desig: str, exclude: List[str] = []) -> None:
-        """
-        Checks the properties of this description. It will be checked if any attribute is
-        None and if any attribute has to wrong type according to the type hints in
-        the description class.
-        It is possible to provide a list of attributes which should not be checked.
-        :param desig: The current type of designator, will be used when raising an
-                        Exception as output.
-        :param exclude: A list of properties which should not be checked.
-        """
-        right_types = get_type_hints(type(self))
-        attributes = self.__dict__
-        missing = []
-        wrong_type = {}
-        current_type = {}
-        for k in attributes.keys():
-            if attributes[k] == None and not attributes[k] in exclude:
-                missing.append(k)
-            elif type(attributes[k]) != right_types[k] and not attributes[k] in exclude:
-                wrong_type[k] = right_types[k]
-                current_type[k] = type(attributes[k])
-        if missing != [] or wrong_type != {}:
-            raise ResolutionError(missing, wrong_type, current_type, desig)

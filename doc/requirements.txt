@@ -5,3 +5,5 @@ sphinx-paramlinks
 sphinx-numfig
 sphinx-autoapi
 sphinx-rtd-theme
+nbsphinx
+jinja2==3.0.3
