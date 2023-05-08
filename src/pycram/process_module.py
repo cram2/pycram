@@ -66,7 +66,7 @@ class ProcessModule:
         designator -- the designator to execute.
         """
         self._designators.append(designator)
-        (self._running == False).wait_for()
+        # (self._running == False).wait_for()
         self._running.set_value(True)
         designator = self._designators[0]
         try:
