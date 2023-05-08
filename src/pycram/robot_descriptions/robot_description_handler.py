@@ -8,10 +8,12 @@ from .donbot_description import DonbotDescription
 from .hsr_description import HSRDescription
 from .pr2_description import PR2Description
 from .ur5_description import UR5Description
+from .. import utils
 from ..robot_description import RobotDescription
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
 
 class InitializedRobotDescription():
     # singleton instance short named as 'i'
@@ -25,7 +27,6 @@ class InitializedRobotDescription():
             InitializedRobotDescription.current_description_loaded = robot_description
             InitializedRobotDescription.i = robot_description()
             logger.info("(robot-description) (Re)Loaded Description of robot %s.", self.i.name)
-
 
 
 def update_robot_description(robot_name=None, from_ros=None):
@@ -63,4 +64,5 @@ def update_robot_description(robot_name=None, from_ros=None):
     return InitializedRobotDescription(description)
 
 
-update_robot_description(from_ros=True)#"ur5_robotiq")#  # todo: put in ros init
+with utils.suppress_stdout_stderr():
+    update_robot_description(from_ros=True)  # "ur5_robotiq")#  # todo: put in ros init

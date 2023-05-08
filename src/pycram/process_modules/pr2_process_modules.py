@@ -68,7 +68,6 @@ class Pr2PickUp(ProcessModule):
         tool_frame = robot_description.i.get_tool_frame(arm)
         robot.attach(object, tool_frame)
 
-
 class Pr2Place(ProcessModule):
     """
     This process module places an object at the given position in world coordinate frame.
@@ -98,6 +97,7 @@ class Pr2Place(ProcessModule):
         inv = request_ik(base_link, end_effector, target, robot, joints)
         _apply_ik(robot, inv, joints)
         robot.detach(object)
+
 
 
 class Pr2Accessing(ProcessModule):
