@@ -8,22 +8,24 @@ Object -- Representation of an object in the BulletWorld
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-import pybullet as p
+import logging
 import os
+import pathlib
+import re
 import threading
 import time
-import pathlib
-import logging
-import rospkg
-import re
+import xml.etree.ElementTree
 from queue import Queue
+from typing import List, Optional, Dict, Tuple, Callable
+from typing import Union
 
+import numpy as np
+import pybullet as p
+import rospkg
 import rospy
-from typing import List, Optional, Union, Dict
+
 from .event import Event
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
-from typing import List, Optional, Dict, Tuple, Callable, Type
-
 
 class BulletWorld:
     """
@@ -57,11 +59,11 @@ class BulletWorld:
         # This disables file caching from PyBullet, since this would also cache
         # files that can not be loaded
         p.setPhysicsEngineParameter(enableFileCaching=0)
-        time.sleep(1) # 0.1
-        #self.last_bullet_world = BulletWorld.current_bullet_world
+        time.sleep(1)  # 0.1
+        # self.last_bullet_world = BulletWorld.current_bullet_world
         if BulletWorld.current_bullet_world == None:
             BulletWorld.current_bullet_world = self
-        self.vis_axis: Object = None
+        self.vis_axis: Object = []
         self.coll_callbacks: Dict[Tuple[Object, Object], Tuple[Callable, Callable]] = {}
         self.data_directory: List[str] = [os.path.dirname(__file__) + "/../../resources"]
         self.shadow_world: BulletWorld = BulletWorld("DIRECT", True) if not is_shadow_world else None
@@ -149,11 +151,11 @@ class BulletWorld:
             p.stepSimulation(self.client_id)
             for objects, callback in self.coll_callbacks.items():
                 contact_points = p.getContactPoints(objects[0].id, objects[1].id, physicsClientId=self.client_id)
-                #contact_points = p.getClosestPoints(objects[0].id, objects[1].id, 0.02)
-                #print(contact_points[0][5])
+                # contact_points = p.getClosestPoints(objects[0].id, objects[1].id, 0.02)
+                # print(contact_points[0][5])
                 if contact_points != ():
                     callback[0]()
-                elif callback[1] != None: # Call no collision callback
+                elif callback[1] != None:  # Call no collision callback
                     callback[1]()
             if real_time:
                 # Simulation runs at 240 Hz
@@ -198,7 +200,7 @@ class BulletWorld:
             objects2attached[o] = (o.attachments.copy(), o.cids.copy())
         return p.saveState(self.client_id), objects2attached
 
-    def restore_state(self, state, objects2attached: Dict={}) -> None:
+    def restore_state(self, state, objects2attached: Dict = {}) -> None:
         """
         Restores the state of the BulletWorld according to the given state id
         """
@@ -219,12 +221,13 @@ class BulletWorld:
         world = BulletWorld("DIRECT")
         for obj in self.objects:
             o = Object(obj.name, obj.type, obj.path, obj.get_position(), obj.get_orientation(),
-                            world, obj.color)
+                       world, obj.color)
             for joint in obj.joints:
                 o.set_joint_state(joint, obj.get_joint_state(joint))
         return world
 
-    def add_vis_axis(self, position_and_orientation: Tuple[List[float], List[float]], length: Optional[float] = 0.2) -> None:
+    def add_vis_axis(self, position_and_orientation: Tuple[List[float], List[float]],
+                     length: Optional[float] = 0.2) -> None:
         """
         Creates a Visual object which represents the coordinate frame at the given
         position and orientation. There can only be one vis axis at a time. If this
@@ -234,39 +237,41 @@ class BulletWorld:
         orientation as a quanternion
         :param length: Optional parameter to configure the length of the axes
         """
-        if self.vis_axis:
-            p.removeBody(self.vis_axis)
 
         position = position_and_orientation[0]
         orientation = position_and_orientation[1]
 
         vis_x = p.createVisualShape(p.GEOM_BOX, halfExtents=[length, 0.01, 0.01],
-                            rgbaColor=[1, 0, 0, 0.8], visualFramePosition=[length, 0.01, 0.01])
+                                    rgbaColor=[1, 0, 0, 0.8], visualFramePosition=[length, 0.01, 0.01])
         vis_y = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.01, length, 0.01],
-                            rgbaColor=[0, 1, 0, 0.8], visualFramePosition=[0.01, length, 0.01])
+                                    rgbaColor=[0, 1, 0, 0.8], visualFramePosition=[0.01, length, 0.01])
         vis_z = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.01, 0.01, length],
-                            rgbaColor=[0, 0, 1, 0.8], visualFramePosition=[0.01, 0.01, length])
+                                    rgbaColor=[0, 0, 1, 0.8], visualFramePosition=[0.01, 0.01, length])
 
         obj = p.createMultiBody(baseVisualShapeIndex=-1, linkVisualShapeIndices=[vis_x, vis_y, vis_z],
-            basePosition=position, baseOrientation=orientation, linkPositions=[[0,0,0], [0,0,0], [0,0,0]],
-            linkMasses=[1.0,1.0,1.0], linkOrientations=[[0,0,0,1],[0,0,0,1],[0,0,0,1]],
-            linkInertialFramePositions=[[0,0,0], [0,0,0], [0,0,0]],
-            linkInertialFrameOrientations=[[0,0,0,1],[0,0,0,1],[0,0,0,1]],linkParentIndices=[0, 0, 0],
-            linkJointTypes=[p.JOINT_FIXED, p.JOINT_FIXED, p.JOINT_FIXED], linkJointAxis=[[1,0,0], [0,1,0], [0,0,1]],
-            linkCollisionShapeIndices=[-1, -1, -1])
+                                basePosition=position, baseOrientation=orientation,
+                                linkPositions=[[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                                linkMasses=[1.0, 1.0, 1.0], linkOrientations=[[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1]],
+                                linkInertialFramePositions=[[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                                linkInertialFrameOrientations=[[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1]],
+                                linkParentIndices=[0, 0, 0],
+                                linkJointTypes=[p.JOINT_FIXED, p.JOINT_FIXED, p.JOINT_FIXED],
+                                linkJointAxis=[[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+                                linkCollisionShapeIndices=[-1, -1, -1])
 
-        self.vis_axis = obj
+        self.vis_axis.append(obj)
 
     def remove_vis_axis(self):
         """
         Checks if there is a vis_axis objects in the BulletWorld and removes it,
         if there is one.
         """
-        if self.vis_axis:
-            p.removeBody(self.vis_axis)
+        for id in self.vis_axis:
+            p.removeBody(id)
 
     def register_collision_callback(self, objectA: Object, objectB: Object,
-                                    callback_collision: Callable, callback_no_collision: Optional[Callable] = None) -> None:
+                                    callback_collision: Callable,
+                                    callback_no_collision: Optional[Callable] = None) -> None:
         """
         This function regsiters can register two callbacks, one if objectA and objectB are in contact
         and another if they are not in contact.
@@ -291,9 +296,12 @@ class BulletWorld:
         try:
             return self.world_sync.object_mapping[object]
         except KeyError:
-            raise ValueError(f"There is no shadow object for the given object: {object}, \
-                    this could be the case if the object isn't anymore in the main (graphical) BulletWorld \
-                    or if the given object is already a shadow object. ")
+            shadow_world = self if self.is_shadow_world else self.shadow_world
+            if object in shadow_world.objects:
+                return object
+            else:
+                raise ValueError(
+                    f"There is no shadow object for the given object: {object}, this could be the case if the object isn't anymore in the main (graphical) BulletWorld or if the given object is already a shadow object. ")
 
     def get_bullet_object_for_shadow(self, object: Object) -> Object:
         """
@@ -328,7 +336,7 @@ class BulletWorld:
             obj.set_position_and_orientation(obj.original_pose[0], obj.original_pose[1])
 
 
-#current_bullet_world = BulletWorld.current_bullet_world
+# current_bullet_world = BulletWorld.current_bullet_world
 
 class Use_shadow_world():
 
@@ -337,6 +345,10 @@ class Use_shadow_world():
 
     def __enter__(self):
         if not BulletWorld.current_bullet_world.is_shadow_world:
+            time.sleep(3 / 240)
+            # blocks until the adding queue is ready
+            BulletWorld.current_bullet_world.world_sync.add_obj_queue.join()
+
             self.prev_world = BulletWorld.current_bullet_world
             BulletWorld.current_bullet_world.world_sync.pause_sync = True
             BulletWorld.current_bullet_world = BulletWorld.current_bullet_world.shadow_world
@@ -357,6 +369,7 @@ class World_Sync(threading.Thread):
     The class provides the possibility to pause the synchronization, this can be used
     if reasoning should be done in the shadow world to guarantee a consistant state.
     """
+
     def __init__(self, world: BulletWorld, shadow_world: BulletWorld):
         threading.Thread.__init__(self)
         self.world: BulletWorld = world
@@ -405,7 +418,7 @@ class World_Sync(threading.Thread):
                         shadow_obj.set_joint_state(joint_name, bulletworld_obj.get_joint_state(joint_name))
 
             self.check_for_pause()
-            time.sleep(0.1)
+            time.sleep(1 / 240)
 
         self.add_obj_queue.join()
         self.remove_obj_queue.join()
@@ -420,6 +433,7 @@ class Gui(threading.Thread):
     This class is for internal use only. It initializes the physics simulation
     in a new thread an holds it active.
     """
+
     def __init__(self, world, type):
         threading.Thread.__init__(self)
         self.world: BulletWorld = world
@@ -432,13 +446,194 @@ class Gui(threading.Thread):
         thread will be suspended for 10 seconds, if it is not the method and
         thus the thread terminates.
         """
-        if self.type == "GUI":
-            self.world.client_id = p.connect(p.GUI)
-        else:
+        if self.type != "GUI":
             self.world.client_id = p.connect(p.DIRECT)
+        else:
+            self.world.client_id = p.connect(p.GUI)
 
-        while p.isConnected(self.world.client_id):
-            time.sleep(0.5)
+            # Get the initial camera target location
+            cameraTargetPosition = p.getDebugVisualizerCamera()[11]
+
+            sphereVisualId = p.createVisualShape(p.GEOM_SPHERE, radius=0.05, rgbaColor=[1, 0, 0, 1])
+
+            # Create a sphere with a radius of 0.05 and a mass of 0
+            sphereUid = p.createMultiBody(baseMass=0.0,
+                                          baseInertialFramePosition=[0, 0, 0],
+                                          baseVisualShapeIndex=sphereVisualId,
+                                          basePosition=cameraTargetPosition)
+
+            # Define the maxSpeed, used in calculations
+            maxSpeed = 16
+
+            # Set initial Camera Rotation
+            cameraYaw = 50
+            cameraPitch = -35
+
+            # Keep track of the mouse state
+            mouseState = [0, 0, 0]
+            oldMouseX, oldMouseY = 0, 0
+
+            # Determines if the sphere at cameraTargetPosition is visible
+            visible = 1
+
+            # Loop to update the camera position based on keyboard events
+            while p.isConnected(self.world.client_id):
+                # Monitor user input
+                keys = p.getKeyboardEvents()
+                mouse = p.getMouseEvents()
+
+                # Get infos about the camera
+                width, height, dist = p.getDebugVisualizerCamera()[0], p.getDebugVisualizerCamera()[1], \
+                    p.getDebugVisualizerCamera()[10]
+                cameraTargetPosition = p.getDebugVisualizerCamera()[11]
+
+                # Get vectors used for movement on x,y,z Vector
+                xVec = [p.getDebugVisualizerCamera()[2][i] for i in [0, 4, 8]]
+                yVec = [p.getDebugVisualizerCamera()[2][i] for i in [2, 6, 10]]
+                zVec = (0, 0, 1)  # [p.getDebugVisualizerCamera()[2][i] for i in [1, 5, 9]]
+
+                # Check the mouse state
+                if mouse:
+                    for m in mouse:
+
+                        mouseX = m[2]
+                        mouseY = m[1]
+
+                        # update mouseState
+                        # Left Mouse button
+                        if m[0] == 2 and m[3] == 0:
+                            mouseState[0] = m[4]
+                        # Middle mouse butto (scroll wheel)
+                        if m[0] == 2 and m[3] == 1:
+                            mouseState[1] = m[4]
+                        # right mouse button
+                        if m[0] == 2 and m[3] == 2:
+                            mouseState[2] = m[4]
+
+                        # change visibility by clicking the mousewheel
+                        if m[4] == 6 and m[3] == 1 and visible == 1:
+                            visible = 0
+                        elif m[4] == 6 and visible == 0:
+                            visible = 1
+
+                        # camera movement when the left mouse button is pressed
+                        if mouseState[0] == 3:
+                            speedX = abs(oldMouseX - mouseX) if (abs(oldMouseX - mouseX)) < maxSpeed else maxSpeed
+                            speedY = abs(oldMouseY - mouseY) if (abs(oldMouseY - mouseY)) < maxSpeed else maxSpeed
+
+                            # max angle of 89.5 and -89.5 to make sure the camera does not flip (is annoying)
+                            if mouseX < oldMouseX:
+                                if (cameraPitch + speedX) < 89.5:
+                                    cameraPitch += (speedX / 4) + 1
+                            elif mouseX > oldMouseX:
+                                if (cameraPitch - speedX) > -89.5:
+                                    cameraPitch -= (speedX / 4) + 1
+
+                            if mouseY < oldMouseY:
+                                cameraYaw += (speedY / 4) + 1
+                            elif mouseY > oldMouseY:
+                                cameraYaw -= (speedY / 4) + 1
+
+                        if mouseState[1] == 3:
+                            speedX = abs(oldMouseX - mouseX)
+                            factor = 0.05
+
+                            if mouseX < oldMouseX:
+                                dist = dist - speedX * factor
+                            elif mouseX > oldMouseX:
+                                dist = dist + speedX * factor
+                            dist = max(dist, 0.1)
+
+                        # camera movement when the right mouse button is pressed
+                        if mouseState[2] == 3:
+                            speedX = abs(oldMouseX - mouseX) if (abs(oldMouseX - mouseX)) < 5 else 5
+                            speedY = abs(oldMouseY - mouseY) if (abs(oldMouseY - mouseY)) < 5 else 5
+                            factor = 0.05
+
+                            if mouseX < oldMouseX:
+                                cameraTargetPosition = np.subtract(cameraTargetPosition,
+                                                                   np.multiply(np.multiply(zVec, factor), speedX))
+                            elif mouseX > oldMouseX:
+                                cameraTargetPosition = np.add(cameraTargetPosition,
+                                                              np.multiply(np.multiply(zVec, factor), speedX))
+
+                            if mouseY < oldMouseY:
+                                cameraTargetPosition = np.add(cameraTargetPosition,
+                                                              np.multiply(np.multiply(xVec, factor), speedY))
+                            elif mouseY > oldMouseY:
+                                cameraTargetPosition = np.subtract(cameraTargetPosition,
+                                                                   np.multiply(np.multiply(xVec, factor), speedY))
+                        # update oldMouse values
+                        oldMouseY, oldMouseX = mouseY, mouseX
+
+                # check the keyboard state
+                if keys:
+                    # if shift is pressed, double the speed
+                    if p.B3G_SHIFT in keys:
+                        speedMult = 5
+                    else:
+                        speedMult = 2.5
+
+                    # if control is pressed, the movements caused by the arrowkeys, the '+' as well as the '-' key
+                    # change
+                    if p.B3G_CONTROL in keys:
+
+                        # the up and down arrowkeys cause the targetPos to move along the z axis of the map
+                        if p.B3G_DOWN_ARROW in keys:
+                            cameraTargetPosition = np.subtract(cameraTargetPosition,
+                                                               np.multiply(np.multiply(zVec, 0.03), speedMult))
+                        elif p.B3G_UP_ARROW in keys:
+                            cameraTargetPosition = np.add(cameraTargetPosition,
+                                                          np.multiply(np.multiply(zVec, 0.03), speedMult))
+
+                        # left and right arrowkeys cause the targetPos to move horizontally relative to the camera
+                        if p.B3G_LEFT_ARROW in keys:
+                            cameraTargetPosition = np.subtract(cameraTargetPosition,
+                                                               np.multiply(np.multiply(xVec, 0.03), speedMult))
+                        elif p.B3G_RIGHT_ARROW in keys:
+                            cameraTargetPosition = np.add(cameraTargetPosition,
+                                                          np.multiply(np.multiply(xVec, 0.03), speedMult))
+
+                        # the '+' and '-' keys cause the targetpos to move forwards and backwards relative to the camera
+                        # while the camera stays at a constant distance. SHIFT + '=' is for US layout
+                        if ord("+") in keys or p.B3G_SHIFT in keys and ord("=") in keys:
+                            cameraTargetPosition = np.subtract(cameraTargetPosition,
+                                                               np.multiply(np.multiply(yVec, 0.03), speedMult))
+                        elif ord("-") in keys:
+                            cameraTargetPosition = np.add(cameraTargetPosition,
+                                                          np.multiply(np.multiply(yVec, 0.03), speedMult))
+
+                    # standard bindings for thearrowkeys, the '+' as well as the '-' key
+                    else:
+
+                        # left and right arrowkeys cause the camera to rotate around the yaw axis
+                        if p.B3G_RIGHT_ARROW in keys:
+                            cameraYaw += (360 / width) * speedMult
+                        elif p.B3G_LEFT_ARROW in keys:
+                            cameraYaw -= (360 / width) * speedMult
+
+                        # the up and down arrowkeys cause the camera to rotate around the pitch axis
+                        if p.B3G_DOWN_ARROW in keys:
+                            if (cameraPitch + (360 / height) * speedMult) < 89.5:
+                                cameraPitch += (360 / height) * speedMult
+                        elif p.B3G_UP_ARROW in keys:
+                            if (cameraPitch - (360 / height) * speedMult) > -89.5:
+                                cameraPitch -= (360 / height) * speedMult
+
+                        # the '+' and '-' keys cause the camera to zoom towards and away from the targetPos without
+                        # moving it. SHIFT + '=' is for US layout since the events can't handle shift plus something
+                        if ord("+") in keys or p.B3G_SHIFT in keys and ord("=") in keys:
+                            if (dist - (dist * 0.02) * speedMult) > 0.1:
+                                dist -= dist * 0.02 * speedMult
+                        elif ord("-") in keys:
+                            dist += dist * 0.02 * speedMult
+
+                p.resetDebugVisualizerCamera(cameraDistance=dist, cameraYaw=cameraYaw, cameraPitch=cameraPitch,
+                                             cameraTargetPosition=cameraTargetPosition)
+                if visible == 0:
+                    cameraTargetPosition = (0.0, -50, 50)
+                p.resetBasePositionAndOrientation(sphereUid, cameraTargetPosition, [0, 0, 0, 1])
+                time.sleep(1. / 80.)
 
 
 class Object:
@@ -447,11 +642,11 @@ class Object:
     """
 
     def __init__(self, name: str, type: str, path: str,
-                 position: Optional[List[float]]=[0, 0, 0],
-                 orientation: Optional[List[float]]=[0, 0, 0, 1],
-                 world: BulletWorld=None,
-                 color: Optional[List[float]]=[1, 1, 1, 1],
-                 ignoreCachedFiles: Optional[bool]=False):
+                 position: Optional[List[float]] = [0, 0, 0],
+                 orientation: Optional[List[float]] = [0, 0, 0, 1],
+                 world: BulletWorld = None,
+                 color: Optional[List[float]] = [1, 1, 1, 1],
+                 ignoreCachedFiles: Optional[bool] = False):
         """
         The constructor loads the urdf file into the given BulletWorld, if no BulletWorld is specified the
         'current_bullet_world' will be used. It is also possible to load .obj and .stl file into the BulletWorld.
@@ -477,17 +672,25 @@ class Object:
         self.cids: Dict[Object, int] = {}
         self.world.objects.append(self)
         self.original_pose = [position, orientation]
+        self.base_origin_shift = np.array(position) - np.array(self.get_base_origin())
+
         # This means "world" is not the shadow world since it has a reference to a shadow world
         if self.world.shadow_world != None:
-            self.world.world_sync.add_obj_queue.put([name, type, path, position, orientation, self.world.shadow_world, color, self])
+            self.world.world_sync.add_obj_queue.put(
+                [name, type, path, position, orientation, self.world.shadow_world, color, self])
 
         if re.search("[a-zA-Z0-9].urdf", self.path):
             with open(self.path, mode="r") as f:
                 urdf_string = f.read()
+            urdf_string = urdf_string
             robot_name = _get_robot_name_from_urdf(urdf_string)
             if robot_name == robot_description.i.name and BulletWorld.robot == None:
                 BulletWorld.robot = self
         self.original_pose = [position, orientation]
+
+    def __repr__(self):
+        return self.__class__.__qualname__ + f"(" + ', '.join(
+            [f"{key}={value}" for key, value in self.__dict__.items()]) + ")"
 
     def remove(self) -> None:
         """
@@ -505,7 +708,6 @@ class Object:
         if self.world.shadow_world != None:
             self.world.world_sync.remove_obj_queue.put(self)
         p.removeBody(self.id, physicsClientId=self.world.client_id)
-
 
     def attach(self, object: Object, link: Optional[str] = None, loose: Optional[bool] = False) -> None:
         """
@@ -528,11 +730,11 @@ class Object:
         object.attachments[self] = [p.invertTransform(link_T_object[0], link_T_object[1]), None, False]
 
         cid = p.createConstraint(self.id, link_id, object.id, -1, p.JOINT_FIXED,
-                            [0, 1, 0], link_T_object[0], [0, 0, 0], link_T_object[1], physicsClientId=self.world.client_id)
+                                 [0, 1, 0], link_T_object[0], [0, 0, 0], link_T_object[1],
+                                 physicsClientId=self.world.client_id)
         self.cids[object] = cid
         object.cids[self] = cid
         self.world.attachment_event(self, [self, object])
-
 
     def detach(self, object: Object) -> None:
         """
@@ -575,9 +777,28 @@ class Object:
     def get_position_and_orientation(self) -> Tuple[List[float], List[float]]:
         return p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id)[:2]
 
-    def set_position_and_orientation(self, position, orientation) -> None:
+    def set_position_and_orientation(self, position, orientation, base=False) -> None:
+        """
+        Set the position and the orientation of the object in the bullet world
+        :param position: the x,y,z values to place the object at.
+        :param orientation: the x,y,z,w values to orient the object to.
+        :param base: if True place the object base instead of origin at the specified position and orientation
+        """
+        if base:
+            position = np.array(position) + self.base_origin_shift
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
         self._set_attached_objects([self])
+
+    @property
+    def pose(self):
+        return self.get_pose()
+
+    def move_base_to_origin_pos(self):
+        """
+        Move the object such that its base becomes at the current origin position.
+        This is useful when placing objects on surfaces where you want the object base in contact with the surface.
+        """
+        self.set_position_and_orientation(*self.get_position_and_orientation(), base=True)
 
     def _set_attached_objects(self, prev_object: List[Object]) -> None:
         """
@@ -601,15 +822,18 @@ class Object:
                 self.attachments[obj][0] = link_T_object
                 obj.attachments[self][0] = p.invertTransform(link_T_object[0], link_T_object[1])
                 p.removeConstraint(self.cids[obj])
-                cid = p.createConstraint(self.id, link_id, obj.id, -1, p.JOINT_FIXED, [0, 0, 0], link_T_object[0], [0, 0, 0], link_T_object[1])
+                cid = p.createConstraint(self.id, link_id, obj.id, -1, p.JOINT_FIXED, [0, 0, 0], link_T_object[0],
+                                         [0, 0, 0], link_T_object[1])
                 self.cids[obj] = cid
                 obj.cids[self] = cid
             else:
                 # Updates the position of all attached objects
                 link_T_object = self.attachments[obj][0]
                 link_name = self.attachments[obj][1]
-                world_T_link = self.get_link_position_and_orientation(link_name) if link_name else self.get_position_and_orientation()
-                world_T_object = p.multiplyTransforms(world_T_link[0], world_T_link[1], link_T_object[0], link_T_object[1])
+                world_T_link = self.get_link_position_and_orientation(
+                    link_name) if link_name else self.get_position_and_orientation()
+                world_T_object = p.multiplyTransforms(world_T_link[0], world_T_link[1], link_T_object[0],
+                                                      link_T_object[1])
                 p.resetBasePositionAndOrientation(obj.id, world_T_object[0], world_T_object[1])
                 obj._set_attached_objects(prev_object + [self])
 
@@ -624,15 +848,15 @@ class Object:
             base position
         """
         link_id = self.get_link_id(link) if link else -1
-        world_T_link =  self.get_link_position_and_orientation(link) if link else self.get_position_and_orientation()
+        world_T_link = self.get_link_position_and_orientation(link) if link else self.get_position_and_orientation()
         link_T_world = p.invertTransform(world_T_link[0], world_T_link[1])
         world_T_object = obj.get_position_and_orientation()
         link_T_object = p.multiplyTransforms(link_T_world[0], link_T_world[1],
-                                              world_T_object[0], world_T_object [1], self.world.client_id)
+                                             world_T_object[0], world_T_object[1], self.world.client_id)
         return link_T_object
 
-    def set_position(self, position: List[float]) -> None:
-        self.set_position_and_orientation(position, self.get_orientation())
+    def set_position(self, position: List[float], base=False) -> None:
+        self.set_position_and_orientation(position, self.get_orientation(), base=base)
 
     def set_orientation(self, orientation: List[float]) -> None:
         self.set_position_and_orientation(self.get_position(), orientation)
@@ -683,10 +907,11 @@ class Object:
         if low_lim > up_lim:
             low_lim, up_lim = up_lim, low_lim
         if not low_lim <= joint_pose <= up_lim:
-            logging.error(f"The joint position has to be within the limits of the joint. The joint limits for {joint_name} are {low_lim} and {up_lim}")
+            logging.error(
+                f"The joint position has to be within the limits of the joint. The joint limits for {joint_name} are {low_lim} and {up_lim}")
             logging.error(f"The given joint position was: {joint_pose}")
             # Temporarily disabled because kdl outputs values exciting joint limits
-            #return
+            # return
         p.resetJointState(self.id, self.joints[joint_name], joint_pose, physicsClientId=self.world.client_id)
         self._set_attached_objects([self])
 
@@ -703,7 +928,7 @@ class Object:
         self.world.restore_state(*s)
         return contact_points
 
-    def set_color(self, color:  List[float], link: Optional[str] = "") -> None:
+    def set_color(self, color: List[float], link: Optional[str] = "") -> None:
         """
         Changes the color of this object, the color has to be given as a list
         of RGBA values. Optionaly a link name can can be provided, if no link
@@ -774,6 +999,15 @@ class Object:
         else:
             return p.getAABB(self.id, physicsClientId=self.world.client_id)
 
+    def get_base_origin(self, link_name: Optional[str] = None):
+        """
+        Returns the origin of the base/bottom of an object/link
+        """
+        aabb = self.get_AABB(link_name=link_name)
+        base_width = np.absolute(aabb[0][0] - aabb[1][0])
+        base_length = np.absolute(aabb[0][1] - aabb[1][1])
+        return [aabb[0][0] + base_width / 2, aabb[0][1] + base_length / 2, aabb[0][2]]
+
     def get_joint_limits(self, joint: str) -> Tuple[float, float]:
         """
         Returns the lower and upper limit of a joint, if the lower limit is higher
@@ -788,7 +1022,6 @@ class Object:
         if lower > upper:
             lower, upper = upper, lower
         return lower, upper
-
 
 
 def filter_contact_points(contact_points, exclude_ids) -> List:
@@ -860,8 +1093,8 @@ def _load_object(name: str,
 
     if not path:
         raise FileNotFoundError(f"File {pa.name} could not be found in the resource directory {world.data_directory}")
-    #rospack = rospkg.RosPack()
-    #cach_dir = rospack.get_path('pycram') + '/resources/cached/'
+    # rospack = rospkg.RosPack()
+    # cach_dir = rospack.get_path('pycram') + '/resources/cached/'
     cach_dir = world.data_directory[0] + '/cached/'
     if not pathlib.Path(cach_dir).exists():
         os.mkdir(cach_dir)
@@ -872,7 +1105,7 @@ def _load_object(name: str,
             path = _generate_urdf_file(name, path, color, cach_dir)
         elif extension == ".urdf":
             with open(path, mode="r") as f:
-                urdf_string = f.read()
+                urdf_string = fix_missing_inertial(f.read())
             path = cach_dir + pa.name
             with open(path, mode="w") as f:
                 try:
@@ -880,14 +1113,14 @@ def _load_object(name: str,
                 except rospkg.ResourceNotFound as e:
                     os.remove(path)
                     raise e
-        else: # Using the urdf from the parameter server
+        else:  # Using the urdf from the parameter server
             urdf_string = rospy.get_param(path)
             path = cach_dir + name + ".urdf"
             with open(path, mode="w") as f:
                 f.write(_correct_urdf_string(urdf_string))
     # save correct path in case the file is already in the cache directory
     elif extension == ".obj" or extension == ".stl":
-        path = cach_dir + pa.stem  + ".urdf"
+        path = cach_dir + pa.stem + ".urdf"
     elif extension == ".urdf":
         path = cach_dir + pa.name
     else:
@@ -897,10 +1130,11 @@ def _load_object(name: str,
         obj = p.loadURDF(path, basePosition=position, baseOrientation=orientation, physicsClientId=world_id)
         return obj, path
     except p.error as e:
-        logging.error("The File could not be loaded. Plese note that the path has to be either a URDF, stl or obj file or the name of an URDF string on the parameter server.")
+        logging.error(
+            "The File could not be loaded. Plese note that the path has to be either a URDF, stl or obj file or the name of an URDF string on the parameter server.")
         os.remove(path)
-        raise(e)
-        #print(f"{bcolors.BOLD}{bcolors.WARNING}The path has to be either a path to a URDf file, stl file, obj file or the name of a URDF on the parameter server.{bcolors.ENDC}")
+        raise (e)
+        # print(f"{bcolors.BOLD}{bcolors.WARNING}The path has to be either a path to a URDf file, stl file, obj file or the name of a URDF on the parameter server.{bcolors.ENDC}")
 
 
 def _is_cached(path: str, name: str, cach_dir: str) -> bool:
@@ -928,7 +1162,7 @@ def _is_cached(path: str, name: str, cach_dir: str) -> bool:
 
 def _correct_urdf_string(urdf_string: str) -> str:
     """
-    This method gets the name of a urdf description and feteches it from the ROS
+    This method gets the name of an urdf description and fetches it from the ROS
     parameter server. Afterwards the URDF will be traversed and references to ROS packages
     will be replaced with the absolute path in the filesystem.
 
@@ -945,7 +1179,36 @@ def _correct_urdf_string(urdf_string: str) -> str:
             line = line.replace("package://" + s1[0], path)
         new_urdf_string += line + '\n'
 
-    return new_urdf_string
+    return fix_missing_inertial(new_urdf_string)
+
+
+def fix_missing_inertial(urdf_string: str) -> str:
+    """Insert inertial tags for every urdf link that has no inertia.
+    This is used to prevent PyBullet from dumping warnings in the terminal
+
+    :param urdf_string: The urdf description as string
+    :returns: The new, corrected urdf description as string.
+    """
+
+    inertia_tree = xml.etree.ElementTree.ElementTree(xml.etree.ElementTree.Element("inertial"))
+    inertia_tree.getroot().append(xml.etree.ElementTree.Element("mass", {"value": "0.1"}))
+    inertia_tree.getroot().append(xml.etree.ElementTree.Element("origin", {"rpy": "0 0 0", "xyz": "0 0 0"}))
+    inertia_tree.getroot().append(xml.etree.ElementTree.Element("inertia", {"ixx": "0.01",
+                                                                            "ixy": "0",
+                                                                            "ixz": "0",
+                                                                            "iyy": "0.01",
+                                                                            "iyz": "0",
+                                                                            "izz": "0.01"}))
+
+    # create tree from string
+    tree = xml.etree.ElementTree.ElementTree(xml.etree.ElementTree.fromstring(urdf_string))
+
+    for link_element in tree.iter("link"):
+        inertial = [*link_element.iter("inertial")]
+        if len(inertial) == 0:
+            link_element.append(inertia_tree.getroot())
+
+    return xml.etree.ElementTree.tostring(tree.getroot(), encoding='unicode')
 
 
 def _generate_urdf_file(name: str, path: str, color: List[float], cach_dir: str) -> str:
@@ -978,6 +1241,7 @@ def _generate_urdf_file(name: str, path: str, color: List[float], cach_dir: str)
                         </collision>\n \
                         </link> \n \
                         </robot>'
+    urdf_template = fix_missing_inertial(urdf_template)
     rgb = " ".join(list(map(str, color)))
     pathlib_obj = pathlib.Path(path)
     path = str(pathlib_obj.resolve())

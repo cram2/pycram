@@ -5,6 +5,7 @@ from copy import deepcopy
 from numbers import Number
 from typing import List, Optional, Dict, Union, Type
 from urdf_parser_py.urdf import URDF
+from . import utils
 
 
 logger = logging.getLogger(__name__)
@@ -258,7 +259,8 @@ class RobotDescription:
         rospack = rospkg.RosPack()
         filename = rospack.get_path('pycram') + '/resources/' + name + '.urdf'
         with open(filename) as f:
-            self.robot_urdf = URDF.from_xml_string(f.read())
+            with utils.suppress_stdout_stderr():
+                self.robot_urdf = URDF.from_xml_string(f.read())
 
     def _safely_access_chains(self, chain_name: str, verbose: Optional[bool] = True) -> Union[None, ChainDescription]:
         """

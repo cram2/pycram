@@ -1020,7 +1020,14 @@
     <child link="wide_stereo_optical_frame"/>
   </joint>
   <!-- optical frame for the stereo camera, with z-forward notation, this is the frame stereo camera images users should refer to -->
-  <link name="wide_stereo_optical_frame" type="camera"/>
+  <link name="wide_stereo_optical_frame" type="camera">
+      <inertial>
+      <mass value="0.1"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+      <!-- this inertia is made up for now. -->
+    </inertial>
+  </link>
   <joint name="wide_stereo_l_stereo_camera_frame_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <parent link="wide_stereo_link"/>
