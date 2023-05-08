@@ -100,7 +100,7 @@ class CostmapLocation(LocationDesignatorDescription):
         min_height = list(robot_description.i.cameras.values())[0].min_height
         max_height = list(robot_description.i.cameras.values())[0].max_height
         # This ensures that the costmaps always get a position as their origin.
-        if type(self.target) == ObjectDesignatorDescription.Object:
+        if isinstance(self.target, ObjectDesignatorDescription.Object):
             target_pose = self.target.bullet_world_object.get_position_and_orientation()
         else:
             target_pose = self.target
