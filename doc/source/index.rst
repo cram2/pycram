@@ -103,6 +103,7 @@ Authors
    :caption: Contents:
 
    installation
+   intro
    designators
    task_trees
    orm
