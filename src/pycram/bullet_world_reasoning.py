@@ -176,7 +176,7 @@ def visible(object: Object,
 
         seg_mask = _get_images_for_target(target_point, world_T_cam, BulletWorld.current_bullet_world)[2]
         flat_list = list(itertools.chain.from_iterable(seg_mask))
-        real_pixel = sum(list(map(lambda x: 1 if x == object.id else 0, flat_list)))
+        real_pixel = sum(list(map(lambda x: 1 if x == shadow_obj.id else 0, flat_list)))
 
         return real_pixel / max_pixel > threshold > 0
 

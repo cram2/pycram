@@ -262,7 +262,6 @@ class DetectingMotion(MotionDesignatorDescription):
                 raise PerceptionObjectNotFound(
                     f"Could not find an object with the type {self.object_type} in the FOV of the robot")
             return ObjectDesignatorDescription.Object(bullet_world_object.name, bullet_world_object.type,
-                                                      bullet_world_object.get_position_and_orientation(),
                                                       bullet_world_object)
 
     def __init__(self, object_type, resolver=None):
