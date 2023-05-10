@@ -105,6 +105,7 @@ Authors
    installation
    intro
    designators
+   action_designator
    bullet_world
    task_trees
    orm
