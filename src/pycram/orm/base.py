@@ -7,6 +7,9 @@ import sqlalchemy.orm
 class Base(sqlalchemy.orm.DeclarativeBase):
     """Base class to add orm functionality to all pycram mappings"""
 
+    # creation date of sample. Defaults to current server time. Used for data versioning.
+    created_at = sqlalchemy.Column(sqlalchemy.DateTime, server_default=sqlalchemy.sql.func.sysdate())
+
     def __repr__(self):
         return f"{self.__module__}.{self.__class__.__name__}(" + \
                ", ".join([str(self.__getattribute__(c_attr.key)) for c_attr in
