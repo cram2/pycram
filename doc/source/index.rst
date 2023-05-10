@@ -103,7 +103,9 @@ Authors
    :caption: Contents:
 
    installation
+   intro
    designators
+   bullet_world
    task_trees
    orm
    remarks
