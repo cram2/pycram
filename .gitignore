@@ -68,3 +68,6 @@ venv/
 .idea/
 
 resources/cached/
+
+# Example checkpoints
+examples/.ipynb_checkpoints/
