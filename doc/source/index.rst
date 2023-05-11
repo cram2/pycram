@@ -106,6 +106,7 @@ Authors
    intro
    designators
    action_designator
+   location_designator
    bullet_world
    task_trees
    orm

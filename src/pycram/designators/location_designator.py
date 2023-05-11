@@ -118,10 +118,12 @@ class CostmapLocation(LocationDesignatorDescription):
             visible = VisibilityCostmap(min_height, max_height, 200, 0.02, [target_pose[0], [0, 0, 0, 1]])
             final_map += visible
 
-        robot_object = self.visible_for.bullet_world_object if self.visible_for else self.reachable_for.bullet_world_object
+        if self.visible_for or self.reachable_for:
+            robot_object = self.visible_for.bullet_world_object if self.visible_for else self.reachable_for.bullet_world_object
+            test_robot = BulletWorld.current_bullet_world.get_shadow_object(robot_object)
 
         with Use_shadow_world():
-            test_robot = BulletWorld.current_bullet_world.get_shadow_object(robot_object)
+
             for maybe_pose in pose_generator(final_map):
                 res = True
                 arms = None
