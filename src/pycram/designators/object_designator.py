@@ -1,5 +1,5 @@
 import dataclasses
-from typing import List, Union, Optional, Callable
+from typing import List, Union, Optional, Callable, Tuple
 
 import sqlalchemy.orm
 
@@ -120,7 +120,8 @@ class ObjectPart(ObjectDesignatorDescription):
     @dataclasses.dataclass
     class Object(ObjectDesignatorDescription.Object):
 
-        part_of: ObjectDesignatorDescription.Object
+        # The rest of attributes is inherited
+        part_pose: Tuple[List[float], List[float]]
 
         def to_sql(self) -> ORMObjectPart:
             return ORMObjectPart(self.type, self.name)
@@ -140,16 +141,16 @@ class ObjectPart(ObjectDesignatorDescription):
 
             return obj
 
-    def __init__(self, names: Optional[List[str]] = None,
-                 types: Optional[List[str]] = None,
-                 part_of: Optional[ObjectDesignatorDescription] = None,
+    def __init__(self, names: List[str],
+                 part_of: ObjectDesignatorDescription.Object,
+                 type: Optional[str] = None,
                  resolver: Optional[Callable] = None):
-        super().__init__(names, types, resolver)
+        super().__init__(names, type, resolver)
 
         if not part_of:
             raise AttributeError("part_of cannot be None.")
 
-        self.types: Optional[List[str]] = types
+        self.type: Optional[str] = type
         self.names: Optional[List[str]] = names
         self.part_of = part_of
 
@@ -157,15 +158,10 @@ class ObjectPart(ObjectDesignatorDescription):
         return next(iter(self))
 
     def __iter__(self):
-        for part_of_obj in iter(self.part_of):
-
-            if self.names:
-                for name in self.names:
-                    if name in part_of_obj.bullet_world_object.links.keys():
-                        yield self.Object(name, "",
-                                          part_of_obj.bullet_world_object.get_link_position_and_orientation(name),
-                                          None,
-                                          part_of_obj)
+        for name in self.names:
+            if name in self.part_of.bullet_world_object.links.keys():
+                yield self.Object(name, self.type, self.part_of,
+                                  self.part_of.bullet_world_object.get_link_position_and_orientation(name))
 
 
 class LocatedObject(ObjectDesignatorDescription):
