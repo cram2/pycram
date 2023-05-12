@@ -16,6 +16,7 @@ import numpy as np
 import pybullet as p
 import rospkg
 import rospy
+import rosgraph
 
 from .event import Event
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
@@ -38,7 +39,8 @@ class BulletWorld:
     Global reference to the spawned Object that represents the robot. The robot is identified by checking the name in the 
     URDF with the name of the URDF on the parameter server. 
     """
-    rospy.init_node('pycram')
+    if rosgraph.is_master_online():
+        rospy.init_node('pycram')
 
     def __init__(self, type: str = "GUI", is_shadow_world: bool = False):
         """
