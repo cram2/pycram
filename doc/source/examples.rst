@@ -1,6 +1,31 @@
-.. _orm:
+========
+Examples
+========
 
-=========================
+All types of examples
+
+Intro Example
+=============
+
+.. nbgallery::
+    notebooks/intro
+
+
+Designator
+==========
+
+.. nbgallery::
+    notebooks/location_designator
+    notebooks/object_designator
+    notebooks/action_designator
+
+Misc
+====
+
+.. nbgallery::
+    notebooks/bullet_world
+    notebooks/minimal_task_tree
+
 Object Relational Mapping
 =========================
 
@@ -19,8 +44,11 @@ the relations are reflected in the database and fields of the object. An example
 seen in :meth:`pycram.task.TaskTreeNode.to_sql` and :meth:`pycram.task.TaskTreeNode.insert`.
 
 Examples
-========
+--------
 
 .. nbgallery::
 
     notebooks/orm_example
+
+
+

@@ -34,11 +34,14 @@ class BulletWorld:
     shadow world. In this way you can comfortably use the current_bullet_world, which should point towards the BulletWorld
     used at the moment.
     """
+
     robot: Object = None
     """
     Global reference to the spawned Object that represents the robot. The robot is identified by checking the name in the 
     URDF with the name of the URDF on the parameter server. 
     """
+
+    # Check is for sphinx autoAPI to be able to work in a CI workflow
     if rosgraph.is_master_online():
         rospy.init_node('pycram')
 

@@ -1,8 +1,0 @@
-==========
-Intro
-==========
-
-
-.. nbgallery::
-
-    notebooks/intro
