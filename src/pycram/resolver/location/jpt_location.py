@@ -57,15 +57,15 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
         evidence["object_type"] = {self.target.type}
 
         if use_success:
-            evidence["success"] = {True}
+            evidence["success"] = {"True"}
 
         return self.model.bind(evidence)
 
     def sample(self, amount: int = 1):
         """Sample from the locations that fit the CostMap."""
 
-        cm = OccupancyCostmap(distance_to_obstacle=0.4, from_ros=False, size=100, resolution=0.02,
-                              origin=self.target.pose)
+        # cm = OccupancyCostmap(distance_to_obstacle=0.4, from_ros=False, size=100, resolution=0.02,
+        #                       origin=self.target.pose)
 
         evidence = self.create_evidence()
 
@@ -83,12 +83,13 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
     def sample_to_location(self, sample: np.ndarray) -> Location:
         sample_dict = {variable.name: value for variable, value in zip(self.model.variables, sample)}
 
-        angle = np.arctan2(sample_dict["x_position"] - self.target.pose[1], sample_dict["y_position"] -
+        angle = np.arctan2(sample_dict["y_position"] - self.target.pose[1], sample_dict["x_position"] -
                            self.target.pose[0]) + np.pi
 
-        pose = [sample_dict["x_position"], sample_dict["y_position"], 0]
+        target_x, target_y, target_z = self.target.pose
+        pose = [target_x - sample_dict["x_position"], target_y - sample_dict["y_position"], 0]
         orientation = list(tf.transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
-        torso_height = self.target.pose[2] - sample_dict["z_position"]
+        torso_height = target_z - sample_dict["z_position"]
         result = self.Location((pose, orientation), sample_dict["arm"], torso_height, sample_dict["grasp"])
         return result
 
@@ -106,7 +107,7 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
 
         for leaf in conditional_model.leaves.values():
 
-            success = leaf.distributions["success"].p({True})
+            success = leaf.distributions["success"].p({"True"})
 
             if success == 0:
                 continue
