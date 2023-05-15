@@ -18,6 +18,7 @@ Designator
     notebooks/location_designator
     notebooks/object_designator
     notebooks/action_designator
+    notebooks/motion_designator
 
 Misc
 ====

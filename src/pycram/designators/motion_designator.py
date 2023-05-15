@@ -293,14 +293,17 @@ class MoveArmJointsMotion(MotionDesignatorDescription):
         self.right_arm_poses: Dict[str, float] = right_arm_poses
 
     def ground(self) -> Motion:
+        left_poses = None
+        right_poses = None
+
         if self.left_arm_poses:
             left_poses = self.left_arm_poses
-        else:
+        elif self.left_arm_config:
             left_poses = robot_description.i.get_static_joint_chain("left", self.left_arm_config)
 
         if self.right_arm_poses:
             right_poses = self.right_arm_poses
-        else:
+        elif self.right_arm_config:
             right_poses = robot_description.i.get_static_joint_chain("right", self.right_arm_config)
         return self.Motion(self.cmd, left_poses, right_poses)
 
