@@ -191,6 +191,19 @@ epub_exclude_files = ['search.html']
 
 # -- Extension configuration -------------------------------------------------
 
+# Example Thumbnail config
+nbsphinx_thumbnails = {
+    'notebooks/bullet_world': os.path.abspath("notebooks/thumbnails/bullet_world.png"),
+    'notebooks/minimal_task_tree': os.path.abspath("notebooks/thumbnails/tree.png"),
+    'notebooks/action_designator': os.path.abspath("notebooks/thumbnails/action_designator.png"),
+    'notebooks/motion_designator': os.path.abspath("notebooks/thumbnails/motion_designator.png"),
+    'notebooks/location_designator': os.path.abspath("notebooks/thumbnails/location_designator.png"),
+    'notebooks/object_designator': os.path.abspath("notebooks/thumbnails/object_designator.png"),
+    'notebooks/intro': os.path.abspath("notebooks/thumbnails/default.png"),
+    'notebooks/orm_example': os.path.abspath("notebooks/thumbnails/default.png")
+}
+
+
 # -- Options for todo extension ----------------------------------------------
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
