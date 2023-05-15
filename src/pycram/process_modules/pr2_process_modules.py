@@ -231,11 +231,12 @@ class Pr2MoveArmJoints(ProcessModule):
     def _execute(self, desig: MoveArmJointsMotion.Motion):
 
         robot = BulletWorld.robot
-
-        for joint, pose in desig.right_arm_poses.items():
-            robot.set_joint_state(joint, pose)
-        for joint, pose in desig.left_arm_poses.items():
-            robot.set_joint_state(joint, pose)
+        if desig.right_arm_poses:
+            for joint, pose in desig.right_arm_poses.items():
+                robot.set_joint_state(joint, pose)
+        if desig.left_arm_poses:
+            for joint, pose in desig.left_arm_poses.items():
+                robot.set_joint_state(joint, pose)
 
 
 class PR2MoveJoints(ProcessModule):
