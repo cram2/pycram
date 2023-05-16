@@ -4,7 +4,7 @@
 Installation
 ============
 
-The setup of PyCRAM can be differentiated in four steps:
+The setup of PyCRAM can be divided in four steps:
  * Install ROS
  * Installing Dependencies
  * Cloning the PyCRAM repo
@@ -19,7 +19,7 @@ Installing ROS
 
 PyCRAM uses ROS for a variety of functionality, for this reason you need a working ROS installation on your machine.
 For information on how to install ROS please referee to the official
-documentation `here <http://wiki.ros.org/ROS/Installation>`_.
+documentation `here <http://wiki.ros.org/noetic/Installation/Ubuntu>`_.
 
 Installing Dependencies
 =======================
@@ -59,7 +59,7 @@ Now you can install PyCRAM into your ROS workspace.
 
 .. code-block:: console
 
-    roscd
+    cd ~/workspace/ros/src
     vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/pycram.rosinstall --recursive
     rosdep update
     rosdep install --ignore-src --from-paths . -r
@@ -74,7 +74,7 @@ commands.
 
 .. code-block:: console
 
-    cd pycram
+    cd src/pycram
     git submodule init
     git submodule update
 
@@ -94,14 +94,14 @@ For this first navigate to your PyCRAM repo.
 
 .. code-block:: console
 
-    cd <path-to-your-pycram-repo>
+    roscd pycram
 
 Then install the Python packages in the requirements.txt file
 
 .. code-block:: console
 
-    sudo pip install -r requirements.txt
-    sudo pip install -r src/neem_interface_python/requirements.txt
+    sudo pip3 install -r requirements.txt
+    sudo pip3 install -r src/neem_interface_python/requirements.txt
 
 
 Building your ROS workspace
@@ -135,113 +135,17 @@ The launchfile can be started with the following command:
 What the launch file does is start a ROS master, upload the robot URDF to the parameter server as well as starting the
 IK solver.
 
-Disclaimer
-----------
-
-At the moment you also need a knowrob node running for PyCRAM to start. This is because while importing packages some
-will look for the rosprolog services. You don't need a belief state, it only requires the rosprolog services to be
-reachable.
-
-PyCRAM on Ubuntu 18.04 (ROS Melodic)
-====================================
-
-To be able to use PyCRAM on Ubuntu 18.04 you need a few extra steps because ROS melodic doesn't fully support Python 3.
-The first thing you need to do is install Python3 pip.
-
-.. code-block:: console
-
-    apt-get install python3-pip
-
-Next you need to install the Python dependencies using pip
-
-.. code-block:: console
-
-    pip3 install rospkg empy numpy
-
-So far you should be able to import rospy in Python and use all features but for PyCRAM to function you also need the ROS tf package which is unfortunately not available in Python 3. To be able to use the tf package we will compile it our self for Python 3.
-
-Build Tf for Python 3
-=====================
-
-Firstly you need to clone the geometry and geometry2 repos into your ROS workspace and select the melodic branches.
-
-.. code-block:: console
-
-    roscd
-    git clone git@github.com:ros/geometry.git
-    cd geometry
-    git checkout melodic-devel
-    cd ..
-    git clone git@github.com:ros/geometry2.git
-    cd geometry2
-    git checkout melodic-devel
-
-Now all you need to do is source ROS and build your workspace using for Python 3.
-
-.. code-block:: console
-
-    source /opt/ros/melodic/setup.bash
-    cd ur_ros_ws/
-    catkin_make -DPYTHON_EXECUTABLE=/usr/bin/python3.6
-
-This should build the Tf package for Python 3. Now you can source your workspace and use the Tf package.
-
-In order to use ROS and the Python3 Tf package you have to pay attention to a little thing when sourcing ROS. It is not enough to just source your workspace, you need to source the '/opt/ros/melodic/setup.bash' before hand to be able to use roslaunch.
-
-The easiest way is to add the two sourcing commands to your .bashrc like so.
-
-.. code-block:: console
-
-    echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc && echo "source $(pwd)/devel/setup.bash" >> ~/.bashrc
-
-
-Build PyKDL for Python 3
-========================
-
-Now you need to build PyKDL as well as kdl_parser_py for Python 3.  This is done in two distinctive steps, first build orocos_kdl using cmake outside of your catkin workspace and then building your catkin workspace containing PyKDL and kdl_parser_py for Python 3.
-First clone the orocos kinematics dynamicas Repo, outside of your catkin workspace.
-
-.. code-block:: console
-
-    git clone git@github.com:orocos/orocos_kinematics_dynamics.git
-
-Now build the orocos_kdl library, by pasting the following commands in a terminal.
-
-.. code-block:: console
-
-    cd orocos_kinematics_dynamics/orocos_kdl
-    mkdir build
-    cd build
-    cmake ..
-    make
-    sudo make install
-
-
-Now all you have to do is copy the PyKDL package from the orocos kinematics dynamics folder to your catkin workspace, clone the kdl_parser_py and build.
-
-.. code-block:: console
-
-    cd orocos_kinematics_dynamics
-    git submodule update --init
-    cp python_orocos_kdl path/to/your/catkin/workspace
-    cd <path to yourt catkin workspace>/python_orocos_kdl
-    cd ../
-
-This will copy python orocos kdl into your catkin workspace and clone the submodules contained in the repo. Now we have to clone the kdl_parser_py and build.
-
-.. code-block:: console
-
-    git clone git@github.com:ros/kdl_parser.git
-    cd ../..
-    catkin_make -DPYTHON_EXECUTABLE=/usr/bin/python3.6
-
-
 Building the documentation
 ==========================
 
 The documentation uses sphinx as engine.
-Building sphinx based documentations requires `pandoc <https://pandoc.org/installing.html>`_
-to be installed.
+Building sphinx based documentations requires pandoc
+to be installed. Pandoc can be installed via the package manager of Ubuntu.
+
+.. code-block:: console
+
+    sudo apt install pandoc
+
 After installing pandoc, install sphinx on your device.
 
 .. code-block:: console
@@ -286,7 +190,7 @@ You can check by activating your environment and calling the import
     python -c "import rospy"
 
 If this returns no errors, you can be sure that rospy is usable in your virtual environment. Next you have to build the
-ros workspace including pycram and source it as described in :ref:`install-pycram`.
+ros workspace including pycram and source it as described in install-pycram_.
 
 After that you have to start PyCharm from the terminal via
 
@@ -308,3 +212,58 @@ Finally, go to  **File | Settings | Project: pycram | Project Structure** and ma
 folder as Tests and the resources as Resources.
 
 To verify that it works, you can execute any Testcase.
+
+Using IPython as REPL
+=====================
+
+If you want to use a REPl with PyCRAM you can use IPython for that. IPython can be installed via
+the Ubunutu package manager.
+
+.. code-block:: console
+
+    sudo apt install ipython3
+
+
+Enable autoreload
+-----------------
+
+To use changes made in the Python file while the Repl is running you need to enable the iPython extension ``autoreload``.
+This can be done using the iPython startup files, these are files which are always run if iPython is started.
+The startup files are located in ``~/.ipython/profile_default/startup`` along with a README file which explains the usage
+of the startup files. In this directory create a file called ``00-autoreload.ipy`` and enter the following code to the file.
+
+
+.. code-block:: console
+
+    %load_ext autoreload
+    %autoreload 2
+
+The first line loads the extension to iPython and the second line configures autoreload to reload all modules before the
+code in the console is executed.
+
+
+Run scripts
+-----------
+
+IPython allows to run Python files and enabled the access to created variables. This can be helpful
+if you want to create a setup script which initializes things like the BulletWorld, Objects and imports
+relevant modules.
+
+To execute a Python script simply run ``run filename.py`` in the IPython console.
+
+Here is an example how a setup script can look like.
+
+.. code-block:: python
+
+    from pycram.bullet_world import BulletWorld, Object
+    from pycram.designators.action_designator import *
+    from pycram.designators.motion_designator import *
+    from pycram.designators.location_designator import *
+    from pycram.designators.object_designator import *
+    from pycram.process_module import simulated_robot
+
+    world = BulletWorld()
+
+    robot = Object("pr2", "robot", "pr2.urdf")
+    kitchen = Object("kitchen", "environment", "kitchen.urdf")
+    cereal = Object("cereal", "cereal", "breakfast_cereal.stl", position=[1.4, 1, 0.95])
