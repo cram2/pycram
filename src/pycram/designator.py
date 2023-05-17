@@ -306,8 +306,7 @@ class DesignatorDescription(ABC):
         """
         Create a Designator description.
 
-        :param resolver: The grounding method used for the description.
-        The grounding method creates an action instance that matches the description.
+        :param resolver: The grounding method used for the description. The grounding method creates a location instance that matches the description.
         """
 
         if resolver is None:
