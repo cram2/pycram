@@ -22,7 +22,7 @@ class TestActionDesignatorGrounding(test_bullet_world.BulletWorldTest):
 
     def test_reachability_pose(self):
         robot_desig = ObjectDesignatorDescription(names=[robot_description.i.name])
-        location_desig = CostmapLocation([[1.3, 1, 0.9], [0, 0, 0, 1]], reachable_for=robot_desig.resolve())
+        location_desig = CostmapLocation([[0.4, 0.6, 0.9], [0, 0, 0, 1]], reachable_for=robot_desig.resolve())
         location = location_desig.resolve()
         self.assertTrue(len(location.pose) == 2)
         self.assertTrue(len(location.pose[0]) == 3)

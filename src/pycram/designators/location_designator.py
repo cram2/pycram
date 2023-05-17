@@ -11,10 +11,9 @@ from ..pose_generator_and_validator import pose_generator, visibility_validator,
 
 
 class LocationDesignatorDescription(DesignatorDescription):
-    pose: List[float]
-
+    @dataclasses.dataclass
     class Location:
-        pass
+        pose: Tuple[List[float], List[float]]
 
     def __init__(self, resolver=None):
         super().__init__(resolver)
@@ -27,7 +26,7 @@ class LocationDesignatorDescription(DesignatorDescription):
 class Location(LocationDesignatorDescription):
     @dataclasses.dataclass
     class Location(LocationDesignatorDescription.Location):
-        pose: Tuple[List[float], List[float]]
+        pass
 
     def __init__(self, pose, resolver=None):
         super().__init__(resolver)
@@ -63,13 +62,12 @@ class ObjectRelativeLocation(LocationDesignatorDescription):
         relative_pose_flat = [i for sublist in self.relative_pose for i in sublist]
         pose = transform(obj_pose_world_flat, relative_pose_flat, local_coords=False)
 
-        yield self.Location(pose, self.reference_object)
+        yield self.Location(None, pose, self.reference_object)
 
 
 class CostmapLocation(LocationDesignatorDescription):
     @dataclasses.dataclass
     class Location(LocationDesignatorDescription.Location):
-        pose: Tuple[List[float], List[float]]
         reachable_arms: List[str]
 
     def __init__(self, target, reachable_for=None, visible_for=None, reachable_arm=None, resolver=None):
@@ -145,7 +143,7 @@ class CostmapLocation(LocationDesignatorDescription):
 class SemanticCostmapLocation(LocationDesignatorDescription):
     @dataclasses.dataclass
     class Location(LocationDesignatorDescription.Location):
-        pose: Tuple[List[float], List[float]]
+        pass
 
     def __init__(self, urdf_link_name, part_of, for_object=None, resolver=None):
         super().__init__(resolver)
@@ -162,7 +160,7 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
         which the position should be found, a height offset will be calculated which ensures that the bottom of the Object
         is at the position in the Costmap and not the origin of the Object which is usually in the centre of the Object.
 
-        :return: An instancce of SemanticCostmapLocation.Location with the found valid position of the Costmap.
+        :yield: An instancce of SemanticCostmapLocation.Location with the found valid position of the Costmap.
         """
         sem_costmap = SemanticCostmap(self.part_of.bullet_world_object, self.urdf_link_name)
         height_offset = 0
