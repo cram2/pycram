@@ -7,24 +7,42 @@ from ..plan_failures import PerceptionObjectNotFound
 from ..process_module import ProcessModule
 from ..orm.base import Quaternion, Position, Base
 from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
-from typing import Tuple, List, Dict, get_type_hints
+from typing import Tuple, List, Dict, get_type_hints, Callable, Optional
 import sqlalchemy.orm
 
 
 class MotionDesignatorDescription(DesignatorDescription):
+    """
+    Parent class of motion designator descriptions.
+    """
+
+    @dataclasses.dataclass
     class Motion:
+        """
+        Resolved motion designator which can be performed
+        """
         cmd: str
+        """
+        Command of this motion designator, is used to match process modules to motion designator. Cmd is inherited by 
+        every motion designator.
+        """
 
         def perform(self):
+            """
+            Passes this designator to the process module for execution.
+
+            :return: The return value of the process module if there is any.
+            """
             return ProcessModule.perform(self)
 
     def ground(self) -> Motion:
-        """Fill all missing parameters and chose plan to execute. """
+        """Fill all missing parameters and pass the designator to the process module. """
         raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
 
     def to_sql(self) -> Base:
         """
         Create an ORM object that corresponds to this description.
+
         :return: The created ORM object.
         """
         raise NotImplementedError(f"{type(self)} has no implementation of to_sql. Feel free to implement it.")
@@ -42,12 +60,18 @@ class MotionDesignatorDescription(DesignatorDescription):
         raise NotImplementedError(f"{type(self)} has no implementation of insert. Feel free to implement it.")
 
     def __init__(self, resolver=None):
+        """
+        Creates a new motion designator description
+
+        :param resolver: An alternative resolver which overrides self.resolve()
+        """
         super().__init__(resolver)
 
     def get_slots(self):
         """
         Returns a list of all slots of this description. Can be used for inspecting
         different descriptions and debugging.
+
         :return: A list of all slots.
         """
         return list(self.__dict__.keys()).remove('cmd')
@@ -81,148 +105,287 @@ class MotionDesignatorDescription(DesignatorDescription):
 
 class MoveMotion(MotionDesignatorDescription):
     """
-    Definition of types. Is used in _check_missing_properties for evaluating
-    the types of given properties.
+    Moves the robot to a designated location
     """
 
     @dataclasses.dataclass
     class Motion(MotionDesignatorDescription.Motion):
-        cmd: str
+        # cmd: str
         target: list
+        """
+        Location to which the robot should be moved
+        """
 
         def perform(self):
             return ProcessModule.perform(self)
 
-    def __init__(self, target, resolver=None):
+    def __init__(self, target: Tuple[List[float], List[float]], resolver: Callable = None):
         """
         Navigates to robot to the given target
+
         :param target: Position and Orientation of the navigation goal
         :param resolver: A method with which to resolve the description
         """
         super().__init__(resolver)
-        self.cmd = "navigate"
-        self.target = target
+        self.cmd: str = "navigate"
+        self.target: Tuple[List[float], List[float]] = target
 
     def ground(self) -> Motion:
+        """
+        Default resolver for moving the robot, this resolver simply creates the motion designator from the input of the
+        designator description.
+
+        :return: A resolved and performable motion designator
+        """
         return self.Motion(self.cmd, self.target)
 
 
 class PickUpMotion(MotionDesignatorDescription):
+    """
+    Lets the robot pick up a specific object
+    """
+
     @dataclasses.dataclass
     class Motion(MotionDesignatorDescription.Motion):
-        cmd: str
+        # cmd: str
         object_desig: ObjectDesignatorDescription.Object
+        """
+        Object designator describing the object to be picked up
+        """
         arm: str
+        """
+        Arm that should be used for picking up the object
+        """
         grasp: str
+        """
+        From which direction the object should be grasped, e.g. 'left', 'front', etc.
+        """
 
         def perform(self):
             return ProcessModule.perform(self)
 
-    def __init__(self, object_desig, grasp=None, arm=None, resolver=None):
+    def __init__(self, object_desig: ObjectDesignatorDescription.Object, grasp: str = None, arm: str = None,
+                 resolver: Callable = None):
+        """
+        Motion designator implementation of the robot picking up an object. The robot will move its arm to the position
+        of the object and attach the object to the gripper of the robot.
+
+        :param object_desig: Object designator of the object to be picked up
+        :param grasp: From which direction the object should be picked up
+        :param arm: Which arm should be used for picking up
+        :param resolver: Alternative resolver that produces a resolved and performable motion deisgnator
+        """
         super().__init__(resolver)
         self.cmd: str = 'pick-up'
-        self.object_desig = object_desig
-        self.arm: str = arm
-        self.grasp: str = grasp
+        self.object_desig: ObjectDesignatorDescription.Object = object_desig
+        self.arm: Optional[str] = arm
+        self.grasp: Optional[str] = grasp
 
     def ground(self):
+        """
+        Default resolver for picking up. Checks if all parameter are present and will fill missing parameter. Optional
+        parameter ``arm`` and ``grasp`` will default to ``'left'``.
+
+        :return: A resolved motion designator that can be performed
+        """
         arm = "left" if not self.arm else self.arm
         grasp = "left" if not self.grasp else self.grasp
         return self.Motion(self.cmd, self.object_desig, arm, grasp)
 
 
 class PlaceMotion(MotionDesignatorDescription):
+    """
+    Lets the robot place an object that was picked up
+    """
+
     @dataclasses.dataclass
     class Motion(MotionDesignatorDescription.Motion):
-        cmd: str
+        # cmd: str
         object: ObjectDesignatorDescription.Object
+        """
+        Object designator of the object to be placed
+        """
         target: Tuple[List[float], List[float]]
+        """
+        Pose at which the object should be placed
+        """
         arm: str
+        """
+        Arm that is currently holding the object
+        """
 
         def perform(self):
             return ProcessModule.perform(self)
 
-    def __init__(self, object_desig, target, arm=None, resolver=None):
+    def __init__(self, object_desig: ObjectDesignatorDescription.Object, target: Tuple[List[float], List[float]],
+                 arm: Optional[str] = None, resolver: Optional[Callable] = None):
+        """
+        Places the object in object_desig at the position in target. If an arm is given then the arm is used, otherwise
+        arm defaults to ``'left'``
+
+        :param object_desig: Object designator describing the object to be placed
+        :param target: The target pose on which to place the object
+        :param arm: An arm to use for placing
+        :param resolver: An alternative resolver that resolves the list of parameters to a resolved motion designator.
+        """
         super().__init__(resolver)
         self.cmd: str = 'place'
-        self.object_desig = object_desig
+        self.object_desig: ObjectDesignatorDescription.Object = object_desig
         self.target: Tuple[List[float], List[float]] = target
         self.arm: str = arm
 
     def ground(self) -> Motion:
+        """
+        Default resolver for placing an object which returns a resolved motion designator for the input. If no arm is
+        given then the arm parameter will default to ``'left'``.
+
+        :return: An resolved performable motion designator
+        """
         arm = "left" if not self.arm else self.arm
         return self.Motion(self.cmd, self.object_desig, self.target, arm)
 
 
 class AccessingMotion(MotionDesignatorDescription):
+    """
+    Designator for opening container
+    """
+
     @dataclasses.dataclass
     class Motion(MotionDesignatorDescription.Motion):
-        cmd: str
+        # cmd: str
         drawer_joint: str
+        """
+        Joint name in the URDF corresponding to the joint of the container
+        """
         drawer_handle: str
+        """
+        Name of the handle as the link in the URDF
+        """
         part_of: Object
+        """
+        BulletWorld object of which the container is a part
+        """
         arm: str
+        """
+        Arm that should be used
+        """
         distance: float
+        """
+        How far the container should be opened
+        """
 
         def perform(self):
             return ProcessModule.perform(self)
 
-    def __init__(self, drawer_joint, drawer_handle, part_of, arm=None, distance=0.3, resolver=None):
+    def __init__(self, drawer_joint: str, drawer_handle: str, part_of: Object, arm: Optional[str] = None,
+                 distance: Optional[float] = 0.3, resolver: Optional[Callable] = None):
+        """
+        Lets the robot open a container specified by the given parameter.
+
+        :param drawer_joint: Name of the joint of the drawer
+        :param drawer_handle: Name of the link of the drawer handle
+        :param part_of: BulletWorld object of which the drawer is a part
+        :param arm: Arm that should be used
+        :param distance: Distance by which the drawer should be opened
+        :param resolver: Alternative resolver that returns a resolved motion designator for the input parameter
+        """
         super().__init__(resolver)
         self.cmd: str = 'access'
-        self.drawer_joint = drawer_joint
-        self.drawer_handle = drawer_handle
-        self.part_of = part_of
-        self.arm = arm
-        self.distance = distance
+        self.drawer_joint: str = drawer_joint
+        self.drawer_handle: str = drawer_handle
+        self.part_of: Object = part_of
+        self.arm: str = arm
+        self.distance: float = distance
         self.gripper = None
 
     def ground(self) -> Motion:
+        """
+        Default resolver for accessing motion designator, returns a resolved motion designator for the input parameters.
+
+        :return: A resolved motion designator
+        """
         return self.Motion(self.cmd, self.drawer_joint, self.drawer_handle, self.part_of, self.arm, self.distance)
 
 
 class MoveTCPMotion(MotionDesignatorDescription):
+    """
+    Moves the Tool center point (TCP) of the robot
+    """
+
     @dataclasses.dataclass
     class Motion(MotionDesignatorDescription.Motion):
-        cmd: str
+        # cmd: str
         target: list
+        """
+        Target pose to which the TCP should be moved
+        """
         arm: str
+        """
+        Arm with the TCP that should be moved to the target
+        """
 
         def perform(self):
             return ProcessModule.perform(self)
 
-    def __init__(self, target, arm=None, resolver=None):
+    def __init__(self, target: Tuple[List[float], List[float]], arm: Optional[str] = None,
+                 resolver: Optional[Callable] = None):
+        """
+        Moves the TCP of the given arm to the given target pose.
+
+        :param target: Target pose for the TCP
+        :param arm: Arm that should be moved
+        :param resolver: Alternative resolver which returns a resolved motion designator
+        """
         super().__init__(resolver)
         self.cmd: str = 'move-tcp'
         self.target: Tuple[List[float], List[float]] = target
-        self.arm: str = arm
+        self.arm: Optional[str] = arm
 
     def ground(self) -> Motion:
-        return self.Motion(self.cmd, self.target, self.arm)
+        """
+        Default resolver that returns a resolved motion designator, arm defaults to ``'left'`` if no arm is given.
+
+        :return: A resolved motion designator
+        """
+        arm = "left" if not self.arm else self.arm
+        return self.Motion(self.cmd, self.target, arm)
 
 
 class LookingMotion(MotionDesignatorDescription):
+    """
+    Lets the robot look at a point
+    """
+
     @dataclasses.dataclass
     class Motion(MotionDesignatorDescription.Motion):
-        cmd: str
+        # cmd: str
         target: Tuple[List[float], List[float]]
 
         def perform(self):
             return ProcessModule.perform(self)
 
-    def __init__(self, target=None, object=None, resolver=None):
+    def __init__(self, target: Optional[Tuple[List[float], List[float]]] = None, object: Optional[Object] = None,
+                 resolver: Optional[Callable] = None):
         """
+        Moves the head of the robot such that the camera points towards the given location. If ``target`` and ``object``
+        are given ``target`` will be preferred.
 
         :param target: Position and orientation of the target
         :param object: An Object in the BulletWorld
-        :param resolver:
+        :param resolver: Alternative resolver that returns a resolved motion designator for parameter
         """
         super().__init__(resolver)
         self.cmd: str = 'looking'
-        self.target: Tuple[List[float], List[float]] = target
+        self.target: Optional[Tuple[List[float], List[float]]] = target
         self.object: Object = object
 
     def ground(self) -> Motion:
+        """
+        Default resolver for looking, chooses which pose to take if ``target`` and ``object`` are given. If both are given
+        ``target`` will be preferred.
+
+        :return: A resolved motion designator
+        """
         if not self.target and self.object:
             self.target = self.object.get_position_and_orientation()
         if len(self.target) == 3:
@@ -231,30 +394,59 @@ class LookingMotion(MotionDesignatorDescription):
 
 
 class MoveGripperMotion(MotionDesignatorDescription):
+    """
+    Opens or closes the gripper
+    """
+
     @dataclasses.dataclass
     class Motion(MotionDesignatorDescription.Motion):
-        cmd: str
+        # cmd: str
         motion: str
+        """
+        Motion that should be performed, either 'open' or 'close'
+        """
         gripper: str
+        """
+        Name of the gripper that should be moved
+        """
 
         def perform(self):
             return ProcessModule.perform(self)
 
-    def __init__(self, motion, gripper, resolver=None):
+    def __init__(self, motion: str, gripper: str, resolver: Optional[Callable] = None):
+        """
+        Moves the gripper into a given position.
+
+        :param motion: Which motion to perform
+        :param gripper: Name of the gripper that should be moved
+        :param resolver: An alternative resolver that resolves the parameter to a motion designator
+        """
         super().__init__(resolver)
         self.cmd: str = 'move-gripper'
         self.motion: str = motion
         self.gripper: str = gripper
 
     def ground(self) -> Motion:
+        """
+        Default resolver for moving the gripper, simply returns a resolved motion designator
+
+        :return: A resolved motion designator
+        """
         return self.Motion(self.cmd, self.motion, self.gripper)
 
 
 class DetectingMotion(MotionDesignatorDescription):
+    """
+    Tries to detect an object in the FOV of the robot
+    """
+
     @dataclasses.dataclass
     class Motion(MotionDesignatorDescription.Motion):
-        cmd: str
+        # cmd: str
         object_type: str
+        """
+        Type of the object that should be detected
+        """
 
         def perform(self):
             bullet_world_object = ProcessModule.perform(self)
@@ -264,27 +456,61 @@ class DetectingMotion(MotionDesignatorDescription):
             return ObjectDesignatorDescription.Object(bullet_world_object.name, bullet_world_object.type,
                                                       bullet_world_object)
 
-    def __init__(self, object_type, resolver=None):
+    def __init__(self, object_type: str, resolver: Optional[Callable] = None):
+        """
+        Checks for every object in the FOV of the robot if it fits the given object type. If the types match an object
+        designator describing the object will be returned.
+
+        :param object_type: Type of the object which should be detected
+        :param resolver: An alternative resolver which returns a resolved motion designator
+        """
         super().__init__(resolver)
-        self.cmd = 'detecting'
-        self.object_type = object_type
+        self.cmd: str = 'detecting'
+        self.object_type: str = object_type
 
     def ground(self) -> Motion:
+        """
+        Default resolver for detecting, simply returns a resolver motion designator without checking.
+
+        :return: A resolved motion designator
+        """
         return self.Motion(self.cmd, self.object_type)
 
 
 class MoveArmJointsMotion(MotionDesignatorDescription):
+    """
+    Moves the joints of each arm into the given position
+    """
+
     @dataclasses.dataclass
     class Motion(MotionDesignatorDescription.Motion):
-        cmd: str
+        # cmd: str
         left_arm_poses: Dict[str, float]
+        """
+        Target positions for the left arm joints
+        """
         right_arm_poses: Dict[str, float]
+        """
+        Target positions for the right arm joints
+        """
 
         def perform(self):
             return ProcessModule.perform(self)
 
-    def __init__(self, left_arm_config=None, right_arm_config=None, left_arm_poses=None, right_arm_poses=None,
-                 resolver=None):
+    def __init__(self, left_arm_config: Optional[str] = None, right_arm_config: Optional[str] = None,
+                 left_arm_poses: Optional[dict] = None, right_arm_poses: Optional[dict] = None,
+                 resolver: Optional[Callable] = None):
+        """
+        Moves the arm joints, target positions can be either be pre-defined configurations (like 'park') or a dictionary
+        with joint names as keys and joint positions as values. If a configuration and a dictionary are given the
+        dictionary will be preferred.
+
+        :param left_arm_config: Target configuration for the left arm
+        :param right_arm_config: Target configuration for the right arm
+        :param left_arm_poses: Target Dict for the left arm
+        :param right_arm_poses: Target Dict for the right arm
+        :param resolver: An alternative resolver that returns a resolved motion designator for the given parameters.
+        """
         super().__init__(resolver)
         self.cmd = 'move-arm-joints'
         self.left_arm_config: str = left_arm_config
@@ -293,6 +519,12 @@ class MoveArmJointsMotion(MotionDesignatorDescription):
         self.right_arm_poses: Dict[str, float] = right_arm_poses
 
     def ground(self) -> Motion:
+        """
+        Default resolver for moving the arms, returns a resolved motion designator containing the target positions for
+        the left and right arm joints.
+
+        :return: A resolved and performable motion designator
+        """
         left_poses = None
         right_poses = None
 
@@ -309,40 +541,82 @@ class MoveArmJointsMotion(MotionDesignatorDescription):
 
 
 class WorldStateDetectingMotion(MotionDesignatorDescription):
+    """
+    Detects an object based on the world state.
+    """
     @dataclasses.dataclass
     class Motion(MotionDesignatorDescription.Motion):
-        cmd: str
+        # cmd: str
         object_type: str
+        """
+        Object type that should be detected
+        """
 
         def perform(self):
             return ProcessModule.perform(self)
 
-    def __init__(self, object_type, resolver=None):
+    def __init__(self, object_type: str, resolver: Optional[Callable] = None):
+        """
+        Tries to find an object using the belief state (BulletWorld), if there is an object in the belief state matching
+        the given object type an object designator will be returned.
+
+        :param object_type: The object type which should be detected
+        :param resolver: An alternative resolver that returns a resolved motion designator for the input parameter
+        """
         super().__init__(resolver)
-        self.cmd = 'world-state-detecting'
+        self.cmd: str = 'world-state-detecting'
         self.object_type: str = object_type
 
     def ground(self) -> Motion:
+        """
+        Default resolver for world state detecting which simply returns a resolved motion designator for the input
+        parameter.
+
+        :return: A resolved motion designator
+        """
         return self.Motion(self.cmd, self.object_type)
 
 
 class MoveJointsMotion(MotionDesignatorDescription):
+    """
+    Moves any joint on the robot
+    """
     @dataclasses.dataclass
     class Motion(MotionDesignatorDescription.Motion):
-        cmd: str
+        # cmd: str
         names: list
+        """
+        List of joint names that should be moved 
+        """
         positions: list
+        """
+        Target positions of joints, should correspond to the list of names
+        """
 
         def perform(self):
             return ProcessModule.perform(self)
 
-    def __init__(self, names, positions, resolver=None):
+    def __init__(self, names: List[str], positions: List[float], resolver: Optional[Callable] = None):
+        """
+        Moves the joints given by the list of names to the positions given by the list of positions. The index of a
+        joint name should correspond to the index of the target position.
+
+        :param names: List of joint names that should be moved
+        :param positions: List of joint positions that the joints should be moved in
+        :param resolver: An alternative resolver that resolves the input parameters to a performable motion designator.
+        """
         super().__init__(resolver)
-        self.cmd = "move-joints"
-        self.names = names
-        self.positions = positions
+        self.cmd: str = "move-joints"
+        self.names: List[str] = names
+        self.positions: List[float] = positions
 
     def ground(self) -> Motion:
+        """
+        Default resolver for move joints, checks if the length of both list match and checks if the target positions are
+        within the joint limits as stated in the URDF.
+
+        :return: A resolved motion designator
+        """
         if len(self.names) != len(self.positions):
             raise DesignatorError("[Motion Designator][Move Joints] The length of names and positions does not match")
         for i in range(len(self.names)):
