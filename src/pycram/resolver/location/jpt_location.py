@@ -36,35 +36,52 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
 
         self.visual_ids: List[int] = []
 
-    def evidence_from_occupancy_costmap(self):
+    def evidence_from_occupancy_costmap(self) -> List[jpt.variables.LabelAssignment]:
+        """
+        Create a list of boxes that can be used as evidences for a jpt. The list of boxes describe areas where the
+        robot can stand.
+        :return: List of evidences describing the found boxes
+        """
+
+        # create Occupancy costmap for the target object
         ocm = OccupancyCostmap(distance_to_obstacle=0.4, from_ros=False, size=200, resolution=0.02,
                                origin=self.target.get_position_and_orientation())
-        ocm.visualize()
 
         # working on a copy of the costmap, since found rectangles are deleted
         map = np.copy(ocm.map)
-        curr_width = 0
-        curr_height = 0
-        curr_pose = []
-        boxes = []
 
+        # initialize result
+        queries = []
+
+        origin = np.array([ocm.height/2, ocm.width/2])
+
+        # for every index pair (i, j) in the occupancy map
         for i in range(0, map.shape[0]):
             for j in range(0, map.shape[1]):
-                if map[i][j] > 0:
-                    curr_width = ocm._find_consectuive_line((i, j), map)
-                    curr_pose = (i, j)
-                    curr_height = ocm._find_max_box_height((i,j), curr_width, map)
-                    avg = np.average(map[i:i+curr_height, j:j+curr_width])
-                    boxes.append([curr_pose, curr_height, curr_width, avg])
-                    map[i:i+curr_height, j:j+curr_width] = 0
-        print(boxes)
-        exit()
 
+                # if this index has not been used yet
+                if map[i][j] > 0:
+
+                    # get consecutive box
+                    width = ocm._find_consectuive_line((i, j), map)
+                    height = ocm._find_max_box_height((i,j), width, map)
+
+                    # mark box as used
+                    map[i:i+height, j:j+width] = 0
+
+                    # calculate to coordinates relative to the objects pose
+                    pose = np.array([i, j])
+                    lower_corner = (pose - origin) * ocm.resolution
+                    upper_corner = (pose - origin + np.array([height, width])) * ocm.resolution
+                    rectangle = np.array([lower_corner, upper_corner]).T
+
+                    # transform to jpt query
+                    query = self.model.bind({"x_position": list(rectangle[0]), "y_position": list(rectangle[1])})
+                    queries.append(query)
+
+        return queries
 
     def create_evidence(self, use_success=True):
-
-        print("AMINA")
-        self.evidence_from_occupancy_costmap()
         evidence = dict()
 
         if self.reachable_for:
@@ -81,15 +98,32 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
         """Sample from the locations that fit the CostMap."""
         evidence = self.create_evidence()
 
-        try:
-            mpes, likelihood = self.model.mpe(evidence, fail_on_unsatisfiability=True)
-        except jpt.trees.Unsatisfiability as e:
-            raise PlanFailure(str(e))
+        locations = self.evidence_from_occupancy_costmap()
 
-        state = mpes[0]
+        solutions = []
 
-        conditional_model = self.model.conditional_jpt(state)
+        for location in locations:
 
+            for variable, value in evidence.items():
+                location[variable] = value
+
+            for leaf in self.model.apply(location):
+                success_probability = leaf.probability(location)
+
+                _, mpe_state = leaf.mpe(self.model.minimal_distances)
+                location["grasp"] = mpe_state["grasp"]
+                location["arm"] = mpe_state["arm"]
+                location["torso_height"] = mpe_state["torso_height"]
+                location["x_position"] = mpe_state["x_position"]
+                location["y_position"] = mpe_state["y_position"]
+                solutions.append((location, success_probability, leaf.prior))
+
+        solutions = sorted(solutions, key=lambda x: x[1], reverse=True)
+
+        best_solution = solutions[0]
+        conditional_model = self.model.conditional_jpt(best_solution[0])
+        print(best_solution)
+        # conditional_model.plot(plotvars=conditional_model.variables)
         return conditional_model.sample(amount)
 
     def sample_to_location(self, sample: np.ndarray) -> Location:
@@ -100,7 +134,7 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
         angle = np.arctan2(pose[1] - target_y, pose[0] - target_x) + np.pi
 
         orientation = list(tf.transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
-        torso_height = target_z - sample_dict["torso_height"]
+        torso_height = np.clip(target_z - sample_dict["torso_height"], 0, 0.33)
         result = self.Location((pose, orientation), sample_dict["arm"], torso_height, sample_dict["grasp"])
         return result
 

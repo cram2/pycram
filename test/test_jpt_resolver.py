@@ -61,6 +61,8 @@ class JPTResolverTestCase(unittest.TestCase):
         with simulated_robot:
             action_designator.NavigateAction.Action(sample.pose).perform()
             action_designator.MoveTorsoAction.Action(sample.torso_height).perform()
+            print(sample)
+            time.sleep(10)
             action_designator.PickUpAction.Action(
                 object_designator.ObjectDesignatorDescription(types=["milk"]).resolve(),
                 arm=sample.reachable_arm, grasp=sample.grasp).perform()
