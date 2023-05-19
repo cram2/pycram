@@ -697,15 +697,15 @@ class Object:
                  ignoreCachedFiles: Optional[bool] = False):
         """
         The constructor loads the urdf file into the given BulletWorld, if no BulletWorld is specified the
-        :py:attr:~`BulletWorld.current_bullet_world` will be used. It is also possible to load .obj and .stl file into the BulletWorld.
-        The color parameter is only used when loading .stl or .obj files, for URDFs :func:~`self.set_color` can be used.
+        :py:attr:`~BulletWorld.current_bullet_world` will be used. It is also possible to load .obj and .stl file into the BulletWorld.
+        The color parameter is only used when loading .stl or .obj files, for URDFs :func:`~Object.set_color` can be used.
 
         :param name: The name of the object
         :param type: The type of the object
         :param path: The path to the source file, if only a filename is provided then the resourcer directories will be searched
         :param position: The position in which the object should be spawned, as xyz
         :param orientation: The orientation with which the object should be spawned, as quaternion
-        :param world: The BulletWorld in which the object should be spawned, if no world is specified the :py:attr:~`BulletWorld.current_bullet_world` will be used
+        :param world: The BulletWorld in which the object should be spawned, if no world is specified the :py:attr:`~BulletWorld.current_bullet_world` will be used
         :param color: The color with which the object should be spawned.
         :param ignoreCachedFiles: If true the file will be spawned while ignoring cached files.
         """
@@ -729,6 +729,7 @@ class Object:
 
         if re.search("[a-zA-Z0-9].urdf", self.path):
             with open(self.path, mode="r") as f:
+
                 urdf_string = f.read()
             urdf_string = urdf_string
             robot_name = _get_robot_name_from_urdf(urdf_string)
@@ -817,13 +818,14 @@ class Object:
 
     def get_pose(self) -> List[float]:
         """
-        Returns the position of this object as a list of xyz. Alias for :func:`~self.get_position`.
+        Returns the position of this object as a list of xyz. Alias for :func:`~Object.get_position`.
         """
         return self.get_position()
 
     def get_orientation(self) -> List[float]:
         """
         Returns the orientation of this object as a list of xyzw, representing a quaternion.
+
         :return: A list of xyzw
         """
         return p.getBasePositionAndOrientation(self.id, self.world.client_id)[1]
