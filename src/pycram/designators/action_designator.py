@@ -10,7 +10,7 @@ from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, Naviga
                                      PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction,
                                      MoveTorsoAction as ORMMoveTorsoAction, SetGripperAction as ORMSetGripperAction,
                                      Action as ORMAction)
-from ..orm.base import Quaternion, Position, Base, RobotPosition
+from ..orm.base import Quaternion, Position, Base, RobotState
 from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from ..task import with_tree
 from ..enums import Arms
@@ -30,9 +30,11 @@ class ActionDesignatorDescription(DesignatorDescription):
         A single element that fits the description.
         """
         robot_position: Tuple[List[float], List[float]] = dataclasses.field(init=False)
+        robot_torso_height: float = dataclasses.field(init=False)
 
         def __post_init__(self):
             self.robot_position = BulletWorld.robot.get_position_and_orientation()
+            self.robot_torso_height = BulletWorld.robot.get_joint_state(robot_description.i.torso_joint)
 
         @with_tree
         def perform(self) -> Any:
@@ -66,16 +68,17 @@ class ActionDesignatorDescription(DesignatorDescription):
             session.add_all([position, orientation])
             session.commit()
 
-            # create robot position object
-            robot_position = RobotPosition()
-            robot_position.position = position.id
-            robot_position.orientation = orientation.id
-            session.add(robot_position)
+            # create robot-state object
+            robot_state = RobotState()
+            robot_state.position = position.id
+            robot_state.orientation = orientation.id
+            robot_state.torso_height = self.robot_torso_height
+            session.add(robot_state)
             session.commit()
 
             # create action
             action = self.to_sql()
-            action.robot_position = robot_position.id
+            action.robot_state = robot_state.id
 
             return action
 
@@ -110,7 +113,7 @@ class MoveTorsoAction(ActionDesignatorDescription):
             return ORMMoveTorsoAction(self.position)
 
         def insert(self, session: sqlalchemy.orm.session.Session, **kwargs):
-            action = self.to_sql()
+            action = super().insert(session)
             session.add(action)
             session.commit()
             return action
@@ -153,7 +156,7 @@ class SetGripperAction(ActionDesignatorDescription):
             return ORMSetGripperAction(self.gripper, self.motion)
 
         def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
-            action = self.to_sql()
+            action = super().insert(session)
             session.add(action)
             session.commit()
             return action
@@ -271,7 +274,7 @@ class ParkArmsAction(ActionDesignatorDescription):
             return ORMParkArmsAction(self.arm.name)
 
         def insert(self, session: sqlalchemy.orm.session.Session, **kwargs) -> ORMParkArmsAction:
-            action = self.to_sql()
+            action = super().insert(session)
             session.add(action)
             session.commit()
             return action
@@ -423,6 +426,7 @@ class NavigateAction(ActionDesignatorDescription):
             return ORMNavigateAction()
 
         def insert(self, session, *args, **kwargs) -> ORMNavigateAction:
+
             # initialize position and orientation
             position = Position(*self.target_location[0])
             orientation = Quaternion(*self.target_location[1])
@@ -433,17 +437,17 @@ class NavigateAction(ActionDesignatorDescription):
             session.commit()
 
             # create the navigate action orm object
-            navigate_action = self.to_sql()
+            action = super().insert(session)
 
             # set foreign keys
-            navigate_action.position = position.id
-            navigate_action.orientation = orientation.id
+            action.position = position.id
+            action.orientation = orientation.id
 
             # add it to the db
-            session.add(navigate_action)
+            session.add(action)
             session.commit()
 
-            return navigate_action
+            return action
 
     def __init__(self, target_locations: List[Tuple[List[float], List[float]]], resolver=None):
         super(NavigateAction, self).__init__(resolver)
