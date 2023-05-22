@@ -71,9 +71,10 @@ class Color(Base):
         self.alpha = alpha
 
 
-class RobotPosition(Base):
-    __tablename__ = "RobotPosition"
+class RobotState(Base):
+    __tablename__ = "RobotState"
 
     id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
     position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
     orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"))
+    torso_height = sqlalchemy.Column(sqlalchemy.types.Float)
