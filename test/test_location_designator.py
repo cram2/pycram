@@ -20,6 +20,15 @@ class TestActionDesignatorGrounding(test_bullet_world.BulletWorldTest):
         self.assertTrue(len(location.pose[1]) == 4)
         self.assertTrue("left" in location.reachable_arms or "right" in location.reachable_arms)
 
+    def test_reachability_pose(self):
+        robot_desig = ObjectDesignatorDescription(names=[robot_description.i.name])
+        location_desig = CostmapLocation([[1.3, 1, 0.9], [0, 0, 0, 1]], reachable_for=robot_desig.resolve())
+        location = location_desig.resolve()
+        self.assertTrue(len(location.pose) == 2)
+        self.assertTrue(len(location.pose[0]) == 3)
+        self.assertTrue(len(location.pose[1]) == 4)
+        self.assertTrue("left" in location.reachable_arms or "right" in location.reachable_arms)
+
     def test_visibility(self):
         object_desig = ObjectDesignatorDescription(names=["milk"])
         robot_desig = ObjectDesignatorDescription(names=[robot_description.i.name])
