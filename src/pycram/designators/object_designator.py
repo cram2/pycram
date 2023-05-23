@@ -1,5 +1,5 @@
 import dataclasses
-from typing import List, Union, Optional, Callable
+from typing import List, Union, Optional, Callable, Tuple
 
 import sqlalchemy.orm
 
@@ -15,8 +15,6 @@ class ObjectDesignatorDescription(DesignatorDescription):
     """
     Class for object designator descriptions.
     Descriptions hold possible parameter ranges for object designators.
-    :ivar types: Types to consider
-    :ivar names: Names to consider
     """
 
     @dataclasses.dataclass
@@ -25,15 +23,36 @@ class ObjectDesignatorDescription(DesignatorDescription):
         A single element that fits the description.
         """
         name: str
+        """
+        Name of the object
+        """
         type: str
+        """
+        Type of the object
+        """
         # pose:
         # pose: Tuple[List[float], List[float]]
         bullet_world_object: Optional[BulletWorldObject]
+        """
+        Reference to the BulletWorld object
+        """
 
         def to_sql(self) -> ORMObjectDesignator:
+            """
+            Create an ORM object that corresponds to this description.
+
+            :return: The created ORM object.
+            """
             return ORMObjectDesignator(self.type, self.name)
 
         def insert(self, session: sqlalchemy.orm.session.Session) -> ORMObjectDesignator:
+            """
+            Add and commit this and all related objects to the session.
+            Auto-Incrementing primary keys and foreign keys have to be filled by this method.
+
+            :param session: Session with a database that is used to add and commit the objects
+            :return: The completely instanced ORM object
+            """
             obj = self.to_sql()
             if self.pose:
                 position = ORMPosition(*self.pose[0])
@@ -53,6 +72,11 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
         @property
         def pose(self):
+            """
+            Property of the current position and orientation of the object.
+
+            :return: Position and orientation
+            """
             return self.bullet_world_object.get_position_and_orientation()
 
         def __repr__(self):
@@ -63,17 +87,30 @@ class ObjectDesignatorDescription(DesignatorDescription):
     def __init__(self, names: Optional[List[str]] = None,
                  types: Optional[List[str]] = None,
                  resolver: Optional[Callable] = None):
+        """
+        Base of all object designator descriptions. Every object designator has the name and type of the object.
+
+        :param names: A list of names that could describe the object
+        :param types: A list of types that could represent the object
+        :param resolver: An alternative resolver that returns an object designator for the list of names and types
+        """
         super().__init__(resolver)
         self.types: Optional[List[str]] = types
         self.names: Optional[List[str]] = names
 
     def ground(self) -> Union[Object, bool]:
-        """Return the first object from the bullet world that fits the description."""
+        """
+        Return the first object from the bullet world that fits the description.
+
+        :return: A resolved object designator
+        """
         return next(iter(self))
 
     def __iter__(self) -> Object:
         """
         Iterate through all possible objects fitting this description
+
+        :yield: A resolved object designator
         """
         # for every bullet world object
         for obj in BulletWorld.current_bullet_world.objects:
@@ -113,14 +150,13 @@ class BelieveObject(ObjectDesignatorDescription):
 class ObjectPart(ObjectDesignatorDescription):
     """
     Object Designator Descriptions for Objects that are part of some other object.
-
-    :ivar part_of: The description of potential objects this is part of
     """
 
     @dataclasses.dataclass
     class Object(ObjectDesignatorDescription.Object):
 
-        part_of: ObjectDesignatorDescription.Object
+        # The rest of attributes is inherited
+        part_pose: Tuple[List[float], List[float]]
 
         def to_sql(self) -> ORMObjectPart:
             return ORMObjectPart(self.type, self.name)
@@ -140,48 +176,75 @@ class ObjectPart(ObjectDesignatorDescription):
 
             return obj
 
-    def __init__(self, names: Optional[List[str]] = None,
-                 types: Optional[List[str]] = None,
-                 part_of: Optional[ObjectDesignatorDescription] = None,
+    def __init__(self, names: List[str],
+                 part_of: ObjectDesignatorDescription.Object,
+                 type: Optional[str] = None,
                  resolver: Optional[Callable] = None):
-        super().__init__(names, types, resolver)
+        """
+        Describing the relationship between an object and a specific part of it.
+
+        :param names: Possible names for the part
+        :param part_of: Parent object of which the part should be described
+        :param type: Type of the part
+        :param resolver: An alternative resolver to resolve the input parameter to an object designator
+        """
+        super().__init__(names, type, resolver)
 
         if not part_of:
             raise AttributeError("part_of cannot be None.")
 
-        self.types: Optional[List[str]] = types
+        self.type: Optional[str] = type
         self.names: Optional[List[str]] = names
         self.part_of = part_of
 
     def ground(self) -> Object:
+        """
+        Default resolver, returns the first result of the iterator of this instance.
+
+        :return: A resolved object designator
+        """
         return next(iter(self))
 
     def __iter__(self):
-        for part_of_obj in iter(self.part_of):
+        """
+        Iterates through every possible solution for the given input parameter.
 
-            if self.names:
-                for name in self.names:
-                    if name in part_of_obj.bullet_world_object.links.keys():
-                        yield self.Object(name, "",
-                                          part_of_obj.bullet_world_object.get_link_position_and_orientation(name),
-                                          None,
-                                          part_of_obj)
+        :yield: A resolved Object designator
+        """
+        for name in self.names:
+            if name in self.part_of.bullet_world_object.links.keys():
+                yield self.Object(name, self.type, self.part_of,
+                                  self.part_of.bullet_world_object.get_link_position_and_orientation(name))
 
 
 class LocatedObject(ObjectDesignatorDescription):
     """
     Description for KnowRob located objects.
-
-    :ivar timestamps: timestamps to consider?
+    **Currently has no resolver**
     """
 
     @dataclasses.dataclass
     class Object(ObjectDesignatorDescription.Object):
         reference_frame: str
+        """
+        Reference frame in which the position is given
+        """
         timestamp: float
+        """
+        Timestamp at which the position was valid
+        """
 
     def __init__(self, names: List[str], types: List[str],
                  reference_frames: List[str], timestamps: List[float], resolver: Optional[Callable] = None):
+        """
+        Describing an object resolved through knowrob.
+
+        :param names: List of possible names describing the object
+        :param types: List of possible types describing the object
+        :param reference_frames: Frame of reference in which the object position should be
+        :param timestamps: Timestamps for which positions should be returned
+        :param resolver: An alternative resolver that resolves the input parameter to an object designator.
+        """
         super(LocatedObject, self).__init__(names, types, resolver)
         self.reference_frames: List[str] = reference_frames
         self.timestamps: List[float] = timestamps
