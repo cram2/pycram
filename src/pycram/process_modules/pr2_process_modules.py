@@ -147,6 +147,7 @@ class Pr2MoveHead(ProcessModule):
                                           robot.get_link_orientation("head_pan_link"))
         # Flattens everything in one list because of 'transform'
         pan_transform = [i for sublist in pan_transform for i in sublist]
+
         tilt_transform = p.invertTransform(robot.get_link_position("head_tilt_link"),
                                            robot.get_link_orientation("head_tilt_link"))
         # Flattens everything in one list because of 'transform'
@@ -159,8 +160,11 @@ class Pr2MoveHead(ProcessModule):
         new_pan = np.arctan2(pose_in_pan[1], pose_in_pan[0])
         new_tilt = np.arctan2(pose_in_tilt[2], pose_in_tilt[0] ** 2 + pose_in_tilt[1] ** 2) * -1
 
-        robot.set_joint_state("head_pan_joint", new_pan)
-        robot.set_joint_state("head_tilt_joint", new_tilt)
+        current_pan = robot.get_joint_state("head_pan_joint")
+        current_tilt = robot.get_joint_state("head_tilt_joint")
+
+        robot.set_joint_state("head_pan_joint", new_pan + current_pan)
+        robot.set_joint_state("head_tilt_joint", new_tilt + current_tilt)
 
 
 class Pr2MoveGripper(ProcessModule):
@@ -231,11 +235,12 @@ class Pr2MoveArmJoints(ProcessModule):
     def _execute(self, desig: MoveArmJointsMotion.Motion):
 
         robot = BulletWorld.robot
-
-        for joint, pose in desig.right_arm_poses.items():
-            robot.set_joint_state(joint, pose)
-        for joint, pose in desig.left_arm_poses.items():
-            robot.set_joint_state(joint, pose)
+        if desig.right_arm_poses:
+            for joint, pose in desig.right_arm_poses.items():
+                robot.set_joint_state(joint, pose)
+        if desig.left_arm_poses:
+            for joint, pose in desig.left_arm_poses.items():
+                robot.set_joint_state(joint, pose)
 
 
 class PR2MoveJoints(ProcessModule):
