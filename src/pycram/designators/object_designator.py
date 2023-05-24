@@ -1,3 +1,4 @@
+import copy
 import dataclasses
 from typing import List, Union, Optional, Callable
 
@@ -6,8 +7,7 @@ import sqlalchemy.orm
 from ..bullet_world import BulletWorld, Object as BulletWorldObject
 from ..designator import DesignatorDescription
 from ..orm.base import (Position as ORMPosition, Quaternion as ORMQuaternion)
-from ..orm.object_designator import (ObjectDesignator as ORMObjectDesignator,
-                                     BelieveObject as ORMBelieveObject,
+from ..orm.object_designator import (ObjectDesignator as ORMObjectDesignator, BelieveObject as ORMBelieveObject,
                                      ObjectPart as ORMObjectPart)
 
 
@@ -23,45 +23,62 @@ class ObjectDesignatorDescription(DesignatorDescription):
     class Object:
         """
         A single element that fits the description.
+
+        :ivar name: Name of the object
+        :ivar type: Type of the object
+        :ivar bullet_world_object: The bullet world object attached to this
+        :ivar _pose: A callable returning the pose of this object. The _pose member is used overwritten for data copies
+            which will not update when the original bullet_world_object is moved.
         """
         name: str
         type: str
-        # pose:
-        # pose: Tuple[List[float], List[float]]
         bullet_world_object: Optional[BulletWorldObject]
+        _pose: Optional[Callable] = dataclasses.field(init=False)
+
+        def __post_init__(self):
+            if self.bullet_world_object:
+                self._pose = self.bullet_world_object.get_position_and_orientation
 
         def to_sql(self) -> ORMObjectDesignator:
             return ORMObjectDesignator(self.type, self.name)
 
         def insert(self, session: sqlalchemy.orm.session.Session) -> ORMObjectDesignator:
-            obj = self.to_sql()
-            if self.pose:
-                position = ORMPosition(*self.pose[0])
-                orientation = ORMQuaternion(*self.pose[1])
-                session.add(position)
-                session.add(orientation)
-                session.commit()
-                obj.position = position.id
-                obj.orientation = orientation.id
-            else:
-                obj.position = None
-                obj.orientation = None
+            # insert position and orientation of object of the designator
+            orm_position = ORMPosition(*self.pose[0])
+            orm_orientation = ORMQuaternion(*self.pose[1])
+            session.add(orm_position)
+            session.add(orm_orientation)
+            session.commit()
 
+            # create object orm designator
+            obj = self.to_sql()
+            obj.position = orm_position.id
+            obj.orientation = orm_orientation.id
             session.add(obj)
             session.commit()
             return obj
 
+        def data_copy(self) -> 'ObjectDesignatorDescription.Object':
+            result = ObjectDesignatorDescription.Object(self.name, self.type, None)
+            # get current object pose and set resulting pose to always be that
+            pose = self.pose
+            result.pose = lambda: pose
+            return result
+
         @property
         def pose(self):
-            return self.bullet_world_object.get_position_and_orientation()
+            return self._pose()
+
+        @pose.setter
+        def pose(self, value):
+            self._pose = value
 
         def __repr__(self):
-            return self.__class__.__qualname__ + f"(" + ', '.join([f"{f.name}={self.__getattribute__(f.name)}"
-                                                                   for f in dataclasses.fields(self)] +
-                                                                  [f"pose={self.pose}"]) + ')'
+            return self.__class__.__qualname__ + f"(" + ', '.join(
+                [f"{f.name}={self.__getattribute__(f.name)}" for f in dataclasses.fields(self)] + [
+                    f"pose={self.pose}"]) + ')'
 
-    def __init__(self, names: Optional[List[str]] = None,
-                 types: Optional[List[str]] = None,
+    def __init__(self, names: Optional[List[str]] = None, types: Optional[List[str]] = None,
                  resolver: Optional[Callable] = None):
         super().__init__(resolver)
         self.types: Optional[List[str]] = types
@@ -140,10 +157,8 @@ class ObjectPart(ObjectDesignatorDescription):
 
             return obj
 
-    def __init__(self, names: Optional[List[str]] = None,
-                 types: Optional[List[str]] = None,
-                 part_of: Optional[ObjectDesignatorDescription] = None,
-                 resolver: Optional[Callable] = None):
+    def __init__(self, names: Optional[List[str]] = None, types: Optional[List[str]] = None,
+                 part_of: Optional[ObjectDesignatorDescription] = None, resolver: Optional[Callable] = None):
         super().__init__(names, types, resolver)
 
         if not part_of:
@@ -163,8 +178,7 @@ class ObjectPart(ObjectDesignatorDescription):
                 for name in self.names:
                     if name in part_of_obj.bullet_world_object.links.keys():
                         yield self.Object(name, "",
-                                          part_of_obj.bullet_world_object.get_link_position_and_orientation(name),
-                                          None,
+                                          part_of_obj.bullet_world_object.get_link_position_and_orientation(name), None,
                                           part_of_obj)
 
 
@@ -180,8 +194,8 @@ class LocatedObject(ObjectDesignatorDescription):
         reference_frame: str
         timestamp: float
 
-    def __init__(self, names: List[str], types: List[str],
-                 reference_frames: List[str], timestamps: List[float], resolver: Optional[Callable] = None):
+    def __init__(self, names: List[str], types: List[str], reference_frames: List[str], timestamps: List[float],
+                 resolver: Optional[Callable] = None):
         super(LocatedObject, self).__init__(names, types, resolver)
         self.reference_frames: List[str] = reference_frames
         self.timestamps: List[float] = timestamps

@@ -78,3 +78,4 @@ class RobotState(Base):
     position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
     orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"))
     torso_height = sqlalchemy.Column(sqlalchemy.types.Float)
+    type = sqlalchemy.Column(sqlalchemy.types.String(255))
