@@ -31,10 +31,12 @@ class ActionDesignatorDescription(DesignatorDescription):
         """
         robot_position: Tuple[List[float], List[float]] = dataclasses.field(init=False)
         robot_torso_height: float = dataclasses.field(init=False)
+        robot_type: str = dataclasses.field(init=False)
 
         def __post_init__(self):
             self.robot_position = BulletWorld.robot.get_position_and_orientation()
             self.robot_torso_height = BulletWorld.robot.get_joint_state(robot_description.i.torso_joint)
+            self.robot_type = BulletWorld.robot.type
 
         @with_tree
         def perform(self) -> Any:
@@ -43,7 +45,7 @@ class ActionDesignatorDescription(DesignatorDescription):
             """
             raise NotImplementedError()
 
-        def to_sql(self) -> Base:
+        def to_sql(self) -> ORMAction:
             """
             Create an ORM object that corresponds to this description.
             :return: The created ORM object.
@@ -56,7 +58,6 @@ class ActionDesignatorDescription(DesignatorDescription):
             Auto-Incrementing primary keys and foreign keys have to be filled by this method.
 
             :param session: Session with a database that is used to add and commit the objects
-            :param action: The action to write the robot position primary key in.
             :param args: Possible extra arguments
             :param kwargs: Possible extra keyword arguments
             :return: The completely instanced ORM object
@@ -73,6 +74,7 @@ class ActionDesignatorDescription(DesignatorDescription):
             robot_state.position = position.id
             robot_state.orientation = orientation.id
             robot_state.torso_height = self.robot_torso_height
+            robot_state.type = self.robot_type
             session.add(robot_state)
             session.commit()
 
@@ -302,12 +304,12 @@ class PickUpAction(ActionDesignatorDescription):
         object_designator: ObjectDesignatorDescription.Object
         arm: str
         grasp: str
+        object_at_execution: Optional[ObjectDesignatorDescription.Object] = dataclasses.field(init=False)
 
         @with_tree
         def perform(self) -> None:
+            self.object_at_execution = self.object_designator.data_copy()
             PickUpMotion(object_desig=self.object_designator, arm=self.arm, grasp=self.grasp).resolve().perform()
-            # MotionDesignator(PickUpMotion(object=self.object_designator.prop_value("object"),
-            #                               arm=self.arm, grasp=self.grasp)).perform()
 
         def to_sql(self) -> ORMPickUpAction:
             return ORMPickUpAction(self.arm, self.grasp)
@@ -315,8 +317,8 @@ class PickUpAction(ActionDesignatorDescription):
         def insert(self, session: sqlalchemy.orm.session.Session, **kwargs):
             action = super().insert(session)
             # try to create the object designator
-            if self.object_designator:
-                od = self.object_designator.insert(session, )
+            if self.object_at_execution:
+                od = self.object_at_execution.insert(session, )
                 action.object = od.id
             else:
                 action.object = None
