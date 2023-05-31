@@ -70,28 +70,28 @@ def introspection_demo(view=False):
     attempts = 0
     drawer_desig = ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_middle_drawer'), ('part-of', kitchen)])
     robot_position = reach_position_generator(drawer_desig)
-    ActionDesignator(ParkArmsDescription(Arms.BOTH)).perform()
+    ActionDesignator(ParkArmsAction(Arms.BOTH)).perform()
     if previous_tree:
         target = previous_tree.get_successful_params_ctx_after("navigate", "detect")[0][0][0]
     else:
         target = next(robot_position)[0]
-    ActionDesignator(NavigateDescription(target_position=target)).perform()
+    ActionDesignator(NavigateAction(target_position=target)).perform()
     ActionDesignator(
-        OpenActionDescription(
+        OpenAction(
             drawer_desig,
             Arms.RIGHT,
             0.3)).perform()
-    ActionDesignator(ParkArmsDescription(Arms.BOTH)).perform()
+    ActionDesignator(ParkArmsAction(Arms.BOTH)).perform()
     while True:
         try:
-            ActionDesignator(LookAtActionDescription(target=bowl1.get_position())).perform()
-            obj = ActionDesignator(DetectActionDescription(ObjectDesignator([('type', 'bowl')]))).perform()
-            ActionDesignator(PickUpDescription(obj, arm=Arms.RIGHT)).perform()
+            ActionDesignator(LookAtAction(target=bowl1.get_position())).perform()
+            obj = ActionDesignator(DetectAction(ObjectDesignator([('type', 'bowl')]))).perform()
+            ActionDesignator(PickUpAction(obj, arm=Arms.RIGHT)).perform()
             break
         except PlanFailure as f:
             print(f)
             print("Reposition!")
-            ActionDesignator(NavigateDescription(target_position=next(robot_position)[0])).perform()
+            ActionDesignator(NavigateAction(target_position=next(robot_position)[0])).perform()
             print("Retry!")
             time.sleep(0.3)
             attempts += 1
@@ -99,7 +99,7 @@ def introspection_demo(view=False):
                 continue
             else:
                 raise f
-    ActionDesignator(ParkArmsDescription(Arms.BOTH)).perform()
+    ActionDesignator(ParkArmsAction(Arms.BOTH)).perform()
     if previous_tree:
         pycram.task.TASK_TREE.generate_dot(verbose=False).render("images/demos/introspection/optimized", format="png", view=view)
     else:
@@ -110,18 +110,18 @@ def introspection_demo(view=False):
 def prospection_demo(view=False):
     container_desig = ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_upper_drawer'), ('part-of', kitchen)])
     container_opening = container_opening_distance_generator(container_desig)
-    ActionDesignator(ParkArmsDescription(Arms.BOTH)).perform()
+    ActionDesignator(ParkArmsAction(Arms.BOTH)).perform()
     robot_position = reach_position_generator(ObjectDesignator([]))  # "Hack" to have the right position right away
-    ActionDesignator(NavigateDescription(target_position=next(robot_position)[0])).perform()
+    ActionDesignator(NavigateAction(target_position=next(robot_position)[0])).perform()
     counter = 0
     while True:
         with SimulatedTaskTree() as st:
             try:
-                ActionDesignator(OpenActionDescription(container_desig, Arms.RIGHT, distance=next(container_opening))).perform()
-                ActionDesignator(ParkArmsDescription(Arms.BOTH)).perform()
-                ActionDesignator(LookAtActionDescription(target=bowl1.get_position())).perform()
-                obj = ActionDesignator(DetectActionDescription(ObjectDesignator([('type', 'spoon')]))).perform()
-                ActionDesignator(PickUpDescription(obj, arm=Arms.RIGHT)).perform()
+                ActionDesignator(OpenAction(container_desig, Arms.RIGHT, distance=next(container_opening))).perform()
+                ActionDesignator(ParkArmsAction(Arms.BOTH)).perform()
+                ActionDesignator(LookAtAction(target=bowl1.get_position())).perform()
+                obj = ActionDesignator(DetectAction(ObjectDesignator([('type', 'spoon')]))).perform()
+                ActionDesignator(PickUpAction(obj, arm=Arms.RIGHT)).perform()
                 params = st.get_successful_params_ctx_after("open_container", "pick_up")
                 break
             except PlanFailure as f:
@@ -133,22 +133,22 @@ def prospection_demo(view=False):
             finally:
                 st.simulated_root.generate_dot(verbose=False).render("images/demos/prospection_dream_"+str(counter))
                 counter += 1
-    ActionDesignator(OpenActionDescription(*params[0][0])).perform()
-    ActionDesignator(ParkArmsDescription(Arms.BOTH)).perform()
-    ActionDesignator(LookAtActionDescription(target=spoon.get_position())).perform()
-    obj = ActionDesignator(DetectActionDescription(ObjectDesignator([('type', 'spoon')]))).perform()
-    ActionDesignator(PickUpDescription(obj, arm=Arms.RIGHT)).perform()
-    ActionDesignator(ParkArmsDescription(Arms.BOTH)).perform()
+    ActionDesignator(OpenAction(*params[0][0])).perform()
+    ActionDesignator(ParkArms(Arms.BOTH)).perform()
+    ActionDesignator(LookAtAction(target=spoon.get_position())).perform()
+    obj = ActionDesignator(DetectAction(ObjectDesignator([('type', 'spoon')]))).perform()
+    ActionDesignator(PickUpAction(obj, arm=Arms.RIGHT)).perform()
+    ActionDesignator(ParkArmsAction(Arms.BOTH)).perform()
     pycram.task.TASK_TREE.generate_dot(verbose=False).render("images/demos/prospection/real", format='png', view=view)
 
 @with_tree
 def reorganization_demo_plan():
     fridge_desig = ObjectDesignator([('type', 'fridge'), ('name', 'iai_fridge'), ('part-of', kitchen)])
     milk_desig = ObjectDesignator([('type', 'milk'), ('in', fridge_desig)])
-    ActionDesignator(TransportObjectDescription(milk_desig, arm=Arms.LEFT,
+    ActionDesignator(TransportAction(milk_desig, arm=Arms.LEFT,
                                                 target_location=[-1.2, 1.2, 0.95])).perform()
     cereal_desig = ObjectDesignator([('type', 'cereal')])
-    ActionDesignator(TransportObjectDescription(cereal_desig, arm=Arms.RIGHT,
+    ActionDesignator(TransportAction(cereal_desig, arm=Arms.RIGHT,
                                                 target_location=[-1.2, 1, 0.95])).perform()
 
 def reorganization_demo(view=False):
@@ -189,7 +189,7 @@ counters = {
 def set_table(destination="kitchen_island_countertop", view=False, optimize=False):
     global counters
 
-    ActionDesignator(ParkArmsDescription(Arms.BOTH)).perform()
+    ActionDesignator(ParkArmsAction(Arms.BOTH)).perform()
 
     ## FETCH BOWL
     attempts = 0
@@ -199,21 +199,21 @@ def set_table(destination="kitchen_island_countertop", view=False, optimize=Fals
         target = previous_tree.children[0].get_successful_params_ctx_after("navigate", "detect")[0][0][0]
     else:
         target = next(robot_position)[0]
-    ActionDesignator(NavigateDescription(target_position=target)).perform()
-    ActionDesignator(OpenActionDescription(middle_drawer_desig,Arms.RIGHT,0.3)).perform()
-    ActionDesignator(ParkArmsDescription(Arms.BOTH)).perform()
+    ActionDesignator(NavigateAction(target_position=target)).perform()
+    ActionDesignator(OpenAction(middle_drawer_desig,Arms.RIGHT,0.3)).perform()
+    ActionDesignator(ParkArmsAction(Arms.BOTH)).perform()
     bowl_desig = ObjectDesignator([('type', 'bowl')])
     while True:
         try:
             counters[optimize]["fetch_bowl"] += 1
-            ActionDesignator(LookAtActionDescription(target=[1.4, 0.925, 0.5])).perform()  # bowl1.get_position())).perform()
-            bowl_desig = ActionDesignator(DetectActionDescription(bowl_desig)).perform()
-            ActionDesignator(PickUpDescription(bowl_desig, arm=Arms.RIGHT)).perform()
+            ActionDesignator(LookAtAction(target=[1.4, 0.925, 0.5])).perform()  # bowl1.get_position())).perform()
+            bowl_desig = ActionDesignator(DetectAction(bowl_desig)).perform()
+            ActionDesignator(PickUpAction(bowl_desig, arm=Arms.RIGHT)).perform()
             break
         except PlanFailure as f:
             print(f)
             print("Reposition!")
-            ActionDesignator(NavigateDescription(target_position=next(robot_position)[0])).perform()
+            ActionDesignator(NavigateAction(target_position=next(robot_position)[0])).perform()
             print("Retry!")
             time.sleep(0.3)
             attempts += 1
@@ -221,10 +221,10 @@ def set_table(destination="kitchen_island_countertop", view=False, optimize=Fals
                 continue
             else:
                 raise f
-    ActionDesignator(ParkArmsDescription(Arms.BOTH)).perform()
+    ActionDesignator(ParkArmsAction(Arms.BOTH)).perform()
 
-    ActionDesignator(CloseActionDescription(middle_drawer_desig, Arms.LEFT)).perform()
-    ActionDesignator(ParkArmsDescription(Arms.LEFT)).perform()
+    ActionDesignator(CloseAction(middle_drawer_desig, Arms.LEFT)).perform()
+    ActionDesignator(ParkArmsAction(Arms.LEFT)).perform()
 
     ## DELIVER BOWL ##
     target_location_bowl_gen = object_placing_location_generator(bowl_desig, destination)
@@ -236,8 +236,8 @@ def set_table(destination="kitchen_island_countertop", view=False, optimize=Fals
             try:
                 if optimize:
                     counters[False]["deliver_bowl"] += 1
-                ActionDesignator(NavigateDescription(target_position=pos, target_orientation=rot)).perform()
-                ActionDesignator(PlaceDescription(bowl_desig, target_location=target_location_bowl, arm=Arms.RIGHT)).perform()
+                ActionDesignator(NavigateAction(target_position=pos, target_orientation=rot)).perform()
+                ActionDesignator(PlaceAction(bowl_desig, target_location=target_location_bowl, arm=Arms.RIGHT)).perform()
                 break
             except PlanFailure as f:
                 print("Placing failed.")
@@ -247,9 +247,9 @@ def set_table(destination="kitchen_island_countertop", view=False, optimize=Fals
     if optimize:
         counters[False]["deliver_bowl"] += 1
         counters[True]["deliver_bowl"] += 1
-    ActionDesignator(NavigateDescription(target_position=pos, target_orientation=rot)).perform()
-    ActionDesignator(PlaceDescription(bowl_desig, target_location=target_location_bowl, arm=Arms.RIGHT)).perform()
-    ActionDesignator(ParkArmsDescription(Arms.RIGHT)).perform()
+    ActionDesignator(NavigateAction(target_position=pos, target_orientation=rot)).perform()
+    ActionDesignator(PlaceAction(bowl_desig, target_location=target_location_bowl, arm=Arms.RIGHT)).perform()
+    ActionDesignator(ParkArmsAction(Arms.RIGHT)).perform()
 
     ## FETCH SPOON ##
     upper_drawer_desig = ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_upper_drawer'), ('part-of', kitchen)])
@@ -259,16 +259,16 @@ def set_table(destination="kitchen_island_countertop", view=False, optimize=Fals
     else:
         container_opening = next(container_opening_gen)
     robot_position = reach_position_generator(ObjectDesignator([]))  # "Hack" to have the right position right away
-    ActionDesignator(NavigateDescription(target_position=next(robot_position)[0])).perform()
+    ActionDesignator(NavigateAction(target_position=next(robot_position)[0])).perform()
     spoon_desig = ObjectDesignator([('type', 'spoon')])
     while True:
         try:
             counters[optimize]["fetch_spoon"] += 1
-            ActionDesignator(OpenActionDescription(upper_drawer_desig, Arms.RIGHT, distance=container_opening)).perform()
-            ActionDesignator(ParkArmsDescription(Arms.BOTH)).perform()
-            ActionDesignator(LookAtActionDescription(target=[1.38, 0.75, 0.75])).perform()  # spoon.get_position())).perform()
-            spoon_desig = ActionDesignator(DetectActionDescription(spoon_desig)).perform()
-            ActionDesignator(PickUpDescription(spoon_desig, arm=Arms.RIGHT)).perform()
+            ActionDesignator(OpenAction(upper_drawer_desig, Arms.RIGHT, distance=container_opening)).perform()
+            ActionDesignator(ParkArmsAction(Arms.BOTH)).perform()
+            ActionDesignator(LookAtAction(target=[1.38, 0.75, 0.75])).perform()  # spoon.get_position())).perform()
+            spoon_desig = ActionDesignator(DetectAction(spoon_desig)).perform()
+            ActionDesignator(PickUpAction(spoon_desig, arm=Arms.RIGHT)).perform()
             break
         except PlanFailure as f:
             print(f)
@@ -277,10 +277,10 @@ def set_table(destination="kitchen_island_countertop", view=False, optimize=Fals
         except StopIteration:
             print("No more retries left.")
             return
-    ActionDesignator(ParkArmsDescription(Arms.BOTH)).perform()
+    ActionDesignator(ParkArmsAction(Arms.BOTH)).perform()
 
-    ActionDesignator(CloseActionDescription(upper_drawer_desig, Arms.LEFT)).perform()
-    ActionDesignator(ParkArmsDescription(Arms.LEFT)).perform()
+    ActionDesignator(CloseAction(upper_drawer_desig, Arms.LEFT)).perform()
+    ActionDesignator(ParkArmsAction(Arms.LEFT)).perform()
 
     ## DELIVER SPOON ##
     target_location_spoon_gen = object_placing_location_generator(spoon_desig, destination)
@@ -293,8 +293,8 @@ def set_table(destination="kitchen_island_countertop", view=False, optimize=Fals
             try:
                 if optimize:
                     counters[False]["deliver_spoon"] += 1
-                ActionDesignator(NavigateDescription(target_position=pos, target_orientation=rot)).perform()
-                ActionDesignator(PlaceDescription(spoon_desig, target_location=target_location_spoon, arm=Arms.RIGHT)).perform()
+                ActionDesignator(NavigateAction(target_position=pos, target_orientation=rot)).perform()
+                ActionDesignator(PlaceAction(spoon_desig, target_location=target_location_spoon, arm=Arms.RIGHT)).perform()
                 break
             except PlanFailure as f:
                 print("Placing failed.")
@@ -303,9 +303,9 @@ def set_table(destination="kitchen_island_countertop", view=False, optimize=Fals
     if optimize:
         counters[False]["deliver_spoon"] += 1
         counters[True]["deliver_spoon"] += 1
-    ActionDesignator(NavigateDescription(target_position=pos, target_orientation=rot)).perform()
-    ActionDesignator(PlaceDescription(spoon_desig, target_location=target_location_spoon, arm=Arms.RIGHT)).perform()
-    ActionDesignator(ParkArmsDescription(Arms.RIGHT)).perform()
+    ActionDesignator(NavigateAction(target_position=pos, target_orientation=rot)).perform()
+    ActionDesignator(PlaceAction(spoon_desig, target_location=target_location_spoon, arm=Arms.RIGHT)).perform()
+    ActionDesignator(ParkArmsAction(Arms.RIGHT)).perform()
 
     ## TRANSPORT MILK ##
     fridge_desig = ObjectDesignator([('type', 'fridge'), ('name', 'iai_fridge'), ('part-of', kitchen)])
@@ -316,12 +316,12 @@ def set_table(destination="kitchen_island_countertop", view=False, optimize=Fals
         with SimulatedTaskTree():
             if optimize:
                 counters[False]["transport_milk"] += 1
-            ActionDesignator(TransportObjectDescription(milk_desig, arm=Arms.LEFT,
+            ActionDesignator(TransportAction(milk_desig, arm=Arms.LEFT,
                                                         target_location=target_location_milk)).perform()
         if optimize:
             counters[False]["transport_milk"] += 1
             counters[True]["transport_milk"] += 1
-        ActionDesignator(TransportObjectDescription(milk_desig, arm=Arms.LEFT,
+        ActionDesignator(TransportAction(milk_desig, arm=Arms.LEFT,
                                                     target_location=target_location_milk)).perform()
     except PlanFailure as f:
         print("Transporting milk failed.")
@@ -335,12 +335,12 @@ def set_table(destination="kitchen_island_countertop", view=False, optimize=Fals
         with SimulatedTaskTree():
             if optimize:
                 counters[False]["transport_cereal"] += 1
-            ActionDesignator(TransportObjectDescription(cereal_desig, arm=Arms.RIGHT,
+            ActionDesignator(TransportAction(cereal_desig, arm=Arms.RIGHT,
                                                         target_location=target_location_cereal)).perform()
         if optimize:
             counters[False]["transport_cereal"] += 1
             counters[True]["transport_cereal"] += 1
-        ActionDesignator(TransportObjectDescription(cereal_desig, arm=Arms.RIGHT,
+        ActionDesignator(TransportAction(cereal_desig, arm=Arms.RIGHT,
                                                     target_location=target_location_cereal)).perform()
     except PlanFailure as f:
         print("Transporting cereal failed.")

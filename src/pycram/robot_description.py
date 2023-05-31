@@ -1,9 +1,16 @@
 import logging
+import rospy
+import rospkg
 from copy import deepcopy
 from numbers import Number
+from typing import List, Optional, Dict, Union, Type
+from urdf_parser_py.urdf import URDF
+from . import utils
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
 
 class ChainDescription:
     """
@@ -14,21 +21,24 @@ class ChainDescription:
         chain of links: link1 <-> joint1 <-> link2 <-> joint2 <-> ... <-> link6
     """
 
-    def __init__(self, name, joints, links,
-                 base_link=None, static_joint_states=None):
+    def __init__(self, name: str,
+                 joints: List[str],
+                 links: List[str],
+                 base_link: Optional[str] = None,
+                 static_joint_states: Optional[Dict[str, List[float]]] = None):
         """
         :param name: str
         :param joints: list[str]
         :param links: list[str]
         :param static_joint_states: dict[str: list[float]]
         """
-        self.name = name
-        self.base_link = base_link
-        self.joints = joints
-        self.links = links
-        self.static_joint_states = static_joint_states if static_joint_states else {}
+        self.name: str = name
+        self.base_link: str = base_link
+        self.joints: List[str] = joints
+        self.links: List[str] = links
+        self.static_joint_states: Dict[str: List[float]] = static_joint_states if static_joint_states else {}
 
-    def add_static_joint_chains(self, static_joint_states):
+    def add_static_joint_chains(self, static_joint_states: Dict[str, List[float]]) -> None:
         """
         This function adds static joints chains, which are given in a dictionary.
 
@@ -41,7 +51,7 @@ class ChainDescription:
                 logger.error("(robot_description) Could not add all static_joint_states for the chain %s.", self.name)
                 break
 
-    def add_static_joint_chain(self, configuration, static_joint_states):
+    def add_static_joint_chain(self, configuration: str, static_joint_states: List[float]) -> Union[None, bool]:
         """
         This function adds one static joints chain with the given configuration name.
 
@@ -64,7 +74,7 @@ class ChainDescription:
                 logger.error("(robot_description) The number of the joint values does not equal the amount of the joints"
                        "for the chain %s.", self.name)
 
-    def get_static_joint_chain(self, configuration):
+    def get_static_joint_chain(self, configuration: str) -> Union[None, Dict[str, float]]:
         """
         Gets a static joint chain as dictionary of its joint names and values.
 
@@ -87,10 +97,13 @@ class GripperDescription(ChainDescription):
     from ChainDescription).
     """
 
-    def __init__(self, name, gripper_links=None, gripper_joints=None,
-                 static_gripper_joint_states=None,
-                 gripper_meter_to_jnt_multiplier=1.0, gripper_minimal_position=0.0,
-                 gripper_convergence_delta=0.001):
+    def __init__(self, name: str,
+                 gripper_links: Optional[List[str]] = None,
+                 gripper_joints: Optional[List[str]] = None,
+                 static_gripper_joint_states: Optional[Dict[str, List[float]]] = None,
+                 gripper_meter_to_jnt_multiplier: Optional[float] = 1.0,
+                 gripper_minimal_position: Optional[float] = 0.0,
+                 gripper_convergence_delta: Optional[float] = 0.001):
         """
         :type gripper_links: list[str]
         :type gripper_joints: list[str]
@@ -99,9 +112,9 @@ class GripperDescription(ChainDescription):
         super().__init__(name, gripper_joints, gripper_links, base_link=None,
                          static_joint_states=static_gripper_joint_states)
         # static params
-        self.gripper_meter_to_jnt_multiplier = gripper_meter_to_jnt_multiplier
-        self.gripper_minimal_position = gripper_minimal_position
-        self.gripper_convergence_delta = gripper_convergence_delta
+        self.gripper_meter_to_jnt_multiplier: float = gripper_meter_to_jnt_multiplier
+        self.gripper_minimal_position: float = gripper_minimal_position
+        self.gripper_convergence_delta: float = gripper_convergence_delta
 
 
 class InteractionDescription(ChainDescription):
@@ -117,8 +130,8 @@ class InteractionDescription(ChainDescription):
         tmp = deepcopy(chain_description)
         super().__init__(tmp.name, tmp.joints, tmp.links, base_link=tmp.base_link,
                          static_joint_states=tmp.static_joint_states)
-        self.chain_description = tmp
-        self.eef_link = eef_link
+        self.chain_description: ChainDescription = tmp
+        self.eef_link: str = eef_link
 
 
 class ManipulatorDescription(InteractionDescription):
@@ -134,12 +147,13 @@ class ManipulatorDescription(InteractionDescription):
     """
 
     def __init__(self, interaction_description: InteractionDescription,
-                 tool_frame: str = None, gripper_description: GripperDescription = None):
+                 tool_frame: str = None,
+                 gripper_description: GripperDescription = None):
         tmp = deepcopy(interaction_description)
         super().__init__(tmp.chain_description, tmp.eef_link)
-        self.interaction_description = tmp
-        self.tool_frame = tool_frame
-        self.gripper = gripper_description
+        self.interaction_description: InteractionDescription = tmp
+        self.tool_frame: str = tool_frame
+        self.gripper: GripperDescription = gripper_description
 
 
 class CameraDescription:
@@ -151,28 +165,29 @@ class CameraDescription:
     def __init__(self, frame: str,
                  minimal_height=0.0, maximal_height=0.0,
                  vertical_angle=0.0, horizontal_angle=0.0,
-                 other_params=None):
+                 other_params: Optional[Dict[str, float]] = None):
         """
         :type other_params: dict[str: float]
         """
-        self.frame = frame
-        self.min_height = minimal_height
-        self.max_height = maximal_height
-        self.vertical_angle = vertical_angle
-        self.horizontal_angle = horizontal_angle
+        self.frame: str = frame
+        self.min_height: float = minimal_height
+        self.max_height: float = maximal_height
+        self.vertical_angle: float = vertical_angle
+        self.horizontal_angle:float = horizontal_angle
         # static, but flexible params
-        self.params = other_params if other_params else {}
+        self.params: Dict[str, float] = other_params if other_params else {}
 
-class GraspingDescription():
+
+class GraspingDescription:
     """
     This class represents all possible grasp a robot can perform and the grasps
     the robot can perform for a specific object.
     """
-    def __init__(self, grasp_dir=None):
-        self.grasps = grasp_dir if grasp_dir else {}
-        self.grasps_for_object = {}
+    def __init__(self, grasp_dir: Optional[Dict] = None):
+        self.grasps: Dict[str, List[float]] = grasp_dir if grasp_dir else {}
+        self.grasps_for_object: Dict['Object', List[str]] = {}
 
-    def add_grasp(self, grasp, orientation):
+    def add_grasp(self, grasp: str, orientation: List[float]) -> None:
         """
         Adds a Grasping side like "top", "left", "front" and the corresponding orientation
         of the gripper to this description.
@@ -182,23 +197,24 @@ class GraspingDescription():
         """
         self.grasps[grasp] = orientation
 
-    def add_graspings_for_object(self, grasps, object):
+    def add_graspings_for_object(self, grasps: List[str], object: 'Object') -> None:
         """
         Adds all possible Grasps for the specified object. The used grasps have to
         be registered beforehand via the add_grasp method.
-        :param graps: A list of all graps for this object.
+        :param grasps: A list of all graps for this object.
         :param object: The object for which the grasps should be specified
         """
         self.grasps_for_object[object] = grasps
 
-    def get_all_grasps(self):
+    def get_all_grasps(self) -> List[str]:
         return self.grasps.keys()
 
-    def get_orientation_for_grasp(self, grasp):
+    def get_orientation_for_grasp(self, grasp: str) -> List[float]:
         return self.grasps[grasp]
 
-    def get_grasps_for_object(self, object):
+    def get_grasps_for_object(self, object: 'Object') -> List[str]:
         return self.grasps_for_object[object]
+
 
 class RobotDescription:
     """
@@ -209,8 +225,13 @@ class RobotDescription:
     and joints. Different cameras can be added and static transforms and poses can be added too.
     """
 
-    def __init__(self, name, base_frame, base_link, torso_link=None, torso_joint=None,
-                 odom_frame=None, odom_joints=None):
+    def __init__(self, name: str,
+                 base_frame: str,
+                 base_link: str,
+                 torso_link: Optional[str] = None,
+                 torso_joint: Optional[str] = None,
+                 odom_frame: Optional[str] = None,
+                 odom_joints: Optional[List[str]] = None):
         """
         Initialises the robot description with the given frames.
 
@@ -223,19 +244,25 @@ class RobotDescription:
         :type torso_joint: str
         :type ik_joints: [str]
         """
-        self.name = name
-        self.chains = {}  # dict{str: ChainDescription}
-        self.cameras = {}  # dict{str: CameraDescription}
-        self.static_transforms = []  # list[tf]
-        self.static_poses = []  # list[pose]
-        self.odom_frame = odom_frame
-        self.odom_joints = odom_joints if odom_joints else []  # list[str]
-        self.base_frame = base_frame
-        self.base_link = base_link
-        self.torso_link = torso_link
-        self.torso_joint = torso_joint
+        self.name: str = name
+        self.chains: Dict[str, Type[ChainDescription]] = {}  # dict{str: ChainDescription}
+        self.cameras: Dict[str, CameraDescription] = {}  # dict{str: CameraDescription}
+        self.static_transforms: List = []  # list[tf]
+        self.static_poses: List = []  # list[pose]
+        self.odom_frame: str = odom_frame
+        self.odom_joints: List[str] = odom_joints if odom_joints else []  # list[str]
+        self.base_frame: str = base_frame
+        self.base_link: str = base_link
+        self.torso_link: str = torso_link
+        self.torso_joint: str = torso_joint
 
-    def _safely_access_chains(self, chain_name, verbose=True):
+        rospack = rospkg.RosPack()
+        filename = rospack.get_path('pycram') + '/resources/' + name + '.urdf'
+        with open(filename) as f:
+            with utils.suppress_stdout_stderr():
+                self.robot_urdf = URDF.from_xml_string(f.read())
+
+    def _safely_access_chains(self, chain_name: str, verbose: Optional[bool] = True) -> Union[None, ChainDescription]:
         """
         This function returns the chain_description of the name chain_name or None, if there
         exists no chain description with the name chain_name.
@@ -248,7 +275,9 @@ class RobotDescription:
             return None
         return chain_description
 
-    def _get_chain_description(self, chain_name, description_type=ChainDescription, is_same_description_type=True):
+    def _get_chain_description(self, chain_name: str,
+                               description_type: Optional[Type[ChainDescription]] = ChainDescription,
+                               is_same_description_type: Optional[bool] = True) -> Union[None, Type[ChainDescription]]:
         """
         This function checks if there is a chain saved in self.chains with the chain name chain_name.
         Moreover, if is_same_description_type is True it will be checked if the found chain is of the given
@@ -270,7 +299,7 @@ class RobotDescription:
         else:
             logger.warning("(robot_description) Only subclasses of ChainDescription are allowed.")
 
-    def get_tool_frame(self, manipulator_name: str):
+    def get_tool_frame(self, manipulator_name: str) -> Union[None, str]:
         """
         Returns the tool frame of the manipulator description with the name manipulator name.
 
@@ -282,7 +311,7 @@ class RobotDescription:
         else:
             logger.error("(robot_description) Could not get the tool frame of the manipulator %s.", manipulator_name)
 
-    def get_static_joint_chain(self, chain_name: str, configuration: str):
+    def get_static_joint_chain(self, chain_name: str, configuration: str) -> Union[None, Dict[str, float]]:
         """
         Returns the static joint chain given the chains name chain_name and the configurations name configuration.
 
@@ -301,7 +330,7 @@ class RobotDescription:
     def get_static_pose(self, frame: str):
         pass
 
-    def add_chain(self, name: str, chain_description: ChainDescription):
+    def add_chain(self, name: str, chain_description: ChainDescription) -> Union[None, bool]:
         """
         This functions adds the chain description chain_description with the name name and
         overwrites the existing chain description of name name, if it already exists in self.chains.
@@ -314,7 +343,7 @@ class RobotDescription:
         else:
             logger.error("(robot_description) Given chain_description object is no subclass of ChainDescription.")
 
-    def add_chains(self, chains_dict):
+    def add_chains(self, chains_dict: Dict[str, ChainDescription]) -> None:
         """
         This function calls recursively the self.add_chain function and adds therefore the chain description
         saved in the values part of the dictionary chains_dict with the names saved in the key part of the
@@ -327,7 +356,7 @@ class RobotDescription:
                 logger.error("(robot_description) Could not add the chain object of name %s.", name)
                 break
 
-    def add_camera(self, name: str, camera_description: CameraDescription):
+    def add_camera(self, name: str, camera_description: CameraDescription) -> Union[None, bool]:
         """
         This functions adds the camera description camera_description with the name name and
         overwrites the existing camera description of name name, if it already exists in self.cameras.
@@ -345,7 +374,7 @@ class RobotDescription:
         else:
             logger.error("(robot_description) Given camera_description object is not of type CameraDescription.")
 
-    def add_cameras(self, cameras_dict):
+    def add_cameras(self, cameras_dict: Dict[str, CameraDescription]) -> None:
         """
         This function calls recursively the self.add_camera function and adds therefore the camera description
         saved in the values part of the dictionary cameras_dict with the names saved in the key part of the
@@ -358,7 +387,7 @@ class RobotDescription:
                 logger.error("(robot_description) Could not add the camera object of name %s.", name)
                 break
 
-    def get_camera_frame(self, camera_name):
+    def get_camera_frame(self, camera_name: str) -> Union[None, str]:
         """
         Returns the camera frame of the given camera with the name camera_name.
 
@@ -371,21 +400,27 @@ class RobotDescription:
             return None
         return camera_description.frame
 
-    def add_static_joint_chain(self, chain_name: str, configuration: str, static_joint_states):
+    def add_static_joint_chain(self,
+                               chain_name: str,
+                               configuration: str,
+                               static_joint_states: List[float]) -> Union[None, bool]:
         """
         This function calls the add_static_joint_chain function on the chain object with the name chain_name.
         For more information see the add_static_joint_chain in ChainDescription.
 
+        :param chain_name: The name of the new static joint chain
+        :param configuration: The name of the configuration of this joint chain
         :type static_joint_states: list[float]
         """
         return self.chains[chain_name].add_static_joint_chain(configuration, static_joint_states)
 
-    def add_static_joint_chains(self, chain_name: str, static_joint_states):
+    def add_static_joint_chains(self, chain_name: str, static_joint_states: Dict[str, List[float]]) -> None:
         """
         This function calls recursively the self.add_static_joint_chain function with the name chain_name
         and adds therefore the static joint values saved in the values part of the dictionary static_joint_states
         with the configuration names saved in the key part of the dictionary static_joint_states.
 
+        :param chain_name: The name for the new chain
         :type static_joint_states: dict[str: list[float]]
         """
         for configuration, joint_states in static_joint_states.items():
@@ -394,7 +429,10 @@ class RobotDescription:
                        configuration, chain_name)
                 break
 
-    def add_static_gripper_chain(self, manipulator_name: str, configuration: str, static_joint_states):
+    def add_static_gripper_chain(self,
+                                 manipulator_name: str,
+                                 configuration: str,
+                                 static_joint_states: Dict[str, List[float]]) -> Union[None, bool]:
         """
         This function adds a static gripper chain to a gripper description if there exists a manipulator description
         with the name manipulator_name. The static gripper joint vales in static_joint_states are then saved
@@ -407,7 +445,7 @@ class RobotDescription:
         if manipulator_description and manipulator_description.gripper:
             return manipulator_description.gripper.add_static_joint_chain(configuration, static_joint_states)
 
-    def add_static_gripper_chains(self, manipulator_name: str, static_joint_states):
+    def add_static_gripper_chains(self, manipulator_name: str, static_joint_states: Dict[str, List[float]]) -> None:
         """
         This function calls recursively the self.add_static_gripper_chain function with the name manipulator_name
         and adds therefore the static joint values saved in the values part of the dictionary static_joint_states
@@ -421,7 +459,7 @@ class RobotDescription:
                        configuration, manipulator_name)
                 break
 
-    def get_static_gripper_chain(self, manipulator_name: str, configuration: str):
+    def get_static_gripper_chain(self, manipulator_name: str, configuration: str) -> Dict[str, float]:
         """
         Returns the static gripper joint chain given the manipulator name manipulator_name and the configuration name configuration.
 
@@ -433,6 +471,34 @@ class RobotDescription:
         if manipulator_description and manipulator_description.gripper:
             return manipulator_description.gripper.get_static_joint_chain(configuration)
 
+    def get_child(self, name):
+        """
+        Returns the child of a Joint or Link in the URDF. If 'name' is a Joint a
+        Link will be returned and vice versa.
+        :param name: The name of the Joint/Link for which the child will be returned.
+        :return: The child Joint/Link
+        """
+        if name in self.robot_urdf.joint_map.keys():
+            return self.robot_urdf.joint_map[name].child
+        elif name in self.robot_urdf.link_map.keys():
+            return self.robot_urdf.link_map[name].child
+        else:
+            rospy.logerr(f"The name: {name} is not part of this robot URDF")
+
+    def get_parent(self, name):
+        """
+        Returns the parent of a Joint or Link in the URDF. If 'name' is a Joint a
+        Link will be returned and vice versa.
+        :param name: The name of the Joint/Link for which the parent will be returned.
+        :return: The parent Joint/Link
+        """
+        if name in self.robot_urdf.joint_map.keys():
+            return self.robot_urdf.joint_map[name].parent
+        elif name in self.robot_urdf.link_map.keys():
+            return self.robot_urdf.link_map[name].parent
+        else:
+            rospy.logerr(f"The name: {name} is not part of this robot URDF")
+
     # @staticmethod
     # def from_urdf(urdf_path: str):
     #     # URDF Python library does not like ROS package paths --> replace
@@ -442,7 +508,3 @@ class RobotDescription:
     #         temp_urdf_file.write(urdf_resolved)
     #         urdf = URDF.load(temp_urdf_file)
     #     ik_joints = [joint.name for joint in urdf.actuated_joints]
-
-
-
-

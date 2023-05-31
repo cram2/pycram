@@ -1,18 +1,15 @@
-"""Implementation of designators.
+# used for delayed evaluation of typing until python 3.11 becomes mainstream
+from __future__ import annotations
 
-Classes:
-DesignatorError -- implementation of designator errors.
-Designator -- implementation of designators.
-MotionDesignator -- implementation of motion designators.
-"""
 from abc import ABC, abstractmethod
 from copy import copy
 from inspect import isgenerator, isgeneratorfunction
-from typing import List, get_type_hints
 
 from .helper import GeneratorList, bcolors
 from threading import Lock
 from time import time
+from typing import List, Dict, Any, Type, Optional, Union, get_type_hints, Callable
+
 import logging
 
 
@@ -25,7 +22,7 @@ class DesignatorError(Exception):
 
 
 class ResolutionError(Exception):
-    def __init__(self, missing_properties, wrong_type, current_type, designator):
+    def __init__(self, missing_properties: List[str], wrong_type: Dict, current_type: Any, designator: Designator):
         self.error = f"\nSome requiered properties where missing or had the wrong type when grounding the Designator: {designator}.\n"
         self.missing = f"The missing properties where: {missing_properties}\n"
         self.wrong = f"The properties with the wrong type along with the currrent -and right type :\n"
@@ -43,54 +40,43 @@ class ResolutionError(Exception):
 
 
 class Designator(ABC):
-    """Implementation of designators.
+    """
+    Implementation of designators. DEPRECTAED SINCE DESIGNATOR DESCRIPTIONS ARE USED AS BASE CLASS
 
-    Designators are objects containing sequences of key-value pairs. They can be resolved which means to generate real parameters for executing actions from these pairs of key and value.
+    Designators are objects containing sequences of key-value pairs. They can be resolved which means to generate real
+    parameters for executing actions from these pairs of key and value.
 
-    Instance variables:
-    timestamp -- the timestamp of creation of reference or None if still not referencing an object.
-
-    Methods:
-    equate -- equate the designator with the given parent.
-    equal -- check if the designator describes the same entity as another designator.
-    first -- return the first ancestor in the chain of equated designators.
-    current -- return the newest designator.
-    reference -- try to dereference the designator and return its data object
-    next_solution -- return another solution for the effective designator or None if none exists.
-    solutions -- return a generator for all solutions of the designator.
-    copy -- construct a new designator with the same properties as this one.
-    make_effective -- create a new effective designator of the same type as this one.
-    newest_effective -- return the newest effective designator.
-    prop_value -- return the first value matching the specified property key.
-    check_constraints -- return True if all the given properties match, False otherwise.
-    make_dictionary -- return the given parameters as dictionary.
+    :ivar timestamp: The timestamp of creation of reference or None if still not referencing an object.
     """
 
-    """List of all designator resolvers. Designator resolvers are functions which take a designator as 
-    argument and return a list of solutions. A solution can also be a generator. """
-    resolvers = {}
 
-    def __init__(self, description, parent=None):
+    resolvers = {}
+    """
+    List of all designator resolvers. Designator resolvers are functions which take a designator as
+    argument and return a list of solutions. A solution can also be a generator. 
+    """
+
+    def __init__(self, description: Type[DesignatorDescription], parent: Optional[Designator] = None):
         """Create a new desginator.
 
         Arguments:
-        properties -- a list of tuples (key-value pairs) describing this designator.
-        parent -- the parent to equate with (default is None).
+        :param properties: A list of tuples (key-value pairs) describing this designator.
+        :param parent: The parent to equate with (default is None).
         """
-        self._mutex = Lock()
-        self._parent = None
-        self._successor = None
-        self._effective = False
-        self._data = None
+        self._mutex: Lock = Lock()
+        self._parent: Union[Designator, None] = None
+        self._successor: Union[Designator, None] = None
+        self._effective: bool = False
+        self._data: Any = None
         self._solutions = None
-        self._index = 0
+        self._index: int = 0
         self.timestamp = None
-        self._description = description
+        self._description: Type[DesignatorDescription] = description
 
         if parent is not None:
             self.equate(parent)
 
-    def equate(self, parent):
+    def equate(self, parent: Designator) -> None:
         """Equate the designator with the given parent.
 
         Arguments:
@@ -109,7 +95,7 @@ class Designator(ABC):
         self._parent = youngest_parent
         youngest_parent._successor = self
 
-    def equal(self, other):
+    def equal(self, other: Designator) -> bool:
         """Check if the designator describes the same entity as another designator, i.e. if they are equated.
 
         Arguments:
@@ -117,21 +103,22 @@ class Designator(ABC):
         """
         return other.first() is self.first()
 
-    def first(self):
+    def first(self) -> Designator:
         """Return the first ancestor in the chain of equated designators."""
         if self._parent is None:
             return self
 
         return self._parent.first()
 
-    def current(self):
-        """Return the newest designator, i.e. that one that has been equated last to the designator or one of its equated designators."""
+    def current(self) -> Designator:
+        """Return the newest designator, i.e. that one that has been equated last to the designator or one of its
+        equated designators."""
         if self._successor is None:
             return self
 
         return self._successor.current()
 
-    def _reference(self):
+    def _reference(self) -> Any:
         """This is a helper method for internal usage only.
 
         This method is to be overwritten instead of the reference method.
@@ -161,9 +148,9 @@ class Designator(ABC):
             self._data = self._solutions.get(self._index)
             return self._data
         except StopIteration:
-            raise DesignatorError('There was no Solution for this Object Designator')
+            raise DesignatorError('There was no Solution for this Designator')
 
-    def reference(self):
+    def reference(self) -> Any:
         """Try to dereference the designator and return its data object or raise DesignatorError if it is not an
         effective designator. """
         with self._mutex:
@@ -183,7 +170,7 @@ class Designator(ABC):
         entity. """
         pass
 
-    def solutions(self, from_root=None):
+    def solutions(self, from_root: Optional[Designator] = None):
         """Return a generator for all solutions of the designator.
 
         Arguments:
@@ -205,8 +192,9 @@ class Designator(ABC):
 
         return generator(desig)
 
-    def copy(self, new_properties=None):
-        """Construct a new designator with the same properties as this one. If new properties are specified, these will be merged with the old ones while the new properties are dominant in this relation.
+    def copy(self, new_properties: Optional[List] = None) -> Designator:
+        """Construct a new designator with the same properties as this one. If new properties are specified, these will
+        be merged with the old ones while the new properties are dominant in this relation.
 
         Arguments:
         new_properties -- a list of new properties to merge into the old ones (default is None).
@@ -215,12 +203,13 @@ class Designator(ABC):
 
         if new_properties:
             for key, value in new_properties:
-                if key in description.__dict__.keys():
-                    description.__dict__[key] = value
+                description.__dict__[key] = value
 
         return self.__class__(description)
 
-    def make_effective(self, properties=None, data=None, timestamp=None):
+    def make_effective(self, properties: Optional[List] = None,
+                       data: Optional[Any] = None,
+                       timestamp: Optional[float] = None) -> Designator:
         """Create a new effective designator of the same type as this one. If no properties are specified, this ones are used.
 
         Arguments:
@@ -242,7 +231,7 @@ class Designator(ABC):
 
         return desig
 
-    def newest_effective(self):
+    def newest_effective(self) -> Designator:
         """Return the newest effective designator."""
 
         def find_effective(desig):
@@ -253,7 +242,7 @@ class Designator(ABC):
 
         return find_effective(self.current())
 
-    def prop_value(self, key):
+    def prop_value(self, key: str) -> Any:
         """Return the first value matching the specified property key.
 
         Arguments:
@@ -265,11 +254,13 @@ class Designator(ABC):
             logging.error(f"The given key '{key}' is not in this Designator")
             return None
 
-    def check_constraints(self, properties):
+    def check_constraints(self, properties: List) -> bool:
         """Return True if all the given properties match, False otherwise.
 
         Arguments:
-        properties -- the properties which have to match. A property can be a tuple in which case its first value is the key of a property which must equal the second value. Otherwise it's simply the key of a property which must be not None.
+        properties -- the properties which have to match. A property can be a tuple in which case its first value is the
+        key of a property which must equal the second value. Otherwise it's simply the key of a property which must be
+        not None.
         """
         for prop in properties:
             if type(prop) == tuple:
@@ -283,18 +274,20 @@ class Designator(ABC):
 
         return True
 
-    def make_dictionary(self, properties):
+    def make_dictionary(self, properties: List) -> Dict:
         """ DEPRECATED, Moved to the description. Function only keept because of
         backward compatability.
         Return the given properties as dictionary.
 
         Arguments:
-        properties -- the properties to create a dictionary of. A property can be a tuple in which case its first value is the dictionary key and the second value is the dictionary value. Otherwise it's simply the dictionary key and the key of a property which is the dictionary value.
+        properties -- the properties to create a dictionary of. A property can be a tuple in which case its first value
+        is the dictionary key and the second value is the dictionary value. Otherwise it's simply the dictionary key
+        and the key of a property which is the dictionary value.
         """
 
         return self._description.make_dictionary(properties)
 
-    def rename_prop(self, old, new):
+    def rename_prop(self, old: str, new: str) -> Designator:
         old_value = self.prop_value(old)
         if old_value is not None:
             self._description.__dict__[new] = old_value
@@ -304,16 +297,26 @@ class Designator(ABC):
         return self.current()
 
 
-class DesignatorDescription():
-    resolver: str
+class DesignatorDescription(ABC):
+    """
+    :ivar resolve: The resolver function to use for this designator, defaults to self.ground
+    """
 
-    def __init__(self, resolver="grounding"):
-        self.resolver = resolver
+    def __init__(self, resolver: Optional[Callable] = None):
+        """
+        Create a Designator description.
+
+        :param resolver: The grounding method used for the description. The grounding method creates a location instance that matches the description.
+        """
+
+        if resolver is None:
+            self.resolve = self.ground
 
     def make_dictionary(self, properties: List[str]):
         """
         Creates a dictionary of this description with only the given properties
         included.
+
         :param properties: A list of properties that should be included in the dictionary.
                             The given properties have to be an attribute of this description.
         :return: A dictionary with the properties as keys.
@@ -325,42 +328,19 @@ class DesignatorDescription():
                 ret[att] = attributes[att]
         return ret
 
-    def ground(self):
+    def ground(self) -> Any:
         """
         Should be overwritten with an actual grounding function which infers missing properties.
         """
         return self
 
-    def get_slots(self):
+    def get_slots(self) -> List[str]:
         """
         Returns a list of all slots of this description. Can be used for inspecting different descriptions and debugging.
+
         :return: A list of all slots.
         """
         return list(self.__dict__.keys())
 
-    def copy(self):
-        return copy(self)
-
-    def _check_properties(self, desig: str, exclude=[]):
-        """
-        Checks the properties of this description. It will be checked if any attribute is
-        None and if any attribute has to wrong type according to the type hints in
-        the description class.
-        It is possible to provide a list of attributes which should not be checked.
-        :param desig: The current type of designator, will be used when raising an
-                        Exception as output.
-        :param exclude: A list of properties which should not be checked.
-        """
-        right_types = get_type_hints(type(self))
-        attributes = self.__dict__
-        missing = []
-        wrong_type = {}
-        current_type = {}
-        for k in attributes.keys():
-            if attributes[k] == None and not attributes[k] in exclude:
-                missing.append(k)
-            elif type(attributes[k]) != right_types[k] and not attributes[k] in exclude:
-                wrong_type[k] = right_types[k]
-                current_type[k] = type(attributes[k])
-        if missing != [] or wrong_type != {}:
-            raise ResolutionError(missing, wrong_type, current_type, desig)
+    def copy(self) -> Type[DesignatorDescription]:
+        return self

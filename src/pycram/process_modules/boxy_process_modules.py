@@ -255,7 +255,7 @@ class BoxyMoveJoints(ProcessModule):
 
     def _execute(self, desig):
         solution = desig.reference()
-        if solution['cmd'] == "move-joints":
+        if solution['cmd'] == "move-arm-joints":
             robot = BulletWorld.robot
             right_arm_poses = solution['right_arm_poses']
             left_arm_poses = solution['left_arm_poses']
