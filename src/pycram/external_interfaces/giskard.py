@@ -7,7 +7,7 @@ from giskardpy.python_interface import GiskardWrapper
 from geometry_msgs.msg import PoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
 from giskard_msgs.msg import WorldBody, MoveResult
 from giskard_msgs.srv import UpdateWorldRequest, UpdateWorld, UpdateWorldResponse
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 giskard_wrapper = GiskardWrapper()
 giskard_update_service = rospy.ServiceProxy("/giskard/update_world", UpdateWorld)
@@ -18,7 +18,7 @@ giskard_update_service = rospy.ServiceProxy("/giskard/update_world", UpdateWorld
 
 def initial_adding_objects() -> None:
     """
-    Adds object that are loaded in the BulltWorld to the Giskard belief state, if they are not present at the moment.
+    Adds object that are loaded in the BulletWorld to the Giskard belief state, if they are not present at the moment.
     """
     groups = giskard_wrapper.get_group_names()
     for obj in BulletWorld.current_bullet_world.objects:
@@ -53,28 +53,47 @@ def sync_worlds() -> None:
     if giskard_object_names - bullet_object_names - robot_name != set():
         giskard_wrapper.clear_world()
     initial_adding_objects()
-    # for obj in BulletWorld.current_bullet_world.objects:
-    #    if obj is BulletWorld.robot:
-    #        giskard_wrapper.set_cart_goal(make_pose_stamped(obj.get_position_and_orientation()), robot_description.i.base_frame, "map")
-    #        giskard_wrapper.plan_and_execute()
-    #        continue
-    #    update_pose(obj)
 
 
 def update_pose(object: Object) -> UpdateWorldResponse:
+    """
+    Sends an update message to giskard to update the object position. Might not work when working on the real robot just
+    in standalone mode.
+
+    :param object: Object that should be updated
+    :return: An UpdateWorldResponse
+    """
     return giskard_wrapper.update_group_pose(object.name + "_" + str(object.id),
                                              make_pose_stamped(object.get_position_and_orientation()))
 
 
 def spawn_object(object: Object) -> None:
+    """
+    Spawns a BulletWorld Object in the giskard belief state.
+
+    :param object: BulletWorld object that should be spawned
+    """
     spawn_urdf(object.name + "_" + str(object.id), object.path, object.get_position_and_orientation())
 
 
 def remove_object(object: Object) -> UpdateWorldResponse:
+    """
+    Removes an object from the giskard belief state.
+
+    :param object: The BulletWorld Object that should be removed
+    """
     return giskard_wrapper.remove_group(object.name + "_" + str(object.id))
 
 
 def spawn_urdf(name: str, urdf_path: str, pose: Tuple[List[float], List[float]]) -> UpdateWorldResponse:
+    """
+    Spawns an URDF in giskard's belief state.
+
+    :param name: Name of the URDF
+    :param urdf_path: Path to the URDF file
+    :param pose: Pose in which the URDF should be spawned
+    :return: An UpdateWorldResponse message
+    """
     urdf_string = ""
     with open(urdf_path) as f:
         urdf_string = f.read()
@@ -84,6 +103,14 @@ def spawn_urdf(name: str, urdf_path: str, pose: Tuple[List[float], List[float]])
 
 
 def spawn_mesh(name: str, path: str, pose: Tuple[List[float], List[float]]) -> UpdateWorldResponse:
+    """
+    Spawns a mesh into giskard's belief state
+
+    :param name: Name of the mesh
+    :param path: Path to the mesh file
+    :param pose: Pose in which the mesh should be spawned
+    :return: An UpdateWorldResponse message
+    """
     pose_stamped = make_pose_stamped(pose)
     return giskard_wrapper.add_mesh(name, path, pose_stamped)
 
@@ -91,21 +118,21 @@ def spawn_mesh(name: str, path: str, pose: Tuple[List[float], List[float]]) -> U
 # Sending Goals to Giskard
 
 
-def achieve_joint_goal(joint: str, position: float) -> MoveResult:
+def achieve_joint_goal(goal_poses: Dict[str, float]) -> MoveResult:
     """
-    This goal takes a joint name and a position for this joint and tries to achieve the position for this joint.
+    Takes a dictionary of joint position that should be achieved, the keys in the dictionary are the joint names and
+    values are the goal joint positions.
 
-    :param joint: The joint name
-    :param position: The goal position this joint should be in
+    :param goal_poses:
     """
     sync_worlds()
-    giskard_wrapper.set_joint_goal({joint: position})
+    giskard_wrapper.set_joint_goal(goal_poses)
     return giskard_wrapper.plan_and_execute()
 
 
 def achieve_cartesian_goal(goal_pose: Tuple[List[float], List[float]], tip_link: str, root_link: str) -> MoveResult:
     """
-    This goal takes a cartesian position and tries to move the tip_link to this position using the chain defined by
+    Takes a cartesian position and tries to move the tip_link to this position using the chain defined by
     tip_link and root_link.
 
     :param goal_pose: The position which should be achieved with tip_link
@@ -129,8 +156,9 @@ def achieve_straight_cartesian_goal(goal_pose: Tuple[List[float], List[float]], 
 
 def achieve_translation_goal(goal_point: List[float], tip_link: str, root_link: str) -> MoveResult:
     """
-    This goal tries to move the tip_link to the position defined by goal_point using the chain defined by root_link and
+    Tries to move the tip_link to the position defined by goal_point using the chain defined by root_link and
     tip_link. Since goal_point only defines the position but no rotation, rotation is not taken into account.
+
     :param goal_point: The goal position of the tip_link
     :param tip_link: The link which should be moved to goal_point as well as the end of the used chain
     :param root_link: The start link of the chain
@@ -151,7 +179,7 @@ def achieve_straight_translation_goal(goal_point: List[float], tip_link: str, ro
 
 def achieve_rotation_goal(quat: List[float], tip_link: str, root_link: str) -> MoveResult:
     """
-    This goal tries to bring the tip link into the rotation defined by quat using the chain defined by root_link and
+    Tries to bring the tip link into the rotation defined by quat using the chain defined by root_link and
     tip_link.
 
     :param quat: The rotation that should be achieved, given as a quaternion
@@ -166,7 +194,7 @@ def achieve_rotation_goal(quat: List[float], tip_link: str, root_link: str) -> M
 def achieve_align_planes_goal(goal_normal: List[float], tip_link: str, tip_normal: List[float],
                               root_link: str) -> MoveResult:
     """
-    This goal tries to align the plane defined by tip normal with goal_normal using the chain between root_link and
+    Tries to align the plane defined by tip normal with goal_normal using the chain between root_link and
     tip_link.
 
     :param goal_normal: The goal plane, given as a list of XYZ
@@ -227,6 +255,7 @@ def avoid_collisions(object1: Object, object2: Object) -> None:
     :param object2: The second BulletWorld Object
     """
     giskard_wrapper.avoid_collision(-1, object1.name + "_" + str(object1.id), object2.name + "_" + str(object2.id))
+
 
 # Creating ROS messages
 
