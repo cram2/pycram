@@ -1,4 +1,4 @@
-from pycram.designators.object_designator import ObjectDesignator
+from pycram.designators.object_designator import *
 from pycram.task import with_tree
 from pycram.process_module import ProcessModule
 from pycram.designators.motion_designator import *
@@ -38,21 +38,28 @@ def reach_position_generator(target):
 
 def object_fetching_location_generator(object_designator):
     object_type = object_designator.prop_value('type')
+    kitchen_designator = ObjectDesignator(ObjectDesignatorDescription(type="environment", name="kitchen"))
     if object_type == "spoon":
-        yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_upper_drawer'), ('part-of', "kitchen")])
+        #yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_upper_drawer'), ('part-of', "kitchen")])
+        yield ObjectDesignator(ObjectPart(type='drawer', name='sink_area_left_upper_drawer', part_of=kitchen_designator))
     elif object_type == "bowl":
-        yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_middle_drawer'), ('part-of', "kitchen")])
+        #yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_middle_drawer'), ('part-of', "kitchen")])
+        yield ObjectDesignator(ObjectPart(type='drawer', name='sink_area_left_middle_drawer', part_of=kitchen_designator))
     elif object_type == "milk":
-        yield ObjectDesignator([('type', 'fridge'), ('name', 'iai_fridge'), ('part-of', "kitchen")])
+        #yield ObjectDesignator([('type', 'fridge'), ('name', 'iai_fridge'), ('part-of', "kitchen")])
+        yield ObjectDesignator(ObjectPart(type='drawer', name='iai_fridge', part_of=kitchen_designator))
         yield [1.3, 0.8, 0.95]  # Location on counter top
     elif object_type == "cereal":
         yield [1.3, 0.8, 0.95]  # Location on counter top
     else:
         # Otherwise just look everywhere
         yield [1.3, 0.8, 0.95]
-        yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_upper_drawer'), ('part-of', "kitchen")])
-        yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_middle_drawer'), ('part-of', "kitchen")])
-        yield ObjectDesignator([('type', 'fridge'), ('name', 'iai_fridge'), ('part-of', "kitchen")])
+        #yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_upper_drawer'), ('part-of', "kitchen")])
+        yield ObjectDesignator(ObjectPart(type='drawer', name='sink_area_left_upper_drawer', part_of=kitchen_designator))
+        #yield ObjectDesignator([('type', 'drawer'), ('name', 'sink_area_left_middle_drawer'), ('part-of', "kitchen")])
+        yield ObjectDesignator(ObjectPart(type='drawer', name='sink_area_left_middle_drawer', part_of=kitchen_designator))
+        #yield ObjectDesignator([('type', 'fridge'), ('name', 'iai_fridge'), ('part-of', "kitchen")])
+        yield ObjectDesignator(ObjectPart(type='drawer', name='iai_fridge', part_of=kitchen_designator))
 
 
 class Arms(Enum):
@@ -65,59 +72,68 @@ class Arms(Enum):
 @with_tree
 def open_gripper(gripper):
     print("Opening gripper {}".format(gripper))
-    ProcessModule.perform(MotionDesignator([('type', 'opening-gripper'), ('gripper', gripper)]))
+    MotionDesignator(MoveGripperMotion(gripper=gripper, motion="open")).perform()
+    #ProcessModule.perform(MotionDesignator([('type', 'opening-gripper'), ('gripper', gripper)]))
 
 @with_tree
 def close_gripper(gripper):
     print("Closing gripper {}.".format(gripper))
-    ProcessModule.perform(MotionDesignator([('type', 'closing-gripper'), ('gripper', gripper)]))
+    MotionDesignator(MoveGripperMotion(gripper=gripper, motion="close")).perform()
+    #ProcessModule.perform(MotionDesignator([('type', 'closing-gripper'), ('gripper', gripper)]))
 
 @with_tree
-def pick_up(arm, btr_object):
-    print("Picking up {} with {}.".format(btr_object, arm))
-    motion_arm = "left" if arm is Arms.LEFT else "right"
-    # TODO: Hack to detach from kitchen.. (Should go into process module maybe)
-    try:
-        btr_object.prop_value('bullet_obj').detach(BulletWorld.current_bullet_world.get_objects_by_name("kitchen")[0])
-    except KeyError:
-        print("Not attached to anything!")
-    ProcessModule.perform(MotionDesignator([('type', 'pick-up'), ('object', btr_object), ('arm', motion_arm)]))
+def pick_up(arm, object_desig, grasp):
+    print("Picking up {} with {}.".format(object_desig, arm))
+    #motion_arm = "left" if arm is Arms.LEFT else "right"
+
+    object_desig.reference()
+    object = object_desig.prop_value('object')
+
+    MotionDesignator(PickUpMotion(object=object, arm=arm, grasp=grasp)).perform()
+    #ProcessModule.perform(MotionDesignator([('type', 'pick-up'), ('object', btr_object), ('arm', motion_arm)]))
     # ActionDesignator(ParkArmsDescription(arm=arm)).perform()
 
 @with_tree
-def place(arm, btr_object, target):
-    print("Placing {} with {} at {}.".format(btr_object, arm, target))
-    motion_arm = "left" if arm is Arms.LEFT else "right"
-    ProcessModule.perform(MotionDesignator([('type', 'place'), ('object', btr_object), ('arm', motion_arm), ('target', target)]))
-    if filter_contact_points(btr_object.prop_value("bullet_obj").contact_points_simulated(), [0,1,2]):
+def place(arm, object_desig, target):
+    print("Placing {} with {} at {}.".format(object_desig, arm, target))
+    #motion_arm = "left" if arm is Arms.LEFT else "right"
+    object_desig.reference()
+    MotionDesignator(PlaceMotion(object=object_desig.prop_value("object"), arm=arm, target=target)).perform()
+    #ProcessModule.perform(MotionDesignator([('type', 'place'), ('object', btr_object), ('arm', motion_arm), ('target', target)]))
+    if filter_contact_points(object_desig.prop_value("object").contact_points_simulated(), [0,1,2]):
         raise PlanFailure()
 
 @with_tree
 def navigate(target, orientation=[0, 0, 0, 1]):
     print("Moving to {}. Orientation: {}.".format(target, orientation))
-    ProcessModule.perform(MotionDesignator([('type', 'moving'), ('target', target), ('orientation', orientation)]))
+    MotionDesignator(MoveMotion(target=target, orientation=orientation)).perform()
+    #ProcessModule.perform(MotionDesignator([('type', 'moving'), ('target', target), ('orientation', orientation)]))
 
 @with_tree
 def park_arms(arms):
     print("Parking arms {}.".format(arms))
     left_arm = [('left-arm', 'park')] if arms in [Arms.LEFT, Arms.BOTH] else []
     right_arm = [('right-arm', 'park')] if arms in [Arms.RIGHT, Arms.BOTH] else []
-    ProcessModule.perform(MotionDesignator([('type', 'move-arm-joints')] + left_arm + right_arm))
+    MotionDesignator(MoveArmJointsMotion(left_arm_config="park", right_arm_config="park")).perform()
+    #ProcessModule.perform(MotionDesignator([('type', 'move-arm-joints')] + left_arm + right_arm))
 
 @with_tree
 def detect(object_designator):
     print("Detecting object of type {}.".format(object_designator.prop_value("type")))
-    det_object =  ProcessModule.perform(MotionDesignator([('type', 'detecting'), ('object', object_designator.prop_value("type"))]))
+    #det_object =  ProcessModule.perform(MotionDesignator([('type', 'detecting'), ('object', object_designator.prop_value("type"))]))
+    det_object = MotionDesignator(DetectingMotion(object_type=object_designator.prop_value("type"))).perform()
+
     if det_object is None:
         raise PlanFailure("No object detected.")
-    detected_obj_desig = object_designator.copy([("pose", det_object.get_pose()), ("bullet_obj", det_object)])
+    detected_obj_desig = object_designator.copy([("pose", det_object.get_position_and_orientation()), ("object", det_object)])
     detected_obj_desig.equate(object_designator)
     return detected_obj_desig
 
 @with_tree
 def look_at(target):
     print("Looking at {}.".format(target))
-    ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', target)]))
+    MotionDesignator(LookingMotion(target=target)).perform()
+    #ProcessModule.perform(MotionDesignator([('type', 'looking'), ('target', target)]))
 
 @with_tree
 def transport(object_designator, arm, target_location):
@@ -132,36 +148,36 @@ def transport(object_designator, arm, target_location):
 
     ## Fetch
     # Navigate
-    ActionDesignator(ParkArmsDescription(Arms.BOTH)).perform()
-    ActionDesignator(NavigateDescription(target_position=pos, target_orientation=rot)).perform()
+    ActionDesignator(ParkArmsAction(Arms.BOTH)).perform()
+    ActionDesignator(NavigateAction(target_position=pos, target_orientation=rot)).perform()
 
     # Access
     if type(fetch_object_location) is ObjectDesignator:
-        ActionDesignator(OpenActionDescription(fetch_object_location, arm)).perform()
-        ActionDesignator(ParkArmsDescription(arm)).perform()
+        ActionDesignator(OpenAction(fetch_object_location, arm)).perform()
+        ActionDesignator(ParkArmsAction(arm)).perform()
 
     # Pick Up
-    ActionDesignator(LookAtActionDescription(fetch_object_location)).perform()
-    obj = ActionDesignator(DetectActionDescription(object_designator)).perform()
-    ActionDesignator(PickUpDescription(obj, arm=arm)).perform()
-    ActionDesignator(ParkArmsDescription(arm)).perform()
+    ActionDesignator(LookAtAction(fetch_object_location)).perform()
+    obj = ActionDesignator(DetectAction(object_designator)).perform()
+    ActionDesignator(PickUpAction(obj, arm=arm)).perform()
+    ActionDesignator(ParkArmsAction(arm)).perform()
 
     # Seal
     if type(fetch_object_location) is ObjectDesignator:
         arms_free = free_arms()
         if arms_free:
-            ActionDesignator(CloseActionDescription(fetch_object_location, arms_free[0])).perform()
-            ActionDesignator(ParkArmsDescription(arms_free[0])).perform()
+            ActionDesignator(CloseAction(fetch_object_location, arms_free[0])).perform()
+            ActionDesignator(ParkArmsAction(arms_free[0])).perform()
 
     ## Deliver
     # Navigate
     deliver_robot_position_generator = reach_position_generator(target_location)
     pos, rot = next(deliver_robot_position_generator) #[-1.8, 1, 0], [0,0,0,1]
-    ActionDesignator(NavigateDescription(target_position=pos, target_orientation=rot)).perform()
+    ActionDesignator(NavigateAction(target_position=pos, target_orientation=rot)).perform()
 
     # Place
-    ActionDesignator(PlaceDescription(obj, target_location=target_location, arm=arm)).perform()
-    ActionDesignator(ParkArmsDescription(arm)).perform()
+    ActionDesignator(PlaceAction(obj, target_location=target_location, arm=arm)).perform()
+    ActionDesignator(ParkArmsAction(arm)).perform()
 
 
 def get_container_joint_and_handle(container_desig):
@@ -208,3 +224,7 @@ def close_container(object_designator, arm):
     ProcessModule.perform(MotionDesignator(
         [('type', motion_type), ('joint', joint),
          ('handle', handle), ('arm', arm), ('part-of', environment)]))
+
+@with_tree
+def move_torso(position):
+    MotionDesignator(MoveJointsMotion(["torso_lift_joint"], [position])).perform()

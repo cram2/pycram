@@ -1,17 +1,20 @@
-import rospy
 import pybullet as p
-from moveit_msgs.srv import GetPositionIK
+import rospy
+from geometry_msgs.msg import Pose
+from geometry_msgs.msg import PoseStamped
 from moveit_msgs.msg import PositionIKRequest
 from moveit_msgs.msg import RobotState
+from moveit_msgs.srv import GetPositionIK
 from sensor_msgs.msg import JointState
-from geometry_msgs.msg import PoseStamped
-from geometry_msgs.msg import Pose
+
+from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 
 
 class IKError(Exception):
-    def __init__(self, pose):
-        self.message = "Position {} is not reachable for end effector".format(pose)
+    def __init__(self, pose, base_frame):
+        self.message = "Position {} in frame '{}' is not reachable for end effector".format(pose, base_frame)
         super(IKError, self).__init__(self.message)
+
 
 def _get_position_for_joints(robot, joints):
     """
@@ -22,7 +25,9 @@ def _get_position_for_joints(robot, joints):
     :return: A list of joint states according and in the same order as the joint
     names in the joints parameter
     """
-    return list(map(lambda x: p.getJointState(robot.id, robot.get_joint_id(x))[0], joints))
+    return list(
+        map(lambda x: p.getJointState(robot.id, robot.get_joint_id(x), physicsClientId=robot.world.client_id)[0],
+            joints))
 
 
 def _make_request_msg(root_link, tip_link, target_pose, robot_object, joints):
@@ -59,20 +64,21 @@ def _make_request_msg(root_link, tip_link, target_pose, robot_object, joints):
     joint_state = JointState()
     joint_state.name = joints
     joint_state.position = _get_position_for_joints(robot_object, joints)
-    joint_state.velocity = [0.0 for x in range(len(joints))]
-    joint_state.effort = [0.0 for x in range(len(joints))]
+    # joint_state.velocity = [0.0 for x in range(len(joints))]
+    # joint_state.effort = [0.0 for x in range(len(joints))]
     robot_state.joint_state = joint_state
 
     msg_request = PositionIKRequest()
-    #msg_request.group_name = "arm"
+    # msg_request.group_name = "arm"
     msg_request.ik_link_name = tip_link
     msg_request.pose_stamped = pose_sta
     msg_request.avoid_collisions = False
     msg_request.robot_state = robot_state
-    #msg_request.timeout = rospy.Duration(secs=10000)
-    #msg_request.attempts = 1000
+    msg_request.timeout = rospy.Duration(secs=1000)
+    # msg_request.attempts = 1000
 
     return msg_request
+
 
 def request_ik(root_link, tip_link, target_pose_and_rotation, robot_object, joints):
     """
@@ -90,11 +96,27 @@ def request_ik(root_link, tip_link, target_pose_and_rotation, robot_object, join
     :param joints: A list of joint name that should be altered
     :return: The solution that was generated.
     """
-    rospy.wait_for_service('/kdl_ik_service/get_ik')
+    if robot_description.i.name == "pr2":
+        ik_service = "/pr2_right_arm_kinematics/get_ik" if "r_wrist" in tip_link else "/pr2_left_arm_kinematics/get_ik"
+    else:
+        ik_service = "/kdl_ik_service/get_ik"
+
+    # ik_service = "/kdl_ik_service/get_ik"
+    rospy.wait_for_service(ik_service)
+    # rospy.wait_for_service('/pr2_right_arm_kinematics/get_ik')
 
     req = _make_request_msg(root_link, tip_link, target_pose_and_rotation, robot_object, joints)
-    ik = rospy.ServiceProxy('/kdl_ik_service/get_ik', GetPositionIK)
-    resp = ik(req)
+    # ik = rospy.ServiceProxy('/pr2_right_arm_kinematics/get_ik', GetPositionIK)
+    ik = rospy.ServiceProxy(ik_service, GetPositionIK)
+    try:
+        resp = ik(req)
+    except rospy.ServiceException as e:
+        if robot_description.i.name == "pr2":
+            raise IKError(target_pose_and_rotation, root_link)
+        else:
+            raise e
+
     if resp.error_code.val == -31:
-        raise IKError(target_pose_and_rotation)
-    return(resp.solution.joint_state.position)
+        raise IKError(target_pose_and_rotation, root_link)
+
+    return (resp.solution.joint_state.position)

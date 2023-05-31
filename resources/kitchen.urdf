@@ -23,25 +23,25 @@
   <!--- FIXME THIS should NOT be here -->
   <!--
   <link name="map">
-    
+
     <sphere_inertia radius="0" mass="0"/>
   </link>
   <iai_drawer_60_14 name="drawer_1" parent="map">
     <origin rpy="0 0 0" xyz="0 0 1"/>
   </iai_drawer_60_14>
-  
+
   <iai_drawer_80_14 name="drawer_2" parent="map">
     <origin rpy="0 0 0" xyz="0 0 2"/>
   </iai_drawer_80_14>
-  
+
   <iai_drawer_60_29 name="drawer_3" parent="map">
     <origin rpy="0 0 0" xyz="0 0 3"/>
   </iai_drawer_60_29>
-  
+
   <iai_drawer_80_29 name="drawer_4" parent="map">
     <origin rpy="0 0 0" xyz="0 0 4"/>
   </iai_drawer_80_29>
-  
+
   <iai_drawer_100_29 name="drawer_5" parent="map">
     <origin rpy="0 0 0" xyz="0 0 5"/>
   </iai_drawer_100_29>
@@ -49,7 +49,7 @@
   <!--- FIXME THIS should NOT be here -->
   <!--
   <link name="oven_footprint">
-    
+
     <sphere_inertia radius="0" mass="0"/>
   </link>
   <iai_oven name="iai_oven" parent="oven_footprint"/>
@@ -57,25 +57,25 @@
   <!--- FIXME THIS should NOT be here -->
   <!--
   <link name="map">
-    
+
     <sphere_inertia radius="0" mass="0"/>
   </link>
   <iai_drawer_60_14 name="drawer_1" parent="map">
     <origin rpy="0 0 0" xyz="0 0 1"/>
   </iai_drawer_60_14>
-  
+
   <iai_drawer_80_14 name="drawer_2" parent="map">
     <origin rpy="0 0 0" xyz="0 0 2"/>
   </iai_drawer_80_14>
-  
+
   <iai_drawer_60_29 name="drawer_3" parent="map">
     <origin rpy="0 0 0" xyz="0 0 3"/>
   </iai_drawer_60_29>
-  
+
   <iai_drawer_80_29 name="drawer_4" parent="map">
     <origin rpy="0 0 0" xyz="0 0 4"/>
   </iai_drawer_80_29>
-  
+
   <iai_drawer_100_29 name="drawer_5" parent="map">
     <origin rpy="0 0 0" xyz="0 0 5"/>
   </iai_drawer_100_29>
@@ -83,25 +83,25 @@
   <!--- FIXME THIS should NOT be here -->
   <!--
   <link name="map">
-    
+
     <sphere_inertia radius="0" mass="0"/>
   </link>
   <iai_drawer_60_14 name="drawer_1" parent="map">
     <origin rpy="0 0 0" xyz="0 0 1"/>
   </iai_drawer_60_14>
-  
+
   <iai_drawer_80_14 name="drawer_2" parent="map">
     <origin rpy="0 0 0" xyz="0 0 2"/>
   </iai_drawer_80_14>
-  
+
   <iai_drawer_60_29 name="drawer_3" parent="map">
     <origin rpy="0 0 0" xyz="0 0 3"/>
   </iai_drawer_60_29>
-  
+
   <iai_drawer_80_29 name="drawer_4" parent="map">
     <origin rpy="0 0 0" xyz="0 0 4"/>
   </iai_drawer_80_29>
-  
+
   <iai_drawer_100_29 name="drawer_5" parent="map">
     <origin rpy="0 0 0" xyz="0 0 5"/>
   </iai_drawer_100_29>
@@ -109,25 +109,25 @@
   <!--- FIXME THIS should NOT be here -->
   <!--
   <link name="map">
-    
+
     <sphere_inertia radius="0" mass="0"/>
   </link>
   <iai_drawer_60_14 name="drawer_1" parent="map">
     <origin rpy="0 0 0" xyz="0 0 1"/>
   </iai_drawer_60_14>
-  
+
   <iai_drawer_80_14 name="drawer_2" parent="map">
     <origin rpy="0 0 0" xyz="0 0 2"/>
   </iai_drawer_80_14>
-  
+
   <iai_drawer_60_29 name="drawer_3" parent="map">
     <origin rpy="0 0 0" xyz="0 0 3"/>
   </iai_drawer_60_29>
-  
+
   <iai_drawer_80_29 name="drawer_4" parent="map">
     <origin rpy="0 0 0" xyz="0 0 4"/>
   </iai_drawer_80_29>
-  
+
   <iai_drawer_100_29 name="drawer_5" parent="map">
     <origin rpy="0 0 0" xyz="0 0 5"/>
   </iai_drawer_100_29>
@@ -515,6 +515,7 @@
     <xacro:if value="simulated"/>
     -->
   <joint name="sink_area_dish_washer_main_joint" type="revolute">
+    <axis xyz="1 0 0" />
     <limit effort="300" lower="0" upper="0" velocity="10"/>
     <origin rpy="0 0 0" xyz="0.01 0.1 0.044 "/>
     <parent link="sink_area"/>
@@ -960,7 +961,7 @@
       </geometry>
     </collision>
   </link>
-  
+
   <joint name="oven_area_area_left_drawer_main_joint" type="prismatic">
     <origin rpy="0 0 0" xyz="0.0 -0.45 0.06 "/>
     <parent link="oven_area_area"/>
@@ -1050,7 +1051,7 @@
         </geometry>
     </collision>
 </link>
-    
+
 <joint name="drawer_oven_right_board0_joint" type="fixed">
     <origin xyz="0 0 -0.655"/>
     <parent link="oven_area_area_right_drawer_main"/>
@@ -1451,9 +1452,9 @@
     <child link="oven_area_area_right_drawer_main"/>
     <axis xyz="1. 0. 0.0"/>
     <limit effort="300" lower="0" upper="0.48" velocity="10"/>
-    
+
         <limit effort="300" lower="0" upper="0" velocity="10"/>
-  
+
   </joint>
 
   <joint name="oven_area_area_right_drawer_handle_joint" type="fixed">
@@ -2303,21 +2304,20 @@
   </gazebo>
   <!-- Included above already
   <iai_sink_area name="sink_area" parent="room_link">
-    <origin xyz="-5.29 -5.65 0" rpy="0 0 0" />    
+    <origin xyz="-5.29 -5.65 0" rpy="0 0 0" />
   </iai_sink_area>
-  
+
   <iai_oven_area name="oven_area" parent="room_link">
-    <origin xyz="-5.27 -6.85 0" rpy="0 0 0" />    
+    <origin xyz="-5.27 -6.85 0" rpy="0 0 0" />
   </iai_oven_area>
-  
-  
+
+
   <iai_kitchen_island name="kitchen_island" parent="room_link">
-    <origin xyz="-2.1 -4.94 0" rpy="0 0 ${pi}" />    
+    <origin xyz="-2.1 -4.94 0" rpy="0 0 ${pi}" />
   </iai_kitchen_island>
-  
+
   <iai_fridge_area name="fridge_area" parent="room_link">
-    <origin xyz="-5.29 -3.59 0" rpy="0 0 0" />    
+    <origin xyz="-5.29 -3.59 0" rpy="0 0 0" />
   </iai_fridge_area>
   -->
 </robot>
-

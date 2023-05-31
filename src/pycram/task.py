@@ -1,449 +1,306 @@
-"""Implementation of task.
+"""Implementation of TaskTrees using anytree."""
 
-Functions:
-_block -- wrap multiple statements into a single block.
+# used for delayed evaluation of typing until python 3.11 becomes mainstream
+from __future__ import annotations
 
-Classes:
-GeneratorList -- implementation of generator list wrappers.
+import datetime
+import inspect
+import json
+import logging
+from typing import List, Dict, Optional, Callable, Any
 
-TODO
-"""
-
-import time
+import anytree
 import pybullet
+import sqlalchemy.orm.session
 
-from graphviz import Digraph
-from typing import List, Dict, Optional, Tuple
-from enum import Enum, auto
-from .taskpath import TaskPath
 from .bullet_world import BulletWorld
+from .orm.task import (Code as ORMCode, TaskTreeNode as ORMTaskTreeNode)
+from .plan_failures import PlanFailure
+from .enums import TaskStatus
 
-TASK_TREE = None
-CURRENT_TASK_TREE_NODE = None
-
-class TaskStatus(Enum):
-    CREATED = auto()
-    RUNNING = auto()
-    SUCCEEDED = auto()
-    FAILED = auto()
 
 class Code:
-    def __init__(self, body, function=None, args : Tuple=(), kwargs : Dict={}):
-        self.body = body
-        self.function = function
-        self.args = args
-        self.kwargs = kwargs
+    """
+    Executable code block in a plan.
 
-    def execute(self):
-        return self.function(*self.args, **self.kwargs)
+    :ivar function: The function (plan) that was called
+    :ivar kwargs: Dictionary holding the keyword arguments of the function
+    """
 
-    def pp(self):
-        if self.function:
-            pp = self.function.__name__ + '('
-            for arg in self.args:
-                pp += str(arg) + ", "
-            for kw, kwarg in self.kwargs.items():
-                pp += kw + "=" + str(kwarg)
-                pp += ", "
-            if self.args or self.kwargs:
-                pp = pp[:-2]
-            pp += ')'
-        else:
-            pp = self.body
-        return pp
+    def __init__(self, function: Optional[Callable] = None,
+                 kwargs: Optional[Dict] = None):
+        """
+        Initialize a code call
+        :param function: The function that was called
+        :param kwargs: The keyword arguments of the function as dict
+        """
+        self.function: Callable = function
 
-class NoopCode(Code):
+        if kwargs is None:
+            kwargs = dict()
+        self.kwargs: Dict[str, Any] = kwargs
+
+    def execute(self) -> Any:
+        """
+        Execute the code with its arguments
+
+        :returns: Anything that the function associated with this object will return.
+        """
+        return self.function(**self.kwargs)
+
+    # def __str__(self) -> str:
+    #     return "%s(%s)" % (self.function.__name__, ", ".join(["%s = %s" % (key, str(value)) for key, value in
+    #                                                           self.kwargs.items()]))
+
+    def __str__(self) -> str:
+        return "%s(%s)" % (
+            self.function.__name__, ", ".join(["%s, " % (str(value.__class__).split(".")[-2]) for value in
+                                               self.kwargs.values()]))
+
+    def __eq__(self, other):
+        return isinstance(other, Code) and other.function.__name__ == self.function.__name__ \
+               and other.kwargs == self.kwargs
+
+    def to_json(self) -> Dict:
+        """Create a dictionary that can be json serialized."""
+        return {"function": self.function.__name__, "kwargs": self.kwargs_to_json()}
+
+    def kwargs_to_json(self):
+        """Try to parse the keyword arguments to json. Checks if the objects given as arguments can be serialized
+        as standard object or have a to_json method. If not they are skipped. """
+        result = dict()
+        for keyword, argument in self.kwargs.items():
+            to_json_method = getattr(argument, 'to_json', None)
+
+            if to_json_method:
+                result[keyword] = argument.to_json()
+
+            else:
+                try:
+                    argument_ = json.loads(json.dumps(argument))
+                    result[keyword] = argument_
+                except (TypeError, OverflowError):
+                    logging.warning("Object of type %s cannot be JSON serialized. Skipping..." % type(argument))
+
+        return result
+
+    def to_sql(self) -> ORMCode:
+        return ORMCode(self.function.__name__)
+
+    def insert(self, session: sqlalchemy.orm.session.Session) -> ORMCode:
+        code = self.to_sql()
+
+        # set foreign key to designator if present
+        self_ = self.kwargs.get("self")
+
+        if self_ and getattr(self_, "insert", None):
+            designator = self_.insert(session)
+            code.designator = designator.id
+
+        session.add(code)
+        session.commit()
+        return code
+
+
+class NoOperation(Code):
+    """
+    Convenience class that represents no operation as code.
+    """
+
     def __init__(self):
-        # noop = type(None)  # alternative, but can't take arguments
-        noop = lambda *args, **kwargs: None
-        super().__init__("", noop)
+        # default no operation
+        def no_operation(): return None
 
-class TaskTreeNode:
-    def __init__(self, code=None, parent:"TaskTreeNode"=None, path:str=""):
-        self.code = code
-        self.parent : Optional["TaskTreeNode"] = parent
-        self.children : List["TaskTreeNode"] = []
-        self.path : str = path
-        self.exec_parent_prev : Optional["TaskTreeNode"] = None
-        self.exec_parent_next : Optional["TaskTreeNode"] = None
-        self.exec_child_prev : Optional["TaskTreeNode"] = None
-        self.exec_child_next : Optional["TaskTreeNode"] = None
-        self.exec_step = 0
-        self.status : TaskStatus = TaskStatus.CREATED
-        self.failure = None
-        self.start_time = None
-        self.end_time = None
+        # initialize a code block that does nothing
+        super().__init__(no_operation)
 
-    def pp(self):
-        # return nothing, when whole exec_child_tree is deleted
-        if type(self.code) is NoopCode:
-            return ""
 
-        pretty = ""
+class TaskTreeNode(anytree.NodeMixin):
+    """TaskTreeNode represents one function that was called during a pycram plan.
+    Additionally, meta information is stored.
 
-        # Add previous siblings
-        if self.exec_child_prev:
-            pretty += self.exec_child_prev.pp()
+    :ivar code: The function that was executed as Code object.
+    :ivar status: The status of the node from the TaskStatus enum.
+    :ivar start_time: The starting time of the function, optional
+    :ivar end_time: The ending time of the function, optional
+    :ivar reason: The reason why this task failed, optional
+    """
 
-        # If not root, add line break
-        if self.parent:
-            pretty += "\n"
-
-        # Indent 2 spaces for each level of depth
-        parent = self.parent
-        while parent:
-            pretty += "  "
-            parent = parent.parent
-
-        # if not root, add branch symbol thingy
-        if self.parent:
-            pretty += "|- "
-
-        # finally add function name
-        pretty += self.code.function.__name__ + " (" + self.path + ")"
-
-        # add pp for all children
-        for c in self.children:
-            pretty += c.pp()
-
-        # Add next siblings
-        if self.exec_child_next:
-            pretty += self.exec_child_next.pp()
-
-        return pretty
-
-    def generate_dot(self, dot=None, verbose=True):
-        if not dot:
-            dot = Digraph()
-        if self.exec_child_prev:
-            dot = self.exec_child_prev.generate_dot(dot, verbose)
-
-        if type(self.code) is not NoopCode:
-            if verbose:
-                label = "\n".join([self.path.split("/")[-1], self.code.pp(), str(self.status), str(self.start_time), str(self.end_time)])
-            else:
-                label = "\n".join([self.path.split("/")[-1], str(self.status)])
-            if self.failure:
-                label = "\n".join([label, str(self.failure)])
-            dot.node(self.path, label, shape="box", style="filled")
-            if self.parent:
-                dot.edge(self.parent.path, self.path)
-            for c in self.children:
-                dot = c.generate_dot(dot, verbose)
-
-        if self.exec_child_next:
-            dot = self.exec_child_next.generate_dot(dot, verbose)
-        return dot
-
-    def execute(self):
-        self.execute_prev()
-        self.exec_step = 0
-        self.status = TaskStatus.RUNNING
-        self.start_time = time.time()
-        global CURRENT_TASK_TREE_NODE
-        CURRENT_TASK_TREE_NODE = self
-        try:
-            result = self.code.execute()
-            self.status = TaskStatus.SUCCEEDED
-        except Exception as e:
-            self.status = TaskStatus.FAILED
-            self.failure = e
-            raise e
-        finally:
-            CURRENT_TASK_TREE_NODE = CURRENT_TASK_TREE_NODE.parent
-            self.end_time = time.time()
-        self.execute_next()
-        return result
-
-    def execute_prev(self):
-        if self.exec_child_prev:
-            return self.exec_child_prev.execute()
-
-    def execute_next(self):
-        if self.exec_child_next:
-            return self.exec_child_next.execute()
-
-    def execute_child(self):
-        try:
-            result = self.children[self.exec_step].execute()
-        finally:
-            self.exec_step += 1
-        return result
-
-    def delete(self):
-        # Not an ExecNode
-        if not (self.exec_parent_prev or self.exec_parent_next):
-            self.code = NoopCode()
-        # ExecNode and has one or two children
-        elif self.exec_child_prev or self.exec_child_next:
-            # Relink exec_children if necessary
-            if self.exec_child_prev and self.exec_child_next:
-                self.exec_child_prev.insert_after(self.exec_child_next)
-                link_child = self.exec_child_prev
-                link_child.exec_parent_next = None
-            elif self.exec_child_prev:
-                link_child = self.exec_child_prev
-                link_child.exec_parent_next = None
-            else:
-                link_child = self.exec_child_next
-                link_child.exec_parent_prev = None
-            # Link parent to new child
-            if self.exec_parent_prev:
-                self.exec_parent_prev.set_exec_child_next(link_child)
-            elif self.exec_parent_next:
-                self.exec_parent_next.set_exec_child_prev(link_child)
-        # ExecNode but no exec_children
-        else:
-            if self.exec_parent_prev:
-                self.exec_parent_prev.exec_child_next = None
-            elif self.exec_parent_next:
-                self.exec_parent_next.exec_child_prev = None
-
-    def copy(self):
-        copy_node = TaskTreeNode(self.code)
-        copy_node.children = self.children
-        return copy_node
-
-    def add_child(self, child:"TaskTreeNode"):
-        self.children.append(child)
-        child.fix_path()
-
-    def set_exec_child_prev(self, child : "TaskTreeNode"):
-        self.exec_child_prev = child
-        child.exec_parent_next = self
-        child.exec_child_prev = None
-        child.parent = self.parent
-        child.fix_path()
-
-    def set_exec_child_next(self, child : "TaskTreeNode"):
-        self.exec_child_next = child
-        child.exec_parent_prev = self
-        child.exec_parent_next = None
-        child.parent = self.parent
-        child.fix_path()
-
-    # TODO(?): Remove noop nodes from list?
-    def gen_children_list(self):
-        result = []
-        for c in self.children:
-            result += c.gen_sibling_list()
-        return result
-
-    def gen_sibling_list(self):
+    def __init__(self, code: Code = NoOperation(), parent: Optional[TaskTreeNode] = None,
+                 children: Optional[List[TaskTreeNode]] = None, reason: Optional[Exception] = None):
         """
-        Generate a list of exec_tree children/siblings
-        :return:
+        Create a TaskTreeNode
+        :param code: The function and its arguments that got called as Code object, defaults to NoOperation()
+        :param parent: The parent function of this function. None if this the parent, optional
+        :param children: An iterable of TaskTreeNode with the ordered children, optional
         """
-        if self.exec_child_prev and self.exec_child_next:
-            return self.exec_child_prev.gen_sibling_list() + [self] + self.exec_child_next.gen_sibling_list()
-        elif self.exec_child_prev:
-            return self.exec_child_prev.gen_sibling_list() + [self]
-        elif self.exec_child_next:
-            return [self] + self.exec_child_next.gen_sibling_list()
+        super().__init__()
+        self.code: Code = code
+        self.status: TaskStatus = TaskStatus.CREATED
+        self.start_time: Optional[datetime.datetime] = None
+        self.end_time: Optional[datetime.datetime] = None
+        self.parent = parent
+        self.reason: Optional[Exception] = reason
+
+        if children:
+            self.children = children
+
+    @property
+    def name(self):
+        return str(self)
+
+    def to_json(self):
+        return {"code": self.code.to_json(),
+                "status": self.status.name,
+                "start_time": self.start_time.isoformat() if self.start_time else None,
+                "end_time": self.end_time.isoformat() if self.end_time else None,
+                "id": id(self),
+                "parent_id": id(self.parent) if self.parent else None
+                }
+
+    def __str__(self):
+        return "Code: %s \n " \
+               "start_time: %s \n " \
+               "Status: %s \n " \
+               "end_time: %s \n " \
+               "" % (str(self.code), self.start_time, self.status, self.end_time)
+
+    def __repr__(self):
+        return str(self.code)
+
+    def __len__(self):
+        """Get the number of nodes that are in this subtree."""
+        return 1 + sum([len(child) for child in self.children])
+
+    def to_sql(self) -> ORMTaskTreeNode:
+        """Convert this object to the corresponding object in the pycram.orm package.
+
+        :returns:  corresponding pycram.orm.task.TaskTreeNode object
+        """
+
+        if self.reason:
+            reason = type(self.reason).__name__
         else:
-            return [self]
+            reason = None
 
-    def fix_path(self):
-        if self.parent and self.parent.path:
-            # fix path
-            max_i = -1
-            for c in self.parent.gen_children_list():
-                if c is self:
-                    continue
-                if c.code.function == self.code.function:
-                    max_i = max(max_i, int(c.path[-1]))  # TODO: This stops working for indices over 9
-            self.path = '/'.join([self.parent.path, self.code.function.__name__]) + str(max_i+1)
+        return ORMTaskTreeNode(None, self.start_time, self.end_time, self.status.name, reason,
+                               id(self.parent) if self.parent else None)
 
-            # fix children
-            for c in self.gen_children_list():
-                c.fix_path()
-        else:
-            self.parent.fix_path()
+    def insert(self, session: sqlalchemy.orm.session.Session, recursive: bool = True,
+               parent_id: Optional[int] = None) -> ORMTaskTreeNode:
+        """
+        Insert this node into the database.
 
-    def get_child_by_path(self, path):
-        if type(path) is str:
-            path = TaskPath(path)
-        children = self.gen_children_list()
-        children_with_name = list(filter(lambda x: x.code.function.__name__ == path.path[0].name, children))
-        try:
-            result = children_with_name[path.path[0].n]
-            if len(path) > 1:
-                return result.get_child_by_path(path.cut_off_head())
-            else:
-                return result
-        except IndexError:
-            raise IndexError("Node at path {} does not have child with name {} at number {}.".format(self.path, path.path[0].name, path.path[0].n))
+        :param session: The current session with the database.
+        :param recursive: Rather if the entire tree should be inserted or just this node, defaults to True
+        :param parent_id: The primary key of the parent node, defaults to None
 
-    def insert_before(self, node):
-        if self.exec_child_prev:
-            n = self.exec_child_prev
-            while n.exec_child_next:
-                n = n.exec_child_next
-            n.set_exec_child_next(node)
-        else:
-            self.set_exec_child_prev(node)
-        node.fix_path()
+        :return: The ORM object that got inserted
+        """
 
-    def insert_after(self, node):
-        if self.exec_child_next:
-            n = self.exec_child_next
-            while n.exec_child_prev:
-                n = n.exec_child_prev
-            n.set_exec_child_prev(node)
-        else:
-            self.set_exec_child_next(node)
-        node.fix_path()
+        # insert code
+        code = self.code.insert(session)
 
-    def replace_child(self, node, new_node):
-        for i in range(len(self.children)):
-            child = self.children[i]
-            if child is node:
-                self.children[i] = new_node
-                new_node.parent = self
-                new_node.exec_child_prev = child.exec_child_prev
-                new_node.exec_child_next = child.exec_child_next
-                new_node.fix_path()
-                return True
-            elif self.replace_exec_child(node, new_node):
-                return True
-        return False
+        # convert self to orm object
+        node = self.to_sql()
+        node.code = code.id
 
-    def replace_exec_child(self, node, new_node):
-        if self.exec_child_prev is node:
-            new_node.exec_child_prev = self.exec_child_prev.exec_child_prev
-            new_node.exec_child_next = self.exec_child_prev.exec_child_next
-            self.exec_child_prev = new_node
-            return True
-        if self.exec_child_next is node:
-            new_node.exec_child_prev = self.exec_child_next.exec_child_prev
-            new_node.exec_child_next = self.exec_child_next.exec_child_next
-            self.exec_child_next = new_node
-            return True
-        if self.exec_child_prev and self.exec_child_prev.replace_exec_child(node, new_node):
-            return True
-        if self.exec_child_next and self.exec_child_next.replace_exec_child(node, new_node):
-            return True
-        return False
+        # set parent to id from constructor
+        node.parent = parent_id
 
-    def params(self):
-        return self.code.args, self.code.kwargs
+        # add the node to database to retrieve the new id
+        session.add(node)
+        session.commit()
 
-    def delete_following(self, inclusive=False):
-        kill = False
-        for c in self.parent.gen_children_list():
-            if kill:
-                c.delete()
-            if c is self:
-                kill = True
-        if inclusive:
-            self.delete()
+        # if recursive, insert all children
+        if recursive:
+            [child.insert(session, parent_id=node.id) for child in self.children]
 
-    def delete_previous(self, inclusive=False):
-        kill = False
-        children = self.parent.gen_children_list()
-        children.reverse()
-        for c in children:
-            if kill:
-                c.delete()
-            if c is self:
-                kill = True
-        if inclusive:
-            self.delete()
+        return node
 
-    def get_successful_params_ctx_after(self, name, ctx):
-        params = []
-        noi = None  # Node of Interest
-        for c in self.gen_children_list():
-            if c.code.function.__name__ == name and c.status == TaskStatus.SUCCEEDED:
-                noi = c
-            if noi and c.code.function.__name__ == ctx and c.status == TaskStatus.SUCCEEDED:
-                params.append(noi.params())
-                noi = None
-        return params
 
 class SimulatedTaskTree:
+    """TaskTree for execution in a 'new' simulation."""
+
     def __enter__(self):
-        global TASK_TREE
-        global CURRENT_TASK_TREE_NODE
-        self.suspended_tree = TASK_TREE
-        self.suspended_current_node = CURRENT_TASK_TREE_NODE
+        """At the beginning of a with statement the current task tree and bullet world will be suspended and remembered.
+        Fresh structures are then available inside the with statement."""
+        global task_tree
+
+        def simulation(): return None
+
+        self.suspended_tree = task_tree
         self.world_state, self.objects2attached = BulletWorld.current_bullet_world.save_state()
-        self.simulated_root = TaskTreeNode(code=Code("Simulation"), path="dream")
-        TASK_TREE = self.simulated_root
-        CURRENT_TASK_TREE_NODE = self.simulated_root
+        self.simulated_root = TaskTreeNode(code=Code(simulation))
+        task_tree = self.simulated_root
         pybullet.addUserDebugText("Simulating...", [0, 0, 1.75], textColorRGB=[0, 0, 0],
                                   parentObjectUniqueId=1, lifeTime=0)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        global TASK_TREE
-        global CURRENT_TASK_TREE_NODE
-        TASK_TREE = self.suspended_tree
-        CURRENT_TASK_TREE_NODE = self.suspended_current_node
+        """
+        Restore the old state at the end of a with block.
+        """
+        global task_tree
+        task_tree = self.suspended_tree
         BulletWorld.current_bullet_world.restore_state(self.world_state, self.objects2attached)
         pybullet.removeAllUserDebugItems()
 
-    def get_successful_params_ctx_after(self, name, ctx):
-        # This only works for very specific contexts
-        # And only if there are no other actions with NAME before the context of interest
-        params = []
-        noi = None  # Node of Interest
-        for c in self.simulated_root.gen_children_list():
-            if c.code.function.__name__ == name and c.status == TaskStatus.SUCCEEDED:
-                noi = c
-            if noi and c.code.function.__name__ == ctx and c.status == TaskStatus.SUCCEEDED:
-                params.append(noi.params())
-                noi = None
-        return params
 
-def move_node_to_path(node, path, where=1):
+task_tree: Optional[TaskTreeNode] = None
+"""Current TaskTreeNode"""
+
+
+def reset_tree() -> None:
     """
-    Move a node to a path.
-    :param node: TaskTreeNode
-    :param path: TaskTreePath
-    :param where: An integer indicating where to put the node: -1=before the node, 0=instead of the node, 1=after the node
+    Reset the current task tree to an empty root (NoOperation) node.
     """
-    global TASK_TREE
-    node_at_path = TASK_TREE.get_child_by_path(path)
-    node_copy = node.copy()
-    for c in node_copy.gen_children_list():
-        c.parent = None
-    node_copy.children = []
-    if where==-1:
-        node.delete()
-        node_at_path.insert_before(node_copy)
-    elif where==1:
-        node.delete()
-        node_at_path.insert_after(node_copy)
-    elif where==0:
-        node.delete()
-        node_at_path.parent.replace_child(node_at_path, node_copy)
-    else:
-        print("WARN - Moving node: where parameter is not properly set.")
-        return
-    return node_copy
+    global task_tree
+    task_tree = TaskTreeNode(NoOperation())
+    task_tree.start_time = datetime.datetime.now()
+    task_tree.status = TaskStatus.RUNNING
 
-def get_successful_params(nodes : List[TaskTreeNode]):
-    p = []
-    for n in nodes:
-        if n.status == TaskStatus.SUCCEEDED:
-            p.append(n.params())
-    return p
 
-def with_tree(fun):
+reset_tree()
+
+
+def with_tree(fun: Callable) -> Callable:
+    """Decorator that records the function name, arguments and execution metadata in the task tree.
+
+    :param fun: The function to record the data from.
+    """
+
     def handle_tree(*args, **kwargs):
-        global TASK_TREE
-        global CURRENT_TASK_TREE_NODE
-        code = Code("", fun, args, kwargs)
-        if CURRENT_TASK_TREE_NODE is None:
-            TASK_TREE = TaskTreeNode(code, None, fun.__name__)
-            CURRENT_TASK_TREE_NODE = TASK_TREE
-            result = CURRENT_TASK_TREE_NODE.execute()
-        else:
-            if len(CURRENT_TASK_TREE_NODE.children) <= CURRENT_TASK_TREE_NODE.exec_step:
-                new_node = TaskTreeNode(code, CURRENT_TASK_TREE_NODE,
-                                        '/'.join([CURRENT_TASK_TREE_NODE.path, fun.__name__]))
-                CURRENT_TASK_TREE_NODE.add_child(new_node)
-            result = CURRENT_TASK_TREE_NODE.execute_child()
+
+        # get the task tree
+        global task_tree
+
+        # create the code object that gets executed
+        code = Code(fun, inspect.getcallargs(fun, *args, **kwargs))
+
+        task_tree = TaskTreeNode(code, parent=task_tree)
+
+        # Try to execute the task
+        try:
+            task_tree.status = TaskStatus.CREATED
+            task_tree.start_time = datetime.datetime.now()
+            result = task_tree.code.execute()
+
+            # if it succeeded set the flag
+            task_tree.status = TaskStatus.SUCCEEDED
+
+        # iff a PlanFailure occurs
+        except PlanFailure as e:
+
+            # log the error and set the flag
+            logging.exception("Task execution failed at %s. Reason %s" % (str(task_tree.code), e))
+            task_tree.reason = e
+            task_tree.status = TaskStatus.FAILED
+            raise e
+        finally:
+            # set and time and update current node pointer
+            task_tree.end_time = datetime.datetime.now()
+            task_tree = task_tree.parent
         return result
+
     return handle_tree
