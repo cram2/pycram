@@ -1086,6 +1086,12 @@ class Object:
         return contact_points
 
     def update_joints_from_topic(self, topic_name: str) -> None:
+        """
+        Updates the joints of this object with positions obtained from a topic with the message type JointState.
+        Joint names on the topic have to correspond to the joints of this object otherwise an error message will be logged.
+
+        :param topic_name: Name of the topic with the joint states
+        """
         msg = rospy.wait_for_message(topic_name, JointState)
         joint_names = msg.name
         joint_positions = msg.position
@@ -1097,10 +1103,15 @@ class Object:
             rospy.logerr(f"There are joints in the published joint state which are not in this model: /n \
                         The following joint{'s' if len(add_joints) != 1 else ''}: {add_joints}")
 
-    def update_position_from_tf(self) -> None:
+    def update_position_from_tf(self, frame: str) -> None:
+        """
+        Updates the position of this object from a TF message.
+
+        :param frame: Name of the TF frame from which the position should be taken
+        """
         tf_listener = tf.TransformListener()
         time.sleep(0.5)
-        position = tf_listener.lookupTransform(robot_description.i.base_frame, "map", rospy.Time(0))
+        position = tf_listener.lookupTransform(frame, "map", rospy.Time(0))
         self.set_position([position[0][0] * -1,
                            position[0][1] * -1,
                            position[0][2],
