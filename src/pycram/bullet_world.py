@@ -9,6 +9,7 @@ import threading
 import time
 import xml.etree.ElementTree
 from queue import Queue
+import tf
 from typing import List, Optional, Dict, Tuple, Callable
 from typing import Union
 
@@ -20,6 +21,8 @@ import rosgraph
 
 from .event import Event
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from sensor_msgs.msg import JointState
+
 
 
 class BulletWorld:
@@ -1081,6 +1084,38 @@ class Object:
         contact_points = self.contact_points()
         self.world.restore_state(*s)
         return contact_points
+
+    def update_joints_from_topic(self, topic_name: str) -> None:
+        """
+        Updates the joints of this object with positions obtained from a topic with the message type JointState.
+        Joint names on the topic have to correspond to the joints of this object otherwise an error message will be logged.
+
+        :param topic_name: Name of the topic with the joint states
+        """
+        msg = rospy.wait_for_message(topic_name, JointState)
+        joint_names = msg.name
+        joint_positions = msg.position
+        if set(joint_names).issubset(self.joints.keys()):
+            for i in range(len(joint_names)):
+                self.set_joint_state(joint_names[i], joint_positions[i])
+        else:
+            add_joints = set(joint_names) - set(self.joints.keys())
+            rospy.logerr(f"There are joints in the published joint state which are not in this model: /n \
+                        The following joint{'s' if len(add_joints) != 1 else ''}: {add_joints}")
+
+    def update_position_from_tf(self, frame: str) -> None:
+        """
+        Updates the position of this object from a TF message.
+
+        :param frame: Name of the TF frame from which the position should be taken
+        """
+        tf_listener = tf.TransformListener()
+        time.sleep(0.5)
+        position = tf_listener.lookupTransform(frame, "map", rospy.Time(0))
+        self.set_position([position[0][0] * -1,
+                           position[0][1] * -1,
+                           position[0][2],
+                           position[1]])
 
     def set_color(self, color: List[float], link: Optional[str] = "") -> None:
         """
