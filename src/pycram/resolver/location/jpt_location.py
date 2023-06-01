@@ -14,6 +14,12 @@ from pycram.plan_failures import PlanFailure
 
 
 class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation):
+    """Costmap Locations using Joint Probability Trees (JPTs).
+    JPT costmaps are trained to model the dependency with a robot position relative to the object, the robots type,
+    the objects type, the robot torso height, and the grasp parameters.
+    Solutions to the problem definitions are chosen in such a way that the success probability is highest.
+    """
+
     @dataclasses.dataclass
     class Location(pycram.designators.location_designator.LocationDesignatorDescription.Location):
         pose: Tuple[List[float], List[float]]
@@ -23,17 +29,29 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
 
     def __init__(self, target, reachable_for=None, reachable_arm=None,
                  model: Optional[jpt.trees.JPT] = None, path: Optional[str] = None, resolver=None):
+        """
+        Create a JPT Costmap
+        :param target: The target object
+        :param reachable_for: The robot to grab the object with
+        :param reachable_arm: The arm to use
+        :param model: The JPT model as a loaded tree in memory, either model or path must be set
+        :param path: The path to the JPT model, either model or path must be set
+        """
         super().__init__(target, reachable_for, None, reachable_arm, resolver)
 
+        # check if arguments are plausible
         if (not model and not path) or (model and path):
             raise ValueError("Either model or path must be set.")
 
+        # set model
         if model:
             self.model = model
 
+        # load model from path
         if path:
             self.model = jpt.trees.JPT.load(path)
 
+        # initialize member for visualized objects
         self.visual_ids: List[int] = []
 
     def evidence_from_occupancy_costmap(self) -> List[jpt.variables.LabelAssignment]:
@@ -44,9 +62,13 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
         """
 
         # create Occupancy costmap for the target object
-        ocm = OccupancyCostmap(distance_to_obstacle=0.4, from_ros=False, size=200, resolution=0.02,
-                               origin=self.target.get_position_and_orientation())
+        position, orientation = self.target.get_position_and_orientation()
+        position = list(position)
+        position[-1] = 0
 
+        ocm = OccupancyCostmap(distance_to_obstacle=0.5, from_ros=False, size=200, resolution=0.02,
+                               origin=(position, orientation))
+        ocm.visualize()
         # working on a copy of the costmap, since found rectangles are deleted
         map = np.copy(ocm.map)
 
@@ -76,26 +98,32 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
                     rectangle = np.array([lower_corner, upper_corner]).T
 
                     # transform to jpt query
-                    query = self.model.bind({"x_position": list(rectangle[0]), "y_position": list(rectangle[1])})
+                    query = self.model.bind({"x": list(rectangle[0]), "y": list(rectangle[1])})
                     queries.append(query)
 
         return queries
 
-    def create_evidence(self, use_success=True):
+    def create_evidence(self, use_success=True) -> jpt.variables.LabelAssignment:
+        """
+        Create evidence usable for JPTs where type and status are set if wanted.
+        :param use_success: Rather to set success or not
+        :return: The usable label-assignment
+        """
         evidence = dict()
 
-        if self.reachable_for:
-            evidence["robot_type"] = {self.reachable_for.type}
-
-        evidence["object_type"] = {self.target.type}
+        evidence["type"] = {self.target.type}
 
         if use_success:
-            evidence["success"] = {"True"}
+            evidence["status"] = {"SUCCEEDED"}
 
         return self.model.bind(evidence)
 
-    def sample(self, amount: int = 1):
-        """Sample from the locations that fit the CostMap."""
+    def sample(self, amount: int = 1) -> np.ndarray:
+        """
+        Sample from the locations that fit the CostMap and are not occupied.
+        :param amount: The amount of samples to draw
+        :return: A numpy array containing the samples drawn from the tree.
+        """
         evidence = self.create_evidence()
 
         locations = self.evidence_from_occupancy_costmap()
@@ -113,28 +141,33 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
                 _, mpe_state = leaf.mpe(self.model.minimal_distances)
                 location["grasp"] = mpe_state["grasp"]
                 location["arm"] = mpe_state["arm"]
-                location["torso_height"] = mpe_state["torso_height"]
-                location["x_position"] = mpe_state["x_position"]
-                location["y_position"] = mpe_state["y_position"]
+                location["relative torso height"] = mpe_state["relative torso height"]
+                location["x"] = mpe_state["x"]
+                location["y"] = mpe_state["y"]
                 solutions.append((location, success_probability, leaf.prior))
 
         solutions = sorted(solutions, key=lambda x: x[1], reverse=True)
 
         best_solution = solutions[0]
         conditional_model = self.model.conditional_jpt(best_solution[0])
-        print(best_solution)
+
         # conditional_model.plot(plotvars=conditional_model.variables)
         return conditional_model.sample(amount)
 
     def sample_to_location(self, sample: np.ndarray) -> Location:
+        """
+        Convert a numpy array sampled from the JPT to a costmap-location
+        :param sample: The drawn sample
+        :return: The usable costmap-location
+        """
         sample_dict = {variable.name: value for variable, value in zip(self.model.variables, sample)}
         target_x, target_y, target_z = self.target.pose
-        pose = [target_x + sample_dict["x_position"], target_y + sample_dict["y_position"], 0]
+        pose = [target_x + sample_dict["x"], target_y + sample_dict["y"], 0]
 
         angle = np.arctan2(pose[1] - target_y, pose[0] - target_x) + np.pi
 
         orientation = list(tf.transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
-        torso_height = np.clip(target_z - sample_dict["torso_height"], 0, 0.33)
+        torso_height = np.clip(target_z - sample_dict["relative torso height"], 0, 0.33)
         result = self.Location((pose, orientation), sample_dict["arm"], torso_height, sample_dict["grasp"])
         return result
 
@@ -152,13 +185,13 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
 
         for leaf in conditional_model.leaves.values():
 
-            success = leaf.distributions["success"].p({"True"})
+            success = leaf.distributions["status"].p({"SUCCEEDED"})
 
             if success == 0:
                 continue
 
-            x_intervals = leaf.distributions["x_position"].cdf.intervals
-            y_intervals = leaf.distributions["y_position"].cdf.intervals
+            x_intervals = leaf.distributions["x"].cdf.intervals
+            y_intervals = leaf.distributions["y"].cdf.intervals
 
             x_range = np.array([x_intervals[0].upper, x_intervals[-1].lower])
             y_range = np.array([y_intervals[0].upper, y_intervals[-1].lower])
@@ -201,6 +234,7 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
             self.visual_ids.append(map_obj)
 
     def close_visualization(self) -> None:
+        """Close all plotted objects."""
         for id in self.visual_ids:
             pybullet.removeBody(id)
         self.visual_ids = []

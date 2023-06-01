@@ -1,8 +1,9 @@
 import os
-import unittest
 import time
+import unittest
 
 import jpt
+import mlflow
 import numpy as np
 import requests
 
@@ -33,13 +34,16 @@ class JPTResolverTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         np.random.seed(420)
-        cls.model = jpt.JPT.load(os.path.join(os.path.expanduser("~"), "Documents", "grasping.jpt"))
-        cls.world = BulletWorld("GUI")
+        cls.model = mlflow.pyfunc.load_model(
+            model_uri="mlflow-artifacts:/0/9150dd1fb353494d807261928cea6e8c/artifacts/grasping").unwrap_python_model()\
+            .model
+        cls.world = BulletWorld("DIRECT")
         cls.milk = Object("milk", "milk", "milk.stl", position=[3, 3, 0.75])
         cls.robot = Object(robot_description.i.name, "pr2", robot_description.i.name + ".urdf")
         ProcessModule.execution_delay = False
 
     def test_costmap_no_obstacles(self):
+        """Check if grasping a milk in the air works."""
         cml = JPTCostmapLocation(self.milk, reachable_for=self.robot, model=self.model)
         sample = next(iter(cml))
 
@@ -54,15 +58,12 @@ class JPTResolverTestCase(unittest.TestCase):
         kitchen = Object("kitchen", "environment", "kitchen.urdf")
         self.milk.set_position([-1.2, 1, 0.98])
         cml = JPTCostmapLocation(self.milk, reachable_for=self.robot, model=self.model)
+
         sample = next(iter(cml))
-
-
 
         with simulated_robot:
             action_designator.NavigateAction.Action(sample.pose).perform()
             action_designator.MoveTorsoAction.Action(sample.torso_height).perform()
-            print(sample)
-            time.sleep(10)
             action_designator.PickUpAction.Action(
                 object_designator.ObjectDesignatorDescription(types=["milk"]).resolve(),
                 arm=sample.reachable_arm, grasp=sample.grasp).perform()
