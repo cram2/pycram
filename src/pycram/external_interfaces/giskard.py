@@ -2,7 +2,6 @@ import rospy
 
 from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from ..bullet_world import BulletWorld, Object
-from ..process_module import ProcessModule
 from giskardpy.python_interface import GiskardWrapper
 from geometry_msgs.msg import PoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
 from giskard_msgs.msg import WorldBody, MoveResult
@@ -123,7 +122,8 @@ def achieve_joint_goal(goal_poses: Dict[str, float]) -> MoveResult:
     Takes a dictionary of joint position that should be achieved, the keys in the dictionary are the joint names and
     values are the goal joint positions.
 
-    :param goal_poses:
+    :param goal_poses: Dictionary with joint names and position goals
+    :return: MoveResult message for this goal
     """
     sync_worlds()
     giskard_wrapper.set_joint_goal(goal_poses)
@@ -138,6 +138,7 @@ def achieve_cartesian_goal(goal_pose: Tuple[List[float], List[float]], tip_link:
     :param goal_pose: The position which should be achieved with tip_link
     :param tip_link: The end link of the chain as well as the link which should achieve the goal_pose
     :param root_link: The starting link of the chain which should be used to achieve this goal
+    :return: MoveResult message for this goal
     """
     sync_worlds()
     giskard_wrapper.set_cart_goal(make_pose_stamped(goal_pose), tip_link, root_link)
@@ -147,7 +148,13 @@ def achieve_cartesian_goal(goal_pose: Tuple[List[float], List[float]], tip_link:
 def achieve_straight_cartesian_goal(goal_pose: Tuple[List[float], List[float]], tip_link: str,
                                     root_link: str) -> MoveResult:
     """
-    Same as achieve_cartesian_goal but tries to move the tip_link in a straight line.
+    Takes a cartesian position and tries to move the tip_link to this position in a straight line, using the chain
+    defined by tip_link and root_link.
+
+    :param goal_pose: The position which should be achieved with tip_link
+    :param tip_link: The end link of the chain as well as the link which should achieve the goal_pose
+    :param root_link: The starting link of the chain which should be used to achieve this goal
+    :return: MoveResult message for this goal
     """
     sync_worlds()
     giskard_wrapper.set_straight_cart_goal(make_pose_stamped(goal_pose), tip_link, root_link)
@@ -162,6 +169,7 @@ def achieve_translation_goal(goal_point: List[float], tip_link: str, root_link: 
     :param goal_point: The goal position of the tip_link
     :param tip_link: The link which should be moved to goal_point as well as the end of the used chain
     :param root_link: The start link of the chain
+    :return: MoveResult message for this goal
     """
     sync_worlds()
     giskard_wrapper.set_translation_goal(make_point_stamped(goal_point), tip_link, root_link)
@@ -170,7 +178,13 @@ def achieve_translation_goal(goal_point: List[float], tip_link: str, root_link: 
 
 def achieve_straight_translation_goal(goal_point: List[float], tip_link: str, root_link: str) -> MoveResult:
     """
-    Same as achieve_translation_goal but tries to move in a straight line.
+    Tries to move the tip_link to the position defined by goal_point in a straight line, using the chain defined by
+    root_link and tip_link. Since goal_point only defines the position but no rotation, rotation is not taken into account.
+
+    :param goal_point: The goal position of the tip_link
+    :param tip_link: The link which should be moved to goal_point as well as the end of the used chain
+    :param root_link: The start link of the chain
+    :return: MoveResult message for this goal
     """
     sync_worlds()
     giskard_wrapper.set_straight_translation_goal(make_point_stamped(goal_point), tip_link, root_link)
@@ -185,6 +199,7 @@ def achieve_rotation_goal(quat: List[float], tip_link: str, root_link: str) -> M
     :param quat: The rotation that should be achieved, given as a quaternion
     :param tip_link: The link that should be in the rotation defined by quat
     :param root_link: The start link of the chain
+    :return: MoveResult message for this goal
     """
     sync_worlds()
     giskard_wrapper.set_rotation_goal(make_quaternion_stamped(quat), tip_link, root_link)
@@ -201,6 +216,7 @@ def achieve_align_planes_goal(goal_normal: List[float], tip_link: str, tip_norma
     :param tip_link: The end link of the chain that should be used.
     :param tip_normal: The plane that should be aligned with goal_normal, given as a list of XYZ
     :param root_link: The starting link of the chain that should be used.
+    :return: MoveResult message for this goal
     """
     sync_worlds()
     giskard_wrapper.set_align_planes_goal(make_vector_stamped(goal_normal), tip_link, make_vector_stamped(tip_normal),
@@ -215,6 +231,7 @@ def achieve_open_container_goal(tip_link: str, environment_link: str) -> MoveRes
 
     :param tip_link: The End effector that should open the container
     :param environment_link: The name of the handle for this container.
+    :return: MoveResult message for this goal
     """
     sync_worlds()
     giskard_wrapper.set_open_container_goal(tip_link, environment_link)
@@ -223,7 +240,12 @@ def achieve_open_container_goal(tip_link: str, environment_link: str) -> MoveRes
 
 def achieve_close_container_goal(tip_link: str, environment_link: str) -> MoveResult:
     """
-    Same as achieve_open_container but closes the container this time.
+    Tries to close a container, this only works if the container was added as a URDF. Assumes that the handle of the
+    container was already grasped. Can only handle container with 1 DOF.
+
+    :param tip_link: Link name that should be used to close the container.
+    :param environment_link: Name of the handle
+    :return: MoveResult message for this goal
     """
     sync_worlds()
     giskard_wrapper.set_close_container_goal(tip_link, environment_link)
