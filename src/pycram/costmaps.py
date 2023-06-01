@@ -397,7 +397,8 @@ class OccupancyCostmap(Costmap):
                                          physicsClientId=BulletWorld.current_bullet_world.client_id)
                 j += len(n)
                 if BulletWorld.robot:
-                    res[i:j] = [1 if ray[0] == -1 or ray[0] == BulletWorld.robot.id else 0 for ray in r_t]
+                    shadow_robot = BulletWorld.current_bullet_world.get_shadow_object(BulletWorld.robot)
+                    res[i:j] = [1 if ray[0] == -1 or ray[0] == shadow_robot.id else 0 for ray in r_t]
                 else:
                     res[i:j] = [1 if ray[0] == -1 else 0 for ray in r_t]
                 i += len(n)
