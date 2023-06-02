@@ -398,7 +398,9 @@ class OccupancyCostmap(Costmap):
                 j += len(n)
                 if BulletWorld.robot:
                     shadow_robot = BulletWorld.current_bullet_world.get_shadow_object(BulletWorld.robot)
-                    res[i:j] = [1 if ray[0] == -1 or ray[0] == shadow_robot.id else 0 for ray in r_t]
+                    attached_objs = BulletWorld.robot.attachments.keys()
+                    attached_objs_shadow_id = [BulletWorld.current_bullet_world.get_shadow_object(x).id for x in attached_objs]
+                    res[i:j] = [1 if ray[0] == -1 or ray[0] == shadow_robot.id or ray[0] in attached_objs_shadow_id else 0 for ray in r_t]
                 else:
                     res[i:j] = [1 if ray[0] == -1 else 0 for ray in r_t]
                 i += len(n)
