@@ -68,7 +68,8 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
 
         ocm = OccupancyCostmap(distance_to_obstacle=0.5, from_ros=False, size=200, resolution=0.02,
                                origin=(position, orientation))
-        ocm.visualize()
+        # ocm.visualize()
+
         # working on a copy of the costmap, since found rectangles are deleted
         map = np.copy(ocm.map)
 
@@ -86,7 +87,7 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
 
                     # get consecutive box
                     width = ocm._find_consectuive_line((i, j), map)
-                    height = ocm._find_max_box_height((i,j), width, map)
+                    height = ocm._find_max_box_height((i, j), width, map)
 
                     # mark box as used
                     map[i:i+height, j:j+width] = 0
@@ -127,18 +128,20 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
         evidence = self.create_evidence()
 
         locations = self.evidence_from_occupancy_costmap()
-
+        print(*locations, sep="\n")
         solutions = []
 
         for location in locations:
-
             for variable, value in evidence.items():
                 location[variable] = value
 
             for leaf in self.model.apply(location):
-                success_probability = leaf.probability(location)
+                if leaf.probability(location) == 0:
+                    continue
+                altered_leaf = leaf.conditional_leaf(location)
+                success_probability = altered_leaf.probability(location)
 
-                _, mpe_state = leaf.mpe(self.model.minimal_distances)
+                _, mpe_state = altered_leaf.mpe(self.model.minimal_distances)
                 location["grasp"] = mpe_state["grasp"]
                 location["arm"] = mpe_state["arm"]
                 location["relative torso height"] = mpe_state["relative torso height"]
@@ -147,7 +150,7 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
                 solutions.append((location, success_probability, leaf.prior))
 
         solutions = sorted(solutions, key=lambda x: x[1], reverse=True)
-
+        print(*solutions, sep="\n")
         best_solution = solutions[0]
         conditional_model = self.model.conditional_jpt(best_solution[0])
 

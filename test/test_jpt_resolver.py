@@ -7,6 +7,7 @@ import mlflow
 import numpy as np
 import requests
 
+import pycram.plan_failures
 from pycram.bullet_world import BulletWorld, Object
 from pycram.designators import action_designator, object_designator
 from pycram.process_module import ProcessModule
@@ -37,7 +38,7 @@ class JPTResolverTestCase(unittest.TestCase):
         cls.model = mlflow.pyfunc.load_model(
             model_uri="mlflow-artifacts:/0/9150dd1fb353494d807261928cea6e8c/artifacts/grasping").unwrap_python_model()\
             .model
-        cls.world = BulletWorld("DIRECT")
+        cls.world = BulletWorld("GUI")
         cls.milk = Object("milk", "milk", "milk.stl", position=[3, 3, 0.75])
         cls.robot = Object(robot_description.i.name, "pr2", robot_description.i.name + ".urdf")
         ProcessModule.execution_delay = False
@@ -59,14 +60,21 @@ class JPTResolverTestCase(unittest.TestCase):
         self.milk.set_position([-1.2, 1, 0.98])
         cml = JPTCostmapLocation(self.milk, reachable_for=self.robot, model=self.model)
 
-        sample = next(iter(cml))
-
-        with simulated_robot:
-            action_designator.NavigateAction.Action(sample.pose).perform()
-            action_designator.MoveTorsoAction.Action(sample.torso_height).perform()
-            action_designator.PickUpAction.Action(
-                object_designator.ObjectDesignatorDescription(types=["milk"]).resolve(),
-                arm=sample.reachable_arm, grasp=sample.grasp).perform()
+        for i in range(20):
+            sample = next(iter(cml))
+            with simulated_robot:
+                action_designator.NavigateAction.Action(sample.pose).perform()
+                action_designator.MoveTorsoAction.Action(sample.torso_height).perform()
+                time.sleep(0.5)
+                try:
+                    action_designator.PickUpAction.Action(
+                        object_designator.ObjectDesignatorDescription(types=["milk"]).resolve(),
+                        arm=sample.reachable_arm, grasp=sample.grasp).perform()
+                except pycram.plan_failures.PlanFailure:
+                    continue
+                time.sleep(5)
+                return
+        raise pycram.plan_failures.PlanFailure()
 
     def tearDown(self) -> None:
         self.world.reset_bullet_world()

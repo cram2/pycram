@@ -100,13 +100,12 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
         @pose.setter
         def pose(self, value):
-            self._pose = value
             """
             Property of the current position and orientation of the object.
 
             :return: Position and orientation
             """
-            return self.bullet_world_object.get_position_and_orientation()
+            self._pose = value
 
         def __repr__(self):
             return self.__class__.__qualname__ + f"(" + ', '.join(
