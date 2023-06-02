@@ -13,9 +13,9 @@ This framework is tested with Ubuntu 20.04, ROS Noetic and Python 3.8
 ## Simple Demonstartion
 PyCRAM allows the execution of the same high-level plan on different robot platforms. Below you can see an example of this where the plan is executed on the PR2 and the IAIs Boxy.
 
-Boxy            |  PR2
-:-------------------------:|:-------------------------:
-![image alt](doc/images/boxy.gif)  |  ![](doc/images/pr2.gif)
+|               Boxy                |          PR2            |
+|:---------------------------------:|:-----------------------:|
+| ![image alt](doc/images/boxy.gif) | ![](doc/images/pr2.gif) |
 
 The plan that both robots execute is a relativly simple pick and place plan:
 * They start at the world origin
@@ -29,49 +29,63 @@ The plan that both robots execute is a relativly simple pick and place plan:
 
 The code for this plan can be seen below.
 ```
-@with_simulated_robot
-def plan():
-    MotionDesignator(MoveArmJointsMotion(left_arm_config='park',
-                right_arm_config='park')).perform()
+from pycram.bullet_world import BulletWorld, Object
+from pycram.process_module import simulated_robot
+from pycram.designators.motion_designator import *
+from pycram.designators.location_designator import *
+from pycram.designators.action_designator import *
+from pycram.designators.object_designator import *
 
-    MotionDesignator(MoveMotion(target=moving_targets[robot_name]["sink"][0],
-                  orientation=moving_targets[robot_name]["sink"][1])).perform()
+world = BulletWorld()
+kitchen = Object("kitchen", "environment", "kitchen.urdf")
+robot = Object("pr2", "robot", "pr2.urdf")
+cereal = Object("cereal", "cereal", "breakfast_cereal.stl", position=[1.4, 1, 0.95])
 
-    det_obj = MotionDesignator(DetectingMotion(object_type="milk")).perform()
+cereal_desig = ObjectDesignatorDescription(names=["cereal"])
+kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
+robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
 
-    MotionDesignator(PickUpMotion(object=milk, arm="left", grasp="front")).perform()
+with simulated_robot:
+    ParkArmsAction([Arms.BOTH]).resolve().perform()
 
+    MoveTorsoAction([0.3]).resolve().perform()
 
-    MotionDesignator(MoveMotion(target=moving_targets[robot_name]["island"][0],
-                    orientation=moving_targets[robot_name]["island"][1])).perform()
+    pickup_pose = CostmapLocation(target=cereal_desig.resolve(), reachable_for=robot_desig).resolve()
+    pickup_arm = pickup_pose.reachable_arms[0]
 
-    MotionDesignator(PlaceMotion(object=milk, target=[-0.9, 1, 0.93], arm="left")).perform()
+    NavigateAction(target_locations=[pickup_pose.pose]).resolve().perform()
 
-    MotionDesignator(MoveArmJointsMotion(left_arm_config='park',
-                        right_arm_config='park')).perform()
+    PickUpAction(object_designator_description=cereal_desig, arms=[pickup_arm], grasps=["front"]).resolve().perform()
 
-    MotionDesignator(MoveMotion(target=[0.0, 0.0, 0],
-                                            orientation=[0, 0, 0, 1])).perform()
+    ParkArmsAction([Arms.BOTH]).resolve().perform()
 
+    place_island = SemanticCostmapLocation("kitchen_island_surface", kitchen_desig.resolve(), cereal_desig.resolve()).resolve()
+
+    place_stand = CostmapLocation(place_island.pose, reachable_for=robot_desig, reachable_arm=pickup_arm).resolve()
+
+    NavigateAction(target_locations=[place_stand.pose]).resolve().perform()
+
+    PlaceAction(cereal_desig, target_locations=[place_island.pose], arms=[pickup_arm]).resolve().perform()
+
+    ParkArmsAction([Arms.BOTH]).resolve().perform()
 ```
 
 
 
 ## Installation
-For information on installing PyCRAM please check the guid on the website:
-[Website](http://cram-system.org/pycram/installation)
+For information on installing PyCRAM please check the guid [here](https://pycram.readthedocs.io/en/latest/installation.html).
 
 ## Documentation
 
-The documentation for the different parts of PyCRAM can be found [here](http://cram-system.org/pycram#documentation).
+The latest version of the documentation is hosted on Read the Docs [here](https://pycram.readthedocs.io/en/latest/index.html).
 
+The documentation can be found in the `doc` folder, for instructions on how to build and view the documentation please 
+take a look at the respective `README` file.
 
-## Tutorials
-There are a handful of tutorials to get you started on using PyCRAM. These tutorials are:
-* [Setup your Python REPL](http://cram-system.org/tutorials/pycram/repl)
-* [Interact with the BulletWorld](http://cram-system.org/tutorials/pycram/bullet_world)
-* [Add your own robot](http://cram-system.org/tutorials/pycram/own_robot)
-
+## Examples
+Examples of features can be found either in the documentation under the 'Examples' Section or in the `examples` folder. 
+The examples in the `examples` folder are Jupyter Notebooks which can be viewed and executed, for more information 
+how to do that take a look at the respective `README` file. 
 
 
 ## Authors

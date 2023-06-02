@@ -1,10 +1,3 @@
-"""Implementation of designators.
-
-Classes:
-DesignatorError -- implementation of designator errors.
-Designator -- implementation of designators.
-MotionDesignator -- implementation of motion designators.
-"""
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
@@ -47,40 +40,28 @@ class ResolutionError(Exception):
 
 
 class Designator(ABC):
-    """Implementation of designators.
+    """
+    Implementation of designators. DEPRECTAED SINCE DESIGNATOR DESCRIPTIONS ARE USED AS BASE CLASS
 
     Designators are objects containing sequences of key-value pairs. They can be resolved which means to generate real
     parameters for executing actions from these pairs of key and value.
 
-    Instance variables:
-    timestamp -- the timestamp of creation of reference or None if still not referencing an object.
-
-    Methods:
-    equate -- equate the designator with the given parent.
-    equal -- check if the designator describes the same entity as another designator.
-    first -- return the first ancestor in the chain of equated designators.
-    current -- return the newest designator.
-    reference -- try to dereference the designator and return its data object
-    next_solution -- return another solution for the effective designator or None if none exists.
-    solutions -- return a generator for all solutions of the designator.
-    copy -- construct a new designator with the same properties as this one.
-    make_effective -- create a new effective designator of the same type as this one.
-    newest_effective -- return the newest effective designator.
-    prop_value -- return the first value matching the specified property key.
-    check_constraints -- return True if all the given properties match, False otherwise.
-    make_dictionary -- return the given parameters as dictionary.
+    :ivar timestamp: The timestamp of creation of reference or None if still not referencing an object.
     """
 
-    """List of all designator resolvers. Designator resolvers are functions which take a designator as
-    argument and return a list of solutions. A solution can also be a generator. """
+
     resolvers = {}
+    """
+    List of all designator resolvers. Designator resolvers are functions which take a designator as
+    argument and return a list of solutions. A solution can also be a generator. 
+    """
 
     def __init__(self, description: Type[DesignatorDescription], parent: Optional[Designator] = None):
         """Create a new desginator.
 
         Arguments:
-        properties -- a list of tuples (key-value pairs) describing this designator.
-        parent -- the parent to equate with (default is None).
+        :param properties: A list of tuples (key-value pairs) describing this designator.
+        :param parent: The parent to equate with (default is None).
         """
         self._mutex: Lock = Lock()
         self._parent: Union[Designator, None] = None
@@ -325,8 +306,7 @@ class DesignatorDescription(ABC):
         """
         Create a Designator description.
 
-        :param resolver: The grounding method used for the description.
-        The grounding method creates an action instance that matches the description.
+        :param resolver: The grounding method used for the description. The grounding method creates a location instance that matches the description.
         """
 
         if resolver is None:
