@@ -1,9 +1,11 @@
 import dataclasses
 import itertools
+import time
 from typing import List, Optional, Any, Tuple
 
 import sqlalchemy.orm
 
+from .location_designator import CostmapLocation
 from .motion_designator import *
 from .object_designator import ObjectDesignatorDescription
 from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, NavigateAction as ORMNavigateAction,
@@ -563,14 +565,37 @@ class TransportAction(ActionDesignatorDescription):
 
         @with_tree
         def perform(self) -> None:
-            # TODO jonas has to look over this
             ParkArmsAction.Action(Arms.BOTH).perform()
-            NavigateAction.Action(self.object_designator.pose).perform()
-            # TODO write from_object method for descriptions
-            PickUpAction(self.object_designator, [self.arm], ["left", "right"]).ground().perform()
-            NavigateAction.Action(self.target_location).perform()
+            pickup_loc = CostmapLocation(target=self.object_designator, reachable_for=BulletWorld.robot)
+            # Tries to find a pick-up posotion for the robot that uses the given arm
+            pickup_pose = None
+            for pose in pickup_loc:
+                if self.arm in pose.reachable_arms:
+                    pickup_pose = pose
+                    break
+            if not pickup_pose:
+                raise ObjectUnfetchable(
+                    f"Found no pose for the robot to grasp the object: {self.object_designator} with arm: {self.arm}")
+
+            NavigateAction([pickup_pose.pose]).resolve().perform()
+            PickUpAction.Action(self.object_designator, self.arm, "left").perform()
+            ParkArmsAction.Action(Arms.BOTH).perform()
+            try:
+                place_loc = CostmapLocation(target=self.target_location, reachable_for=BulletWorld.robot).resolve()
+            except StopIteration:
+                raise ReachabilityFailure(
+                    f"No location found from where the robot can reach the target location: {self.target_location}")
+            NavigateAction([place_loc.pose]).resolve().perform()
             PlaceAction.Action(self.object_designator, self.arm, self.target_location)
-            ParkArmsAction.Action(Arms.BOTH).perform()
+
+            # # TODO jonas has to look over this
+            # ParkArmsAction.Action(Arms.BOTH).perform()
+            # NavigateAction.Action(self.object_designator.pose).perform()
+            # # TODO write from_object method for descriptions
+            # PickUpAction(self.object_designator, [self.arm], ["left", "right"]).ground().perform()
+            # NavigateAction.Action(self.target_location).perform()
+            # PlaceAction.Action(self.object_designator, self.arm, self.target_location)
+            # ParkArmsAction.Action(Arms.BOTH).perform()
 
         def to_sql(self) -> Base:
             raise NotImplementedError()
