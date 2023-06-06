@@ -66,7 +66,7 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
         position = list(position)
         position[-1] = 0
 
-        ocm = OccupancyCostmap(distance_to_obstacle=0.5, from_ros=False, size=200, resolution=0.02,
+        ocm = OccupancyCostmap(distance_to_obstacle=0.3, from_ros=False, size=200, resolution=0.02,
                                origin=(position, orientation))
         # ocm.visualize()
 
