@@ -7,7 +7,7 @@ import sqlalchemy.orm
 
 from .location_designator import CostmapLocation
 from .motion_designator import *
-from .object_designator import ObjectDesignatorDescription, BelieveObject
+from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
 from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, NavigateAction as ORMNavigateAction,
                                      PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction,
                                      MoveTorsoAction as ORMMoveTorsoAction, SetGripperAction as ORMSetGripperAction,
@@ -357,8 +357,6 @@ class PickUpAction(ActionDesignatorDescription):
         @with_tree
         def perform(self) -> None:
             PickUpMotion(object_desig=self.object_designator, arm=self.arm, grasp=self.grasp).resolve().perform()
-            # MotionDesignator(PickUpMotion(object=self.object_designator.prop_value("object"),
-            #                               arm=self.arm, grasp=self.grasp)).perform()
 
         def to_sql(self) -> ORMPickUpAction:
             return ORMPickUpAction(self.arm, self.grasp)
@@ -714,7 +712,7 @@ class OpenAction(ActionDesignatorDescription):
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
 
-        object_designator: ObjectDesignatorDescription.Object
+        object_designator: ObjectPart.Object
         """
         Object designator describing the object that should be opened
         """
@@ -722,28 +720,11 @@ class OpenAction(ActionDesignatorDescription):
         """
         Arm that should be used for opening the container
         """
-        distance: float
-        """
-        Distance by which the container should be opened
-        """
 
         @with_tree
         def perform(self) -> Any:
-            object_type = self.object_designator.type
-            if object_type in ["container", "drawer"]:
-                motion_type = "opening-prismatic"
-            elif object_type in ["fridge"]:
-                motion_type = "opening-rotational"
-            else:
-                raise NotImplementedError()
-            joint, handle = get_container_joint_and_handle(self.object_designator)
-            arm = "left" if self.arm == Arms.LEFT else "right"
-            environment = self.object_designator.prop_value('part-of')
-
-            ProcessModule.perform(MotionDesignator(
-                [('type', motion_type), ('joint', joint),
-                 ('handle', handle), ('arm', arm), ('distance', self.distance),
-                 ('part-of', environment)]))
+            MoveTCPMotion(self.object_designator.part_pose, self.arm).resolve().perform()
+            OpeningMotion(self.object_designator, self.arm).resolve().perform()
 
         def to_sql(self) -> Base:
             raise NotImplementedError()
@@ -751,8 +732,7 @@ class OpenAction(ActionDesignatorDescription):
         def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
             raise NotImplementedError()
 
-    def __init__(self, object_designator_description: ObjectDesignatorDescription, arms: List[str],
-                 distances: List[float], resolver=None):
+    def __init__(self, object_designator_description: ObjectDesignatorDescription, arms: List[str], resolver=None):
         """
         Moves the arm of the robot to open a container.
 
@@ -764,7 +744,6 @@ class OpenAction(ActionDesignatorDescription):
         super(OpenAction, self).__init__(resolver)
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.arms: List[str] = arms
-        self.distances: List[float] = distances
 
     def ground(self) -> Action:
         """
@@ -773,7 +752,7 @@ class OpenAction(ActionDesignatorDescription):
 
         :return: A performable designator
         """
-        return self.Action(self.object_designator_description.resolve(), self.arms[0], self.distances[0])
+        return self.Action(self.object_designator_description.resolve(), self.arms[0])
 
 
 class CloseAction(ActionDesignatorDescription):
