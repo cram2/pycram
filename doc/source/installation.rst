@@ -94,7 +94,7 @@ For this first navigate to your PyCRAM repo.
 
 .. code-block:: console
 
-    roscd pycram
+    cd ~/workspace/ros/src/pycram
 
 Then install the Python packages in the requirements.txt file
 
