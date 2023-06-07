@@ -6,7 +6,7 @@ from .bullet_world import _world_and_id, Object, Use_shadow_world, BulletWorld
 from .external_interfaces.ik import request_ik
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from .helper import _transform_to_torso, _apply_ik, calculate_wrist_tool_offset, inverseTimes
-from typing import List, Tuple, Optional, Union
+from typing import List, Tuple, Optional, Union, Dict
 
 
 class ReasoningError(Exception):
@@ -345,3 +345,22 @@ def supporting(object1: Object,
     """
     world, world_id = _world_and_id(world)
     return contact(object1, object2, world) and object2.get_position()[2] > object1.get_position()[2]
+
+
+def link_pose_for_joint_config(object: Object, joint_config: Dict[str, float], link_name: str) -> Tuple[
+    List[float], List[float]]:
+    """
+    Returns the pose a link would be in if the given joint configuration would be applied to the object. This is done
+    by using the respective object in the shadow world and applying the joint configuration to this one. After applying
+    the joint configuration the link position is taken from there.
+
+    :param object: Object of which the link is a part
+    :param joint_config: Dict with the goal joint configuration
+    :param link_name: Name of the link for which the pose should be returned
+    :return: The pose of the link after applying the joint configuration
+    """
+    shadow_object = BulletWorld.current_bullet_world.get_shadow_object(object)
+    with Use_shadow_world():
+        for joint, pose in joint_config:
+            shadow_object.set_joint_state(joint, pose)
+        return shadow_object.get_link_position_and_orientation(link_name)

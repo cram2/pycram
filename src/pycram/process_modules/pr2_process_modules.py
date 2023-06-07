@@ -3,6 +3,7 @@ import numpy as np
 import time
 import pybullet as p
 
+from ..plan_failures import EnvironmentManipulationImpossible
 from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from ..process_module import ProcessModule
 from ..bullet_world import BulletWorld
@@ -11,6 +12,7 @@ from ..external_interfaces.ik import request_ik
 from ..helper import _transform_to_torso, _apply_ik, calculate_wrist_tool_offset, inverseTimes
 from ..local_transformer import local_transformer
 from ..designators.motion_designator import *
+from ..enums import JointType
 
 
 def _park_arms(arm):
@@ -68,6 +70,7 @@ class Pr2PickUp(ProcessModule):
         tool_frame = robot_description.i.get_tool_frame(arm)
         robot.attach(object, tool_frame)
 
+
 class Pr2Place(ProcessModule):
     """
     This process module places an object at the given position in world coordinate frame.
@@ -97,7 +100,6 @@ class Pr2Place(ProcessModule):
         inv = request_ik(base_link, end_effector, target, robot, joints)
         _apply_ik(robot, inv, joints)
         robot.detach(object)
-
 
 
 class Pr2Accessing(ProcessModule):
@@ -260,6 +262,52 @@ class Pr2WorldStateDetecting(ProcessModule):
         return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
 
+class Pr2Open(ProcessModule):
+    """
+    Low-level implementation of opening a container in the simulation. Assumes the handle is already grasped.
+    """
+
+    def _execute(self, desig: OpeningMotion.Motion):
+        part_of_object = desig.object_part.bullet_world_object
+        chain = part_of_object.urdf_object.get_chain(list(part_of_object.links.keys())[0], desig.object_part.name)
+        reversed_chain = reversed(chain)
+        container_joint = None
+        for element in reversed_chain:
+            if element in part_of_object.joints and part_of_object.get_joint_type(element) == JointType.PRISMATIC:
+                container_joint = element
+                break
+        if not container_joint:
+            raise EnvironmentManipulationImpossible(
+                f"There is no prismatic Joint in the chain from {desig.object_part.name} to the root of the URDF ")
+
+        goal_pose = btr.link_pose_for_joint_config(part_of_object, {
+            container_joint: part_of_object.get_joint_limits(container_joint)[1] - 0.05}, desig.object_part.name)
+
+        _move_arm(desig.arm, goal_pose)
+
+        desig.object_part.bullet_world_object.set_joint_state(container_joint,
+                                                              desig.object_part.bullet_world_object.get_joint_limits(
+                                                                  container_joint)[1])
+
+
+def _move_arm(arm, target):
+    arm_short = "r" if arm == "right" else "l"
+    robot = BulletWorld.robot
+    diff = calculate_wrist_tool_offset(arm_short + "_wrist_roll_link", arm_short + "_gripper_tool_frame", robot)
+    target = inverseTimes(target, diff)
+    robot = BulletWorld.robot
+
+    joints = robot_description.i._safely_access_chains(arm).joints
+
+    # Get Link before first joint in chain
+    base_link = robot_description.i.get_parent(joints[0])
+    # Get link after last joint in chain
+    end_effector = robot_description.i.get_child(joints[-1])
+
+    inv = request_ik(base_link, end_effector, target, robot, joints)
+    _apply_ik(robot, inv, joints)
+
+
 PR2ProcessModulesSimulated = {'navigate': Pr2Navigation(),
                               'pick-up': Pr2PickUp(),
                               'place': Pr2Place(),
@@ -272,6 +320,7 @@ PR2ProcessModulesSimulated = {'navigate': Pr2Navigation(),
                               'move-arm-joints': Pr2MoveArmJoints(),
                               'world-state-detecting': Pr2WorldStateDetecting(),
                               'move-joints': PR2MoveJoints(),
-                              'move-gripper': Pr2MoveGripper()}
+                              'move-gripper': Pr2MoveGripper(),
+                              'open': Pr2Open()}
 
 PR2ProcessModulesReal = {}
