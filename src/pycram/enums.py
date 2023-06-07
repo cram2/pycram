@@ -18,3 +18,14 @@ class TaskStatus(Enum):
     RUNNING = 1
     SUCCEEDED = 2
     FAILED = 3
+
+
+class JointType(Enum):
+    """
+    Enum for readable joint types.
+    """
+    REVOLUTE = 0
+    PRISMATIC = 1
+    SPHERICAL = 2
+    PLANAR = 3
+    FIXED = 4
