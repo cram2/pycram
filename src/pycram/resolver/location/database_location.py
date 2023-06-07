@@ -104,10 +104,9 @@ class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLoca
         return query.filter(sqlalchemy.or_(*filters))
 
     def sample_to_location(self, sample: sqlalchemy.engine.row.Row):
-        print(sample)
         target_x, target_y, target_z = self.target.pose
         pose = [target_x + sample.x, target_y + sample.y, 0]
-        angle = np.arctan2(sample[3] - target_y, sample[4] - target_x) + np.pi
+        angle = np.arctan2(pose[1] - target_y, pose[0] - target_x) + np.pi
         orientation = list(tf.transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
 
         result = JPTCostmapLocation.Location((pose, orientation), sample.arm, sample.torso_height, sample.grasp)

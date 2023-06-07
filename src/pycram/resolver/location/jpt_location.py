@@ -128,7 +128,6 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
         evidence = self.create_evidence()
 
         locations = self.evidence_from_occupancy_costmap()
-        print(*locations, sep="\n")
         solutions = []
 
         for location in locations:
@@ -150,7 +149,6 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
                 solutions.append((location, success_probability, leaf.prior))
 
         solutions = sorted(solutions, key=lambda x: x[1], reverse=True)
-        print(*solutions, sep="\n")
         best_solution = solutions[0]
         conditional_model = self.model.conditional_jpt(best_solution[0])
 
@@ -176,7 +174,6 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
 
     def __iter__(self):
         samples = self.sample(200)
-
         for sample in samples:
             yield self.sample_to_location(sample)
 
