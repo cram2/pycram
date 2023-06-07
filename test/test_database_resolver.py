@@ -44,11 +44,10 @@ class DatabaseResolverTestCase(unittest.TestCase):
         with simulated_robot:
             action_designator.NavigateAction.Action(sample.pose).perform()
             action_designator.MoveTorsoAction.Action(sample.torso_height).perform()
-            time.sleep(5)
             action_designator.PickUpAction.Action(
                 object_designator.ObjectDesignatorDescription(types=["milk"]).resolve(),
                 arm=sample.reachable_arm, grasp=sample.grasp).perform()
-            time.sleep(5)
+
     def test_costmap_with_obstacles(self):
         kitchen = Object("kitchen", "environment", "kitchen.urdf")
         self.milk.set_position([-1.2, 1, 0.98])
@@ -57,17 +56,16 @@ class DatabaseResolverTestCase(unittest.TestCase):
 
         for i in range(20):
             sample = next(iter(cml))
+            print(sample)
             with simulated_robot:
                 action_designator.NavigateAction.Action(sample.pose).perform()
                 action_designator.MoveTorsoAction.Action(sample.torso_height).perform()
-                time.sleep(5)
                 try:
                     action_designator.PickUpAction.Action(
                         object_designator.ObjectDesignatorDescription(types=["milk"]).resolve(),
                         arm=sample.reachable_arm, grasp=sample.grasp).perform()
                 except pycram.plan_failures.PlanFailure:
                     continue
-                time.sleep(5)
                 return
         raise pycram.plan_failures.PlanFailure()
 
