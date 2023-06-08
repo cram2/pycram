@@ -104,6 +104,7 @@ Authors
 
    installation
    designators
+   resolvers
    examples
    remarks
 

@@ -204,6 +204,7 @@ class BulletWorld:
             self._gui_thread.join()
         if BulletWorld.current_bullet_world == self:
             BulletWorld.current_bullet_world = None
+        BulletWorld.robot = None
 
     def reset_bullet_world(self) -> None:
         """

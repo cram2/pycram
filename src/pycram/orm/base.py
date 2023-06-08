@@ -2,13 +2,16 @@
 
 import sqlalchemy
 import sqlalchemy.orm
+import sqlalchemy.sql.functions
 
 
 class Base(sqlalchemy.orm.DeclarativeBase):
-    """Base class to add orm functionality to all pycram mappings"""
+    """
+    Base class to add orm functionality to all pycram mappings
 
-    # creation date of sample. Defaults to current server time. Used for data versioning.
-    created_at = sqlalchemy.Column(sqlalchemy.DateTime, server_default=sqlalchemy.sql.func.sysdate())
+    :ivar created_at: Creation date of row. Defaults to current server time. Used for data versioning.
+    """
+    created_at = sqlalchemy.Column(sqlalchemy.DateTime, server_default=sqlalchemy.sql.functions.current_timestamp())
 
     def __repr__(self):
         return f"{self.__module__}.{self.__class__.__name__}(" + \

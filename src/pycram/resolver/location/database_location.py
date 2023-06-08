@@ -14,12 +14,17 @@ import tf
 
 
 class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLocation):
+    """
+    Class that represents costmap locations from a given Database.
+    The database has to have a schema that is compatible with the pycram.orm package.
+    """
 
     def __init__(self, target, session: sqlalchemy.orm.Session = None,
                  reachable_for=None, reachable_arm=None, resolver=None):
         """
         Create a JPT Costmap
         :param target: The target object
+        :param session: A session that can be used to execute queries
         :param reachable_for: The robot to grab the object with
         :param reachable_arm: The arm to use
 
@@ -103,7 +108,12 @@ class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLoca
 
         return query.filter(sqlalchemy.or_(*filters))
 
-    def sample_to_location(self, sample: sqlalchemy.engine.row.Row):
+    def sample_to_location(self, sample: sqlalchemy.engine.row.Row) -> JPTCostmapLocation.Location:
+        """
+        Convert a database row to a costmap location.
+        :param sample: The database row.
+        :return: The costmap location
+        """
         target_x, target_y, target_z = self.target.pose
         pose = [target_x + sample.x, target_y + sample.y, 0]
         angle = np.arctan2(pose[1] - target_y, pose[0] - target_x) + np.pi
@@ -112,7 +122,7 @@ class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLoca
         result = JPTCostmapLocation.Location((pose, orientation), sample.arm, sample.torso_height, sample.grasp)
         return result
 
-    def __iter__(self):
+    def __iter__(self) -> JPTCostmapLocation.Location:
         query = self.create_query_from_occupancy_costmap().limit(200)
         samples = query.all()
         for sample in samples:
