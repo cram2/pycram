@@ -1,12 +1,15 @@
 import dataclasses
 from typing import List, Tuple, Union, Iterable, Optional
 
-from .object_designator import ObjectDesignatorDescription
+from .object_designator import ObjectDesignatorDescription, ObjectPart
 from ..bullet_world import Object, BulletWorld, Use_shadow_world
+from ..bullet_world_reasoning import link_pose_for_joint_config
 from ..designator import Designator, DesignatorError, DesignatorDescription
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
 from pycram.robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from ..enums import JointType
 from ..helper import transform
+from ..plan_failures import EnvironmentManipulationImpossible
 from ..pose_generator_and_validator import pose_generator, visibility_validator, reachability_validator
 
 
@@ -14,6 +17,7 @@ class LocationDesignatorDescription(DesignatorDescription):
     """
     Parent class of location designator descriptions.
     """
+
     @dataclasses.dataclass
     class Location:
         """
@@ -39,6 +43,7 @@ class Location(LocationDesignatorDescription):
     """
     Default location designator which only wraps a pose.
     """
+
     @dataclasses.dataclass
     class Location(LocationDesignatorDescription.Location):
         pass
@@ -66,6 +71,7 @@ class ObjectRelativeLocation(LocationDesignatorDescription):
     """
     Location relative to an object
     """
+
     @dataclasses.dataclass
     class Location(LocationDesignatorDescription.Location):
         relative_pose: List[float]
@@ -122,6 +128,7 @@ class CostmapLocation(LocationDesignatorDescription):
     """
     Uses Costmaps to create locations for complex constrains
     """
+
     @dataclasses.dataclass
     class Location(LocationDesignatorDescription.Location):
         reachable_arms: List[str]
@@ -212,10 +219,73 @@ class CostmapLocation(LocationDesignatorDescription):
                     yield self.Location(list(maybe_pose), arms)
 
 
+class OpeningLocation(LocationDesignatorDescription):
+    """
+    Location designator which describes poses used for opening drawers
+    """
+
+    @dataclasses.dataclass
+    class Location(LocationDesignatorDescription.Location):
+        pass
+
+    def __init__(self, handle_desig: ObjectPart.Object, robot, resolver=None):
+        super().__init__(resolver)
+        self.handle = handle_desig
+        self.robot = robot
+
+    def ground(self) -> Location:
+        return next(iter(self))
+
+    def __iter__(self) -> Location:
+        ground_pose = [[self.handle.part_pose[0][0], self.handle.part_pose[0][1], 0], self.handle.part_pose[1]]
+        occupancy = OccupancyCostmap(distance_to_obstacle=0.3, from_ros=False, size=200, resolution=0.02,
+                                     origin=[ground_pose[0], [0, 0, 0, 1]])
+        gaussian = GaussianCostmap(200, 15, 0.02, [ground_pose[0], [0, 0, 0, 1]])
+
+        final_map = occupancy + gaussian
+        test_robot = BulletWorld.current_bullet_world.get_shadow_object(self.robot)
+
+        init_pose = self.handle.part_pose
+
+        # Find a Joint of type prismatic which is above the handle in the URDF tree
+
+        chain = self.handle.bullet_world_object.urdf_object.get_chain(
+            self.handle.bullet_world_object.urdf_object.get_root(), self.handle.name)
+        reversed_chain = reversed(chain)
+        container_joint = None
+        for element in reversed_chain:
+            if element in self.handle.bullet_world_object.joints and self.handle.bullet_world_object.get_joint_type(
+                    element) == JointType.PRISMATIC:
+                container_joint = element
+                break
+        if not container_joint:
+            raise EnvironmentManipulationImpossible(
+                f"There is no prismatic Joint in the chain from {self.handle.name} to the root of the URDF ")
+
+        # Calculate the pose the handle would be in if the drawer was to be fully opened
+        goal_pose = link_pose_for_joint_config(self.handle.bullet_world_object, {
+            container_joint: self.handle.bullet_world_object.get_joint_limits(container_joint)[1] - 0.05},
+                                               self.handle.name)
+
+        with Use_shadow_world():
+            for maybe_pose in pose_generator(final_map):
+                valid_init, arms_init = reachability_validator(maybe_pose, test_robot, init_pose,
+                                                     BulletWorld.current_bullet_world)
+
+                valid_goal, arms_goal = reachability_validator(maybe_pose, test_robot, goal_pose,
+                                                BulletWorld.current_bullet_world)
+                print(valid_init)
+                print(valid_goal)
+                print()
+                if valid_init and valid_goal:
+                    yield self.Location(maybe_pose)
+
+
 class SemanticCostmapLocation(LocationDesignatorDescription):
     """
     Locations over semantic entities, like a table surface
     """
+
     @dataclasses.dataclass
     class Location(LocationDesignatorDescription.Location):
         pass
