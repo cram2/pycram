@@ -2,14 +2,20 @@ import rospy
 
 from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from ..bullet_world import BulletWorld, Object
-from giskardpy.python_interface import GiskardWrapper
-from geometry_msgs.msg import PoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
-from giskard_msgs.msg import WorldBody, MoveResult
-from giskard_msgs.srv import UpdateWorldRequest, UpdateWorld, UpdateWorldResponse
+
 from typing import List, Tuple, Dict
 
-giskard_wrapper = GiskardWrapper()
-giskard_update_service = rospy.ServiceProxy("/giskard/update_world", UpdateWorld)
+topics = list(map(lambda x: x[0], rospy.get_published_topics()))
+if "/giskard/command/goal" in topics:
+    from giskardpy.python_interface import GiskardWrapper
+    from geometry_msgs.msg import PoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
+    from giskard_msgs.msg import WorldBody, MoveResult
+    from giskard_msgs.srv import UpdateWorldRequest, UpdateWorld, UpdateWorldResponse
+
+    giskard_wrapper = GiskardWrapper()
+    giskard_update_service = rospy.ServiceProxy("/giskard/update_world", UpdateWorld)
+else:
+    rospy.logwarn("No Giskard topic available")
 
 
 # Believe state management between pycram and giskard
