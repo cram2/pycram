@@ -213,7 +213,7 @@ class ObjectPart(ObjectDesignatorDescription):
         """
         for name in self.names:
             if name in self.part_of.bullet_world_object.links.keys():
-                yield self.Object(name, self.type, self.part_of,
+                yield self.Object(name, self.type, self.part_of.bullet_world_object,
                                   self.part_of.bullet_world_object.get_link_position_and_orientation(name))
 
 
