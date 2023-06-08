@@ -361,6 +361,6 @@ def link_pose_for_joint_config(object: Object, joint_config: Dict[str, float], l
     """
     shadow_object = BulletWorld.current_bullet_world.get_shadow_object(object)
     with Use_shadow_world():
-        for joint, pose in joint_config:
+        for joint, pose in joint_config.items():
             shadow_object.set_joint_state(joint, pose)
         return shadow_object.get_link_position_and_orientation(link_name)

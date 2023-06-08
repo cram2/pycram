@@ -18,7 +18,9 @@ import pybullet as p
 import rospkg
 import rospy
 import rosgraph
+from urdf_parser_py.urdf import URDF
 
+from . import utils
 from .event import Event
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from .enums import JointType
@@ -305,6 +307,7 @@ class BulletWorld:
         """
         for id in self.vis_axis:
             p.removeBody(id)
+        self.vis_axis = []
 
     def register_collision_callback(self, objectA: Object, objectB: Object,
                                     callback_collision: Callable,
@@ -740,6 +743,9 @@ class Object:
             if robot_name == robot_description.i.name and BulletWorld.robot == None:
                 BulletWorld.robot = self
         self.original_pose = [position, orientation]
+        with open(self.path) as f:
+            with utils.suppress_stdout_stderr():
+                self.urdf_object = URDF.from_xml_string(f.read())
 
     def __repr__(self):
         return self.__class__.__qualname__ + f"(" + ', '.join(
