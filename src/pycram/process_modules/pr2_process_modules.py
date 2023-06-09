@@ -269,7 +269,7 @@ class Pr2Open(ProcessModule):
 
     def _execute(self, desig: OpeningMotion.Motion):
         part_of_object = desig.object_part.bullet_world_object
-        chain = part_of_object.urdf_object.get_chain(list(part_of_object.links.keys())[0], desig.object_part.name)
+        chain = part_of_object.urdf_object.get_chain(part_of_object.urdf_object.get_root(), desig.object_part.name)
         reversed_chain = reversed(chain)
         container_joint = None
         for element in reversed_chain:
@@ -283,16 +283,17 @@ class Pr2Open(ProcessModule):
         goal_pose = btr.link_pose_for_joint_config(part_of_object, {
             container_joint: part_of_object.get_joint_limits(container_joint)[1] - 0.05}, desig.object_part.name)
 
-        _move_arm(desig.arm, goal_pose)
+        print("open goal: ", goal_pose)
+        _move_arm_tcp(goal_pose, BulletWorld.robot, desig.arm)
 
         desig.object_part.bullet_world_object.set_joint_state(container_joint,
                                                               desig.object_part.bullet_world_object.get_joint_limits(
                                                                   container_joint)[1])
 
 
-def _move_arm(arm, target):
+def _move_arm_tcp(target, robot, arm):
+    target = _transform_to_torso(target, robot)
     arm_short = "r" if arm == "right" else "l"
-    robot = BulletWorld.robot
     diff = calculate_wrist_tool_offset(arm_short + "_wrist_roll_link", arm_short + "_gripper_tool_frame", robot)
     target = inverseTimes(target, diff)
     robot = BulletWorld.robot
@@ -305,6 +306,28 @@ def _move_arm(arm, target):
     end_effector = robot_description.i.get_child(joints[-1])
 
     inv = request_ik(base_link, end_effector, target, robot, joints)
+    _apply_ik(robot, inv, joints)
+
+def _move_arm(arm, target):
+    target = _transform_to_torso(target, BulletWorld.robot)
+    arm_short = "r" if arm == "right" else "l"
+    robot = BulletWorld.robot
+
+    robot = BulletWorld.robot
+
+    joints = robot_description.i._safely_access_chains(arm).joints
+
+    # Get Link before first joint in chain
+    base_link = robot_description.i.get_parent(joints[0])
+    # Get link after last joint in chain
+    end_effector = robot_description.i.get_child(joints[-1])
+
+    #diff = calculate_wrist_tool_offset(arm_short + "_wrist_roll_link", arm_short + "_gripper_tool_frame", robot)
+    diff = calculate_wrist_tool_offset(end_effector, robot_description.i.get_tool_frame("left"), robot)
+
+    target_diff = inverseTimes(target, diff)
+
+    inv = request_ik(base_link, end_effector, target_diff, robot, joints)
     _apply_ik(robot, inv, joints)
 
 
