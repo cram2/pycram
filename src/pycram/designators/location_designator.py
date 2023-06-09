@@ -1,4 +1,5 @@
 import dataclasses
+import time
 from typing import List, Tuple, Union, Iterable, Optional
 
 from .object_designator import ObjectDesignatorDescription, ObjectPart
@@ -243,6 +244,7 @@ class OpeningLocation(LocationDesignatorDescription):
         gaussian = GaussianCostmap(200, 15, 0.02, [ground_pose[0], [0, 0, 0, 1]])
 
         final_map = occupancy + gaussian
+
         test_robot = BulletWorld.current_bullet_world.get_shadow_object(self.robot)
 
         init_pose = self.handle.part_pose
@@ -267,17 +269,22 @@ class OpeningLocation(LocationDesignatorDescription):
             container_joint: self.handle.bullet_world_object.get_joint_limits(container_joint)[1] - 0.05},
                                                self.handle.name)
 
+        def identity_orientation_generator(pose, origin) -> List[float]:
+            return [0.0, 0.0, -0.4472135954999579, 0.8944271909999159]
+            #return [0, 0, 0, 1]
+
         with Use_shadow_world():
-            for maybe_pose in pose_generator(final_map):
+            for maybe_pose in pose_generator(final_map, number_of_samples=600, orientation_generator=identity_orientation_generator):
                 valid_init, arms_init = reachability_validator(maybe_pose, test_robot, init_pose,
                                                      BulletWorld.current_bullet_world)
 
                 valid_goal, arms_goal = reachability_validator(maybe_pose, test_robot, goal_pose,
                                                 BulletWorld.current_bullet_world)
-                print(valid_init)
-                print(valid_goal)
-                print()
+
                 if valid_init and valid_goal:
+                    print("init:", init_pose)
+                    print("goal:", goal_pose)
+                    print(arms_init, arms_goal)
                     yield self.Location(maybe_pose)
 
 
