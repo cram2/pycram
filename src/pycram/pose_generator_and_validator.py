@@ -13,20 +13,24 @@ from moveit_msgs.srv import GetPositionIK
 from typing import Type, Tuple, List, Union
 
 
-def pose_generator(costmap: Type[Costmap], number_of_samples=100) -> Tuple[List[float], List[float]]:
+def pose_generator(costmap: Type[Costmap], number_of_samples=100, orientation_generator=None) -> Tuple[List[float], List[float]]:
     """
     A generator that crates pose candidates from a given costmap. The generator
     selects the highest 100 values and returns the corresponding positions.
     Orientations are calculated such that the Robot faces the center of the costmap.
+
     :param costmap: The costmap from which poses should be sampled.
-    :param number_of_samples:
+    :param number_of_samples: The number of samples from the costmap that should be returned at max
+    :param orientation_generator: function that generates a orientation given a position and the origin of the costmap
     :Yield: A tuple of position and orientation
     """
+    if not orientation_generator:
+        orientation_generator = generate_orientation
+
     # Determines how many positions should be sampled from the costmap
     if number_of_samples == -1:
         number_of_samples = costmap.map.flatten().shape[0]
     indices = np.argpartition(costmap.map.flatten(), -number_of_samples)[-number_of_samples:]
-    #indices = np.argsort(costmap.map.flatten())[-number_of_samples:]
     indices = np.dstack(np.unravel_index(indices, costmap.map.shape)).reshape(number_of_samples, 2)
 
     height = costmap.map.shape[0]
@@ -46,9 +50,8 @@ def pose_generator(costmap: Type[Costmap], number_of_samples=100) -> Tuple[List[
         #world_pose = p.multiplyTransforms(costmap.origin[0], costmap.origin[1], transform_to_origin[0], transform_to_origin[1])
 
         #position = [(ind[0]- size/2) *-1 * costmap.resolution + costmap.origin[0][0], (ind[1] - size/2) * -1 * costmap.resolution + costmap.origin[0][1], 0]
-        orientation = generate_orientation(map_to_point[0], costmap.origin)
+        orientation = orientation_generator(map_to_point[0], costmap.origin)
         yield list(map_to_point[0]), orientation
-
 
 
 def height_generator() -> float:
@@ -61,6 +64,7 @@ def generate_orientation(position: List[float], origin: List[float]) -> List[flo
     orientation is calculated such that the robot faces the origin of the costmap.
     This generation is done by simply calculating the arctan between the position,
     in the costmap, and the origin of the costmap.
+
     :param position: The position in the costmap. This position is already converted
         to the world coordinate frame.
     :param origin: The origin of the costmap. This is also the point which the
@@ -82,6 +86,7 @@ def visibility_validator(pose: Tuple[List[float], List[float]],
     system, or an object in the BulletWorld. The validation is done by shooting a
     ray from the camera to the target position and checking that it does not collide
     with anything else.
+
     :param pose: The pose candidate that should be validated
     :param robot: The robot object for which this should be validated
     :param object_or_pose: The target position or object for which the pose
@@ -116,6 +121,7 @@ def reachability_validator(pose: Tuple[List[float], List[float]],
     This is done by asking the ik solver if there is a valid solution if the
     robot stands at the position of the pose candidate. if there is a solution
     the validator returns True and False in any other case.
+
     :param pose: The pose candidate for which the reachability should be validated
     :param robot: The robot object in the BulletWorld for which the reachability
         should be validated.

@@ -206,6 +206,7 @@ class BulletWorld:
             self._gui_thread.join()
         if BulletWorld.current_bullet_world == self:
             BulletWorld.current_bullet_world = None
+        BulletWorld.robot = None
 
     def reset_bullet_world(self) -> None:
         """
@@ -744,8 +745,7 @@ class Object:
                 BulletWorld.robot = self
         self.original_pose = [position, orientation]
         with open(self.path) as f:
-            with utils.suppress_stdout_stderr():
-                self.urdf_object = URDF.from_xml_string(f.read())
+            self.urdf_object = URDF.from_xml_string(f.read())
 
     def __repr__(self):
         return self.__class__.__qualname__ + f"(" + ', '.join(
