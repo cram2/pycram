@@ -1,7 +1,5 @@
-import copy
 import dataclasses
-from typing import List, Union, Optional, Callable, Tuple
-
+from typing import List, Union, Optional, Callable, Tuple, Iterable
 import sqlalchemy.orm
 
 from ..bullet_world import BulletWorld, Object as BulletWorldObject
@@ -21,26 +19,32 @@ class ObjectDesignatorDescription(DesignatorDescription):
     class Object:
         """
         A single element that fits the description.
-
-        :ivar name: Name of the object
-        :ivar type: Type of the object
-        :ivar bullet_world_object: The bullet world object attached to this
-        :ivar _pose: A callable returning the pose of this object. The _pose member is used overwritten for data copies
-            which will not update when the original bullet_world_object is moved.
         """
+
         name: str
+        """
+        Name of the object
+        """
+
         type: str
-        # pose:
-        # pose: Tuple[List[float], List[float]]
+        """
+        Type of the object
+        """
+
         bullet_world_object: Optional[BulletWorldObject]
+        """
+        Reference to the BulletWorld object
+        """
+
         _pose: Optional[Callable] = dataclasses.field(init=False)
+        """
+        A callable returning the pose of this object. The _pose member is used overwritten for data copies
+        which will not update when the original bullet_world_object is moved.
+        """
 
         def __post_init__(self):
             if self.bullet_world_object:
                 self._pose = self.bullet_world_object.get_position_and_orientation
-        """
-        Reference to the BulletWorld object
-        """
 
         def to_sql(self) -> ORMObjectDesignator:
             """
@@ -88,6 +92,11 @@ class ObjectDesignatorDescription(DesignatorDescription):
             return obj
 
         def data_copy(self) -> 'ObjectDesignatorDescription.Object':
+            """
+            :return: A copy containing only the fields of this class. The BulletWorldObject attached to this pycram
+            object is not copied. The _pose gets set to a method that statically returns the pose of the object when
+            this method was called.
+            """
             result = ObjectDesignatorDescription.Object(self.name, self.type, None)
             # get current object pose and set resulting pose to always be that
             pose = self.pose
@@ -96,14 +105,20 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
         @property
         def pose(self):
+            """
+            Property of the current position and orientation of the object.
+            Evaluate the _pose function.
+
+            :return: Position and orientation
+            """
             return self._pose()
 
         @pose.setter
-        def pose(self, value):
+        def pose(self, value: Callable):
             """
-            Property of the current position and orientation of the object.
+            Set the pose to a new method that returns the current pose.
 
-            :return: Position and orientation
+            :param value: A callable that returns a pose.
             """
             self._pose = value
 
@@ -133,7 +148,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
         """
         return next(iter(self))
 
-    def __iter__(self) -> Object:
+    def __iter__(self) -> Iterable[Object]:
         """
         Iterate through all possible objects fitting this description
 

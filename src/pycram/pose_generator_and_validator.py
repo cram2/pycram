@@ -7,7 +7,8 @@ from .bullet_world import Object, BulletWorld, Use_shadow_world
 from .bullet_world_reasoning import contact
 from .costmaps import Costmap
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
-from .external_interfaces.ik import _make_request_msg, request_ik, IKError
+from .external_interfaces.ik import _make_request_msg, request_ik
+from .plan_failures import IKError
 from .helper import _transform_to_torso, calculate_wrist_tool_offset, inverseTimes, _apply_ik
 from moveit_msgs.srv import GetPositionIK
 from typing import Type, Tuple, List, Union

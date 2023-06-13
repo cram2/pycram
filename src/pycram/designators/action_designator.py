@@ -349,14 +349,21 @@ class PickUpAction(ActionDesignatorDescription):
         """
         Object designator describing the object that should be picked up
         """
+
         arm: str
         """
         The arm that should be used for pick up
         """
+
         grasp: str
-        object_at_execution: Optional[ObjectDesignatorDescription.Object] = dataclasses.field(init=False)
         """
         The grasp that should be used. For example, 'left' or 'right'
+        """
+
+        object_at_execution: Optional[ObjectDesignatorDescription.Object] = dataclasses.field(init=False)
+        """
+        The object at the time this Action got created. It is used to be a static, information holding entity. It is
+        not updated when the BulletWorld object is changed.
         """
 
         @with_tree

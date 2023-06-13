@@ -31,6 +31,7 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
                  model: Optional[jpt.trees.JPT] = None, path: Optional[str] = None, resolver=None):
         """
         Create a JPT Costmap
+
         :param target: The target object
         :param reachable_for: The robot to grab the object with
         :param reachable_arm: The arm to use
@@ -58,6 +59,7 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
         """
         Create a list of boxes that can be used as evidences for a jpt. The list of boxes describe areas where the
         robot can stand.
+
         :return: List of evidences describing the found boxes
         """
 
@@ -107,6 +109,7 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
     def create_evidence(self, use_success=True) -> jpt.variables.LabelAssignment:
         """
         Create evidence usable for JPTs where type and status are set if wanted.
+
         :param use_success: Rather to set success or not
         :return: The usable label-assignment
         """
@@ -122,6 +125,7 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
     def sample(self, amount: int = 1) -> np.ndarray:
         """
         Sample from the locations that fit the CostMap and are not occupied.
+
         :param amount: The amount of samples to draw
         :return: A numpy array containing the samples drawn from the tree.
         """
@@ -158,6 +162,7 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
     def sample_to_location(self, sample: np.ndarray) -> Location:
         """
         Convert a numpy array sampled from the JPT to a costmap-location
+
         :param sample: The drawn sample
         :return: The usable costmap-location
         """
@@ -178,7 +183,11 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
             yield self.sample_to_location(sample)
 
     def visualize(self):
-        """Plot the possible areas to stand in the BulletWorld. The opacity is the probability of success."""
+        """
+        Plot the possible areas to stand in the BulletWorld. The opacity is the probability of success.
+
+        """
+
         evidence = self.create_evidence(use_success=False)
 
         conditional_model = self.model.conditional_jpt(evidence)
@@ -234,7 +243,10 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
             self.visual_ids.append(map_obj)
 
     def close_visualization(self) -> None:
-        """Close all plotted objects."""
+        """
+        Close all plotted objects.
+
+        """
         for id in self.visual_ids:
             pybullet.removeBody(id)
         self.visual_ids = []

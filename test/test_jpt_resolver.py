@@ -1,5 +1,4 @@
 import os
-import time
 import unittest
 
 import jpt
@@ -36,7 +35,7 @@ class JPTResolverTestCase(unittest.TestCase):
     def setUpClass(cls) -> None:
         np.random.seed(420)
         cls.model = mlflow.pyfunc.load_model(
-            model_uri="mlflow-artifacts:/0/9150dd1fb353494d807261928cea6e8c/artifacts/grasping").unwrap_python_model()\
+            model_uri="mlflow-artifacts:/0/9150dd1fb353494d807261928cea6e8c/artifacts/grasping").unwrap_python_model() \
             .model
         cls.world = BulletWorld("DIRECT")
         cls.milk = Object("milk", "milk", "milk.stl", position=[3, 3, 0.75])

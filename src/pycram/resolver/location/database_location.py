@@ -22,7 +22,8 @@ class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLoca
     def __init__(self, target, session: sqlalchemy.orm.Session = None,
                  reachable_for=None, reachable_arm=None, resolver=None):
         """
-        Create a JPT Costmap
+        Create a Database Costmap
+
         :param target: The target object
         :param session: A session that can be used to execute queries
         :param reachable_for: The robot to grab the object with
@@ -111,6 +112,7 @@ class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLoca
     def sample_to_location(self, sample: sqlalchemy.engine.row.Row) -> JPTCostmapLocation.Location:
         """
         Convert a database row to a costmap location.
+
         :param sample: The database row.
         :return: The costmap location
         """
