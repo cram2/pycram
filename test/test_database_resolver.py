@@ -1,8 +1,8 @@
 import os
-import time
 import unittest
 
-import numpy as np
+import sqlalchemy
+import sqlalchemy.orm
 
 import pycram.plan_failures
 from pycram.bullet_world import BulletWorld, Object
@@ -11,15 +11,13 @@ from pycram.process_module import ProcessModule
 from pycram.process_module import simulated_robot
 from pycram.resolver.location.database_location import DatabaseCostmapLocation
 from pycram.robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
-import sqlalchemy
-import sqlalchemy.orm
 
 pycrorm_uri = os.getenv('PYCRORM_URI')
 if pycrorm_uri:
     pycrorm_uri = "mysql+pymysql://" + pycrorm_uri
 
 
-@unittest.skipIf(pycrorm_uri is None,  "pycrorm database is not available.")
+@unittest.skipIf(pycrorm_uri is None, "pycrorm database is not available.")
 class DatabaseResolverTestCase(unittest.TestCase):
     world: BulletWorld
     milk: Object
@@ -27,11 +25,12 @@ class DatabaseResolverTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        global pycrorm_uri
         cls.world = BulletWorld("GUI")
         cls.milk = Object("milk", "milk", "milk.stl", position=[3, 3, 0.75])
         cls.robot = Object(robot_description.i.name, "pr2", robot_description.i.name + ".urdf")
         ProcessModule.execution_delay = False
-        engine = sqlalchemy.create_engine("mysql+pymysql://pycrorm@localhost/pycrorm?charset=utf8mb4")
+        engine = sqlalchemy.create_engine(pycrorm_uri)
 
         cls.session = sqlalchemy.orm.Session(bind=engine)
 
@@ -56,7 +55,6 @@ class DatabaseResolverTestCase(unittest.TestCase):
 
         for i in range(20):
             sample = next(iter(cml))
-            print(sample)
             with simulated_robot:
                 action_designator.NavigateAction.Action(sample.pose).perform()
                 action_designator.MoveTorsoAction.Action(sample.torso_height).perform()
