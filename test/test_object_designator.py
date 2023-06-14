@@ -12,6 +12,13 @@ class TestObjectDesignator(test_bullet_world.BulletWorldTest):
         self.assertEqual(obj.name, "milk")
         self.assertEqual(obj.type, "milk")
 
+    def test_data_copy(self):
+        description = ObjectDesignatorDescription(["milk"], ["milk"])
+        obj = description.ground()
+
+        data_copy = obj.data_copy()
+        self.assertEqual(obj.pose, data_copy.pose)
+
 
 if __name__ == '__main__':
     unittest.main()

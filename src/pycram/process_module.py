@@ -44,7 +44,7 @@ class ProcessModule:
             pm = resolver(designator)
 
             if pm is not None:
-                result =  pm.execute(designator)
+                result = pm.execute(designator)
         if ProcessModule.execution_delay:
             time.sleep(0.5)
 
@@ -69,7 +69,7 @@ class ProcessModule:
         designator -- the designator to execute.
         """
         self._designators.append(designator)
-        (self._running == False).wait_for()
+        # (self._running == False).wait_for()
         self._running.set_value(True)
         designator = self._designators[0]
         try:

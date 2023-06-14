@@ -2,10 +2,16 @@
 
 import sqlalchemy
 import sqlalchemy.orm
+import sqlalchemy.sql.functions
 
 
 class Base(sqlalchemy.orm.DeclarativeBase):
-    """Base class to add orm functionality to all pycram mappings"""
+    """
+    Base class to add orm functionality to all pycram mappings
+
+    :ivar created_at: Creation date of row. Defaults to current server time. Used for data versioning.
+    """
+    created_at = sqlalchemy.Column(sqlalchemy.DateTime, server_default=sqlalchemy.sql.functions.current_timestamp())
 
     def __repr__(self):
         return f"{self.__module__}.{self.__class__.__name__}(" + \
@@ -68,9 +74,11 @@ class Color(Base):
         self.alpha = alpha
 
 
-class RobotPosition(Base):
-    __tablename__ = "RobotPosition"
+class RobotState(Base):
+    __tablename__ = "RobotState"
 
     id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
     position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
     orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"))
+    torso_height = sqlalchemy.Column(sqlalchemy.types.Float)
+    type = sqlalchemy.Column(sqlalchemy.types.String(255))

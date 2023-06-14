@@ -685,6 +685,7 @@ class SemanticCostmap(Costmap):
     Semantic Costmaps represent a 2D distribution over a link of an Object. An example of this would be a Costmap for a
     table surface.
     """
+
     def __init__(self, object, urdf_link_name, size=100, resolution=0.02, world=None):
         """
         Creates a semantic costmap for the given parameter. The semantic costmap will be on top of the link of the given
