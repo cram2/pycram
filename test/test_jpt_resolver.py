@@ -1,8 +1,6 @@
 import os
 import unittest
 
-import jpt
-import mlflow
 import numpy as np
 import requests
 
@@ -13,6 +11,20 @@ from pycram.process_module import ProcessModule
 from pycram.process_module import simulated_robot
 from pycram.resolver.location.jpt_location import JPTCostmapLocation
 from pycram.robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+
+# check if jpt is installed
+jpt_installed = True
+try:
+    import jpt
+except ImportError:
+    jpt_installed = False
+
+# check if mlflow is installed
+mlflow_installed = True
+try:
+    import mlflow
+except ImportError:
+    mlflow_installed = False
 
 mlflow_uri = os.getenv('MLFLOW_TRACKING_URI')
 if mlflow_uri is None:
@@ -25,6 +37,8 @@ except requests.exceptions.ConnectionError:
 
 
 @unittest.skipIf(response is None or (response.status_code != requests.codes.ok), "mlflow server is not available.")
+@unittest.skipIf(not jpt_installed, "jpt is not installed. Install via 'pip install pyjpt'")
+@unittest.skipIf(not mlflow_installed, "mlflow is not installed. Install via 'pip install mlflow'")
 class JPTResolverTestCase(unittest.TestCase):
     world: BulletWorld
     milk: Object
