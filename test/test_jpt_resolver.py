@@ -43,7 +43,7 @@ class JPTResolverTestCase(unittest.TestCase):
     world: BulletWorld
     milk: Object
     robot: Object
-    model: jpt.JPT
+    model: 'jpt.JPT'
 
     @classmethod
     def setUpClass(cls) -> None:

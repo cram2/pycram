@@ -9,8 +9,17 @@ from pycram.bullet_world import BulletWorld, Object
 from pycram.designators import action_designator, object_designator
 from pycram.process_module import ProcessModule
 from pycram.process_module import simulated_robot
-from pycram.resolver.location.database_location import DatabaseCostmapLocation
+
 from pycram.robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+
+# check if jpt is installed
+jpt_installed = True
+try:
+    import jpt
+    from pycram.resolver.location.database_location import DatabaseCostmapLocation
+except ImportError:
+    jpt_installed = False
+
 
 pycrorm_uri = os.getenv('PYCRORM_URI')
 if pycrorm_uri:
@@ -18,6 +27,8 @@ if pycrorm_uri:
 
 
 @unittest.skipIf(pycrorm_uri is None, "pycrorm database is not available.")
+@unittest.skipIf(not jpt_installed, "jpt is not installed but needed for the definition of DatabaseCostmapLocations. "
+                                    "Install via 'pip install pyjpt'")
 class DatabaseResolverTestCase(unittest.TestCase):
     world: BulletWorld
     milk: Object
