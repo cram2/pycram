@@ -9,13 +9,13 @@ from pycram.bullet_world import BulletWorld, Object
 from pycram.designators import action_designator, object_designator
 from pycram.process_module import ProcessModule
 from pycram.process_module import simulated_robot
-from pycram.resolver.location.jpt_location import JPTCostmapLocation
 from pycram.robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 
 # check if jpt is installed
 jpt_installed = True
 try:
     import jpt
+    from pycram.resolver.location.jpt_location import JPTCostmapLocation
 except ImportError:
     jpt_installed = False
 
