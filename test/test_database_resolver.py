@@ -26,7 +26,7 @@ class DatabaseResolverTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         global pycrorm_uri
-        cls.world = BulletWorld("GUI")
+        cls.world = BulletWorld("DIRECT")
         cls.milk = Object("milk", "milk", "milk.stl", position=[3, 3, 0.75])
         cls.robot = Object(robot_description.i.name, "pr2", robot_description.i.name + ".urdf")
         ProcessModule.execution_delay = False

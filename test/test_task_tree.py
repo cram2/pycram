@@ -43,7 +43,6 @@ class TaskTreeTestCase(test_bullet_world.BulletWorldTest):
             if node.code != pycram.task.NoOperation():
                 self.assertEqual(node.status, pycram.task.TaskStatus.SUCCEEDED)
 
-    @unittest.skip
     def test_exception(self):
         """Test the tree with failing plans."""
 
