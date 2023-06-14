@@ -1,13 +1,11 @@
 import dataclasses
-from typing import List, Union, Optional, Callable, Tuple
-
+from typing import List, Union, Optional, Callable, Tuple, Iterable
 import sqlalchemy.orm
 
 from ..bullet_world import BulletWorld, Object as BulletWorldObject
 from ..designator import DesignatorDescription
 from ..orm.base import (Position as ORMPosition, Quaternion as ORMQuaternion)
-from ..orm.object_designator import (ObjectDesignator as ORMObjectDesignator,
-                                     BelieveObject as ORMBelieveObject,
+from ..orm.object_designator import (ObjectDesignator as ORMObjectDesignator, BelieveObject as ORMBelieveObject,
                                      ObjectPart as ORMObjectPart)
 
 
@@ -22,20 +20,31 @@ class ObjectDesignatorDescription(DesignatorDescription):
         """
         A single element that fits the description.
         """
+
         name: str
         """
         Name of the object
         """
+
         type: str
         """
         Type of the object
         """
-        # pose:
-        # pose: Tuple[List[float], List[float]]
+
         bullet_world_object: Optional[BulletWorldObject]
         """
         Reference to the BulletWorld object
         """
+
+        _pose: Optional[Callable] = dataclasses.field(init=False)
+        """
+        A callable returning the pose of this object. The _pose member is used overwritten for data copies
+        which will not update when the original bullet_world_object is moved.
+        """
+
+        def __post_init__(self):
+            if self.bullet_world_object:
+                self._pose = self.bullet_world_object.get_position_and_orientation
 
         def to_sql(self) -> ORMObjectDesignator:
             """
@@ -53,6 +62,14 @@ class ObjectDesignatorDescription(DesignatorDescription):
             :param session: Session with a database that is used to add and commit the objects
             :return: The completely instanced ORM object
             """
+
+            # insert position and orientation of object of the designator
+            orm_position = ORMPosition(*self.pose[0])
+            orm_orientation = ORMQuaternion(*self.pose[1])
+            session.add(orm_position)
+            session.add(orm_orientation)
+            session.commit()
+
             obj = self.to_sql()
             if self.pose:
                 position = ORMPosition(*self.pose[0])
@@ -66,26 +83,51 @@ class ObjectDesignatorDescription(DesignatorDescription):
                 obj.position = None
                 obj.orientation = None
 
+            # create object orm designator
+            obj = self.to_sql()
+            obj.position = orm_position.id
+            obj.orientation = orm_orientation.id
             session.add(obj)
             session.commit()
             return obj
+
+        def data_copy(self) -> 'ObjectDesignatorDescription.Object':
+            """
+            :return: A copy containing only the fields of this class. The BulletWorldObject attached to this pycram
+            object is not copied. The _pose gets set to a method that statically returns the pose of the object when
+            this method was called.
+            """
+            result = ObjectDesignatorDescription.Object(self.name, self.type, None)
+            # get current object pose and set resulting pose to always be that
+            pose = self.pose
+            result.pose = lambda: pose
+            return result
 
         @property
         def pose(self):
             """
             Property of the current position and orientation of the object.
+            Evaluate the _pose function.
 
             :return: Position and orientation
             """
-            return self.bullet_world_object.get_position_and_orientation()
+            return self._pose()
+
+        @pose.setter
+        def pose(self, value: Callable):
+            """
+            Set the pose to a new method that returns the current pose.
+
+            :param value: A callable that returns a pose.
+            """
+            self._pose = value
 
         def __repr__(self):
-            return self.__class__.__qualname__ + f"(" + ', '.join([f"{f.name}={self.__getattribute__(f.name)}"
-                                                                   for f in dataclasses.fields(self)] +
-                                                                  [f"pose={self.pose}"]) + ')'
+            return self.__class__.__qualname__ + f"(" + ', '.join(
+                [f"{f.name}={self.__getattribute__(f.name)}" for f in dataclasses.fields(self)] + [
+                    f"pose={self.pose}"]) + ')'
 
-    def __init__(self, names: Optional[List[str]] = None,
-                 types: Optional[List[str]] = None,
+    def __init__(self, names: Optional[List[str]] = None, types: Optional[List[str]] = None,
                  resolver: Optional[Callable] = None):
         """
         Base of all object designator descriptions. Every object designator has the name and type of the object.
@@ -106,7 +148,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
         """
         return next(iter(self))
 
-    def __iter__(self) -> Object:
+    def __iter__(self) -> Iterable[Object]:
         """
         Iterate through all possible objects fitting this description
 

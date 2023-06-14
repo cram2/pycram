@@ -12,7 +12,7 @@ class Action(Base):
     __tablename__ = "Action"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
     dtype = sqlalchemy.Column(sqlalchemy.types.String(255))
-    robot_position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("RobotPosition.id"))
+    robot_state = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("RobotState.id"))
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -85,7 +85,6 @@ class SetGripperAction(Action):
         self.motion = motion
 
 
-
 class Release(Action):
     """ORM Class of pycram.designators.action_designator.Release."""
     __tablename__ = "Release"
@@ -128,7 +127,6 @@ class PickUpAction(Action):
         super(PickUpAction, self).__init__()
         self.arm = arm
         self.grasp = grasp
-
 
 
 class PlaceAction(Action):
