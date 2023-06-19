@@ -775,19 +775,8 @@ class CloseAction(ActionDesignatorDescription):
         """
 
         def perform(self) -> Any:
-            object_type = self.object_designator.prop_value('type')
-            if object_type in ["container", "drawer"]:
-                motion_type = "closing-prismatic"
-            elif object_type in ["fridge"]:
-                motion_type = "closing-rotational"
-            else:
-                raise NotImplementedError()
-            joint, handle = get_container_joint_and_handle(self.object_designator)
-            arm = "left" if self.arm == Arms.LEFT else "right"
-            environment = self.object_designator.prop_value('part-of')
-            ProcessModule.perform(MotionDesignator(
-                [('type', motion_type), ('joint', joint),
-                 ('handle', handle), ('arm', arm), ('part-of', environment)]))
+            MoveTCPMotion(self.object_designator.part_pose, self.arm).resolve().perform()
+            ClosingMotion(self.object_designator, self.arm).resolve().perform()
 
         def to_sql(self) -> Base:
             raise NotImplementedError()

@@ -649,7 +649,8 @@ class OpeningMotion(MotionDesignatorDescription):
 
     def __init__(self, object_part: ObjectPart.Object, arm: str, resolver: Optional[Callable] = None):
         """
-        Lets the robot open a container specified by the given parameter.
+        Lets the robot open a container specified by the given parameter. This motion designator assumes that the handle
+        is already grasped.
 
         :param object_part: Object designator describing the handle of the drawer
         :param arm: Arm that should be used
@@ -657,6 +658,48 @@ class OpeningMotion(MotionDesignatorDescription):
         """
         super().__init__(resolver)
         self.cmd: str = 'open'
+        self.objet_part = object_part
+        self.arm: str = arm
+
+    def ground(self) -> Motion:
+        """
+        Default resolver for opening motion designator, returns a resolved motion designator for the input parameters.
+
+        :return: A resolved motion designator
+        """
+        return self.Motion(self.cmd, self.objet_part, self.arm)
+
+
+class ClosingMotion(MotionDesignatorDescription):
+    """
+    Designator for closing a container
+    """
+
+    @dataclasses.dataclass
+    class Motion(MotionDesignatorDescription.Motion):
+        # cmd: str
+        object_part: ObjectPart.Object
+        """
+        Object designator for the drawer handle
+        """
+        arm: str
+        """
+        Arm that should be used
+        """
+
+        def perform(self):
+            return ProcessModule.perform(self)
+
+    def __init__(self, object_part: ObjectPart.Object, arm: str, resolver: Optional[Callable] = None):
+        """
+        Lets the robot close a container specified by the given parameter. This assumes that the handle is already grasped
+
+        :param object_part: Object designator describing the handle of the drawer
+        :param arm: Arm that should be used
+        :param resolver: An alternative resolver
+        """
+        super().__init__(resolver)
+        self.cmd: str = 'close'
         self.objet_part = object_part
         self.arm: str = arm
 
