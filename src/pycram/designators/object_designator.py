@@ -4,7 +4,7 @@ import sqlalchemy.orm
 
 from ..bullet_world import BulletWorld, Object as BulletWorldObject
 from ..designator import DesignatorDescription
-from ..orm.base import (Position as ORMPosition, Quaternion as ORMQuaternion)
+from ..orm.base import (Position as ORMPosition, Quaternion as ORMQuaternion, MetaData)
 from ..orm.object_designator import (ObjectDesignator as ORMObjectDesignator, BelieveObject as ORMBelieveObject,
                                      ObjectPart as ORMObjectPart)
 
@@ -62,29 +62,17 @@ class ObjectDesignatorDescription(DesignatorDescription):
             :param session: Session with a database that is used to add and commit the objects
             :return: The completely instanced ORM object
             """
-
+            metadata = MetaData().insert(session)
             # insert position and orientation of object of the designator
-            orm_position = ORMPosition(*self.pose[0])
-            orm_orientation = ORMQuaternion(*self.pose[1])
+            orm_position = ORMPosition(*self.pose[0], metadata.id)
+            orm_orientation = ORMQuaternion(*self.pose[1], metadata.id)
             session.add(orm_position)
             session.add(orm_orientation)
             session.commit()
 
-            obj = self.to_sql()
-            if self.pose:
-                position = ORMPosition(*self.pose[0])
-                orientation = ORMQuaternion(*self.pose[1])
-                session.add(position)
-                session.add(orientation)
-                session.commit()
-                obj.position = position.id
-                obj.orientation = orientation.id
-            else:
-                obj.position = None
-                obj.orientation = None
-
             # create object orm designator
             obj = self.to_sql()
+            obj.metadata_id = metadata.id
             obj.position = orm_position.id
             obj.orientation = orm_orientation.id
             session.add(obj)
@@ -186,6 +174,8 @@ class BelieveObject(ObjectDesignatorDescription):
             self_ = self.to_sql()
             session.add(self_)
             session.commit()
+            metadata = MetaData().insert(session)
+            self_.metadata_id = metadata.id
             return self_
 
 
@@ -205,7 +195,8 @@ class ObjectPart(ObjectDesignatorDescription):
 
         def insert(self, session: sqlalchemy.orm.session.Session) -> ORMObjectPart:
             obj = self.to_sql()
-
+            metadata = MetaData().insert(session)
+            obj.metadata_id = metadata.id
             # try to create the part_of object
             if self.part_of:
                 part = self.part_of.insert(session)
