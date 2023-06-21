@@ -110,13 +110,17 @@ def stable(object: Object,
 
 
 def contact(object1: Object,
-            object2: Object) -> bool:
+            object2: Object,
+            return_links: bool = False) -> Union[bool, Tuple[bool, List]]:
     """
-    Checks if two objects are in contact or not.
+    Checks if two objects are in contact or not. If the links should be returned then the output will also contain a
+    list of tuples where the first element is the link name of 'object1' and the second element is the link name of
+    'object2'.
 
     :param object1: The first object
     :param object2: The second object
-    :return: True if the two objects are in contact False else
+    :param return_links: If the respective links on the objects that are in contact should be returned.
+    :return: True if the two objects are in contact False else. If links should be returned a list of links in contact
     """
 
     if BulletWorld.current_bullet_world.is_shadow_world:
@@ -126,11 +130,22 @@ def contact(object1: Object,
         shadow_obj1 = BulletWorld.current_bullet_world.get_shadow_object(object1)
         shadow_obj2 = BulletWorld.current_bullet_world.get_shadow_object(object2)
     with Use_shadow_world():
-        p.stepSimulation(BulletWorld.current_bullet_world.client_id)
+        # p.stepSimulation(BulletWorld.current_bullet_world.client_id)
+        p.performCollisionDetection(BulletWorld.current_bullet_world.client_id)
         con_points = p.getContactPoints(shadow_obj1.id, shadow_obj2.id,
                                         physicsClientId=BulletWorld.current_bullet_world.client_id)
 
-        return con_points != ()
+        if return_links:
+            contact_links = []
+            for point in con_points:
+                # l = [BulletWorld.current_bullet_world.get_object_by_id(point[1]).name,
+                #      BulletWorld.current_bullet_world.get_object_by_id(point[2]).name, shadow_obj1.get_link_by_id(point[3]),
+                #      shadow_obj2.get_link_by_id(point[4])]
+                contact_links.append((shadow_obj1.get_link_by_id(point[3]), shadow_obj2.get_link_by_id(point[4])))
+            return con_points != (), contact_links
+
+        else:
+            return con_points != ()
 
 
 def visible(object: Object,
