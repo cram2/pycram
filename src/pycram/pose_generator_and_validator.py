@@ -10,7 +10,7 @@ from .robot_descriptions.robot_description_handler import InitializedRobotDescri
 from .external_interfaces.ik import _make_request_msg, request_ik, IKError
 from .helper import _transform_to_torso, calculate_wrist_tool_offset, inverseTimes, _apply_ik
 from moveit_msgs.srv import GetPositionIK
-from typing import Type, Tuple, List, Union
+from typing import Type, Tuple, List, Union, Dict
 
 
 def pose_generator(costmap: Type[Costmap], number_of_samples=100, orientation_generator=None) -> Tuple[List[float], List[float]]:
@@ -115,7 +115,8 @@ def visibility_validator(pose: Tuple[List[float], List[float]],
 def reachability_validator(pose: Tuple[List[float], List[float]],
                            robot: Object,
                            target: Union[Object, Tuple[List[float], List[float]]],
-                           world: BulletWorld) -> bool:
+                           world: BulletWorld,
+                           allowed_collision: Dict[Object, List] = None) -> Tuple[bool, List]:
     """
     This method validates if a target position is reachable for a pose candidate.
     This is done by asking the ik solver if there is a valid solution if the
@@ -129,13 +130,14 @@ def reachability_validator(pose: Tuple[List[float], List[float]],
         target for reachability.
     :param world: The BulletWorld instance in which the reachability should be
         validated.
+    :param allowed_collision:
     :return: True if the target is reachable for the robot and False in any other
         case.
     """
     if type(target) == Object:
         target = target.get_position_and_orientation()
 
-    robot_pose = robot.get_position_and_orientation()
+    # robot_pose = robot.get_position_and_orientation()
     robot.set_position_and_orientation(pose[0], pose[1])
 
     left_gripper = robot_description.i.get_tool_frame('left')
@@ -154,19 +156,34 @@ def reachability_validator(pose: Tuple[List[float], List[float]],
     diff = calculate_wrist_tool_offset(end_effector, robot_description.i.get_tool_frame("left"), robot)
     target_diff = inverseTimes(target_torso, diff)
 
+    # position = np.round(np.array(target_diff[0]), decimals=6)
+    # target_round = (position, target_diff[1])
+
     res = False
     arms = []
     in_contact = False
+
+    allowed_robot_links = []
+    if robot in allowed_collision.keys():
+        allowed_robot_links = allowed_collision[robot]
+
     try:
         resp = request_ik(base_link, end_effector, target_diff, robot, left_joints)
 
         _apply_ik(robot, resp, left_joints)
+
         for obj in BulletWorld.current_bullet_world.objects:
-            if obj == robot or obj.name == "floor":
+            if obj.name == "floor":
                 continue
-            if contact(obj, robot):
-                in_contact = True
-                break
+            in_contact, contact_links = contact(robot, obj)
+            allowed_links = allowed_collision[obj] if obj in allowed_collision.keys() else []
+
+            if in_contact:
+                for link in contact_links:
+
+                    if link[0] in allowed_robot_links or link[1] in allowed_links:
+                        in_contact = False
+
         if not in_contact:
             arms.append("left")
             res = True
@@ -178,16 +195,26 @@ def reachability_validator(pose: Tuple[List[float], List[float]],
     end_effector = robot_description.i.get_child(right_joints[-1])
     diff = calculate_wrist_tool_offset(end_effector, robot_description.i.get_tool_frame("right"), robot)
     target_diff = inverseTimes(target_torso, diff)
+
+    # position = np.round(np.array(target_diff[0]), decimals=6)
+    # target_round = (position, target_diff[1])
     try:
         resp = request_ik(base_link, end_effector, target_diff, robot, right_joints)
 
         _apply_ik(robot, resp, right_joints)
+
         for obj in BulletWorld.current_bullet_world.objects:
-            if obj == robot or obj.name == "floor":
+            if obj.name == "floor":
                 continue
-            if contact(obj, robot):
-                in_contact = True
-                break
+            in_contact, contact_links = contact(robot, obj)
+            allowed_links = allowed_collision[obj] if obj in allowed_collision.keys() else []
+
+            if in_contact:
+                for link in contact_links:
+
+                    if link[0] in allowed_robot_links or link[1] in allowed_links:
+                        in_contact = False
+
         if not in_contact:
             arms.append("right")
             res = True
