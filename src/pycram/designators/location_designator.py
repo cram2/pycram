@@ -2,6 +2,9 @@ import dataclasses
 import time
 from typing import List, Tuple, Union, Iterable, Optional
 
+import numpy as np
+import tf
+
 from .object_designator import ObjectDesignatorDescription, ObjectPart
 from ..bullet_world import Object, BulletWorld, Use_shadow_world
 from ..bullet_world_reasoning import link_pose_for_joint_config
@@ -220,14 +223,14 @@ class CostmapLocation(LocationDesignatorDescription):
                     yield self.Location(list(maybe_pose), arms)
 
 
-class OpeningLocation(LocationDesignatorDescription):
+class AccessingLocation(LocationDesignatorDescription):
     """
     Location designator which describes poses used for opening drawers
     """
 
     @dataclasses.dataclass
     class Location(LocationDesignatorDescription.Location):
-        pass
+        arms: List[str]
 
     def __init__(self, handle_desig: ObjectPart.Object, robot, resolver=None):
         super().__init__(resolver)
@@ -239,7 +242,7 @@ class OpeningLocation(LocationDesignatorDescription):
 
     def __iter__(self) -> Location:
         ground_pose = [[self.handle.part_pose[0][0], self.handle.part_pose[0][1], 0], self.handle.part_pose[1]]
-        occupancy = OccupancyCostmap(distance_to_obstacle=0.3, from_ros=False, size=200, resolution=0.02,
+        occupancy = OccupancyCostmap(distance_to_obstacle=0.4, from_ros=False, size=200, resolution=0.02,
                                      origin=[ground_pose[0], [0, 0, 0, 1]])
         gaussian = GaussianCostmap(200, 15, 0.02, [ground_pose[0], [0, 0, 0, 1]])
 
@@ -247,22 +250,14 @@ class OpeningLocation(LocationDesignatorDescription):
 
         test_robot = BulletWorld.current_bullet_world.get_shadow_object(self.robot)
 
-        init_pose = self.handle.part_pose
+        # init_pose = self.handle.part_pose
 
         # Find a Joint of type prismatic which is above the handle in the URDF tree
+        container_joint = self.handle.bullet_world_object.find_joint_above(self.handle.name, JointType.PRISMATIC)
 
-        chain = self.handle.bullet_world_object.urdf_object.get_chain(
-            self.handle.bullet_world_object.urdf_object.get_root(), self.handle.name)
-        reversed_chain = reversed(chain)
-        container_joint = None
-        for element in reversed_chain:
-            if element in self.handle.bullet_world_object.joints and self.handle.bullet_world_object.get_joint_type(
-                    element) == JointType.PRISMATIC:
-                container_joint = element
-                break
-        if not container_joint:
-            raise EnvironmentManipulationImpossible(
-                f"There is no prismatic Joint in the chain from {self.handle.name} to the root of the URDF ")
+        init_pose = link_pose_for_joint_config(self.handle.bullet_world_object, {
+            container_joint: self.handle.bullet_world_object.get_joint_limits(container_joint)[0]},
+                                               self.handle.name)
 
         # Calculate the pose the handle would be in if the drawer was to be fully opened
         goal_pose = link_pose_for_joint_config(self.handle.bullet_world_object, {
@@ -271,21 +266,32 @@ class OpeningLocation(LocationDesignatorDescription):
 
         def identity_orientation_generator(pose, origin) -> List[float]:
             return [0.0, 0.0, -0.4472135954999579, 0.8944271909999159]
-            #return [0, 0, 0, 1]
+            # return [0, 0, 0, 1]
 
         with Use_shadow_world():
-            for maybe_pose in pose_generator(final_map, number_of_samples=600, orientation_generator=identity_orientation_generator):
+            for maybe_pose in pose_generator(final_map, number_of_samples=600,
+                                             orientation_generator=identity_orientation_generator):
+
+                hand_links = ['r_gripper_r_finger_tip_link', 'r_gripper_r_finger_link', 'r_gripper_r_finger_link',
+                              'r_gripper_l_finger_tip_link', 'r_gripper_l_finger_link', 'r_gripper_l_finger_link',
+                              'r_gripper_palm_link',
+                              'l_gripper_r_finger_tip_link', 'l_gripper_r_finger_link', 'l_gripper_r_finger_link',
+                              'l_gripper_l_finger_tip_link', 'l_gripper_l_finger_link', 'l_gripper_l_finger_link',
+                              'l_gripper_palm_link']
+
                 valid_init, arms_init = reachability_validator(maybe_pose, test_robot, init_pose,
-                                                     BulletWorld.current_bullet_world)
+                                                               BulletWorld.current_bullet_world,
+                                                               allowed_collision={test_robot: hand_links})
 
                 valid_goal, arms_goal = reachability_validator(maybe_pose, test_robot, goal_pose,
-                                                BulletWorld.current_bullet_world)
+                                                               BulletWorld.current_bullet_world,
+                                                               allowed_collision={test_robot: hand_links})
 
                 if valid_init and valid_goal:
-                    print("init:", init_pose)
-                    print("goal:", goal_pose)
-                    print(arms_init, arms_goal)
-                    yield self.Location(maybe_pose)
+                    # print("init:", init_pose)
+                    # print("goal:", goal_pose)
+                    # print(arms_init, arms_goal)
+                    yield self.Location(maybe_pose, list(set(arms_init).intersection(set(arms_goal))))
 
 
 class SemanticCostmapLocation(LocationDesignatorDescription):

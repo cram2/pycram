@@ -175,7 +175,7 @@ def reachability_validator(pose: Tuple[List[float], List[float]],
         for obj in BulletWorld.current_bullet_world.objects:
             if obj.name == "floor":
                 continue
-            in_contact, contact_links = contact(robot, obj)
+            in_contact, contact_links = contact(robot, obj, return_links=True)
             allowed_links = allowed_collision[obj] if obj in allowed_collision.keys() else []
 
             if in_contact:
@@ -206,7 +206,7 @@ def reachability_validator(pose: Tuple[List[float], List[float]],
         for obj in BulletWorld.current_bullet_world.objects:
             if obj.name == "floor":
                 continue
-            in_contact, contact_links = contact(robot, obj)
+            in_contact, contact_links = contact(robot, obj, return_links=True)
             allowed_links = allowed_collision[obj] if obj in allowed_collision.keys() else []
 
             if in_contact:
