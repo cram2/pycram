@@ -14,7 +14,9 @@ from pycram.robot_descriptions.robot_description_handler import InitializedRobot
 from ..enums import JointType
 from ..helper import transform
 from ..plan_failures import EnvironmentManipulationImpossible
-from ..pose_generator_and_validator import pose_generator, visibility_validator, reachability_validator
+from ..pose_generator_and_validator import pose_generator, visibility_validator, reachability_validator, \
+    generate_orientation
+from ..robot_description import ManipulatorDescription
 
 
 class LocationDesignatorDescription(DesignatorDescription):
@@ -212,8 +214,14 @@ class CostmapLocation(LocationDesignatorDescription):
                     res = res and visibility_validator(maybe_pose, test_robot, target_pose,
                                                        BulletWorld.current_bullet_world)
                 if self.reachable_for:
+                    hand_links = []
+                    for name, chain in robot_description.i.chains.items():
+                        if isinstance(chain, ManipulatorDescription):
+                            hand_links += chain.gripper.links
+
                     valid, arms = reachability_validator(maybe_pose, test_robot, target_pose,
-                                                         BulletWorld.current_bullet_world)
+                                                         BulletWorld.current_bullet_world,
+                                                         allowed_collision={test_robot: hand_links})
                     if self.reachable_arm:
                         res = res and valid and self.reachable_arm in arms
                     else:
@@ -250,8 +258,6 @@ class AccessingLocation(LocationDesignatorDescription):
 
         test_robot = BulletWorld.current_bullet_world.get_shadow_object(self.robot)
 
-        # init_pose = self.handle.part_pose
-
         # Find a Joint of type prismatic which is above the handle in the URDF tree
         container_joint = self.handle.bullet_world_object.find_joint_above(self.handle.name, JointType.PRISMATIC)
 
@@ -264,20 +270,19 @@ class AccessingLocation(LocationDesignatorDescription):
             container_joint: self.handle.bullet_world_object.get_joint_limits(container_joint)[1] - 0.05},
                                                self.handle.name)
 
-        def identity_orientation_generator(pose, origin) -> List[float]:
-            return [0.0, 0.0, -0.4472135954999579, 0.8944271909999159]
-            # return [0, 0, 0, 1]
+        # Handle position for calculating rotation of the final pose
+        half_pose = link_pose_for_joint_config(self.handle.bullet_world_object, {
+            container_joint: self.handle.bullet_world_object.get_joint_limits(container_joint)[1] / 1.5},
+                                               self.handle.name)
 
         with Use_shadow_world():
             for maybe_pose in pose_generator(final_map, number_of_samples=600,
-                                             orientation_generator=identity_orientation_generator):
+                                             orientation_generator=lambda p, o: generate_orientation(p, half_pose)):
 
-                hand_links = ['r_gripper_r_finger_tip_link', 'r_gripper_r_finger_link', 'r_gripper_r_finger_link',
-                              'r_gripper_l_finger_tip_link', 'r_gripper_l_finger_link', 'r_gripper_l_finger_link',
-                              'r_gripper_palm_link',
-                              'l_gripper_r_finger_tip_link', 'l_gripper_r_finger_link', 'l_gripper_r_finger_link',
-                              'l_gripper_l_finger_tip_link', 'l_gripper_l_finger_link', 'l_gripper_l_finger_link',
-                              'l_gripper_palm_link']
+                hand_links = []
+                for name, chain in robot_description.i.chains.items():
+                    if isinstance(chain, ManipulatorDescription):
+                        hand_links += chain.gripper.links
 
                 valid_init, arms_init = reachability_validator(maybe_pose, test_robot, init_pose,
                                                                BulletWorld.current_bullet_world,
@@ -288,9 +293,6 @@ class AccessingLocation(LocationDesignatorDescription):
                                                                allowed_collision={test_robot: hand_links})
 
                 if valid_init and valid_goal:
-                    # print("init:", init_pose)
-                    # print("goal:", goal_pose)
-                    # print(arms_init, arms_goal)
                     yield self.Location(maybe_pose, list(set(arms_init).intersection(set(arms_goal))))
 
 
