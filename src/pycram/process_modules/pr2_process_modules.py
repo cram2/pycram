@@ -1,3 +1,5 @@
+from abc import ABC
+
 import pycram.bullet_world_reasoning as btr
 import numpy as np
 import time
@@ -8,7 +10,7 @@ from ..robot_descriptions.robot_description_handler import InitializedRobotDescr
 from ..process_module import ProcessModule
 from ..bullet_world import BulletWorld
 from ..helper import transform
-from ..external_interfaces.ik import request_ik
+from ..external_interfaces.ik import request_ik, IKError
 from ..helper import _transform_to_torso, _apply_ik, calculate_wrist_tool_offset, inverseTimes
 from ..local_transformer import local_transformer
 from ..designators.motion_designator import *
@@ -225,6 +227,7 @@ class Pr2MoveTCP(ProcessModule):
         end_effector = robot_description.i.get_child(joints[-1])
 
         inv = request_ik(base_link, end_effector, target, robot, joints)
+
         _apply_ik(robot, inv, joints)
 
 
@@ -269,16 +272,8 @@ class Pr2Open(ProcessModule):
 
     def _execute(self, desig: OpeningMotion.Motion):
         part_of_object = desig.object_part.bullet_world_object
-        chain = part_of_object.urdf_object.get_chain(part_of_object.urdf_object.get_root(), desig.object_part.name)
-        reversed_chain = reversed(chain)
-        container_joint = None
-        for element in reversed_chain:
-            if element in part_of_object.joints and part_of_object.get_joint_type(element) == JointType.PRISMATIC:
-                container_joint = element
-                break
-        if not container_joint:
-            raise EnvironmentManipulationImpossible(
-                f"There is no prismatic Joint in the chain from {desig.object_part.name} to the root of the URDF ")
+
+        container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
 
         goal_pose = btr.link_pose_for_joint_config(part_of_object, {
             container_joint: part_of_object.get_joint_limits(container_joint)[1] - 0.05}, desig.object_part.name)
@@ -296,19 +291,12 @@ class Pr2Close(ProcessModule):
     """
     def _execute(self, desig: ClosingMotion):
         part_of_object = desig.object_part.bullet_world_object
-        chain = part_of_object.urdf_object.get_chain(part_of_object.urdf_object.get_root(), desig.object_part.name)
-        reversed_chain = reversed(chain)
-        container_joint = None
-        for element in reversed_chain:
-            if element in part_of_object.joints and part_of_object.get_joint_type(element) == JointType.PRISMATIC:
-                container_joint = element
-                break
-        if not container_joint:
-            raise EnvironmentManipulationImpossible(
-                f"There is no prismatic Joint in the chain from {desig.object_part.name} to the root of the URDF ")
+
+        container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
 
         goal_pose = btr.link_pose_for_joint_config(part_of_object, {
             container_joint: part_of_object.get_joint_limits(container_joint)[0]}, desig.object_part.name)
+
 
         _move_arm_tcp(goal_pose, BulletWorld.robot, desig.arm)
 
@@ -333,6 +321,9 @@ def _move_arm_tcp(target, robot, arm):
 
     inv = request_ik(base_link, end_effector, target, robot, joints)
     _apply_ik(robot, inv, joints)
+
+
+
 
 
 PR2ProcessModulesSimulated = {'navigate': Pr2Navigation(),
