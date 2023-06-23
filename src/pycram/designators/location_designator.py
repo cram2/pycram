@@ -239,16 +239,39 @@ class AccessingLocation(LocationDesignatorDescription):
     @dataclasses.dataclass
     class Location(LocationDesignatorDescription.Location):
         arms: List[str]
+        """
+        List of arms that can be used to for accessing from this pose
+        """
 
     def __init__(self, handle_desig: ObjectPart.Object, robot, resolver=None):
+        """
+        Describes a position from where a drawer can be opened. For now this position should be calculated before the
+        drawer will be opened. Calculating the pose while the drawer is open could lead to problems.
+
+        :param handle_desig: ObjectPart designator for handle of the drawer
+        :param robot: Object designator for the robot which should open the drawer
+        :param resolver: An alternative resolver to create the location
+        """
         super().__init__(resolver)
         self.handle = handle_desig
         self.robot = robot
 
     def ground(self) -> Location:
+        """
+        Default resolver for this location designator, just returns the first element from the iteration
+
+        :return: A location designator for a pose from which the drawer can be opened
+        """
         return next(iter(self))
 
     def __iter__(self) -> Location:
+        """
+        Creates poses from which the robot can open the drawer specified by the ObjectPart designator describing the
+        handle. Poses are validated by checking if the robot can grasp the handle while the drawer is closed and if
+        the handle can be grasped if the drawer is open.
+
+        :yield: A location designator containing the pose and the arms that can be used.
+        """
         ground_pose = [[self.handle.part_pose[0][0], self.handle.part_pose[0][1], 0], self.handle.part_pose[1]]
         occupancy = OccupancyCostmap(distance_to_obstacle=0.4, from_ros=False, size=200, resolution=0.02,
                                      origin=[ground_pose[0], [0, 0, 0, 1]])
