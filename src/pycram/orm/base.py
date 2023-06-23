@@ -61,7 +61,7 @@ class MetaData(Base):
     created_by = sqlalchemy.Column(sqlalchemy.String(255), default=os.getlogin())
     """The user that created the experiment."""
 
-    description = sqlalchemy.Column(sqlalchemy.String(255), default=None, nullable=True)
+    description = sqlalchemy.Column(sqlalchemy.String(255), default=None, nullable=False)
     """A description of the purpose (?) of this experiment."""
 
     pycram_version = sqlalchemy.Column(sqlalchemy.String(255), default=get_pycram_version_from_git(),
