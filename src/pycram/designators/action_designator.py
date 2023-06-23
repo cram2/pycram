@@ -738,7 +738,6 @@ class OpenAction(ActionDesignatorDescription):
 
         :param object_designator_description: Object designator describing the object that should be opened
         :param arms: A list of possible arms that should be used
-        :param distances: A list of possible distances by which the container should be opened
         :param resolver: A alternative resolver that returns a performable designator for the lists of possible parameter.
         """
         super(OpenAction, self).__init__(resolver)
@@ -805,22 +804,3 @@ class CloseAction(ActionDesignatorDescription):
         :return: A performable designator
         """
         return self.Action(self.object_designator_description.resolve(), self.arms[0])
-
-
-def get_container_joint_and_handle(container_designator: Any):
-    """
-    Gets names of container joint and handle.
-    TODO move this where it belongs
-
-    :param container_designator: The object designator to get the names from.
-    :return: (joint_name, handle_name)
-    """
-    name = container_designator.prop_value('name')
-    if name == "iai_fridge":
-        return "iai_fridge_door_joint", "iai_fridge_door_handle"
-    elif name == "sink_area_left_upper_drawer":
-        return "sink_area_left_upper_drawer_main_joint", "sink_area_left_upper_drawer_handle"
-    elif name == "sink_area_left_middle_drawer":
-        return "sink_area_left_middle_drawer_main_joint", "sink_area_left_middle_drawer_handle"
-    else:
-        raise NotImplementedError()
