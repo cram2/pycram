@@ -97,6 +97,7 @@ class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
     def test_node(self):
         """Test if the objects in the database is equal with the objects that got serialized."""
         self.plan()
+        pycram.orm.base.MetaData().description = "Unittest"
         pycram.task.task_tree.root.insert(self.session, )
 
         node_results = self.session.query(pycram.orm.task.TaskTreeNode).all()
@@ -122,6 +123,7 @@ class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
 
     def test_meta_data(self):
         self.plan()
+        pycram.orm.base.MetaData().description = "Unittest"
         pycram.task.task_tree.root.insert(self.session, )
         metadata_results = self.session.query(pycram.orm.base.MetaData).all()
         self.assertEqual(1, len(metadata_results))
@@ -186,6 +188,7 @@ class ORMObjectDesignatorTestCase(test_bullet_world.BulletWorldTest):
 
     def test_plan_serialization(self):
         self.plan()
+        pycram.orm.base.MetaData().description = "Unittest"
         tt = pycram.task.task_tree
         tt.insert(self.session)
         action_results = self.session.query(pycram.orm.action_designator.Action).all()
