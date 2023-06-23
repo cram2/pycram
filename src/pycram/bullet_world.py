@@ -746,6 +746,7 @@ class Object:
         self.original_pose = [position, orientation]
         with open(self.path) as f:
             self.urdf_object = URDF.from_xml_string(f.read())
+        self.links[self.urdf_object.get_root()] = -1
 
     def __repr__(self):
         skip_attr = ["links", "joints", "urdf_object"]
