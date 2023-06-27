@@ -243,7 +243,7 @@ class AccessingLocation(LocationDesignatorDescription):
         List of arms that can be used to for accessing from this pose
         """
 
-    def __init__(self, handle_desig: ObjectPart.Object, robot, resolver=None):
+    def __init__(self, handle_desig: ObjectPart.Object, robot_desig: ObjectDesignatorDescription.Object, resolver=None):
         """
         Describes a position from where a drawer can be opened. For now this position should be calculated before the
         drawer will be opened. Calculating the pose while the drawer is open could lead to problems.
@@ -254,7 +254,7 @@ class AccessingLocation(LocationDesignatorDescription):
         """
         super().__init__(resolver)
         self.handle = handle_desig
-        self.robot = robot
+        self.robot = robot_desig.bullet_world_object
 
     def ground(self) -> Location:
         """
