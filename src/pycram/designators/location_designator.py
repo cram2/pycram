@@ -207,7 +207,7 @@ class CostmapLocation(LocationDesignatorDescription):
 
         with Use_shadow_world():
 
-            for maybe_pose in pose_generator(final_map):
+            for maybe_pose in pose_generator(final_map, number_of_samples=600):
                 res = True
                 arms = None
                 if self.visible_for:
