@@ -3,6 +3,7 @@ from typing import Optional
 
 import sqlalchemy
 from .base import Base
+from ..enums import TaskStatus
 import datetime
 
 
@@ -10,11 +11,10 @@ class TaskTreeNode(Base):
     """ORM equivalent of pycram.task.TaskTreeNode."""
 
     __tablename__ = "TaskTreeNode"
-    id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
     code = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Code.id"))
     start_time = sqlalchemy.Column(sqlalchemy.types.DateTime)
     end_time = sqlalchemy.Column(sqlalchemy.types.DateTime, nullable=True)
-    status = sqlalchemy.Column(sqlalchemy.types.String(255))
+    status = sqlalchemy.Column(sqlalchemy.types.Enum(TaskStatus))
     reason = sqlalchemy.Column(sqlalchemy.types.String(255), nullable=True)
     parent = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("TaskTreeNode.id"), nullable=True)
 
@@ -33,7 +33,6 @@ class Code(Base):
     """ORM equivalent of pycram.task.Code."""
 
     __tablename__ = "Code"
-    id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
     function = sqlalchemy.Column(sqlalchemy.types.String(255))
     designator = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), nullable=True)
 
