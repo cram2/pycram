@@ -18,7 +18,6 @@ from pycram.task import with_tree
 
 
 class ORMTestSchema(unittest.TestCase):
-
     engine: sqlalchemy.engine.Engine
     session: sqlalchemy.orm.Session
 
@@ -68,7 +67,6 @@ class ORMTestSchema(unittest.TestCase):
 
 
 class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
-
     engine: sqlalchemy.engine.Engine
     session: sqlalchemy.orm.Session
 
@@ -86,6 +84,7 @@ class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
     def tearDown(self):
         super().tearDown()
         pycram.task.reset_tree()
+        pycram.orm.base.MetaData.reset()
         pycram.orm.base.Base.metadata.drop_all(self.engine)
         self.session.close()
 
@@ -98,6 +97,7 @@ class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
     def test_node(self):
         """Test if the objects in the database is equal with the objects that got serialized."""
         self.plan()
+        pycram.orm.base.MetaData().description = "Unittest"
         pycram.task.task_tree.root.insert(self.session, )
 
         node_results = self.session.query(pycram.orm.task.TaskTreeNode).all()
@@ -107,10 +107,10 @@ class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
         self.assertEqual(len(code_results), len(pycram.task.task_tree.root))
 
         position_results = self.session.query(pycram.orm.base.Position).all()
-        self.assertEqual(10, len(position_results))
+        self.assertEqual(8, len(position_results))
 
         quaternion_results = self.session.query(pycram.orm.base.Quaternion).all()
-        self.assertEqual(10, len(quaternion_results))
+        self.assertEqual(8, len(quaternion_results))
 
         park_arms_results = self.session.query(pycram.orm.action_designator.ParkArmsAction).all()
         self.assertEqual(0, len(park_arms_results))
@@ -120,6 +120,31 @@ class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
 
         action_results = self.session.query(pycram.orm.action_designator.Action).all()
         self.assertEqual(4, len(action_results))
+
+    def test_meta_data(self):
+        self.plan()
+        pycram.orm.base.MetaData().description = "Unittest"
+        pycram.task.task_tree.root.insert(self.session, )
+        metadata_results = self.session.query(pycram.orm.base.MetaData).all()
+        self.assertEqual(1, len(metadata_results))
+
+        action_results = self.session.query(pycram.orm.action_designator.Action).all()
+        self.assertTrue(all([a.metadata_id for a in action_results]))
+
+        park_arms_results = self.session.query(pycram.orm.action_designator.ParkArmsAction).all()
+        self.assertTrue(all([a.metadata_id for a in park_arms_results]))
+
+        object_results = self.session.query(pycram.orm.object_designator.ObjectDesignator).all()
+        self.assertTrue(all([o.metadata_id for o in object_results]))
+
+    def test_meta_data_alternation(self):
+        meta_data = pycram.orm.base.MetaData()
+        meta_data.description = "Test"
+        self.plan()
+        pycram.task.task_tree.root.insert(self.session, )
+        metadata_result = self.session.query(pycram.orm.base.MetaData).first()
+        print(metadata_result)
+        self.assertEqual(metadata_result.description, "Test")
 
 
 class ORMObjectDesignatorTestCase(test_bullet_world.BulletWorldTest):
@@ -163,10 +188,10 @@ class ORMObjectDesignatorTestCase(test_bullet_world.BulletWorldTest):
 
     def test_plan_serialization(self):
         self.plan()
+        pycram.orm.base.MetaData().description = "Unittest"
         tt = pycram.task.task_tree
         tt.insert(self.session)
         action_results = self.session.query(pycram.orm.action_designator.Action).all()
-        print(action_results)
         self.assertEqual(len(tt) - 2, len(action_results))
 
 

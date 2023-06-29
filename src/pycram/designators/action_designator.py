@@ -10,11 +10,10 @@ from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, Naviga
                                      PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction,
                                      MoveTorsoAction as ORMMoveTorsoAction, SetGripperAction as ORMSetGripperAction,
                                      Action as ORMAction)
-from ..orm.base import Quaternion, Position, Base, RobotState
+from ..orm.base import Quaternion, Position, Base, RobotState, MetaData
 from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from ..task import with_tree
 from ..enums import Arms
-from ..plan_failures import *
 from ..bullet_world import BulletWorld
 
 
@@ -30,10 +29,17 @@ class ActionDesignatorDescription(DesignatorDescription):
         The performable designator with a single element for each list of possible parameter.
         """
         robot_position: Tuple[List[float], List[float]] = dataclasses.field(init=False)
-        robot_torso_height: float = dataclasses.field(init=False)
-        robot_type: str = dataclasses.field(init=False)
         """
         The position of the robot at the start of the action.
+        """
+        robot_torso_height: float = dataclasses.field(init=False)
+        """
+        The torso height of the robot at the start of the action.
+        """
+
+        robot_type: str = dataclasses.field(init=False)
+        """
+        The type of the robot at the start of the action.
         """
 
         def __post_init__(self):
@@ -67,9 +73,17 @@ class ActionDesignatorDescription(DesignatorDescription):
             :return: The completely instanced ORM object
             """
 
-            # create position and orientation
+            # get or create metadata
+            metadata = MetaData().insert(session)
+
+            # create position
             position = Position(*self.robot_position[0])
+            position.metadata_id = metadata.id
+
+            # create orientation
             orientation = Quaternion(*self.robot_position[1])
+            orientation.metadata_id = metadata.id
+
             session.add_all([position, orientation])
             session.commit()
 
@@ -79,11 +93,13 @@ class ActionDesignatorDescription(DesignatorDescription):
             robot_state.orientation = orientation.id
             robot_state.torso_height = self.robot_torso_height
             robot_state.type = self.robot_type
+            robot_state.metadata_id = metadata.id
             session.add(robot_state)
             session.commit()
 
             # create action
             action = self.to_sql()
+            action.metadata_id = metadata.id
             action.robot_state = robot_state.id
 
             return action
