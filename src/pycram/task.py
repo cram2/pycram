@@ -16,6 +16,7 @@ import tqdm
 
 from .bullet_world import BulletWorld
 from .orm.task import (Code as ORMCode, TaskTreeNode as ORMTaskTreeNode)
+from .orm.base import MetaData
 from .plan_failures import PlanFailure
 from .enums import TaskStatus
 
@@ -97,6 +98,10 @@ class Code:
         if self_ and getattr(self_, "insert", None):
             designator = self_.insert(session)
             code.designator = designator.id
+
+        # get and set metadata
+        metadata = MetaData().insert(session)
+        code.metadata_id = metadata.id
 
         session.add(code)
         session.commit()
@@ -202,7 +207,6 @@ class TaskTreeNode(anytree.NodeMixin):
 
         :return: The ORM object that got inserted
         """
-
         if use_progress_bar:
             if not progress_bar:
                 progress_bar = tqdm.tqdm(desc="Inserting TaskTree into database", leave=True, position=0,
@@ -214,6 +218,10 @@ class TaskTreeNode(anytree.NodeMixin):
         # convert self to orm object
         node = self.to_sql()
         node.code = code.id
+
+        # get and set metadata
+        metadata = MetaData().insert(session)
+        node.metadata_id = metadata.id
 
         # set parent to id from constructor
         node.parent = parent_id

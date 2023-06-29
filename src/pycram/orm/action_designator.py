@@ -2,6 +2,7 @@ from typing import Optional
 
 from .base import Base, Position, Quaternion
 import sqlalchemy
+from ..enums import Arms
 
 
 class Action(Base):
@@ -10,7 +11,6 @@ class Action(Base):
     Inheritance is implemented as Joined Table Inheritance (see https://docs.sqlalchemy.org/en/20/orm/inheritance.html)
     """
     __tablename__ = "Action"
-    id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
     dtype = sqlalchemy.Column(sqlalchemy.types.String(255))
     robot_state = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("RobotState.id"))
 
@@ -24,7 +24,7 @@ class ParkArmsAction(Action):
     """ORM Class of pycram.designators.action_designator.ParkArmsDesignator."""
     __tablename__ = "ParkArms"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
-    arm = sqlalchemy.Column(sqlalchemy.types.String(255), nullable=False)
+    arm = sqlalchemy.Column(sqlalchemy.types.Enum(Arms), nullable=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
