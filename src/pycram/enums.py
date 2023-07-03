@@ -29,3 +29,14 @@ class JointType(Enum):
     SPHERICAL = 2
     PLANAR = 3
     FIXED = 4
+
+
+class Grasp(Enum):
+    """
+    Enum for Grasp orientations.
+    """
+    FRONT = 0
+    LEFT = 1
+    RIGHT = 2
+    TOP = 3
+

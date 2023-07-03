@@ -197,6 +197,7 @@ class BulletWorld:
         """
         # True if this is NOT the shadow world since it has a reference to the
         # Shadow world
+        time.sleep(0.1)
         if self.shadow_world:
             self.world_sync.terminate = True
             self.world_sync.join()
