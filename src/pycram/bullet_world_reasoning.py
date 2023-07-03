@@ -6,7 +6,7 @@ from .bullet_world import _world_and_id, Object, Use_shadow_world, BulletWorld
 from .external_interfaces.ik import request_ik
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from .helper import _transform_to_torso, _apply_ik, calculate_wrist_tool_offset, inverseTimes
-from typing import List, Tuple, Optional, Union
+from typing import List, Tuple, Optional, Union, Dict
 
 
 class ReasoningError(Exception):
@@ -110,13 +110,17 @@ def stable(object: Object,
 
 
 def contact(object1: Object,
-            object2: Object) -> bool:
+            object2: Object,
+            return_links: bool = False) -> Union[bool, Tuple[bool, List]]:
     """
-    Checks if two objects are in contact or not.
+    Checks if two objects are in contact or not. If the links should be returned then the output will also contain a
+    list of tuples where the first element is the link name of 'object1' and the second element is the link name of
+    'object2'.
 
     :param object1: The first object
     :param object2: The second object
-    :return: True if the two objects are in contact False else
+    :param return_links: If the respective links on the objects that are in contact should be returned.
+    :return: True if the two objects are in contact False else. If links should be returned a list of links in contact
     """
 
     if BulletWorld.current_bullet_world.is_shadow_world:
@@ -126,11 +130,22 @@ def contact(object1: Object,
         shadow_obj1 = BulletWorld.current_bullet_world.get_shadow_object(object1)
         shadow_obj2 = BulletWorld.current_bullet_world.get_shadow_object(object2)
     with Use_shadow_world():
-        p.stepSimulation(BulletWorld.current_bullet_world.client_id)
+        # p.stepSimulation(BulletWorld.current_bullet_world.client_id)
+        p.performCollisionDetection(BulletWorld.current_bullet_world.client_id)
         con_points = p.getContactPoints(shadow_obj1.id, shadow_obj2.id,
                                         physicsClientId=BulletWorld.current_bullet_world.client_id)
 
-        return con_points != ()
+        if return_links:
+            contact_links = []
+            for point in con_points:
+                # l = [BulletWorld.current_bullet_world.get_object_by_id(point[1]).name,
+                #      BulletWorld.current_bullet_world.get_object_by_id(point[2]).name, shadow_obj1.get_link_by_id(point[3]),
+                #      shadow_obj2.get_link_by_id(point[4])]
+                contact_links.append((shadow_obj1.get_link_by_id(point[3]), shadow_obj2.get_link_by_id(point[4])))
+            return con_points != (), contact_links
+
+        else:
+            return con_points != ()
 
 
 def visible(object: Object,
@@ -345,3 +360,22 @@ def supporting(object1: Object,
     """
     world, world_id = _world_and_id(world)
     return contact(object1, object2, world) and object2.get_position()[2] > object1.get_position()[2]
+
+
+def link_pose_for_joint_config(object: Object, joint_config: Dict[str, float], link_name: str) -> Tuple[
+    List[float], List[float]]:
+    """
+    Returns the pose a link would be in if the given joint configuration would be applied to the object. This is done
+    by using the respective object in the shadow world and applying the joint configuration to this one. After applying
+    the joint configuration the link position is taken from there.
+
+    :param object: Object of which the link is a part
+    :param joint_config: Dict with the goal joint configuration
+    :param link_name: Name of the link for which the pose should be returned
+    :return: The pose of the link after applying the joint configuration
+    """
+    shadow_object = BulletWorld.current_bullet_world.get_shadow_object(object)
+    with Use_shadow_world():
+        for joint, pose in joint_config.items():
+            shadow_object.set_joint_state(joint, pose)
+        return shadow_object.get_link_position_and_orientation(link_name)

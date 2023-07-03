@@ -1,11 +1,13 @@
 import dataclasses
 import itertools
+import time
 from typing import List, Optional, Any, Tuple
 
 import sqlalchemy.orm
 
+from .location_designator import CostmapLocation
 from .motion_designator import *
-from .object_designator import ObjectDesignatorDescription
+from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
 from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, NavigateAction as ORMNavigateAction,
                                      PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction,
                                      MoveTorsoAction as ORMMoveTorsoAction, SetGripperAction as ORMSetGripperAction,
@@ -593,13 +595,29 @@ class TransportAction(ActionDesignatorDescription):
 
         @with_tree
         def perform(self) -> None:
-            # TODO jonas has to look over this
+            robot_desig = BelieveObject(names=[robot_description.i.name])
             ParkArmsAction.Action(Arms.BOTH).perform()
-            NavigateAction.Action(self.object_designator.pose).perform()
-            # TODO write from_object method for descriptions
-            PickUpAction(self.object_designator, [self.arm], ["left", "right"]).ground().perform()
-            NavigateAction.Action(self.target_location).perform()
-            PlaceAction.Action(self.object_designator, self.arm, self.target_location)
+            pickup_loc = CostmapLocation(target=self.object_designator, reachable_for=robot_desig.resolve())
+            # Tries to find a pick-up posotion for the robot that uses the given arm
+            pickup_pose = None
+            for pose in pickup_loc:
+                if self.arm in pose.reachable_arms:
+                    pickup_pose = pose
+                    break
+            if not pickup_pose:
+                raise ObjectUnfetchable(
+                    f"Found no pose for the robot to grasp the object: {self.object_designator} with arm: {self.arm}")
+
+            NavigateAction([pickup_pose.pose]).resolve().perform()
+            PickUpAction.Action(self.object_designator, self.arm, "left").perform()
+            ParkArmsAction.Action(Arms.BOTH).perform()
+            try:
+                place_loc = CostmapLocation(target=self.target_location, reachable_for=robot_desig.resolve()).resolve()
+            except StopIteration:
+                raise ReachabilityFailure(
+                    f"No location found from where the robot can reach the target location: {self.target_location}")
+            NavigateAction([place_loc.pose]).resolve().perform()
+            PlaceAction.Action(self.object_designator, self.arm, self.target_location).perform()
             ParkArmsAction.Action(Arms.BOTH).perform()
 
         def to_sql(self) -> Base:
@@ -726,7 +744,7 @@ class OpenAction(ActionDesignatorDescription):
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
 
-        object_designator: ObjectDesignatorDescription.Object
+        object_designator: ObjectPart.Object
         """
         Object designator describing the object that should be opened
         """
@@ -734,28 +752,11 @@ class OpenAction(ActionDesignatorDescription):
         """
         Arm that should be used for opening the container
         """
-        distance: float
-        """
-        Distance by which the container should be opened
-        """
 
         @with_tree
         def perform(self) -> Any:
-            object_type = self.object_designator.type
-            if object_type in ["container", "drawer"]:
-                motion_type = "opening-prismatic"
-            elif object_type in ["fridge"]:
-                motion_type = "opening-rotational"
-            else:
-                raise NotImplementedError()
-            joint, handle = get_container_joint_and_handle(self.object_designator)
-            arm = "left" if self.arm == Arms.LEFT else "right"
-            environment = self.object_designator.prop_value('part-of')
-
-            ProcessModule.perform(MotionDesignator(
-                [('type', motion_type), ('joint', joint),
-                 ('handle', handle), ('arm', arm), ('distance', self.distance),
-                 ('part-of', environment)]))
+            MoveTCPMotion(self.object_designator.part_pose, self.arm).resolve().perform()
+            OpeningMotion(self.object_designator, self.arm).resolve().perform()
 
         def to_sql(self) -> Base:
             raise NotImplementedError()
@@ -763,20 +764,17 @@ class OpenAction(ActionDesignatorDescription):
         def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
             raise NotImplementedError()
 
-    def __init__(self, object_designator_description: ObjectDesignatorDescription, arms: List[str],
-                 distances: List[float], resolver=None):
+    def __init__(self, object_designator_description: ObjectDesignatorDescription, arms: List[str], resolver=None):
         """
         Moves the arm of the robot to open a container.
 
         :param object_designator_description: Object designator describing the object that should be opened
         :param arms: A list of possible arms that should be used
-        :param distances: A list of possible distances by which the container should be opened
         :param resolver: A alternative resolver that returns a performable designator for the lists of possible parameter.
         """
         super(OpenAction, self).__init__(resolver)
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.arms: List[str] = arms
-        self.distances: List[float] = distances
 
     def ground(self) -> Action:
         """
@@ -785,7 +783,7 @@ class OpenAction(ActionDesignatorDescription):
 
         :return: A performable designator
         """
-        return self.Action(self.object_designator_description.resolve(), self.arms[0], self.distances[0])
+        return self.Action(self.object_designator_description.resolve(), self.arms[0])
 
 
 class CloseAction(ActionDesignatorDescription):
@@ -808,19 +806,8 @@ class CloseAction(ActionDesignatorDescription):
         """
 
         def perform(self) -> Any:
-            object_type = self.object_designator.prop_value('type')
-            if object_type in ["container", "drawer"]:
-                motion_type = "closing-prismatic"
-            elif object_type in ["fridge"]:
-                motion_type = "closing-rotational"
-            else:
-                raise NotImplementedError()
-            joint, handle = get_container_joint_and_handle(self.object_designator)
-            arm = "left" if self.arm == Arms.LEFT else "right"
-            environment = self.object_designator.prop_value('part-of')
-            ProcessModule.perform(MotionDesignator(
-                [('type', motion_type), ('joint', joint),
-                 ('handle', handle), ('arm', arm), ('part-of', environment)]))
+            MoveTCPMotion(self.object_designator.part_pose, self.arm).resolve().perform()
+            ClosingMotion(self.object_designator, self.arm).resolve().perform()
 
         def to_sql(self) -> Base:
             raise NotImplementedError()
@@ -849,22 +836,3 @@ class CloseAction(ActionDesignatorDescription):
         :return: A performable designator
         """
         return self.Action(self.object_designator_description.resolve(), self.arms[0])
-
-
-def get_container_joint_and_handle(container_designator: Any):
-    """
-    Gets names of container joint and handle.
-    TODO move this where it belongs
-
-    :param container_designator: The object designator to get the names from.
-    :return: (joint_name, handle_name)
-    """
-    name = container_designator.prop_value('name')
-    if name == "iai_fridge":
-        return "iai_fridge_door_joint", "iai_fridge_door_handle"
-    elif name == "sink_area_left_upper_drawer":
-        return "sink_area_left_upper_drawer_main_joint", "sink_area_left_upper_drawer_handle"
-    elif name == "sink_area_left_middle_drawer":
-        return "sink_area_left_middle_drawer_main_joint", "sink_area_left_middle_drawer_handle"
-    else:
-        raise NotImplementedError()
