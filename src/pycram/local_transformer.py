@@ -138,10 +138,11 @@ class LocalTransformer:
         robot = BulletWorld.robot
         if robot:
             # Then publish pose of robot
-            try:
-                robot_pose = BulletWorld.robot.get_link_position_and_orientation(robot_description.i.base_frame)
-            except KeyError:
-                robot_pose = BulletWorld.robot.get_position_and_orientation()
+            robot_pose = BulletWorld.robot.get_position_and_orientation()
+            # try:
+            #     robot_pose = BulletWorld.robot.get_link_position_and_orientation(robot_description.i.base_frame)
+            # except KeyError:
+            #     robot_pose = BulletWorld.robot.get_position_and_orientation()
             self.publish_robot_pose(pycram.helper_deprecated.ensure_pose(robot_pose))
 
     def update_robot(self) -> None:

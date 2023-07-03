@@ -18,9 +18,12 @@ import pybullet as p
 import rospkg
 import rospy
 import rosgraph
+from urdf_parser_py.urdf import URDF
 
+from . import utils
 from .event import Event
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from .enums import JointType
 from sensor_msgs.msg import JointState
 
 
@@ -306,6 +309,7 @@ class BulletWorld:
         """
         for id in self.vis_axis:
             p.removeBody(id)
+        self.vis_axis = []
 
     def register_collision_callback(self, objectA: Object, objectB: Object,
                                     callback_collision: Callable,
@@ -741,10 +745,14 @@ class Object:
             if robot_name == robot_description.i.name and BulletWorld.robot == None:
                 BulletWorld.robot = self
         self.original_pose = [position, orientation]
+        with open(self.path) as f:
+            self.urdf_object = URDF.from_xml_string(f.read())
+        self.links[self.urdf_object.get_root()] = -1
 
     def __repr__(self):
+        skip_attr = ["links", "joints", "urdf_object"]
         return self.__class__.__qualname__ + f"(" + ', '.join(
-            [f"{key}={value}" for key, value in self.__dict__.items()]) + ")"
+            [f"{key}={value}" if key not in skip_attr else f"{key}: ..." for key, value in self.__dict__.items()]) + ")"
 
     def remove(self) -> None:
         """
@@ -985,6 +993,24 @@ class Object:
         """
         return self.links[name]
 
+    def get_link_by_id(self, id: int) -> str:
+        """
+        Returns the name of a link for a given unique PyBullet id
+
+        :param id: PyBullet id for link
+        :return: The link name
+        """
+        return dict(zip(self.links.values(), self.links.keys()))[id]
+
+    def get_joint_by_id(self, id: int) -> str:
+        """
+        Returns the joint name for a unique PyBullet id
+
+        :param id: The Pybullet id of for joint
+        :return: The joint name
+        """
+        return dict(zip(self.joints.values(), self.joints.keys()))[id]
+
     def get_link_relative_to_other_link(self, source_frame: str, target_frame: str) -> Tuple[List[float], List[float]]:
         """
         Calculates the position of a link in the coordinate frame of another link.
@@ -1215,6 +1241,55 @@ class Object:
         if lower > upper:
             lower, upper = upper, lower
         return lower, upper
+
+    def get_joint_axis(self, joint_name: str) -> Tuple[float]:
+        """
+        Returns the axis along which a joint is moving. The given joint_name has to be part of this object.
+
+        :param joint_name: Name of the joint for which the axis should be returned.
+        :return: The axis a vector of xyz
+        """
+        return p.getJointInfo(self.id, self.joints[joint_name], self.world.client_id)[13]
+
+    def get_joint_type(self, joint_name: str) -> JointType:
+        """
+        Returns the type of the joint as element of the Enum :mod:`~pycram.enums.JointType`.
+
+        :param joint_name: Joint name for which the type should be returned
+        :return: The type of  the joint
+        """
+        joint_type = p.getJointInfo(self.id, self.joints[joint_name], self.world.client_id)[2]
+        return JointType(joint_type)
+
+    def find_joint_above(self, link_name: str, joint_type: JointType) -> str:
+        """
+        Traverses the chain from 'link_name' to the URDF origin and returns the first joint that is of type 'joint_type'.
+
+        :param link_name: Link name above which the joint should be found
+        :param joint_type: Joint type that should be searched for
+        :return: Name of the first joint which has the given type
+        """
+        chain = self.urdf_object.get_chain(self.urdf_object.get_root(), link_name)
+        reversed_chain = reversed(chain)
+        container_joint = None
+        for element in reversed_chain:
+            if element in self.joints and self.get_joint_type(element) == joint_type:
+                container_joint = element
+                break
+        if not container_joint:
+            rospy.logwarn(f"No joint of type {joint_type} found above link {link_name}")
+        return container_joint
+
+    def get_complete_joint_state(self) -> Dict[str: float]:
+        """
+        Returns the complete joint state of the object as a dictionary of joint names and joint values.
+
+        :return: A dictionary with the complete joint state
+        """
+        result = {}
+        for joint in self.joints.keys():
+            result[joint] = self.get_joint_state(joint)
+        return result
 
 
 def filter_contact_points(contact_points, exclude_ids) -> List:

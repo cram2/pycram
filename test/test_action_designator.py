@@ -4,6 +4,7 @@ from pycram.robot_descriptions.robot_description_handler import InitializedRobot
 from pycram.process_module import simulated_robot
 import pycram.enums
 import test_bullet_world
+import numpy as np
 
 
 class TestActionDesignatorGrounding(test_bullet_world.BulletWorldTest):
@@ -103,8 +104,13 @@ class TestActionDesignatorGrounding(test_bullet_world.BulletWorldTest):
 
     def test_transport(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = action_designator.TransportAction(object_description, ["left"], [([0, 0, 0], [0, 0, 0, 1])])
+        description = action_designator.TransportAction(object_description, ["left"], [([-0.9, 1, 0.95], [0, 0, 1, 0])])
+        with simulated_robot:
+            action_designator.MoveTorsoAction([0.2]).resolve().perform()
+            description.resolve().perform()
         self.assertEqual(description.ground().object_designator.name, "milk")
+        dist = np.linalg.norm(np.array(self.milk.get_position()) - np.array([-0.9, 1, 0.95]))
+        self.assertTrue(dist < 0.01)
 
 
 if __name__ == '__main__':
