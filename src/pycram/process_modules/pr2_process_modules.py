@@ -7,7 +7,7 @@ import pybullet as p
 
 from ..plan_failures import EnvironmentManipulationImpossible
 from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
-from ..process_module import ProcessModule
+from ..process_module import ProcessModule, ProcessModuleManager
 from ..bullet_world import BulletWorld
 from ..helper import transform
 from ..external_interfaces.ik import request_ik, IKError
@@ -102,34 +102,6 @@ class Pr2Place(ProcessModule):
         inv = request_ik(base_link, end_effector, target, robot, joints)
         _apply_ik(robot, inv, joints)
         robot.detach(object)
-
-
-class Pr2Accessing(ProcessModule):
-    """
-    This process module responsible for opening drawers to access the objects inside. This works by firstly moving
-    the end effector to the handle of the drawer. Next, the end effector is moved the respective distance to the back.
-    This provides the illusion the robot would open the drawer by himself.
-    Then the drawer will be opened by setting the joint pose of the drawer joint.
-    """
-
-    def _execute(self, desig: AccessingMotion.Motion):
-        kitchen = solution['part_of']
-        robot = BulletWorld.robot
-        drawer_handle = solution['drawer_handle']
-        drawer_joint = solution['drawer_joint']
-        dis = solution['distance']
-        arm = desig.arm
-        joints = robot_description.i._safely_access_chains(arm).joints
-
-        target = _transform_to_torso(kitchen.get_link_position_and_orientation(drawer_handle), robot)
-        target = (target[0], [0, 0, 0, 1])
-        inv = request_ik(robot_description.i.base_frame, gripper, target, robot, joints)
-        _apply_ik(robot, inv, gripper)
-        time.sleep(0.2)
-        new_p = ([target[0][0] - dis, target[0][1], target[0][2]], target[1])
-        inv = request_ik(robot_description.i.base_frame, gripper, new_p, robot, joints)
-        _apply_ik(robot, inv, joints)
-        kitchen.set_joint_state(drawer_joint, dis)
 
 
 class Pr2MoveHead(ProcessModule):
@@ -323,23 +295,55 @@ def _move_arm_tcp(target, robot, arm):
     _apply_ik(robot, inv, joints)
 
 
+class Pr2PMManager(ProcessModuleManager):
 
+    def __init__(self):
+        super().__init__("pr2")
 
+    def navigate(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return Pr2Navigation()
 
-PR2ProcessModulesSimulated = {'navigate': Pr2Navigation(),
-                              'pick-up': Pr2PickUp(),
-                              'place': Pr2Place(),
-                              'access': Pr2Accessing(),
-                              'looking': Pr2MoveHead(),
-                              'opening_gripper': Pr2MoveGripper(),
-                              'closing_gripper': Pr2MoveGripper(),
-                              'detecting': Pr2Detecting(),
-                              'move-tcp': Pr2MoveTCP(),
-                              'move-arm-joints': Pr2MoveArmJoints(),
-                              'world-state-detecting': Pr2WorldStateDetecting(),
-                              'move-joints': PR2MoveJoints(),
-                              'move-gripper': Pr2MoveGripper(),
-                              'open': Pr2Open(),
-                              'close': Pr2Close()}
+    def pick_up(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return Pr2PickUp()
 
-PR2ProcessModulesReal = {}
+    def place(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return Pr2Place()
+
+    def looking(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return Pr2MoveHead()
+
+    def detecting(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return Pr2Detecting()
+
+    def move_tcp(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return Pr2MoveTCP()
+
+    def move_arm_joints(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return Pr2MoveArmJoints()
+
+    def world_state_detecting(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return Pr2WorldStateDetecting()
+
+    def move_joints(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return PR2MoveJoints()
+
+    def move_gripper(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return Pr2MoveGripper()
+
+    def open(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return Pr2Open()
+
+    def close(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return Pr2Close()
