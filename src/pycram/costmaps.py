@@ -398,7 +398,9 @@ class OccupancyCostmap(Costmap):
                 j += len(n)
                 if BulletWorld.robot:
                     shadow_robot = BulletWorld.current_bullet_world.get_shadow_object(BulletWorld.robot)
-                    res[i:j] = [1 if ray[0] == -1 or ray[0] == shadow_robot.id else 0 for ray in r_t]
+                    attached_objs = BulletWorld.robot.attachments.keys()
+                    attached_objs_shadow_id = [BulletWorld.current_bullet_world.get_shadow_object(x).id for x in attached_objs]
+                    res[i:j] = [1 if ray[0] == -1 or ray[0] == shadow_robot.id or ray[0] in attached_objs_shadow_id else 0 for ray in r_t]
                 else:
                     res[i:j] = [1 if ray[0] == -1 else 0 for ray in r_t]
                 i += len(n)
@@ -683,6 +685,7 @@ class SemanticCostmap(Costmap):
     Semantic Costmaps represent a 2D distribution over a link of an Object. An example of this would be a Costmap for a
     table surface.
     """
+
     def __init__(self, object, urdf_link_name, size=100, resolution=0.02, world=None):
         """
         Creates a semantic costmap for the given parameter. The semantic costmap will be on top of the link of the given

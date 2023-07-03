@@ -8,12 +8,7 @@ from moveit_msgs.srv import GetPositionIK
 from sensor_msgs.msg import JointState
 
 from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
-
-
-class IKError(Exception):
-    def __init__(self, pose, base_frame):
-        self.message = "Position {} in frame '{}' is not reachable for end effector".format(pose, base_frame)
-        super(IKError, self).__init__(self.message)
+from ..plan_failures import IKError
 
 
 def _get_position_for_joints(robot, joints):

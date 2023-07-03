@@ -12,9 +12,11 @@ from typing import List, Dict, Optional, Callable, Any
 import anytree
 import pybullet
 import sqlalchemy.orm.session
+import tqdm
 
 from .bullet_world import BulletWorld
 from .orm.task import (Code as ORMCode, TaskTreeNode as ORMTaskTreeNode)
+from .orm.base import MetaData
 from .plan_failures import PlanFailure
 from .enums import TaskStatus
 
@@ -96,6 +98,10 @@ class Code:
         if self_ and getattr(self_, "insert", None):
             designator = self_.insert(session)
             code.designator = designator.id
+
+        # get and set metadata
+        metadata = MetaData().insert(session)
+        code.metadata_id = metadata.id
 
         session.add(code)
         session.commit()
@@ -187,16 +193,24 @@ class TaskTreeNode(anytree.NodeMixin):
                                id(self.parent) if self.parent else None)
 
     def insert(self, session: sqlalchemy.orm.session.Session, recursive: bool = True,
-               parent_id: Optional[int] = None) -> ORMTaskTreeNode:
+               parent_id: Optional[int] = None, use_progress_bar: bool = True,
+               progress_bar: Optional[tqdm.tqdm] = None) -> ORMTaskTreeNode:
         """
         Insert this node into the database.
 
         :param session: The current session with the database.
         :param recursive: Rather if the entire tree should be inserted or just this node, defaults to True
         :param parent_id: The primary key of the parent node, defaults to None
+        :param use_progress_bar: Rather to use a progressbar or not
+        :param progress_bar: The progressbar to update. If a progress bar is desired and this is None, a new one will be
+            created.
 
         :return: The ORM object that got inserted
         """
+        if use_progress_bar:
+            if not progress_bar:
+                progress_bar = tqdm.tqdm(desc="Inserting TaskTree into database", leave=True, position=0,
+                                         total=len(self) if recursive else 1)
 
         # insert code
         code = self.code.insert(session)
@@ -205,6 +219,10 @@ class TaskTreeNode(anytree.NodeMixin):
         node = self.to_sql()
         node.code = code.id
 
+        # get and set metadata
+        metadata = MetaData().insert(session)
+        node.metadata_id = metadata.id
+
         # set parent to id from constructor
         node.parent = parent_id
 
@@ -212,9 +230,13 @@ class TaskTreeNode(anytree.NodeMixin):
         session.add(node)
         session.commit()
 
+        if progress_bar:
+            progress_bar.update()
+
         # if recursive, insert all children
         if recursive:
-            [child.insert(session, parent_id=node.id) for child in self.children]
+            [child.insert(session, parent_id=node.id, use_progress_bar=use_progress_bar, progress_bar=progress_bar)
+             for child in self.children]
 
         return node
 
