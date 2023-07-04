@@ -1,5 +1,5 @@
 from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
-from ..process_module import ProcessModule
+from ..process_module import ProcessModule, ProcessModuleManager
 from ..bullet_world import BulletWorld
 from ..helper import _apply_ik
 import pycram.bullet_world_reasoning as btr
@@ -214,16 +214,43 @@ class HSRWorldStateDetecting(ProcessModule):
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
 
-HSRProcessModulesSimulated = {'moving' : HSRNavigation(),
-                              'pick-up' : HSRPickUp(),
-                              'place' : HSRPlace(),
-                              'accessing' : HSRAccessing(),
-                              'looking' : HSRMoveHead(),
-                              'opening_gripper' : HSRMoveGripper(),
-                              'closing_gripper' : HSRMoveGripper(),
-                              'detecting' : HSRDetecting(),
-                              'move-tcp' : HSRMoveTCP(),
-                              'move-arm-joints' : HSRMoveJoints(),
-                              'world-state-detecting' : HSRWorldStateDetecting()}
+class HSRPMManager(ProcessModuleManager):
 
-HSRProcessModulesReal = {}
+    def __init__(self):
+        super().__init__("hsr")
+
+    def navigate(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return HSRNavigation()
+
+    def pick_up(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return HSRPickUp()
+
+    def place(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return HSRPlace()
+
+    def looking(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return HSRMoveHead()
+
+    def detecting(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return HSRDetecting()
+
+    def move_tcp(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return HSRMoveTCP()
+
+    def move_arm_joints(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return HSRMoveJoints()
+
+    def world_state_detecting(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return HSRWorldStateDetecting()
+
+    def move_gripper(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return HSRMoveGripper()
