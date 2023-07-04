@@ -3,15 +3,19 @@
 Classes:
 ProcessModule -- implementation of process modules.
 """
+# used for delayed evaluation of typing until python 3.11 becomes mainstream
+from __future__ import annotations
+
 import inspect
 import time
 from abc import ABC
 
 import rospy
 
+from .designator import MotionDesignatorDescription
 from .fluent import Fluent
 from .designator import Designator
-from typing import Callable, List, Type, Any
+from typing import Callable, List, Type, Any, Union
 
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 
@@ -26,33 +30,32 @@ class ProcessModule:
     Adds a delay of 0.5 seconds after executing a process module, to make the
     """
 
-    @staticmethod
-    def perform(designator: Type['MotionDesignatorDescription.Motion']) -> Any:
-        """Automatically choose a process module and execute the given designator.
-
-        :param designator: The designator to choose the process module for and to execute.
-        :return: Result of the Process Module if there is any
-        """
-        result = None
-        process_module_manager = None
-
-        for pm_manager in ProcessModuleManager.available_pms:
-            if pm_manager.robot_name == robot_description.i.name:
-                process_module_manager = pm_manager
-
-        if process_module_manager:
-            if not ProcessModuleManager.execution_typ:
-                rospy.logerr(
-                    f"No execution_type is set, did you use the with_simulated_robot or with_real_robot decorator?")
-            pm = pm_manager.__getattribute__(designator.cmd.replace("-", "_"))()
-
-            result = pm.execute(designator)
-            if ProcessModule.execution_delay:
-                time.sleep(0.5)
-        else:
-            rospy.logerr(f"No Process Module found matching Motion Designator {designator}")
-
-        return result
+    # @staticmethod
+    # def perform(designator: Type['MotionDesignatorDescription.Motion']) -> Any:
+    #     """Automatically choose a process module and execute the given designator.
+    #
+    #     :param designator: The designator to choose the process module for and to execute.
+    #     :return: Result of the Process Module if there is any
+    #     """
+    #     result = None
+    #     process_module_manager = None
+    #
+    #     for pm_manager in ProcessModuleManager.available_pms:
+    #         if pm_manager.robot_name == robot_description.i.name:
+    #             process_module_manager = pm_manager
+    #
+    #     if process_module_manager:
+    #         if not ProcessModuleManager.execution_type:
+    #             rospy.logerr(
+    #                 f"No execution_type is set, did you use the with_simulated_robot or with_real_robot decorator?")
+    #         pm = process_module_manager.__getattribute__(designator.cmd.replace("-", "_"))()
+    #         result = pm.execute(designator)
+    #         if ProcessModule.execution_delay:
+    #             time.sleep(0.5)
+    #     else:
+    #         rospy.logerr(f"No Process Module found matching Motion Designator {designator}")
+    #
+    #     return result
 
     def __init__(self):
         """Create a new process module."""
@@ -66,9 +69,10 @@ class ProcessModule:
         """
         pass
 
-    def execute(self, designator: Type[Designator]) -> Any:
+    def execute(self, designator: Type[MotionDesignatorDescription.Motion]) -> Any:
         """
-        Execute the given designator. If the process module is already executing another designator, it queues the given designator and executes them in order.
+        Execute the given designator. If the process module is already executing another designator, it queues the
+        given designator and executes them in order.
 
         :param designator: the designator to execute.
         :return: Return of the Process Module if there is any
@@ -83,6 +87,9 @@ class ProcessModule:
             self._running.set_value(False)
         self._designators.remove(designator)
         self._running.set_value(False)
+        if ProcessModule.execution_delay:
+            time.sleep(0.5)
+
         return ret
 
 
@@ -164,6 +171,23 @@ class ProcessModuleManager(ABC):
         """
         self.robot_name = robot_name
         ProcessModuleManager.available_pms.append(self)
+
+    @staticmethod
+    def get_manager() -> ProcessModuleManager | None:
+        manager = None
+        if not ProcessModuleManager.execution_type:
+            rospy.logerr(
+                f"No execution_type is set, did you use the with_simulated_robot or with_real_robot decorator?")
+            return
+
+        for pm_manager in ProcessModuleManager.available_pms:
+            if pm_manager.robot_name == robot_description.i.name:
+                manager = pm_manager
+
+        if manager:
+            return manager
+        else:
+            rospy.logerr(f"No Process Module Manager found for robot: '{robot_description.i.name}'")
 
     def navigate(self) -> Type[ProcessModule]:
         raise NotImplementedError(
