@@ -1,4 +1,5 @@
 import time
+from threading import Lock
 
 import pybullet as p
 
@@ -247,39 +248,51 @@ class DonbotPMManager(ProcessModuleManager):
 
     def __init__(self):
         super().__init__("donbot")
+        self._navigate_lock = Lock()
+        self._pick_up_lock = Lock()
+        self._place_lock = Lock()
+        self._looking_lock = Lock()
+        self._detecting_lock = Lock()
+        self._move_tcp_lock = Lock()
+        self._move_arm_joints_lock = Lock()
+        self._world_state_detecting_lock = Lock()
+        self._move_joints_lock = Lock()
+        self._move_gripper_lock = Lock()
+        self._open_lock = Lock()
+        self._close_lock = Lock()
 
     def navigate(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return DonbotNavigation()
+            return DonbotNavigation(self._navigate_lock)
 
     def pick_up(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return DonbotPickUp()
+            return DonbotPickUp(self._pick_up_lock)
 
     def place(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return DonbotPlace()
+            return DonbotPlace(self._place_lock)
 
     def looking(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return DonbotMoveHead()
+            return DonbotMoveHead(self._looking_lock)
 
     def detecting(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return DonbotDetecting()
+            return DonbotDetecting(self._detecting_lock)
 
     def move_tcp(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return DonbotMoveTCP()
+            return DonbotMoveTCP(self._move_tcp_lock)
 
     def move_arm_joints(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return DonbotMoveJoints()
+            return DonbotMoveJoints(self._move_arm_joints_lock)
 
     def world_state_detecting(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return DonbotWorldStateDetecting()
+            return DonbotWorldStateDetecting(self._world_state_detecting_lock)
 
     def move_gripper(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return DonbotMoveGripper()
+            return DonbotMoveGripper(self._move_gripper_lock)

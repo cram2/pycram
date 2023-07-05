@@ -1,4 +1,5 @@
 from abc import ABC
+from threading import Lock
 
 import pycram.bullet_world_reasoning as btr
 import numpy as np
@@ -299,51 +300,63 @@ class Pr2PMManager(ProcessModuleManager):
 
     def __init__(self):
         super().__init__("pr2")
+        self._navigate_lock = Lock()
+        self._pick_up_lock = Lock()
+        self._place_lock = Lock()
+        self._looking_lock = Lock()
+        self._detecting_lock = Lock()
+        self._move_tcp_lock = Lock()
+        self._move_arm_joints_lock = Lock()
+        self._world_state_detecting_lock = Lock()
+        self._move_joints_lock = Lock()
+        self._move_gripper_lock = Lock()
+        self._open_lock = Lock()
+        self._close_lock = Lock()
 
     def navigate(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return Pr2Navigation()
+            return Pr2Navigation(self._navigate_lock)
 
     def pick_up(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return Pr2PickUp()
+            return Pr2PickUp(self._pick_up_lock)
 
     def place(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return Pr2Place()
+            return Pr2Place(self._place_lock)
 
     def looking(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return Pr2MoveHead()
+            return Pr2MoveHead(self._looking_lock)
 
     def detecting(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return Pr2Detecting()
+            return Pr2Detecting(self._detecting_lock)
 
     def move_tcp(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return Pr2MoveTCP()
+            return Pr2MoveTCP(self._move_tcp_lock)
 
     def move_arm_joints(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return Pr2MoveArmJoints()
+            return Pr2MoveArmJoints(self._move_arm_joints_lock)
 
     def world_state_detecting(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return Pr2WorldStateDetecting()
+            return Pr2WorldStateDetecting(self._world_state_detecting_lock)
 
     def move_joints(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return PR2MoveJoints()
+            return PR2MoveJoints(self._move_joints_lock)
 
     def move_gripper(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return Pr2MoveGripper()
+            return Pr2MoveGripper(self._move_gripper_lock)
 
     def open(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return Pr2Open()
+            return Pr2Open(self._open_lock)
 
     def close(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return Pr2Close()
+            return Pr2Close(self._close_lock)
