@@ -9,6 +9,7 @@ from __future__ import annotations
 import inspect
 import time
 from abc import ABC
+from threading import Lock
 
 import rospy
 
@@ -29,10 +30,9 @@ class ProcessModule:
     Adds a delay of 0.5 seconds after executing a process module, to make the execution in simulation more realistic
     """
 
-    def __init__(self):
+    def __init__(self, lock):
         """Create a new process module."""
-        self._running: Fluent = Fluent(False)
-        self._designators: List[MotionDesignatorDescription.Motion] = []
+        self._lock = lock
 
     def _execute(self, designator: MotionDesignatorDescription.Motion) -> Any:
         """
@@ -43,24 +43,17 @@ class ProcessModule:
 
     def execute(self, designator: MotionDesignatorDescription.Motion) -> Any:
         """
-        Execute the given designator. If the process module is already executing another designator, it queues the
-        given designator and executes them in order.
+        Execute the given designator. If there is already another process module of the same kind the `self._lock` will
+        lock this thread until the execution of that process module is finished. This implicitly queues the execution of
+        process modules.
 
         :param designator: The designator to execute.
         :return: Return of the Process Module if there is any
         """
-        self._designators.append(designator)
-        # (self._running == False).wait_for()
-        self._running.set_value(True)
-        designator = self._designators[0]
-        try:
+        with self._lock:
             ret = self._execute(designator)
-        finally:
-            self._running.set_value(False)
-        self._designators.remove(designator)
-        self._running.set_value(False)
-        if ProcessModule.execution_delay:
-            time.sleep(0.5)
+            if ProcessModule.execution_delay:
+                time.sleep(0.5)
 
         return ret
 

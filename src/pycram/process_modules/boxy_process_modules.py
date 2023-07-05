@@ -1,4 +1,5 @@
 import time
+from threading import Lock
 
 import pybullet as p
 
@@ -290,39 +291,51 @@ class BoxyPMManager(ProcessModuleManager):
 
     def __init__(self):
         super().__init__("boxy")
+        self._navigate_lock = Lock()
+        self._pick_up_lock = Lock()
+        self._place_lock = Lock()
+        self._looking_lock = Lock()
+        self._detecting_lock = Lock()
+        self._move_tcp_lock = Lock()
+        self._move_arm_joints_lock = Lock()
+        self._world_state_detecting_lock = Lock()
+        self._move_joints_lock = Lock()
+        self._move_gripper_lock = Lock()
+        self._open_lock = Lock()
+        self._close_lock = Lock()
 
     def navigate(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return BoxyNavigation()
+            return BoxyNavigation(self._navigate_lock)
 
     def pick_up(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return BoxyPickUp()
+            return BoxyPickUp(self._pick_up_lock)
 
     def place(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return BoxyPlace()
+            return BoxyPlace(self._place_lock)
 
     def looking(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return BoxyMoveHead()
+            return BoxyMoveHead(self._looking_lock)
 
     def detecting(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return BoxyDetecting()
+            return BoxyDetecting(self._detecting_lock)
 
     def move_tcp(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return BoxyMoveTCP()
+            return BoxyMoveTCP(self._move_tcp_lock)
 
     def move_arm_joints(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return BoxyMoveJoints()
+            return BoxyMoveJoints(self._move_arm_joints_lock)
 
     def world_state_detecting(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return BoxyWorldStateDetecting()
+            return BoxyWorldStateDetecting(self._world_state_detecting_lock)
 
     def move_gripper(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return BoxyMoveGripper()
+            return BoxyMoveGripper(self._move_gripper_lock)
