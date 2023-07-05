@@ -209,22 +209,6 @@ class BulletWorld:
             BulletWorld.current_bullet_world = None
         BulletWorld.robot = None
 
-    def reset_bullet_world(self) -> None:
-        """
-        Resets the BulletWorld to the state it was first spawned in.
-        All attached objects will be detached, all joints will be set to the
-        default position of 0 and all objects will be set to the position and
-        orientation in which they were spawned.
-        """
-        for obj in self.objects:
-            if obj.attachments:
-                attached_objects = list(obj.attachments.keys())
-                for att_obj in attached_objects:
-                    obj.detach(att_obj)
-            for joint_name in obj.joints.keys():
-                obj.set_joint_state(joint_name, 0)
-            obj.set_position_and_orientation(obj.original_pose[0], obj.original_pose[1])
-
     def save_state(self) -> int:
         """
         Returns the id of the saved state of the BulletWorld. The saved state contains the position, orientation and joint
