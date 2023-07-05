@@ -22,8 +22,7 @@ from .robot_descriptions.robot_description_handler import InitializedRobotDescri
 
 class ProcessModule:
     """
-    Implementation of process modules.
-    Process modules are the part that communicate with the outer world to execute designators.
+    Implementation of process modules. Process modules are the part that communicate with the outer world to execute designators.
     """
     execution_delay = True
     """
@@ -192,6 +191,22 @@ class ProcessModuleManager(ABC):
     """
     List of all available Process Module Managers
     """
+    _instance = None
+    """
+    Singelton instance of this Process Module Manager
+    """
+
+    def __new__(cls, *args, **kwargs):
+        """
+        Creates a new instance if :py:attr:`~ProcessModuleManager._instance` is None, otherwise the instance
+        in :py:attr:`~ProcessModuleManager._instance` is returned.
+        :return: Singelton instance of this Process Module Manager
+        """
+        if not cls._instance:
+            cls._instance = super(ProcessModuleManager, cls).__new__(cls)
+            return cls._instance
+        else:
+            return cls._instance
 
     def __init__(self, robot_name):
         """
