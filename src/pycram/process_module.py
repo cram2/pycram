@@ -17,7 +17,7 @@ from .designator import MotionDesignatorDescription
 from .fluent import Fluent
 from typing import Callable, List, Type, Any
 
-from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from .robot_descriptions import  robot_description
 
 
 class ProcessModule:
@@ -232,13 +232,13 @@ class ProcessModuleManager(ABC):
             return
 
         for pm_manager in ProcessModuleManager.available_pms:
-            if pm_manager.robot_name == robot_description.i.name:
+            if pm_manager.robot_name == robot_description.name:
                 manager = pm_manager
 
         if manager:
             return manager
         else:
-            rospy.logerr(f"No Process Module Manager found for robot: '{robot_description.i.name}'")
+            rospy.logerr(f"No Process Module Manager found for robot: '{robot_description.name}'")
 
     def navigate(self) -> Type[ProcessModule]:
         """

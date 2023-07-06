@@ -1,6 +1,7 @@
 import pycram.bullet_world_reasoning as btr
 
-from pycram.robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from pycram.robot_descriptions import robot_description
+
 from pycram.designators.motion_designator import *
 from pycram.process_module import with_simulated_robot
 from pycram.bullet_world import BulletWorld, Object
@@ -10,7 +11,7 @@ from pycram.language import macros, par
 world = BulletWorld()
 world.set_gravity([0, 0, -9.8])
 plane = Object("floor", "environment", "plane.urdf", world=world)
-robot = Object("boxy", "robot", "../../resources/" + robot_description.i.name + ".urdf")
+robot = Object("boxy", "robot", "../../resources/" + robot_description.name + ".urdf")
 
 spawning_poses = {
     'milk': [1.3, 1, 0.93],
@@ -23,18 +24,18 @@ spawning_poses = {
 kitchen = Object("kitchen", "environment", "kitchen.urdf")
 milk = Object("milk", "milk", "milk.stl", spawning_poses["milk"])
 spoon = Object("spoon", "spoon", "spoon.stl", spawning_poses["spoon"])
-if robot_description.i.name == "boxy":
+if robot_description.name == "boxy":
     spoon.set_orientation([0, 0, 1, 0])
 kitchen.attach(spoon, link="sink_area_left_upper_drawer_main")
 cereal = Object("cereal", "cereal", "breakfast_cereal.stl", spawning_poses["cereal"])
 bowl = Object("bowl", "bowl", "bowl.stl", spawning_poses["bowl"])
 #BulletWorld.robot = robot
-robot.set_joint_state(robot_description.i.torso_joint, 0.24)
+robot.set_joint_state(robot_description.torso_joint, 0.24)
 
-robot_description.i.grasps.add_graspings_for_object(["left", "right", "front"], milk)
-robot_description.i.grasps.add_graspings_for_object(["top"], spoon)
-robot_description.i.grasps.add_graspings_for_object(["top"], bowl)
-robot_description.i.grasps.add_graspings_for_object(["front"], cereal)
+robot_description.grasps.add_graspings_for_object(["left", "right", "front"], milk)
+robot_description.grasps.add_graspings_for_object(["top"], spoon)
+robot_description.grasps.add_graspings_for_object(["top"], bowl)
+robot_description.grasps.add_graspings_for_object(["front"], cereal)
 
 targets = {
     'milk': [[-0.8, 1, 0.93], "left", False],
@@ -95,7 +96,7 @@ def move_robot(robot_name, to, object):
 @with_simulated_robot
 def move_object(object_type, target, arm, robot_name):
     # Get Gripper frame
-    gripper = robot_description.i.get_tool_frame(arm)
+    gripper = robot_description.get_tool_frame(arm)
 
     # Move to sink
     with par as s:
@@ -154,7 +155,7 @@ def move_object(object_type, target, arm, robot_name):
     targets[object_type][2] = True
 
 
-if 'hsr' not in robot_description.i.name:
+if 'hsr' not in robot_description.name:
     object_types = ['milk',
                     'bowl',
                     'cereal',
@@ -162,8 +163,8 @@ if 'hsr' not in robot_description.i.name:
     for i in range(0, 4):
         if not targets[object_types[i]][2]:
             position_target = targets[object_types[i]][0]
-            arm = targets[object_types[i]][1] if robot_description.i.name != 'donbot' else 'left'
-            move_object(object_types[i], position_target, arm, robot_description.i.name)
+            arm = targets[object_types[i]][1] if robot_description.name != 'donbot' else 'left'
+            move_object(object_types[i], position_target, arm, robot_description.name)
 else:
     # Spawn object to be manipulated from hsr
     robot_name = 'hsr'

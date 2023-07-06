@@ -5,6 +5,7 @@ import numpy as np
 from .bullet_world import _world_and_id, Object, Use_shadow_world, BulletWorld
 from .external_interfaces.ik import request_ik
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from .robot_descriptions import robot_description
 from .helper import _transform_to_torso, _apply_ik, calculate_wrist_tool_offset, inverseTimes
 from typing import List, Tuple, Optional, Union, Dict
 
@@ -165,7 +166,7 @@ def visible(object: Object,
     :param world: The BulletWorld if more than one BulletWorld is active
     :return: True if the object is visible from the camera_position False if not
     """
-    front_facing_axis = robot_description.i.front_facing_axis if front_facing_axis == None else front_facing_axis
+    front_facing_axis = robot_description.front_facing_axis if front_facing_axis == None else front_facing_axis
     with Use_shadow_world():
         shadow_obj = BulletWorld.current_bullet_world.get_shadow_object(object)
         if BulletWorld.robot:
@@ -271,16 +272,16 @@ def reachable(pose: Union[Object, Tuple[List[float], List[float]]],
     # state = p.saveState(physicsClientId=world_id)
     shadow_robot = BulletWorld.current_bullet_world.get_shadow_object(robot)
     with Use_shadow_world():
-        arm = "left" if gripper_name == robot_description.i.get_tool_frame("left") else "right"
-        joints = robot_description.i._safely_access_chains(arm).joints
+        arm = "left" if gripper_name == robot_description.get_tool_frame("left") else "right"
+        joints = robot_description._safely_access_chains(arm).joints
         target_torso = _transform_to_torso(pose, shadow_robot)
 
         # Get Link before first joint in chain
-        base_link = robot_description.i.get_parent(joints[0])
+        base_link = robot_description.get_parent(joints[0])
         # Get link after last joint in chain
-        end_effector = robot_description.i.get_child(joints[-1])
+        end_effector = robot_description.get_child(joints[-1])
 
-        diff = calculate_wrist_tool_offset(end_effector, robot_description.i.get_tool_frame(arm), shadow_robot)
+        diff = calculate_wrist_tool_offset(end_effector, robot_description.get_tool_frame(arm), shadow_robot)
         target_diff = inverseTimes(target_torso, diff)
 
         inv = request_ik(base_link, end_effector, target_diff, shadow_robot, joints)
@@ -317,21 +318,21 @@ def blocking(pose_or_object: Object,
 
     shadow_robot = BulletWorld.current_bullet_world.get_shadow_object(robot)
     with Use_shadow_world():
-        arm = "left" if gripper_name == robot_description.i.get_tool_frame("left") else "right"
-        joints = robot_description.i._safely_access_chains(arm).joints
+        arm = "left" if gripper_name == robot_description.get_tool_frame("left") else "right"
+        joints = robot_description._safely_access_chains(arm).joints
 
         if grasp:
             target_torso = _transform_to_torso(
-                [input_pose[0], robot_description.i.grasps.get_orientation_for_grasp(grasp)], shadow_robot)
+                [input_pose[0], robot_description.grasps.get_orientation_for_grasp(grasp)], shadow_robot)
         else:
             target_torso = _transform_to_torso(input_pose, shadow_robot)
 
         # Get Link before first joint in chain
-        base_link = robot_description.i.get_parent(joints[0])
+        base_link = robot_description.get_parent(joints[0])
         # Get link after last joint in chain
-        end_effector = robot_description.i.get_child(joints[-1])
+        end_effector = robot_description.get_child(joints[-1])
 
-        diff = calculate_wrist_tool_offset(end_effector, robot_description.i.get_tool_frame(arm), shadow_robot)
+        diff = calculate_wrist_tool_offset(end_effector, robot_description.get_tool_frame(arm), shadow_robot)
         target_diff = inverseTimes(target_torso, diff)
 
         inv = request_ik(base_link, end_effector, target_diff, shadow_robot, joints)

@@ -7,7 +7,7 @@ from moveit_msgs.msg import RobotState
 from moveit_msgs.srv import GetPositionIK
 from sensor_msgs.msg import JointState
 
-from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from ..robot_descriptions import robot_description
 from ..plan_failures import IKError
 
 
@@ -91,7 +91,7 @@ def request_ik(root_link, tip_link, target_pose_and_rotation, robot_object, join
     :param joints: A list of joint name that should be altered
     :return: The solution that was generated.
     """
-    if robot_description.i.name == "pr2":
+    if robot_description.name == "pr2":
         ik_service = "/pr2_right_arm_kinematics/get_ik" if "r_wrist" in tip_link else "/pr2_left_arm_kinematics/get_ik"
     else:
         ik_service = "/kdl_ik_service/get_ik"
@@ -106,7 +106,7 @@ def request_ik(root_link, tip_link, target_pose_and_rotation, robot_object, join
     try:
         resp = ik(req)
     except rospy.ServiceException as e:
-        if robot_description.i.name == "pr2":
+        if robot_description.name == "pr2":
             raise IKError(target_pose_and_rotation, root_link)
         else:
             raise e
