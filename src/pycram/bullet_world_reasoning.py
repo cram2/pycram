@@ -4,7 +4,6 @@ import numpy as np
 
 from .bullet_world import _world_and_id, Object, Use_shadow_world, BulletWorld
 from .external_interfaces.ik import request_ik
-from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from .robot_descriptions import robot_description
 from .helper import _transform_to_torso, _apply_ik, calculate_wrist_tool_offset, inverseTimes
 from typing import List, Tuple, Optional, Union, Dict
