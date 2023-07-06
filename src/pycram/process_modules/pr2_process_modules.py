@@ -7,7 +7,7 @@ import time
 import pybullet as p
 
 from ..plan_failures import EnvironmentManipulationImpossible
-from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from ..robot_descriptions import robot_description
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..bullet_world import BulletWorld
 from ..helper import transform
@@ -27,10 +27,10 @@ def _park_arms(arm):
 
     robot = BulletWorld.robot
     if arm == "right":
-        for joint, pose in robot_description.i.get_static_joint_chain("right", "park").items():
+        for joint, pose in robot_description.get_static_joint_chain("right", "park").items():
             robot.set_joint_state(joint, pose)
     if arm == "left":
-        for joint, pose in robot_description.i.get_static_joint_chain("left", "park").items():
+        for joint, pose in robot_description.get_static_joint_chain("left", "park").items():
             robot.set_joint_state(joint, pose)
 
 
@@ -54,7 +54,7 @@ class Pr2PickUp(ProcessModule):
     def _execute(self, desig: PickUpMotion.Motion):
         object = desig.object_desig.bullet_world_object
         robot = BulletWorld.robot
-        grasp = robot_description.i.grasps.get_orientation_for_grasp(desig.grasp)
+        grasp = robot_description.grasps.get_orientation_for_grasp(desig.grasp)
         target = [object.get_position(), grasp]
         target = _transform_to_torso(target, robot)
         arm = desig.arm
@@ -62,15 +62,15 @@ class Pr2PickUp(ProcessModule):
         diff = calculate_wrist_tool_offset(arm_short + "_wrist_roll_link", arm_short + "_gripper_tool_frame", robot)
         target = inverseTimes(target, diff)
 
-        joints = robot_description.i._safely_access_chains(arm).joints
+        joints = robot_description._safely_access_chains(arm).joints
 
         # Get Link before first joint in chain
-        base_link = robot_description.i.get_parent(joints[0])
+        base_link = robot_description.get_parent(joints[0])
         # Get link after last joint in chain
-        end_effector = robot_description.i.get_child(joints[-1])
+        end_effector = robot_description.get_child(joints[-1])
         inv = request_ik(base_link, end_effector, target, robot, joints)
         _apply_ik(robot, inv, joints)
-        tool_frame = robot_description.i.get_tool_frame(arm)
+        tool_frame = robot_description.get_tool_frame(arm)
         robot.attach(object, tool_frame)
 
 
@@ -93,12 +93,12 @@ class Pr2Place(ProcessModule):
         arm_short = "r" if arm == "right" else "l"
         diff = calculate_wrist_tool_offset(arm_short + "_wrist_roll_link", arm_short + "_gripper_tool_frame", robot)
         target = inverseTimes(target, diff)
-        joints = robot_description.i._safely_access_chains(arm).joints
+        joints = robot_description._safely_access_chains(arm).joints
 
         # Get Link before first joint in chain
-        base_link = robot_description.i.get_parent(joints[0])
+        base_link = robot_description.get_parent(joints[0])
         # Get link after last joint in chain
-        end_effector = robot_description.i.get_child(joints[-1])
+        end_effector = robot_description.get_child(joints[-1])
 
         inv = request_ik(base_link, end_effector, target, robot, joints)
         _apply_ik(robot, inv, joints)
@@ -154,7 +154,7 @@ class Pr2MoveGripper(ProcessModule):
         robot = BulletWorld.robot
         gripper = desig.gripper
         motion = desig.motion
-        for joint, state in robot_description.i.get_static_gripper_chain(gripper, motion).items():
+        for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
             robot.set_joint_state(joint, state)
 
 
@@ -168,9 +168,9 @@ class Pr2Detecting(ProcessModule):
         robot = BulletWorld.robot
         object_type = desig.object_type
         # Should be "wide_stereo_optical_frame"
-        cam_frame_name = robot_description.i.get_camera_frame()
+        cam_frame_name = robot_description.get_camera_frame()
         # should be [0, 0, 1]
-        front_facing_axis = robot_description.i.front_facing_axis
+        front_facing_axis = robot_description.front_facing_axis
 
         objects = BulletWorld.current_bullet_world.get_objects_by_type(object_type)
         for obj in objects:
@@ -192,12 +192,12 @@ class Pr2MoveTCP(ProcessModule):
         target = inverseTimes(target, diff)
         robot = BulletWorld.robot
 
-        joints = robot_description.i._safely_access_chains(desig.arm).joints
+        joints = robot_description._safely_access_chains(desig.arm).joints
 
         # Get Link before first joint in chain
-        base_link = robot_description.i.get_parent(joints[0])
+        base_link = robot_description.get_parent(joints[0])
         # Get link after last joint in chain
-        end_effector = robot_description.i.get_child(joints[-1])
+        end_effector = robot_description.get_child(joints[-1])
 
         inv = request_ik(base_link, end_effector, target, robot, joints)
 
@@ -285,12 +285,12 @@ def _move_arm_tcp(target, robot, arm):
     target = inverseTimes(target, diff)
     robot = BulletWorld.robot
 
-    joints = robot_description.i._safely_access_chains(arm).joints
+    joints = robot_description._safely_access_chains(arm).joints
 
     # Get Link before first joint in chain
-    base_link = robot_description.i.get_parent(joints[0])
+    base_link = robot_description.get_parent(joints[0])
     # Get link after last joint in chain
-    end_effector = robot_description.i.get_child(joints[-1])
+    end_effector = robot_description.get_child(joints[-1])
 
     inv = request_ik(base_link, end_effector, target, robot, joints)
     _apply_ik(robot, inv, joints)
