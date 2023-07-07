@@ -13,7 +13,7 @@ from ..bullet_world import BulletWorld
 from ..helper import transform
 from ..external_interfaces.ik import request_ik, IKError
 from ..helper import _transform_to_torso, _apply_ik, calculate_wrist_tool_offset, inverseTimes
-from ..local_transformer import local_transformer
+from ..local_transformer import LocalTransformer
 from ..designators.motion_designator import *
 from ..enums import JointType
 

@@ -8,7 +8,7 @@ import pycram.helper as helper
 import pycram.helper_deprecated as helper_deprecated
 from ..bullet_world import BulletWorld
 from ..external_interfaces.ik import request_ik
-from ..local_transformer import local_transformer as local_tf
+from ..local_transformer import LocalTransformer as local_tf
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 
