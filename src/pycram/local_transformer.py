@@ -184,7 +184,35 @@ class LocalTransformer:
         """
         return self.local_transformer.transformPose(target_frame, pose_stamped)
 
-        # return pose_stamped2tuple(self.local_transformer.transformPose(target_frame, pose_stamped))
+    def transform_to_object_frame(self, pose, bullet_object, link_name=None) -> Union[Pose, None]:
+        """
+        Transforms the given pose to the coordinate frame of the given BulletWorld object. If no link name is given the
+        base frame of the Object is used, otherwise the link frame is used as target for the transformation.
+
+        :param pose: Pose that should be transformed
+        :param bullet_object: BulletWorld Object in which frame the pose should be transformed
+        :param link_name: A link of the BulletWorld Object which will be used as target coordinate frame instead
+        :return: The new pose the in coordinate frame of the object
+        """
+        if link_name:
+            target_frame = bullet_object.name + "_" + str(bullet_object.id) + "/" + link_name
+        else:
+            target_frame = bullet_object.name + "_" + str(bullet_object.id)
+        pose_copy = pose.copy()
+
+        if not self.local_transformer.canTransform(target_frame, pose.frame, rospy.Time(0)):
+            rospy.logerr(
+                f"Can not transform pose: {pose} to object: {bullet_object}. Maybe try calling 'update_transforms_for_object'")
+            return
+
+        pose_copy.header.stamp = rospy.Time(0)
+        new_pose = self.local_transformer.transformPose(target_frame, pose_copy)
+        p = Pose()
+        p.pose.position = new_pose.pose.position
+        p.pose.orientation = new_pose.pose.orientation
+        p.header.frame_id = new_pose.header.frame_id
+        p.header.stamp = rospy.Time.now()
+        return p
 
     def tf_transform(self, source_frame: str, target_frame: str,
                      time: Optional[rospy.rostime.Time] = None) -> TransformStamped:
@@ -206,10 +234,14 @@ class LocalTransformer:
         :param bullet_object: Object for which the Transforms should be updated
         """
         self.local_transformer.setTransform(
-            bullet_object.get_pose().to_transform(bullet_object.name + str(bullet_object.id)))
-        for link_name in bullet_object.links.keys():
-            self.local_transformer.setTransform(bullet_object.get_link_pose(link_name).to_transform(
-                bullet_object.name + str(bullet_object.id) + "/" + link_name))
+            bullet_object.get_pose().to_transform(bullet_object.name + "_" + str(bullet_object.id)))
+        for link_name, id in bullet_object.links.items():
+            if id == -1:
+                continue
+            tf_stamped = bullet_object.get_link_pose(link_name).to_transform(
+                bullet_object.name + "_" + str(bullet_object.id) + "/" + link_name)
+            self.local_transformer.setTransform(tf_stamped)
+            # self.local_transformer._buffer.set_transform_static(tf_stamped, "default_authority")
 
 
 # Initializing Local Transformer using ROS data types

@@ -18,6 +18,7 @@ import pybullet as p
 import rospkg
 import rospy
 import rosgraph
+from geometry_msgs.msg import Quaternion, Point
 from urdf_parser_py.urdf import URDF
 
 from . import utils
@@ -28,7 +29,6 @@ from .local_transformer import LocalTransformer
 from sensor_msgs.msg import JointState
 
 from pycram.pose import Pose
-
 
 
 class BulletWorld:
@@ -451,8 +451,9 @@ class World_Sync(threading.Thread):
                 self.remove_obj_queue.task_done()
 
             for bulletworld_obj, shadow_obj in self.object_mapping.items():
-                shadow_obj.set_position(bulletworld_obj.get_position())
-                shadow_obj.set_orientation(bulletworld_obj.get_orientation())
+                shadow_obj.set_pose(bulletworld_obj.get_pose())
+                # shadow_obj.set_position(bulletworld_obj.get_position())
+                # shadow_obj.set_orientation(bulletworld_obj.get_orientation())
 
                 # Manage joint positions
                 if len(bulletworld_obj.joints) > 2:
@@ -736,6 +737,7 @@ class Object:
         with open(self.path) as f:
             self.urdf_object = URDF.from_xml_string(f.read())
         self.links[self.urdf_object.get_root()] = -1
+        self.local_transformer.update_transforms_for_object(self)
 
     def __repr__(self):
         skip_attr = ["links", "joints", "urdf_object"]
@@ -817,7 +819,7 @@ class Object:
 
         :return: The current position of this object
         """
-        return Pose(position=p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id)[0]).position
+        return self.get_pose().position
         # return p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id)[0]
 
     def get_orientation(self) -> List[float]:
@@ -826,7 +828,7 @@ class Object:
 
         :return: A list of xyzw
         """
-        return Pose(position=p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id)[0]).orientation
+        return self.get_pose().orientation
 
     def get_pose(self) -> Pose:
         """
@@ -835,8 +837,6 @@ class Object:
         :return: The current pose of this object
         """
         return Pose(*p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id))
-
-
 
     def get_position_and_orientation(self) -> Tuple[List[float], List[float]]:
         """
@@ -871,6 +871,11 @@ class Object:
 
     @pose.setter
     def pose(self, value: Pose) -> None:
+        """
+        Sets the Pose of the Object to the given value. Function for attribute use.
+
+        :param value: New Pose of the Object
+        """
         self.set_pose(value)
 
     def move_base_to_origin_pos(self) -> None:
@@ -952,9 +957,15 @@ class Object:
         self.set_position_and_orientation(self.get_position(), orientation)
 
     def set_pose(self, pose: Pose) -> None:
+        """
+        Sets the Pose of the object.
+
+        :param pose: New Pose for the object
+        """
         position, orientation = pose.to_list()
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
         self._set_attached_objects([self])
+        self.local_transformer.update_transforms_for_object(self)
 
     def _joint_or_link_name_to_id(self, type: str) -> Dict[str, int]:
         """
@@ -1028,7 +1039,7 @@ class Object:
                                                                           map_T_target_trans, map_T_target_rot)
         return source_T_target_trans, source_T_target_rot
 
-    def get_link_position_and_orientation(self, name: str) -> List[float]:
+    def get_link_position_and_orientation(self, name: str) -> pose:
         """
         Returns the position and orientation of a link of this Object. Position is returned as xyz and orientation as a
         quaternion.
@@ -1038,27 +1049,26 @@ class Object:
         """
         return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[4:6]
 
-    def get_link_position(self, name: str) -> List[float]:
+    def get_link_position(self, name: str) -> Point:
         """
         Returns the position of a link of this Object. Position is returned as a list of xyz.
 
         :param name: The link name
         :return: The link position as xyz
         """
-        return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[4]
+        return self.get_link_pose(name).position
 
-    def get_link_orientation(self, name: str) -> List[float]:
+    def get_link_orientation(self, name: str) -> Quaternion:
         """
         Returns the orientation of a link of this Object. Orientation is returned as a quaternion.
 
         :param name: The name of the link
         :return: The orientation of the link as a quaternion
         """
-        return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[5]
+        return self.get_link_pose(name).orientation
 
     def get_link_pose(self, name) -> Pose:
-        position, orientation = p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[4:6]
-        return Pose(position, orientation)
+        return Pose(*p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[4:6])
 
     def set_joint_state(self, joint_name: str, joint_pose: float) -> None:
         """
@@ -1069,7 +1079,8 @@ class Object:
         :param joint_pose: The target pose for this joint
         """
         # TODO Limits for rotational (infinitie) joints are 0 and 1, they should be considered seperatly
-        up_lim, low_lim = p.getJointInfo(self.id, self.joints[joint_name], physicsClientId=self.world.client_id)[8:10]
+        up_lim, low_lim = p.getJointInfo(self.id, self.joints[joint_name], physicsClientId=self.world.client_id)[
+                          8:10]
         if low_lim > up_lim:
             low_lim, up_lim = up_lim, low_lim
         if not low_lim <= joint_pose <= up_lim:
@@ -1129,7 +1140,7 @@ class Object:
         else:
             add_joints = set(joint_names) - set(self.joints.keys())
             rospy.logerr(f"There are joints in the published joint state which are not in this model: /n \
-                        The following joint{'s' if len(add_joints) != 1 else ''}: {add_joints}")
+                    The following joint{'s' if len(add_joints) != 1 else ''}: {add_joints}")
 
     def update_position_from_tf(self, frame: str) -> None:
         """
@@ -1367,7 +1378,8 @@ def _load_object(name: str,
             if path: break
 
     if not path:
-        raise FileNotFoundError(f"File {pa.name} could not be found in the resource directory {world.data_directory}")
+        raise FileNotFoundError(
+            f"File {pa.name} could not be found in the resource directory {world.data_directory}")
     # rospack = rospkg.RosPack()
     # cach_dir = rospack.get_path('pycram') + '/resources/cached/'
     cach_dir = world.data_directory[0] + '/cached/'
@@ -1499,23 +1511,23 @@ def _generate_urdf_file(name: str, path: str, color: List[float], cach_dir: str)
     :return: The absolute path of the created file
     """
     urdf_template = '<?xml version="0.0" ?> \n \
-                        <robot name="~a_object"> \n \
-                         <link name="~a_main"> \n \
-                            <visual> \n \
-                                <geometry>\n \
-                                    <mesh filename="~b" scale="1 1 1"/> \n \
-                                </geometry>\n \
-                                <material name="white">\n \
-                                    <color rgba="~c"/>\n \
-                                </material>\n \
-                          </visual> \n \
-                        <collision> \n \
-                        <geometry>\n \
-                            <mesh filename="~b" scale="1 1 1"/>\n \
-                        </geometry>\n \
-                        </collision>\n \
-                        </link> \n \
-                        </robot>'
+                    <robot name="~a_object"> \n \
+                     <link name="~a_main"> \n \
+                        <visual> \n \
+                            <geometry>\n \
+                                <mesh filename="~b" scale="1 1 1"/> \n \
+                            </geometry>\n \
+                            <material name="white">\n \
+                                <color rgba="~c"/>\n \
+                            </material>\n \
+                      </visual> \n \
+                    <collision> \n \
+                    <geometry>\n \
+                        <mesh filename="~b" scale="1 1 1"/>\n \
+                    </geometry>\n \
+                    </collision>\n \
+                    </link> \n \
+                    </robot>'
     urdf_template = fix_missing_inertial(urdf_template)
     rgb = " ".join(list(map(str, color)))
     pathlib_obj = pathlib.Path(path)
@@ -1529,7 +1541,7 @@ def _generate_urdf_file(name: str, path: str, color: List[float], cach_dir: str)
 def _world_and_id(world: BulletWorld) -> Tuple[BulletWorld, int]:
     """
     Selects the world to be used. If the given world is None the 'current_bullet_world' is used.
-    
+
     :param world: The world which should be used or None if 'current_bullet_world' should be used
     :return: The BulletWorld object and the id of this BulletWorld
     """
