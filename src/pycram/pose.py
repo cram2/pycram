@@ -1,3 +1,5 @@
+import copy
+
 import rospy
 from geometry_msgs.msg import PoseStamped, TransformStamped
 
@@ -51,5 +53,8 @@ class Pose(PoseStamped):
         t.transform.translation.z = self.position.z
 
         return t
+
+    def copy(self):
+        return copy.deepcopy(self)
 
 
