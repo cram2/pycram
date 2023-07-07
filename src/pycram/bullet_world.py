@@ -24,7 +24,10 @@ from . import utils
 from .event import Event
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from .enums import JointType
+from .local_transformer import LocalTransformer
 from sensor_msgs.msg import JointState
+
+from pycram.pose import Pose
 
 
 
@@ -730,6 +733,7 @@ class Object:
         self.world.objects.append(self)
         self.original_pose = [position, orientation]
         self.base_origin_shift = np.array(position) - np.array(self.get_base_origin())
+        self.local_transformer = LocalTransformer()
 
         # This means "world" is not the shadow world since it has a reference to a shadow world
         if self.world.shadow_world != None:
@@ -826,14 +830,11 @@ class Object:
     def get_position(self) -> List[float]:
         """
         Returns the position of this Object as a list of xyz.
-        """
-        return p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id)[0]
 
-    def get_pose(self) -> List[float]:
+        :return: The current position of this object
         """
-        Returns the position of this object as a list of xyz. Alias for :func:`~Object.get_position`.
-        """
-        return self.get_position()
+        return Pose(position=p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id)[0]).position
+        # return p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id)[0]
 
     def get_orientation(self) -> List[float]:
         """
@@ -841,7 +842,17 @@ class Object:
 
         :return: A list of xyzw
         """
-        return p.getBasePositionAndOrientation(self.id, self.world.client_id)[1]
+        return Pose(position=p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id)[0]).orientation
+
+    def get_pose(self) -> Pose:
+        """
+        Returns the position of this object as a list of xyz. Alias for :func:`~Object.get_position`.
+
+        :return: The current pose of this object
+        """
+        return Pose(*p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id))
+
+
 
     def get_position_and_orientation(self) -> Tuple[List[float], List[float]]:
         """
@@ -866,13 +877,17 @@ class Object:
         self._set_attached_objects([self])
 
     @property
-    def pose(self) -> List[float]:
+    def pose(self) -> Pose:
         """
         Property that returns the current position of this Object.
 
         :return: The position as a list of xyz
         """
         return self.get_pose()
+
+    @pose.setter
+    def pose(self, value: Pose) -> None:
+        self.set_pose(value)
 
     def move_base_to_origin_pos(self) -> None:
         """
@@ -952,13 +967,10 @@ class Object:
         """
         self.set_position_and_orientation(self.get_position(), orientation)
 
-    def set_pose(self, position: List[float]) -> None:
-        """
-        Sets the position of this Object to the given position.
-
-        :param position: Target position as a list of xyz.
-        """
-        self.set_position(position)
+    def set_pose(self, pose: Pose) -> None:
+        position, orientation = pose.to_list()
+        p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
+        self._set_attached_objects([self])
 
     def _joint_or_link_name_to_id(self, type: str) -> Dict[str, int]:
         """
@@ -1059,6 +1071,10 @@ class Object:
         :return: The orientation of the link as a quaternion
         """
         return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[5]
+
+    def get_link_pose(self, name) -> Pose:
+        position, orientation = p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[4:6]
+        return Pose(position, orientation)
 
     def set_joint_state(self, joint_name: str, joint_pose: float) -> None:
         """
