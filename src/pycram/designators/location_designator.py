@@ -8,7 +8,7 @@ import tf
 from .object_designator import ObjectDesignatorDescription, ObjectPart
 from ..bullet_world import Object, BulletWorld, Use_shadow_world
 from ..bullet_world_reasoning import link_pose_for_joint_config
-from ..designator import Designator, DesignatorError, DesignatorDescription
+from ..designator import Designator, DesignatorError, LocationDesignatorDescription
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
 from pycram.robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from ..enums import JointType
@@ -17,32 +17,6 @@ from ..plan_failures import EnvironmentManipulationImpossible
 from ..pose_generator_and_validator import pose_generator, visibility_validator, reachability_validator, \
     generate_orientation
 from ..robot_description import ManipulatorDescription
-
-
-class LocationDesignatorDescription(DesignatorDescription):
-    """
-    Parent class of location designator descriptions.
-    """
-
-    @dataclasses.dataclass
-    class Location:
-        """
-        Resolved location that represents a specific point in the world which satisfies the constraints of the location
-        designator description.
-        """
-        pose: Tuple[List[float], List[float]]
-        """
-        The resolved pose of the location designator. Pose is inherited by all location designator.
-        """
-
-    def __init__(self, resolver=None):
-        super().__init__(resolver)
-
-    def ground(self) -> Location:
-        """
-        Find a location that satisfies all constrains.
-        """
-        raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
 
 
 class Location(LocationDesignatorDescription):
