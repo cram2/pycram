@@ -1,4 +1,5 @@
 import time
+from threading import Lock
 
 import pybullet as p
 
@@ -8,7 +9,7 @@ import pycram.helper_deprecated as helper_deprecated
 from ..bullet_world import BulletWorld
 from ..external_interfaces.ik import request_ik
 from ..local_transformer import local_transformer as local_tf
-from ..process_module import ProcessModule
+from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 
 
@@ -286,16 +287,55 @@ class BoxyWorldStateDetecting(ProcessModule):
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
 
-BoxyProcessModulesSimulated = {'moving' : BoxyNavigation(),
-                              'pick-up' : BoxyPickUp(),
-                              'place' : BoxyPlace(),
-                              'accessing' : BoxyAccessing(),
-                              'looking' : BoxyMoveHead(),
-                              'opening_gripper' : BoxyMoveGripper(),
-                              'closing_gripper' : BoxyMoveGripper(),
-                              'detecting' : BoxyDetecting(),
-                              'move-tcp' : BoxyMoveTCP(),
-                              'move-arm-joints' : BoxyMoveJoints(),
-                              'world-state-detecting' : BoxyWorldStateDetecting()}
+class BoxyManager(ProcessModuleManager):
 
-BoxyProcessModulesReal = {}
+    def __init__(self):
+        super().__init__("boxy")
+        self._navigate_lock = Lock()
+        self._pick_up_lock = Lock()
+        self._place_lock = Lock()
+        self._looking_lock = Lock()
+        self._detecting_lock = Lock()
+        self._move_tcp_lock = Lock()
+        self._move_arm_joints_lock = Lock()
+        self._world_state_detecting_lock = Lock()
+        self._move_joints_lock = Lock()
+        self._move_gripper_lock = Lock()
+        self._open_lock = Lock()
+        self._close_lock = Lock()
+
+    def navigate(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return BoxyNavigation(self._navigate_lock)
+
+    def pick_up(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return BoxyPickUp(self._pick_up_lock)
+
+    def place(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return BoxyPlace(self._place_lock)
+
+    def looking(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return BoxyMoveHead(self._looking_lock)
+
+    def detecting(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return BoxyDetecting(self._detecting_lock)
+
+    def move_tcp(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return BoxyMoveTCP(self._move_tcp_lock)
+
+    def move_arm_joints(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return BoxyMoveJoints(self._move_arm_joints_lock)
+
+    def world_state_detecting(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return BoxyWorldStateDetecting(self._world_state_detecting_lock)
+
+    def move_gripper(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return BoxyMoveGripper(self._move_gripper_lock)
