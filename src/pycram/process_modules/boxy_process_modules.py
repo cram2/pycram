@@ -287,7 +287,7 @@ class BoxyWorldStateDetecting(ProcessModule):
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
 
-class BoxyPMManager(ProcessModuleManager):
+class BoxyManager(ProcessModuleManager):
 
     def __init__(self):
         super().__init__("boxy")
