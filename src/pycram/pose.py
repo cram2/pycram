@@ -38,8 +38,8 @@ class Pose(PoseStamped):
         self.header.frame_id = value
 
     def to_list(self):
-        return [[self.position.x, self.position.y, self.position.z],
-                [self.orientation.x, self.orientation.y, self.orientation.z, self.orientation.w]]
+        return [[self.pose.position.x, self.pose.position.y, self.pose.position.z],
+                [self.pose.orientation.x, self.pose.orientation.y, self.pose.orientation.z, self.pose.orientation.w]]
 
     def to_transform(self, child_frame: str):
         t = TransformStamped()
@@ -56,5 +56,11 @@ class Pose(PoseStamped):
 
     def copy(self):
         return copy.deepcopy(self)
+
+    def position_as_list(self):
+        return [self.pose.position.x, self.pose.position.y, self.pose.position.z]
+
+    def orientation_as_list(self):
+        return [self.pose.orientation.x, self.pose.orientation.y, self.pose.orientation.z, self.pose.orientation.w]
 
 
