@@ -1,6 +1,6 @@
 import rospy
 
-from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from ..robot_descriptions import robot_description
 from ..bullet_world import BulletWorld, Object
 
 from typing import List, Tuple, Dict
@@ -54,7 +54,7 @@ def sync_worlds() -> None:
     """
     bullet_object_names = set(map(lambda obj: obj.name + "_" + str(obj.id), BulletWorld.current_bullet_world.objects))
     giskard_object_names = set(giskard_wrapper.get_group_names())
-    robot_name = {robot_description.i.name}
+    robot_name = {robot_description.name}
     if giskard_object_names - bullet_object_names - robot_name != set():
         giskard_wrapper.clear_world()
     initial_adding_objects()

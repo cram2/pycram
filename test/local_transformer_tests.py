@@ -6,7 +6,7 @@ rospy.init_node('pycram')
 
 from src.pycram.bullet_world import BulletWorld, Object
 from src.pycram.local_transformer import LocalTransformer, LocalTransformerFreqPublisher
-from src.pycram.robot_description import InitializedRobotDescription as robot_description
+from pycram.robot_descriptions import robot_description
 
 world = None
 robot = None
@@ -21,9 +21,9 @@ def park_arms():
     """
 
     global robot
-    for joint, pose in robot_description.i.get_static_joint_chain("right", "park").items():
+    for joint, pose in robot_description.get_static_joint_chain("right", "park").items():
         robot.set_joint_state(joint, pose)
-    for joint, pose in robot_description.i.get_static_joint_chain("left", "park").items():
+    for joint, pose in robot_description.get_static_joint_chain("left", "park").items():
         robot.set_joint_state(joint, pose)
 
 
@@ -146,7 +146,7 @@ class LocalTransformerTests(unittest.TestCase):
         setup()
 
         # Get base link of left arm and tool frame
-        link = robot_description.i.get_tool_frame("left")
+        link = robot_description.get_tool_frame("left")
         base_link = "calib_left_arm_base_link"
 
         # Save init pose of tool frame in base_link and global frame
@@ -156,7 +156,7 @@ class LocalTransformerTests(unittest.TestCase):
         p_before_bullet_global, _ = robot.get_link_position_and_orientation_tf(link)
 
         # Move left arm
-        for joint_name, j_value in robot_description.i.get_static_joint_chain("left", "handover").items():
+        for joint_name, j_value in robot_description.get_static_joint_chain("left", "handover").items():
             robot.set_joint_state(joint_name, j_value)
 
         sleep(1)
@@ -183,7 +183,7 @@ class LocalTransformerTests(unittest.TestCase):
         setup()
 
         # Get base link of left arm and tool frame
-        link = robot_description.i.get_tool_frame("left")
+        link = robot_description.get_tool_frame("left")
         base_link = "calib_left_arm_base_link"
 
         # Save init pose of tool frame in base_link and global frame
@@ -193,7 +193,7 @@ class LocalTransformerTests(unittest.TestCase):
         p_before_bullet_global, _ = robot.get_link_position_and_orientation_tf(link)
 
         # Move left arm
-        for joint_name, j_value in robot_description.i.get_static_joint_chain("left", "handover").items():
+        for joint_name, j_value in robot_description.get_static_joint_chain("left", "handover").items():
             robot.set_joint_state(joint_name, j_value)
         sleep(1)
 

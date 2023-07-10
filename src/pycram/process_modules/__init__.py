@@ -1,9 +1,9 @@
-from .pr2_process_modules import Pr2PMManager
-from .boxy_process_modules import BoxyPMManager
-from .donbot_process_modules import DonbotPMManager
-from .hsr_process_modules import HSRPMManager
+from .pr2_process_modules import Pr2Manager
+from .boxy_process_modules import BoxyManager
+from .donbot_process_modules import DonbotManager
+from .hsr_process_modules import HSRManager
 
-Pr2PMManager()
-BoxyPMManager()
-DonbotPMManager()
-HSRPMManager()
+Pr2Manager()
+BoxyManager()
+DonbotManager()
+HSRManager()

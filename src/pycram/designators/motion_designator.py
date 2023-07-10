@@ -6,7 +6,7 @@ from ..designator import DesignatorError
 from ..plan_failures import PerceptionObjectNotFound
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..orm.base import Quaternion, Position, Base
-from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from ..robot_descriptions import robot_description
 from ..designator import MotionDesignatorDescription
 
 from typing import Tuple, List, Dict, get_type_hints, Callable, Optional
@@ -388,12 +388,12 @@ class MoveArmJointsMotion(MotionDesignatorDescription):
         if self.left_arm_poses:
             left_poses = self.left_arm_poses
         elif self.left_arm_config:
-            left_poses = robot_description.i.get_static_joint_chain("left", self.left_arm_config)
+            left_poses = robot_description.get_static_joint_chain("left", self.left_arm_config)
 
         if self.right_arm_poses:
             right_poses = self.right_arm_poses
         elif self.right_arm_config:
-            right_poses = robot_description.i.get_static_joint_chain("right", self.right_arm_config)
+            right_poses = robot_description.get_static_joint_chain("right", self.right_arm_config)
         return self.Motion(self.cmd, left_poses, right_poses)
 
 
