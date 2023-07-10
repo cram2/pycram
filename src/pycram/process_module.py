@@ -15,7 +15,7 @@ import rospy
 
 from .designator import MotionDesignatorDescription
 from .fluent import Fluent
-from typing import Callable, List, Type, Any
+from typing import Callable, List, Type, Any, Union
 
 from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 
@@ -57,7 +57,7 @@ class ProcessModule:
         return ret
 
 
-class real_robot:
+class RealRobot:
     """
     Management class for executing designators on the real robot. This is intended to be used in a with environment.
     When importing this class an instance is imported instead.
@@ -91,7 +91,7 @@ class real_robot:
         return self
 
 
-class simulated_robot:
+class SimulatedRobot:
     """
     Management class for executing designators on the simulated robot. This is intended to be used in a with environment.
     When importing this class an instance is imported instead.
@@ -174,8 +174,8 @@ def with_simulated_robot(func: Callable) -> Callable:
 
 
 # These are imported, so they don't have to be initialized when executing with
-simulated_robot = simulated_robot()
-real_robot = real_robot()
+simulated_robot = SimulatedRobot()
+real_robot = RealRobot()
 
 
 class ProcessModuleManager(ABC):
@@ -219,7 +219,7 @@ class ProcessModuleManager(ABC):
         ProcessModuleManager.available_pms.append(self)
 
     @staticmethod
-    def get_manager() -> ProcessModuleManager | None:
+    def get_manager() -> Union[ProcessModuleManager, None]:
         """
         Returns the Process Module manager for the currently loaded robot or None if there is no Manager.
 

@@ -216,7 +216,7 @@ class HSRWorldStateDetecting(ProcessModule):
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
 
-class HSRPMManager(ProcessModuleManager):
+class HSRManager(ProcessModuleManager):
 
     def __init__(self):
         super().__init__("hsr")

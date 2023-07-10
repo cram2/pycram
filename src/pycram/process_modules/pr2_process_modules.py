@@ -296,7 +296,7 @@ def _move_arm_tcp(target, robot, arm):
     _apply_ik(robot, inv, joints)
 
 
-class Pr2PMManager(ProcessModuleManager):
+class Pr2Manager(ProcessModuleManager):
 
     def __init__(self):
         super().__init__("pr2")

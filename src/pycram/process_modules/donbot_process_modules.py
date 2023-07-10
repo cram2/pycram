@@ -244,7 +244,7 @@ class DonbotWorldStateDetecting(ProcessModule):
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
 
-class DonbotPMManager(ProcessModuleManager):
+class DonbotManager(ProcessModuleManager):
 
     def __init__(self):
         super().__init__("donbot")
