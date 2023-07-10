@@ -13,7 +13,7 @@ from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, Naviga
                                      MoveTorsoAction as ORMMoveTorsoAction, SetGripperAction as ORMSetGripperAction,
                                      Action as ORMAction)
 from ..orm.base import Quaternion, Position, Base, RobotState, MetaData
-from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from ..robot_descriptions import robot_description
 from ..task import with_tree
 from ..enums import Arms
 from ..designator import ActionDesignatorDescription
@@ -39,7 +39,7 @@ class MoveTorsoAction(ActionDesignatorDescription):
 
         @with_tree
         def perform(self) -> None:
-            MoveJointsMotion([robot_description.i.torso_joint], [self.position]).resolve().perform()
+            MoveJointsMotion([robot_description.torso_joint], [self.position]).resolve().perform()
 
         def to_sql(self):
             return ORMMoveTorsoAction(self.position)
@@ -502,7 +502,7 @@ class TransportAction(ActionDesignatorDescription):
 
         @with_tree
         def perform(self) -> None:
-            robot_desig = BelieveObject(names=[robot_description.i.name])
+            robot_desig = BelieveObject(names=[robot_description.name])
             ParkArmsAction.Action(Arms.BOTH).perform()
             pickup_loc = CostmapLocation(target=self.object_designator, reachable_for=robot_desig.resolve())
             # Tries to find a pick-up posotion for the robot that uses the given arm

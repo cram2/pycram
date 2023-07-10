@@ -22,7 +22,7 @@ from urdf_parser_py.urdf import URDF
 
 from . import utils
 from .event import Event
-from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from .robot_descriptions import robot_description
 from .enums import JointType
 from sensor_msgs.msg import JointState
 
@@ -726,7 +726,7 @@ class Object:
                 urdf_string = f.read()
             urdf_string = urdf_string
             robot_name = _get_robot_name_from_urdf(urdf_string)
-            if robot_name == robot_description.i.name and BulletWorld.robot == None:
+            if robot_name == robot_description.name and BulletWorld.robot == None:
                 BulletWorld.robot = self
         self.original_pose = [position, orientation]
         with open(self.path) as f:

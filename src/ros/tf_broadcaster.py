@@ -6,7 +6,7 @@ from pytransform3d.rotations import quaternion_xyzw_from_wxyz, quaternion_wxyz_f
 from pytransform3d.transformations import transform_from_pq, pq_from_transform
 from pycram.helper_deprecated import list2tfstamped
 
-from pycram.robot_description import InitializedRobotDescription as robot_description
+from pycram.robot_descriptions import robot_description
 from ros.ros_topic_publisher import ROSTopicPublisher
 
 #import roslibpy
@@ -95,7 +95,7 @@ class TFBroadcaster(ROSTopicPublisher):
             normal TFStamped.
         """
         # Get URDF file path
-        robot_name = robot_description.i.name
+        robot_name = robot_description.name
         rospack = rospkg.RosPack()
         filename = rospack.get_path('pycram') + '/resources/' + robot_name + '.urdf'
         # ... and open it
@@ -120,14 +120,14 @@ class TFBroadcaster(ROSTopicPublisher):
                     else:
                         rotation = [0, 0, 0, 1]
 
-                if joint.name in robot_description.i.odom_joints:
+                if joint.name in robot_description.odom_joints:
                     # since pybullet wont update this joints, these are declared as static
                     translation = [0, 0, 0]
                     rotation = [0, 0, 0, 1]
 
                 # Wrap the joint attributes in a TFStamped and append it to static_tf_stamped if the joint was fixed
                 tf_stamped_msg = self.make_tf_stamped(source_frame, target_frame, np.array(translation), np.array(rotation))
-                if (joint.type and joint.type == 'fixed') or joint.name in robot_description.i.odom_joints:
+                if (joint.type and joint.type == 'fixed') or joint.name in robot_description.odom_joints:
                     self.tf_static_publisher.publish(tf_stamped_msg)
                     self.static_tf_stampeds.append(tf_stamped_msg)
                 else:
@@ -148,7 +148,7 @@ class TFBroadcaster(ROSTopicPublisher):
 
     def _update_objects(self):
         for obj in self.world.objects:
-            if obj.name == robot_description.i.name or obj.type == "environment":
+            if obj.name == robot_description.name or obj.type == "environment":
                 continue
             else:
                 pb_pos, pb_ori = obj.get_position_and_orientation()
@@ -182,7 +182,7 @@ class TFBroadcaster(ROSTopicPublisher):
         if robot:
             # Then publish pose of robot
             try:
-                pb_pos, pb_ori = robot.get_link_position_and_orientation(robot_description.i.base_frame)
+                pb_pos, pb_ori = robot.get_link_position_and_orientation(robot_description.base_frame)
             except KeyError:
                 pb_pos, pb_ori = robot.get_position_and_orientation()
             robot_pose = Pose.from_xyz_qxyzw(pb_pos, pb_ori)
@@ -203,23 +203,23 @@ class TFBroadcaster(ROSTopicPublisher):
         :type obj_name: str
         :type pose: list or Pose
         """
-        if obj_name in robot_description.i.name:
+        if obj_name in robot_description.name:
             return
         tf_name = self.projection_namespace + '/' + obj_name if self.projection_namespace else obj_name
         self._publish_pose(self.map_frame, tf_name, pose)
 
     def _publish_robot_pose(self, pose: Pose):
         "Publishes the base_frame of the robot in reference to the map frame to tf."
-        tf_base_frame = self.projection_namespace + '/' + robot_description.i.base_frame \
+        tf_base_frame = self.projection_namespace + '/' + robot_description.base_frame \
             if self.projection_namespace \
-            else robot_description.i.base_frame
+            else robot_description.base_frame
         self._publish_pose(self.map_frame, tf_base_frame, pose)
 
     def publish_robots_link_pose(self, link: str, pose: Pose):
         "Publishes the frame link of the robot in reference to the base_frame of the robot to tf."
-        tf_base_frame = self.projection_namespace + '/' + robot_description.i.base_frame \
+        tf_base_frame = self.projection_namespace + '/' + robot_description.base_frame \
             if self.projection_namespace \
-            else robot_description.i.base_frame
+            else robot_description.base_frame
         tf_link_frame = self.projection_namespace + '/' + link \
             if self.projection_namespace \
             else link

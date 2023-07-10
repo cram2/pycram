@@ -1,6 +1,6 @@
 from threading import Lock
 
-from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from ..robot_descriptions import robot_description
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..bullet_world import BulletWorld
 from ..helper import _apply_ik
@@ -19,7 +19,7 @@ def _park_arms(arm):
 
     robot = BulletWorld.robot
     if arm == "left":
-        for joint, pose in robot_description.i.get_static_joint_chain("left", "park").items():
+        for joint, pose in robot_description.get_static_joint_chain("left", "park").items():
             robot.set_joint_state(joint, pose)
 
 
@@ -124,7 +124,7 @@ class HSRMoveHead(ProcessModule):
             target = solutions['target']
             if target == 'forward' or target == 'down':
                 robot = BulletWorld.robot
-                for joint, state in robot_description.i.get_static_joint_chain("neck", target).items():
+                for joint, state in robot_description.get_static_joint_chain("neck", target).items():
                     robot.set_joint_state(joint, state)
             else:
                 logging.error("There is no target position defined with the target %s.", target)
@@ -142,7 +142,7 @@ class HSRMoveGripper(ProcessModule):
             robot = BulletWorld.robot
             gripper = solution['gripper']
             motion = solution['motion']
-            for joint, state in robot_description.i.get_static_gripper_chain(gripper, motion).items():
+            for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
                 robot.set_joint_state(joint, state)
             time.sleep(0.5)
 
