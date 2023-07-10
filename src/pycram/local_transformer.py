@@ -15,7 +15,7 @@ from urdf_parser_py.urdf import URDF
 from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped, TransformStamped, Pose
 from .helper_deprecated import pose_stamped2tuple
-from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from .robot_descriptions import robot_description
 from typing import List, Optional, Tuple, Union, Callable
 
 
@@ -68,7 +68,7 @@ class LocalTransformer:
         self.tf_stampeds = []
         self.static_tf_stampeds = []
         # Get URDF file path
-        robot_name = robot_description.i.name
+        robot_name = robot_description.name
         rospack = rospkg.RosPack()
         filename = rospack.get_path('pycram') + '/resources/' + robot_name + '.urdf'
         # ... and open it
@@ -96,14 +96,14 @@ class LocalTransformer:
                     else:
                         rotation = [0, 0, 0, 1]
 
-                if joint.name in robot_description.i.odom_joints:
+                if joint.name in robot_description.odom_joints:
                     # since pybullet wont update this joints, these are declared as static
                     translation = [0, 0, 0]
                     rotation = [0, 0, 0, 1]
 
                 # Wrap the joint attributes in a TFStamped and append it to static_tf_stamped if the joint was fixed
                 tf_stamped = pycram.helper_deprecated.list2tfstamped(source_frame, target_frame, [translation, rotation])
-                if (joint.type and joint.type == 'fixed') or joint.name in robot_description.i.odom_joints:
+                if (joint.type and joint.type == 'fixed') or joint.name in robot_description.odom_joints:
                     self.static_tf_stampeds.append(tf_stamped)
                 else:
                     self.tf_stampeds.append(tf_stamped)
@@ -140,7 +140,7 @@ class LocalTransformer:
             # Then publish pose of robot
             robot_pose = BulletWorld.robot.get_position_and_orientation()
             # try:
-            #     robot_pose = BulletWorld.robot.get_link_position_and_orientation(robot_description.i.base_frame)
+            #     robot_pose = BulletWorld.robot.get_link_position_and_orientation(robot_description.base_frame)
             # except KeyError:
             #     robot_pose = BulletWorld.robot.get_position_and_orientation()
             self.publish_robot_pose(pycram.helper_deprecated.ensure_pose(robot_pose))
@@ -152,7 +152,7 @@ class LocalTransformer:
     def update_objects(self) -> None:
         if BulletWorld.current_bullet_world:
             for obj in list(BulletWorld.current_bullet_world.objects):
-                if obj.name == robot_description.i.name or obj.type == "environment":
+                if obj.name == robot_description.name or obj.type == "environment":
                     continue
                 else:
                     published = local_transformer.publish_object_pose(obj.name,
@@ -211,9 +211,9 @@ class LocalTransformer:
         :type name: str
         :type pose: list or Pose
         """
-        if name in robot_description.i.name:
+        if name in robot_description.name:
             return None
-        if name not in robot_description.i.name:
+        if name not in robot_description.name:
             pose = pycram.helper_deprecated.ensure_pose(pose)
             if pose:
                 tf_name = self.projection_namespace + '/' + name if self.projection_namespace else name
@@ -227,9 +227,9 @@ class LocalTransformer:
         "Publishes the base_frame of the robot in reference to the map frame to tf."
         robot_pose = pycram.helper_deprecated.ensure_pose(pose)
         if robot_pose:
-            tf_base_frame = self.projection_namespace + '/' + robot_description.i.base_frame \
+            tf_base_frame = self.projection_namespace + '/' + robot_description.base_frame \
                 if self.projection_namespace \
-                else robot_description.i.base_frame
+                else robot_description.base_frame
             return self.publish_pose(self.map_frame, tf_base_frame, robot_pose)
         else:
             logerr("(publisher) Could not publish given pose of robot since"
@@ -240,9 +240,9 @@ class LocalTransformer:
         "Publishes the frame link of the robot in reference to the base_frame of the robot to tf."
         robot_pose = pycram.helper_deprecated.ensure_pose(pose)
         if robot_pose:
-            tf_base_frame = self.projection_namespace + '/' + robot_description.i.base_frame \
+            tf_base_frame = self.projection_namespace + '/' + robot_description.base_frame \
                 if self.projection_namespace \
-                else robot_description.i.base_frame
+                else robot_description.base_frame
             tf_link_frame = self.projection_namespace + '/' + link \
                 if self.projection_namespace \
                 else link
