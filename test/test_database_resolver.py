@@ -10,7 +10,7 @@ from pycram.designators import action_designator, object_designator
 from pycram.process_module import ProcessModule
 from pycram.process_module import simulated_robot
 
-from pycram.robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from pycram.robot_descriptions import robot_description
 
 # check if jpt is installed
 jpt_installed = True
@@ -39,7 +39,7 @@ class DatabaseResolverTestCase(unittest.TestCase):
         global pycrorm_uri
         cls.world = BulletWorld("DIRECT")
         cls.milk = Object("milk", "milk", "milk.stl", position=[3, 3, 0.75])
-        cls.robot = Object(robot_description.i.name, "pr2", robot_description.i.name + ".urdf")
+        cls.robot = Object(robot_description.name, "pr2", robot_description.name + ".urdf")
         ProcessModule.execution_delay = False
         engine = sqlalchemy.create_engine(pycrorm_uri)
 

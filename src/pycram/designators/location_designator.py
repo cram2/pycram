@@ -10,7 +10,7 @@ from ..bullet_world import Object, BulletWorld, Use_shadow_world
 from ..bullet_world_reasoning import link_pose_for_joint_config
 from ..designator import Designator, DesignatorError, LocationDesignatorDescription
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
-from pycram.robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from ..robot_descriptions import robot_description
 from ..enums import JointType
 from ..helper import transform
 from ..plan_failures import EnvironmentManipulationImpossible
@@ -154,8 +154,8 @@ class CostmapLocation(LocationDesignatorDescription):
 
            :yield: An instance of CostmapLocation.Location with a valid position that satisfies the given constraints
            """
-        min_height = list(robot_description.i.cameras.values())[0].min_height
-        max_height = list(robot_description.i.cameras.values())[0].max_height
+        min_height = list(robot_description.cameras.values())[0].min_height
+        max_height = list(robot_description.cameras.values())[0].max_height
         # This ensures that the costmaps always get a position as their origin.
         if isinstance(self.target, ObjectDesignatorDescription.Object):
             target_pose = self.target.bullet_world_object.get_position_and_orientation()
@@ -189,7 +189,7 @@ class CostmapLocation(LocationDesignatorDescription):
                                                        BulletWorld.current_bullet_world)
                 if self.reachable_for:
                     hand_links = []
-                    for name, chain in robot_description.i.chains.items():
+                    for name, chain in robot_description.chains.items():
                         if isinstance(chain, ManipulatorDescription):
                             hand_links += chain.gripper.links
 
@@ -277,7 +277,7 @@ class AccessingLocation(LocationDesignatorDescription):
                                              orientation_generator=lambda p, o: generate_orientation(p, half_pose)):
 
                 hand_links = []
-                for name, chain in robot_description.i.chains.items():
+                for name, chain in robot_description.chains.items():
                     if isinstance(chain, ManipulatorDescription):
                         hand_links += chain.gripper.links
 

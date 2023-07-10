@@ -17,7 +17,7 @@ from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped, TransformStamped  # , Pose
 from .pose import Pose
 from .helper_deprecated import pose_stamped2tuple
-from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from .robot_descriptions import robot_description
 from typing import List, Optional, Tuple, Union, Callable
 
 # Boolean for publishing frequently poses/states
@@ -80,7 +80,7 @@ class LocalTransformer:
         self.tf_stampeds = []
         self.static_tf_stampeds = []
         # Get URDF file path
-        robot_name = robot_description.i.name
+        robot_name = robot_description.name
         rospack = rospkg.RosPack()
         filename = rospack.get_path('pycram') + '/resources/' + robot_name + '.urdf'
         # ... and open it
@@ -108,18 +108,18 @@ class LocalTransformer:
                     else:
                         rotation = [0, 0, 0, 1]
 
-                if joint.name in robot_description.i.odom_joints:
+                if joint.name in robot_description.odom_joints:
                     # since pybullet wont update this joints, these are declared as static
                     translation = [0, 0, 0]
                     rotation = [0, 0, 0, 1]
 
                 # Wrap the joint attributes in a TFStamped and append it to static_tf_stamped if the joint was fixed
-                tf_stamped = pycram.helper_deprecated.list2tfstamped(source_frame, target_frame,
-                                                                     [translation, rotation])
-                if (joint.type and joint.type == 'fixed') or joint.name in robot_description.i.odom_joints:
+                tf_stamped = pycram.helper_deprecated.list2tfstamped(source_frame, target_frame, [translation, rotation])
+                if (joint.type and joint.type == 'fixed') or joint.name in robot_description.odom_joints:
                     self.static_tf_stampeds.append(tf_stamped)
                 else:
                     self.tf_stampeds.append(tf_stamped)
+
 
     # def init_local_tf_with_tfs_from_urdf(self) -> None:
     #     "This function initializes the local transformer with TFs from the robots URDF."
@@ -147,6 +147,7 @@ class LocalTransformer:
     #         for static_tf_stamped in self.static_tf_stampeds:
     #             self.local_transformer._buffer.set_transform_static(static_tf_stamped, "default_authority")
 
+
     def update_robot(self) -> None:
         if BulletWorld.robot:
             self.update_transforms_for_object(BulletWorld.robot)
@@ -156,7 +157,7 @@ class LocalTransformer:
     def update_objects(self) -> None:
         if BulletWorld.current_bullet_world:
             for obj in list(BulletWorld.current_bullet_world.objects):
-                if obj.name == robot_description.i.name or obj.type == "environment":
+                if obj.name == robot_description.name or obj.type == "environment":
                     continue
                 else:
                     self.update_transforms_for_object(obj)

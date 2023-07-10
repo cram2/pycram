@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 from matplotlib import colors
 import psutil
 import time
-from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 from .bullet_world import BulletWorld, Use_shadow_world
 from .bullet_world_reasoning import _get_images_for_target
 from nav_msgs.msg import OccupancyGrid, MapMetaData

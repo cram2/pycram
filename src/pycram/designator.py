@@ -14,7 +14,7 @@ from threading import Lock
 from time import time
 from typing import List, Dict, Any, Type, Optional, Union, get_type_hints, Callable, Tuple, Iterable
 
-from .robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from .robot_descriptions import robot_description
 
 import logging
 
@@ -478,7 +478,7 @@ class ActionDesignatorDescription(DesignatorDescription):
 
         def __post_init__(self):
             self.robot_position = BulletWorld.robot.get_position_and_orientation()
-            self.robot_torso_height = BulletWorld.robot.get_joint_state(robot_description.i.torso_joint)
+            self.robot_torso_height = BulletWorld.robot.get_joint_state(robot_description.torso_joint)
             self.robot_type = BulletWorld.robot.type
 
         @with_tree

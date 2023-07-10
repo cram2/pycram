@@ -9,7 +9,7 @@ import pycram.helper_deprecated as helper_deprecated
 from ..bullet_world import BulletWorld
 from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
-from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from ..robot_descriptions import robot_description
 
 
 def _park_arms(arm):
@@ -21,7 +21,7 @@ def _park_arms(arm):
 
     robot = BulletWorld.robot
     if arm == "left":
-        for joint, pose in robot_description.i.get_static_joint_chain("left", "park").items():
+        for joint, pose in robot_description.get_static_joint_chain("left", "park").items():
             robot.set_joint_state(joint, pose)
 
 
@@ -35,7 +35,7 @@ class DonbotNavigation(ProcessModule):
         if solution['cmd'] == 'navigate':
             robot = BulletWorld.robot
             # Reset odom joints to zero
-            for joint_name in robot_description.i.odom_joints:
+            for joint_name in robot_description.odom_joints:
                 robot.set_joint_state(joint_name, 0.0)
             # Set actual goal pose
             robot.set_position_and_orientation(solution['target'], solution['orientation'])
@@ -129,9 +129,9 @@ class DonbotMoveHead(ProcessModule):
         solutions = desig.reference()
         if solutions['cmd'] == 'looking':
             robot = BulletWorld.robot
-            neck_base_frame = local_transformer.projection_namespace + '/' + robot_description.i.chains["neck"].base_link if \
+            neck_base_frame = local_transformer.projection_namespace + '/' + robot_description.chains["neck"].base_link if \
                 local_transformer.projection_namespace else \
-                robot_description.i.chains["neck"].base_link
+                robot_description.chains["neck"].base_link
             if type(solutions['target']) is str:
                 target = local_transformer.projection_namespace + '/' + solutions['target'] if \
                     local_transformer.projection_namespace else \
@@ -153,7 +153,7 @@ class DonbotMoveHead(ProcessModule):
                 conf = "left"
             else:
                 conf = "right"
-            for joint, state in robot_description.i.get_static_joint_chain("neck", conf).items():
+            for joint, state in robot_description.get_static_joint_chain("neck", conf).items():
                 robot.set_joint_state(joint, state)
 
 
@@ -169,7 +169,7 @@ class DonbotMoveGripper(ProcessModule):
             robot = BulletWorld.robot
             gripper = solution['gripper']
             motion = solution['motion']
-            for joint, state in robot_description.i.get_static_gripper_chain(gripper, motion).items():
+            for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
                 # TODO: Test this, add gripper-opening/-closing to the demo.py
                 robot.set_joint_state(joint, state)
             time.sleep(0.5)
@@ -244,7 +244,7 @@ class DonbotWorldStateDetecting(ProcessModule):
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
 
-class DonbotPMManager(ProcessModuleManager):
+class DonbotManager(ProcessModuleManager):
 
     def __init__(self):
         super().__init__("donbot")
