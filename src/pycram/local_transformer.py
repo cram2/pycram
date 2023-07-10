@@ -175,17 +175,30 @@ class LocalTransformer:
         # Update pose of objects which are possibly attached on the robot
         self.update_objects()
 
-    def transform_pose(self, target_frame: str, pose_stamped: PoseStamped) -> Pose:
+    def transform_pose(self, pose: Pose, target_frame: str) -> Pose:
         """
         Transforms a given pose to the target frame.
 
+        :param pose:
         :param target_frame:
-        :param pose_stamped:
         :return:
         """
-        return self.local_transformer.transformPose(target_frame, pose_stamped)
+        copy_pose = pose.copy()
+        copy_pose.header.stamp = rospy.Time(0)
+        if not self.local_transformer.canTransform(target_frame, pose.frame, rospy.Time(0)):
+            rospy.logerr(
+                f"Can not transform pose: \n {pose}\n to frame: {target_frame}.\n Maybe try calling 'update_transforms_for_object'")
+            return
 
-    def transform_to_object_frame(self, pose, bullet_object, link_name=None) -> Union[Pose, None]:
+        new_pose = self.local_transformer.transformPose(target_frame, copy_pose)
+
+        copy_pose.pose = new_pose.pose
+        copy_pose.header.frame_id = new_pose.header.frame_id
+        copy_pose.header.stamp = rospy.Time.now()
+
+        return copy_pose
+
+    def transform_to_object_frame(self, pose: Pose, bullet_object: 'Object', link_name: str = None) -> Union[Pose, None]:
         """
         Transforms the given pose to the coordinate frame of the given BulletWorld object. If no link name is given the
         base frame of the Object is used, otherwise the link frame is used as target for the transformation.
@@ -199,21 +212,7 @@ class LocalTransformer:
             target_frame = bullet_object.name + "_" + str(bullet_object.id) + "/" + link_name
         else:
             target_frame = bullet_object.name + "_" + str(bullet_object.id)
-        pose_copy = pose.copy()
-
-        if not self.local_transformer.canTransform(target_frame, pose.frame, rospy.Time(0)):
-            rospy.logerr(
-                f"Can not transform pose: {pose} to object: {bullet_object}. Maybe try calling 'update_transforms_for_object'")
-            return
-
-        pose_copy.header.stamp = rospy.Time(0)
-        new_pose = self.local_transformer.transformPose(target_frame, pose_copy)
-        p = Pose()
-        p.pose.position = new_pose.pose.position
-        p.pose.orientation = new_pose.pose.orientation
-        p.header.frame_id = new_pose.header.frame_id
-        p.header.stamp = rospy.Time.now()
-        return p
+        return self.transform_pose(pose, target_frame)
 
     def tf_transform(self, source_frame: str, target_frame: str,
                      time: Optional[rospy.rostime.Time] = None) -> TransformStamped:
@@ -243,6 +242,16 @@ class LocalTransformer:
                 bullet_object.name + "_" + str(bullet_object.id) + "/" + link_name)
             self.local_transformer.setTransform(tf_stamped)
             # self.local_transformer._buffer.set_transform_static(tf_stamped, "default_authority")
+
+    def get_all_frames(self) -> List[str]:
+        """
+        Returns all know coordinate frames as a list with human-readable entries.
+
+        :return: A list of all know coordinate frames.
+        """
+        frames = self.local_transformer.allFramesAsString().split("\n")
+        frames.remove("")
+        return frames
 
 
 # Initializing Local Transformer using ROS data types
