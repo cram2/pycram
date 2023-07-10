@@ -1,4 +1,5 @@
 import time
+from threading import Lock
 
 import pybullet as p
 
@@ -7,7 +8,7 @@ import pycram.helper as helper
 import pycram.helper_deprecated as helper_deprecated
 from ..bullet_world import BulletWorld
 from ..local_transformer import local_transformer
-from ..process_module import ProcessModule
+from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
 
 
@@ -242,16 +243,56 @@ class DonbotWorldStateDetecting(ProcessModule):
             obj_type = solution['object_type']
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
-DonbotProcessModulesSimulated = {'moving' : DonbotNavigation(),
-                              'pick-up' : DonbotPickUp(),
-                              'place' : DonbotPlace(),
-                              'accessing' : DonbotAccessing(),
-                              'looking' : DonbotMoveHead(),
-                              'opening_gripper' : DonbotMoveGripper(),
-                              'closing_gripper' : DonbotMoveGripper(),
-                              'detecting' : DonbotDetecting(),
-                              'move-tcp' : DonbotMoveTCP(),
-                              'move-arm-joints' : DonbotMoveJoints(),
-                              'world-state-detecting' : DonbotWorldStateDetecting()}
 
-DonbotProcessModulesReal = {}
+class DonbotManager(ProcessModuleManager):
+
+    def __init__(self):
+        super().__init__("donbot")
+        self._navigate_lock = Lock()
+        self._pick_up_lock = Lock()
+        self._place_lock = Lock()
+        self._looking_lock = Lock()
+        self._detecting_lock = Lock()
+        self._move_tcp_lock = Lock()
+        self._move_arm_joints_lock = Lock()
+        self._world_state_detecting_lock = Lock()
+        self._move_joints_lock = Lock()
+        self._move_gripper_lock = Lock()
+        self._open_lock = Lock()
+        self._close_lock = Lock()
+
+    def navigate(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return DonbotNavigation(self._navigate_lock)
+
+    def pick_up(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return DonbotPickUp(self._pick_up_lock)
+
+    def place(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return DonbotPlace(self._place_lock)
+
+    def looking(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return DonbotMoveHead(self._looking_lock)
+
+    def detecting(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return DonbotDetecting(self._detecting_lock)
+
+    def move_tcp(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return DonbotMoveTCP(self._move_tcp_lock)
+
+    def move_arm_joints(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return DonbotMoveJoints(self._move_arm_joints_lock)
+
+    def world_state_detecting(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return DonbotWorldStateDetecting(self._world_state_detecting_lock)
+
+    def move_gripper(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return DonbotMoveGripper(self._move_gripper_lock)
