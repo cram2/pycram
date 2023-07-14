@@ -30,7 +30,7 @@ from typing import List, Optional, Tuple, Union, Callable
 publish_frequently = False
 
 
-class LocalTransformer:
+class LocalTransformer(TransformerROS):
     """This class allows to use the TF class TransformerROS without using the ROS
     network system or the topic /tf, where transforms are usually published to.
     Instead a local transformer is saved and allows to publish local transforms,
@@ -38,18 +38,24 @@ class LocalTransformer:
 
     This class uses the robots (currently only one! supported) URDF file to
     initialize the tfs for the robot. Moreover, the function update_local_transformer_from_btr
-    updates these tfs by copying the tfs state from the pybullet world."""
+    updates these tfs by copying the tfs state from the pybullet world.
+
+    This class extends the TransformerRos, you can find documentation for TransformerROS here:
+    `_Doc_`_[_http://wiki.ros.org/tf/TfUsingPython_]_
+    """
 
     _instance = None
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
-            cls._instance = super(LocalTransformer, cls).__new__(cls)
-            return cls._instance
-        else:
-            return cls._instance
+            cls._instance = super(LocalTransformer, cls).__new__(cls, *args, **kwargs)
+            cls._instance._initialized = False
+        return cls._instance
 
     def __init__(self):
+        if self._initialized: return
+        super().__init__(interpolate=True, cache_time=Duration(10))
+
         # Frame names of the map and odom frame
         # self.map_frame: str = map_frame
         # self.odom_frame: str = odom_frame
@@ -63,7 +69,8 @@ class LocalTransformer:
         self.tf_stampeds: List[TransformStamped] = []
         self.static_tf_stampeds: List[TransformStamped] = []
 
-        self.local_transformer: TransformerROS = TransformerROS(interpolate=True, cache_time=Duration(10))
+        # self.local_transformer: TransformerROS = TransformerROS(interpolate=True, cache_time=Duration(10))
+        self._initialized = True
         # self.init_local_tf_with_tfs_from_urdf()
 
     def init_transforms_from_urdf(self) -> None:
@@ -185,12 +192,12 @@ class LocalTransformer:
         """
         copy_pose = pose.copy()
         copy_pose.header.stamp = rospy.Time(0)
-        if not self.local_transformer.canTransform(target_frame, pose.frame, rospy.Time(0)):
+        if not self.canTransform(target_frame, pose.frame, rospy.Time(0)):
             rospy.logerr(
                 f"Can not transform pose: \n {pose}\n to frame: {target_frame}.\n Maybe try calling 'update_transforms_for_object'")
             return
 
-        new_pose = self.local_transformer.transformPose(target_frame, copy_pose)
+        new_pose = self.transformPose(target_frame, copy_pose)
 
         copy_pose.pose = new_pose.pose
         copy_pose.header.frame_id = new_pose.header.frame_id
@@ -209,9 +216,9 @@ class LocalTransformer:
         :return: The new pose the in coordinate frame of the object
         """
         if link_name:
-            target_frame = bullet_object.name + "_" + str(bullet_object.id) + "/" + link_name
+            target_frame = bullet_object.get_link_tf_frame(link_name)
         else:
-            target_frame = bullet_object.name + "_" + str(bullet_object.id)
+            target_frame = bullet_object.tf_frame
         return self.transform_pose(pose, target_frame)
 
     def tf_transform(self, source_frame: str, target_frame: str,
@@ -224,8 +231,8 @@ class LocalTransformer:
         :param time:
         :return:
         """
-        tf_time = time if time else self.local_transformer.getLatestCommonTime(source_frame, target_frame)
-        return self.local_transformer.lookupTransform(source_frame, target_frame, tf_time)
+        tf_time = time if time else self.getLatestCommonTime(source_frame, target_frame)
+        return self.lookupTransform(source_frame, target_frame, tf_time)
 
     def update_transforms_for_object(self, bullet_object: 'Object') -> None:
         """
@@ -233,14 +240,14 @@ class LocalTransformer:
 
         :param bullet_object: Object for which the Transforms should be updated
         """
-        self.local_transformer.setTransform(
-            bullet_object.get_pose().to_transform(bullet_object.name + "_" + str(bullet_object.id)))
+        self.setTransform(
+            bullet_object.get_pose().to_transform(bullet_object.tf_frame))
         for link_name, id in bullet_object.links.items():
             if id == -1:
                 continue
             tf_stamped = bullet_object.get_link_pose(link_name).to_transform(
-                bullet_object.name + "_" + str(bullet_object.id) + "/" + link_name)
-            self.local_transformer.setTransform(tf_stamped)
+                bullet_object.get_link_tf_frame(link_name))
+            self.setTransform(tf_stamped)
             # self.local_transformer._buffer.set_transform_static(tf_stamped, "default_authority")
 
     def get_all_frames(self) -> List[str]:
@@ -249,9 +256,10 @@ class LocalTransformer:
 
         :return: A list of all know coordinate frames.
         """
-        frames = self.local_transformer.allFramesAsString().split("\n")
+        frames = self.allFramesAsString().split("\n")
         frames.remove("")
         return frames
+
 
 
 # Initializing Local Transformer using ROS data types
