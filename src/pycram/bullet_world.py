@@ -18,7 +18,7 @@ import pybullet as p
 import rospkg
 import rospy
 import rosgraph
-from geometry_msgs.msg import Quaternion, Point
+from geometry_msgs.msg import Quaternion, Point, TransformStamped
 from urdf_parser_py.urdf import URDF
 
 from . import utils
@@ -28,7 +28,7 @@ from .enums import JointType
 from .local_transformer import LocalTransformer
 from sensor_msgs.msg import JointState
 
-from pycram.pose import Pose
+from .pose import Pose, Transform
 
 
 class BulletWorld:
@@ -719,30 +719,24 @@ class Object:
         self.original_pose = pose
         self.base_origin_shift = np.array(position) - np.array(self.get_base_origin().position_as_list())
         self.local_transformer = LocalTransformer()
-        self.tf_frame = self.name + "_" + str(self.id)
+        self.tf_frame = ("shadow/" if self.world.is_shadow_world else "") + self.name + "_" + str(self.id)
 
         # This means "world" is not the shadow world since it has a reference to a shadow world
         if self.world.shadow_world != None:
             self.world.world_sync.add_obj_queue.put(
                 [name, type, path, position, orientation, self.world.shadow_world, color, self])
 
-        if re.search("[a-zA-Z0-9].urdf", self.path):
-            with open(self.path, mode="r") as f:
-
-                urdf_string = f.read()
-            urdf_string = urdf_string
-            robot_name = _get_robot_name_from_urdf(urdf_string)
-            if robot_name == robot_description.name and BulletWorld.robot == None:
-                BulletWorld.robot = self
         with open(self.path) as f:
             self.urdf_object = URDF.from_xml_string(f.read())
+            if self.urdf_object.name == robot_description.name and not BulletWorld.robot:
+                BulletWorld.robot = self
+
         self.links[self.urdf_object.get_root()] = -1
-        if not self.world.is_shadow_world:
-            self.local_transformer.update_transforms_for_object(self)
+        self.local_transformer.update_transforms_for_object(self)
 
     def __repr__(self):
-        skip_attr = ["links", "joints", "urdf_object"]
-        return self.__class__.__qualname__ + f"(" + ', '.join(
+        skip_attr = ["links", "joints", "urdf_object", "attachments", "cids"]
+        return self.__class__.__qualname__ + f"(" + ', \n'.join(
             [f"{key}={value}" if key not in skip_attr else f"{key}: ..." for key, value in self.__dict__.items()]) + ")"
 
     def remove(self) -> None:
@@ -777,12 +771,13 @@ class Object:
         :param loose: If the attachment should be a loose attachment.
         """
         link_id = self.get_link_id(link) if link else -1
-        link_T_object = self._calculate_transform(object, link)
-        self.attachments[object] = [link_T_object, link, loose]
-        object.attachments[self] = [p.invertTransform(link_T_object[0], link_T_object[1]), None, False]
+        link_to_object = self._calculate_transform(object, link)
+        self.attachments[object] = [link_to_object, link, loose]
+        object.attachments[self] = [link_to_object.invert(), None, False]
 
         cid = p.createConstraint(self.id, link_id, object.id, -1, p.JOINT_FIXED,
-                                 [0, 1, 0], link_T_object[0], [0, 0, 0], link_T_object[1],
+                                 [0, 1, 0], link_to_object.translation_as_list(), [0, 0, 0],
+                                 link_to_object.rotation_as_list(),
                                  physicsClientId=self.world.client_id)
         self.cids[object] = cid
         object.cids[self] = cid
@@ -850,9 +845,8 @@ class Object:
         if base:
             position = np.array(position) + self.base_origin_shift
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
-        self._set_attached_objects([self])
         self.local_transformer.update_transforms_for_object(self)
-
+        self._set_attached_objects([self])
 
     @property
     def pose(self) -> Pose:
@@ -887,7 +881,7 @@ class Object:
         After this the _set_attached_objects method of all attached objects
         will be called.
 
-        :param prev_object: A list of Objects that were already moved, this will be excluded to prevent recursion in the update.
+        :param prev_object: A list of Objects that were already moved, these will be excluded to prevent loops in the update.
         """
         for obj in self.attachments:
             if obj in prev_object:
@@ -895,34 +889,27 @@ class Object:
             if self.attachments[obj][2]:
                 # Updates the attachment transformation and contraint if the
                 # attachment is loos, instead of updating the position of all attached objects
-                link_T_object = self._calculate_transform(obj, self.attachments[obj][1])
+                link_to_object = self._calculate_transform(obj, self.attachments[obj][1])
                 link_id = self.get_link_id(self.attachments[obj][1]) if self.attachments[obj][1] else -1
-                self.attachments[obj][0] = link_T_object
-                obj.attachments[self][0] = p.invertTransform(link_T_object[0], link_T_object[1])
-                p.removeConstraint(self.cids[obj])
-                cid = p.createConstraint(self.id, link_id, obj.id, -1, p.JOINT_FIXED, [0, 0, 0], link_T_object[0],
-                                         [0, 0, 0], link_T_object[1])
+                self.attachments[obj][0] = link_to_object
+                obj.attachments[self][0] = link_to_object.invert()
+                p.removeConstraint(self.cids[obj], physicsClientId=self.world.client_id)
+                cid = p.createConstraint(self.id, link_id, obj.id, -1, p.JOINT_FIXED, [0, 0, 0],
+                                         link_to_object.translation_as_list(),
+                                         [0, 0, 0], link_to_object.rotation_as_list(),
+                                         physicsClientId=self.world.client_id)
                 self.cids[obj] = cid
                 obj.cids[self] = cid
             else:
-                # Updates the position of all attached objects
-                link_T_object = self.attachments[obj][0]
-                link_name = self.attachments[obj][1]
-                world_T_link = self.get_link_position_and_orientation(
-                    link_name) if link_name else self.get_position_and_orientation()
-                world_T_object = p.multiplyTransforms(world_T_link[0], world_T_link[1], link_T_object[0],
-                                                      link_T_object[1])
-                print(world_T_object)
+                link_to_object = self.attachments[obj][0]
 
-                link_name = self.attachments[obj][1] if self.attachments[obj][1] else self.tf_frame
-                link_to_object = Pose(*self.attachments[obj][0], frame=self.get_link_tf_frame(link_name))
-                world_to_object = self.local_transformer.transform_pose(link_to_object, "map")
-                print(world_to_object)
-
-                p.resetBasePositionAndOrientation(obj.id, world_T_object[0], world_T_object[1])
+                world_to_object = self.local_transformer.transform_pose(link_to_object.to_pose(), "map")
+                p.resetBasePositionAndOrientation(obj.id, world_to_object.position_as_list(),
+                                                  world_to_object.orientation_as_list(),
+                                                  physicsClientId=self.world.client_id)
                 obj._set_attached_objects(prev_object + [self])
 
-    def _calculate_transform(self, obj: Object, link: str = None) -> Tuple[List[float], List[float]]:
+    def _calculate_transform(self, obj: Object, link: str = None) -> Transform:
         """
         Calculates the transformation between another object and the given
         link of this object. If no link is provided then the base position will be used.
@@ -931,9 +918,9 @@ class Object:
         :param link: The optional link name
         :return: The transformation from the link (or base position) to the other objects base position
         """
-        transform = self.local_transformer.transform_to_object_frame(obj.pose, self, link).to_list()
+        transform = self.local_transformer.transform_to_object_frame(obj.pose, self, link)
 
-        return transform
+        return Transform(transform.position_as_list(), transform.orientation_as_list(), transform.frame, obj.tf_frame)
 
     def set_position(self, position: Union[Pose, Point], base=False) -> None:
         """
@@ -946,6 +933,8 @@ class Object:
         """
         if type(position) == Pose:
             target_position = position.position
+        else:
+            target_position = position
 
         pose = Pose()
         pose.pose.position = target_position
@@ -961,6 +950,8 @@ class Object:
         """
         if type(orientation) == Pose:
             target_orientation = orientation.orientation
+        else:
+            target_orientation = orientation
 
         pose = Pose()
         pose.pose.position = self.get_position()
@@ -1076,6 +1067,7 @@ class Object:
             # Temporarily disabled because kdl outputs values exciting joint limits
             # return
         p.resetJointState(self.id, self.joints[joint_name], joint_pose, physicsClientId=self.world.client_id)
+        self.local_transformer.update_transforms_for_object(self)
         self._set_attached_objects([self])
 
     def get_joint_state(self, joint_name: str) -> float:
@@ -1212,7 +1204,7 @@ class Object:
         else:
             return p.getAABB(self.id, physicsClientId=self.world.client_id)
 
-    def get_base_origin(self, link_name: Optional[str] = None) -> Point:
+    def get_base_origin(self, link_name: Optional[str] = None) -> Pose:
         """
         Returns the origin of the base/bottom of an object/link
 
