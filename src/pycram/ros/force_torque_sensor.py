@@ -18,7 +18,8 @@ class ForceTorqueSensor:
     """
     def __init__(self, joint_name, fts_topic="/pycram/fts", interval=0.1):
         """
-        The given joint_name has to be part of :py:attr:´~BulletWorld.robot´ otherwise a RuntimeError will be raised.
+        The given joint_name has to be part of :py:attr:`~pycram.bullet_world.BulletWorld.robot` otherwise a
+        RuntimeError will be raised.
 
         :param joint_name: Name of the joint for which force-torque should be simulated
         :param fts_topic: Name of the ROS topic to which should be published

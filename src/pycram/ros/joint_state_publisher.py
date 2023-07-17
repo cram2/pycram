@@ -15,8 +15,8 @@ class JointStatePublisher:
     """
     def __init__(self, joint_state_topic="/pycram/joint_state", interval=0.1):
         """
-        Robot object is from :py:attr:´~BulletWorld.robot´ and current joint states are published to the given
-        joint_state_topic as a JointState message.
+        Robot object is from :py:attr:`~pycram.bullet_world.BulletWorld.robot` and current joint states are published to
+        the given joint_state_topic as a JointState message.
 
         :param joint_state_topic: Topic name to which the joint states should be published
         :param interval: Interval at which the joint states should be published, in seconds
@@ -33,8 +33,8 @@ class JointStatePublisher:
 
     def _publish(self) -> None:
         """
-        Publishes the current joint states of the :py:attr:´~BulletWorld.robot´ in an infinite loop. The joint states
-        are published as long as the kill_event is not set by :py:met:´~JointStatePublisher._stop_publishing´
+        Publishes the current joint states of the :py:attr:`~pycram.bullet_world.BulletWorld.robot` in an infinite loop.
+        The joint states are published as long as the kill_event is not set by :py:meth:`~JointStatePublisher._stop_publishing`
         """
         robot = BulletWorld.robot
         joint_names = [joint_name for joint_name in robot.joints.keys()]
