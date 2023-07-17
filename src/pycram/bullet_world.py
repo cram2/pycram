@@ -18,6 +18,7 @@ import pybullet as p
 import rospkg
 import rospy
 import rosgraph
+import atexit
 from geometry_msgs.msg import Quaternion, Point, TransformStamped
 from urdf_parser_py.urdf import URDF
 
@@ -84,13 +85,16 @@ class BulletWorld:
         self.shadow_world: BulletWorld = BulletWorld("DIRECT", True) if not is_shadow_world else None
         self.world_sync: WorldSync = WorldSync(self, self.shadow_world) if not is_shadow_world else None
         self.is_shadow_world: bool = is_shadow_world
+        self.local_transformer = LocalTransformer()
         if not is_shadow_world:
             self.world_sync.start()
+            self.local_transformer.bullet_world = self
 
         # Some default settings
         self.set_gravity([0, 0, -9.8])
         if not is_shadow_world:
             plane = Object("floor", "environment", "plane.urdf", world=self)
+        # atexit.register(self.exit)
 
     def get_objects_by_name(self, name: str) -> List[Object]:
         """
@@ -715,7 +719,6 @@ class Object:
         self.links: Dict[str, int] = self._joint_or_link_name_to_id("link")
         self.attachments: Dict[Object, List] = {}
         self.cids: Dict[Object, int] = {}
-        self.world.objects.append(self)
         self.original_pose = pose
         self.base_origin_shift = np.array(position) - np.array(self.get_base_origin().position_as_list())
         self.local_transformer = LocalTransformer()
@@ -733,6 +736,8 @@ class Object:
 
         self.links[self.urdf_object.get_root()] = -1
         self.local_transformer.update_transforms_for_object(self)
+
+        self.world.objects.append(self)
 
     def __repr__(self):
         skip_attr = ["links", "joints", "urdf_object", "attachments", "cids"]
@@ -1045,6 +1050,8 @@ class Object:
         :param name: Link name for which a Pose should returned
         :return: The pose of the link
         """
+        if name in self.links.keys() and self.links[name] == -1:
+            return self.get_pose()
         return Pose(*p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[4:6])
 
     def set_joint_state(self, joint_name: str, joint_pose: float) -> None:
