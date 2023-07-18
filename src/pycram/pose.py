@@ -58,6 +58,11 @@ class Pose(PoseStamped):
     def orientation_as_list(self):
         return [self.pose.orientation.x, self.pose.orientation.y, self.pose.orientation.z, self.pose.orientation.w]
 
+    def dist(self, other_pose):
+        self_position = self.position_as_list()
+        other_position = other_pose.position_as_list()
+        return np.linalg.norm(np.array(self_position) - np.array(other_position))
+
 
 class Transform(TransformStamped):
 
@@ -130,6 +135,10 @@ class Transform(TransformStamped):
         new_trans = transformations.translation_from_matrix(new_mat)
         new_rot = transformations.quaternion_from_matrix(new_mat)
         return Transform(list(new_trans), list(new_rot), self.frame, other.child_frame_id)
+
+    def inverse_times(self, other_transform):
+        inv = other_transform.invert()
+        return self * inv
 
 
 
