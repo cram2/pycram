@@ -371,7 +371,7 @@ class BulletWorld:
                     obj.detach(att_obj)
             for joint_name in obj.joints.keys():
                 obj.set_joint_state(joint_name, 0)
-            obj.set_position_and_orientation(obj.original_pose[0], obj.original_pose[1])
+            obj.set_pose(obj.original_pose)
 
 
 class Use_shadow_world():
@@ -389,9 +389,11 @@ class Use_shadow_world():
 
     def __enter__(self):
         if not BulletWorld.current_bullet_world.is_shadow_world:
-            time.sleep(3 / 240)
+            time.sleep(10 / 240)
             # blocks until the adding queue is ready
             BulletWorld.current_bullet_world.world_sync.add_obj_queue.join()
+            while not BulletWorld.current_bullet_world.world_sync.equal_states:
+                time.sleep(0.1)
 
             self.prev_world = BulletWorld.current_bullet_world
             BulletWorld.current_bullet_world.world_sync.pause_sync = True
@@ -426,6 +428,7 @@ class WorldSync(threading.Thread):
         self.pause_sync: bool = False
         # Maps bullet to shadow world objects
         self.object_mapping: Dict[Object, Object] = {}
+        self.equal_states = False
 
     def run(self):
         """
@@ -438,6 +441,7 @@ class WorldSync(threading.Thread):
         """
         while not self.terminate:
             self.check_for_pause()
+            self.equal_states = False
             for i in range(self.add_obj_queue.qsize()):
                 obj = self.add_obj_queue.get()
                 # [name, type, path, position, orientation, self.world.shadow_world, color, bulletworld object]
@@ -464,6 +468,7 @@ class WorldSync(threading.Thread):
                         shadow_obj.set_joint_state(joint_name, bulletworld_obj.get_joint_state(joint_name))
 
             self.check_for_pause()
+            self.check_for_equal()
             time.sleep(1 / 240)
 
         self.add_obj_queue.join()
@@ -475,6 +480,12 @@ class WorldSync(threading.Thread):
         """
         while self.pause_sync:
             time.sleep(0.1)
+
+    def check_for_equal(self) -> None:
+        eql = True
+        for obj, shadow_obj in self.object_mapping.items():
+            eql = eql and obj.get_pose() == shadow_obj.get_pose()
+        self.equal_states = eql
 
 
 class Gui(threading.Thread):
@@ -814,7 +825,7 @@ class Object:
         for att in attachments.keys():
             self.detach(att)
 
-    def get_position(self) -> List[float]:
+    def get_position(self) -> Point:
         """
         Returns the position of this Object as a list of xyz.
 
@@ -823,7 +834,7 @@ class Object:
         return self.get_pose().position
         # return p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id)[0]
 
-    def get_orientation(self) -> List[float]:
+    def get_orientation(self) -> Quaternion:
         """
         Returns the orientation of this object as a list of xyzw, representing a quaternion.
 
