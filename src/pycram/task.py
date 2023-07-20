@@ -33,6 +33,7 @@ class Code:
                  kwargs: Optional[Dict] = None):
         """
         Initialize a code call
+
         :param function: The function that was called
         :param kwargs: The keyword arguments of the function as dict
         """
@@ -136,6 +137,7 @@ class TaskTreeNode(anytree.NodeMixin):
                  children: Optional[List[TaskTreeNode]] = None, reason: Optional[Exception] = None):
         """
         Create a TaskTreeNode
+
         :param code: The function and its arguments that got called as Code object, defaults to NoOperation()
         :param parent: The parent function of this function. None if this the parent, optional
         :param children: An iterable of TaskTreeNode with the ordered children, optional

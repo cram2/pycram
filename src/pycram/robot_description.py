@@ -207,7 +207,7 @@ class GraspingDescription:
         self.grasps_for_object[object] = grasps
 
     def get_all_grasps(self) -> List[str]:
-        return self.grasps.keys()
+        return list(self.grasps.keys())
 
     def get_orientation_for_grasp(self, grasp: str) -> List[float]:
         return self.grasps[grasp]
@@ -242,7 +242,6 @@ class RobotDescription:
         :type base_link: str
         :type torso_link: str
         :type torso_joint: str
-        :type ik_joints: [str]
         """
         self.name: str = name
         self.chains: Dict[str, Type[ChainDescription]] = {}  # dict{str: ChainDescription}
@@ -475,6 +474,7 @@ class RobotDescription:
         """
         Returns the child of a Joint or Link in the URDF. If 'name' is a Joint a
         Link will be returned and vice versa.
+
         :param name: The name of the Joint/Link for which the child will be returned.
         :return: The child Joint/Link
         """
@@ -489,6 +489,7 @@ class RobotDescription:
         """
         Returns the parent of a Joint or Link in the URDF. If 'name' is a Joint a
         Link will be returned and vice versa.
+
         :param name: The name of the Joint/Link for which the parent will be returned.
         :return: The parent Joint/Link
         """

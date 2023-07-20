@@ -4,7 +4,6 @@ import logging
 
 if 'bullet_world' in sys.modules:
     logging.warning("(publisher) Make sure that you are not loading this module from pycram.bullet_world.")
-# from .bullet_world import BulletWorld, Object
 import rospkg
 import rospy
 import atexit
@@ -13,27 +12,18 @@ from threading import Thread, currentThread
 from tf import TransformerROS, transformations
 from rospy import Duration, logerr, Rate, is_shutdown
 from urdf_parser_py.urdf import URDF
-from std_msgs.msg import Header
-from geometry_msgs.msg import PoseStamped, TransformStamped  # , Pose
+
+from geometry_msgs.msg import TransformStamped
 from .pose import Pose
-from .helper_deprecated import pose_stamped2tuple
 from .robot_descriptions import robot_description
 from typing import List, Optional, Tuple, Union, Callable
 
-# Boolean for publishing frequently poses/states
-# Although frequently updating the local tf is tested and seems to work, there currently
-# exist problems if the simulation is resetting (like currently for detection). During
-# this "unstable" simulation process pose-querying from pybullet, seems to return non valid poses,
-# which would destroy the validate local tf tree. Therefore, this mode is NOT activated.
-# Instead to update the local tf tree, please call the memeber function update_local_transformer_from_btr()
-# on the object local_transformer of class LocalTransformer.
-publish_frequently = False
-
 
 class LocalTransformer(TransformerROS):
-    """This class allows to use the TF class TransformerROS without using the ROS
+    """
+    This class allows to use the TF class TransformerROS without using the ROS
     network system or the topic /tf, where transforms are usually published to.
-    Instead a local transformer is saved and allows to publish local transforms,
+    Instead, a local transformer is saved and allows to publish local transforms,
     as well the use of TFs convenient lookup functions (see functions below).
 
     This class uses the robots (currently only one! supported) URDF file to
@@ -70,12 +60,12 @@ class LocalTransformer(TransformerROS):
 
     def init_transforms_from_urdf(self) -> None:
         """
-            This static function gets with the robot name in robot_description.py, the
-            robots URDF file from the "resources" folder in the ROS "pycram" folder.
-            All joints of the URDF are extracted and saved in a list of static and
-            normal TFStamped.
+        This static function gets with the robot name in robot_description.py, the
+        robots URDF file from the "resources" folder in the ROS "pycram" folder.
+        All joints of the URDF are extracted and saved in a list of static and
+        normal TFStamped.
 
-            :returns: list of static_tf_stampeds, list of tf_stampeds
+        :returns: list of static_tf_stampeds, list of tf_stampeds
         """
         # Save joint translations and orientations in tf_stampeds
         # static_tf_stampeds saves only the static joint translations and orientations
@@ -130,13 +120,7 @@ class LocalTransformer(TransformerROS):
             for obj in list(self.bullet_world.current_bullet_world.objects):
                 self.update_transforms_for_object(obj)
 
-    def update_from_btr(self) -> None:
-        # Update pose and state of robot
-        self.update_robot()
-        # Update pose of objects which are possibly attached on the robot
-        self.update_objects()
-
-    def transform_pose(self, pose: Pose, target_frame: str) -> Pose:
+    def transform_pose(self, pose: Pose, target_frame: str) -> Union[Pose, None]:
         """
         Transforms a given pose to the target frame.
 
@@ -203,7 +187,6 @@ class LocalTransformer(TransformerROS):
             tf_stamped = bullet_object.get_link_pose(link_name).to_transform(
                 bullet_object.get_link_tf_frame(link_name))
             self.setTransform(tf_stamped)
-            # self.local_transformer._buffer.set_transform_static(tf_stamped, "default_authority")
 
     def get_all_frames(self) -> List[str]:
         """
