@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Callable, List, Optional, Any
 
+
 class Event:
     """
     Base implementation of events in PyCRAM.
@@ -60,7 +61,6 @@ class Event:
         """
         self.remove(other)
         return self
-
 
     __call__ = fire
     """

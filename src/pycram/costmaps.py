@@ -13,6 +13,7 @@ from .bullet_world_reasoning import _get_images_for_target
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 from typing import Tuple, List, Union, Optional
 
+from .local_transformer import LocalTransformer
 from .pose import Pose
 
 
@@ -33,14 +34,15 @@ class Costmap:
         :param resolution: The distance in metre in the real world which is represented by a single entry in the costmap.
         :param height: The height of the costmap.
         :param width: The width of the costmap.
-        :param origin: The origin of the costmap, in world coordinate frame. The origin of the costmap is located in the centre of the costmap, the format of the origin is a list of xyz
+        :param origin: The origin of the costmap, in world coordinate frame. The origin of the costmap is located in the centre of the costmap
         :param map: The costmap represents as a 2D numpy array.
         """
         self.resolution: float = resolution
         self.size: int = height
         self.height: int = height
         self.width: int = width
-        self.origin: Pose = origin
+        local_transformer = LocalTransformer()
+        self.origin: Pose = local_transformer.transform_pose(origin, 'map')
         self.map: np.ndarray = map
         self.vis_ids: List[int] = []
 
@@ -461,7 +463,7 @@ class VisibilityCostmap(Costmap):
             as a square.
         :param resolution: This parameter specifies how much meter a pixel in the
             costmap represents.
-        :param origin: The position in world coordinate frame around which the
+        :param origin: The pose in world coordinate frame around which the
             costmap should be created.
         :param world: The BulletWorld for which the costmap should be created.
         """
