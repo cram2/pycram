@@ -97,7 +97,9 @@ class Pose(PoseStamped):
 
         :return: A copy of this pose
         """
-        return copy.deepcopy(self)
+        p = Pose(self.position_as_list(), self.orientation_as_list(), self.frame)
+        p.header = self.header
+        return p
 
     def position_as_list(self) -> List[float]:
         """
@@ -218,7 +220,9 @@ class Transform(TransformStamped):
 
         :return: A copy of this pose
         """
-        return copy.deepcopy(self)
+        t = Transform(self.translation_as_list(), self.rotation_as_list(), self.frame, self.child_frame_id)
+        t.header = self.header
+        return t
 
     def translation_as_list(self) -> List[float]:
         """
