@@ -2,8 +2,6 @@ from typing import List
 
 import pybullet as p
 import rospy
-# from geometry_msgs.msg import Pose
-from geometry_msgs.msg import PoseStamped
 from moveit_msgs.msg import PositionIKRequest
 from moveit_msgs.msg import RobotState
 from moveit_msgs.srv import GetPositionIK
@@ -136,43 +134,3 @@ def request_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str
 
     return inv
 
-# def request_ik(root_link, tip_link, target_pose_and_rotation, robot_object, joints):
-#     """
-#     This method sends a request to the kdl_ik_service and returns the solution.
-#     Note that the robot in robot_object should be identical to the robot description
-#     uploaded to the parameter server. Furthermore note that the root_link and
-#     tip_link are the first and last links of the joints that should be altered.
-#     These joints should also be specified in the joints parameter as a list of names.
-#     :param root_link: The first link of the chain of joints to be altered
-#     :param tip_link: The last link in the chain of joints to be altered
-#     :param target_pose_and_rotation: The target position and orientation as a list
-#     of two lists were the first is the position in world coordinate frame and the
-#     second is the orientation as quanternion in world coordinate fraem
-#     :param robot_object: The robot object for which the ik solution should be generated
-#     :param joints: A list of joint name that should be altered
-#     :return: The solution that was generated.
-#     """
-#     if robot_description.name == "pr2":
-#         ik_service = "/pr2_right_arm_kinematics/get_ik" if "r_wrist" in tip_link else "/pr2_left_arm_kinematics/get_ik"
-#     else:
-#         ik_service = "/kdl_ik_service/get_ik"
-#
-#     # ik_service = "/kdl_ik_service/get_ik"
-#     rospy.wait_for_service(ik_service)
-#     # rospy.wait_for_service('/pr2_right_arm_kinematics/get_ik')
-#
-#     req = _make_request_msg(root_link, tip_link, target_pose_and_rotation, robot_object, joints)
-#     # ik = rospy.ServiceProxy('/pr2_right_arm_kinematics/get_ik', GetPositionIK)
-#     ik = rospy.ServiceProxy(ik_service, GetPositionIK)
-#     try:
-#         resp = ik(req)
-#     except rospy.ServiceException as e:
-#         if robot_description.name == "pr2":
-#             raise IKError(target_pose_and_rotation, root_link)
-#         else:
-#             raise e
-#
-#     if resp.error_code.val == -31:
-#         raise IKError(target_pose_and_rotation, root_link)
-#
-#     return (resp.solution.joint_state.position)
