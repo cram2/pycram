@@ -6,11 +6,11 @@ import pybullet as p
 from .bullet_world import Object, BulletWorld, Use_shadow_world
 from .bullet_world_reasoning import contact
 from .costmaps import Costmap
+from .pose import Pose
 from .robot_descriptions import robot_description
-from .external_interfaces.ik import _make_request_msg, request_ik
+from .external_interfaces.ik import request_ik
 from .plan_failures import IKError
 from .helper import _transform_to_torso, calculate_wrist_tool_offset, inverseTimes, _apply_ik
-from moveit_msgs.srv import GetPositionIK
 from typing import Type, Tuple, List, Union, Dict
 
 
@@ -70,7 +70,7 @@ def generate_orientation(position: List[float], origin: List[float]) -> List[flo
         to the world coordinate frame.
     :param origin: The origin of the costmap. This is also the point which the
         robot should face.
-    :return: A quanternion of the calculated orientation
+    :return: A quaternion of the calculated orientation
     """
     angle = np.arctan2(position[1]-origin[0][1], position[0]-origin[0][0]) + np.pi
     quaternion = list(tf.transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
@@ -113,10 +113,9 @@ def visibility_validator(pose: Tuple[List[float], List[float]],
     return res
 
 
-def reachability_validator(pose: Tuple[List[float], List[float]],
+def reachability_validator(pose: Pose,
                            robot: Object,
-                           target: Union[Object, Tuple[List[float], List[float]]],
-                           world: BulletWorld,
+                           target: Union[Object, Pose],
                            allowed_collision: Dict[Object, List] = None) -> Tuple[bool, List]:
     """
     This method validates if a target position is reachable for a pose candidate.
@@ -129,36 +128,35 @@ def reachability_validator(pose: Tuple[List[float], List[float]],
         should be validated.
     :param target: The target position or object instance which should be the
         target for reachability.
-    :param world: The BulletWorld instance in which the reachability should be
-        validated.
     :param allowed_collision:
     :return: True if the target is reachable for the robot and False in any other
         case.
     """
     if type(target) == Object:
-        target = target.get_position_and_orientation()
+        target = target.get_pose()
 
-    # robot_pose = robot.get_position_and_orientation()
-    robot.set_position_and_orientation(pose[0], pose[1])
+    robot.set_pose(pose)
 
     left_gripper = robot_description.get_tool_frame('left')
     right_gripper = robot_description.get_tool_frame('right')
 
-    left_joints = robot_description._safely_access_chains('left').joints
-    right_joints = robot_description._safely_access_chains('right').joints
+    # left_joints = robot_description._safely_access_chains('left').joints
+    left_joints = robot_description.chains['left'].joints
+    # right_joints = robot_description._safely_access_chains('right').joints
+    right_joints = robot_description.chain['right'].joints
     # TODO Make orientation adhere to grasping orientation
-    target_torso = _transform_to_torso(target, robot)
-
-    # Get Link before first joint in chain
-    base_link = robot_description.get_parent(left_joints[0])
-    # Get link after last joint in chain
-    end_effector = robot_description.get_child(left_joints[-1])
-
-    diff = calculate_wrist_tool_offset(end_effector, robot_description.get_tool_frame("left"), robot)
-    target_diff = inverseTimes(target_torso, diff)
-
-    # position = np.round(np.array(target_diff[0]), decimals=6)
-    # target_round = (position, target_diff[1])
+    # target_torso = _transform_to_torso(target, robot)
+    #
+    # # Get Link before first joint in chain
+    # base_link = robot_description.get_parent(left_joints[0])
+    # # Get link after last joint in chain
+    # end_effector = robot_description.get_child(left_joints[-1])
+    #
+    # diff = calculate_wrist_tool_offset(end_effector, robot_description.get_tool_frame("left"), robot)
+    # target_diff = inverseTimes(target_torso, diff)
+    #
+    # # position = np.round(np.array(target_diff[0]), decimals=6)
+    # # target_round = (position, target_diff[1])
 
     res = False
     arms = []
@@ -169,7 +167,8 @@ def reachability_validator(pose: Tuple[List[float], List[float]],
         allowed_robot_links = allowed_collision[robot]
 
     try:
-        resp = request_ik(base_link, end_effector, target_diff, robot, left_joints)
+        # resp = request_ik(base_link, end_effector, target_diff, robot, left_joints)
+        resp = request_ik(target, robot, left_joints, left_gripper)
 
         _apply_ik(robot, resp, left_joints)
 
@@ -191,16 +190,17 @@ def reachability_validator(pose: Tuple[List[float], List[float]],
     except IKError:
         pass
 
-    base_link = robot_description.get_parent(right_joints[0])
-    # Get link after last joint in chain
-    end_effector = robot_description.get_child(right_joints[-1])
-    diff = calculate_wrist_tool_offset(end_effector, robot_description.get_tool_frame("right"), robot)
-    target_diff = inverseTimes(target_torso, diff)
-
-    # position = np.round(np.array(target_diff[0]), decimals=6)
-    # target_round = (position, target_diff[1])
+    # base_link = robot_description.get_parent(right_joints[0])
+    # # Get link after last joint in chain
+    # end_effector = robot_description.get_child(right_joints[-1])
+    # diff = calculate_wrist_tool_offset(end_effector, robot_description.get_tool_frame("right"), robot)
+    # target_diff = inverseTimes(target_torso, diff)
+    #
+    # # position = np.round(np.array(target_diff[0]), decimals=6)
+    # # target_round = (position, target_diff[1])
     try:
-        resp = request_ik(base_link, end_effector, target_diff, robot, right_joints)
+        # resp = request_ik(base_link, end_effector, target_diff, robot, right_joints)
+        resp = request_ik(target, robot, right_joints, right_gripper)
 
         _apply_ik(robot, resp, right_joints)
 
