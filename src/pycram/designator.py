@@ -558,7 +558,7 @@ class LocationDesignatorDescription(DesignatorDescription):
         Resolved location that represents a specific point in the world which satisfies the constraints of the location
         designator description.
         """
-        pose: Tuple[List[float], List[float]]
+        pose: Pose
         """
         The resolved pose of the location designator. Pose is inherited by all location designator.
         """

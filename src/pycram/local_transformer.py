@@ -134,7 +134,6 @@ class LocalTransformer(TransformerROS):
             rospy.logerr(
                 f"Can not transform pose: \n {pose}\n to frame: {target_frame}.\n Maybe try calling 'update_transforms_for_object'")
             return
-
         new_pose = self.transformPose(target_frame, copy_pose)
 
         copy_pose.pose = new_pose.pose
