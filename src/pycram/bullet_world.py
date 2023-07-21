@@ -392,8 +392,8 @@ class Use_shadow_world():
             time.sleep(10 / 240)
             # blocks until the adding queue is ready
             BulletWorld.current_bullet_world.world_sync.add_obj_queue.join()
-            while not BulletWorld.current_bullet_world.world_sync.equal_states:
-                time.sleep(0.1)
+            # while not BulletWorld.current_bullet_world.world_sync.equal_states:
+            #     time.sleep(0.1)
 
             self.prev_world = BulletWorld.current_bullet_world
             BulletWorld.current_bullet_world.world_sync.pause_sync = True
@@ -441,7 +441,7 @@ class WorldSync(threading.Thread):
         """
         while not self.terminate:
             self.check_for_pause()
-            self.equal_states = False
+            # self.equal_states = False
             for i in range(self.add_obj_queue.qsize()):
                 obj = self.add_obj_queue.get()
                 # [name, type, path, position, orientation, self.world.shadow_world, color, bulletworld object]
@@ -468,7 +468,7 @@ class WorldSync(threading.Thread):
                         shadow_obj.set_joint_state(joint_name, bulletworld_obj.get_joint_state(joint_name))
 
             self.check_for_pause()
-            self.check_for_equal()
+            # self.check_for_equal()
             time.sleep(1 / 240)
 
         self.add_obj_queue.join()

@@ -11,10 +11,10 @@ from .robot_descriptions import robot_description
 from .external_interfaces.ik import request_ik
 from .plan_failures import IKError
 from .helper import _apply_ik
-from typing import Type, Tuple, List, Union, Dict
+from typing import Type, Tuple, List, Union, Dict, Iterable
 
 
-def pose_generator(costmap: Type[Costmap], number_of_samples=100, orientation_generator=None) -> Pose:
+def pose_generator(costmap: Costmap, number_of_samples=100, orientation_generator=None) -> Iterable:
     """
     A generator that crates pose candidates from a given costmap. The generator
     selects the highest 100 values and returns the corresponding positions.
@@ -141,7 +141,7 @@ def reachability_validator(pose: Pose,
     # left_joints = robot_description._safely_access_chains('left').joints
     left_joints = robot_description.chains['left'].joints
     # right_joints = robot_description._safely_access_chains('right').joints
-    right_joints = robot_description.chain['right'].joints
+    right_joints = robot_description.chains['right'].joints
     # TODO Make orientation adhere to grasping orientation
     res = False
     arms = []

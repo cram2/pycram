@@ -63,7 +63,7 @@ class Pr2PickUp(ProcessModule):
         arm = desig.arm
         arm_short = "r" if arm == "right" else "l"
 
-        _move_arm_tcp(target, robot, arm_short + "_gripper_tool_frame")
+        _move_arm_tcp(target, robot, arm)
         tool_frame = robot_description.get_tool_frame(arm)
         robot.attach(object, tool_frame)
 
@@ -246,10 +246,10 @@ class Pr2Close(ProcessModule):
                                                                   container_joint)[0])
 
 
-def _move_arm_tcp(target, robot, arm):
+def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
     gripper = robot_description.get_tool_frame(arm)
 
-    joints = robot_description.chains[arm].joins
+    joints = robot_description.chains[arm].joints
 
     inv = request_ik(target, robot, joints, gripper)
     _apply_ik(robot, inv, joints)
