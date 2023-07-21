@@ -98,7 +98,8 @@ class Pose(PoseStamped):
         :return: A copy of this pose
         """
         p = Pose(self.position_as_list(), self.orientation_as_list(), self.frame)
-        p.header = self.header
+        p.header.frame_id = self.header.frame_id
+        p.header.stamp = self.header.stamp
         return p
 
     def position_as_list(self) -> List[float]:
@@ -146,6 +147,27 @@ class Pose(PoseStamped):
         other_orient = other.orientation_as_list()
 
         return self_position == other_position and self_orient == other_orient and self.frame == other.frame
+
+    def set_position(self, new_position: List[float]) -> None:
+        """
+        Sets the position of this Pose to the given position. Position has to be given as a vector in cartesian space.
+
+        :param new_position: New position as a vector of xyz
+        """
+        self.pose.position.x = new_position[0]
+        self.pose.position.y = new_position[1]
+        self.pose.position.z = new_position[2]
+
+    def set_orientation(self, new_orientation: List[float]) -> None:
+        """
+        Sets the orientation to the given quaternion. The new orientation has to be given as a quaternion.
+
+        :param new_orientation: New orientation as a quaternion with xyzw
+        """
+        self.pose.orientation.x = new_orientation[0]
+        self.pose.orientation.y = new_orientation[1]
+        self.pose.orientation.z = new_orientation[2]
+        self.pose.orientation.w = new_orientation[3]
 
 
 class Transform(TransformStamped):
@@ -221,7 +243,8 @@ class Transform(TransformStamped):
         :return: A copy of this pose
         """
         t = Transform(self.translation_as_list(), self.rotation_as_list(), self.frame, self.child_frame_id)
-        t.header = self.header
+        t.header.frame_id = self.header.frame_id
+        t.header.stamp = self.header.stamp
         return t
 
     def translation_as_list(self) -> List[float]:
@@ -314,3 +337,25 @@ class Transform(TransformStamped):
 
         return self_position == other_position and self_orient == other_orient and \
             self.frame == other.frame and self.child_frame_id == other.child_frame_id
+
+    def set_translation(self, new_translation: List[float]) -> None:
+        """
+        Sets the translation of this Transform to the newly given one. Translation has to be a vector in cartesian space
+
+        :param new_translation: The new translation as a vector with xyz.
+        """
+        self.transform.translation.x = new_translation[0]
+        self.transform.translation.y = new_translation[1]
+        self.transform.translation.z = new_translation[2]
+
+    def set_rotation(self, new_rotation: List[float]) -> None:
+        """
+        Sets the rotation of this Transform to the newly given one. Rotation has to be a quaternion.
+
+        :param new_rotation: The new rotation as a quaternion with xyzw
+        """
+        self.transform.rotation.x = new_rotation[0]
+        self.transform.rotation.y = new_rotation[1]
+        self.transform.rotation.z = new_rotation[2]
+        self.transform.rotation.w = new_rotation[3]
+
