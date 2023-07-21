@@ -1,3 +1,4 @@
+from pycram.pose import Pose
 from pycram.process_module import simulated_robot
 import pycram.task
 from pycram.task import with_tree
@@ -13,10 +14,10 @@ class TaskTreeTestCase(test_bullet_world.BulletWorldTest):
     @with_tree
     def plan(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = action_designator.PlaceAction(object_description, [([1.3, 1, 0.9], [0, 0, 0, 1])], ["left"])
+        description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], ["left"])
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
-            action_designator.NavigateAction.Action(([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            action_designator.NavigateAction.Action(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
             action_designator.MoveTorsoAction.Action(0.3).perform()
             action_designator.PickUpAction.Action(object_description.resolve(), "left", "front").perform()
             description.resolve().perform()

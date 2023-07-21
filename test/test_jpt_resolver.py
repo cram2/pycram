@@ -10,6 +10,7 @@ from pycram.designators import action_designator, object_designator
 from pycram.process_module import ProcessModule
 from pycram.process_module import simulated_robot
 from pycram.robot_descriptions import robot_description
+from pycram.pose import Pose
 
 # check if jpt is installed
 jpt_installed = True
@@ -52,7 +53,7 @@ class JPTResolverTestCase(unittest.TestCase):
             model_uri="mlflow-artifacts:/0/9150dd1fb353494d807261928cea6e8c/artifacts/grasping").unwrap_python_model() \
             .model
         cls.world = BulletWorld("DIRECT")
-        cls.milk = Object("milk", "milk", "milk.stl", position=[3, 3, 0.75])
+        cls.milk = Object("milk", "milk", "milk.stl", pose=Pose([3, 3, 0.75]))
         cls.robot = Object(robot_description.name, "pr2", robot_description.name + ".urdf")
         ProcessModule.execution_delay = False
 
@@ -70,7 +71,7 @@ class JPTResolverTestCase(unittest.TestCase):
 
     def test_costmap_with_obstacles(self):
         kitchen = Object("kitchen", "environment", "kitchen.urdf")
-        self.milk.set_position([-1.2, 1, 0.98])
+        self.milk.set_pose(Pose([-1.2, 1, 0.98]))
         cml = JPTCostmapLocation(self.milk, reachable_for=self.robot, model=self.model)
 
         for i in range(20):
