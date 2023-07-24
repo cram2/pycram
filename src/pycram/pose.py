@@ -7,6 +7,7 @@ from typing import List, Union, Optional
 import numpy as np
 import rospy
 from geometry_msgs.msg import PoseStamped, TransformStamped
+from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
 from tf import transformations
 
 
@@ -50,9 +51,6 @@ class Pose(PoseStamped):
         self.header.frame_id = frame
         self.header.stamp = rospy.Time.now()
 
-        self.position = self.pose.position
-        self.orientation = self.pose.orientation
-
         self.frame = frame
 
     @property
@@ -72,6 +70,56 @@ class Pose(PoseStamped):
         :param value: The new TF frame
         """
         self.header.frame_id = value
+
+    @property
+    def position(self) -> GeoPose:
+        """
+        Property that points to the position of this pose
+        """
+        return self.pose.position
+
+    @position.setter
+    def position(self, value) -> None:
+        """
+        Sets the position for this Pose, the position can either be a list of xyz or a geometry_msgs/Pose message.
+
+        :param value: List or geometry_msgs/Pose message for the position
+        """
+        if not type(value) == list and not type(value) == GeoPose:
+            rospy.logwarn("Position can only be a list or geometry_msgs/Pose")
+            return
+        if type(value) == list and len(value) == 3:
+            self.pose.position.x = value[0]
+            self.pose.position.y = value[1]
+            self.pose.position.z = value[2]
+        else:
+            self.pose.position = value
+
+    @property
+    def orientation(self) -> GeoQuaternion:
+        """
+        Property that points to the orientation of this pose
+        """
+        return self.pose.orientation
+
+    @orientation.setter
+    def orientation(self, value) -> None:
+        """
+        Sets the orientation of this Pose, the orientation can either be a list of xyzw or a geometry_msgs/Quaternion
+        message
+
+        :param value: New orientation, either a list or geometry_msgs/Quaternion
+        """
+        if not type(value) == list and not type(value) == GeoQuaternion:
+            rospy.logwarn("Orientation can only be a list or geometry_msgs/Quaternion")
+            return
+        if type(value) == list and len(value) == 4:
+            self.pose.orientation.x = value[0]
+            self.pose.orientation.y = value[1]
+            self.pose.orientation.z = value[2]
+            self.pose.orientation.w = value[3]
+        else:
+            self.pose.orientation = value
 
     def to_list(self) -> List[List[float]]:
         """
