@@ -140,7 +140,7 @@ class LocalTransformer(TransformerROS):
         copy_pose.header.frame_id = new_pose.header.frame_id
         copy_pose.header.stamp = rospy.Time.now()
 
-        return copy_pose
+        return Pose(*copy_pose.to_list(), frame=new_pose.header.frame_id)
 
     def transform_to_object_frame(self, pose: Pose, bullet_object: 'Object', link_name: str = None) -> Union[Pose, None]:
         """
