@@ -108,12 +108,15 @@ class TestActionDesignatorGrounding(test_bullet_world.BulletWorldTest):
 
     def test_transport(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        description = action_designator.TransportAction(object_description, ["left"], [Pose([-0.9, 1, 0.95], [0, 0, 1, 0])])
+        description = action_designator.TransportAction(object_description,
+                                                        ["left"],
+                                                        [Pose([-1.35, 0.78, 0.95],
+                                                              [0.0, 0.0, 0.16439898301071468, 0.9863939245479175])])
         with simulated_robot:
             action_designator.MoveTorsoAction([0.2]).resolve().perform()
             description.resolve().perform()
         self.assertEqual(description.ground().object_designator.name, "milk")
-        dist = np.linalg.norm(np.array(self.milk.get_pose().position_as_list()) - np.array([-0.9, 1, 0.95]))
+        dist = np.linalg.norm(np.array(self.milk.get_pose().position_as_list()) - np.array([-1.35, 0.78, 0.95]))
         self.assertTrue(dist < 0.01)
 
 
