@@ -97,28 +97,12 @@ class Pr2MoveHead(ProcessModule):
         target = desig.target
         robot = BulletWorld.robot
 
-        # pan_transform = p.invertTransform(robot.get_link_position("head_pan_link"),
-        #                                   robot.get_link_orientation("head_pan_link"))
-        # # Flattens everything in one list because of 'transform'
-        # pan_transform = [i for sublist in pan_transform for i in sublist]
-        #
-        # tilt_transform = p.invertTransform(robot.get_link_position("head_tilt_link"),
-        #                                    robot.get_link_orientation("head_tilt_link"))
-        # # Flattens everything in one list because of 'transform'
-        # tilt_transform = [i for sublist in tilt_transform for i in sublist]
-        #
-        # target = [i for sublist in target for i in sublist]
-        # pose_in_pan = transform(target, pan_transform)[:3]
-        # pose_in_tilt = transform(target, tilt_transform)[:3]
-
         local_transformer = LocalTransformer()
         pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame("head_pan_link"))
         pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame("head_tilt_link"))
 
         new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
-        new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y) * -1
-        # new_pan = np.arctan2(pose_in_pan[1], pose_in_pan[0])
-        # new_tilt = np.arctan2(pose_in_tilt[2], pose_in_tilt[0] ** 2 + pose_in_tilt[1] ** 2) * -1
+        new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2) * -1
 
         current_pan = robot.get_joint_state("head_pan_joint")
         current_tilt = robot.get_joint_state("head_tilt_joint")

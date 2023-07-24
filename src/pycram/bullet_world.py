@@ -954,7 +954,7 @@ class Object:
 
         pose = Pose()
         pose.pose.position = target_position
-        pose.pose.quaternion = self.get_orientation()
+        pose.pose.orientation = self.get_orientation()
         self.set_pose(pose, base=base)
 
     def set_orientation(self, orientation: Union[Pose, Quaternion]) -> None:

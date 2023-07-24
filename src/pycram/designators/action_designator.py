@@ -378,8 +378,8 @@ class PlaceAction(ActionDesignatorDescription):
                 action.object = None
 
             if self.target_location:
-                position = Position(*self.target_location[0])
-                orientation = Quaternion(*self.target_location[1])
+                position = Position(*self.target_location.position_as_list())
+                orientation = Quaternion(*self.target_location.orientation_as_list())
                 session.add(position)
                 session.add(orientation)
                 session.commit()
@@ -441,8 +441,8 @@ class NavigateAction(ActionDesignatorDescription):
         def insert(self, session, *args, **kwargs) -> ORMNavigateAction:
 
             # initialize position and orientation
-            position = Position(*self.target_location[0])
-            orientation = Quaternion(*self.target_location[1])
+            position = Position(*self.target_location.position_as_list())
+            orientation = Quaternion(*self.target_location.orientation_as_list())
 
             # add those to the database and get the primary keys
             session.add(position)
