@@ -11,11 +11,13 @@ class TestBulletWorldReasoning(BulletWorldTest):
     def test_contact(self):
         self.milk.set_pose(Pose([1, 1, 1]))
         self.cereal.set_pose(Pose([1, 1, 1]))
+        time.sleep(1)
         self.assertTrue(btr.contact(self.milk, self.cereal))
 
     def test_visible(self):
         self.milk.set_pose(Pose([1.5, 0, 1.2]))
         self.robot.set_pose(Pose())
+        time.sleep(1)
         self.assertTrue(btr.visible(self.milk, self.robot.get_link_pose(robot_description.get_camera_frame()),
                                     robot_description.front_facing_axis))
 
@@ -33,6 +35,7 @@ class TestBulletWorldReasoning(BulletWorldTest):
     def test_blocking(self):
         self.milk.set_pose(Pose([0.5, -0.7, 1]))
         self.robot.set_pose(Pose())
+        time.sleep(1)
         self.assertTrue(btr.blocking(Pose([0.5, -0.7, 1]), self.robot, robot_description.get_tool_frame("right")) != [])
 
     def test_supporting(self):

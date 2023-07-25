@@ -389,9 +389,11 @@ class Use_shadow_world():
 
     def __enter__(self):
         if not BulletWorld.current_bullet_world.is_shadow_world:
-            time.sleep(10 / 240)
+            time.sleep(20 / 240)
             # blocks until the adding queue is ready
             BulletWorld.current_bullet_world.world_sync.add_obj_queue.join()
+            # **This is currently not used since the sleep(20/240) seems to be enough, but on weaker hardware this might
+            # not be a feasible solution**
             # while not BulletWorld.current_bullet_world.world_sync.equal_states:
             #     time.sleep(0.1)
 
@@ -482,6 +484,10 @@ class WorldSync(threading.Thread):
             time.sleep(0.1)
 
     def check_for_equal(self) -> None:
+        """
+        Checks if both BulletWorlds have the same state, meaning all objects are in the same position.
+        This is currently not used, but might be used in the future if synchronization issues worsen.
+        """
         eql = True
         for obj, shadow_obj in self.object_mapping.items():
             eql = eql and obj.get_pose() == shadow_obj.get_pose()

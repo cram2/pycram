@@ -1,3 +1,4 @@
+import time
 import unittest
 from pycram.designators import action_designator, object_designator
 from pycram.robot_descriptions import robot_description
@@ -83,7 +84,9 @@ class TestActionDesignatorGrounding(test_bullet_world.BulletWorldTest):
         # TODO: Needs a way to test the approximate looking direction of the robot
 
     def test_detect(self):
+        self.kitchen.set_pose(Pose([10, 10, 0]))
         self.milk.set_pose(Pose([1.5, 0, 1.2]))
+        # time.sleep(1)
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.DetectAction(object_description)
         self.assertEqual(description.ground().object_designator.name, "milk")

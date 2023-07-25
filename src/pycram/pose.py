@@ -6,7 +6,7 @@ from typing import List, Union, Optional
 
 import numpy as np
 import rospy
-from geometry_msgs.msg import PoseStamped, TransformStamped
+from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3
 from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
 from tf import transformations
 
@@ -232,7 +232,7 @@ class Transform(TransformStamped):
         Rotation: A quaternion representing the conversion of rotation between both frames
     """
     def __init__(self, translation: Optional[List[float]] = None, rotation: Optional[List[float]] = None,
-                 frame: str = "map", child_frame: str = ""):
+                 frame: Optional[str] = "map", child_frame: Optional[str] = ""):
         """
         Transforms take a translation, rotation, frame and child_frame as optional arguments. If nothing is given the
         Transform will be initialized with [0, 0, 0] for translation, [0, 0, 0, 1] for rotation, 'map' for frame and an
@@ -261,8 +261,8 @@ class Transform(TransformStamped):
         self.child_frame_id = child_frame
         self.header.stamp = rospy.Time.now()
 
-        self.translation = self.transform.translation
-        self.rotation = self.transform.rotation
+        # self.translation = self.transform.translation
+        # self.rotation = self.transform.rotation
 
         self.frame = frame
 
@@ -283,6 +283,57 @@ class Transform(TransformStamped):
         :param value: The new TF frame
         """
         self.header.frame_id = value
+
+    @property
+    def translation(self) -> None:
+        """
+        Property that points to the translation of this Transform
+        """
+        return self.transform.translation
+
+    @translation.setter
+    def translation(self, value) -> None:
+        """
+        Setter for the translation of this Transform, the new value can either be of type list or a
+        geometry_msgs/Vector message.
+
+        :param value: The new value for the translation, either a list or geometry_msgs/Vector3
+        """
+        if not type(value) == list and not type(value) == Vector3:
+            rospy.logwarn("Value of a translation can only be a list of a geometry_msgs/Vector3")
+            return
+        if type(value) == list and len(value) == 3:
+            self.transform.translation.x = value[0]
+            self.transform.translation.y = value[1]
+            self.transform.translation.z = value[2]
+        else:
+            self.transform.translation = value
+
+    @property
+    def rotation(self) -> None:
+        """
+        Property that points to the rotation of this Transform
+        """
+        return self.transform.rotation
+
+    @rotation.setter
+    def rotation(self, value):
+        """
+        Setter for the rotation of this Transform, the new value can either be a list or a geometry_msgs/Quaternion
+        message
+
+        :param value: The new value for the rotation, either a list or geometry_msgs/Quaternion
+        """
+        if not type(value) == list and not type(value) == GeoQuaternion:
+            rospy.logwarn("Value of the rotation can only be a list or a geometry.msgs/Quaternion")
+            return
+        if type(value) == list and len(value) == 4:
+            self.transform.rotation.x = value[0]
+            self.transform.rotation.y = value[1]
+            self.transform.rotation.z = value[2]
+            self.transform.rotation.w = value[3]
+        else:
+            self.transform.rotation = value
 
     def copy(self) -> Transform:
         """
