@@ -69,7 +69,7 @@ class ForceTorqueSensor:
             seq += 1
             time.sleep(self.interval)
 
-    def _stop_publishing(self) -> None:
+    def stop_publishing(self) -> None:
         """
         Sets the kill_event and therefore terminates the Thread publishing the force-torque values as well as join the
         threads.
