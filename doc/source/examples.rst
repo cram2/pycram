@@ -26,6 +26,7 @@ Misc
 .. nbgallery::
     notebooks/bullet_world
     notebooks/minimal_task_tree
+    notebooks/pose
 
 Object Relational Mapping
 =========================

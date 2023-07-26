@@ -200,7 +200,8 @@ nbsphinx_thumbnails = {
     'notebooks/location_designator': os.path.abspath("notebooks/thumbnails/location_designator.png"),
     'notebooks/object_designator': os.path.abspath("notebooks/thumbnails/object_designator.png"),
     'notebooks/intro': os.path.abspath("notebooks/thumbnails/default.png"),
-    'notebooks/orm_example': os.path.abspath("notebooks/thumbnails/default.png")
+    'notebooks/orm_example': os.path.abspath("notebooks/thumbnails/default.png"),
+    'notebooks/pose': os.path.abspath("notebooks/thumbnails/pose.png")
 }
 
 
