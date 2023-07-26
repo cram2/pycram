@@ -93,7 +93,7 @@ class TFBroadcaster:
             self.update()
             time.sleep(self.interval)
 
-    def _stop_publishing(self) -> None:
+    def stop_publishing(self) -> None:
         """
         Called when the process ends, sets the kill_event which terminates the thread that publishes to the TF topic.
         """
