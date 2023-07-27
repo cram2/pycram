@@ -1182,11 +1182,13 @@ class Object:
         """
         This method returns the color of this object or a link of this object. If no link is given then the
         return is either:
+
             1. A list with the color as RGBA values, this is the case if the object only has one link (this
                 happens for example if the object is spawned from a .obj or .stl file)
             2. A dict with the link name as key and the color as value. The color is given as RGBA values.
                 Please keep in mind that not every link may have a color. This is dependent on the URDF from which the
                 object is spawned.
+
         If a link is specified then the return is a list with RGBA values representing the color of this link.
         It may be that this link has no color, in this case the return is None as well as an error message.
 

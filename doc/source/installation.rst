@@ -27,6 +27,7 @@ Installing Dependencies
 The dependencies you will need are:
     * Pip
     * vcstool
+
 These are available via the Ubuntu apt-repos and can be installed via the terminal:
 
 

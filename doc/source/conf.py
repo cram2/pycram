@@ -205,6 +205,13 @@ nbsphinx_thumbnails = {
 }
 
 
+autosectionlabel_prefix_document = True
+
+# autoapi_keep_files = True
+
+
+suppress_warnings = []
+
 # -- Options for todo extension ----------------------------------------------
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.

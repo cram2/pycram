@@ -140,7 +140,8 @@ class ManipulatorDescription(InteractionDescription):
     description which is placed between the last link of the interaction description
     and the rest of it.
     Independently from that a tool frame can be saved, which allows to use objects
-    to manipulate the environment.
+    to manipulate the environment::
+
                                                                            |--> (tool_frame)
         chain of links: interaction_description <-> (gripper_description) -|
                                                                            |--> eef_link
@@ -185,22 +186,23 @@ class GraspingDescription:
     """
     def __init__(self, grasp_dir: Optional[Dict] = None):
         self.grasps: Dict[str, List[float]] = grasp_dir if grasp_dir else {}
-        self.grasps_for_object: Dict['Object', List[str]] = {}
+        self.grasps_for_object: Dict['bullet_world.Object', List[str]] = {}
 
     def add_grasp(self, grasp: str, orientation: List[float]) -> None:
         """
         Adds a Grasping side like "top", "left", "front" and the corresponding orientation
         of the gripper to this description.
+
         :param grasp: The type of grasp like "top" or "left"
-        :param orientation: The orientation the Gripper has to have in order to
-        achive this grasp. In world coordinate frame
+        :param orientation: The orientation the Gripper has to have in order to achive this grasp. In world coordinate frame
         """
         self.grasps[grasp] = orientation
 
-    def add_graspings_for_object(self, grasps: List[str], object: 'Object') -> None:
+    def add_graspings_for_object(self, grasps: List[str], object: 'bullet_world.Object') -> None:
         """
         Adds all possible Grasps for the specified object. The used grasps have to
         be registered beforehand via the add_grasp method.
+
         :param grasps: A list of all graps for this object.
         :param object: The object for which the grasps should be specified
         """
@@ -212,7 +214,7 @@ class GraspingDescription:
     def get_orientation_for_grasp(self, grasp: str) -> List[float]:
         return self.grasps[grasp]
 
-    def get_grasps_for_object(self, object: 'Object') -> List[str]:
+    def get_grasps_for_object(self, object: 'bullet_world.Object') -> List[str]:
         return self.grasps_for_object[object]
 
 
