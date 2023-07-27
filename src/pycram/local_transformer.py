@@ -1,4 +1,3 @@
-import pycram.helper_deprecated
 import sys
 import logging
 
