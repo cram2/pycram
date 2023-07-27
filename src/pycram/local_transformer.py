@@ -31,7 +31,7 @@ class LocalTransformer(TransformerROS):
     updates these tfs by copying the tfs state from the pybullet world.
 
     This class extends the TransformerRos, you can find documentation for TransformerROS here:
-    `_Doc_`_[_http://wiki.ros.org/tf/TfUsingPython_]_
+    `TFDoc <http://wiki.ros.org/tf/TfUsingPython>`_
     """
 
     _instance = None
@@ -142,7 +142,8 @@ class LocalTransformer(TransformerROS):
 
         return Pose(*copy_pose.to_list(), frame=new_pose.header.frame_id)
 
-    def transform_to_object_frame(self, pose: Pose, bullet_object: 'Object', link_name: str = None) -> Union[Pose, None]:
+    def transform_to_object_frame(self, pose: Pose,
+                                  bullet_object: 'bullet_world.Object', link_name: str = None) -> Union[Pose, None]:
         """
         Transforms the given pose to the coordinate frame of the given BulletWorld object. If no link name is given the
         base frame of the Object is used, otherwise the link frame is used as target for the transformation.
@@ -172,7 +173,7 @@ class LocalTransformer(TransformerROS):
         tf_time = time if time else self.getLatestCommonTime(source_frame, target_frame)
         return self.lookupTransform(source_frame, target_frame, tf_time)
 
-    def update_transforms_for_object(self, bullet_object: 'Object') -> None:
+    def update_transforms_for_object(self, bullet_object: 'bullet_world.Object') -> None:
         """
         Updates local transforms for a Bullet Object, this includes the base as well as all links
 

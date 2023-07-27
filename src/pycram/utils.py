@@ -8,7 +8,8 @@ class suppress_stdout_stderr(object):
     A context manager for doing a "deep suppression" of stdout and stderr in
     Python, i.e. will suppress all prints, even if the print originates in a
     compiled C/Fortran sub-function.
-       This will not suppress raised exceptions, since exceptions are printed
+
+    This will not suppress raised exceptions, since exceptions are printed
     to stderr just before a script exits, and after the context manager has
     exited (at least, I think that is why it lets exceptions through).
     Copied from https://stackoverflow.com/questions/11130156/suppress-stdout-stderr-print-from-python-functions
