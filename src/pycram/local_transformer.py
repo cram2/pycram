@@ -13,7 +13,7 @@ from rospy import Duration, logerr, Rate, is_shutdown
 from urdf_parser_py.urdf import URDF
 
 from geometry_msgs.msg import TransformStamped
-from .pose import Pose
+from .pose import Pose, Transform
 from .robot_descriptions import robot_description
 from typing import List, Optional, Tuple, Union, Callable
 
@@ -57,63 +57,9 @@ class LocalTransformer(TransformerROS):
         # If the singelton was already initialized
         self._initialized = True
 
-    def init_transforms_from_urdf(self) -> None:
-        """
-        This static function gets with the robot name in robot_description.py, the
-        robots URDF file from the "resources" folder in the ROS "pycram" folder.
-        All joints of the URDF are extracted and saved in a list of static and
-        normal TFStamped.
-
-        :returns: list of static_tf_stampeds, list of tf_stampeds
-        """
-        # Save joint translations and orientations in tf_stampeds
-        # static_tf_stampeds saves only the static joint translations and orientations
-        self.tf_stampeds = []
-        self.static_tf_stampeds = []
-        # Get URDF file path
-        robot_name = robot_description.name
-        rospack = rospkg.RosPack()
-        filename = rospack.get_path('pycram') + '/resources/' + robot_name + '.urdf'
-        # ... and open it
-        with open(filename) as f:
-            s = f.read()
-            robot = URDF.from_xml_string(s)
-            # Save for every joint in the robot the source_frame, target_frame,
-            # aswell the joints origin, where the translation xyz and rotation rpy
-            # are saved
-            for joint in robot.joints:
-
-                source_frame = self.projection_namespace + '/' + joint.parent
-                target_frame = self.projection_namespace + '/' + joint.child
-
-                if joint.origin:
-                    if joint.origin.xyz:
-                        translation = joint.origin.xyz
-                    else:
-                        translation = [0, 0, 0]
-                    if joint.origin.rpy:
-                        roll = joint.origin.rpy[0]
-                        pitch = joint.origin.rpy[1]
-                        yaw = joint.origin.rpy[2]
-                        rotation = transformations.quaternion_from_euler(roll, pitch, yaw)
-                    else:
-                        rotation = [0, 0, 0, 1]
-
-                if joint.name in robot_description.odom_joints:
-                    # since pybullet wont update this joints, these are declared as static
-                    translation = [0, 0, 0]
-                    rotation = [0, 0, 0, 1]
-
-                # Wrap the joint attributes in a TFStamped and append it to static_tf_stamped if the joint was fixed
-                tf_stamped = pycram.helper_deprecated.list2tfstamped(source_frame, target_frame, [translation, rotation])
-                if (joint.type and joint.type == 'fixed') or joint.name in robot_description.odom_joints:
-                    self.static_tf_stampeds.append(tf_stamped)
-                else:
-                    self.tf_stampeds.append(tf_stamped)
-
     def update_objects(self) -> None:
         """
-        Updates transformations for all objects that are currently in :py:attr:´~BulletWorld.current_bullet_world´
+        Updates transformations for all objects that are currently in :py:attr:`~pycram.bullet_world.BulletWorld.current_bullet_world`
         """
         if self.bullet_world:
             for obj in list(self.bullet_world.current_bullet_world.objects):
@@ -133,7 +79,7 @@ class LocalTransformer(TransformerROS):
             rospy.logerr(
                 f"Can not transform pose: \n {pose}\n to frame: {target_frame}.\n Maybe try calling 'update_transforms_for_object'")
             return
-        new_pose = self.transformPose(target_frame, copy_pose)
+        new_pose = super().transformPose(target_frame, copy_pose)
 
         copy_pose.pose = new_pose.pose
         copy_pose.header.frame_id = new_pose.header.frame_id
@@ -159,7 +105,7 @@ class LocalTransformer(TransformerROS):
         return self.transform_pose(pose, target_frame)
 
     def tf_transform(self, source_frame: str, target_frame: str,
-                     time: Optional[rospy.rostime.Time] = None) -> TransformStamped:
+                     time: Optional[rospy.rostime.Time] = None) -> Transform:
         """
         Returns the latest known transform between the 'source_frame' and 'target_frame'. If no time is given the last
         common time between the two frames is used.
@@ -170,7 +116,8 @@ class LocalTransformer(TransformerROS):
         :return:
         """
         tf_time = time if time else self.getLatestCommonTime(source_frame, target_frame)
-        return self.lookupTransform(source_frame, target_frame, tf_time)
+        translation, rotation = self.lookupTransform(source_frame, target_frame, tf_time)
+        return Transform(translation, rotation, source_frame, target_frame)
 
     def update_transforms_for_object(self, bullet_object: 'bullet_world.Object') -> None:
         """
@@ -196,4 +143,15 @@ class LocalTransformer(TransformerROS):
         frames = self.allFramesAsString().split("\n")
         frames.remove("")
         return frames
+
+    def transformPose(self, target_frame, ps) -> Pose:
+        """
+        Alias for :func:`~LocalTransformer.transform_pose` to avoid confusion since a similar method exists in the
+        super class.
+
+        :param target_frame: Frame into which the pose should be transformer
+        :param ps: Pose that should be transformed
+        :return: Input pose in the target_frame
+        """
+        return self.transform_pose(ps, target_frame)
 
