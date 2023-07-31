@@ -36,15 +36,10 @@ class Pose(PoseStamped):
         """
         super().__init__()
         if position:
-            self.pose.position.x = position[0]
-            self.pose.position.y = position[1]
-            self.pose.position.z = position[2]
+            self.position = position
 
         if orientation:
-            self.pose.orientation.x = orientation[0]
-            self.pose.orientation.y = orientation[1]
-            self.pose.orientation.z = orientation[2]
-            self.pose.orientation.w = orientation[3]
+            self.orientation = orientation
         else:
             self.pose.orientation.w = 1.0
 
@@ -202,9 +197,7 @@ class Pose(PoseStamped):
 
         :param new_position: New position as a vector of xyz
         """
-        self.pose.position.x = new_position[0]
-        self.pose.position.y = new_position[1]
-        self.pose.position.z = new_position[2]
+        self.position = new_position
 
     def set_orientation(self, new_orientation: List[float]) -> None:
         """
@@ -212,10 +205,7 @@ class Pose(PoseStamped):
 
         :param new_orientation: New orientation as a quaternion with xyzw
         """
-        self.pose.orientation.x = new_orientation[0]
-        self.pose.orientation.y = new_orientation[1]
-        self.pose.orientation.z = new_orientation[2]
-        self.pose.orientation.w = new_orientation[3]
+        self.orientation = new_orientation
 
 
 class Transform(TransformStamped):
@@ -245,24 +235,16 @@ class Transform(TransformStamped):
         """
         super().__init__()
         if translation:
-            self.transform.translation.x = translation[0]
-            self.transform.translation.y = translation[1]
-            self.transform.translation.z = translation[2]
+            self.translation = translation
 
         if rotation:
-            self.transform.rotation.x = rotation[0]
-            self.transform.rotation.y = rotation[1]
-            self.transform.rotation.z = rotation[2]
-            self.transform.rotation.w = rotation[3]
+            self.rotation = rotation
         else:
             self.transform.rotation.w = 1.0
 
         self.header.frame_id = frame
         self.child_frame_id = child_frame
         self.header.stamp = rospy.Time.now()
-
-        # self.translation = self.transform.translation
-        # self.rotation = self.transform.rotation
 
         self.frame = frame
 
@@ -443,9 +425,7 @@ class Transform(TransformStamped):
 
         :param new_translation: The new translation as a vector with xyz.
         """
-        self.transform.translation.x = new_translation[0]
-        self.transform.translation.y = new_translation[1]
-        self.transform.translation.z = new_translation[2]
+        self.translation = new_translation
 
     def set_rotation(self, new_rotation: List[float]) -> None:
         """
@@ -453,8 +433,5 @@ class Transform(TransformStamped):
 
         :param new_rotation: The new rotation as a quaternion with xyzw
         """
-        self.transform.rotation.x = new_rotation[0]
-        self.transform.rotation.y = new_rotation[1]
-        self.transform.rotation.z = new_rotation[2]
-        self.transform.rotation.w = new_rotation[3]
+        self.rotation = new_rotation
 
