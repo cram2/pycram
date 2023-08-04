@@ -1,11 +1,13 @@
 import unittest
 
+import numpy as np
 from pycram.bullet_world import BulletWorld, Object, fix_missing_inertial
 from pycram.pose import Pose
 from pycram.robot_descriptions import robot_description
 from pycram.process_module import ProcessModule
 import os
 import xml.etree.ElementTree as ET
+import tf
 
 
 class BulletWorldTest(unittest.TestCase):
@@ -24,10 +26,16 @@ class BulletWorldTest(unittest.TestCase):
     def setUp(self):
         self.world.reset_bullet_world()
 
-    @unittest.skip
     def test_object_movement(self):
-        self.milk.set_position([0, 1, 1])
-        self.assertEqual(list(self.milk.get_position()), [0, 1, 1])
+        self.milk.set_position(Pose([0, 1, 1]))
+        self.assertEqual(self.milk.get_pose().position_as_list(), [0, 1, 1])
+
+    def test_robot_orientation(self):
+        self.robot.set_pose(Pose([0, 1, 1]))
+        head_position = self.robot.get_link_position('head_pan_link').z
+        #self.robot.set_orientation(list(2*tf.transformations.quaternion_from_euler(0, 0, np.pi, axes="sxyz")))
+        self.robot.set_orientation(Pose(orientation=[0, 0, 1, 1]))
+        self.assertEqual(self.robot.get_link_position('head_pan_link').z, head_position)
 
     def tearDown(self):
         self.world.reset_bullet_world()

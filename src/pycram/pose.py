@@ -80,10 +80,11 @@ class Pose(PoseStamped):
 
         :param value: List or geometry_msgs/Pose message for the position
         """
-        if not type(value) == list and not type(value) == GeoPose:
+        if not type(value) == list and not type(value) == tuple and not type(value) == GeoPose:
+            print(type(value))
             rospy.logwarn("Position can only be a list or geometry_msgs/Pose")
             return
-        if type(value) == list and len(value) == 3:
+        if type(value) == list or type(value) == tuple and len(value) == 3:
             self.pose.position.x = value[0]
             self.pose.position.y = value[1]
             self.pose.position.z = value[2]
@@ -105,16 +106,24 @@ class Pose(PoseStamped):
 
         :param value: New orientation, either a list or geometry_msgs/Quaternion
         """
-        if not type(value) == list and not type(value) == GeoQuaternion:
+        if not type(value) == list and not type(value) == tuple and not type(value) == GeoQuaternion:
+            print(type(value))
+            print(value)
             rospy.logwarn("Orientation can only be a list or geometry_msgs/Quaternion")
             return
-        if type(value) == list and len(value) == 4:
-            self.pose.orientation.x = value[0]
-            self.pose.orientation.y = value[1]
-            self.pose.orientation.z = value[2]
-            self.pose.orientation.w = value[3]
+
+        if type(value) == list or type(value) == tuple and len(value) == 4:
+            mag = np.linalg.norm(value)
+            normed_orientation = [elem / mag for elem in value]
         else:
-            self.pose.orientation = value
+            orientation = [value.x, value.y, value.z, value.w]
+            mag = np.linalg.norm(orientation)
+            normed_orientation = [elem / mag for elem in orientation]
+
+        self.pose.orientation.x = normed_orientation[0]
+        self.pose.orientation.y = normed_orientation[1]
+        self.pose.orientation.z = normed_orientation[2]
+        self.pose.orientation.w = normed_orientation[3]
 
     def to_list(self) -> List[List[float]]:
         """
@@ -310,12 +319,17 @@ class Transform(TransformStamped):
             rospy.logwarn("Value of the rotation can only be a list or a geometry.msgs/Quaternion")
             return
         if type(value) == list and len(value) == 4:
-            self.transform.rotation.x = value[0]
-            self.transform.rotation.y = value[1]
-            self.transform.rotation.z = value[2]
-            self.transform.rotation.w = value[3]
+            mag = np.linalg.norm(value)
+            normed_rotation = [elem / mag for elem in value]
         else:
-            self.transform.rotation = value
+            rotation = [value.x, value.y, value.z, value.w]
+            mag = np.linalg.norm(rotation)
+            normed_rotation = [elem / mag for elem in rotation]
+
+        self.transform.rotation.x = normed_rotation[0]
+        self.transform.rotation.y = normed_rotation[1]
+        self.transform.rotation.z = normed_rotation[2]
+        self.transform.rotation.w = normed_rotation[3]
 
     def copy(self) -> Transform:
         """
