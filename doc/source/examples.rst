@@ -26,6 +26,7 @@ Misc
 .. nbgallery::
     notebooks/bullet_world
     notebooks/minimal_task_tree
+    notebooks/pose
 
 Object Relational Mapping
 =========================
@@ -47,7 +48,7 @@ seen in :meth:`pycram.task.TaskTreeNode.to_sql` and :meth:`pycram.task.TaskTreeN
 When using the ORM to record the experiments a MetaData instance is created. For a clean data management it is important
 to fill out the description. For this, check the documentation of :meth:`pycram.orm.base.MetaData`.
 
-Examples
+Example
 --------
 
 .. nbgallery::

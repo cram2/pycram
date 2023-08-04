@@ -8,10 +8,13 @@ import matplotlib.pyplot as plt
 from matplotlib import colors
 import psutil
 import time
-from .bullet_world import BulletWorld, Use_shadow_world
+from .bullet_world import BulletWorld, Use_shadow_world, Object
 from .bullet_world_reasoning import _get_images_for_target
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 from typing import Tuple, List, Union, Optional
+
+from .local_transformer import LocalTransformer
+from .pose import Pose
 
 
 class Costmap:
@@ -23,7 +26,7 @@ class Costmap:
     def __init__(self, resolution: float,
                  height: int,
                  width: int,
-                 origin: Tuple[List[float], List[float]],
+                 origin: Pose,
                  map: np.ndarray):
         """
         The constructor of the base class of all Costmaps.
@@ -31,14 +34,15 @@ class Costmap:
         :param resolution: The distance in metre in the real world which is represented by a single entry in the costmap.
         :param height: The height of the costmap.
         :param width: The width of the costmap.
-        :param origin: The origin of the costmap, in world coordinate frame. The origin of the costmap is located in the centre of the costmap, the format of the origin is a list of xyz
+        :param origin: The origin of the costmap, in world coordinate frame. The origin of the costmap is located in the centre of the costmap
         :param map: The costmap represents as a 2D numpy array.
         """
         self.resolution: float = resolution
         self.size: int = height
         self.height: int = height
         self.width: int = width
-        self.origin: Tuple[List[float], List[float]] = origin
+        local_transformer = LocalTransformer()
+        self.origin: Pose = local_transformer.transform_pose(origin, 'map')
         self.map: np.ndarray = map
         self.vis_ids: List[int] = []
 
@@ -91,12 +95,13 @@ class Costmap:
             link_joint_axis = [[1, 0, 0] for c in cell_parts]
             # The position at which the multibody will be spawned. Offset such that
             # the origin referes to the centre of the costmap.
-            origin_pose = self.origin[0]
-            base_pose = [origin_pose[0] - self.height / 2 * self.resolution,
-                         origin_pose[1] - self.width / 2 * self.resolution, origin_pose[2]]
+            # origin_pose = self.origin.position_as_list()
+            # base_pose = [origin_pose[0] - self.height / 2 * self.resolution,
+            #              origin_pose[1] - self.width / 2 * self.resolution, origin_pose[2]]
 
             offset = [[-self.height / 2 * self.resolution, -self.width / 2 * self.resolution, 0.05], [0, 0, 0, 1]]
-            new_pose = p.multiplyTransforms(self.origin[0], self.origin[1], offset[0], offset[1])
+            new_pose = p.multiplyTransforms(self.origin.position_as_list(), self.origin.orientation_as_list(),
+                                            offset[0], offset[1])
 
             map_obj = p.createMultiBody(baseVisualShapeIndex=-1, linkVisualShapeIndices=cell_parts,
                                         basePosition=new_pose[0], baseOrientation=new_pose[1], linkPositions=link_poses,
@@ -183,8 +188,8 @@ class Costmap:
         """
         if self.size != other_cm.size:
             raise ValueError("You can only merge costmaps of the same size.")
-        elif self.origin[0][0] != other_cm.origin[0][0] or self.origin[0][1] != other_cm.origin[0][1] or self.origin[
-            1] != other_cm.origin[1]:
+        elif self.origin.position.x != other_cm.origin.position.x or self.origin.position.y != other_cm.origin.position.y \
+                or self.origin.orientation != other_cm.origin.orientation:
             raise ValueError("To merge costmaps, the x and y coordinate as well as the orientation must be equal.")
         elif self.resolution != other_cm.resolution:
             raise ValueError("To merge two costmaps their resolution must be equal.")
@@ -219,30 +224,27 @@ class OccupancyCostmap(Costmap):
                  from_ros: Optional[bool] = False,
                  size: Optional[int] = 100,
                  resolution: Optional[float] = 0.02,
-                 origin: Optional[List[float]] = [[0, 0, 0], [0, 0, 0, 1]],
-                 world: Optional[BulletWorld] = None):
+                 origin: Optional[Pose] = None):
         """
         Constructor for the Occupancy costmap, the actual costmap is received
         from the ROS map_server and wrapped by this class. Meta-data about the
         costmap is also received from the map_server.
 
-        :param distance_obstacle: The distance by which the obstacles should be
+        :param distance_to_obstacle: The distance by which the obstacles should be
             inflated. Meaning that obstacles in the costmap are growing bigger by this
             distance.
         :param from_ros: This determines if the Occupancy map should be created
             from the map provided by the ROS map_server or from the BulletWorld.
             If True then the map from the ROS map_server will be used otherwise
             the Occupancy map will be created from the BulletWorld.
-        :param size: The lenght of the side of the costmap. The costmap will be created
+        :param size: The length of the side of the costmap. The costmap will be created
             as a square. This will only be used if from_ros is False.
         :param resolution: The resolution of this costmap. This determines how much
             meter one pixel in the costmap represents. This is only used if from_ros
-            is Flase.
+            is False.
         :param origin: This determines the origin of the costmap. The origin will
             be in the middle of the costmap. This parameter is only used if from_ros
             is False.
-        :param world: This parameter specifies the BulletWorld for which a Occupancy
-            costmap should be created. This parameter is only used if from_ros is False.
         """
         if from_ros:
             meta = self._get_map_metadata()
@@ -255,16 +257,16 @@ class OccupancyCostmap(Costmap):
             self.distance_obstacle = max(int(distance_to_obstacle / self.resolution), 1)
             Costmap.__init__(self, meta.resolution, meta.height, meta.width,
                              self._calculate_diff_origin(meta.height, meta.width),
-                             np.rot90(np.flip(self._convert_map(self.original_map, self.height), 0)))
+                             np.rot90(np.flip(self._convert_map(self.original_map), 0)))
         else:
             self.size = size
-            self.origin = origin
+            self.origin = Pose() if not origin else origin
             self.resolution = resolution
             self.distance_obstacle = max(int(distance_to_obstacle / self.resolution), 1)
-            self.map = self._create_from_bullet(world, size, resolution, origin)
+            self.map = self._create_from_bullet(size, resolution)
             Costmap.__init__(self, resolution, size, size, self.origin, self.map)
 
-    def _calculate_diff_origin(self, height: int, width: int) -> List[float]:
+    def _calculate_diff_origin(self, height: int, width: int) -> Pose:
         """
         Calculates the difference between the origin of the costmap
         as stated by the meta-data and the actual middle of the costmap which
@@ -278,7 +280,7 @@ class OccupancyCostmap(Costmap):
         """
         actual_origin = [int(height / 2) * self.resolution, int(width / 2) * self.resolution, 0]
         origin = np.array(self.meta_origin) + np.array(actual_origin)
-        return origin
+        return Pose(origin)
 
     @staticmethod
     def _get_map() -> np.ndarray:
@@ -327,7 +329,7 @@ class OccupancyCostmap(Costmap):
         sum = np.sum(sub_matrices, axis=2)
         return (sum == 0).astype('int16')
 
-    def create_sub_map(self, sub_origin: List[float], size: int) -> Costmap:
+    def create_sub_map(self, sub_origin: Pose, size: int) -> Costmap:
         """
         Creates a smaller map from the overall occupancy map, the new map is centered
         around the point specified by "sub_origin" and has the size "size". The
@@ -338,7 +340,7 @@ class OccupancyCostmap(Costmap):
         :return: The sub costmap, represented as 2d numpy array.
         """
         # To ensure this is a numpy array
-        sub_origin = np.array(sub_origin)
+        sub_origin = np.array(sub_origin.position_as_list())
         # Since origin obtained from the meta data uses bottom left corner as reference.
         sub_origin *= -1
         # Calculates origin of sub costmap as vector between origin and given sub_origin
@@ -353,24 +355,19 @@ class OccupancyCostmap(Costmap):
         sub_map = self.original_map[new_origin[1]: new_origin[1] + size,
                   new_origin[0]: new_origin[0] + size]
         # Convert map to fit with the other costmaps
-        sub_map = np.rot90(np.flip(self._convert_map(sub_map, size), 0))
-        return Costmap(self.resolution, size, size, list(sub_origin * -1), sub_map)
+        sub_map = np.rot90(np.flip(self._convert_map(sub_map), 0))
+        return Costmap(self.resolution, size, size, Pose(list(sub_origin * -1)), sub_map)
 
-    def _create_from_bullet(self, world: BulletWorld, size: int, resolution: float, origin: List[float]) -> np.ndarray:
+    def _create_from_bullet(self, size: int, resolution: float) -> np.ndarray:
         """
         Creates an Occupancy Costmap for the specified BulletWorld.
         This map marks every position as valid that has no object above it. After
         creating the costmap the distance to obstacle parameter is applied.
 
-        :param world: The BulletWorld for which the Occupancy Costmap should be created
         :param size: The size of this costmap. The size specifies the length of one side of the costmap. The costmap is created as a square.
         :param resolution: The resolution of this costmap. This determines how much meter a pixel in the costmap represents.
-        :param origin: The origin of the costmap, this is the position in world coordinate frame around which the costmap should be created.
-
         """
-        rays = []
-
-        origin_position = self.origin[0]
+        origin_position = self.origin.position_as_list()
         # Generate 2d grid with indices
         indices = np.concatenate(np.dstack(np.mgrid[int(-size / 2):int(size / 2), int(-size / 2):int(size / 2)]),
                                  axis=0) * resolution + np.array(origin_position[:2])
@@ -398,8 +395,11 @@ class OccupancyCostmap(Costmap):
                 if BulletWorld.robot:
                     shadow_robot = BulletWorld.current_bullet_world.get_shadow_object(BulletWorld.robot)
                     attached_objs = BulletWorld.robot.attachments.keys()
-                    attached_objs_shadow_id = [BulletWorld.current_bullet_world.get_shadow_object(x).id for x in attached_objs]
-                    res[i:j] = [1 if ray[0] == -1 or ray[0] == shadow_robot.id or ray[0] in attached_objs_shadow_id else 0 for ray in r_t]
+                    attached_objs_shadow_id = [BulletWorld.current_bullet_world.get_shadow_object(x).id for x in
+                                               attached_objs]
+                    res[i:j] = [
+                        1 if ray[0] == -1 or ray[0] == shadow_robot.id or ray[0] in attached_objs_shadow_id else 0 for
+                        ray in r_t]
                 else:
                     res[i:j] = [1 if ray[0] == -1 else 0 for ray in r_t]
                 i += len(n)
@@ -448,7 +448,7 @@ class VisibilityCostmap(Costmap):
                  max_height: float,
                  size: Optional[int] = 100,
                  resolution: Optional[float] = 0.02,
-                 origin: Optional[List[float]] = [[0, 0, 0], [0, 0, 0, 1]],
+                 origin: Optional[Pose] = None,
                  world: Optional[BulletWorld] = None):
         """
         Visibility Costmaps show for every position around the origin pose if the origin can be seen from this pose.
@@ -463,7 +463,7 @@ class VisibilityCostmap(Costmap):
             as a square.
         :param resolution: This parameter specifies how much meter a pixel in the
             costmap represents.
-        :param origin: The position in world coordinate frame around which the
+        :param origin: The pose in world coordinate frame around which the
             costmap should be created.
         :param world: The BulletWorld for which the costmap should be created.
         """
@@ -478,7 +478,7 @@ class VisibilityCostmap(Costmap):
         self.max_height: float = max_height
         # for pr2 = 1.6
         self.min_height: float = min_height
-        self.origin: List[float] = origin
+        self.origin: Pose = Pose() if not origin else origin
         self._generate_map()
         Costmap.__init__(self, resolution, size, size, self.origin, self.map)
 
@@ -491,30 +491,30 @@ class VisibilityCostmap(Costmap):
 
         :return: A list of four depth images, the images are represented as 2D arrays.
         """
-        # object_pose = self.object.get_position_and_orientation()
-        # im_world = self._create_image_world()
         images = []
         camera_pose = self.origin
 
         with Use_shadow_world():
+            origin_copy = self.origin.copy()
+            origin_copy.position.y += 1
             images.append(
-                _get_images_for_target([[self.origin[0][0], self.origin[0][1] + 1, self.origin[0][2]], [0, 0, 0, 1]],
-                                       camera_pose, BulletWorld.current_bullet_world, size=self.size)[1])
+                _get_images_for_target(origin_copy, camera_pose, BulletWorld.current_bullet_world, size=self.size)[1])
 
+            origin_copy = self.origin.copy()
+            origin_copy.position.x -= 1
             images.append(
-                _get_images_for_target([[self.origin[0][0] - 1, self.origin[0][1], self.origin[0][2]], [0, 0, 0, 1]],
-                                       camera_pose, BulletWorld.current_bullet_world, size=self.size)[1])
+                _get_images_for_target(origin_copy, camera_pose, BulletWorld.current_bullet_world, size=self.size)[1])
 
+            origin_copy = self.origin.copy()
+            origin_copy.position.y -= 1
             images.append(
-                _get_images_for_target([[self.origin[0][0], self.origin[0][1] - 1, self.origin[0][2]], [0, 0, 0, 1]],
-                                       camera_pose, BulletWorld.current_bullet_world, size=self.size)[1])
+                _get_images_for_target(origin_copy, camera_pose, BulletWorld.current_bullet_world, size=self.size)[1])
 
+            origin_copy = self.origin.copy()
+            origin_copy.position.x += 1
             images.append(
-                _get_images_for_target([[self.origin[0][0] + 1, self.origin[0][1], self.origin[0][2]], [0, 0, 0, 1]],
-                                       camera_pose, BulletWorld.current_bullet_world, size=self.size)[1])
+                _get_images_for_target(origin_copy, camera_pose, BulletWorld.current_bullet_world, size=self.size)[1])
 
-        # images [0] = depth, [1] = seg_mask
-        # im_world.exit()
         for i in range(0, 4):
             images[i] = self._depth_buffer_to_meter(images[i])
         return images
@@ -540,7 +540,7 @@ class VisibilityCostmap(Costmap):
         # A 2D array where every cell contains the arctan2 value with respect to
         # the middle of the array. Additionally, the interval is shifted such that
         # it is between 0 and 2pi
-        tan = np.arctan2(np.mgrid[-int(self.size / 2): int(self.size / 2), -int(self.size / 2): int(self.size / 2)][0], \
+        tan = np.arctan2(np.mgrid[-int(self.size / 2): int(self.size / 2), -int(self.size / 2): int(self.size / 2)][0],
                          np.mgrid[-int(self.size / 2): int(self.size / 2), -int(self.size / 2): int(self.size / 2)][
                              1]) + np.pi
         res = np.zeros(tan.shape)
@@ -600,8 +600,8 @@ class VisibilityCostmap(Costmap):
         # These are two arrays with shape: size*size, the r_min constrains the beginning
         # of the range for every coordinate and r_max contains the end for each
         # coordinate
-        r_min = (np.arctan((self.min_height - self.origin[0][2]) / distances) * self.size) + self.size / 2
-        r_max = (np.arctan((self.max_height - self.origin[0][2]) / distances) * self.size) + self.size / 2
+        r_min = (np.arctan((self.min_height - self.origin.position.z) / distances) * self.size) + self.size / 2
+        r_max = (np.arctan((self.max_height - self.origin.position.z) / distances) * self.size) + self.size / 2
 
         r_min = np.minimum(np.around(r_min), self.size - 1).astype('int16')
         r_max = np.minimum(np.around(r_max), self.size - 1).astype('int16')
@@ -648,7 +648,7 @@ class GaussianCostmap(Costmap):
     """
 
     def __init__(self, mean: int, sigma: float, resolution: Optional[float] = 0.02,
-                 origin: Optional[List[float]] = [[0, 0, 0], [0, 0, 0, 1]]):
+                 origin: Optional[Pose] = None):
         """
         This Costmap creates a 2D gaussian distribution around the origin with
         the specified size.
@@ -664,8 +664,8 @@ class GaussianCostmap(Costmap):
         self.gau: np.ndarray = self._gaussian_window(mean, sigma)
         self.map: np.ndarray = np.outer(self.gau, self.gau)
         self.size: float = mean
-        self.origin: List[float] = origin
-        Costmap.__init__(self, resolution, mean, mean, origin, self.map)
+        self.origin: Pose = Pose() if not origin else origin
+        Costmap.__init__(self, resolution, mean, mean, self.origin, self.map)
 
     def _gaussian_window(self, mean: int, std: float) -> np.ndarray:
         """
@@ -695,14 +695,14 @@ class SemanticCostmap(Costmap):
         :param resolution: Resolution of the final costmap
         :param world: The BulletWorld from which the costmap should be created
         """
-        self.world = world if world else BulletWorld.current_bullet_world
-        self.object = object
-        self.link = urdf_link_name
-        self.resolution = resolution
-        self.origin = object.get_link_position_and_orientation(urdf_link_name)
-        self.height = 0
-        self.width = 0
-        self.map = []
+        self.world: BulletWorld = world if world else BulletWorld.current_bullet_world
+        self.object: Object = object
+        self.link: str = urdf_link_name
+        self.resolution: float = resolution
+        self.origin: Pose = object.get_link_pose(urdf_link_name)
+        self.height: int = 0
+        self.width: int = 0
+        self.map: np.ndarray = []
         self.generate_map()
 
         Costmap.__init__(self, resolution, self.height, self.width, self.origin, self.map)
@@ -716,9 +716,8 @@ class SemanticCostmap(Costmap):
         self.height = int((max[0] - min[0]) // self.resolution)
         self.width = int((max[1] - min[1]) // self.resolution)
         self.map = np.ones((self.height, self.width))
-        self.origin = [self.origin[0], self.origin[1]]
 
-    def get_aabb_for_link(self) -> Tuple[Tuple[float], Tuple[float]]:
+    def get_aabb_for_link(self) -> Tuple[List[float], List[float]]:
         """
         Returns the axis aligned bounding box (AABB) of the link provided when creating this costmap. To try and let the
         AABB as close to the actual object as possible, the Object will be rotated such that the link will be in the
@@ -728,10 +727,11 @@ class SemanticCostmap(Costmap):
         """
         shadow_obj = BulletWorld.current_bullet_world.get_shadow_object(self.object)
         with Use_shadow_world():
-            shadow_obj.set_orientation([0, 0, 0, 1])
-            link_orientation = shadow_obj.get_link_orientation(self.link)
-            inverse_orientation = p.invertTransform([0, 0, 0], link_orientation)[1]
-            shadow_obj.set_orientation(inverse_orientation)
+            shadow_obj.set_orientation(Pose(orientation=[0, 0, 0, 1]))
+            link_orientation = shadow_obj.get_link_pose(self.link)
+            link_orientation_trans = link_orientation.to_transform(self.link)
+            inverse_orientation = link_orientation_trans.invert()
+            shadow_obj.set_orientation(inverse_orientation.to_pose())
             return shadow_obj.get_AABB(self.link)
 
 

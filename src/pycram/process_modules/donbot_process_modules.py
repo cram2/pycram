@@ -5,9 +5,8 @@ import pybullet as p
 
 import pycram.bullet_world_reasoning as btr
 import pycram.helper as helper
-import pycram.helper_deprecated as helper_deprecated
 from ..bullet_world import BulletWorld
-from ..local_transformer import local_transformer
+from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_descriptions import robot_description
 

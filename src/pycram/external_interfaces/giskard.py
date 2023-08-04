@@ -1,5 +1,6 @@
 import rospy
 
+from ..pose import Pose
 from ..robot_descriptions import robot_description
 from ..bullet_world import BulletWorld, Object
 
@@ -68,8 +69,7 @@ def update_pose(object: Object) -> UpdateWorldResponse:
     :param object: Object that should be updated
     :return: An UpdateWorldResponse
     """
-    return giskard_wrapper.update_group_pose(object.name + "_" + str(object.id),
-                                             make_pose_stamped(object.get_position_and_orientation()))
+    return giskard_wrapper.update_group_pose(object.name + "_" + str(object.id), object.get_pose())
 
 
 def spawn_object(object: Object) -> None:
@@ -78,7 +78,7 @@ def spawn_object(object: Object) -> None:
 
     :param object: BulletWorld object that should be spawned
     """
-    spawn_urdf(object.name + "_" + str(object.id), object.path, object.get_position_and_orientation())
+    spawn_urdf(object.name + "_" + str(object.id), object.path, object.get_pose())
 
 
 def remove_object(object: Object) -> UpdateWorldResponse:
@@ -90,7 +90,7 @@ def remove_object(object: Object) -> UpdateWorldResponse:
     return giskard_wrapper.remove_group(object.name + "_" + str(object.id))
 
 
-def spawn_urdf(name: str, urdf_path: str, pose: Tuple[List[float], List[float]]) -> UpdateWorldResponse:
+def spawn_urdf(name: str, urdf_path: str, pose: Pose) -> UpdateWorldResponse:
     """
     Spawns an URDF in giskard's belief state.
 
@@ -102,12 +102,11 @@ def spawn_urdf(name: str, urdf_path: str, pose: Tuple[List[float], List[float]])
     urdf_string = ""
     with open(urdf_path) as f:
         urdf_string = f.read()
-    pose_stamped = make_pose_stamped(pose)
 
-    return giskard_wrapper.add_urdf(name, urdf_string, pose_stamped)
+    return giskard_wrapper.add_urdf(name, urdf_string, pose)
 
 
-def spawn_mesh(name: str, path: str, pose: Tuple[List[float], List[float]]) -> UpdateWorldResponse:
+def spawn_mesh(name: str, path: str, pose: Pose) -> UpdateWorldResponse:
     """
     Spawns a mesh into giskard's belief state
 
@@ -116,8 +115,7 @@ def spawn_mesh(name: str, path: str, pose: Tuple[List[float], List[float]]) -> U
     :param pose: Pose in which the mesh should be spawned
     :return: An UpdateWorldResponse message
     """
-    pose_stamped = make_pose_stamped(pose)
-    return giskard_wrapper.add_mesh(name, path, pose_stamped)
+    return giskard_wrapper.add_mesh(name, path, pose)
 
 
 # Sending Goals to Giskard
@@ -136,7 +134,7 @@ def achieve_joint_goal(goal_poses: Dict[str, float]) -> MoveResult:
     return giskard_wrapper.plan_and_execute()
 
 
-def achieve_cartesian_goal(goal_pose: Tuple[List[float], List[float]], tip_link: str, root_link: str) -> MoveResult:
+def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str) -> MoveResult:
     """
     Takes a cartesian position and tries to move the tip_link to this position using the chain defined by
     tip_link and root_link.
@@ -147,11 +145,11 @@ def achieve_cartesian_goal(goal_pose: Tuple[List[float], List[float]], tip_link:
     :return: MoveResult message for this goal
     """
     sync_worlds()
-    giskard_wrapper.set_cart_goal(make_pose_stamped(goal_pose), tip_link, root_link)
+    giskard_wrapper.set_cart_goal(goal_pose, tip_link, root_link)
     return giskard_wrapper.plan_and_execute()
 
 
-def achieve_straight_cartesian_goal(goal_pose: Tuple[List[float], List[float]], tip_link: str,
+def achieve_straight_cartesian_goal(goal_pose: Pose, tip_link: str,
                                     root_link: str) -> MoveResult:
     """
     Takes a cartesian position and tries to move the tip_link to this position in a straight line, using the chain
@@ -163,7 +161,7 @@ def achieve_straight_cartesian_goal(goal_pose: Tuple[List[float], List[float]], 
     :return: MoveResult message for this goal
     """
     sync_worlds()
-    giskard_wrapper.set_straight_cart_goal(make_pose_stamped(goal_pose), tip_link, root_link)
+    giskard_wrapper.set_straight_cart_goal(goal_pose, tip_link, root_link)
     return giskard_wrapper.plan_and_execute()
 
 
@@ -303,32 +301,6 @@ def make_world_body(object: Object) -> WorldBody:
     urdf_body.urdf = urdf_string
 
     return urdf_body
-
-
-def make_pose_stamped(position_and_orientation: Tuple[List[float], List[float]]) -> PoseStamped:
-    """
-    Creates a PoseStamped message for the given position and orientation. Position is xyz in world coordinate frame and
-    orientation is xyzw representing a quaternion.
-
-    :param position_and_orientation: Tuple of position and orientation
-    :return: A PoseStamped message
-    """
-    po, qu = position_and_orientation
-
-    pose = PoseStamped()
-    pose.header.stamp = rospy.Time().now()
-    pose.header.frame_id = "map"
-
-    pose.pose.position.x = po[0]
-    pose.pose.position.y = po[1]
-    pose.pose.position.z = po[2]
-
-    pose.pose.orientation.x = qu[0]
-    pose.pose.orientation.y = qu[1]
-    pose.pose.orientation.z = qu[2]
-    pose.pose.orientation.w = qu[3]
-
-    return pose
 
 
 def make_point_stamped(point: List[float]) -> PointStamped:
