@@ -844,9 +844,13 @@ class Object:
         :param orientation: The xyzw values to orient the object to.
         :param base: If True places the object base instead of origin at the specified position and orientation
         """
+
+        mag = np.linalg.norm(orientation)
+        normed_orientation = [elem/mag for elem in orientation]
+
         if base:
             position = np.array(position) + self.base_origin_shift
-        p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
+        p.resetBasePositionAndOrientation(self.id, position, normed_orientation, self.world.client_id)
         self._set_attached_objects([self])
 
     @property
