@@ -9,7 +9,7 @@ from pycram.bullet_world import BulletWorld, Object
 from pycram.designators import action_designator, object_designator
 from pycram.process_module import ProcessModule
 from pycram.process_module import simulated_robot
-
+from pycram.pose import Pose
 from pycram.robot_descriptions import robot_description
 
 # check if jpt is installed
@@ -38,7 +38,7 @@ class DatabaseResolverTestCase(unittest.TestCase):
     def setUpClass(cls) -> None:
         global pycrorm_uri
         cls.world = BulletWorld("DIRECT")
-        cls.milk = Object("milk", "milk", "milk.stl", position=[3, 3, 0.75])
+        cls.milk = Object("milk", "milk", "milk.stl", pose=Pose([3, 3, 0.75]))
         cls.robot = Object(robot_description.name, "pr2", robot_description.name + ".urdf")
         ProcessModule.execution_delay = False
         engine = sqlalchemy.create_engine(pycrorm_uri)
@@ -60,7 +60,7 @@ class DatabaseResolverTestCase(unittest.TestCase):
 
     def test_costmap_with_obstacles(self):
         kitchen = Object("kitchen", "environment", "kitchen.urdf")
-        self.milk.set_position([-1.2, 1, 0.98])
+        self.milk.set_pose(Pose([-1.2, 1, 0.98]))
 
         cml = DatabaseCostmapLocation(self.milk, self.session, reachable_for=self.robot)
 

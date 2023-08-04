@@ -14,6 +14,7 @@ from threading import Lock
 from time import time
 from typing import List, Dict, Any, Type, Optional, Union, get_type_hints, Callable, Tuple, Iterable
 
+from .pose import Pose
 from .robot_descriptions import robot_description
 
 import logging
@@ -462,7 +463,7 @@ class ActionDesignatorDescription(DesignatorDescription):
         """
         The performable designator with a single element for each list of possible parameter.
         """
-        robot_position: Tuple[List[float], List[float]] = dataclasses.field(init=False)
+        robot_position: Pose = dataclasses.field(init=False)
         """
         The position of the robot at the start of the action.
         """
@@ -477,7 +478,7 @@ class ActionDesignatorDescription(DesignatorDescription):
         """
 
         def __post_init__(self):
-            self.robot_position = BulletWorld.robot.get_position_and_orientation()
+            self.robot_position = BulletWorld.robot.get_pose()
             self.robot_torso_height = BulletWorld.robot.get_joint_state(robot_description.torso_joint)
             self.robot_type = BulletWorld.robot.type
 
@@ -511,11 +512,11 @@ class ActionDesignatorDescription(DesignatorDescription):
             metadata = MetaData().insert(session)
 
             # create position
-            position = Position(*self.robot_position[0])
+            position = Position(*self.robot_position.position_as_list())
             position.metadata_id = metadata.id
 
             # create orientation
-            orientation = Quaternion(*self.robot_position[1])
+            orientation = Quaternion(*self.robot_position.orientation_as_list())
             orientation.metadata_id = metadata.id
 
             session.add_all([position, orientation])
@@ -557,7 +558,7 @@ class LocationDesignatorDescription(DesignatorDescription):
         Resolved location that represents a specific point in the world which satisfies the constraints of the location
         designator description.
         """
-        pose: Tuple[List[float], List[float]]
+        pose: Pose
         """
         The resolved pose of the location designator. Pose is inherited by all location designator.
         """
@@ -607,7 +608,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
         def __post_init__(self):
             if self.bullet_world_object:
-                self._pose = self.bullet_world_object.get_position_and_orientation
+                self._pose = self.bullet_world_object.get_pose
 
         def to_sql(self) -> ORMObjectDesignator:
             """
@@ -627,8 +628,8 @@ class ObjectDesignatorDescription(DesignatorDescription):
             """
             metadata = MetaData().insert(session)
             # insert position and orientation of object of the designator
-            orm_position = Position(*self.pose[0], metadata.id)
-            orm_orientation = Quaternion(*self.pose[1], metadata.id)
+            orm_position = Position(*self.pose.position_as_list(), metadata.id)
+            orm_orientation = Quaternion(*self.pose.orientation_as_list(), metadata.id)
             session.add(orm_position)
             session.add(orm_orientation)
             session.commit()

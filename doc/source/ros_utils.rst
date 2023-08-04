@@ -1,0 +1,67 @@
+=========
+ROS Utils
+=========
+
+PyCRAM provides a number of utils to interact with the ROS network. The utils are:
+
+* A TF Broadcaster
+* A Joint State Publisher
+* A Simulated Force Torque Sensor
+
+These site will go over all utils what they do and how to use them. All ROS utils presented here
+will publish continuously in a new thread. You can either stop the publishing by calling the
+```stop_publishing``` or the thread will terminate automatically once the process is ended.
+
+--------------
+TF Broadcaster
+--------------
+
+The TF broadcaster broadcasts the transformations to every object and every link in the
+BulletWorld to the TF topic. This allows other ROS nodes to listen to the TF topic and
+transform their poses to the TF frames published in the transforms on the TF topic.
+
+The broadcaster publishes transforms in a specific interval, this interval can be specified
+when creating the broadcaster.
+
+.. code-block:: python
+
+    from pycram.ros.tf_broadcaster import TFBroadcaster
+
+    broadcaster = TFBroadcaster()
+
+The broadcaster allows to specify a projection namespace, the projection namespace will be
+prefixed before the TF frames. Furthermore, you can specify an odom frame and the interval
+at which the transforms will be published in seconds.
+
+---------------------
+Joint State Publisher
+---------------------
+
+The joint state publisher publishes the current joint positions for every joint of the
+currently loaded robot. Furthermore, allows the joint state publisher to specify a topic
+to publish as well as an interval at which the position should be published.
+
+.. code-block:: python
+
+    from pycram.ros.joint_state_publisher import JointStatePublisher
+
+    joint_publisher = JointStatePublisher("joint_states", 0.1)
+
+
+
+-------------------
+Force Torque Sensor
+-------------------
+
+PyBullet, the underlying simulation framework, allows to simulate a force torque sensor for
+a given joint. The results from this simulated force torque sensor are then published to
+a ROS topic of type geometry_msgs/WrenchStamped. Furthermore, allows the force torque sensor
+class to specify a topic as well as an interval in seconds.
+
+.. code-block:: python
+
+     from pycram.ros.force_torque_sensor import ForceTorqueSensor
+
+     ft_sensor = ForceTorqueSensor("l_wrist_roll_joint", "/pycram/fts", 0.1)
+
+

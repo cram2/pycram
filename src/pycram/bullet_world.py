@@ -18,14 +18,18 @@ import pybullet as p
 import rospkg
 import rospy
 import rosgraph
+import atexit
+from geometry_msgs.msg import Quaternion, Point, TransformStamped
 from urdf_parser_py.urdf import URDF
 
 from . import utils
 from .event import Event
 from .robot_descriptions import robot_description
 from .enums import JointType
+from .local_transformer import LocalTransformer
 from sensor_msgs.msg import JointState
 
+from .pose import Pose, Transform
 
 
 class BulletWorld:
@@ -79,15 +83,18 @@ class BulletWorld:
         self.coll_callbacks: Dict[Tuple[Object, Object], Tuple[Callable, Callable]] = {}
         self.data_directory: List[str] = [os.path.dirname(__file__) + "/../../resources"]
         self.shadow_world: BulletWorld = BulletWorld("DIRECT", True) if not is_shadow_world else None
-        self.world_sync: World_Sync = World_Sync(self, self.shadow_world) if not is_shadow_world else None
+        self.world_sync: WorldSync = WorldSync(self, self.shadow_world) if not is_shadow_world else None
         self.is_shadow_world: bool = is_shadow_world
+        self.local_transformer = LocalTransformer()
         if not is_shadow_world:
             self.world_sync.start()
+            self.local_transformer.bullet_world = self
 
         # Some default settings
         self.set_gravity([0, 0, -9.8])
         if not is_shadow_world:
             plane = Object("floor", "environment", "plane.urdf", world=self)
+        # atexit.register(self.exit)
 
     def get_objects_by_name(self, name: str) -> List[Object]:
         """
@@ -254,18 +261,17 @@ class BulletWorld:
                 o.set_joint_state(joint, obj.get_joint_state(joint))
         return world
 
-    def add_vis_axis(self, position_and_orientation: Tuple[List[float], List[float]],
+    def add_vis_axis(self, pose: Pose,
                      length: Optional[float] = 0.2) -> None:
         """
         Creates a Visual object which represents the coordinate frame at the given
         position and orientation. There can be an unlimited amount of vis axis objects.
 
-        :param position_and_orientation: The position as vector of x,y,z and the orientation as a quaternion
+        :param pose: The pose at which the axis should be spawned
         :param length: Optional parameter to configure the length of the axes
         """
 
-        position = position_and_orientation[0]
-        orientation = position_and_orientation[1]
+        position, orientation = pose.to_list()
 
         vis_x = p.createVisualShape(p.GEOM_BOX, halfExtents=[length, 0.01, 0.01],
                                     rgbaColor=[1, 0, 0, 0.8], visualFramePosition=[length, 0.01, 0.01])
@@ -365,7 +371,7 @@ class BulletWorld:
                     obj.detach(att_obj)
             for joint_name in obj.joints.keys():
                 obj.set_joint_state(joint_name, 0)
-            obj.set_position_and_orientation(obj.original_pose[0], obj.original_pose[1])
+            obj.set_pose(obj.original_pose)
 
 
 class Use_shadow_world():
@@ -383,9 +389,13 @@ class Use_shadow_world():
 
     def __enter__(self):
         if not BulletWorld.current_bullet_world.is_shadow_world:
-            time.sleep(3 / 240)
+            time.sleep(20 / 240)
             # blocks until the adding queue is ready
             BulletWorld.current_bullet_world.world_sync.add_obj_queue.join()
+            # **This is currently not used since the sleep(20/240) seems to be enough, but on weaker hardware this might
+            # not be a feasible solution**
+            # while not BulletWorld.current_bullet_world.world_sync.equal_states:
+            #     time.sleep(0.1)
 
             self.prev_world = BulletWorld.current_bullet_world
             BulletWorld.current_bullet_world.world_sync.pause_sync = True
@@ -397,7 +407,7 @@ class Use_shadow_world():
             BulletWorld.current_bullet_world.world_sync.pause_sync = False
 
 
-class World_Sync(threading.Thread):
+class WorldSync(threading.Thread):
     """
     Synchronizes the state between the BulletWorld and its shadow world.
     Meaning the cartesian and joint position of everything in the shadow world will be
@@ -412,7 +422,7 @@ class World_Sync(threading.Thread):
         threading.Thread.__init__(self)
         self.world: BulletWorld = world
         self.shadow_world: BulletWorld = shadow_world
-        self.shadow_world.world_sync: World_Sync = self
+        self.shadow_world.world_sync: WorldSync = self
 
         self.terminate: bool = False
         self.add_obj_queue: Queue = Queue()
@@ -420,6 +430,7 @@ class World_Sync(threading.Thread):
         self.pause_sync: bool = False
         # Maps bullet to shadow world objects
         self.object_mapping: Dict[Object, Object] = {}
+        self.equal_states = False
 
     def run(self):
         """
@@ -432,10 +443,11 @@ class World_Sync(threading.Thread):
         """
         while not self.terminate:
             self.check_for_pause()
+            # self.equal_states = False
             for i in range(self.add_obj_queue.qsize()):
                 obj = self.add_obj_queue.get()
                 # [name, type, path, position, orientation, self.world.shadow_world, color, bulletworld object]
-                o = Object(obj[0], obj[1], obj[2], obj[3], obj[4], obj[5], obj[6])
+                o = Object(obj[0], obj[1], obj[2], Pose(obj[3], obj[4]), obj[5], obj[6])
                 # Maps the BulletWorld object to the shadow world object
                 self.object_mapping[obj[7]] = o
                 self.add_obj_queue.task_done()
@@ -448,8 +460,9 @@ class World_Sync(threading.Thread):
                 self.remove_obj_queue.task_done()
 
             for bulletworld_obj, shadow_obj in self.object_mapping.items():
-                shadow_obj.set_position(bulletworld_obj.get_position())
-                shadow_obj.set_orientation(bulletworld_obj.get_orientation())
+                shadow_obj.set_pose(bulletworld_obj.get_pose())
+                # shadow_obj.set_position(bulletworld_obj.get_position())
+                # shadow_obj.set_orientation(bulletworld_obj.get_orientation())
 
                 # Manage joint positions
                 if len(bulletworld_obj.joints) > 2:
@@ -457,6 +470,7 @@ class World_Sync(threading.Thread):
                         shadow_obj.set_joint_state(joint_name, bulletworld_obj.get_joint_state(joint_name))
 
             self.check_for_pause()
+            # self.check_for_equal()
             time.sleep(1 / 240)
 
         self.add_obj_queue.join()
@@ -468,6 +482,16 @@ class World_Sync(threading.Thread):
         """
         while self.pause_sync:
             time.sleep(0.1)
+
+    def check_for_equal(self) -> None:
+        """
+        Checks if both BulletWorlds have the same state, meaning all objects are in the same position.
+        This is currently not used, but might be used in the future if synchronization issues worsen.
+        """
+        eql = True
+        for obj, shadow_obj in self.object_mapping.items():
+            eql = eql and obj.get_pose() == shadow_obj.get_pose()
+        self.equal_states = eql
 
 
 class Gui(threading.Thread):
@@ -683,8 +707,7 @@ class Object:
     """
 
     def __init__(self, name: str, type: str, path: str,
-                 position: Optional[List[float]] = [0, 0, 0],
-                 orientation: Optional[List[float]] = [0, 0, 0, 1],
+                 pose: Pose = None,
                  world: BulletWorld = None,
                  color: Optional[List[float]] = [1, 1, 1, 1],
                  ignoreCachedFiles: Optional[bool] = False):
@@ -696,46 +719,46 @@ class Object:
         :param name: The name of the object
         :param type: The type of the object
         :param path: The path to the source file, if only a filename is provided then the resourcer directories will be searched
-        :param position: The position in which the object should be spawned, as xyz
-        :param orientation: The orientation with which the object should be spawned, as quaternion
+        :param pose: The pose at which the Object should be spawned
         :param world: The BulletWorld in which the object should be spawned, if no world is specified the :py:attr:`~BulletWorld.current_bullet_world` will be used
         :param color: The color with which the object should be spawned.
         :param ignoreCachedFiles: If true the file will be spawned while ignoring cached files.
         """
+        if not pose:
+            pose = Pose()
         self.world: BulletWorld = world if world is not None else BulletWorld.current_bullet_world
         self.name: str = name
         self.type: str = type
         self.color: List[float] = color
+        position, orientation = pose.to_list()
         self.id, self.path = _load_object(name, path, position, orientation, self.world, color, ignoreCachedFiles)
         self.joints: Dict[str, int] = self._joint_or_link_name_to_id("joint")
         self.links: Dict[str, int] = self._joint_or_link_name_to_id("link")
         self.attachments: Dict[Object, List] = {}
         self.cids: Dict[Object, int] = {}
-        self.world.objects.append(self)
-        self.original_pose = [position, orientation]
-        self.base_origin_shift = np.array(position) - np.array(self.get_base_origin())
+        self.original_pose = pose
+        self.base_origin_shift = np.array(position) - np.array(self.get_base_origin().position_as_list())
+        self.local_transformer = LocalTransformer()
+        self.tf_frame = ("shadow/" if self.world.is_shadow_world else "") + self.name + "_" + str(self.id)
 
         # This means "world" is not the shadow world since it has a reference to a shadow world
         if self.world.shadow_world != None:
             self.world.world_sync.add_obj_queue.put(
                 [name, type, path, position, orientation, self.world.shadow_world, color, self])
 
-        if re.search("[a-zA-Z0-9].urdf", self.path):
-            with open(self.path, mode="r") as f:
-
-                urdf_string = f.read()
-            urdf_string = urdf_string
-            robot_name = _get_robot_name_from_urdf(urdf_string)
-            if robot_name == robot_description.name and BulletWorld.robot == None:
-                BulletWorld.robot = self
-        self.original_pose = [position, orientation]
         with open(self.path) as f:
             self.urdf_object = URDF.from_xml_string(f.read())
+            if self.urdf_object.name == robot_description.name and not BulletWorld.robot:
+                BulletWorld.robot = self
+
         self.links[self.urdf_object.get_root()] = -1
+        self.local_transformer.update_transforms_for_object(self)
+
+        self.world.objects.append(self)
 
     def __repr__(self):
-        skip_attr = ["links", "joints", "urdf_object"]
-        return self.__class__.__qualname__ + f"(" + ', '.join(
+        skip_attr = ["links", "joints", "urdf_object", "attachments", "cids"]
+        return self.__class__.__qualname__ + f"(" + ', \n'.join(
             [f"{key}={value}" if key not in skip_attr else f"{key}: ..." for key, value in self.__dict__.items()]) + ")"
 
     def remove(self) -> None:
@@ -770,12 +793,13 @@ class Object:
         :param loose: If the attachment should be a loose attachment.
         """
         link_id = self.get_link_id(link) if link else -1
-        link_T_object = self._calculate_transform(object, link)
-        self.attachments[object] = [link_T_object, link, loose]
-        object.attachments[self] = [p.invertTransform(link_T_object[0], link_T_object[1]), None, False]
+        link_to_object = self._calculate_transform(object, link)
+        self.attachments[object] = [link_to_object, link, loose]
+        object.attachments[self] = [link_to_object.invert(), None, False]
 
         cid = p.createConstraint(self.id, link_id, object.id, -1, p.JOINT_FIXED,
-                                 [0, 1, 0], link_T_object[0], [0, 0, 0], link_T_object[1],
+                                 [0, 1, 0], link_to_object.translation_as_list(), [0, 0, 0],
+                                 link_to_object.rotation_as_list(),
                                  physicsClientId=self.world.client_id)
         self.cids[object] = cid
         object.cids[self] = cid
@@ -807,54 +831,47 @@ class Object:
         for att in attachments.keys():
             self.detach(att)
 
-    def get_position(self) -> List[float]:
+    def get_position(self) -> Point:
         """
         Returns the position of this Object as a list of xyz.
-        """
-        return p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id)[0]
 
-    def get_pose(self) -> List[float]:
+        :return: The current position of this object
         """
-        Returns the position of this object as a list of xyz. Alias for :func:`~Object.get_position`.
-        """
-        return self.get_position()
+        return self.get_pose().position
+        # return p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id)[0]
 
-    def get_orientation(self) -> List[float]:
+    def get_orientation(self) -> Quaternion:
         """
         Returns the orientation of this object as a list of xyzw, representing a quaternion.
 
         :return: A list of xyzw
         """
-        return p.getBasePositionAndOrientation(self.id, self.world.client_id)[1]
+        return self.get_pose().orientation
 
-    def get_position_and_orientation(self) -> Tuple[List[float], List[float]]:
+    def get_pose(self) -> Pose:
         """
-        Returns the position and quaternion of this Object. The position is a list of xyz and the orientation is a list
-        of xyzw representing a quaternion.
+        Returns the position of this object as a list of xyz. Alias for :func:`~Object.get_position`.
 
-        :return: A list of position and quaternion
+        :return: The current pose of this object
         """
-        return p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id)[:2]
+        return Pose(*p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id))
 
-    def set_position_and_orientation(self, position, orientation, base=False) -> None:
+    def set_pose(self, pose: Pose, base: bool = False) -> None:
         """
-        Set the position and the orientation of the object in the bullet world
+        Sets the Pose of the object.
 
-        :param position: The xyz values to place the object at.
-        :param orientation: The xyzw values to orient the object to.
+        :param pose: New Pose for the object
         :param base: If True places the object base instead of origin at the specified position and orientation
         """
-
-        mag = np.linalg.norm(orientation)
-        normed_orientation = [elem/mag for elem in orientation]
-
+        position, orientation = pose.to_list()
         if base:
             position = np.array(position) + self.base_origin_shift
-        p.resetBasePositionAndOrientation(self.id, position, normed_orientation, self.world.client_id)
+        p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
+        self.local_transformer.update_transforms_for_object(self)
         self._set_attached_objects([self])
 
     @property
-    def pose(self) -> List[float]:
+    def pose(self) -> Pose:
         """
         Property that returns the current position of this Object.
 
@@ -862,12 +879,21 @@ class Object:
         """
         return self.get_pose()
 
+    @pose.setter
+    def pose(self, value: Pose) -> None:
+        """
+        Sets the Pose of the Object to the given value. Function for attribute use.
+
+        :param value: New Pose of the Object
+        """
+        self.set_pose(value)
+
     def move_base_to_origin_pos(self) -> None:
         """
         Move the object such that its base will be at the current origin position.
         This is useful when placing objects on surfaces where you want the object base in contact with the surface.
         """
-        self.set_position_and_orientation(*self.get_position_and_orientation(), base=True)
+        self.set_pose(self.get_pose(), base=True)
 
     def _set_attached_objects(self, prev_object: List[Object]) -> None:
         """
@@ -877,7 +903,7 @@ class Object:
         After this the _set_attached_objects method of all attached objects
         will be called.
 
-        :param prev_object: A list of Objects that were already moved, this will be excluded to prevent recursion in the update.
+        :param prev_object: A list of Objects that were already moved, these will be excluded to prevent loops in the update.
         """
         for obj in self.attachments:
             if obj in prev_object:
@@ -885,27 +911,27 @@ class Object:
             if self.attachments[obj][2]:
                 # Updates the attachment transformation and contraint if the
                 # attachment is loos, instead of updating the position of all attached objects
-                link_T_object = self._calculate_transform(obj, self.attachments[obj][1])
+                link_to_object = self._calculate_transform(obj, self.attachments[obj][1])
                 link_id = self.get_link_id(self.attachments[obj][1]) if self.attachments[obj][1] else -1
-                self.attachments[obj][0] = link_T_object
-                obj.attachments[self][0] = p.invertTransform(link_T_object[0], link_T_object[1])
-                p.removeConstraint(self.cids[obj])
-                cid = p.createConstraint(self.id, link_id, obj.id, -1, p.JOINT_FIXED, [0, 0, 0], link_T_object[0],
-                                         [0, 0, 0], link_T_object[1])
+                self.attachments[obj][0] = link_to_object
+                obj.attachments[self][0] = link_to_object.invert()
+                p.removeConstraint(self.cids[obj], physicsClientId=self.world.client_id)
+                cid = p.createConstraint(self.id, link_id, obj.id, -1, p.JOINT_FIXED, [0, 0, 0],
+                                         link_to_object.translation_as_list(),
+                                         [0, 0, 0], link_to_object.rotation_as_list(),
+                                         physicsClientId=self.world.client_id)
                 self.cids[obj] = cid
                 obj.cids[self] = cid
             else:
-                # Updates the position of all attached objects
-                link_T_object = self.attachments[obj][0]
-                link_name = self.attachments[obj][1]
-                world_T_link = self.get_link_position_and_orientation(
-                    link_name) if link_name else self.get_position_and_orientation()
-                world_T_object = p.multiplyTransforms(world_T_link[0], world_T_link[1], link_T_object[0],
-                                                      link_T_object[1])
-                p.resetBasePositionAndOrientation(obj.id, world_T_object[0], world_T_object[1])
+                link_to_object = self.attachments[obj][0]
+
+                world_to_object = self.local_transformer.transform_pose(link_to_object.to_pose(), "map")
+                p.resetBasePositionAndOrientation(obj.id, world_to_object.position_as_list(),
+                                                  world_to_object.orientation_as_list(),
+                                                  physicsClientId=self.world.client_id)
                 obj._set_attached_objects(prev_object + [self])
 
-    def _calculate_transform(self, obj: Object, link: str) -> Tuple[List[float], List[float]]:
+    def _calculate_transform(self, obj: Object, link: str = None) -> Transform:
         """
         Calculates the transformation between another object and the given
         link of this object. If no link is provided then the base position will be used.
@@ -914,39 +940,45 @@ class Object:
         :param link: The optional link name
         :return: The transformation from the link (or base position) to the other objects base position
         """
-        link_id = self.get_link_id(link) if link else -1
-        world_T_link = self.get_link_position_and_orientation(link) if link else self.get_position_and_orientation()
-        link_T_world = p.invertTransform(world_T_link[0], world_T_link[1])
-        world_T_object = obj.get_position_and_orientation()
-        link_T_object = p.multiplyTransforms(link_T_world[0], link_T_world[1],
-                                             world_T_object[0], world_T_object[1], self.world.client_id)
-        return link_T_object
+        transform = self.local_transformer.transform_to_object_frame(obj.pose, self, link)
 
-    def set_position(self, position: List[float], base=False) -> None:
+        return Transform(transform.position_as_list(), transform.orientation_as_list(), transform.frame, obj.tf_frame)
+
+    def set_position(self, position: Union[Pose, Point], base=False) -> None:
         """
         Sets this Object to the given position, if base is true the bottom of the Object will be placed at the position
-        instead of the origin in the center of the Object.
+        instead of the origin in the center of the Object. The given position can either be a Pose, in this case only the
+        position is used or a geometry_msgs.msg/Point which is the position part of a Pose.
 
         :param position: Target position as xyz.
         :param base: If the bottom of the Object should be placed or the origin in the center.
         """
-        self.set_position_and_orientation(position, self.get_orientation(), base=base)
+        if type(position) == Pose:
+            target_position = position.position
+        else:
+            target_position = position
 
-    def set_orientation(self, orientation: List[float]) -> None:
+        pose = Pose()
+        pose.pose.position = target_position
+        pose.pose.orientation = self.get_orientation()
+        self.set_pose(pose, base=base)
+
+    def set_orientation(self, orientation: Union[Pose, Quaternion]) -> None:
         """
-        Sets the orientation of the Object to the given orientation, orientation needs to be a quaternion.
+        Sets the orientation of the Object to the given orientation. Orientation can either be a Pose, in this case only
+        the orientation of this pose is used or a geometry_msgs.msg/Quaternion which is the orientation of a Pose.
 
         :param orientation: Target orientation given as a list of xyzw.
         """
-        self.set_position_and_orientation(self.get_position(), orientation)
+        if type(orientation) == Pose:
+            target_orientation = orientation.orientation
+        else:
+            target_orientation = orientation
 
-    def set_pose(self, position: List[float]) -> None:
-        """
-        Sets the position of this Object to the given position.
-
-        :param position: Target position as a list of xyz.
-        """
-        self.set_position(position)
+        pose = Pose()
+        pose.pose.position = self.get_position()
+        pose.pose.orientation = target_orientation
+        self.set_pose(pose)
 
     def _joint_or_link_name_to_id(self, type: str) -> Dict[str, int]:
         """
@@ -999,54 +1031,45 @@ class Object:
         """
         return dict(zip(self.joints.values(), self.joints.keys()))[id]
 
-    def get_link_relative_to_other_link(self, source_frame: str, target_frame: str) -> Tuple[List[float], List[float]]:
+    def get_link_relative_to_other_link(self, source_frame: str, target_frame: str) -> Pose:
         """
         Calculates the position of a link in the coordinate frame of another link.
 
         :param source_frame: The name of the source frame
         :param target_frame: The name of the target frame
-        :return: The position and orientation of the source frame in the target frame
+        :return: The pose of the source frame in the target frame
         """
+        source_pose = self.get_link_pose(source_frame)
+        return self.local_transformer.transform_to_object_frame(source_pose, self, target_frame)
 
-        # Get pose of source_frame in map (although pose is returned we use the transform style for clarity)
-        map_T_source_trans, map_T_source_rot = self.get_link_position_and_orientation(source_frame)
-
-        # Get pose of target_frame in map (although pose is returned we use the transform style for clarity)
-        map_T_target_trans, map_T_target_rot = self.get_link_position_and_orientation(target_frame)
-
-        # Calculate Pose of target frame relatively to source_frame
-        source_T_map_trans, source_T_map_rot = p.invertTransform(map_T_source_trans, map_T_source_rot)
-        source_T_target_trans, source_T_target_rot = p.multiplyTransforms(source_T_map_trans, source_T_map_rot,
-                                                                          map_T_target_trans, map_T_target_rot)
-        return source_T_target_trans, source_T_target_rot
-
-    def get_link_position_and_orientation(self, name: str) -> List[float]:
-        """
-        Returns the position and orientation of a link of this Object. Position is returned as xyz and orientation as a
-        quaternion.
-
-        :param name: The link name
-        :return: The position and orientation
-        """
-        return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[4:6]
-
-    def get_link_position(self, name: str) -> List[float]:
+    def get_link_position(self, name: str) -> Point:
         """
         Returns the position of a link of this Object. Position is returned as a list of xyz.
 
         :param name: The link name
         :return: The link position as xyz
         """
-        return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[4]
+        return self.get_link_pose(name).position
 
-    def get_link_orientation(self, name: str) -> List[float]:
+    def get_link_orientation(self, name: str) -> Quaternion:
         """
         Returns the orientation of a link of this Object. Orientation is returned as a quaternion.
 
         :param name: The name of the link
         :return: The orientation of the link as a quaternion
         """
-        return p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[5]
+        return self.get_link_pose(name).orientation
+
+    def get_link_pose(self, name: str) -> Pose:
+        """
+        Returns a Pose of the link corresponding to the given name. The returned Pose will be in world coordinate frame.
+
+        :param name: Link name for which a Pose should returned
+        :return: The pose of the link
+        """
+        if name in self.links.keys() and self.links[name] == -1:
+            return self.get_pose()
+        return Pose(*p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[4:6])
 
     def set_joint_state(self, joint_name: str, joint_pose: float) -> None:
         """
@@ -1057,7 +1080,8 @@ class Object:
         :param joint_pose: The target pose for this joint
         """
         # TODO Limits for rotational (infinitie) joints are 0 and 1, they should be considered seperatly
-        up_lim, low_lim = p.getJointInfo(self.id, self.joints[joint_name], physicsClientId=self.world.client_id)[8:10]
+        up_lim, low_lim = p.getJointInfo(self.id, self.joints[joint_name], physicsClientId=self.world.client_id)[
+                          8:10]
         if low_lim > up_lim:
             low_lim, up_lim = up_lim, low_lim
         if not low_lim <= joint_pose <= up_lim:
@@ -1067,6 +1091,7 @@ class Object:
             # Temporarily disabled because kdl outputs values exciting joint limits
             # return
         p.resetJointState(self.id, self.joints[joint_name], joint_pose, physicsClientId=self.world.client_id)
+        self.local_transformer.update_transforms_for_object(self)
         self._set_attached_objects([self])
 
     def get_joint_state(self, joint_name: str) -> float:
@@ -1117,21 +1142,21 @@ class Object:
         else:
             add_joints = set(joint_names) - set(self.joints.keys())
             rospy.logerr(f"There are joints in the published joint state which are not in this model: /n \
-                        The following joint{'s' if len(add_joints) != 1 else ''}: {add_joints}")
+                    The following joint{'s' if len(add_joints) != 1 else ''}: {add_joints}")
 
-    def update_position_from_tf(self, frame: str) -> None:
+    def update_pose_from_tf(self, frame: str) -> None:
         """
-        Updates the position of this object from a TF message.
+        Updates the pose of this object from a TF message.
 
         :param frame: Name of the TF frame from which the position should be taken
         """
         tf_listener = tf.TransformListener()
         time.sleep(0.5)
-        position = tf_listener.lookupTransform(frame, "map", rospy.Time(0))
-        self.set_position([position[0][0] * -1,
-                           position[0][1] * -1,
-                           position[0][2],
-                           position[1]])
+        position, orientation = tf_listener.lookupTransform(frame, "map", rospy.Time(0))
+        position = [position[0][0] * -1,
+                    position[0][1] * -1,
+                    position[0][2]]
+        self.set_position(Pose(position, orientation))
 
     def set_color(self, color: List[float], link: Optional[str] = "") -> None:
         """
@@ -1157,11 +1182,13 @@ class Object:
         """
         This method returns the color of this object or a link of this object. If no link is given then the
         return is either:
+
             1. A list with the color as RGBA values, this is the case if the object only has one link (this
                 happens for example if the object is spawned from a .obj or .stl file)
             2. A dict with the link name as key and the color as value. The color is given as RGBA values.
                 Please keep in mind that not every link may have a color. This is dependent on the URDF from which the
                 object is spawned.
+
         If a link is specified then the return is a list with RGBA values representing the color of this link.
         It may be that this link has no color, in this case the return is None as well as an error message.
 
@@ -1203,7 +1230,7 @@ class Object:
         else:
             return p.getAABB(self.id, physicsClientId=self.world.client_id)
 
-    def get_base_origin(self, link_name: Optional[str] = None) -> List[float]:
+    def get_base_origin(self, link_name: Optional[str] = None) -> Pose:
         """
         Returns the origin of the base/bottom of an object/link
 
@@ -1213,7 +1240,8 @@ class Object:
         aabb = self.get_AABB(link_name=link_name)
         base_width = np.absolute(aabb[0][0] - aabb[1][0])
         base_length = np.absolute(aabb[0][1] - aabb[1][1])
-        return [aabb[0][0] + base_width / 2, aabb[0][1] + base_length / 2, aabb[0][2]]
+        return Pose([aabb[0][0] + base_width / 2, aabb[0][1] + base_length / 2, aabb[0][2]],
+                    self.get_pose().orientation_as_list())
 
     def get_joint_limits(self, joint: str) -> Tuple[float, float]:
         """
@@ -1278,6 +1306,16 @@ class Object:
         for joint in self.joints.keys():
             result[joint] = self.get_joint_state(joint)
         return result
+
+    def get_link_tf_frame(self, link_name: str) -> str:
+        """
+        Returns the name of the tf frame for the given link name. This method does not check if the given name is
+        actually a link of this object.
+
+        :param link_name: Name of a link for which the tf frame should be returned
+        :return: A TF frame name for a specific link
+        """
+        return self.tf_frame + "/" + link_name
 
 
 def filter_contact_points(contact_points, exclude_ids) -> List:
@@ -1355,7 +1393,8 @@ def _load_object(name: str,
             if path: break
 
     if not path:
-        raise FileNotFoundError(f"File {pa.name} could not be found in the resource directory {world.data_directory}")
+        raise FileNotFoundError(
+            f"File {pa.name} could not be found in the resource directory {world.data_directory}")
     # rospack = rospkg.RosPack()
     # cach_dir = rospack.get_path('pycram') + '/resources/cached/'
     cach_dir = world.data_directory[0] + '/cached/'
@@ -1487,23 +1526,23 @@ def _generate_urdf_file(name: str, path: str, color: List[float], cach_dir: str)
     :return: The absolute path of the created file
     """
     urdf_template = '<?xml version="0.0" ?> \n \
-                        <robot name="~a_object"> \n \
-                         <link name="~a_main"> \n \
-                            <visual> \n \
-                                <geometry>\n \
-                                    <mesh filename="~b" scale="1 1 1"/> \n \
-                                </geometry>\n \
-                                <material name="white">\n \
-                                    <color rgba="~c"/>\n \
-                                </material>\n \
-                          </visual> \n \
-                        <collision> \n \
-                        <geometry>\n \
-                            <mesh filename="~b" scale="1 1 1"/>\n \
-                        </geometry>\n \
-                        </collision>\n \
-                        </link> \n \
-                        </robot>'
+                    <robot name="~a_object"> \n \
+                     <link name="~a_main"> \n \
+                        <visual> \n \
+                            <geometry>\n \
+                                <mesh filename="~b" scale="1 1 1"/> \n \
+                            </geometry>\n \
+                            <material name="white">\n \
+                                <color rgba="~c"/>\n \
+                            </material>\n \
+                      </visual> \n \
+                    <collision> \n \
+                    <geometry>\n \
+                        <mesh filename="~b" scale="1 1 1"/>\n \
+                    </geometry>\n \
+                    </collision>\n \
+                    </link> \n \
+                    </robot>'
     urdf_template = fix_missing_inertial(urdf_template)
     rgb = " ".join(list(map(str, color)))
     pathlib_obj = pathlib.Path(path)
@@ -1517,7 +1556,7 @@ def _generate_urdf_file(name: str, path: str, color: List[float], cach_dir: str)
 def _world_and_id(world: BulletWorld) -> Tuple[BulletWorld, int]:
     """
     Selects the world to be used. If the given world is None the 'current_bullet_world' is used.
-    
+
     :param world: The world which should be used or None if 'current_bullet_world' should be used
     :return: The BulletWorld object and the id of this BulletWorld
     """

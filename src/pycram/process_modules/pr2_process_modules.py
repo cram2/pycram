@@ -9,11 +9,11 @@ import pybullet as p
 from ..plan_failures import EnvironmentManipulationImpossible
 from ..robot_descriptions import robot_description
 from ..process_module import ProcessModule, ProcessModuleManager
-from ..bullet_world import BulletWorld
+from ..bullet_world import BulletWorld, Object
 from ..helper import transform
 from ..external_interfaces.ik import request_ik, IKError
 from ..helper import _transform_to_torso, _apply_ik, calculate_wrist_tool_offset, inverseTimes
-from ..local_transformer import local_transformer
+from ..local_transformer import LocalTransformer
 from ..designators.motion_designator import *
 from ..enums import JointType
 
@@ -41,8 +41,7 @@ class Pr2Navigation(ProcessModule):
 
     def _execute(self, desig: MoveMotion.Motion):
         robot = BulletWorld.robot
-        robot.set_position_and_orientation(desig.target[0], desig.target[1])
-        local_transformer.update_from_btr()
+        robot.set_pose(desig.target)
 
 
 class Pr2PickUp(ProcessModule):
@@ -55,21 +54,16 @@ class Pr2PickUp(ProcessModule):
         object = desig.object_desig.bullet_world_object
         robot = BulletWorld.robot
         grasp = robot_description.grasps.get_orientation_for_grasp(desig.grasp)
-        target = [object.get_position(), grasp]
-        target = _transform_to_torso(target, robot)
+        target = object.get_pose()
+        target.orientation.x = grasp[0]
+        target.orientation.y = grasp[1]
+        target.orientation.z = grasp[2]
+        target.orientation.w = grasp[3]
+
         arm = desig.arm
         arm_short = "r" if arm == "right" else "l"
-        diff = calculate_wrist_tool_offset(arm_short + "_wrist_roll_link", arm_short + "_gripper_tool_frame", robot)
-        target = inverseTimes(target, diff)
 
-        joints = robot_description._safely_access_chains(arm).joints
-
-        # Get Link before first joint in chain
-        base_link = robot_description.get_parent(joints[0])
-        # Get link after last joint in chain
-        end_effector = robot_description.get_child(joints[-1])
-        inv = request_ik(base_link, end_effector, target, robot, joints)
-        _apply_ik(robot, inv, joints)
+        _move_arm_tcp(target, robot, arm)
         tool_frame = robot_description.get_tool_frame(arm)
         robot.attach(object, tool_frame)
 
@@ -87,21 +81,9 @@ class Pr2Place(ProcessModule):
         """
         object = desig.object.bullet_world_object
         robot = BulletWorld.robot
-        target = desig.target
-        target = _transform_to_torso(target, robot)
         arm = desig.arm
-        arm_short = "r" if arm == "right" else "l"
-        diff = calculate_wrist_tool_offset(arm_short + "_wrist_roll_link", arm_short + "_gripper_tool_frame", robot)
-        target = inverseTimes(target, diff)
-        joints = robot_description._safely_access_chains(arm).joints
 
-        # Get Link before first joint in chain
-        base_link = robot_description.get_parent(joints[0])
-        # Get link after last joint in chain
-        end_effector = robot_description.get_child(joints[-1])
-
-        inv = request_ik(base_link, end_effector, target, robot, joints)
-        _apply_ik(robot, inv, joints)
+        _move_arm_tcp(desig.target, robot, arm)
         robot.detach(object)
 
 
@@ -114,28 +96,13 @@ class Pr2MoveHead(ProcessModule):
     def _execute(self, desig: LookingMotion.Motion):
         target = desig.target
         robot = BulletWorld.robot
-        if type(target) is str:
-            target_frame = local_transformer.projection_namespace + '/' + target \
-                if local_transformer.projection_namespace \
-                else target
-            target = local_transformer.tf_transform(local_transformer.map_frame, target_frame)[0]
 
-        pan_transform = p.invertTransform(robot.get_link_position("head_pan_link"),
-                                          robot.get_link_orientation("head_pan_link"))
-        # Flattens everything in one list because of 'transform'
-        pan_transform = [i for sublist in pan_transform for i in sublist]
+        local_transformer = LocalTransformer()
+        pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame("head_pan_link"))
+        pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame("head_tilt_link"))
 
-        tilt_transform = p.invertTransform(robot.get_link_position("head_tilt_link"),
-                                           robot.get_link_orientation("head_tilt_link"))
-        # Flattens everything in one list because of 'transform'
-        tilt_transform = [i for sublist in tilt_transform for i in sublist]
-
-        target = [i for sublist in target for i in sublist]
-        pose_in_pan = transform(target, pan_transform)[:3]
-        pose_in_tilt = transform(target, tilt_transform)[:3]
-
-        new_pan = np.arctan2(pose_in_pan[1], pose_in_pan[0])
-        new_tilt = np.arctan2(pose_in_tilt[2], pose_in_tilt[0] ** 2 + pose_in_tilt[1] ** 2) * -1
+        new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
+        new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2) * -1
 
         current_pan = robot.get_joint_state("head_pan_joint")
         current_tilt = robot.get_joint_state("head_tilt_joint")
@@ -174,7 +141,7 @@ class Pr2Detecting(ProcessModule):
 
         objects = BulletWorld.current_bullet_world.get_objects_by_type(object_type)
         for obj in objects:
-            if btr.visible(obj, robot.get_link_position_and_orientation(cam_frame_name), front_facing_axis):
+            if btr.visible(obj, robot.get_link_pose(cam_frame_name), front_facing_axis):
                 return obj
 
 
@@ -186,22 +153,8 @@ class Pr2MoveTCP(ProcessModule):
     def _execute(self, desig: MoveTCPMotion.Motion):
         target = desig.target
         robot = BulletWorld.robot
-        target = _transform_to_torso(target, robot)
-        arm_short = "r" if desig.arm == "right" else "l"
-        diff = calculate_wrist_tool_offset(arm_short + "_wrist_roll_link", arm_short + "_gripper_tool_frame", robot)
-        target = inverseTimes(target, diff)
-        robot = BulletWorld.robot
 
-        joints = robot_description._safely_access_chains(desig.arm).joints
-
-        # Get Link before first joint in chain
-        base_link = robot_description.get_parent(joints[0])
-        # Get link after last joint in chain
-        end_effector = robot_description.get_child(joints[-1])
-
-        inv = request_ik(base_link, end_effector, target, robot, joints)
-
-        _apply_ik(robot, inv, joints)
+        _move_arm_tcp(target, robot, desig.arm)
 
 
 class Pr2MoveArmJoints(ProcessModule):
@@ -262,14 +215,13 @@ class Pr2Close(ProcessModule):
     """
     Low-level implementation that lets the robot close a grasped container, in simulation
     """
-    def _execute(self, desig: ClosingMotion):
+    def _execute(self, desig: ClosingMotion.Motion):
         part_of_object = desig.object_part.bullet_world_object
 
         container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
 
         goal_pose = btr.link_pose_for_joint_config(part_of_object, {
             container_joint: part_of_object.get_joint_limits(container_joint)[0]}, desig.object_part.name)
-
 
         _move_arm_tcp(goal_pose, BulletWorld.robot, desig.arm)
 
@@ -278,21 +230,12 @@ class Pr2Close(ProcessModule):
                                                                   container_joint)[0])
 
 
-def _move_arm_tcp(target, robot, arm):
-    target = _transform_to_torso(target, robot)
-    arm_short = "r" if arm == "right" else "l"
-    diff = calculate_wrist_tool_offset(arm_short + "_wrist_roll_link", arm_short + "_gripper_tool_frame", robot)
-    target = inverseTimes(target, diff)
-    robot = BulletWorld.robot
+def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
+    gripper = robot_description.get_tool_frame(arm)
 
-    joints = robot_description._safely_access_chains(arm).joints
+    joints = robot_description.chains[arm].joints
 
-    # Get Link before first joint in chain
-    base_link = robot_description.get_parent(joints[0])
-    # Get link after last joint in chain
-    end_effector = robot_description.get_child(joints[-1])
-
-    inv = request_ik(base_link, end_effector, target, robot, joints)
+    inv = request_ik(target, robot, joints, gripper)
     _apply_ik(robot, inv, joints)
 
 

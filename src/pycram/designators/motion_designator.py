@@ -11,6 +11,7 @@ from ..designator import MotionDesignatorDescription
 
 from typing import Tuple, List, Dict, get_type_hints, Callable, Optional
 import sqlalchemy.orm
+from ..pose import Pose
 
 
 class MoveMotion(MotionDesignatorDescription):
@@ -21,7 +22,7 @@ class MoveMotion(MotionDesignatorDescription):
     @dataclasses.dataclass
     class Motion(MotionDesignatorDescription.Motion):
         # cmd: str
-        target: list
+        target: Pose
         """
         Location to which the robot should be moved
         """
@@ -31,7 +32,7 @@ class MoveMotion(MotionDesignatorDescription):
             return pm_manager.navigate().execute(self)
             # return ProcessModule.perform(self)
 
-    def __init__(self, target: Tuple[List[float], List[float]], resolver: Callable = None):
+    def __init__(self, target: Pose, resolver: Callable = None):
         """
         Navigates to robot to the given target
 
@@ -40,7 +41,7 @@ class MoveMotion(MotionDesignatorDescription):
         """
         super().__init__(resolver)
         self.cmd: str = "navigate"
-        self.target: Tuple[List[float], List[float]] = target
+        self.target: Pose = target
 
     def ground(self) -> Motion:
         """
@@ -118,7 +119,7 @@ class PlaceMotion(MotionDesignatorDescription):
         """
         Object designator of the object to be placed
         """
-        target: Tuple[List[float], List[float]]
+        target: Pose
         """
         Pose at which the object should be placed
         """
@@ -131,7 +132,7 @@ class PlaceMotion(MotionDesignatorDescription):
             pm_manager = ProcessModuleManager.get_manager()
             return pm_manager.place().execute(self)
 
-    def __init__(self, object_desig: ObjectDesignatorDescription.Object, target: Tuple[List[float], List[float]],
+    def __init__(self, object_desig: ObjectDesignatorDescription.Object, target: Pose,
                  arm: Optional[str] = None, resolver: Optional[Callable] = None):
         """
         Places the object in object_desig at the position in target. If an arm is given then the arm is used, otherwise
@@ -145,7 +146,7 @@ class PlaceMotion(MotionDesignatorDescription):
         super().__init__(resolver)
         self.cmd: str = 'place'
         self.object_desig: ObjectDesignatorDescription.Object = object_desig
-        self.target: Tuple[List[float], List[float]] = target
+        self.target: Pose = target
         self.arm: str = arm
 
     def ground(self) -> Motion:
@@ -153,7 +154,7 @@ class PlaceMotion(MotionDesignatorDescription):
         Default resolver for placing an object which returns a resolved motion designator for the input. If no arm is
         given then the arm parameter will default to ``'left'``.
 
-        :return: An resolved performable motion designator
+        :return: A resolved performable motion designator
         """
         arm = "left" if not self.arm else self.arm
         return self.Motion(self.cmd, self.object_desig, self.target, arm)
@@ -167,7 +168,7 @@ class MoveTCPMotion(MotionDesignatorDescription):
     @dataclasses.dataclass
     class Motion(MotionDesignatorDescription.Motion):
         # cmd: str
-        target: list
+        target: Pose
         """
         Target pose to which the TCP should be moved
         """
@@ -180,7 +181,7 @@ class MoveTCPMotion(MotionDesignatorDescription):
             pm_manager = ProcessModuleManager.get_manager()
             return pm_manager.move_tcp().execute(self)
 
-    def __init__(self, target: Tuple[List[float], List[float]], arm: Optional[str] = None,
+    def __init__(self, target: Pose, arm: Optional[str] = None,
                  resolver: Optional[Callable] = None):
         """
         Moves the TCP of the given arm to the given target pose.
@@ -191,7 +192,7 @@ class MoveTCPMotion(MotionDesignatorDescription):
         """
         super().__init__(resolver)
         self.cmd: str = 'move-tcp'
-        self.target: Tuple[List[float], List[float]] = target
+        self.target: Pose = target
         self.arm: Optional[str] = arm
 
     def ground(self) -> Motion:
@@ -212,13 +213,13 @@ class LookingMotion(MotionDesignatorDescription):
     @dataclasses.dataclass
     class Motion(MotionDesignatorDescription.Motion):
         # cmd: str
-        target: Tuple[List[float], List[float]]
+        target: Pose
 
         def perform(self):
             pm_manager = ProcessModuleManager.get_manager()
             return pm_manager.looking().execute(self)
 
-    def __init__(self, target: Optional[Tuple[List[float], List[float]]] = None, object: Optional[Object] = None,
+    def __init__(self, target: Optional[Pose] = None, object: Optional[ObjectDesignatorDescription.Object] = None,
                  resolver: Optional[Callable] = None):
         """
         Moves the head of the robot such that the camera points towards the given location. If ``target`` and ``object``
@@ -230,8 +231,8 @@ class LookingMotion(MotionDesignatorDescription):
         """
         super().__init__(resolver)
         self.cmd: str = 'looking'
-        self.target: Optional[Tuple[List[float], List[float]]] = target
-        self.object: Object = object
+        self.target: Optional[Pose] = target
+        self.object: Object = object.bullet_world_object if object else object
 
     def ground(self) -> Motion:
         """
@@ -241,9 +242,7 @@ class LookingMotion(MotionDesignatorDescription):
         :return: A resolved motion designator
         """
         if not self.target and self.object:
-            self.target = self.object.get_position_and_orientation()
-        if len(self.target) == 3:
-            self.target = [self.target, [0, 0, 0, 1]]
+            self.target = self.object.get_pose()
         return self.Motion(self.cmd, self.target)
 
 

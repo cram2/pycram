@@ -7,6 +7,7 @@ from ..designator import DesignatorDescription, ObjectDesignatorDescription
 from ..orm.base import (Position as ORMPosition, Quaternion as ORMQuaternion, MetaData)
 from ..orm.object_designator import (ObjectDesignator as ORMObjectDesignator, BelieveObject as ORMBelieveObject,
                                      ObjectPart as ORMObjectPart)
+from ..pose import Pose
 
 
 class BelieveObject(ObjectDesignatorDescription):
@@ -41,7 +42,7 @@ class ObjectPart(ObjectDesignatorDescription):
     class Object(ObjectDesignatorDescription.Object):
 
         # The rest of attributes is inherited
-        part_pose: Tuple[List[float], List[float]]
+        part_pose: Pose
 
         def to_sql(self) -> ORMObjectPart:
             return ORMObjectPart(self.type, self.name)
@@ -100,7 +101,7 @@ class ObjectPart(ObjectDesignatorDescription):
         for name in self.names:
             if name in self.part_of.bullet_world_object.links.keys():
                 yield self.Object(name, self.type, self.part_of.bullet_world_object,
-                                  self.part_of.bullet_world_object.get_link_position_and_orientation(name))
+                                  self.part_of.bullet_world_object.get_link_pose(name))
 
 
 class LocatedObject(ObjectDesignatorDescription):
