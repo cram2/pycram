@@ -70,8 +70,8 @@ class TestPose(unittest.TestCase):
         self.assertEqual(t.rotation_as_list(), [0, 0, 0, 1])
 
     def test_transform_copy(self):
-        t = Transform([1, 1, 1], [1, 0, 0, 1], "map", "test_frame")
+        t = Transform([1, 1, 1], [0, 0, 0, 1], "map", "test_frame")
 
         t_copy = t.copy()
-        self.assertEqual(t, t_copy)
+        self.assertEquals(t, t_copy)
         self.assertFalse(t is t_copy)
