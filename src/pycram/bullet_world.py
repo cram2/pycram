@@ -775,7 +775,10 @@ class Object:
         # has a reference to the shadow world
         if self.world.shadow_world != None:
             self.world.world_sync.remove_obj_queue.put(self)
+            self.world.world_sync.remove_obj_queue.join()
         p.removeBody(self.id, physicsClientId=self.world.client_id)
+        if BulletWorld.robot == self:
+            BulletWorld.robot = None
 
     def attach(self, object: Object, link: Optional[str] = None, loose: Optional[bool] = False) -> None:
         """
