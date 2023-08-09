@@ -262,9 +262,10 @@ Here is an example how a setup script can look like.
     from pycram.designators.location_designator import *
     from pycram.designators.object_designator import *
     from pycram.process_module import simulated_robot
+    from pycram.pose import Pose
 
     world = BulletWorld()
 
     robot = Object("pr2", "robot", "pr2.urdf")
     kitchen = Object("kitchen", "environment", "kitchen.urdf")
-    cereal = Object("cereal", "cereal", "breakfast_cereal.stl", position=[1.4, 1, 0.95])
+    cereal = Object("cereal", "cereal", "breakfast_cereal.stl", pose=Pose([1.4, 1, 0.95]))
