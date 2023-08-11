@@ -8,6 +8,7 @@ from .donbot_description import DonbotDescription
 from .hsr_description import HSRDescription
 from .pr2_description import PR2Description
 from .ur5_description import UR5Description
+from .tiago_description import TiagoDescription
 from .. import utils
 from ..robot_description import RobotDescription
 
@@ -58,6 +59,8 @@ def update_robot_description(robot_name=None, from_ros=None):
         description = HSRDescription
     elif "ur5_robotiq" in robot:
         description = UR5Description
+    elif "tiago_dual" in robot:
+        description = TiagoDescription
     else:
         logger.error("(robot-description) The given robot name %s has no description class.", robot_name)
         return None
