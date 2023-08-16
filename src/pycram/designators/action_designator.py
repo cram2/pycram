@@ -744,3 +744,88 @@ class CloseAction(ActionDesignatorDescription):
         :return: A performable designator
         """
         return self.Action(self.object_designator_description.resolve(), self.arms[0])
+
+
+class PourAction(ActionDesignatorDescription):
+    """
+    Designator to let the robot pour onto an object.
+    """
+
+    @dataclasses.dataclass
+    class Action(ActionDesignatorDescription.Action):
+
+        object_designator: ObjectDesignatorDescription.Object
+        """
+        Object designator describing the object that should be tilted
+        """
+        arm: str
+        """
+        Arm that is currently holding the object
+        """
+        pouring_location: Tuple[List[float], List[float]]
+        """
+        Pose in the world at which the object should be tilted
+        """
+        revert_location: Tuple[List[float], List[float]]
+        """
+        Pose in the world at which the object should be re-tilted
+        """
+        wait_duration: int
+        """
+        Wait duration in seconds for which the object should be tilted
+        """
+
+        @with_tree
+        def perform(self) -> None:
+            MoveTCPMotion(target=self.pouring_location, arm=self.arm).resolve(). \
+                perform()
+            # sleep for some seconds
+            time.sleep(self.wait_duration) # Sleep for wait_duration seconds
+            MoveTCPMotion(target=self.revert_location, arm=self.arm).resolve(). \
+                perform()
+        #
+        # def to_sql(self) -> ORMPlaceAction:
+        #     return ORMPlaceAction(self.arm)
+        #
+        # def insert(self, session, *args, **kwargs) -> ORMPlaceAction:
+        #     action = super().insert(session)
+        #
+        #     if self.object_designator:
+        #         od = self.object_designator.insert(session, )
+        #         action.object = od.id
+        #     else:
+        #         action.object = None
+        #
+        #     session.add(action)
+        #     session.commit()
+        #     return action
+
+    def __init__(self, object_designator_description: ObjectDesignatorDescription,
+                 pouring_location: List[Tuple[List[float], List[float]]],
+                 revert_location: List[Tuple[List[float], List[float]]],
+                 arms: List[str], wait_duration, resolver=None):
+        """
+        Create an Action Description to place an object
+
+        :param object_designator_description: Description of object to place.
+        :param target_locations: List of possible positions/orientations to place the object
+        :param arms: List of possible arms to use
+        :param resolver: Grounding method to resolve this designator
+        """
+        super(PourAction, self).__init__(resolver)
+        self.object_designator_description: ObjectDesignatorDescription = object_designator_description
+        self.pouring_location: List[Tuple[List[float], List[float]]] = pouring_location
+        self.revert_location: List[Tuple[List[float], List[float]]] = revert_location
+        self.arms: List[str] = arms
+        self.wait_duration = wait_duration
+
+    def ground(self) -> Action:
+        """
+        Default resolver that returns a performable designator with the first entries from the list of possible entries.
+
+        :return: A performable designator
+        """
+        return self.Action(self.object_designator_description.ground(), self.arms[0],
+                           self.pouring_location[0],
+                           self.revert_location[0],
+                           self.wait_duration)
