@@ -39,19 +39,6 @@
       <include file="$(find knowrob)/launch/knowrob.launch"/>
   </group>
 
-  <!-- Publish robot state and joints -->
-  <group if="$(arg publish_robot)">
-    <node pkg="joint_state_publisher" type="joint_state_publisher"
-          name="robot_joint_state_publisher" output="screen">
-      <param name="rate" value="25"/>
-      <param name="use_gui" value="True"/>
-    </node>
-    <node pkg="robot_state_publisher" type="robot_state_publisher"
-          name="robot_state_publisher" output="screen">
-      <param name="publish_frequency" value="25"/>
-    </node>
-  </group>
-
 <!--
   In ROS Noetic the xacro file for boxy doesnt seem to work, as a quick fix use the line above
   <include file="$(find iai_boxy_description)/launch/upload_boxy.launch" />
