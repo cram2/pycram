@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import math
 from typing import List, Union, Optional
 
 import numpy as np
@@ -113,12 +114,12 @@ class Pose(PoseStamped):
             return
 
         if type(value) == list or type(value) == tuple and len(value) == 4:
-            mag = np.linalg.norm(value)
-            normed_orientation = [elem / mag for elem in value]
+            orientation = np.array(value)
         else:
-            orientation = [value.x, value.y, value.z, value.w]
-            mag = np.linalg.norm(orientation)
-            normed_orientation = [elem / mag for elem in orientation]
+            orientation = np.array([value.x, value.y, value.z, value.w])
+        # This is used instead of np.linalg.norm since numpy is too slow on small arrays
+        mag = math.sqrt(sum(v**2 for v in orientation))
+        normed_orientation = orientation / mag
 
         self.pose.orientation.x = normed_orientation[0]
         self.pose.orientation.y = normed_orientation[1]
@@ -319,12 +320,13 @@ class Transform(TransformStamped):
             rospy.logwarn("Value of the rotation can only be a list or a geometry.msgs/Quaternion")
             return
         if type(value) == list and len(value) == 4:
-            mag = np.linalg.norm(value)
-            normed_rotation = [elem / mag for elem in value]
+            rotation = np.array(value)
+
         else:
-            rotation = [value.x, value.y, value.z, value.w]
-            mag = np.linalg.norm(rotation)
-            normed_rotation = [elem / mag for elem in rotation]
+            rotation = np.array([value.x, value.y, value.z, value.w])
+        # This is used instead of np.linalg.norm since numpy is too slow on small arrays
+        mag = math.sqrt(sum(v**2 for v in rotation))
+        normed_rotation = rotation / mag
 
         self.transform.rotation.x = normed_rotation[0]
         self.transform.rotation.y = normed_rotation[1]
