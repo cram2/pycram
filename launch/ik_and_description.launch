@@ -4,33 +4,36 @@
 
 <node pkg="kdl_ik_service" type="start_ros_server.py" name="kdl_ik_service" output="screen" />
 
-<include file="$(find pr2_arm_kinematics)/launch/pr2_ik_larm_node.launch"/>
-<include file="$(find pr2_arm_kinematics)/launch/pr2_ik_rarm_node.launch"/>
-
-
   <!-- PR2 URDF -->
-
   <group if="$(eval robot == 'pr2')">
+    <include file="$(find pr2_arm_kinematics)/launch/pr2_ik_larm_node.launch"/>
+    <include file="$(find pr2_arm_kinematics)/launch/pr2_ik_rarm_node.launch"/>
     <param name="robot_description"
            command="$(find xacro)/xacro
                     '$(find pr2_description)/robots/pr2.urdf.xacro'"/>
   </group>
-
+  <!-- Boxy -->
   <group if="$(eval robot == 'boxy')">
     <param name="robot_description"
               textfile="$(find pycram)/resources/boxy.urdf"/>
   </group>
-
+  <!-- Tiago -->
+  <group if="$(eval robot == 'tiago_dual')">
+    <param name="robot_description"
+              textfile="$(find pycram)/resources/tiago_dual.urdf"/>
+  </group>
+  <!-- UR5 -->
   <group if="$(eval robot == 'ur5')">
     <param name="robot_description"
               textfile="$(find pycram)/resources/ur5_robotiq.urdf"/>
   </group>
-
+  <!-- Donbot -->
   <group if="$(eval robot == 'donbot')">
     <param name="robot_description"
               textfile="$(find pycram)/resources/donbot.urdf"/>
   </group>
 
+  <!-- Use Knowrob -->
   <group if="$(eval use_knowrob)">
       <include file="$(find knowrob)/launch/knowrob.launch"/>
   </group>
