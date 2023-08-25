@@ -1,4 +1,4 @@
-sphinx
+sphinx==6.1.3
 sphinxcontrib-bibtex
 sphinxcontrib-packages
 sphinx-paramlinks
