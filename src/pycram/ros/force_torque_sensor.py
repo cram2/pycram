@@ -27,6 +27,7 @@ class ForceTorqueSensor:
         """
         self.world = BulletWorld.current_bullet_world
         self.fts_joint_idx = None
+        self.joint_name = joint_name
         if joint_name in self.world.robot.joints.keys():
             self.fts_joint_idx = self.world.robot.joints[joint_name]
         else:
@@ -54,6 +55,7 @@ class ForceTorqueSensor:
             h = Header()
             h.seq = seq
             h.stamp = rospy.Time.now()
+            h.frame_id = self.joint_name
 
             wrench_msg = WrenchStamped()
             wrench_msg.header = h
@@ -69,7 +71,7 @@ class ForceTorqueSensor:
             seq += 1
             time.sleep(self.interval)
 
-    def stop_publishing(self) -> None:
+    def _stop_publishing(self) -> None:
         """
         Sets the kill_event and therefore terminates the Thread publishing the force-torque values as well as join the
         threads.
