@@ -1,6 +1,6 @@
 """Implementation of base classes for orm modelling."""
 import logging
-import os
+import getpass
 from typing import Optional
 
 import rospkg
@@ -58,7 +58,7 @@ class MetaData(Base):
     created_at = sqlalchemy.Column(sqlalchemy.DateTime, server_default=sqlalchemy.sql.functions.current_timestamp())
     """The timestamp where this row got created. This is an aid for versioning."""
 
-    created_by = sqlalchemy.Column(sqlalchemy.String(255), default=os.getlogin())
+    created_by = sqlalchemy.Column(sqlalchemy.String(255), default=getpass.getuser())
     """The user that created the experiment."""
 
     description = sqlalchemy.Column(sqlalchemy.String(255), default=None, nullable=False)
