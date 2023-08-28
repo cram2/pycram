@@ -143,8 +143,9 @@ def with_real_robot(func: Callable) -> Callable:
     def wrapper(*args, **kwargs):
         pre = ProcessModuleManager.execution_type
         ProcessModuleManager.execution_type = "real"
-        func(*args, **kwargs)
+        ret = func(*args, **kwargs)
         ProcessModuleManager.execution_type = pre
+        return ret
 
     return wrapper
 
@@ -167,8 +168,9 @@ def with_simulated_robot(func: Callable) -> Callable:
     def wrapper(*args, **kwargs):
         pre = ProcessModuleManager.execution_type
         ProcessModuleManager.execution_type = "simulated"
-        func(*args, **kwargs)
+        ret = func(*args, **kwargs)
         ProcessModuleManager.execution_type = pre
+        return ret
 
     return wrapper
 
