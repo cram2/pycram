@@ -1,7 +1,7 @@
 import dataclasses
 import itertools
 import time
-from typing import List, Optional, Any, Tuple
+from typing import List, Optional, Any, Tuple, Union
 
 import sqlalchemy.orm
 
@@ -314,7 +314,9 @@ class PickUpAction(ActionDesignatorDescription):
 
             return action
 
-    def __init__(self, object_designator_description: ObjectDesignatorDescription, arms: List[str],
+    def __init__(self,
+                 object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
+                 arms: List[str],
                  grasps: List[str], resolver=None):
         """
         Lets the robot pick up an object. The description needs an object designator describing the object that should be
@@ -326,7 +328,8 @@ class PickUpAction(ActionDesignatorDescription):
         :param resolver: An optional resolver that returns a performable designator with elements from the lists of possible paramter
         """
         super(PickUpAction, self).__init__(resolver)
-        self.object_designator_description: ObjectDesignatorDescription = object_designator_description
+        self.object_designator_description: Union[
+            ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
         self.arms: List[str] = arms
         self.grasps: List[str] = grasps
 
@@ -336,7 +339,10 @@ class PickUpAction(ActionDesignatorDescription):
 
         :return: A performable designator
         """
-        return self.Action(self.object_designator_description.ground(), self.arms[0], self.grasps[0])
+        obj_desig = self.object_designator_description if isinstance(self.object_designator_description,
+                                                                     ObjectDesignatorDescription.Object) else self.object_designator_description.resolve()
+
+        return self.Action(obj_desig, self.arms[0], self.grasps[0])
 
 
 class PlaceAction(ActionDesignatorDescription):
@@ -393,7 +399,7 @@ class PlaceAction(ActionDesignatorDescription):
             session.commit()
             return action
 
-    def __init__(self, object_designator_description: ObjectDesignatorDescription,
+    def __init__(self, object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
                  target_locations: List[Pose],
                  arms: List[str], resolver=None):
         """
@@ -405,7 +411,7 @@ class PlaceAction(ActionDesignatorDescription):
         :param resolver: Grounding method to resolve this designator
         """
         super(PlaceAction, self).__init__(resolver)
-        self.object_designator_description: ObjectDesignatorDescription = object_designator_description
+        self.object_designator_description:  Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
         self.target_locations: List[Pose] = target_locations
         self.arms: List[str] = arms
 
@@ -415,7 +421,10 @@ class PlaceAction(ActionDesignatorDescription):
 
         :return: A performable designator
         """
-        return self.Action(self.object_designator_description.ground(), self.arms[0],
+        obj_desig = self.object_designator_description if isinstance(self.object_designator_description,
+                                                                     ObjectDesignatorDescription.Object) else self.object_designator_description.resolve()
+
+        return self.Action(obj_desig, self.arms[0],
                            self.target_locations[0])
 
 
@@ -439,7 +448,6 @@ class NavigateAction(ActionDesignatorDescription):
             return ORMNavigateAction()
 
         def insert(self, session, *args, **kwargs) -> ORMNavigateAction:
-
             # initialize position and orientation
             position = Position(*self.target_location.position_as_list())
             orientation = Quaternion(*self.target_location.orientation_as_list())
@@ -505,7 +513,8 @@ class TransportAction(ActionDesignatorDescription):
         def perform(self) -> None:
             robot_desig = BelieveObject(names=[robot_description.name])
             ParkArmsAction.Action(Arms.BOTH).perform()
-            pickup_loc = CostmapLocation(target=self.object_designator, reachable_for=robot_desig.resolve())
+            pickup_loc = CostmapLocation(target=self.object_designator, reachable_for=robot_desig.resolve(),
+                                         reachable_arm=self.arm)
             # Tries to find a pick-up posotion for the robot that uses the given arm
             pickup_pose = None
             for pose in pickup_loc:
@@ -520,7 +529,8 @@ class TransportAction(ActionDesignatorDescription):
             PickUpAction.Action(self.object_designator, self.arm, "front").perform()
             ParkArmsAction.Action(Arms.BOTH).perform()
             try:
-                place_loc = CostmapLocation(target=self.target_location, reachable_for=robot_desig.resolve()).resolve()
+                place_loc = CostmapLocation(target=self.target_location, reachable_for=robot_desig.resolve(),
+                                            reachable_arm=self.arm).resolve()
             except StopIteration:
                 raise ReachabilityFailure(
                     f"No location found from where the robot can reach the target location: {self.target_location}")
@@ -534,18 +544,21 @@ class TransportAction(ActionDesignatorDescription):
         def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
             raise NotImplementedError()
 
-    def __init__(self, object_designator_description: ObjectDesignatorDescription, arms: List[str],
+    def __init__(self,
+                 object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
+                 arms: List[str],
                  target_locations: List[Pose], resolver=None):
         """
         Designator representing a pick and place plan.
 
-        :param object_designator_description: Object designator describing the object that should be transported
+        :param object_designator_description: Object designator description or a specified Object designator that should be transported
         :param arms: A List of possible arms that could be used for transporting
         :param target_locations: A list of possible target locations for the object to be placed
         :param resolver: An alternative resolver that returns a performable designator for the list of possible parameter
         """
         super(TransportAction, self).__init__(resolver)
-        self.object_designator_description: ObjectDesignatorDescription = object_designator_description
+        self.object_designator_description: Union[
+            ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
         self.arms: List[str] = arms
         self.target_locations: List[Pose] = target_locations
 
@@ -555,7 +568,9 @@ class TransportAction(ActionDesignatorDescription):
 
         :return: A performable designator
         """
-        return self.Action(self.object_designator_description.ground(),
+        obj_desig = self.object_designator_description if isinstance(self.object_designator_description,
+                                                                     ObjectDesignatorDescription.Object) else self.object_designator_description.resolve()
+        return self.Action(obj_desig,
                            self.arms[0],
                            self.target_locations[0])
 
@@ -651,7 +666,6 @@ class OpenAction(ActionDesignatorDescription):
 
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
-
         object_designator: ObjectPart.Object
         """
         Object designator describing the object that should be opened
@@ -703,7 +717,6 @@ class CloseAction(ActionDesignatorDescription):
 
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
-
         object_designator: ObjectPart.Object
         """
         Object designator describing the object that should be closed
