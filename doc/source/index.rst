@@ -104,7 +104,9 @@ Authors
 
    installation
    designators
+   resolvers
    examples
+   ros_utils
    remarks
 
 

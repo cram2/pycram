@@ -1,15 +1,15 @@
 import time
+from threading import Lock
 
 import pybullet as p
 
 import pycram.bullet_world_reasoning as btr
 import pycram.helper as helper
-import pycram.helper_deprecated as helper_deprecated
 from ..bullet_world import BulletWorld
 from ..external_interfaces.ik import request_ik
-from ..local_transformer import local_transformer as local_tf
-from ..process_module import ProcessModule
-from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from ..local_transformer import LocalTransformer as local_tf
+from ..process_module import ProcessModule, ProcessModuleManager
+from ..robot_descriptions import robot_description
 
 
 def _park_arms(arm):
@@ -21,10 +21,10 @@ def _park_arms(arm):
 
     robot = BulletWorld.robot
     if arm == "right":
-        for joint, pose in robot_description.i.get_static_joint_chain("right", "park").items():
+        for joint, pose in robot_description.get_static_joint_chain("right", "park").items():
             robot.set_joint_state(joint, pose)
     if arm == "left":
-        for joint, pose in robot_description.i.get_static_joint_chain("left", "park").items():
+        for joint, pose in robot_description.get_static_joint_chain("left", "park").items():
             robot.set_joint_state(joint, pose)
 
 
@@ -38,7 +38,7 @@ class BoxyNavigation(ProcessModule):
         if solution['cmd'] == 'navigate':
             robot = BulletWorld.robot
             # Reset odom joints to zero
-            for joint_name in robot_description.i.odom_joints:
+            for joint_name in robot_description.odom_joints:
                 robot.set_joint_state(joint_name, 0.0)
             # Set actual goal pose
             robot.set_position_and_orientation(solution['target'], solution['orientation'])
@@ -58,13 +58,13 @@ class BoxyPickUp(ProcessModule):
         if solution['cmd'] == 'pick':
             object = solution['object']
             robot = BulletWorld.robot
-            grasp = robot_description.i.grasps.get_orientation_for_grasp(solution['grasp'])
+            grasp = robot_description.grasps.get_orientation_for_grasp(solution['grasp'])
             target = [object.get_position(), grasp]
             target = helper._transform_to_torso(target, robot)
-            arm = "left" if solution['gripper'] == robot_description.i.get_tool_frame("left") else "right"
-            joints = robot_description.i._safely_access_chains(arm).joints
+            arm = "left" if solution['gripper'] == robot_description.get_tool_frame("left") else "right"
+            joints = robot_description._safely_access_chains(arm).joints
             #tip = "r_wrist_roll_link" if solution['gripper'] == "r_gripper_tool_frame" else "l_wrist_roll_link"
-            inv = request_ik(robot_description.i.base_frame, solution['gripper'], target, robot, joints)
+            inv = request_ik(robot_description.base_frame, solution['gripper'], target, robot, joints)
             helper._apply_ik(robot, inv, solution['gripper'])
             #inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), target,
             #                                   maxNumIterations=100)
@@ -84,10 +84,10 @@ class BoxyPlace(ProcessModule):
             robot = BulletWorld.robot
             target = object.get_position_and_orientation()
             target = helper._transform_to_torso(target, robot)
-            arm = "left" if solution['gripper'] == robot_description.i.get_tool_frame("left") else "right"
-            joints = robot_description.i._safely_access_chains(arm).joints
+            arm = "left" if solution['gripper'] == robot_description.get_tool_frame("left") else "right"
+            joints = robot_description._safely_access_chains(arm).joints
             #tip = "r_wrist_roll_link" if solution['gripper'] == "r_gripper_tool_frame" else "l_wrist_roll_link"
-            inv = request_ik(robot_description.i.base_frame, solution['gripper'], target, robot, joints)
+            inv = request_ik(robot_description.base_frame, solution['gripper'], target, robot, joints)
             helper._apply_ik(robot, inv, solution['gripper'])
             robot.detach(object)
             time.sleep(0.5)
@@ -110,13 +110,13 @@ class BoxyAccessing(ProcessModule):
             drawer_handle = solution['drawer_handle']
             drawer_joint = solution['drawer_joint']
             dis = solution['distance']
-            robot.set_joint_state(robot_description.i.torso_joint, -0.1)
-            arm = "left" if solution['gripper'] == robot_description.i.get_tool_frame("left") else "right"
-            joints = robot_description.i._safely_access_chains(arm).joints
+            robot.set_joint_state(robot_description.torso_joint, -0.1)
+            arm = "left" if solution['gripper'] == robot_description.get_tool_frame("left") else "right"
+            joints = robot_description._safely_access_chains(arm).joints
             #inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), kitchen.get_link_position(drawer_handle))
             target = helper._transform_to_torso(kitchen.get_link_position_and_orientation(drawer_handle), robot)
             #target = (target[0], [0, 0, 0, 1])
-            inv = request_ik(robot_description.i.base_frame, gripper, target , robot, joints )
+            inv = request_ik(robot_description.base_frame, gripper, target , robot, joints )
             helper._apply_ik(robot, inv, gripper)
             time.sleep(0.2)
             cur_pose = robot.get_pose()
@@ -124,7 +124,7 @@ class BoxyAccessing(ProcessModule):
             han_pose = kitchen.get_link_position(drawer_handle)
             new_p = [[han_pose[0] - dis, han_pose[1], han_pose[2]], kitchen.get_link_orientation(drawer_handle)]
             new_p = helper._transform_to_torso(new_p, robot)
-            inv = request_ik(robot_description.i.base_frame, gripper, new_p, robot, joints)
+            inv = request_ik(robot_description.base_frame, gripper, new_p, robot, joints)
             helper._apply_ik(robot, inv, gripper)
             kitchen.set_joint_state(drawer_joint, 0.3)
             time.sleep(0.5)
@@ -153,7 +153,7 @@ class BoxyMoveHead(ProcessModule):
         solutions = desig.reference()
         if solutions['cmd'] == 'looking':
             robot = BulletWorld.robot
-            neck_base_frame = local_tf.projection_namespace + '/' + robot_description.i.chains["neck"].base_link
+            neck_base_frame = local_tf.projection_namespace + '/' + robot_description.chains["neck"].base_link
             if type(solutions['target']) is str:
                 target = local_tf.projection_namespace + '/' + solutions['target']
                 pose_in_neck_base = local_tf.tf_transform(neck_base_frame, target)
@@ -189,7 +189,7 @@ class BoxyMoveHead(ProcessModule):
                     conf = "behind"
                 else:
                     conf = "behind_up"
-            for joint, state in robot_description.i.get_static_joint_chain("neck", conf).items():
+            for joint, state in robot_description.get_static_joint_chain("neck", conf).items():
                 robot.set_joint_state(joint, state)
 
 
@@ -205,7 +205,7 @@ class BoxyMoveGripper(ProcessModule):
             robot = BulletWorld.robot
             gripper = solution['gripper']
             motion = solution['motion']
-            for joint, state in robot_description.i.get_static_gripper_chain(gripper, motion).items():
+            for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
                 # TODO: Test this, add gripper-opening/-closing to the demo.py
                 robot.set_joint_state(joint, state)
             time.sleep(0.5)
@@ -286,16 +286,55 @@ class BoxyWorldStateDetecting(ProcessModule):
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
 
-BoxyProcessModulesSimulated = {'moving' : BoxyNavigation(),
-                              'pick-up' : BoxyPickUp(),
-                              'place' : BoxyPlace(),
-                              'accessing' : BoxyAccessing(),
-                              'looking' : BoxyMoveHead(),
-                              'opening_gripper' : BoxyMoveGripper(),
-                              'closing_gripper' : BoxyMoveGripper(),
-                              'detecting' : BoxyDetecting(),
-                              'move-tcp' : BoxyMoveTCP(),
-                              'move-arm-joints' : BoxyMoveJoints(),
-                              'world-state-detecting' : BoxyWorldStateDetecting()}
+class BoxyManager(ProcessModuleManager):
 
-BoxyProcessModulesReal = {}
+    def __init__(self):
+        super().__init__("boxy")
+        self._navigate_lock = Lock()
+        self._pick_up_lock = Lock()
+        self._place_lock = Lock()
+        self._looking_lock = Lock()
+        self._detecting_lock = Lock()
+        self._move_tcp_lock = Lock()
+        self._move_arm_joints_lock = Lock()
+        self._world_state_detecting_lock = Lock()
+        self._move_joints_lock = Lock()
+        self._move_gripper_lock = Lock()
+        self._open_lock = Lock()
+        self._close_lock = Lock()
+
+    def navigate(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return BoxyNavigation(self._navigate_lock)
+
+    def pick_up(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return BoxyPickUp(self._pick_up_lock)
+
+    def place(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return BoxyPlace(self._place_lock)
+
+    def looking(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return BoxyMoveHead(self._looking_lock)
+
+    def detecting(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return BoxyDetecting(self._detecting_lock)
+
+    def move_tcp(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return BoxyMoveTCP(self._move_tcp_lock)
+
+    def move_arm_joints(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return BoxyMoveJoints(self._move_arm_joints_lock)
+
+    def world_state_detecting(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return BoxyWorldStateDetecting(self._world_state_detecting_lock)
+
+    def move_gripper(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return BoxyMoveGripper(self._move_gripper_lock)

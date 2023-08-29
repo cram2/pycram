@@ -120,6 +120,13 @@ class ManipulationGoalNotReached(ManipulationLowLevelFailure):
         super().__init__(*args, **kwargs)
 
 
+class IKError(PlanFailure):
+    """Thrown when no inverse kinematics solution could be found"""
+    def __init__(self, pose, base_frame):
+        self.message = "Position {} in frame '{}' is not reachable for end effector".format(pose, base_frame)
+        super(IKError, self).__init__(self.message)
+
+
 class ManipulationPoseUnreachable(ManipulationLowLevelFailure):
     """Thrown when no IK solution can be found."""
 

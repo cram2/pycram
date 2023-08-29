@@ -34,9 +34,8 @@ def _state(target: '_ast.Name', state: Optional[State] = None) -> List['_ast.If'
 
     Set the state which macros return as result. If it's already set, nothing happens. If the given argument "state" is None, the current state is returned.
 
-    Arguments:
-    target -- the varibale which stores the state as fluent.
-    state -- the state (default is None).
+    :param target: the varibale which stores the state as fluent.
+    :param state: the state (default is None).
     """
     target_load = ast.Name(target.id, ast.Load())
 
@@ -55,9 +54,8 @@ def _init(target: '_ast.Name', threads: Optional[bool] = True) -> List['_ast.Ass
 
     Initialize variables which macros need.
 
-    Arguments:
-    target -- the variable which stores the state.
-    threads -- boolean value describing whether the macro needs a list to store threads in.
+    :param target: the variable which stores the state.
+    :param threads: boolean value describing whether the macro needs a list to store threads in.
     """
     with hq as tree:
         ast_literal[target] = Fluent()
@@ -76,9 +74,8 @@ def _exceptions(tree: List[Union['_ast.Assign', '_ast.If']], args: Tuple) -> Non
 
     Store the list of exceptions if the argument is given.
 
-    Arguments:
-    tree -- the syntax tree to append the subtree to.
-    args -- arguments passed to the macro.
+    :param tree: the syntax tree to append the subtree to.
+    :param args: arguments passed to the macro.
     """
     if len(args) > 0:
         with hq as new_tree:
@@ -92,8 +89,7 @@ def _thread(tree: List) -> None:
 
     Create a thread and start it.
 
-    Arguments:
-    tree -- the syntax tree to append the subtree to.
+    :param tree: -- the syntax tree to append the subtree to.
     """
     with hq as new_tree:
         _thread = Thread(target = unhygienic[_func])
@@ -108,8 +104,7 @@ def _join(tree: List) -> None:
 
     Join all threads (wait for them to finish).
 
-    Arguments:
-    tree -- the syntax tree to append the subtree to.
+    :param tree: the syntax tree to append the subtree to.
     """
     with hq as new_tree:
         for _thread in unhygienic[_threads]:
@@ -127,13 +122,15 @@ def seq(tree: List, target: '_ast.Name', args: Tuple, **kw) -> List:
     This macro can also be used to wrap multiple statements into a single block and thus treating multiple statements as one.
 
     Example usage:
-    with seq(exceptions) as state:
-        statement1
-        statement2
-        ...
 
-    Arguments:
-    exceptions -- variable to store a list of exceptions in (optional).
+    .. code-block:: python
+
+        with seq(exceptions) as state:
+            statement1
+            statement2
+            ...
+
+    :param exceptions: variable to store a list of exceptions in (optional).
     """
     new_tree = _init(target, False)
 
@@ -156,17 +153,21 @@ def seq(tree: List, target: '_ast.Name', args: Tuple, **kw) -> List:
 @macros.block
 def par(tree: List, target: '_ast.Name', args: Tuple, **kw) -> List:
     """Execute statements in parallel and fail if one fails, succeed after all succeeded.
-    The result is returned as fluent. One can access the state within the macro, too. This is especially useful to evaporate all statements if one finished.
-    Exceptions do not terminate the current thread, they get stored as list into a variable passed as optional argument instead.
+    The result is returned as fluent. One can access the state within the macro, too. This is especially useful to
+    evaporate all statements if one finished.
+    Exceptions do not terminate the current thread, they get stored as list into a variable passed as optional
+    argument instead.
 
     Example usage:
-    with par(exceptions) as state:
-        statement1
-        statement2
-        ...
 
-    Arguments:
-    exceptions -- variable to store a list of exceptions in (optional).
+    .. code-block:: python
+
+        with par(exceptions) as state:
+            statement1
+            statement2
+            ...
+
+    :param exceptions: -- variable to store a list of exceptions in (optional).
     """
     new_tree = _init(target)
 
@@ -195,13 +196,15 @@ def pursue(tree: List, target: '_ast.Name', args: Tuple, **kw) -> List:
     Exceptions do not terminate the current thread, they get stored as list into a variable passed as optional argument instead.
 
     Example usage:
-    with pursue(exceptions) as state:
-        statement1
-        statement2
-        ...
 
-    Arguments:
-    exceptions -- variable to store a list of exceptions in (optional).
+    .. code-block:: python
+
+        with pursue(exceptions) as state:
+            statement1
+            statement2
+            ...
+
+    :param exceptions: variable to store a list of exceptions in (optional).
     """
     new_tree = _init(target)
 
@@ -230,13 +233,15 @@ def try_all(tree: List, target: '_ast.Name', args: Tuple, **kw) -> List:
     Exceptions do not terminate the current thread, they get stored as list into a variable passed as optional argument instead.
 
     Example usage:
-    with try_all(exceptions) as state:
-        statement1
-        statement2
-        ...
 
-    Arguments:
-    exceptions -- variable to store a list of exceptions in (optional).
+    .. code-block:: python
+
+        with try_all(exceptions) as state:
+            statement1
+            statement2
+            ...
+
+    :param exceptions: variable to store a list of exceptions in (optional).
     """
     new_tree = _init(target)
 
@@ -265,13 +270,15 @@ def try_in_order(tree: List, target: '_ast.Name', args: Tuple, **kw) -> List:
     Exceptions do not terminate the current thread, they get stored as list into a variable passed as optional argument instead.
 
     Example usage:
-    with try_in_order(exceptions) as state:
-        statement1
-        statement2
-        ...
 
-    Arguments:
-    exceptions -- variable to store a list of exceptions in (optional).
+    .. code-block:: python
+
+        with try_in_order(exceptions) as state:
+            statement1
+            statement2
+            ...
+
+    :param exceptions: variable to store a list of exceptions in (optional).
     """
     new_tree = _init(target, False)
 
@@ -297,14 +304,16 @@ def failure_handling(tree: List, args: Tuple, **kw) -> List:
     The maximum number of retries can be specified.
 
     Example usage:
-    with failure_handling(5):
-        try:
-            body
-        except Exception as e:
-            retry()
 
-    Arguments:
-    retries -- the maximum number of retries (not given or a negative value equals infinite).
+    .. code-block:: python
+
+        with failure_handling(5):
+            try:
+                body
+            except Exception as e:
+                retry()
+
+    :param retries: the maximum number of retries (not given or a negative value equals infinite).
     """
     if len(args) == 0:
         args = [q[-1]]

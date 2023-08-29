@@ -1,93 +1,25 @@
 import dataclasses
 import itertools
+import time
 from typing import List, Optional, Any, Tuple
 
 import sqlalchemy.orm
 
+from .location_designator import CostmapLocation
 from .motion_designator import *
-from .object_designator import ObjectDesignatorDescription
+from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
 from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, NavigateAction as ORMNavigateAction,
                                      PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction,
                                      MoveTorsoAction as ORMMoveTorsoAction, SetGripperAction as ORMSetGripperAction,
                                      Action as ORMAction)
-from ..orm.base import Quaternion, Position, Base, RobotPosition
-from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from ..orm.base import Quaternion, Position, Base, RobotState, MetaData
+from ..plan_failures import ObjectUnfetchable, ReachabilityFailure
+from ..robot_descriptions import robot_description
 from ..task import with_tree
 from ..enums import Arms
-from ..plan_failures import *
+from ..designator import ActionDesignatorDescription
 from ..bullet_world import BulletWorld
-
-
-class ActionDesignatorDescription(DesignatorDescription):
-    """
-    Abstract class for action designator descriptions.
-    Descriptions hold possible parameter ranges for action designators.
-    """
-
-    @dataclasses.dataclass
-    class Action:
-        """
-        The performable designator with a single element for each list of possible parameter.
-        """
-        robot_position: Tuple[List[float], List[float]] = dataclasses.field(init=False)
-        """
-        The position of the robot at the start of the action.
-        """
-
-        def __post_init__(self):
-            self.robot_position = BulletWorld.robot.get_position_and_orientation()
-
-        @with_tree
-        def perform(self) -> Any:
-            """
-            Executes the action with the single parameters from the description.
-            """
-            raise NotImplementedError()
-
-        def to_sql(self) -> Base:
-            """
-            Create an ORM object that corresponds to this description.
-
-            :return: The created ORM object.
-            """
-            raise NotImplementedError(f"{type(self)} has no implementation of to_sql. Feel free to implement it.")
-
-        def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> ORMAction:
-            """
-            Add and commit this and all related objects to the session.
-            Auto-Incrementing primary keys and foreign keys have to be filled by this method.
-
-            :param session: Session with a database that is used to add and commit the objects
-            :param args: Possible extra arguments
-            :param kwargs: Possible extra keyword arguments
-            :return: The completely instanced ORM object
-            """
-
-            # create position and orientation
-            position = Position(*self.robot_position[0])
-            orientation = Quaternion(*self.robot_position[1])
-            session.add_all([position, orientation])
-            session.commit()
-
-            # create robot position object
-            robot_position = RobotPosition()
-            robot_position.position = position.id
-            robot_position.orientation = orientation.id
-            session.add(robot_position)
-            session.commit()
-
-            # create action
-            action = self.to_sql()
-            action.robot_position = robot_position.id
-
-            return action
-
-    def __init__(self, resolver=None):
-        super(ActionDesignatorDescription, self).__init__(resolver)
-
-    def ground(self) -> Action:
-        """Fill all missing parameters and chose plan to execute. """
-        raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
+from ..pose import Pose
 
 
 class MoveTorsoAction(ActionDesignatorDescription):
@@ -108,13 +40,13 @@ class MoveTorsoAction(ActionDesignatorDescription):
 
         @with_tree
         def perform(self) -> None:
-            MoveJointsMotion([robot_description.i.torso_joint], [self.position]).resolve().perform()
+            MoveJointsMotion([robot_description.torso_joint], [self.position]).resolve().perform()
 
         def to_sql(self):
             return ORMMoveTorsoAction(self.position)
 
         def insert(self, session: sqlalchemy.orm.session.Session, **kwargs):
-            action = self.to_sql()
+            action = super().insert(session)
             session.add(action)
             session.commit()
             return action
@@ -171,7 +103,7 @@ class SetGripperAction(ActionDesignatorDescription):
             return ORMSetGripperAction(self.gripper, self.motion)
 
         def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
-            action = self.to_sql()
+            action = super().insert(session)
             session.add(action)
             session.commit()
             return action
@@ -307,7 +239,7 @@ class ParkArmsAction(ActionDesignatorDescription):
             return ORMParkArmsAction(self.arm.name)
 
         def insert(self, session: sqlalchemy.orm.session.Session, **kwargs) -> ORMParkArmsAction:
-            action = self.to_sql()
+            action = super().insert(session)
             session.add(action)
             session.commit()
             return action
@@ -343,20 +275,27 @@ class PickUpAction(ActionDesignatorDescription):
         """
         Object designator describing the object that should be picked up
         """
+
         arm: str
         """
         The arm that should be used for pick up
         """
+
         grasp: str
         """
         The grasp that should be used. For example, 'left' or 'right'
         """
 
+        object_at_execution: Optional[ObjectDesignatorDescription.Object] = dataclasses.field(init=False)
+        """
+        The object at the time this Action got created. It is used to be a static, information holding entity. It is
+        not updated when the BulletWorld object is changed.
+        """
+
         @with_tree
         def perform(self) -> None:
+            self.object_at_execution = self.object_designator.data_copy()
             PickUpMotion(object_desig=self.object_designator, arm=self.arm, grasp=self.grasp).resolve().perform()
-            # MotionDesignator(PickUpMotion(object=self.object_designator.prop_value("object"),
-            #                               arm=self.arm, grasp=self.grasp)).perform()
 
         def to_sql(self) -> ORMPickUpAction:
             return ORMPickUpAction(self.arm, self.grasp)
@@ -364,8 +303,8 @@ class PickUpAction(ActionDesignatorDescription):
         def insert(self, session: sqlalchemy.orm.session.Session, **kwargs):
             action = super().insert(session)
             # try to create the object designator
-            if self.object_designator:
-                od = self.object_designator.insert(session, )
+            if self.object_at_execution:
+                od = self.object_at_execution.insert(session, )
                 action.object = od.id
             else:
                 action.object = None
@@ -416,7 +355,7 @@ class PlaceAction(ActionDesignatorDescription):
         """
         Arm that is currently holding the object
         """
-        target_location: Tuple[List[float], List[float]]
+        target_location: Pose
         """
         Pose in the world at which the object should be placed
         """
@@ -439,8 +378,8 @@ class PlaceAction(ActionDesignatorDescription):
                 action.object = None
 
             if self.target_location:
-                position = Position(*self.target_location[0])
-                orientation = Quaternion(*self.target_location[1])
+                position = Position(*self.target_location.position_as_list())
+                orientation = Quaternion(*self.target_location.orientation_as_list())
                 session.add(position)
                 session.add(orientation)
                 session.commit()
@@ -455,7 +394,7 @@ class PlaceAction(ActionDesignatorDescription):
             return action
 
     def __init__(self, object_designator_description: ObjectDesignatorDescription,
-                 target_locations: List[Tuple[List[float], List[float]]],
+                 target_locations: List[Pose],
                  arms: List[str], resolver=None):
         """
         Create an Action Description to place an object
@@ -467,7 +406,7 @@ class PlaceAction(ActionDesignatorDescription):
         """
         super(PlaceAction, self).__init__(resolver)
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
-        self.target_locations: List[Tuple[List[float], List[float]]] = target_locations
+        self.target_locations: List[Pose] = target_locations
         self.arms: List[str] = arms
 
     def ground(self) -> Action:
@@ -487,7 +426,7 @@ class NavigateAction(ActionDesignatorDescription):
 
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
-        target_location: Tuple[List[float], List[float]]
+        target_location: Pose
         """
         Location to which the robot should be navigated
         """
@@ -500,9 +439,10 @@ class NavigateAction(ActionDesignatorDescription):
             return ORMNavigateAction()
 
         def insert(self, session, *args, **kwargs) -> ORMNavigateAction:
+
             # initialize position and orientation
-            position = Position(*self.target_location[0])
-            orientation = Quaternion(*self.target_location[1])
+            position = Position(*self.target_location.position_as_list())
+            orientation = Quaternion(*self.target_location.orientation_as_list())
 
             # add those to the database and get the primary keys
             session.add(position)
@@ -510,19 +450,19 @@ class NavigateAction(ActionDesignatorDescription):
             session.commit()
 
             # create the navigate action orm object
-            navigate_action = self.to_sql()
+            action = super().insert(session)
 
             # set foreign keys
-            navigate_action.position = position.id
-            navigate_action.orientation = orientation.id
+            action.position = position.id
+            action.orientation = orientation.id
 
             # add it to the db
-            session.add(navigate_action)
+            session.add(action)
             session.commit()
 
-            return navigate_action
+            return action
 
-    def __init__(self, target_locations: List[Tuple[List[float], List[float]]], resolver=None):
+    def __init__(self, target_locations: List[Pose], resolver=None):
         """
         Navigates the robot to a location.
 
@@ -530,7 +470,7 @@ class NavigateAction(ActionDesignatorDescription):
         :param resolver: An alternative resolver that creates a performable designator from the list of possible parameter
         """
         super(NavigateAction, self).__init__(resolver)
-        self.target_locations: List[Tuple[List[float], List[float]]] = target_locations
+        self.target_locations: List[Pose] = target_locations
 
     def ground(self) -> Action:
         """
@@ -556,20 +496,36 @@ class TransportAction(ActionDesignatorDescription):
         """
         Arm that should be used
         """
-        target_location: Tuple[List[float], List[float]]
+        target_location: Pose
         """
         Target Location to which the object should be transported
         """
 
         @with_tree
         def perform(self) -> None:
-            # TODO jonas has to look over this
+            robot_desig = BelieveObject(names=[robot_description.name])
             ParkArmsAction.Action(Arms.BOTH).perform()
-            NavigateAction.Action(self.object_designator.pose).perform()
-            # TODO write from_object method for descriptions
-            PickUpAction(self.object_designator, [self.arm], ["left", "right"]).ground().perform()
-            NavigateAction.Action(self.target_location).perform()
-            PlaceAction.Action(self.object_designator, self.arm, self.target_location)
+            pickup_loc = CostmapLocation(target=self.object_designator, reachable_for=robot_desig.resolve())
+            # Tries to find a pick-up posotion for the robot that uses the given arm
+            pickup_pose = None
+            for pose in pickup_loc:
+                if self.arm in pose.reachable_arms:
+                    pickup_pose = pose
+                    break
+            if not pickup_pose:
+                raise ObjectUnfetchable(
+                    f"Found no pose for the robot to grasp the object: {self.object_designator} with arm: {self.arm}")
+
+            NavigateAction([pickup_pose.pose]).resolve().perform()
+            PickUpAction.Action(self.object_designator, self.arm, "front").perform()
+            ParkArmsAction.Action(Arms.BOTH).perform()
+            try:
+                place_loc = CostmapLocation(target=self.target_location, reachable_for=robot_desig.resolve()).resolve()
+            except StopIteration:
+                raise ReachabilityFailure(
+                    f"No location found from where the robot can reach the target location: {self.target_location}")
+            NavigateAction([place_loc.pose]).resolve().perform()
+            PlaceAction.Action(self.object_designator, self.arm, self.target_location).perform()
             ParkArmsAction.Action(Arms.BOTH).perform()
 
         def to_sql(self) -> Base:
@@ -579,7 +535,7 @@ class TransportAction(ActionDesignatorDescription):
             raise NotImplementedError()
 
     def __init__(self, object_designator_description: ObjectDesignatorDescription, arms: List[str],
-                 target_locations: List[Tuple[List[float], List[float]]], resolver=None):
+                 target_locations: List[Pose], resolver=None):
         """
         Designator representing a pick and place plan.
 
@@ -591,7 +547,7 @@ class TransportAction(ActionDesignatorDescription):
         super(TransportAction, self).__init__(resolver)
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.arms: List[str] = arms
-        self.target_locations: List[Tuple[List[float], List[float]]] = target_locations
+        self.target_locations: List[Pose] = target_locations
 
     def ground(self) -> Action:
         """
@@ -611,7 +567,7 @@ class LookAtAction(ActionDesignatorDescription):
 
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
-        target: List[float]
+        target: Pose
         """
         Position at which the robot should look, given as 6D pose
         """
@@ -626,7 +582,7 @@ class LookAtAction(ActionDesignatorDescription):
         def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
             raise NotImplementedError()
 
-    def __init__(self, targets: List[List[float]], resolver=None):
+    def __init__(self, targets: List[Pose], resolver=None):
         """
         Moves the head of the robot such that it points towards the given target location.
 
@@ -634,7 +590,7 @@ class LookAtAction(ActionDesignatorDescription):
         :param resolver: An alternative resolver that returns a performable designator for a list of possible target locations
         """
         super(LookAtAction, self).__init__(resolver)
-        self.targets: List[List[float]] = targets
+        self.targets: List[Pose] = targets
 
     def ground(self) -> Action:
         """
@@ -696,7 +652,7 @@ class OpenAction(ActionDesignatorDescription):
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
 
-        object_designator: ObjectDesignatorDescription.Object
+        object_designator: ObjectPart.Object
         """
         Object designator describing the object that should be opened
         """
@@ -704,28 +660,11 @@ class OpenAction(ActionDesignatorDescription):
         """
         Arm that should be used for opening the container
         """
-        distance: float
-        """
-        Distance by which the container should be opened
-        """
 
         @with_tree
         def perform(self) -> Any:
-            object_type = self.object_designator.type
-            if object_type in ["container", "drawer"]:
-                motion_type = "opening-prismatic"
-            elif object_type in ["fridge"]:
-                motion_type = "opening-rotational"
-            else:
-                raise NotImplementedError()
-            joint, handle = get_container_joint_and_handle(self.object_designator)
-            arm = "left" if self.arm == Arms.LEFT else "right"
-            environment = self.object_designator.prop_value('part-of')
-
-            ProcessModule.perform(MotionDesignator(
-                [('type', motion_type), ('joint', joint),
-                 ('handle', handle), ('arm', arm), ('distance', self.distance),
-                 ('part-of', environment)]))
+            MoveTCPMotion(self.object_designator.part_pose, self.arm).resolve().perform()
+            OpeningMotion(self.object_designator, self.arm).resolve().perform()
 
         def to_sql(self) -> Base:
             raise NotImplementedError()
@@ -733,20 +672,17 @@ class OpenAction(ActionDesignatorDescription):
         def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
             raise NotImplementedError()
 
-    def __init__(self, object_designator_description: ObjectDesignatorDescription, arms: List[str],
-                 distances: List[float], resolver=None):
+    def __init__(self, object_designator_description: ObjectPart, arms: List[str], resolver=None):
         """
         Moves the arm of the robot to open a container.
 
-        :param object_designator_description: Object designator describing the object that should be opened
+        :param object_designator_description: Object designator describing the handle that should be used to open
         :param arms: A list of possible arms that should be used
-        :param distances: A list of possible distances by which the container should be opened
         :param resolver: A alternative resolver that returns a performable designator for the lists of possible parameter.
         """
         super(OpenAction, self).__init__(resolver)
-        self.object_designator_description: ObjectDesignatorDescription = object_designator_description
+        self.object_designator_description: ObjectPart = object_designator_description
         self.arms: List[str] = arms
-        self.distances: List[float] = distances
 
     def ground(self) -> Action:
         """
@@ -755,7 +691,7 @@ class OpenAction(ActionDesignatorDescription):
 
         :return: A performable designator
         """
-        return self.Action(self.object_designator_description.resolve(), self.arms[0], self.distances[0])
+        return self.Action(self.object_designator_description.resolve(), self.arms[0])
 
 
 class CloseAction(ActionDesignatorDescription):
@@ -768,7 +704,7 @@ class CloseAction(ActionDesignatorDescription):
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
 
-        object_designator: ObjectDesignatorDescription.Object
+        object_designator: ObjectPart.Object
         """
         Object designator describing the object that should be closed
         """
@@ -778,19 +714,8 @@ class CloseAction(ActionDesignatorDescription):
         """
 
         def perform(self) -> Any:
-            object_type = self.object_designator.prop_value('type')
-            if object_type in ["container", "drawer"]:
-                motion_type = "closing-prismatic"
-            elif object_type in ["fridge"]:
-                motion_type = "closing-rotational"
-            else:
-                raise NotImplementedError()
-            joint, handle = get_container_joint_and_handle(self.object_designator)
-            arm = "left" if self.arm == Arms.LEFT else "right"
-            environment = self.object_designator.prop_value('part-of')
-            ProcessModule.perform(MotionDesignator(
-                [('type', motion_type), ('joint', joint),
-                 ('handle', handle), ('arm', arm), ('part-of', environment)]))
+            MoveTCPMotion(self.object_designator.part_pose, self.arm).resolve().perform()
+            ClosingMotion(self.object_designator, self.arm).resolve().perform()
 
         def to_sql(self) -> Base:
             raise NotImplementedError()
@@ -798,17 +723,17 @@ class CloseAction(ActionDesignatorDescription):
         def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
             raise NotImplementedError()
 
-    def __init__(self, object_designator_description: ObjectDesignatorDescription, arms: List[str],
+    def __init__(self, object_designator_description: ObjectPart, arms: List[str],
                  resolver=None):
         """
         Attempts to close an open container
 
-        :param object_designator_description: Object designator description of the object that should be closed
+        :param object_designator_description: Object designator description of the handle that should be used
         :param arms: A list of possible arms to use
         :param resolver: An alternative resolver that returns a performable designator for the list of possible parameter
         """
         super(CloseAction, self).__init__(resolver)
-        self.object_designator_description: ObjectDesignatorDescription = object_designator_description
+        self.object_designator_description: ObjectPart = object_designator_description
         self.arms: List[str] = arms
 
     def ground(self) -> Action:
@@ -819,22 +744,3 @@ class CloseAction(ActionDesignatorDescription):
         :return: A performable designator
         """
         return self.Action(self.object_designator_description.resolve(), self.arms[0])
-
-
-def get_container_joint_and_handle(container_designator: Any):
-    """
-    Gets names of container joint and handle.
-    TODO move this where it belongs
-
-    :param container_designator: The object designator to get the names from.
-    :return: (joint_name, handle_name)
-    """
-    name = container_designator.prop_value('name')
-    if name == "iai_fridge":
-        return "iai_fridge_door_joint", "iai_fridge_door_handle"
-    elif name == "sink_area_left_upper_drawer":
-        return "sink_area_left_upper_drawer_main_joint", "sink_area_left_upper_drawer_handle"
-    elif name == "sink_area_left_middle_drawer":
-        return "sink_area_left_middle_drawer_main_joint", "sink_area_left_middle_drawer_handle"
-    else:
-        raise NotImplementedError()
