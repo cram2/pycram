@@ -1,14 +1,14 @@
 import time
+from threading import Lock
 
 import pybullet as p
 
 import pycram.bullet_world_reasoning as btr
 import pycram.helper as helper
-import pycram.helper_deprecated as helper_deprecated
 from ..bullet_world import BulletWorld
-from ..local_transformer import local_transformer
-from ..process_module import ProcessModule
-from ..robot_descriptions.robot_description_handler import InitializedRobotDescription as robot_description
+from ..local_transformer import LocalTransformer
+from ..process_module import ProcessModule, ProcessModuleManager
+from ..robot_descriptions import robot_description
 
 
 def _park_arms(arm):
@@ -20,7 +20,7 @@ def _park_arms(arm):
 
     robot = BulletWorld.robot
     if arm == "left":
-        for joint, pose in robot_description.i.get_static_joint_chain("left", "park").items():
+        for joint, pose in robot_description.get_static_joint_chain("left", "park").items():
             robot.set_joint_state(joint, pose)
 
 
@@ -34,7 +34,7 @@ class DonbotNavigation(ProcessModule):
         if solution['cmd'] == 'navigate':
             robot = BulletWorld.robot
             # Reset odom joints to zero
-            for joint_name in robot_description.i.odom_joints:
+            for joint_name in robot_description.odom_joints:
                 robot.set_joint_state(joint_name, 0.0)
             # Set actual goal pose
             robot.set_position_and_orientation(solution['target'], solution['orientation'])
@@ -128,9 +128,9 @@ class DonbotMoveHead(ProcessModule):
         solutions = desig.reference()
         if solutions['cmd'] == 'looking':
             robot = BulletWorld.robot
-            neck_base_frame = local_transformer.projection_namespace + '/' + robot_description.i.chains["neck"].base_link if \
+            neck_base_frame = local_transformer.projection_namespace + '/' + robot_description.chains["neck"].base_link if \
                 local_transformer.projection_namespace else \
-                robot_description.i.chains["neck"].base_link
+                robot_description.chains["neck"].base_link
             if type(solutions['target']) is str:
                 target = local_transformer.projection_namespace + '/' + solutions['target'] if \
                     local_transformer.projection_namespace else \
@@ -152,7 +152,7 @@ class DonbotMoveHead(ProcessModule):
                 conf = "left"
             else:
                 conf = "right"
-            for joint, state in robot_description.i.get_static_joint_chain("neck", conf).items():
+            for joint, state in robot_description.get_static_joint_chain("neck", conf).items():
                 robot.set_joint_state(joint, state)
 
 
@@ -168,7 +168,7 @@ class DonbotMoveGripper(ProcessModule):
             robot = BulletWorld.robot
             gripper = solution['gripper']
             motion = solution['motion']
-            for joint, state in robot_description.i.get_static_gripper_chain(gripper, motion).items():
+            for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
                 # TODO: Test this, add gripper-opening/-closing to the demo.py
                 robot.set_joint_state(joint, state)
             time.sleep(0.5)
@@ -242,16 +242,56 @@ class DonbotWorldStateDetecting(ProcessModule):
             obj_type = solution['object_type']
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
-DonbotProcessModulesSimulated = {'moving' : DonbotNavigation(),
-                              'pick-up' : DonbotPickUp(),
-                              'place' : DonbotPlace(),
-                              'accessing' : DonbotAccessing(),
-                              'looking' : DonbotMoveHead(),
-                              'opening_gripper' : DonbotMoveGripper(),
-                              'closing_gripper' : DonbotMoveGripper(),
-                              'detecting' : DonbotDetecting(),
-                              'move-tcp' : DonbotMoveTCP(),
-                              'move-arm-joints' : DonbotMoveJoints(),
-                              'world-state-detecting' : DonbotWorldStateDetecting()}
 
-DonbotProcessModulesReal = {}
+class DonbotManager(ProcessModuleManager):
+
+    def __init__(self):
+        super().__init__("donbot")
+        self._navigate_lock = Lock()
+        self._pick_up_lock = Lock()
+        self._place_lock = Lock()
+        self._looking_lock = Lock()
+        self._detecting_lock = Lock()
+        self._move_tcp_lock = Lock()
+        self._move_arm_joints_lock = Lock()
+        self._world_state_detecting_lock = Lock()
+        self._move_joints_lock = Lock()
+        self._move_gripper_lock = Lock()
+        self._open_lock = Lock()
+        self._close_lock = Lock()
+
+    def navigate(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return DonbotNavigation(self._navigate_lock)
+
+    def pick_up(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return DonbotPickUp(self._pick_up_lock)
+
+    def place(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return DonbotPlace(self._place_lock)
+
+    def looking(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return DonbotMoveHead(self._looking_lock)
+
+    def detecting(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return DonbotDetecting(self._detecting_lock)
+
+    def move_tcp(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return DonbotMoveTCP(self._move_tcp_lock)
+
+    def move_arm_joints(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return DonbotMoveJoints(self._move_arm_joints_lock)
+
+    def world_state_detecting(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return DonbotWorldStateDetecting(self._world_state_detecting_lock)
+
+    def move_gripper(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return DonbotMoveGripper(self._move_gripper_lock)

@@ -1,16 +1,29 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+import dataclasses
 from abc import ABC, abstractmethod
 from copy import copy
 from inspect import isgenerator, isgeneratorfunction
 
+import sqlalchemy
+
+from .bullet_world import (Object as BulletWorldObject, BulletWorld)
 from .helper import GeneratorList, bcolors
 from threading import Lock
 from time import time
-from typing import List, Dict, Any, Type, Optional, Union, get_type_hints, Callable
+from typing import List, Dict, Any, Type, Optional, Union, get_type_hints, Callable, Tuple, Iterable
+
+from .pose import Pose
+from .robot_descriptions import robot_description
 
 import logging
+
+from .orm.action_designator import (Action as ORMAction)
+from .orm.object_designator import (ObjectDesignator as ORMObjectDesignator)
+
+from .orm.base import Quaternion, Position, Base, RobotState, MetaData
+from .task import with_tree
 
 
 class DesignatorError(Exception):
@@ -344,3 +357,364 @@ class DesignatorDescription(ABC):
 
     def copy(self) -> Type[DesignatorDescription]:
         return self
+
+
+class MotionDesignatorDescription(DesignatorDescription):
+    """
+    Parent class of motion designator descriptions.
+    """
+
+    @dataclasses.dataclass
+    class Motion:
+        """
+        Resolved motion designator which can be performed
+        """
+        cmd: str
+        """
+        Command of this motion designator, is used to match process modules to motion designator. Cmd is inherited by 
+        every motion designator.
+        """
+
+        def perform(self):
+            """
+            Passes this designator to the process module for execution.
+
+            :return: The return value of the process module if there is any.
+            """
+            raise NotImplementedError()
+            # return ProcessModule.perform(self)
+
+    def ground(self) -> Motion:
+        """Fill all missing parameters and pass the designator to the process module. """
+        raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
+
+    def to_sql(self) -> Base:
+        """
+        Create an ORM object that corresponds to this description.
+
+        :return: The created ORM object.
+        """
+        raise NotImplementedError(f"{type(self)} has no implementation of to_sql. Feel free to implement it.")
+
+    def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
+        """
+        Add and commit this and all related objects to the session.
+        Auto-Incrementing primary keys and foreign keys have to be filled by this method.
+
+        :param session: Session with a database that is used to add and commit the objects
+        :param args: Possible extra arguments
+        :param kwargs: Possible extra keyword arguments
+        :return: The completely instanced ORM object
+        """
+        raise NotImplementedError(f"{type(self)} has no implementation of insert. Feel free to implement it.")
+
+    def __init__(self, resolver=None):
+        """
+        Creates a new motion designator description
+
+        :param resolver: An alternative resolver which overrides self.resolve()
+        """
+        super().__init__(resolver)
+
+    def get_slots(self):
+        """
+        Returns a list of all slots of this description. Can be used for inspecting
+        different descriptions and debugging.
+
+        :return: A list of all slots.
+        """
+        return list(self.__dict__.keys()).remove('cmd')
+
+    def _check_properties(self, desig: str, exclude: List[str] = []) -> None:
+        """
+        Checks the properties of this description. It will be checked if any attribute is
+        None and if any attribute has to wrong type according to the type hints in
+        the description class.
+        It is possible to provide a list of attributes which should not be checked.
+
+        :param desig: The current type of designator, will be used when raising an
+                        Exception as output.
+        :param exclude: A list of properties which should not be checked.
+        """
+        right_types = get_type_hints(self.Motion)
+        attributes = self.__dict__.copy()
+        del attributes["resolve"]
+        missing = []
+        wrong_type = {}
+        current_type = {}
+        for k in attributes.keys():
+            if attributes[k] == None and not attributes[k] in exclude:
+                missing.append(k)
+            elif type(attributes[k]) != right_types[k] and not attributes[k] in exclude:
+                wrong_type[k] = right_types[k]
+                current_type[k] = type(attributes[k])
+        if missing != [] or wrong_type != {}:
+            raise ResolutionError(missing, wrong_type, current_type, desig)
+
+
+class ActionDesignatorDescription(DesignatorDescription):
+    """
+    Abstract class for action designator descriptions.
+    Descriptions hold possible parameter ranges for action designators.
+    """
+
+    @dataclasses.dataclass
+    class Action:
+        """
+        The performable designator with a single element for each list of possible parameter.
+        """
+        robot_position: Pose = dataclasses.field(init=False)
+        """
+        The position of the robot at the start of the action.
+        """
+        robot_torso_height: float = dataclasses.field(init=False)
+        """
+        The torso height of the robot at the start of the action.
+        """
+
+        robot_type: str = dataclasses.field(init=False)
+        """
+        The type of the robot at the start of the action.
+        """
+
+        def __post_init__(self):
+            self.robot_position = BulletWorld.robot.get_pose()
+            self.robot_torso_height = BulletWorld.robot.get_joint_state(robot_description.torso_joint)
+            self.robot_type = BulletWorld.robot.type
+
+        @with_tree
+        def perform(self) -> Any:
+            """
+            Executes the action with the single parameters from the description.
+            """
+            raise NotImplementedError()
+
+        def to_sql(self) -> ORMAction:
+            """
+            Create an ORM object that corresponds to this description.
+
+            :return: The created ORM object.
+            """
+            raise NotImplementedError(f"{type(self)} has no implementation of to_sql. Feel free to implement it.")
+
+        def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> ORMAction:
+            """
+            Add and commit this and all related objects to the session.
+            Auto-Incrementing primary keys and foreign keys have to be filled by this method.
+
+            :param session: Session with a database that is used to add and commit the objects
+            :param args: Possible extra arguments
+            :param kwargs: Possible extra keyword arguments
+            :return: The completely instanced ORM object
+            """
+
+            # get or create metadata
+            metadata = MetaData().insert(session)
+
+            # create position
+            position = Position(*self.robot_position.position_as_list())
+            position.metadata_id = metadata.id
+
+            # create orientation
+            orientation = Quaternion(*self.robot_position.orientation_as_list())
+            orientation.metadata_id = metadata.id
+
+            session.add_all([position, orientation])
+            session.commit()
+
+            # create robot-state object
+            robot_state = RobotState()
+            robot_state.position = position.id
+            robot_state.orientation = orientation.id
+            robot_state.torso_height = self.robot_torso_height
+            robot_state.type = self.robot_type
+            robot_state.metadata_id = metadata.id
+            session.add(robot_state)
+            session.commit()
+
+            # create action
+            action = self.to_sql()
+            action.metadata_id = metadata.id
+            action.robot_state = robot_state.id
+
+            return action
+
+    def __init__(self, resolver=None):
+        super(ActionDesignatorDescription, self).__init__(resolver)
+
+    def ground(self) -> Action:
+        """Fill all missing parameters and chose plan to execute. """
+        raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
+
+
+class LocationDesignatorDescription(DesignatorDescription):
+    """
+    Parent class of location designator descriptions.
+    """
+
+    @dataclasses.dataclass
+    class Location:
+        """
+        Resolved location that represents a specific point in the world which satisfies the constraints of the location
+        designator description.
+        """
+        pose: Pose
+        """
+        The resolved pose of the location designator. Pose is inherited by all location designator.
+        """
+
+    def __init__(self, resolver=None):
+        super().__init__(resolver)
+
+    def ground(self) -> Location:
+        """
+        Find a location that satisfies all constrains.
+        """
+        raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
+
+
+class ObjectDesignatorDescription(DesignatorDescription):
+    """
+    Class for object designator descriptions.
+    Descriptions hold possible parameter ranges for object designators.
+    """
+
+    @dataclasses.dataclass
+    class Object:
+        """
+        A single element that fits the description.
+        """
+
+        name: str
+        """
+        Name of the object
+        """
+
+        type: str
+        """
+        Type of the object
+        """
+
+        bullet_world_object: Optional[BulletWorldObject]
+        """
+        Reference to the BulletWorld object
+        """
+
+        _pose: Optional[Callable] = dataclasses.field(init=False)
+        """
+        A callable returning the pose of this object. The _pose member is used overwritten for data copies
+        which will not update when the original bullet_world_object is moved.
+        """
+
+        def __post_init__(self):
+            if self.bullet_world_object:
+                self._pose = self.bullet_world_object.get_pose
+
+        def to_sql(self) -> ORMObjectDesignator:
+            """
+            Create an ORM object that corresponds to this description.
+
+            :return: The created ORM object.
+            """
+            return ORMObjectDesignator(self.type, self.name)
+
+        def insert(self, session: sqlalchemy.orm.session.Session) -> ORMObjectDesignator:
+            """
+            Add and commit this and all related objects to the session.
+            Auto-Incrementing primary keys and foreign keys have to be filled by this method.
+
+            :param session: Session with a database that is used to add and commit the objects
+            :return: The completely instanced ORM object
+            """
+            metadata = MetaData().insert(session)
+            # insert position and orientation of object of the designator
+            orm_position = Position(*self.pose.position_as_list(), metadata.id)
+            orm_orientation = Quaternion(*self.pose.orientation_as_list(), metadata.id)
+            session.add(orm_position)
+            session.add(orm_orientation)
+            session.commit()
+
+            # create object orm designator
+            obj = self.to_sql()
+            obj.metadata_id = metadata.id
+            obj.position = orm_position.id
+            obj.orientation = orm_orientation.id
+            session.add(obj)
+            session.commit()
+            return obj
+
+        def data_copy(self) -> 'ObjectDesignatorDescription.Object':
+            """
+            :return: A copy containing only the fields of this class. The BulletWorldObject attached to this pycram
+            object is not copied. The _pose gets set to a method that statically returns the pose of the object when
+            this method was called.
+            """
+            result = ObjectDesignatorDescription.Object(self.name, self.type, None)
+            # get current object pose and set resulting pose to always be that
+            pose = self.pose
+            result.pose = lambda: pose
+            return result
+
+        @property
+        def pose(self):
+            """
+            Property of the current position and orientation of the object.
+            Evaluate the _pose function.
+
+            :return: Position and orientation
+            """
+            return self._pose()
+
+        @pose.setter
+        def pose(self, value: Callable):
+            """
+            Set the pose to a new method that returns the current pose.
+
+            :param value: A callable that returns a pose.
+            """
+            self._pose = value
+
+        def __repr__(self):
+            return self.__class__.__qualname__ + f"(" + ', '.join(
+                [f"{f.name}={self.__getattribute__(f.name)}" for f in dataclasses.fields(self)] + [
+                    f"pose={self.pose}"]) + ')'
+
+    def __init__(self, names: Optional[List[str]] = None, types: Optional[List[str]] = None,
+                 resolver: Optional[Callable] = None):
+        """
+        Base of all object designator descriptions. Every object designator has the name and type of the object.
+
+        :param names: A list of names that could describe the object
+        :param types: A list of types that could represent the object
+        :param resolver: An alternative resolver that returns an object designator for the list of names and types
+        """
+        super().__init__(resolver)
+        self.types: Optional[List[str]] = types
+        self.names: Optional[List[str]] = names
+
+    def ground(self) -> Union[Object, bool]:
+        """
+        Return the first object from the bullet world that fits the description.
+
+        :return: A resolved object designator
+        """
+        return next(iter(self))
+
+    def __iter__(self) -> Iterable[Object]:
+        """
+        Iterate through all possible objects fitting this description
+
+        :yield: A resolved object designator
+        """
+        # for every bullet world object
+        for obj in BulletWorld.current_bullet_world.objects:
+
+            # skip if name does not match specification
+            if self.names and obj.name not in self.names:
+                continue
+
+            # skip if type does not match specification
+            if self.types and obj.type not in self.types:
+                continue
+
+            yield self.Object(obj.name, obj.type, obj)
