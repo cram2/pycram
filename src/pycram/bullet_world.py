@@ -516,8 +516,13 @@ class Gui(threading.Thread):
         else:
             self.world.client_id = p.connect(p.GUI)
 
+            #Disable the side windows of the GUI
+            p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+            # Change the init camera pose
+            p.resetDebugVisualizerCamera(cameraDistance=1.5, cameraYaw=270.0, cameraPitch=-50, cameraTargetPosition=[-2, 0, 1])
+
             # Get the initial camera target location
-            cameraTargetPosition = p.getDebugVisualizerCamera()[11]
+            #cameraTargetPosition = p.getDebugVisualizerCamera()[11]
 
             sphereVisualId = p.createVisualShape(p.GEOM_SPHERE, radius=0.05, rgbaColor=[1, 0, 0, 1])
 
