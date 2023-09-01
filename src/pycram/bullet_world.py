@@ -727,18 +727,20 @@ class Object:
         if not pose:
             pose = Pose()
         self.world: BulletWorld = world if world is not None else BulletWorld.current_bullet_world
+        self.local_transformer = LocalTransformer()
         self.name: str = name
         self.type: str = type
         self.color: List[float] = color
-        position, orientation = pose.to_list()
+        pose_in_map = self.local_transformer.transform_pose(pose, "map")
+        position, orientation = pose_in_map.to_list()
         self.id, self.path = _load_object(name, path, position, orientation, self.world, color, ignoreCachedFiles)
         self.joints: Dict[str, int] = self._joint_or_link_name_to_id("joint")
         self.links: Dict[str, int] = self._joint_or_link_name_to_id("link")
         self.attachments: Dict[Object, List] = {}
         self.cids: Dict[Object, int] = {}
-        self.original_pose = pose
+        self.original_pose = pose_in_map
         self.base_origin_shift = np.array(position) - np.array(self.get_base_origin().position_as_list())
-        self.local_transformer = LocalTransformer()
+
         self.tf_frame = ("shadow/" if self.world.is_shadow_world else "") + self.name + "_" + str(self.id)
 
         # This means "world" is not the shadow world since it has a reference to a shadow world
@@ -841,7 +843,6 @@ class Object:
         :return: The current position of this object
         """
         return self.get_pose().position
-        # return p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id)[0]
 
     def get_orientation(self) -> Quaternion:
         """
@@ -866,7 +867,8 @@ class Object:
         :param pose: New Pose for the object
         :param base: If True places the object base instead of origin at the specified position and orientation
         """
-        position, orientation = pose.to_list()
+        pose_in_map = self.local_transformer.transform_pose(pose, "map")
+        position, orientation = pose_in_map.to_list()
         if base:
             position = np.array(position) + self.base_origin_shift
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
@@ -956,12 +958,13 @@ class Object:
         :param position: Target position as xyz.
         :param base: If the bottom of the Object should be placed or the origin in the center.
         """
+        pose = Pose()
         if type(position) == Pose:
             target_position = position.position
+            pose.frame = position.frame
         else:
             target_position = position
 
-        pose = Pose()
         pose.pose.position = target_position
         pose.pose.orientation = self.get_orientation()
         self.set_pose(pose, base=base)
@@ -973,12 +976,13 @@ class Object:
 
         :param orientation: Target orientation given as a list of xyzw.
         """
+        pose = Pose()
         if type(orientation) == Pose:
             target_orientation = orientation.orientation
+            pose.frame = orientation.frame
         else:
             target_orientation = orientation
 
-        pose = Pose()
         pose.pose.position = self.get_position()
         pose.pose.orientation = target_orientation
         self.set_pose(pose)
