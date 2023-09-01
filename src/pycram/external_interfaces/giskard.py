@@ -28,7 +28,7 @@ def initial_adding_objects() -> None:
     """
     groups = giskard_wrapper.get_group_names()
     for obj in BulletWorld.current_bullet_world.objects:
-        if obj == BulletWorld.robot:
+        if obj == BulletWorld.robot or len(obj.links) == 1:
             continue
         name = obj.name + "_" + str(obj.id)
         if name not in groups:
@@ -145,7 +145,7 @@ def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str) -> Mo
     :return: MoveResult message for this goal
     """
     sync_worlds()
-    giskard_wrapper.set_cart_goal(goal_pose, tip_link, root_link)
+    giskard_wrapper.set_cart_goal(_pose_to_pose_stamped(goal_pose), tip_link, root_link)
     return giskard_wrapper.plan_and_execute()
 
 
@@ -161,7 +161,7 @@ def achieve_straight_cartesian_goal(goal_pose: Pose, tip_link: str,
     :return: MoveResult message for this goal
     """
     sync_worlds()
-    giskard_wrapper.set_straight_cart_goal(goal_pose, tip_link, root_link)
+    giskard_wrapper.set_straight_cart_goal(_pose_to_pose_stamped(goal_pose), tip_link, root_link)
     return giskard_wrapper.plan_and_execute()
 
 
@@ -356,3 +356,18 @@ def make_vector_stamped(vector: List[float]) -> Vector3Stamped:
     msg.vector.z = vector[2]
 
     return msg
+
+
+def _pose_to_pose_stamped(pose: Pose) -> PoseStamped:
+    """
+    Transforms a PyCRAM pose to a PoseStamped message, this is necessary since Giskard NEEDS a PoseStamped message
+    otherwise it will crash.
+
+    :param pose: PyCRAM pose that should be converted
+    :return: An equivalent PoseStamped message
+    """
+    ps = PoseStamped()
+    ps.pose = pose.pose
+    ps.header = pose.header
+
+    return ps
