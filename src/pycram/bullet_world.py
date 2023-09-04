@@ -19,6 +19,8 @@ import rospkg
 import rospy
 import rosgraph
 import atexit
+
+import urdf_parser_py.urdf
 from geometry_msgs.msg import Quaternion, Point, TransformStamped
 from urdf_parser_py.urdf import URDF
 
@@ -751,10 +753,11 @@ class Object:
         with open(self.path) as f:
             self.urdf_object = URDF.from_xml_string(f.read())
             if self.urdf_object.name == robot_description.name and not BulletWorld.robot:
-                BulletWorld.robot = self
+                    BulletWorld.robot = self
 
         self.links[self.urdf_object.get_root()] = -1
         self.local_transformer.update_transforms_for_object(self)
+        self.link_to_geometry = self._get_geometry_for_link()
 
         self.world.objects.append(self)
 
@@ -1323,6 +1326,21 @@ class Object:
         :return: A TF frame name for a specific link
         """
         return self.tf_frame + "/" + link_name
+
+    def _get_geometry_for_link(self) -> Dict[str, urdf_parser_py.urdf.Geometry]:
+        """
+        Extracts the geometry information for each collision of each link and links them to the respective link.
+
+        :return: A dictionary with link name as key and geometry information as value
+        """
+        link_to_geometry = {}
+        for link in self.links.keys():
+            link_obj = self.urdf_object.link_map[link]
+            if not link_obj.collision:
+                link_to_geometry[link] = None
+            else:
+                link_to_geometry[link] = link_obj.collision.geometry
+        return link_to_geometry
 
 
 def filter_contact_points(contact_points, exclude_ids) -> List:
