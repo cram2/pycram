@@ -14,7 +14,6 @@ if "/giskard/command/goal" in topics:
     from giskard_msgs.srv import UpdateWorldRequest, UpdateWorld, UpdateWorldResponse
 
     giskard_wrapper = GiskardWrapper()
-    giskard_update_service = rospy.ServiceProxy("/giskard/update_world", UpdateWorld)
 else:
     rospy.logwarn("No Giskard topic available")
 
