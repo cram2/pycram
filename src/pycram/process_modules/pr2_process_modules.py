@@ -83,7 +83,13 @@ class Pr2Place(ProcessModule):
         robot = BulletWorld.robot
         arm = desig.arm
 
-        _move_arm_tcp(desig.target, robot, arm)
+        # Transformations such that the target position is the position of the object and not the tcp
+        object_pose = object.get_pose()
+        local_tf = LocalTransformer()
+        tcp_to_object = local_tf.transform_pose(object_pose, robot.get_link_tf_frame(robot_description.get_tool_frame(arm)))
+        target_diff = desig.target.to_transform("target").inverse_times(tcp_to_object.to_transform("object")).to_pose()
+
+        _move_arm_tcp(target_diff, robot, arm)
         robot.detach(object)
 
 

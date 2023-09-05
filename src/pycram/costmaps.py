@@ -729,7 +729,7 @@ class SemanticCostmap(Costmap):
         with Use_shadow_world():
             shadow_obj.set_orientation(Pose(orientation=[0, 0, 0, 1]))
             link_orientation = shadow_obj.get_link_pose(self.link)
-            link_orientation_trans = link_orientation.to_transform(self.link)
+            link_orientation_trans = link_orientation.to_transform(self.object.get_link_tf_frame(self.link))
             inverse_orientation = link_orientation_trans.invert()
             shadow_obj.set_orientation(inverse_orientation.to_pose())
             return shadow_obj.get_AABB(self.link)
