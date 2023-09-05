@@ -55,7 +55,7 @@ class JointStatePublisher:
             seq += 1
             time.sleep(self.interval)
 
-    def stop_publishing(self) -> None:
+    def _stop_publishing(self) -> None:
         """
         Sets the kill_event to terminate the publishing thread and joins the thread.
         """
