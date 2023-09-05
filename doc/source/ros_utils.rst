@@ -65,3 +65,16 @@ class to specify a topic as well as an interval in seconds.
      ft_sensor = ForceTorqueSensor("l_wrist_roll_joint", "/pycram/fts", 0.1)
 
 
+------------------------------
+Visualisation Marker Publisher
+------------------------------
+The visualisation marker publisher sends an array of visualisation marker to a ROS topic which can then be
+rendered by RVIZ for example. The array consists of one Marker per link for each Object in the Bullet World, with
+each Object creating its own namespace. The visualisation marker publisher has to instantiated once and then
+publishes constantly in the background.
+
+.. code-block:: python
+
+    from pycram.ros.viz_marker_publisher import VizMarkerPublisher
+
+    v = VizMarkerPublisher()
