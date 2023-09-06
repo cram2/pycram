@@ -1,13 +1,14 @@
 import dataclasses
 import itertools
 import time
-from typing import List, Optional, Any, Tuple
+from typing import List, Optional, Any, Tuple, Union
 
 import sqlalchemy.orm
 
 from .location_designator import CostmapLocation
 from .motion_designator import *
 from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
+from ..local_transformer import LocalTransformer
 from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, NavigateAction as ORMNavigateAction,
                                      PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction,
                                      MoveTorsoAction as ORMMoveTorsoAction, SetGripperAction as ORMSetGripperAction,
@@ -116,7 +117,7 @@ class SetGripperAction(ActionDesignatorDescription):
         :param motions: A list of possible motions
         :param resolver: An alternative resolver that returns a performable designator for a designator description
         """
-        super(SetGripperAction, self).__init__(resolver)
+        super().__init__(resolver)
         self.grippers: List[str] = grippers
         self.motions: List[str] = motions
 
@@ -199,7 +200,7 @@ class GripAction(ActionDesignatorDescription):
 
     def __init__(self, grippers: List[str], object_designator_description: ObjectDesignatorDescription,
                  efforts: List[float], resolver=None):
-        super(GripAction, self).__init__(resolver)
+        super().__init__(resolver)
         self.grippers: List[str] = grippers
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.efforts: List[float] = efforts
@@ -251,7 +252,7 @@ class ParkArmsAction(ActionDesignatorDescription):
         :param arms: A list of possible arms, that could be used
         :param resolver: An optional resolver that returns a performable designator from the designator description
         """
-        super(ParkArmsAction, self).__init__(resolver)
+        super().__init__(resolver)
         self.arms: List[Arms] = arms
 
     def ground(self) -> Action:
@@ -325,7 +326,7 @@ class PickUpAction(ActionDesignatorDescription):
         :param grasps: List of possible grasps for the object
         :param resolver: An optional resolver that returns a performable designator with elements from the lists of possible paramter
         """
-        super(PickUpAction, self).__init__(resolver)
+        super().__init__(resolver)
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.arms: List[str] = arms
         self.grasps: List[str] = grasps
@@ -404,7 +405,7 @@ class PlaceAction(ActionDesignatorDescription):
         :param arms: List of possible arms to use
         :param resolver: Grounding method to resolve this designator
         """
-        super(PlaceAction, self).__init__(resolver)
+        super().__init__(resolver)
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.target_locations: List[Pose] = target_locations
         self.arms: List[str] = arms
@@ -439,7 +440,6 @@ class NavigateAction(ActionDesignatorDescription):
             return ORMNavigateAction()
 
         def insert(self, session, *args, **kwargs) -> ORMNavigateAction:
-
             # initialize position and orientation
             position = Position(*self.target_location.position_as_list())
             orientation = Quaternion(*self.target_location.orientation_as_list())
@@ -469,7 +469,7 @@ class NavigateAction(ActionDesignatorDescription):
         :param target_locations: A list of possible target locations for the navigation.
         :param resolver: An alternative resolver that creates a performable designator from the list of possible parameter
         """
-        super(NavigateAction, self).__init__(resolver)
+        super().__init__(resolver)
         self.target_locations: List[Pose] = target_locations
 
     def ground(self) -> Action:
@@ -544,7 +544,7 @@ class TransportAction(ActionDesignatorDescription):
         :param target_locations: A list of possible target locations for the object to be placed
         :param resolver: An alternative resolver that returns a performable designator for the list of possible parameter
         """
-        super(TransportAction, self).__init__(resolver)
+        super().__init__(resolver)
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.arms: List[str] = arms
         self.target_locations: List[Pose] = target_locations
@@ -589,7 +589,7 @@ class LookAtAction(ActionDesignatorDescription):
         :param targets: A list of possible locations to look at
         :param resolver: An alternative resolver that returns a performable designator for a list of possible target locations
         """
-        super(LookAtAction, self).__init__(resolver)
+        super().__init__(resolver)
         self.targets: List[Pose] = targets
 
     def ground(self) -> Action:
@@ -630,7 +630,7 @@ class DetectAction(ActionDesignatorDescription):
         :param object_designator_description: Object designator describing the object
         :param resolver: An alternative resolver
         """
-        super(DetectAction, self).__init__(resolver)
+        super().__init__(resolver)
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
 
     def ground(self) -> Action:
@@ -651,7 +651,6 @@ class OpenAction(ActionDesignatorDescription):
 
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
-
         object_designator: ObjectPart.Object
         """
         Object designator describing the object that should be opened
@@ -680,7 +679,7 @@ class OpenAction(ActionDesignatorDescription):
         :param arms: A list of possible arms that should be used
         :param resolver: A alternative resolver that returns a performable designator for the lists of possible parameter.
         """
-        super(OpenAction, self).__init__(resolver)
+        super().__init__(resolver)
         self.object_designator_description: ObjectPart = object_designator_description
         self.arms: List[str] = arms
 
@@ -703,7 +702,6 @@ class CloseAction(ActionDesignatorDescription):
 
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
-
         object_designator: ObjectPart.Object
         """
         Object designator describing the object that should be closed
@@ -732,7 +730,7 @@ class CloseAction(ActionDesignatorDescription):
         :param arms: A list of possible arms to use
         :param resolver: An alternative resolver that returns a performable designator for the list of possible parameter
         """
-        super(CloseAction, self).__init__(resolver)
+        super().__init__(resolver)
         self.object_designator_description: ObjectPart = object_designator_description
         self.arms: List[str] = arms
 
@@ -744,3 +742,45 @@ class CloseAction(ActionDesignatorDescription):
         :return: A performable designator
         """
         return self.Action(self.object_designator_description.resolve(), self.arms[0])
+
+
+class GraspingAction(ActionDesignatorDescription):
+    @dataclasses.dataclass
+    class Action(ActionDesignatorDescription.Action):
+        arm: str
+        object_desig: Union[ObjectDesignatorDescription.Object, ObjectPart.Object]
+
+        def perform(self) -> Any:
+            if isinstance(self.object_desig, ObjectPart.Object):
+                object_pose = self.object_desig.part_pose
+            else:
+                object_pose = self.object_desig.bullet_world_object.get_pose()
+
+            lt = LocalTransformer()
+            gripper_name = robot_description.get_tool_frame(self.arm)
+
+            object_pose_in_gripper = lt.transform_pose(object_pose,
+                                                       BulletWorld.robot.get_link_tf_frame(gripper_name))
+
+            pre_grasp = object_pose_in_gripper.copy()
+            pre_grasp.pose.position.x -= 0.1
+
+            MoveTCPMotion(pre_grasp, self.arm).resolve().perform()
+            MoveGripperMotion("open", self.arm).resolve().perform()
+
+            MoveTCPMotion(object_pose, self.arm).resolve().perform()
+            MoveGripperMotion("close", self.arm).resolve().perform()
+
+        def to_sql(self) -> ORMAction:
+            raise NotImplementedError
+
+        def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> ORMAction:
+            raise NotImplementedError
+
+    def __init__(self, arms: List[str], object_description: ObjectDesignatorDescription, resolver: Callable = None):
+        super().__init__(resolver)
+        self.arms: List[str] = arms
+        self.object_description: ObjectDesignatorDescription = object_description
+
+    def ground(self) -> Action:
+        return self.Action(self.arms[0], self.object_description.resolve())

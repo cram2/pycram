@@ -320,12 +320,13 @@ class Pr2MoveArmJointsReal(ProcessModule):
     Moves the arm joints of the real PR2 to the given configuration while avoiding all collisions
     """
     def _execute(self, designator: MoveArmJointsMotion.Motion) -> Any:
-        giskard.avoid_all_collisions()
+        joint_goals = {}
         if designator.left_arm_poses:
-            giskard.achieve_joint_goal(designator.left_arm_poses)
-
+            joint_goals.update(designator.left_arm_poses)
         if designator.right_arm_poses:
-            giskard.achieve_joint_goal(designator.right_arm_poses)
+            joint_goals.update(designator.right_arm_poses)
+        giskard.avoid_all_collisions()
+        giskard.achieve_joint_goal(joint_goals)
 
 
 class Pr2MoveJointsReal(ProcessModule):
@@ -333,7 +334,7 @@ class Pr2MoveJointsReal(ProcessModule):
     Moves any joint using giskard, avoids all collisions while doint this.
     """
     def _execute(self, designator: MoveJointsMotion.Motion) -> Any:
-        name_to_position = zip(designator.names, designator.positions)
+        name_to_position = dict(zip(designator.names, designator.positions))
         giskard.avoid_all_collisions()
         giskard.achieve_joint_goal(name_to_position)
 
@@ -341,7 +342,12 @@ class Pr2MoveJointsReal(ProcessModule):
 class Pr2MoveGripperReal(ProcessModule):
 
     def _execute(self, designator: MoveGripperMotion.Motion) -> Any:
-        pass
+        gripper = designator.gripper
+        motion = designator.motion
+        joint_goals = robot_description.get_static_gripper_chain(gripper, motion).items()
+
+        giskard.avoid_all_collisions()
+        giskard.achieve_joint_goal(joint_goals)
 
 
 class Pr2OpenReal(ProcessModule):
