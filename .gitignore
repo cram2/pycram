@@ -70,4 +70,4 @@ venv/
 resources/cached/
 
 # Example checkpoints
-examples/.ipynb_checkpoints/
+**/.ipynb_checkpoints/**

@@ -1,0 +1,50 @@
+{
+  "globalOptions": {
+    "background": "#333333",
+    "fixedFrame": "/map"
+  },
+  "sidebarOpened": false,
+  "viewerOptions": {
+    "camera": {
+      "position": {
+        "x": -8.8,
+        "y": -3,
+        "z": 5.7
+      }
+    },
+    "cameraControls": {
+      "center": {
+        "x": -1,
+        "y": 1,
+        "z": 0
+      }
+    },
+    "directionalLight": {
+      "position": {
+        "x": -3,
+        "y": -3,
+        "z": 5
+      }
+    }
+  },
+  "displays": [
+    {
+      "isShown": true,
+      "name": "Grid",
+      "options": {
+        "cellSize": "1",
+        "color": "#888888",
+        "numCells": "10"
+      },
+      "type": "grid"
+    },
+    {
+      "isShown": true,
+      "name": "Marker array",
+      "options": {
+        "topic": "/pycram/viz_marker"
+      },
+      "type": "markerArray"
+    }
+  ]
+}

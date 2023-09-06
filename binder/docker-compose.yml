@@ -7,23 +7,25 @@ services:
     #   dockerfile: ./Dockerfile
     stdin_open: true
     tty: true
+    # network_mode: host
     ports: 
       - 8888:8888
     privileged: true
     # user: root
-    command: jupyter lab --allow-root --NotebookApp.token='' --no-browser --ip=0.0.0.0
-    entrypoint: ["/home/user/work/entrypoint.sh"]
+    command: start-notebook.sh --allow-root --NotebookApp.token='' --no-browser --ip=0.0.0.0
+    entrypoint: ["/home/jovyan/work/entrypoint.sh"]
+    working_dir: /home/jovyan/
     volumes:
-      - ./:/home/user/work
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
-    environment:
-      # - DISPLAY
-      - QT_X11_NO_MITSHM=1
-      - NVIDIA_DRIVER_CAPABILITIES=all
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+      - ./:/home/jovyan/work
+      # - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    # environment:
+    #   - DISPLAY
+      # - QT_X11_NO_MITSHM=1
+    #   - NVIDIA_DRIVER_CAPABILITIES=all
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
