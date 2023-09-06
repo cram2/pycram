@@ -18,6 +18,7 @@ import pybullet as p
 import rospkg
 import rospy
 import rosgraph
+import rosnode
 import atexit
 from geometry_msgs.msg import Quaternion, Point, TransformStamped
 from urdf_parser_py.urdf import URDF
@@ -44,7 +45,6 @@ class BulletWorld:
     shadow world. In this way you can comfortably use the current_bullet_world, which should point towards the BulletWorld
     used at the moment.
     """
-
     robot: Object = None
     """
     Global reference to the spawned Object that represents the robot. The robot is identified by checking the name in the 
@@ -52,7 +52,7 @@ class BulletWorld:
     """
 
     # Check is for sphinx autoAPI to be able to work in a CI workflow
-    if rosgraph.is_master_online():
+    if rosgraph.is_master_online() and "/pycram" not in rosnode.get_node_names():
         rospy.init_node('pycram')
 
     def __init__(self, type: str = "GUI", is_shadow_world: bool = False):
@@ -739,12 +739,13 @@ class Object:
         self.original_pose = pose
         self.base_origin_shift = np.array(position) - np.array(self.get_base_origin().position_as_list())
         self.local_transformer = LocalTransformer()
-        self.tf_frame = ("shadow/" if self.world.is_shadow_world else "") + self.name + "_" + str(self.id)
+        self.tf_frame = self.name + "_" + str(self.id)
 
         # This means "world" is not the shadow world since it has a reference to a shadow world
         if self.world.shadow_world != None:
             self.world.world_sync.add_obj_queue.put(
                 [name, type, path, position, orientation, self.world.shadow_world, color, self])
+            self.local_transformer.update_objects()
 
         with open(self.path) as f:
             self.urdf_object = URDF.from_xml_string(f.read())
@@ -752,7 +753,6 @@ class Object:
                 BulletWorld.robot = self
 
         self.links[self.urdf_object.get_root()] = -1
-        self.local_transformer.update_transforms_for_object(self)
 
         self.world.objects.append(self)
 
@@ -870,7 +870,7 @@ class Object:
         if base:
             position = np.array(position) + self.base_origin_shift
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
-        self.local_transformer.update_transforms_for_object(self)
+        self.local_transformer.update_objects()
         self._set_attached_objects([self])
 
     @property
@@ -1094,7 +1094,7 @@ class Object:
             # Temporarily disabled because kdl outputs values exciting joint limits
             # return
         p.resetJointState(self.id, self.joints[joint_name], joint_pose, physicsClientId=self.world.client_id)
-        self.local_transformer.update_transforms_for_object(self)
+        self.local_transformer.update_objects()
         self._set_attached_objects([self])
 
     def get_joint_state(self, joint_name: str) -> float:
