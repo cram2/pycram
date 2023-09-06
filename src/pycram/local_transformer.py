@@ -61,9 +61,10 @@ class LocalTransformer(TransformerROS):
         """
         Updates transformations for all objects that are currently in :py:attr:`~pycram.bullet_world.BulletWorld.current_bullet_world`
         """
+        current_time = rospy.Time().now()
         if self.bullet_world:
             for obj in list(self.bullet_world.current_bullet_world.objects):
-                self.update_transforms_for_object(obj)
+                self.update_transforms_for_object(obj, current_time)
 
     def transform_pose(self, pose: Pose, target_frame: str) -> Union[Pose, None]:
         """
@@ -119,20 +120,22 @@ class LocalTransformer(TransformerROS):
         translation, rotation = self.lookupTransform(source_frame, target_frame, tf_time)
         return Transform(translation, rotation, source_frame, target_frame)
 
-    def update_transforms_for_object(self, bullet_object: 'bullet_world.Object') -> None:
+    def update_transforms_for_object(self, bullet_object: 'bullet_world.Object', time: rospy.Time) -> None:
         """
         Updates local transforms for a Bullet Object, this includes the base as well as all links
 
         :param bullet_object: Object for which the Transforms should be updated
         """
-        self.setTransform(
-            bullet_object.get_pose().to_transform(bullet_object.tf_frame))
+        obj_tf = bullet_object.get_pose().to_transform(bullet_object.tf_frame)
+        obj_tf.header.stamp = time
+        self.setTransform(obj_tf)
         for link_name, id in bullet_object.links.items():
             if id == -1:
                 continue
-            tf_stamped = bullet_object.get_link_pose(link_name).to_transform(
+            link_tf = bullet_object.get_link_pose(link_name).to_transform(
                 bullet_object.get_link_tf_frame(link_name))
-            self.setTransform(tf_stamped)
+            link_tf.header.stamp = time
+            self.setTransform(link_tf)
 
     def get_all_frames(self) -> List[str]:
         """
