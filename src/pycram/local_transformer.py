@@ -63,7 +63,7 @@ class LocalTransformer(TransformerROS):
         """
         current_time = rospy.Time().now()
         if self.bullet_world:
-            for obj in list(self.bullet_world.current_bullet_world.objects):
+            for obj in list(self.bullet_world.objects):
                 self.update_transforms_for_object(obj, current_time)
 
     def transform_pose(self, pose: Pose, target_frame: str) -> Union[Pose, None]:
