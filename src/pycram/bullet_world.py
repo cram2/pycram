@@ -89,6 +89,7 @@ class BulletWorld:
         if not is_shadow_world:
             self.world_sync.start()
             self.local_transformer.bullet_world = self
+            self.local_transformer.shadow_world = self.shadow_world
 
         # Some default settings
         self.set_gravity([0, 0, -9.8])
@@ -460,14 +461,16 @@ class WorldSync(threading.Thread):
                 self.remove_obj_queue.task_done()
 
             for bulletworld_obj, shadow_obj in self.object_mapping.items():
-                shadow_obj.set_pose(bulletworld_obj.get_pose())
-                # shadow_obj.set_position(bulletworld_obj.get_position())
-                # shadow_obj.set_orientation(bulletworld_obj.get_orientation())
+                obj_pose = bulletworld_obj.get_pose()
+                if obj_pose != shadow_obj.get_pose():
+                    shadow_obj.set_pose(obj_pose)
 
                 # Manage joint positions
                 if len(bulletworld_obj.joints) > 2:
                     for joint_name in bulletworld_obj.joints.keys():
-                        shadow_obj.set_joint_state(joint_name, bulletworld_obj.get_joint_state(joint_name))
+                        joint_position = bulletworld_obj.get_joint_state(joint_name)
+                        if shadow_obj.get_joint_state(joint_name) != joint_position:
+                            shadow_obj.set_joint_state(joint_name, bulletworld_obj.get_joint_state(joint_name))
 
             self.check_for_pause()
             # self.check_for_equal()
@@ -739,13 +742,13 @@ class Object:
         self.original_pose = pose
         self.base_origin_shift = np.array(position) - np.array(self.get_base_origin().position_as_list())
         self.local_transformer = LocalTransformer()
-        self.tf_frame = self.name + "_" + str(self.id)
+        self.tf_frame = ("shadow/" if self.world.is_shadow_world else "") + self.name + "_" + str(self.id)
 
         # This means "world" is not the shadow world since it has a reference to a shadow world
         if self.world.shadow_world != None:
             self.world.world_sync.add_obj_queue.put(
                 [name, type, path, position, orientation, self.world.shadow_world, color, self])
-            self.local_transformer.update_objects()
+        self.local_transformer.update_transforms_for_object(self)
 
         with open(self.path) as f:
             self.urdf_object = URDF.from_xml_string(f.read())
@@ -870,7 +873,7 @@ class Object:
         if base:
             position = np.array(position) + self.base_origin_shift
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
-        self.local_transformer.update_objects()
+        self.local_transformer.update_transforms_for_object(self)
         self._set_attached_objects([self])
 
     @property
@@ -1094,7 +1097,7 @@ class Object:
             # Temporarily disabled because kdl outputs values exciting joint limits
             # return
         p.resetJointState(self.id, self.joints[joint_name], joint_pose, physicsClientId=self.world.client_id)
-        self.local_transformer.update_objects()
+        self.local_transformer.update_transforms_for_object(self)
         self._set_attached_objects([self])
 
     def get_joint_state(self, joint_name: str) -> float:
