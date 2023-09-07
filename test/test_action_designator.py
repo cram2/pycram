@@ -122,6 +122,18 @@ class TestActionDesignatorGrounding(test_bullet_world.BulletWorldTest):
         dist = np.linalg.norm(np.array(self.milk.get_pose().position_as_list()) - np.array([-1.35, 0.78, 0.95]))
         self.assertTrue(dist < 0.01)
 
+    def test_grasping(self):
+        self.milk.set_pose(Pose([-1.4, 1, 1]))
+        self.robot.set_pose(Pose([-2.14, 1.06, 0]))
+        milk_desig = object_designator.ObjectDesignatorDescription(names=["milk"])
+        description = action_designator.GraspingAction(["right"], milk_desig)
+        with simulated_robot:
+            description.resolve().perform()
+        dist = np.linalg.norm(
+            np.array(self.robot.get_link_pose(robot_description.get_tool_frame("right")).position_as_list()) -
+            np.array(self.milk.get_pose().position_as_list()))
+        self.assertTrue(dist < 0.01)
+
 
 if __name__ == '__main__':
     unittest.main()
