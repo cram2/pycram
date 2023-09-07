@@ -662,7 +662,7 @@ class OpenAction(ActionDesignatorDescription):
 
         @with_tree
         def perform(self) -> Any:
-            MoveTCPMotion(self.object_designator.part_pose, self.arm).resolve().perform()
+            GraspingAction.Action(self.arm, self.object_designator).perform()
             OpeningMotion(self.object_designator, self.arm).resolve().perform()
 
         def to_sql(self) -> Base:
@@ -712,7 +712,7 @@ class CloseAction(ActionDesignatorDescription):
         """
 
         def perform(self) -> Any:
-            MoveTCPMotion(self.object_designator.part_pose, self.arm).resolve().perform()
+            GraspingAction.Action(self.arm, self.object_designator).perform()
             ClosingMotion(self.object_designator, self.arm).resolve().perform()
 
         def to_sql(self) -> Base:
@@ -745,17 +745,25 @@ class CloseAction(ActionDesignatorDescription):
 
 
 class GraspingAction(ActionDesignatorDescription):
+    """
+    Grasps an object described by the given Object Designator description
+    """
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
         arm: str
+        """
+        The arm that should be used to grasp
+        """
         object_desig: Union[ObjectDesignatorDescription.Object, ObjectPart.Object]
+        """
+        Object Designator for the object that should be grasped
+        """
 
         def perform(self) -> Any:
             if isinstance(self.object_desig, ObjectPart.Object):
                 object_pose = self.object_desig.part_pose
             else:
                 object_pose = self.object_desig.bullet_world_object.get_pose()
-
             lt = LocalTransformer()
             gripper_name = robot_description.get_tool_frame(self.arm)
 
@@ -777,10 +785,25 @@ class GraspingAction(ActionDesignatorDescription):
         def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> ORMAction:
             raise NotImplementedError
 
-    def __init__(self, arms: List[str], object_description: ObjectDesignatorDescription, resolver: Callable = None):
+    def __init__(self, arms: List[str], object_description: Union[ObjectDesignatorDescription, ObjectPart],
+                 resolver: Callable = None):
+        """
+        Will try to grasp the object described by the given description. Grasping is done by moving into a pre grasp
+        position 10 cm before the object, opening the gripper, moving to the object and then closing the gripper.
+
+        :param arms: List of Arms that should be used for grasping
+        :param object_description: Description of the object that should be grasped
+        :param resolver: An alternative resolver to get a specified designator from the designator description
+        """
         super().__init__(resolver)
         self.arms: List[str] = arms
         self.object_description: ObjectDesignatorDescription = object_description
 
     def ground(self) -> Action:
+        """
+        Default resolver that takes the first element from the list of arms and the first solution for the object
+        designator description ond returns it.
+
+        :return: A performable action designator that contains specific arguments
+        """
         return self.Action(self.arms[0], self.object_description.resolve())

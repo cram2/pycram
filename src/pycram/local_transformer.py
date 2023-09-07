@@ -80,7 +80,7 @@ class LocalTransformer(TransformerROS):
             return pose
         if pose.frame != "map" and target_frame != "map":
             try:
-                trans, rot = self.lookupTransformFull(target_frame, rospy.Time(0), pose.frame, rospy.Time(0), "map")
+                trans, rot = self.lookupTransformFull(pose.frame, rospy.Time(0),target_frame, rospy.Time(0), "map")
                 self.setTransform(Transform(trans, rot, pose.frame, target_frame))
             except tf.LookupException as e:
                 rospy.logerr(f"{e}")
