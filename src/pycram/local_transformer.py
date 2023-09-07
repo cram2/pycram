@@ -1,6 +1,8 @@
 import sys
 import logging
 
+import tf
+
 if 'bullet_world' in sys.modules:
     logging.warning("(publisher) Make sure that you are not loading this module from pycram.bullet_world.")
 import rospkg
@@ -37,7 +39,7 @@ class LocalTransformer(TransformerROS):
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
-            cls._instance = super(LocalTransformer, cls).__new__(cls, *args, **kwargs)
+            cls._instance = super().__new__(cls, *args, **kwargs)
             cls._instance._initialized = False
         return cls._instance
 
@@ -53,6 +55,7 @@ class LocalTransformer(TransformerROS):
 
         # Since this file can't import bullet_world.py this holds the reference to the current_bullet_world
         self.bullet_world = None
+        self.shadow_world = None
 
         # If the singelton was already initialized
         self._initialized = True
@@ -61,10 +64,9 @@ class LocalTransformer(TransformerROS):
         """
         Updates transformations for all objects that are currently in :py:attr:`~pycram.bullet_world.BulletWorld.current_bullet_world`
         """
-        current_time = rospy.Time().now()
         if self.bullet_world:
             for obj in list(self.bullet_world.objects):
-                self.update_transforms_for_object(obj, current_time)
+                self.update_transforms_for_object(obj)
 
     def transform_pose(self, pose: Pose, target_frame: str) -> Union[Pose, None]:
         """
@@ -74,6 +76,16 @@ class LocalTransformer(TransformerROS):
         :param target_frame: Name of the TF frame into which the Pose should be transformed
         :return: A transformed pose in the target frame
         """
+        if pose.frame == target_frame:
+            return pose
+        if pose.frame != "map" and target_frame != "map":
+            try:
+                trans, rot = self.lookupTransformFull(target_frame, rospy.Time(0), pose.frame, rospy.Time(0), "map")
+                self.setTransform(Transform(trans, rot, pose.frame, target_frame))
+            except tf.LookupException as e:
+                rospy.logerr(f"{e}")
+                return
+
         copy_pose = pose.copy()
         copy_pose.header.stamp = rospy.Time(0)
         if not self.canTransform(target_frame, pose.frame, rospy.Time(0)):
@@ -120,21 +132,19 @@ class LocalTransformer(TransformerROS):
         translation, rotation = self.lookupTransform(source_frame, target_frame, tf_time)
         return Transform(translation, rotation, source_frame, target_frame)
 
-    def update_transforms_for_object(self, bullet_object: 'bullet_world.Object', time: rospy.Time) -> None:
+    def update_transforms_for_object(self, bullet_object: 'bullet_world.Object') -> None:
         """
         Updates local transforms for a Bullet Object, this includes the base as well as all links
 
         :param bullet_object: Object for which the Transforms should be updated
         """
         obj_tf = bullet_object.get_pose().to_transform(bullet_object.tf_frame)
-        obj_tf.header.stamp = time
         self.setTransform(obj_tf)
         for link_name, id in bullet_object.links.items():
             if id == -1:
                 continue
             link_tf = bullet_object.get_link_pose(link_name).to_transform(
                 bullet_object.get_link_tf_frame(link_name))
-            link_tf.header.stamp = time
             self.setTransform(link_tf)
 
     def get_all_frames(self) -> List[str]:
