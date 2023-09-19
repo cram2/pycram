@@ -10,8 +10,8 @@ topics = list(map(lambda x: x[0], rospy.get_published_topics()))
 try:
     from giskardpy.python_interface import GiskardWrapper
     from geometry_msgs.msg import PoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
-    from giskard_msgs.msg import WorldBody, MoveResult
-    from giskard_msgs.srv import UpdateWorldRequest, UpdateWorld, UpdateWorldResponse
+    from giskard_msgs.msg import WorldBody, MoveResult, CollisionEntry
+    from giskard_msgs.srv import UpdateWorldRequest, UpdateWorld, UpdateWorldResponse, RegisterGroupResponse
 
     if "/giskard/command/goal" in topics:
         giskard_wrapper = GiskardWrapper()
@@ -21,6 +21,33 @@ except ModuleNotFoundError as e:
 
 
 # Believe state management between pycram and giskard
+def allow_gripper_collision(gripper: str):
+    """
+    Allows the specified gripper to collide with anything.
+
+    :param gripper: The gripper which can collide, either 'right', 'left' or 'both'
+    :return:
+    """
+    add_gripper_groups()
+    if gripper == "right":
+        giskard_wrapper.allow_collision("right_gripper", CollisionEntry.ALL)
+    elif gripper == "left":
+        giskard_wrapper.allow_collision("left_gripper", CollisionEntry.ALL)
+    elif gripper == "both":
+        giskard_wrapper.allow_collision("right_gripper", CollisionEntry.ALL)
+        giskard_wrapper.allow_collision("left_gripper", CollisionEntry.ALL)
+
+
+def add_gripper_groups() -> None:
+    """
+    Adds the gripper links as a group for collision avoidance.
+
+    :return: Response of the RegisterGroup Service
+    """
+    if "right_gripper" not in giskard_wrapper.get_group_names():
+        for gripper in ["left", "right"]:
+            root_link = robot_description.chains[gripper].gripper.links[-1]
+            giskard_wrapper.register_group(gripper + "_gripper", root_link, robot_description.name)
 
 
 def initial_adding_objects() -> None:
@@ -54,10 +81,15 @@ def sync_worlds() -> None:
     belief state such that it matches the objects present in the BulletWorld and moving the robot to the position it is
     currently at in the BulletWorld.
     """
-    bullet_object_names = set(map(lambda obj: obj.name + "_" + str(obj.id), BulletWorld.current_bullet_world.objects))
+    add_gripper_groups()
+    bullet_object_names = set()
+    for obj in BulletWorld.current_bullet_world.objects:
+        if obj.name != robot_description.name and len(obj.links) != 1:
+            bullet_object_names.add(obj.name + "_" + str(obj.id))
+
     giskard_object_names = set(giskard_wrapper.get_group_names())
     robot_name = {robot_description.name}
-    if giskard_object_names - bullet_object_names - robot_name != set():
+    if not bullet_object_names.union(robot_name).issubset(giskard_object_names):
         giskard_wrapper.clear_world()
     initial_adding_objects()
 

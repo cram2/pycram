@@ -665,6 +665,8 @@ class OpenAction(ActionDesignatorDescription):
             GraspingAction.Action(self.arm, self.object_designator).perform()
             OpeningMotion(self.object_designator, self.arm).resolve().perform()
 
+            MoveGripperMotion("open", self.arm, allow_gripper_collision=True).resolve().perform()
+
         def to_sql(self) -> Base:
             raise NotImplementedError()
 
@@ -714,6 +716,8 @@ class CloseAction(ActionDesignatorDescription):
         def perform(self) -> Any:
             GraspingAction.Action(self.arm, self.object_designator).perform()
             ClosingMotion(self.object_designator, self.arm).resolve().perform()
+
+            MoveGripperMotion("open", self.arm, allow_gripper_collision=True).resolve().perform()
 
         def to_sql(self) -> Base:
             raise NotImplementedError()
@@ -776,8 +780,8 @@ class GraspingAction(ActionDesignatorDescription):
             MoveTCPMotion(pre_grasp, self.arm).resolve().perform()
             MoveGripperMotion("open", self.arm).resolve().perform()
 
-            MoveTCPMotion(object_pose, self.arm).resolve().perform()
-            MoveGripperMotion("close", self.arm).resolve().perform()
+            MoveTCPMotion(object_pose, self.arm, allow_gripper_collision=True).resolve().perform()
+            MoveGripperMotion("close", self.arm, allow_gripper_collision=True).resolve().perform()
 
         def to_sql(self) -> ORMAction:
             raise NotImplementedError

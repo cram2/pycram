@@ -310,7 +310,8 @@ class Pr2MoveTCPReal(ProcessModule):
         lt = LocalTransformer()
         pose_in_map = lt.transform_pose(designator.target, "map")
 
-        giskard.avoid_all_collisions()
+        if designator.allow_gripper_collision:
+            giskard.allow_gripper_collision(designator.arm)
         giskard.achieve_cartesian_goal(pose_in_map, robot_description.get_tool_frame(designator.arm),
                                        robot_description.base_link)
 
@@ -344,9 +345,10 @@ class Pr2MoveGripperReal(ProcessModule):
     def _execute(self, designator: MoveGripperMotion.Motion) -> Any:
         gripper = designator.gripper
         motion = designator.motion
-        joint_goals = robot_description.get_static_gripper_chain(gripper, motion).items()
+        joint_goals = robot_description.get_static_gripper_chain(gripper, motion)
 
-        giskard.avoid_all_collisions()
+        if designator.allow_gripper_collision:
+            giskard.allow_gripper_collision(designator.gripper)
         giskard.achieve_joint_goal(joint_goals)
 
 
@@ -438,6 +440,8 @@ class Pr2Manager(ProcessModuleManager):
     def move_gripper(self):
         if ProcessModuleManager.execution_type == "simulated":
             return Pr2MoveGripper(self._move_gripper_lock)
+        elif ProcessModuleManager.execution_type == "real":
+            return Pr2MoveGripperReal(self._move_gripper_lock)
 
     def open(self):
         if ProcessModuleManager.execution_type == "simulated":
