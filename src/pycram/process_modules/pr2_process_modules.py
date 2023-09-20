@@ -2,6 +2,8 @@ from abc import ABC
 from threading import Lock
 from typing import Any
 
+import actionlib
+
 import pycram.bullet_world_reasoning as btr
 import numpy as np
 import time
@@ -19,6 +21,11 @@ from ..local_transformer import LocalTransformer
 from ..designators.motion_designator import *
 from ..enums import JointType
 from ..external_interfaces import giskard
+
+try:
+    from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2
+except ImportError:
+    pass
 
 
 def _park_arms(arm):
@@ -252,6 +259,7 @@ class Pr2NavigationReal(ProcessModule):
     """
     Process module for the real PR2 that sends a cartesian goal to giskard to move the robot base
     """
+
     def _execute(self, designator: MoveMotion.Motion) -> Any:
         rospy.logdebug(f"Sending goal to giskard to Move the robot")
         giskard.achieve_cartesian_goal(designator.target, robot_description.base_link, "map")
@@ -274,6 +282,7 @@ class Pr2MoveHeadReal(ProcessModule):
     Process module for the real robot to move that such that it looks at the given position. Uses the same calculation
     as the simulated one
     """
+
     def _execute(self, desig: LookingMotion.Motion):
         target = desig.target
         robot = BulletWorld.robot
@@ -298,6 +307,7 @@ class Pr2DetectingReal(ProcessModule):
     Process Module for the real Pr2 that tries to detect an object fitting the given object description. Uses Robokudo
     for perception of the environment.
     """
+
     def _execute(self, designator: DetectingMotion.Motion) -> Any:
         pass
 
@@ -306,6 +316,7 @@ class Pr2MoveTCPReal(ProcessModule):
     """
     Moves the tool center point of the real PR2 while avoiding all collisions
     """
+
     def _execute(self, designator: MoveTCPMotion.Motion) -> Any:
         lt = LocalTransformer()
         pose_in_map = lt.transform_pose(designator.target, "map")
@@ -320,6 +331,7 @@ class Pr2MoveArmJointsReal(ProcessModule):
     """
     Moves the arm joints of the real PR2 to the given configuration while avoiding all collisions
     """
+
     def _execute(self, designator: MoveArmJointsMotion.Motion) -> Any:
         joint_goals = {}
         if designator.left_arm_poses:
@@ -334,6 +346,7 @@ class Pr2MoveJointsReal(ProcessModule):
     """
     Moves any joint using giskard, avoids all collisions while doint this.
     """
+
     def _execute(self, designator: MoveJointsMotion.Motion) -> Any:
         name_to_position = dict(zip(designator.names, designator.positions))
         giskard.avoid_all_collisions()
@@ -341,21 +354,36 @@ class Pr2MoveJointsReal(ProcessModule):
 
 
 class Pr2MoveGripperReal(ProcessModule):
+    """
+    Opens or closes the gripper of the real PR2, gripper uses an action server for this instead of giskard 
+    """
 
     def _execute(self, designator: MoveGripperMotion.Motion) -> Any:
-        gripper = designator.gripper
-        motion = designator.motion
-        joint_goals = robot_description.get_static_gripper_chain(gripper, motion)
+        def activate_callback():
+            rospy.loginfo("Started gripper Movement")
 
-        if designator.allow_gripper_collision:
-            giskard.allow_gripper_collision(designator.gripper)
-        giskard.achieve_joint_goal(joint_goals)
+        def done_callback(state, result):
+            rospy.loginfo(result.reached_result)
+
+        def feedback_callback(msg):
+            pass
+
+        goal = Pr2GripperCommandGoal
+        goal.command.position = 0.0 if designator.motion == "close" else 0.1
+        goal.command.max_effort = 50.0
+        controller_topic = "r_gripper_controller/gripper_action" if designator.gripper == "right" else "l_gripper_controller/gripper_action"
+        client = actionlib.SimpleActionClient(controller_topic, Pr2GripperCommandAction)
+        rospy.loginfo("Waiting for action server")
+        client.wait_for_server()
+        client.send_goal(goal, active_cb=activate_callback, done_cb=done_callback, feedback_cb=feedback_callback)
+        wait = client.wait_for_result()
 
 
 class Pr2OpenReal(ProcessModule):
     """
     Tries to open an already grasped container
     """
+
     def _execute(self, designator: OpeningMotion.Motion) -> Any:
         giskard.achieve_open_container_goal(robot_description.get_tool_frame(designator.arm),
                                             designator.object_part.name)
@@ -365,6 +393,7 @@ class Pr2CloseReal(ProcessModule):
     """
     Tries to close an already grasped container
     """
+
     def _execute(self, designator: ClosingMotion.Motion) -> Any:
         giskard.achieve_close_container_goal(robot_description.get_tool_frame(designator.arm),
                                              designator.object_part.name)
