@@ -38,7 +38,7 @@ class Base(sqlalchemy.orm.DeclarativeBase):
     id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
     """Unique integer ID as auto incremented primary key."""
 
-    metadata_id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("MetaData.id"), nullable=True)
+    metadata_id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("MetaData.id", onupdate="CASCADE"), nullable=True)
     """Related MetaData Object to store information about the context of this experiment."""
 
     def __repr__(self):
@@ -91,6 +91,7 @@ class MetaData(Base):
     def reset(cls):
         """Reset the singleton instance to None, s. t. next time the class is called a new instance is created."""
         cls._self = None
+
 
 
 class Position(Base):
@@ -152,10 +153,10 @@ class RobotState(Base):
 
     __tablename__ = "RobotState"
 
-    position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
+    position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id", onupdate="CASCADE"))
     """The position of the robot."""
 
-    orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"))
+    orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id", onupdate="CASCADE"))
     """The orientation of the robot."""
 
     torso_height = sqlalchemy.Column(sqlalchemy.types.Float)
