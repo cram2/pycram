@@ -462,14 +462,16 @@ class WorldSync(threading.Thread):
                 self.remove_obj_queue.task_done()
 
             for bulletworld_obj, shadow_obj in self.object_mapping.items():
-                shadow_obj.set_pose(bulletworld_obj.get_pose())
+                if bulletworld_obj.get_pose() != shadow_obj.get_pose():
+                    shadow_obj.set_pose(bulletworld_obj.get_pose())
                 # shadow_obj.set_position(bulletworld_obj.get_position())
                 # shadow_obj.set_orientation(bulletworld_obj.get_orientation())
 
                 # Manage joint positions
                 if len(bulletworld_obj.joints) > 2:
                     for joint_name in bulletworld_obj.joints.keys():
-                        shadow_obj.set_joint_state(joint_name, bulletworld_obj.get_joint_state(joint_name))
+                        if shadow_obj.get_joint_state(joint_name) != bulletworld_obj.get_joint_state(joint_name):
+                            shadow_obj.set_joint_state(joint_name, bulletworld_obj.get_joint_state(joint_name))
 
             self.check_for_pause()
             # self.check_for_equal()
@@ -880,7 +882,7 @@ class Object:
         if base:
             position = np.array(position) + self.base_origin_shift
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
-        self.local_transformer.update_transforms_for_object(self)
+        # self.local_transformer.update_transforms_for_object(self)
         self._set_attached_objects([self])
 
     @property
@@ -1106,7 +1108,7 @@ class Object:
             # Temporarily disabled because kdl outputs values exciting joint limits
             # return
         p.resetJointState(self.id, self.joints[joint_name], joint_pose, physicsClientId=self.world.client_id)
-        self.local_transformer.update_transforms_for_object(self)
+        # self.local_transformer.update_transforms_for_object(self)
         self._set_attached_objects([self])
 
     def get_joint_state(self, joint_name: str) -> float:
