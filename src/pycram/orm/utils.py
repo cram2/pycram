@@ -62,8 +62,6 @@ def update_primary_key(source_engine: sqlalchemy.orm.engine, destination_engine:
             if all_memory_key_values:
                 highest_free_key_value = max(all_memory_key_values)[
                                              0] + 1
-                """"""
-                # ToDo: Make it even more generic? # We will add 1 to the id then let the DB to the rest, afterwards we will compy all info over
             for column_object in destination_session.query(table).all():  # iterate over all columns
                 if column_object.__dict__[key.name] in all_memory_key_values:
                     rospy.loginfo(
@@ -85,9 +83,9 @@ def copy_database(source_session_maker: sqlalchemy.orm.sessionmaker,
     this function does not check if there are any primary key collisions or updates any data.
 
     note:
-        Ignores all previously detached data, could result in loss of infromation. During testing database objects
+        Ignores all previously detached data, could result in loss of information. During testing database objects
         sometimes had a detached twin. As a possible feature in the future it maybe useful to give the user an
-        opportunity to decide what happens with the detached objects. Careful this could lead to dublicated data in the
+        opportunity to decide what happens with the detached objects. Careful this could lead to duplicated data in the
         destination database.
 
     :param source_session_maker: (sqlalchemy.orm.sessionmaker) Sessionmaker of the source database
