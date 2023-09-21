@@ -48,8 +48,8 @@ def update_primary_key(source_engine: sqlalchemy.orm.engine, destination_engine:
     :param source_engine: (sqlalchemy.orm.engine) Engine of the source data_base
     :param destination_engine: (sqlalchemy.orm.engine) Engine of the destination data_base
     """
-    real_session = sqlalchemy.orm.Session(bind=destination_engine)
-    memory_session = sqlalchemy.orm.Session(bind=source_engine)
+    destination_session = sqlalchemy.orm.Session(bind=destination_engine)
+    source_session = sqlalchemy.orm.Session(bind=source_engine)
     primary_keys = {}
     for table in Base.__subclasses__():  # iterate over all tables
         highest_free_key_value = 0
@@ -57,14 +57,14 @@ def update_primary_key(source_engine: sqlalchemy.orm.engine, destination_engine:
         list_of_primary_keys_of_this_table = table.__table__.primary_key.columns.values()
         for key in list_of_primary_keys_of_this_table:
             # make it smart but maybe
-            all_memory_key_values = memory_session.query(key).all()
-            primary_keys[table][key.name] = real_session.query(key).all()
+            all_memory_key_values = source_session.query(key).all()
+            primary_keys[table][key.name] = destination_session.query(key).all()
             if all_memory_key_values:
                 highest_free_key_value = max(all_memory_key_values)[
                                              0] + 1
                 """"""
                 # ToDo: Make it even more generic? # We will add 1 to the id then let the DB to the rest, afterwards we will compy all info over
-            for column_object in real_session.query(table).all():  # iterate over all columns
+            for column_object in destination_session.query(table).all():  # iterate over all columns
                 if column_object.__dict__[key.name] in all_memory_key_values:
                     rospy.loginfo(
                         "Found primary_key collision in table {} value: {} max value in memory {}".format(table,
@@ -74,8 +74,8 @@ def update_primary_key(source_engine: sqlalchemy.orm.engine, destination_engine:
                     column_object.__dict__[key.name] = highest_free_key_value
                     highest_free_key_value += 1
 
-    real_session.commit()
-    real_session.close()
+    destination_session.commit()
+    destination_session.close()
 
 
 def copy_database(source_session_maker: sqlalchemy.orm.sessionmaker,
