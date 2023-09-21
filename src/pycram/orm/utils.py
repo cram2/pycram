@@ -7,12 +7,12 @@ from pycram.designators.action_designator import *
 from pycram.designators.object_designator import *
 
 
-def write_database_to_file(in_session: sqlalchemy.orm.session, filename: str, b_write_to_console: bool = False):
+def write_database_to_file(in_session: sqlalchemy.orm.Session, filename: str, b_write_to_console: bool = False):
     """
     Writes all ORM Objects stored within the given session into a local file.
 
-    :param in_session: (sqlalchemy.orm.session) Database Session which should be logged
-    :param filename: (String) Filename of the logfile
+    :param in_session: Database Session which should be logged
+    :param filename: Filename of the logfile
     :param b_write_to_console: (bool) enables writing to the console. Default false
     """
     with open(filename, "w") as f:
@@ -24,7 +24,7 @@ def write_database_to_file(in_session: sqlalchemy.orm.session, filename: str, b_
                 f.write("\n")
 
 
-def print_database(in_Sessionmaker: sqlalchemy.orm.sessionmaker):
+def print_database(in_Sessionmaker: sqlalchemy.orm.Sessionmaker):
     """
     Prints all ORM Class data within the given Session.
 
@@ -37,13 +37,13 @@ def print_database(in_Sessionmaker: sqlalchemy.orm.sessionmaker):
         rospy.loginfo(result)
 
 
-def update_primary_key(source_engine: sqlalchemy.orm.engine, destination_engine: sqlalchemy.orm.engine):
+def update_primary_key(source_engine: sqlalchemy.orm.Engine, destination_engine: sqlalchemy.orm.Engine):
     """
     Updates all the primary keys of the database associated with the destination engine, so that there will be no
     problems when merging it into the source database. In order to achieve this the highest id value of the source
     engine is searched and the primary keys of the destination database will get all the values following that.
-    Cascading triggers in the database will take care of the rest. Careful as today (20.09.2023) this will not work in
-    memory databases as there are no triggers
+    Cascading triggers in the database will take care of the rest. Careful 2023 this will not work in
+    memory databases as there are no triggers.
 
     :param source_engine: (sqlalchemy.orm.engine) Engine of the source data_base
     :param destination_engine: (sqlalchemy.orm.engine) Engine of the destination data_base
@@ -76,13 +76,13 @@ def update_primary_key(source_engine: sqlalchemy.orm.engine, destination_engine:
     destination_session.close()
 
 
-def copy_database(source_session_maker: sqlalchemy.orm.sessionmaker,
-                  destination_session_maker: sqlalchemy.orm.sessionmaker):
+def copy_database(source_session_maker: sqlalchemy.orm.Sessionmaker,
+                  destination_session_maker: sqlalchemy.orm.Sessionmaker):
     """
     Iterates through all ORM Objects within tht source database and merges them into the destination database. Careful
     this function does not check if there are any primary key collisions or updates any data.
 
-    note:
+     .. note::
         Ignores all previously detached data, could result in loss of information. During testing database objects
         sometimes had a detached twin. As a possible feature in the future it maybe useful to give the user an
         opportunity to decide what happens with the detached objects. Careful this could lead to duplicated data in the
