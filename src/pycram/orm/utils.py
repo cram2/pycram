@@ -13,7 +13,7 @@ def write_database_to_file(in_session: sqlalchemy.orm.Session, filename: str, b_
 
     :param in_session: Database Session which should be logged
     :param filename: Filename of the logfile
-    :param b_write_to_console: (bool) enables writing to the console. Default false
+    :param b_write_to_console: enables writing to the console. Default false
     """
     with open(filename, "w") as f:
         for table in Base.__subclasses__():
@@ -28,7 +28,7 @@ def print_database(in_Sessionmaker: sqlalchemy.orm.Sessionmaker):
     """
     Prints all ORM Class data within the given Session.
 
-    :param in_sessionmaker: (sqlalchemy.orm.session) Database Session which should be printed
+    :param in_sessionmaker: Database Session which should be printed
     """
     memory_session = in_Sessionmaker()
     for table in Base.__subclasses__():
@@ -45,8 +45,8 @@ def update_primary_key(source_engine: sqlalchemy.orm.Engine, destination_engine:
     Cascading triggers in the database will take care of the rest. Careful 2023 this will not work in
     memory databases as there are no triggers.
 
-    :param source_engine: (sqlalchemy.orm.engine) Engine of the source data_base
-    :param destination_engine: (sqlalchemy.orm.engine) Engine of the destination data_base
+    :param source_engine: Engine of the source data_base
+    :param destination_engine: Engine of the destination data_base
     """
     destination_session = sqlalchemy.orm.Session(bind=destination_engine)
     source_session = sqlalchemy.orm.Session(bind=source_engine)
@@ -88,8 +88,8 @@ def copy_database(source_session_maker: sqlalchemy.orm.Sessionmaker,
         opportunity to decide what happens with the detached objects. Careful this could lead to duplicated data in the
         destination database.
 
-    :param source_session_maker: (sqlalchemy.orm.sessionmaker) Sessionmaker of the source database
-    :param destination_session_maker: (sqlalchemy.orm.sessionmaker) Sessionmaker of the destination database
+    :param source_session_maker: Sessionmaker of the source database
+    :param destination_session_maker: Sessionmaker of the destination database
     """
     source_session = source_session_maker()
     objects_to_add = []
