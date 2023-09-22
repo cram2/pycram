@@ -371,8 +371,9 @@ class BulletWorld:
                 attached_objects = list(obj.attachments.keys())
                 for att_obj in attached_objects:
                     obj.detach(att_obj)
-            for joint_name in obj.joints.keys():
-                obj.set_joint_state(joint_name, 0)
+            joint_names = list(obj.joints.keys())
+            joint_poses = [0 for j in joint_names]
+            obj.set_joint_states(dict(zip(joint_names, joint_poses)))
             obj.set_pose(obj.original_pose)
 
 
@@ -462,10 +463,11 @@ class WorldSync(threading.Thread):
                 self.remove_obj_queue.task_done()
 
             for bulletworld_obj, shadow_obj in self.object_mapping.items():
-                if bulletworld_obj.get_pose() != shadow_obj.get_pose():
+                b_pose = bulletworld_obj.get_pose()
+                s_pose = shadow_obj.get_pose()
+                #if bulletworld_obj.get_pose() != shadow_obj.get_pose():
+                if b_pose.dist(s_pose) != 0.0:
                     shadow_obj.set_pose(bulletworld_obj.get_pose())
-                # shadow_obj.set_position(bulletworld_obj.get_position())
-                # shadow_obj.set_orientation(bulletworld_obj.get_orientation())
 
                 # Manage joint positions
                 if len(bulletworld_obj.joints) > 2:
@@ -748,7 +750,6 @@ class Object:
         self.attachments: Dict[Object, List] = {}
         self.cids: Dict[Object, int] = {}
         self.original_pose = pose_in_map
-        self.base_origin_shift = np.array(position) - np.array(self.get_base_origin().position_as_list())
 
         self.tf_frame = ("shadow/" if self.world.is_shadow_world else "") + self.name + "_" + str(self.id)
 
@@ -763,6 +764,12 @@ class Object:
                     BulletWorld.robot = self
 
         self.links[self.urdf_object.get_root()] = -1
+
+        self._current_pose = pose_in_map
+        self._current_link_poses = {}
+        self._update_link_poses()
+
+        self.base_origin_shift = np.array(position) - np.array(self.get_base_origin().position_as_list())
         self.local_transformer.update_transforms_for_object(self)
         self.link_to_geometry = self._get_geometry_for_link()
 
@@ -868,7 +875,8 @@ class Object:
 
         :return: The current pose of this object
         """
-        return Pose(*p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id))
+        return self._current_pose
+        # return Pose(*p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id))
 
     def set_pose(self, pose: Pose, base: bool = False) -> None:
         """
@@ -882,6 +890,8 @@ class Object:
         if base:
             position = np.array(position) + self.base_origin_shift
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
+        self._current_pose = pose_in_map
+        self._update_link_poses()
         # self.local_transformer.update_transforms_for_object(self)
         self._set_attached_objects([self])
 
@@ -944,6 +954,7 @@ class Object:
                 p.resetBasePositionAndOrientation(obj.id, world_to_object.position_as_list(),
                                                   world_to_object.orientation_as_list(),
                                                   physicsClientId=self.world.client_id)
+                obj._current_pose = world_to_object
                 obj._set_attached_objects(prev_object + [self])
 
     def _calculate_transform(self, obj: Object, link: str = None) -> Transform:
@@ -1086,7 +1097,8 @@ class Object:
         """
         if name in self.links.keys() and self.links[name] == -1:
             return self.get_pose()
-        return Pose(*p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[4:6])
+        return  self._current_link_poses[name]
+        # return Pose(*p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[4:6])
 
     def set_joint_state(self, joint_name: str, joint_pose: float) -> None:
         """
@@ -1109,6 +1121,20 @@ class Object:
             # return
         p.resetJointState(self.id, self.joints[joint_name], joint_pose, physicsClientId=self.world.client_id)
         # self.local_transformer.update_transforms_for_object(self)
+        self._update_link_poses()
+        self._set_attached_objects([self])
+
+    def set_joint_states(self, joint_poses: dict) -> None:
+        """
+        Sets the current state of multiple joints at once, this method should be preferred when setting multiple joints
+        at once instead of running :func:`~Object.set_joint_state` in a loop.
+
+        :param joint_poses:
+        :return:
+        """
+        for joint_name, joint_pose in joint_poses.items():
+            p.resetJointState(self.id, self.joints[joint_name], joint_pose, physicsClientId=self.world.client_id)
+        self._update_link_poses()
         self._set_attached_objects([self])
 
     def get_joint_state(self, joint_name: str) -> float:
@@ -1348,6 +1374,14 @@ class Object:
             else:
                 link_to_geometry[link] = link_obj.collision.geometry
         return link_to_geometry
+
+    def _update_link_poses(self):
+        for link_name in self.links.keys():
+            if link_name == self.urdf_object.get_root():
+                self._current_link_poses[link_name] = self._current_pose
+            else:
+                self._current_link_poses[link_name] = Pose(*p.getLinkState(self.id, self.links[link_name],
+                                                                           physicsClientId=self.world.client_id)[4:6])
 
 
 def filter_contact_points(contact_points, exclude_ids) -> List:
