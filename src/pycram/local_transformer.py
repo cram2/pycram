@@ -63,7 +63,7 @@ class LocalTransformer(TransformerROS):
         """
         curr_time = rospy.Time.now()
         for obj in list(self.bullet_world.current_bullet_world.objects):
-            self.update_transforms_for_object(obj)
+            self.update_transforms_for_object(obj, curr_time)
 
     def transform_pose(self, pose: Pose, target_frame: str) -> Union[Pose, None]:
         """
@@ -128,7 +128,7 @@ class LocalTransformer(TransformerROS):
         :param bullet_object: Object for which the Transforms should be updated
         :param time: a specific time that should be used
         """
-        time = time if time else rospy.Time().now()
+        time = time if time else rospy.Time.now()
         obj_transform = bullet_object.get_pose().to_transform(bullet_object.tf_frame)
         obj_transform.header.stamp = time
         self.setTransform(obj_transform)
