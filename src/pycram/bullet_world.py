@@ -768,6 +768,7 @@ class Object:
 
         self._current_pose = pose_in_map
         self._current_link_poses = {}
+        self._current_link_transforms = {}
         self._current_joint_states = {}
         self._init_current_joint_states()
         self._update_link_poses()
@@ -1377,14 +1378,17 @@ class Object:
 
     def _update_link_poses(self) -> None:
         """
-        Updates the cached poses for each link of this Object
+        Updates the cached poses and transforms for each link of this Object
         """
         for link_name in self.links.keys():
             if link_name == self.urdf_object.get_root():
                 self._current_link_poses[link_name] = self._current_pose
+                self._current_link_transforms[link_name] = self._current_pose.to_transform(self.tf_frame)
             else:
                 self._current_link_poses[link_name] = Pose(*p.getLinkState(self.id, self.links[link_name],
                                                                            physicsClientId=self.world.client_id)[4:6])
+                self._current_link_transforms[link_name] = self._current_link_poses[link_name].to_transform(
+                    self.get_link_tf_frame(link_name))
 
     def _init_current_joint_states(self) -> None:
         """

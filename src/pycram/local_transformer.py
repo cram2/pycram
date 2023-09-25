@@ -129,16 +129,9 @@ class LocalTransformer(TransformerROS):
         :param time: a specific time that should be used
         """
         time = time if time else rospy.Time.now()
-        obj_transform = bullet_object.get_pose().to_transform(bullet_object.tf_frame)
-        obj_transform.header.stamp = time
-        self.setTransform(obj_transform)
-        for link_name, id in bullet_object.links.items():
-            if id == -1:
-                continue
-            tf_stamped = bullet_object.get_link_pose(link_name).to_transform(
-                bullet_object.get_link_tf_frame(link_name))
-            tf_stamped.header.stamp = time
-            self.setTransform(tf_stamped)
+        for transform in bullet_object._current_link_transforms.values():
+            transform.header.stamp = time
+            self.setTransform(transform)
 
     def get_all_frames(self) -> List[str]:
         """
