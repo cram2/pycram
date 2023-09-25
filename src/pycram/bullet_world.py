@@ -465,7 +465,6 @@ class WorldSync(threading.Thread):
             for bulletworld_obj, shadow_obj in self.object_mapping.items():
                 b_pose = bulletworld_obj.get_pose()
                 s_pose = shadow_obj.get_pose()
-                #if bulletworld_obj.get_pose() != shadow_obj.get_pose():
                 if b_pose.dist(s_pose) != 0.0:
                     shadow_obj.set_pose(bulletworld_obj.get_pose())
 
@@ -473,7 +472,8 @@ class WorldSync(threading.Thread):
                 if len(bulletworld_obj.joints) > 2:
                     for joint_name in bulletworld_obj.joints.keys():
                         if shadow_obj.get_joint_state(joint_name) != bulletworld_obj.get_joint_state(joint_name):
-                            shadow_obj.set_joint_state(joint_name, bulletworld_obj.get_joint_state(joint_name))
+                            shadow_obj.set_joint_states(bulletworld_obj.get_complete_joint_state())
+                            break
 
             self.check_for_pause()
             # self.check_for_equal()
@@ -522,10 +522,11 @@ class Gui(threading.Thread):
         else:
             self.world.client_id = p.connect(p.GUI)
 
-            #Disable the side windows of the GUI
+            # Disable the side windows of the GUI
             p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
             # Change the init camera pose
-            p.resetDebugVisualizerCamera(cameraDistance=1.5, cameraYaw=270.0, cameraPitch=-50, cameraTargetPosition=[-2, 0, 1])
+            p.resetDebugVisualizerCamera(cameraDistance=1.5, cameraYaw=270.0, cameraPitch=-50,
+                                         cameraTargetPosition=[-2, 0, 1])
 
             # Get the initial camera target location
             cameraTargetPosition = p.getDebugVisualizerCamera()[11]
@@ -761,12 +762,14 @@ class Object:
         with open(self.path) as f:
             self.urdf_object = URDF.from_xml_string(f.read())
             if self.urdf_object.name == robot_description.name and not BulletWorld.robot:
-                    BulletWorld.robot = self
+                BulletWorld.robot = self
 
         self.links[self.urdf_object.get_root()] = -1
 
         self._current_pose = pose_in_map
         self._current_link_poses = {}
+        self._current_joint_states = {}
+        self._init_current_joint_states()
         self._update_link_poses()
 
         self.base_origin_shift = np.array(position) - np.array(self.get_base_origin().position_as_list())
@@ -876,7 +879,6 @@ class Object:
         :return: The current pose of this object
         """
         return self._current_pose
-        # return Pose(*p.getBasePositionAndOrientation(self.id, physicsClientId=self.world.client_id))
 
     def set_pose(self, pose: Pose, base: bool = False) -> None:
         """
@@ -892,7 +894,6 @@ class Object:
         p.resetBasePositionAndOrientation(self.id, position, orientation, self.world.client_id)
         self._current_pose = pose_in_map
         self._update_link_poses()
-        # self.local_transformer.update_transforms_for_object(self)
         self._set_attached_objects([self])
 
     @property
@@ -1097,7 +1098,7 @@ class Object:
         """
         if name in self.links.keys() and self.links[name] == -1:
             return self.get_pose()
-        return  self._current_link_poses[name]
+        return self._current_link_poses[name]
         # return Pose(*p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[4:6])
 
     def set_joint_state(self, joint_name: str, joint_pose: float) -> None:
@@ -1120,6 +1121,7 @@ class Object:
             # Temporarily disabled because kdl outputs values exciting joint limits
             # return
         p.resetJointState(self.id, self.joints[joint_name], joint_pose, physicsClientId=self.world.client_id)
+        self._current_joint_states[joint_name] = joint_pose
         # self.local_transformer.update_transforms_for_object(self)
         self._update_link_poses()
         self._set_attached_objects([self])
@@ -1134,6 +1136,7 @@ class Object:
         """
         for joint_name, joint_pose in joint_poses.items():
             p.resetJointState(self.id, self.joints[joint_name], joint_pose, physicsClientId=self.world.client_id)
+            self._current_joint_states[joint_name] = joint_pose
         self._update_link_poses()
         self._set_attached_objects([self])
 
@@ -1144,7 +1147,7 @@ class Object:
         :param joint_name: The name of the joint
         :return: The current pose of the joint
         """
-        return p.getJointState(self.id, self.joints[joint_name], physicsClientId=self.world.client_id)[0]
+        return self._current_joint_states[joint_name]
 
     def contact_points(self) -> List:
         """
@@ -1345,10 +1348,7 @@ class Object:
 
         :return: A dictionary with the complete joint state
         """
-        result = {}
-        for joint in self.joints.keys():
-            result[joint] = self.get_joint_state(joint)
-        return result
+        return self._current_joint_states
 
     def get_link_tf_frame(self, link_name: str) -> str:
         """
@@ -1375,13 +1375,24 @@ class Object:
                 link_to_geometry[link] = link_obj.collision.geometry
         return link_to_geometry
 
-    def _update_link_poses(self):
+    def _update_link_poses(self) -> None:
+        """
+        Updates the cached poses for each link of this Object
+        """
         for link_name in self.links.keys():
             if link_name == self.urdf_object.get_root():
                 self._current_link_poses[link_name] = self._current_pose
             else:
                 self._current_link_poses[link_name] = Pose(*p.getLinkState(self.id, self.links[link_name],
                                                                            physicsClientId=self.world.client_id)[4:6])
+
+    def _init_current_joint_states(self) -> None:
+        """
+        Initialize the cached joint position for each joint.
+        """
+        for joint_name in self.joints.keys():
+            self._current_joint_states[joint_name] = \
+                p.getJointState(self.id, self.joints[joint_name], physicsClientId=self.world.client_id)[0]
 
 
 def filter_contact_points(contact_points, exclude_ids) -> List:
