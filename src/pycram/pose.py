@@ -35,6 +35,7 @@ class Pose(PoseStamped):
         :param position: An optional position of this Pose
         :param orientation: An optional orientation of this Pose
         :param frame: An optional frame in which this pose is
+        :param time: The time at which this Pose is valid, as ROS time
         """
         super().__init__()
         if position:
@@ -242,6 +243,7 @@ class Transform(TransformStamped):
         :param rotation: Optional rotation from frame to child frame given as quaternion
         :param frame: Origin TF frame of this Transform
         :param child_frame: Target frame for this Transform
+        :param time: The time at which this Transform is valid, as ROS time
         """
         super().__init__()
         if translation:
