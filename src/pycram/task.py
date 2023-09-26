@@ -191,8 +191,8 @@ class TaskTreeNode(anytree.NodeMixin):
         else:
             reason = None
 
-        return ORMTaskTreeNode(None, self.start_time, self.end_time, self.status.name, reason,
-                               id(self.parent) if self.parent else None)
+        return ORMTaskTreeNode(code=None, start_time=self.start_time, end_time=self.end_time, status=self.status.name,
+                               reason=reason, parent=id(self.parent) if self.parent else None)
 
     def insert(self, session: sqlalchemy.orm.session.Session, recursive: bool = True,
                parent_id: Optional[int] = None, use_progress_bar: bool = True,
