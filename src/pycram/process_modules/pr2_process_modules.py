@@ -173,18 +173,18 @@ class Pr2MoveArmJoints(ProcessModule):
 
         robot = BulletWorld.robot
         if desig.right_arm_poses:
-            for joint, pose in desig.right_arm_poses.items():
-                robot.set_joint_state(joint, pose)
+            robot.set_joint_states(desig.right_arm_poses)
         if desig.left_arm_poses:
-            for joint, pose in desig.left_arm_poses.items():
-                robot.set_joint_state(joint, pose)
+            robot.set_joint_states(desig.left_arm_poses)
 
 
 class PR2MoveJoints(ProcessModule):
+    """
+    Process Module for generic joint movements, is not confined to the arms but can move any joint of the robot
+    """
     def _execute(self, desig: MoveJointsMotion.Motion):
         robot = BulletWorld.robot
-        for joint, pose in zip(desig.names, desig.positions):
-            robot.set_joint_state(joint, pose)
+        robot.set_joint_states(dict(zip(desig.names, desig.positions)))
 
 
 class Pr2WorldStateDetecting(ProcessModule):
