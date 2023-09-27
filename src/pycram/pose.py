@@ -9,6 +9,7 @@ import numpy as np
 import rospy
 from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3
 from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
+from std_msgs.msg import Header
 from tf import transformations
 
 
@@ -26,7 +27,7 @@ class Pose(PoseStamped):
     """
 
     def __init__(self, position: Optional[List[float]] = None, orientation: Optional[List[float]] = None,
-                 frame: str = "map"):
+                 frame: str = "map", time: rospy.Time = None):
         """
         Poses can be initialized by a position and orientation given as lists, this is optional. By default, Poses are
         initialized with the position being [0, 0, 0], the orientation being [0, 0, 0, 1] and the frame being 'map'.
@@ -34,6 +35,7 @@ class Pose(PoseStamped):
         :param position: An optional position of this Pose
         :param orientation: An optional orientation of this Pose
         :param frame: An optional frame in which this pose is
+        :param time: The time at which this Pose is valid, as ROS time
         """
         super().__init__()
         if position:
@@ -45,7 +47,8 @@ class Pose(PoseStamped):
             self.pose.orientation.w = 1.0
 
         self.header.frame_id = frame
-        self.header.stamp = rospy.Time.now()
+
+        self.header.stamp = time if time else rospy.Time.now()
 
         self.frame = frame
 
@@ -108,8 +111,6 @@ class Pose(PoseStamped):
         :param value: New orientation, either a list or geometry_msgs/Quaternion
         """
         if not type(value) == list and not type(value) == tuple and not type(value) == GeoQuaternion:
-            print(type(value))
-            print(value)
             rospy.logwarn("Orientation can only be a list or geometry_msgs/Quaternion")
             return
 
@@ -142,7 +143,7 @@ class Pose(PoseStamped):
         :param child_frame: Child frame id to which the Transform points
         :return: A new Transform
         """
-        return Transform(self.position_as_list(), self.orientation_as_list(), self.frame, child_frame)
+        return Transform(self.position_as_list(), self.orientation_as_list(), self.frame, child_frame, self.header.stamp)
 
     def copy(self) -> Pose:
         """
@@ -150,9 +151,9 @@ class Pose(PoseStamped):
 
         :return: A copy of this pose
         """
-        p = Pose(self.position_as_list(), self.orientation_as_list(), self.frame)
+        p = Pose(self.position_as_list(), self.orientation_as_list(), self.frame, self.header.stamp)
         p.header.frame_id = self.header.frame_id
-        p.header.stamp = self.header.stamp
+        # p.header.stamp = self.header.stamp
         return p
 
     def position_as_list(self) -> List[float]:
@@ -232,7 +233,7 @@ class Transform(TransformStamped):
         Rotation: A quaternion representing the conversion of rotation between both frames
     """
     def __init__(self, translation: Optional[List[float]] = None, rotation: Optional[List[float]] = None,
-                 frame: Optional[str] = "map", child_frame: Optional[str] = ""):
+                 frame: Optional[str] = "map", child_frame: Optional[str] = "", time: rospy.Time = None):
         """
         Transforms take a translation, rotation, frame and child_frame as optional arguments. If nothing is given the
         Transform will be initialized with [0, 0, 0] for translation, [0, 0, 0, 1] for rotation, 'map' for frame and an
@@ -242,6 +243,7 @@ class Transform(TransformStamped):
         :param rotation: Optional rotation from frame to child frame given as quaternion
         :param frame: Origin TF frame of this Transform
         :param child_frame: Target frame for this Transform
+        :param time: The time at which this Transform is valid, as ROS time
         """
         super().__init__()
         if translation:
@@ -254,7 +256,7 @@ class Transform(TransformStamped):
 
         self.header.frame_id = frame
         self.child_frame_id = child_frame
-        self.header.stamp = rospy.Time.now()
+        self.header.stamp = time if time else rospy.Time.now()
 
         self.frame = frame
 
@@ -339,9 +341,9 @@ class Transform(TransformStamped):
 
         :return: A copy of this pose
         """
-        t = Transform(self.translation_as_list(), self.rotation_as_list(), self.frame, self.child_frame_id)
+        t = Transform(self.translation_as_list(), self.rotation_as_list(), self.frame, self.child_frame_id, self.header.stamp)
         t.header.frame_id = self.header.frame_id
-        t.header.stamp = self.header.stamp
+        # t.header.stamp = self.header.stamp
         return t
 
     def translation_as_list(self) -> List[float]:
@@ -367,7 +369,7 @@ class Transform(TransformStamped):
 
         :return: A new pose with same translation as position and rotation as orientation
         """
-        return Pose(self.translation_as_list(), self.rotation_as_list(), self.frame)
+        return Pose(self.translation_as_list(), self.rotation_as_list(), self.frame, self.header.stamp)
 
     def invert(self) -> Transform:
         """
@@ -380,7 +382,7 @@ class Transform(TransformStamped):
         inverse_transform = transformations.inverse_matrix(transform)
         translation = transformations.translation_from_matrix(inverse_transform)
         quaternion = transformations.quaternion_from_matrix(inverse_transform)
-        return Transform(list(translation), list(quaternion), self.child_frame_id, self.header.frame_id)
+        return Transform(list(translation), list(quaternion), self.child_frame_id, self.header.frame_id, self.header.stamp)
 
     def __mul__(self, other: Transform) -> Union[Transform, None]:
         """
@@ -450,4 +452,5 @@ class Transform(TransformStamped):
         :param new_rotation: The new rotation as a quaternion with xyzw
         """
         self.rotation = new_rotation
+
 
