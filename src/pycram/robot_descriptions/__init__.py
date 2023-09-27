@@ -49,7 +49,7 @@ def update_robot_description(robot_name=None, from_ros=None):
         return None
 
     # Choose Description based on robot name
-    if 'donbot' in robot:
+    if 'iai_donbot' in robot:
         description = DonbotDescription
     elif 'pr2' in robot:
         description = PR2Description
