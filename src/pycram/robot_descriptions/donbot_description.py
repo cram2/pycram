@@ -4,7 +4,7 @@ class DonbotDescription(RobotDescription):
 
     def __init__(self):
 
-        super().__init__("donbot", "base_footprint", "base_link", "ur5_base_link",
+        super().__init__("iai_donbot", "base_footprint", "base_link", "ur5_base_link",
                          "arm_base_mounting_joint", odom_frame="odom",
                          odom_joints=["odom_x_joint", "odom_y_joint", "odom_z_joint"])
         # Camera
@@ -14,7 +14,7 @@ class DonbotDescription(RobotDescription):
         rs_camera = CameraDescription("rs_camera_link",
                                       horizontal_angle=0.99483, vertical_angle=0.75049,
                                       minimal_height=0.5, maximal_height=1.2)
-        # not in the donbot.urdf, although used in cram
+        # not in the iai_donbot.urdf, although used in cram
         # realsense_camera = CameraDescription("rs_camera_depth_optical_frame",
         #                                     horizontal_angle=0.99483, vertical_angle=0.75049,
         #                                     minimal_height=0.5, maximal_height=1.2)

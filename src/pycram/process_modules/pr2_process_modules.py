@@ -72,7 +72,6 @@ class Pr2PickUp(ProcessModule):
         target.orientation.w = grasp[3]
 
         arm = desig.arm
-        arm_short = "r" if arm == "right" else "l"
 
         _move_arm_tcp(target, robot, arm)
         tool_frame = robot_description.get_tool_frame(arm)

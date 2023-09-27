@@ -1,14 +1,18 @@
 import time
 from threading import Lock
 
+import numpy as np
 import pybullet as p
 
 import pycram.bullet_world_reasoning as btr
 import pycram.helper as helper
-from ..bullet_world import BulletWorld
+from ..bullet_world import BulletWorld, Object
+from ..external_interfaces.ik import request_ik
 from ..local_transformer import LocalTransformer
+from ..pose import Pose
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_descriptions import robot_description
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
 
 def _park_arms(arm):
@@ -30,16 +34,8 @@ class DonbotNavigation(ProcessModule):
     """
 
     def _execute(self, desig):
-        solution = desig.reference()
-        if solution['cmd'] == 'navigate':
-            robot = BulletWorld.robot
-            # Reset odom joints to zero
-            for joint_name in robot_description.odom_joints:
-                robot.set_joint_state(joint_name, 0.0)
-            # Set actual goal pose
-            robot.set_position_and_orientation(solution['target'], solution['orientation'])
-            time.sleep(0.5)
-            local_transformer.update_from_btr()
+        robot = BulletWorld.robot
+        robot.set_pose(desig.target)
 
 class DonbotPickUp(ProcessModule):
     """
@@ -48,16 +44,18 @@ class DonbotPickUp(ProcessModule):
     """
 
     def _execute(self, desig):
-        solution = desig.reference()
-        if solution['cmd'] == 'pick':
-            object = solution['object']
-            robot = BulletWorld.robot
-            target = object.get_position()
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), target,
-                                               maxNumIterations=100)
-            helper._apply_ik(robot, inv)
-            robot.attach(object, solution['gripper'])
-            time.sleep(0.5)
+        object = desig.object_desig.bullet_world_object
+        robot = BulletWorld.robot
+        grasp = robot_description.grasps.get_orientation_for_grasp(desig.grasp)
+        target = object.get_pose()
+        target.orientation.x = grasp[0]
+        target.orientation.y = grasp[1]
+        target.orientation.z = grasp[2]
+        target.orientation.w = grasp[3]
+
+        _move_arm_tcp(target, robot, "left")
+        tool_frame = robot_description.get_tool_frame("left")
+        robot.attach(object, tool_frame)
 
 
 class DonbotPlace(ProcessModule):
@@ -66,56 +64,19 @@ class DonbotPlace(ProcessModule):
     """
 
     def _execute(self, desig):
-        solution = desig.reference()
-        if solution['cmd'] == 'place':
-            object = solution['object']
-            robot = BulletWorld.robot
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), solution['target'],
-                                               maxNumIterations=100)
-            helper._apply_ik(robot, inv)
-            robot.detach(object)
-            time.sleep(0.5)
+        object = desig.object.bullet_world_object
+        robot = BulletWorld.robot
 
+        # Transformations such that the target position is the position of the object and not the tcp
+        object_pose = object.get_pose()
+        local_tf = LocalTransformer()
+        tcp_to_object = local_tf.transform_pose(object_pose,
+                                                robot.get_link_tf_frame(robot_description.get_tool_frame("left")))
+        target_diff = desig.target.to_transform("target").inverse_times(tcp_to_object.to_transform("object")).to_pose()
 
-class DonbotAccessing(ProcessModule):
-    """
-    This process module responsible for opening drawers to access the objects inside. This works by firstly moving
-    the end effector to the handle of the drawer. Next, the end effector is moved the respective distance to the back.
-    This provides the illusion the robot would open the drawer by himself.
-    Then the drawer will be opened by setting the joint pose of the drawer joint.
-    """
+        _move_arm_tcp(target_diff, robot, "left")
+        robot.detach(object)
 
-    def _execute(self, desig):
-        solution = desig.reference()
-        if solution['cmd'] == 'access':
-            kitchen = solution['part_of']
-            robot = BulletWorld.robot
-            gripper = solution['gripper']
-            drawer_handle = solution['drawer_handle']
-            drawer_joint = solution['drawer_joint']
-            dis = solution['distance']
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper),
-                                               kitchen.get_link_position(drawer_handle))
-            helper._apply_ik(robot, inv)
-            time.sleep(0.2)
-            han_pose = kitchen.get_link_position(drawer_handle)
-            new_p = [han_pose[0] - dis, han_pose[1], han_pose[2]]
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), new_p)
-            helper._apply_ik(robot, inv)
-            kitchen.set_joint_state(drawer_joint, 0.3)
-            time.sleep(0.5)
-
-
-class DonbotParkArms(ProcessModule):
-    """
-    This process module is for moving the arms in a parking position.
-    It is currently not used.
-    """
-
-    def _execute(self, desig):
-        solutions = desig.reference()
-        if solutions['cmd'] == 'park':
-            _park_arms()
 
 
 class DonbotMoveHead(ProcessModule):
@@ -125,36 +86,25 @@ class DonbotMoveHead(ProcessModule):
     """
 
     def _execute(self, desig):
-        solutions = desig.reference()
-        if solutions['cmd'] == 'looking':
-            robot = BulletWorld.robot
-            neck_base_frame = local_transformer.projection_namespace + '/' + robot_description.chains["neck"].base_link if \
-                local_transformer.projection_namespace else \
-                robot_description.chains["neck"].base_link
-            if type(solutions['target']) is str:
-                target = local_transformer.projection_namespace + '/' + solutions['target'] if \
-                    local_transformer.projection_namespace else \
-                    solutions['target']
-                pose_in_neck_base = local_transformer.tf_transform(neck_base_frame, target)
-            elif helper_deprecated.is_list_pose(solutions['target']) or helper_deprecated.is_list_position(solutions['target']):
-                pose = helper_deprecated.ensure_pose(solutions['target'])
-                pose_in_neck_base = local_transformer.tf_pose_transform(local_transformer.map_frame, neck_base_frame, pose)
+        target = desig.target
+        robot = BulletWorld.robot
 
-            vector = pose_in_neck_base[0]
-            # +x as forward
-            # +y as left
-            # +z as up
-            x = vector[0]
-            y = vector[1]
-            z = vector[2]
-            conf = None
-            if y > 0:
-                conf = "left"
-            else:
-                conf = "right"
-            for joint, state in robot_description.get_static_joint_chain("neck", conf).items():
-                robot.set_joint_state(joint, state)
+        local_transformer = LocalTransformer()
 
+        pose_in_shoulder = local_transformer.transform_pose(target, robot.get_link_tf_frame("ur5_shoulder_link"))
+        pose_in_shoulder.position.z += 0.5
+
+        new_pan = np.arctan2(pose_in_shoulder.position.y, pose_in_shoulder.position.x)
+        new_tilt = np.arctan2(pose_in_shoulder.position.z, pose_in_shoulder.position.x ** 2 + pose_in_shoulder.position.y ** 2) * -1
+
+        tcp_rotation = quaternion_from_euler(new_tilt, 0, new_pan)
+        shoulder_pose = robot.get_link_pose("ur5_shoulder_link")
+        pose_in_shoulder.position.z += 0.5
+        shoulder_pose.rotation = list(tcp_rotation)
+
+        print(pose_in_shoulder)
+
+        _move_arm_tcp(shoulder_pose, robot, "left")
 
 class DonbotMoveGripper(ProcessModule):
     """
@@ -242,11 +192,19 @@ class DonbotWorldStateDetecting(ProcessModule):
             obj_type = solution['object_type']
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
+def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
+    gripper = robot_description.get_tool_frame(arm)
+
+    joints = robot_description.chains[arm].joints
+
+    inv = request_ik(target, robot, joints, gripper)
+    helper._apply_ik(robot, inv, joints)
+
 
 class DonbotManager(ProcessModuleManager):
 
     def __init__(self):
-        super().__init__("donbot")
+        super().__init__("iai_donbot")
         self._navigate_lock = Lock()
         self._pick_up_lock = Lock()
         self._place_lock = Lock()
