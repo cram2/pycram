@@ -6,14 +6,13 @@ The MotionDesignator class is the base class that defines the polymorphic behavi
 classes.
 """
 
-import sqlalchemy
 
 from .base import Base
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, MappedAsDataclass
+from sqlalchemy import ForeignKey
 
 
-class MotionDesignator(Base):
+class MotionDesignator(MappedAsDataclass, Base):
     """
     ORM class of pycram.designators.motion_designator.MotionDesignatorDescription
 
@@ -23,7 +22,7 @@ class MotionDesignator(Base):
     __tablename__ = "Motion"
 
     id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True, init=False)
-    dtype: Mapped[str] = mapped_column(String(255), init=False)
+    dtype: Mapped[str] = mapped_column(init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -62,9 +61,9 @@ class PickUpMotion(MotionDesignator):
 
     id: Mapped[int] = mapped_column(ForeignKey("Motion.id"), primary_key=True, init=False)
     object: Mapped[int] = mapped_column(ForeignKey("Object.id"), init=False)
-    arm: Mapped[str] = mapped_column(String(255), init=False)
-    gripper: Mapped[str] = mapped_column(String(255), init=False)
-    grasp: Mapped[str] = mapped_column(String(255), init=False)
+    arm: Mapped[str] = mapped_column(init=False)
+    gripper: Mapped[str] = mapped_column(init=False)
+    grasp: Mapped[str] = mapped_column(init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -85,10 +84,10 @@ class PlaceMotion(MotionDesignator):
 
     id: Mapped[int] = mapped_column(ForeignKey("Motion.id"), primary_key=True, init=False)
     object: Mapped[int] = mapped_column(ForeignKey("Object.id"), init=False)
-    arm: Mapped[str] = mapped_column(String(255), init=False)
-    gripper: Mapped[str] = mapped_column(String(255), init=False)
+    arm: Mapped[str] = mapped_column(init=False)
+    gripper: Mapped[str] = mapped_column(init=False)
     position: Mapped[int] = mapped_column(ForeignKey("Position.id"), init=False)
-    orientation: Mapped[int] = mapped_column(ForeignKey("Quaternion.id"))
+    orientation: Mapped[int] = mapped_column(ForeignKey("Quaternion.id"), init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -109,11 +108,11 @@ class AccessingMotion(MotionDesignator):
 
     id: Mapped[int] = mapped_column(ForeignKey("Motion.id"), primary_key=True, init=False)
     part_of: Mapped[int] = mapped_column(ForeignKey("Object.id"), init=False)
-    arm: Mapped[str] = mapped_column(String(255), init=False)
-    gripper: Mapped[str] = mapped_column(String(255), init=False)
+    arm: Mapped[str] = mapped_column(init=False)
+    gripper: Mapped[str] = mapped_column(init=False)
     distance: Mapped[float] = mapped_column(init=False)
-    drawer_joint: Mapped[str] = mapped_column(String(255), init=False)
-    drawer_handle: Mapped[str] = mapped_column(String(255), init=False)
+    drawer_joint: Mapped[str] = mapped_column(init=False)
+    drawer_handle: Mapped[str] = mapped_column(init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -133,7 +132,7 @@ class MoveTCPMotion(MotionDesignator):
     id: Mapped[int] = mapped_column(ForeignKey("Motion.id"), primary_key=True, init=False)
     position: Mapped[int] = mapped_column(ForeignKey("Position.id"), init=False)
     orientation: Mapped[int] = mapped_column(ForeignKey("Quaternion.id"), init=False)
-    arm: Mapped[str] = mapped_column(String(255), init=False)
+    arm: Mapped[str] = mapped_column(init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -169,8 +168,8 @@ class MoveGripperMotion(MotionDesignator):
     __tablename__ = "MoveGripperMotion"
 
     id: Mapped[int] = mapped_column(ForeignKey("Motion.id"), primary_key=True, init=False)
-    motion: Mapped[str] = mapped_column(String(255), init=False)
-    gripper: Mapped[str] = mapped_column(String(255), init=False)
+    motion: Mapped[str] = mapped_column(init=False)
+    gripper: Mapped[str] = mapped_column(init=False)
     front_facing_axis: Mapped[int] = mapped_column(ForeignKey("Position.id"), init=False)
 
     __mapper_args__ = {
@@ -186,8 +185,8 @@ class DetectingMotion(MotionDesignator):
     __tablename__ = "DetectingMotion"
 
     id: Mapped[int] = mapped_column(ForeignKey("Motion.id"), primary_key=True, init=False)
-    object_type: Mapped[str] = mapped_column(String(255), init=False)
-    cam_frame: Mapped[str] = mapped_column(String(255), init=False)
+    object_type: Mapped[str] = mapped_column(init=False)
+    cam_frame: Mapped[str] = mapped_column(init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -202,7 +201,7 @@ class WorldStateDetectingMotion(MotionDesignator):
     __tablename__ = "WorldStateDetectingMotion"
 
     id: Mapped[int] = mapped_column(ForeignKey("Motion.id"), primary_key=True, init=False)
-    object_type: Mapped[str] = mapped_column(String(255), init=False)
+    object_type: Mapped[str] = mapped_column(init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,

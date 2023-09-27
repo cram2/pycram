@@ -1,20 +1,20 @@
 from typing import Optional
 
-from .base import Base, Position, Quaternion
+from .base import Base
 from ..enums import Arms
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, MappedAsDataclass
 from sqlalchemy.types import String
 from sqlalchemy import ForeignKey
 
 
-class Action(Base):
+class Action(MappedAsDataclass, Base):
     """ORM class of pycram.designators.action_designator.ActionDesignator.
     The purpose of this class is to correctly map the inheritance from the action designator class into the database.
     Inheritance is implemented as Joined Table Inheritance (see https://docs.sqlalchemy.org/en/20/orm/inheritance.html)
     """
     __tablename__ = "Action"
 
-    dtype: Mapped[str] = mapped_column(String(255), init=False)
+    dtype: Mapped[str] = mapped_column(init=False)
     robot_state: Mapped[int] = mapped_column(ForeignKey("RobotState.id"), init=False)
 
     __mapper_args__ = {
@@ -28,7 +28,7 @@ class ParkArmsAction(Action):
     __tablename__ = "ParkArms"
 
     id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
-    arm: Mapped[Arms] = mapped_column(nullable=False)
+    arm: Mapped[Arms] = mapped_column(default=None)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -45,8 +45,8 @@ class NavigateAction(Action):
     __tablename__ = "Navigate"
 
     id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
-    position: Mapped[int] = mapped_column(ForeignKey("Position.id", ))
-    orientation: Mapped[int] = mapped_column(ForeignKey("Quaternion.id"))
+    position: Mapped[int] = mapped_column(ForeignKey("Position.id", ), default=None)
+    orientation: Mapped[int] = mapped_column(ForeignKey("Quaternion.id"), default=None)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -64,7 +64,7 @@ class MoveTorsoAction(Action):
     __tablename__ = "MoveTorso"
 
     id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
-    position: Mapped[float]
+    position: Mapped[Optional[float]] = mapped_column(default=None)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -81,8 +81,8 @@ class SetGripperAction(Action):
     __tablename__ = "SetGripper"
 
     id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
-    gripper: Mapped[str] = mapped_column(String(255), nullable=False)
-    motion: Mapped[str] = mapped_column(String(255), nullable=False)
+    gripper: Mapped[str]
+    motion: Mapped[str]
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -100,8 +100,8 @@ class Release(Action):
     __tablename__ = "Release"
 
     id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
-    gripper: Mapped[str] = mapped_column(String(255), nullable=False, init=False)
-    object = mapped_column(ForeignKey("Object.id"), init=False)
+    gripper: Mapped[str] = mapped_column(init=False)
+    object: Mapped[int] = mapped_column(ForeignKey("Object.id"), init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -114,8 +114,8 @@ class GripAction(Action):
     __tablename__ = "Grip"
 
     id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
-    gripper: Mapped[str] = mapped_column(String(255), nullable=False, init=False)
-    effort: Mapped[float] = mapped_column(nullable=False, init=False)
+    gripper: Mapped[str] = mapped_column(init=False)
+    effort: Mapped[float] = mapped_column(init=False)
     object: Mapped[int] = mapped_column(ForeignKey("Object.id"), init=False)
     # TODO grasped_object
 
@@ -130,8 +130,8 @@ class PickUpAction(Action):
     __tablename__ = "PickUp"
 
     id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
-    arm: Mapped[str] = mapped_column(String(255))
-    grasp: Mapped[str] = mapped_column(String(255))
+    arm: Mapped[str]
+    grasp: Mapped[str]
     object: Mapped[int] = mapped_column(ForeignKey("Object.id"), init=False)
 
     __mapper_args__ = {
@@ -150,7 +150,7 @@ class PlaceAction(Action):
     __tablename__ = "Place"
 
     id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
-    arm: Mapped[str] = mapped_column(String(255), nullable=False)
+    arm: Mapped[str]
     position: Mapped[int] = mapped_column(ForeignKey("Position.id"), init=False)
     orientation: Mapped[int] = mapped_column(ForeignKey("Quaternion.id"), init=False)
     object: Mapped[int] = mapped_column(ForeignKey("Object.id"), init=False)
@@ -168,7 +168,7 @@ class TransportAction(Action):
     """ORM Class of pycram.designators.action_designator.TransportAction."""
     __tablename__ = "Transport"
     id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
-    arm: Mapped[str] = mapped_column(String(255), nullable=False, init=False)
+    arm: Mapped[str] = mapped_column(init=False)
     position: Mapped[int] = mapped_column(ForeignKey("Position.id"), init=False)
     orientation: Mapped[int] = mapped_column(ForeignKey("Quaternion.id"), init=False)
     object: Mapped[int] = mapped_column(ForeignKey("Object.id"), init=False)
@@ -206,8 +206,8 @@ class OpenAction(Action):
     __tablename__ = "Open"
 
     id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
-    arm: Mapped[str] = mapped_column(String(255), nullable=False, init=False)
-    distance: Mapped[float] = mapped_column(nullable=False, init=False)
+    arm: Mapped[str] = mapped_column(init=False)
+    distance: Mapped[float] = mapped_column(init=False)
     object: Mapped[int] = mapped_column(ForeignKey("Object.id"), init=False)
 
     __mapper_args__ = {
@@ -219,7 +219,7 @@ class CloseAction(Action):
     """ORM Class of pycram.designators.action_designator.CloseAction."""
     __tablename__ = "Close"
     id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
-    arm: Mapped[str] = mapped_column(String(255), nullable=False, init=False)
+    arm: Mapped[str] = mapped_column(init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,

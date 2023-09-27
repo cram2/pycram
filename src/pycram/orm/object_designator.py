@@ -1,19 +1,18 @@
-from typing import Optional
 
-from .base import Base, Position, Quaternion
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, ForeignKey
+from .base import Base
+from sqlalchemy.orm import Mapped, mapped_column, MappedAsDataclass
+from sqlalchemy import ForeignKey
 
 
-class ObjectDesignator(Base):
+class ObjectDesignator(MappedAsDataclass, Base):
     """ORM class of pycram.designators.object_designator.ObjectDesignator"""
 
     __tablename__ = "Object"
 
     id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True, init=False)
-    dtype: Mapped[str] = mapped_column(String(255), init=False)
-    type: Mapped[str] = mapped_column(String(255))
-    name: Mapped[str] = mapped_column(String(255))
+    dtype: Mapped[str] = mapped_column(init=False)
+    type: Mapped[str]
+    name: Mapped[str]
     position: Mapped[int] = mapped_column(ForeignKey("Position.id"), init=False)
     orientation: Mapped[int] = mapped_column(ForeignKey("Quaternion.id"), init=False)
 
