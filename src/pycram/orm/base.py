@@ -6,10 +6,8 @@ from typing import Optional
 
 import rospkg
 
-import sqlalchemy
-import sqlalchemy.event
-from sqlalchemy import ForeignKey, String
-from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column, relationship
+from sqlalchemy import ForeignKey, String, inspect
+from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column, Session
 import sqlalchemy.sql.functions
 import sqlalchemy.engine
 
@@ -32,23 +30,27 @@ def get_pycram_version_from_git() -> Optional[str]:
     return repo.head.object.hexsha
 
 
-class Base(MappedAsDataclass, DeclarativeBase):
+class Base(DeclarativeBase):
     """
     Base class to add orm functionality to all pycram mappings
     """
 
-    id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True)
+    type_annotation_map = {
+        str: String(255)
+    }
+
+    id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True, init=False)
     """Unique integer ID as auto incremented primary key."""
 
-    metadata_id: Mapped[int] = mapped_column(ForeignKey("MetaData.id"), nullable=True)
+    metadata_id: Mapped[Optional[int]] = mapped_column(ForeignKey("MetaData.id"), default=None, init=False)
     """Related MetaData Object to store information about the context of this experiment."""
 
     def __repr__(self):
         return f"{self.__module__}.{self.__class__.__name__}(" + ", ".join(
-            [str(self.__getattribute__(c_attr.key)) for c_attr in sqlalchemy.inspect(self).mapper.column_attrs]) + ")"
+            [str(self.__getattribute__(c_attr.key)) for c_attr in inspect(self).mapper.column_attrs]) + ")"
 
 
-class MetaData(Base):
+class MetaData(MappedAsDataclass, Base):
     """
     MetaData stores information about the context of this experiment.
 
@@ -61,13 +63,13 @@ class MetaData(Base):
                                                           init=False)
     """The timestamp where this row got created. This is an aid for versioning."""
 
-    created_by: Mapped[str] = mapped_column(String(255), default=os.getlogin(), init=False)
+    created_by: Mapped[str] = mapped_column(default=os.getlogin(), init=False)
     """The user that created the experiment."""
 
-    description: Mapped[str] = mapped_column(String(255), default=None, nullable=False, init=False)
+    description: Mapped[str] = mapped_column(init=False)
     """A description of the purpose (?) of this experiment."""
 
-    pycram_version: Mapped[str] = mapped_column(String(255), default=get_pycram_version_from_git(),
+    pycram_version: Mapped[str] = mapped_column(default=get_pycram_version_from_git(),
                                                 nullable=True, init=False)
     """The PyCRAM version used to generate this row."""
 
@@ -83,7 +85,7 @@ class MetaData(Base):
         """Return if this object is in the database or not."""
         return self.id is not None
 
-    def insert(self, session: sqlalchemy.orm.Session):
+    def insert(self, session: Session):
         """Insert this into the database using the session. Skipped if it already is inserted."""
         if not self.committed():
             session.add(self)
@@ -96,7 +98,7 @@ class MetaData(Base):
         cls._self = None
 
 
-class Position(Base):
+class Position(MappedAsDataclass, Base):
     """ORM Class for 3D positions."""
 
     __tablename__ = "Position"
@@ -104,7 +106,7 @@ class Position(Base):
     x: Mapped[float]
     y: Mapped[float]
     z: Mapped[float]
-    metadata_id = Mapped[int]
+    metadata_info: Mapped[Optional[int]] = mapped_column(default=None)
 
     # def __init__(self, x: int, y: int, z: int, metadata_id: Optional[int] = None):
     #     super().__init__()
@@ -114,7 +116,7 @@ class Position(Base):
     #     self.metadata_id = metadata_id
 
 
-class Quaternion(Base):
+class Quaternion(MappedAsDataclass, Base):
     """ORM Class for Quaternions."""
 
     __tablename__ = "Quaternion"
@@ -123,9 +125,9 @@ class Quaternion(Base):
     y: Mapped[float]
     z: Mapped[float]
     w: Mapped[float]
-    metadata_id: Mapped[int]
+    metadata_info: Mapped[Optional[int]] = mapped_column(default=None)
 
-    # def __init__(self, x: float, y: float, z: float, w: float,  metadata_id: Optional[int] = None):
+    # def __init__(self, x: float, y: float, z: float, w: float, metadata_id: Optional[int] = None):
     #     super().__init__()
     #     self.x = x
     #     self.y = y
@@ -134,7 +136,7 @@ class Quaternion(Base):
     #     self.metadata_id = metadata_id
 
 
-class Color(Base):
+class Color(MappedAsDataclass, Base):
     """ORM Class for Colors."""
 
     __tablename__ = "Color"
@@ -152,7 +154,7 @@ class Color(Base):
     #     self.alpha = alpha
 
 
-class RobotState(Base):
+class RobotState(MappedAsDataclass, Base):
     """ORM Representation of a robots state."""
 
     __tablename__ = "RobotState"
@@ -166,5 +168,5 @@ class RobotState(Base):
     torso_height: Mapped[float] = mapped_column(init=False)
     """The torso height of the robot."""
 
-    type: Mapped[str] = mapped_column(String(255), init=False)
+    type: Mapped[str] = mapped_column(init=False)
     """The type of the robot."""
