@@ -9,8 +9,10 @@ import tf
 
 import pycram.designators.location_designator
 import pycram.task
-from pycram.costmaps import OccupancyCostmap, plot_grid
-from pycram.plan_failures import PlanFailure
+from ...costmaps import OccupancyCostmap, plot_grid
+from ...plan_failures import PlanFailure
+from ...pose import Pose
+from pycram.bullet_world import BulletWorld, Object
 
 
 class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation):
@@ -22,12 +24,12 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
 
     @dataclasses.dataclass
     class Location(pycram.designators.location_designator.LocationDesignatorDescription.Location):
-        pose: Tuple[List[float], List[float]]
+        pose: Pose
         reachable_arm: str
         torso_height: float
         grasp: str
 
-    def __init__(self, target, reachable_for=None, reachable_arm=None,
+    def __init__(self, target: Object, reachable_for=None, reachable_arm=None,
                  model: Optional[jpt.trees.JPT] = None, path: Optional[str] = None, resolver=None):
         """
         Create a JPT Costmap
@@ -39,7 +41,6 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
         :param path: The path to the JPT model, either model or path must be set
         """
         super().__init__(target, reachable_for, None, reachable_arm, resolver)
-
         # check if arguments are plausible
         if (not model and not path) or (model and path):
             raise ValueError("Either model or path must be set.")
@@ -64,12 +65,12 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
         """
 
         # create Occupancy costmap for the target object
-        position, orientation = self.target.get_position_and_orientation()
+        position, orientation = self.target.pose.to_list()
         position = list(position)
         position[-1] = 0
 
         ocm = OccupancyCostmap(distance_to_obstacle=0.3, from_ros=False, size=200, resolution=0.02,
-                               origin=(position, orientation))
+                               origin=Pose(position, orientation))
         # ocm.visualize()
 
         # working on a copy of the costmap, since found rectangles are deleted
@@ -142,9 +143,10 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
                 if leaf.probability(location) == 0:
                     continue
                 altered_leaf = leaf.conditional_leaf(location)
-                success_probability = altered_leaf.probability(location)
+                # success_probability = altered_leaf.probability(location)
+                success_probability = altered_leaf.probability(self.model.bind({"status": "SUCCEEDED"}))
 
-                _, mpe_state = altered_leaf.mpe(self.model.minimal_distances)
+                mpe_state, _ = altered_leaf.mpe(self.model.minimal_distances)
                 location["grasp"] = mpe_state["grasp"]
                 location["arm"] = mpe_state["arm"]
                 location["relative torso height"] = mpe_state["relative torso height"]
@@ -167,14 +169,14 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
         :return: The usable costmap-location
         """
         sample_dict = {variable.name: value for variable, value in zip(self.model.variables, sample)}
-        target_x, target_y, target_z = self.target.pose
+        target_x, target_y, target_z = self.target.pose.position_as_list()
         pose = [target_x + sample_dict["x"], target_y + sample_dict["y"], 0]
 
         angle = np.arctan2(pose[1] - target_y, pose[0] - target_x) + np.pi
 
         orientation = list(tf.transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
         torso_height = np.clip(target_z - sample_dict["relative torso height"], 0, 0.33)
-        result = self.Location((pose, orientation), sample_dict["arm"], torso_height, sample_dict["grasp"])
+        result = self.Location(Pose(pose, orientation), sample_dict["arm"], torso_height, sample_dict["grasp"])
         return result
 
     def __iter__(self):
@@ -227,7 +229,7 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
 
             # The position at which the multibody will be spawned. Offset such that
             # the origin referes to the centre of the costmap.
-            origin_pose = self.target.get_position_and_orientation()
+            origin_pose = self.target.pose.to_list()
             base_position = list(origin_pose[0])
             base_position[2] = 0
 
