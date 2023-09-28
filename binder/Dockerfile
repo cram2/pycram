@@ -1,4 +1,4 @@
-FROM intel4coro/intel4coro:jupyterhub-ros-base-0.5
+FROM intel4coro/intel4coro:jupyterhub-ros-full-0.5
 
 ENV PATH=$PATH:/home/user/.local/bin
 ENV PYCRAM_WS=/home/${NB_USER}/workspace/ros
@@ -33,7 +33,7 @@ RUN rosdep update \
 USER ${NB_USER}
 RUN catkin build
 
-WORKDIR ${PYCRAM_WS}
+WORKDIR ${PYCRAM_WS}/src/pycram
 RUN git config --global --add safe.directory ${PWD}
 COPY --chown=${NB_USER}:users binder /binder
 ENTRYPOINT ["/binder/entrypoint.sh"]

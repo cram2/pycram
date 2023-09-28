@@ -2,19 +2,18 @@ version: '3'
 services:
   pycram:
     image: pycram:binder
-    # build:
-    #   context: ./
-    #   dockerfile: ./Dockerfile
+    build:
+      context: ../
+      dockerfile: ./binder/Dockerfile
     stdin_open: true
     tty: true
-    # network_mode: host
     ports: 
       - 8888:8888
     privileged: true
     # user: root
     command: start-notebook.sh --allow-root --NotebookApp.token='' --no-browser --ip=0.0.0.0
     entrypoint: ["/home/jovyan/work/entrypoint.sh"]
-    working_dir: /home/jovyan/
+    # working_dir: /home/jovyan/
     volumes:
       - ./:/home/jovyan/work
       # - /tmp/.X11-unix:/tmp/.X11-unix:rw

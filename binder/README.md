@@ -6,18 +6,32 @@ Files for running Pycram on BinderHub.
 
 ### Option 1: Test Image Locally (Under repo directory)
 
+- Run Docker image
+
+  ```bash
+  docker compose -f ./binder/docker-compose.yml up
+  ```
+
 - Run Docker image with X-forwarding
 
   ```bash
-  ./binder/run_local.sh
+  xhost +local:docker && \
+  docker compose -f ./binder/docker-compose.yml up && \
+  xhost -local:docker
   ```
 
 - Open Web browser and go to http://localhost:8888/
 
-- Force rebuilding image
+- To stop and remove container:
 
   ```bash
-  docker build ./ -f ./binder/Dockerfile -t pycram:binder
+  docker compose -f ./binder/docker-compose.yml down
+  ```
+
+- Force image rebuild
+
+  ```bash
+  docker compose -f ./binder/docker-compose.yml up -d --build
   ```
 
 ### Option 2: Run on BinderHub
