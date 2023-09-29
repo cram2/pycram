@@ -7,6 +7,7 @@ import pybullet as p
 import pycram.bullet_world_reasoning as btr
 import pycram.helper as helper
 from ..bullet_world import BulletWorld, Object
+from ..designators.motion_designator import MoveArmJointsMotion, WorldStateDetectingMotion
 from ..external_interfaces.ik import request_ik
 from ..local_transformer import LocalTransformer
 from ..pose import Pose
@@ -92,17 +93,14 @@ class DonbotMoveHead(ProcessModule):
         local_transformer = LocalTransformer()
 
         pose_in_shoulder = local_transformer.transform_pose(target, robot.get_link_tf_frame("ur5_shoulder_link"))
-        pose_in_shoulder.position.z += 0.5
 
         new_pan = np.arctan2(pose_in_shoulder.position.y, pose_in_shoulder.position.x)
         new_tilt = np.arctan2(pose_in_shoulder.position.z, pose_in_shoulder.position.x ** 2 + pose_in_shoulder.position.y ** 2) * -1
 
         tcp_rotation = quaternion_from_euler(new_tilt, 0, new_pan)
-        shoulder_pose = robot.get_link_pose("ur5_shoulder_link")
-        pose_in_shoulder.position.z += 0.5
-        shoulder_pose.rotation = list(tcp_rotation)
+        shoulder_pose = Pose([-0.2, 0.3, 1.31], [-0.31, 0.63, 0.70, -0.02], "map")
 
-        print(pose_in_shoulder)
+        print(shoulder_pose)
 
         _move_arm_tcp(shoulder_pose, robot, "left")
 
@@ -113,15 +111,11 @@ class DonbotMoveGripper(ProcessModule):
     """
 
     def _execute(self, desig):
-        solution = desig.reference()
-        if solution['cmd'] == "move-gripper":
-            robot = BulletWorld.robot
-            gripper = solution['gripper']
-            motion = solution['motion']
-            for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
-                # TODO: Test this, add gripper-opening/-closing to the demo.py
-                robot.set_joint_state(joint, state)
-            time.sleep(0.5)
+        robot = BulletWorld.robot
+        gripper = desig.gripper
+        motion = desig.motion
+        for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
+            robot.set_joint_state(joint, state)
 
 
 class DonbotDetecting(ProcessModule):
@@ -131,17 +125,17 @@ class DonbotDetecting(ProcessModule):
     """
 
     def _execute(self, desig):
-        solution = desig.reference()
-        if solution['cmd'] == "detecting":
-            robot = BulletWorld.robot
-            object_type = solution['object_type']
-            cam_frame_name = solution['cam_frame']
-            front_facing_axis = solution['front_facing_axis']
+        robot = BulletWorld.robot
+        object_type = desig.object_type
+        # Should be "wide_stereo_optical_frame"
+        cam_frame_name = robot_description.get_camera_frame()
+        # should be [0, 0, 1]
+        front_facing_axis = robot_description.front_facing_axis
 
-            objects = BulletWorld.current_bullet_world.get_objects_by_type(object_type)
-            for obj in objects:
-                if btr.visible(obj, robot.get_link_position_and_orientation(cam_frame_name), front_facing_axis, 0.5):
-                    return obj
+        objects = BulletWorld.current_bullet_world.get_objects_by_type(object_type)
+        for obj in objects:
+            if btr.visible(obj, robot.get_link_pose(cam_frame_name), front_facing_axis):
+                return obj
 
 
 class DonbotMoveTCP(ProcessModule):
@@ -150,14 +144,10 @@ class DonbotMoveTCP(ProcessModule):
     """
 
     def _execute(self, desig):
-        solution = desig.reference()
-        if solution['cmd'] == "move-tcp":
-            target = solution['target']
-            gripper = solution['gripper']
-            robot = BulletWorld.robot
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), target)
-            helper._apply_ik(robot, inv)
-            time.sleep(0.5)
+        target = desig.target
+        robot = BulletWorld.robot
+
+        _move_arm_tcp(target, robot, desig.arm)
 
 
 class DonbotMoveJoints(ProcessModule):
@@ -166,19 +156,10 @@ class DonbotMoveJoints(ProcessModule):
     list that should be applied or a pre-defined position can be used, such as "parking"
     """
 
-    def _execute(self, desig):
-        solution = desig.reference()
-        if solution['cmd'] == "move-arm-joints":
-            robot = BulletWorld.robot
-            left_arm_poses = solution['left_arm_poses']
-
-            if type(left_arm_poses) == dict:
-                for joint, pose in left_arm_poses.items():
-                    robot.set_joint_state(joint, pose)
-            elif type(left_arm_poses) == str and left_arm_poses == "park":
-                _park_arms("left")
-
-            time.sleep(0.5)
+    def _execute(self, desig: MoveArmJointsMotion.Motion):
+        robot = BulletWorld.robot
+        if desig.left_arm_poses:
+            robot.set_joint_states(desig.left_arm_poses)
 
 
 class DonbotWorldStateDetecting(ProcessModule):
@@ -186,11 +167,9 @@ class DonbotWorldStateDetecting(ProcessModule):
     This process module detectes an object even if it is not in the field of view of the robot.
     """
 
-    def _execute(self, desig):
-        solution = desig.reference()
-        if solution['cmd'] == "world-state-detecting":
-            obj_type = solution['object_type']
-            return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
+    def _execute(self, desig: WorldStateDetectingMotion.Motion):
+        obj_type = desig.object_type
+        return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
 def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
     gripper = robot_description.get_tool_frame(arm)
