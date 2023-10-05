@@ -122,19 +122,12 @@ class MergeDatabaseTest(unittest.TestCase):
         super().TearDownClass()
 
     def test_merge_databases(self):
+        pycram.orm.utils.update_primary_key(self.source_session_maker,self.destination_session_maker)#self.source_engine,self.destination_engine)
         pycram.orm.utils.print_database(self.destination_session_maker)
-        print(10*'-')
-        pycram.orm.utils.print_database(self.source_session_maker)
-        print(50*'$')
-        pycram.orm.utils.update_primary_key(self.source_engine,self.destination_engine)
-        pycram.orm.utils.print_database(self.destination_session_maker)
-        print(10*'-')
+        print("Source:"+10*'-')
         pycram.orm.utils.print_database(self.source_session_maker)
         #pycram.orm.utils.copy_database(self.destination_session_maker,self.source_session_maker)
         pycram.orm.utils.copy_database(self.source_session_maker, self.destination_session_maker)
-        pycram.orm.utils.print_database(self.destination_session_maker)
-        print(10*'-')
-        pycram.orm.utils.print_database(self.source_session_maker)
 
 # do stuff
 
