@@ -13,8 +13,9 @@ class ObjectDesignator(Base):
     dtype = sqlalchemy.Column(sqlalchemy.types.String(255))
     type = sqlalchemy.Column(sqlalchemy.types.String(255))
     name = sqlalchemy.Column(sqlalchemy.types.String(255))
-    position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
-    orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"))
+    position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"), onupdate="CASCADE")
+    orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"),
+                                    onupdate="CASCADE")
 
     def __init__(self, type: str, name: str):
         super().__init__()
@@ -31,8 +32,9 @@ class ObjectPart(ObjectDesignator):
     """ORM Class of pycram.designators.object_designator.LocatedObject."""
 
     __tablename__ = "ObjectPart"
-    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Object.id"), primary_key=True)
-    part_of = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Object.id"))
+    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Object.id"), onupdate="CASCADE",
+                           primary_key=True)
+    part_of = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Object.id"), onupdate="CASCADE")
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -42,7 +44,8 @@ class ObjectPart(ObjectDesignator):
 
 class BelieveObject(ObjectDesignator):
     __tablename__ = "BelieveObject"
-    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Object.id"), primary_key=True)
+    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Object.id"), onupdate="CASCADE",
+                           primary_key=True)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
