@@ -11,12 +11,13 @@ class TaskTreeNode(Base):
     """ORM equivalent of pycram.task.TaskTreeNode."""
 
     __tablename__ = "TaskTreeNode"
-    code = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Code.id"))
+    code = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Code.id", onupdate="CASCADE"))
     start_time = sqlalchemy.Column(sqlalchemy.types.DateTime)
     end_time = sqlalchemy.Column(sqlalchemy.types.DateTime, nullable=True)
     status = sqlalchemy.Column(sqlalchemy.types.Enum(TaskStatus))
     reason = sqlalchemy.Column(sqlalchemy.types.String(255), nullable=True)
-    parent = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("TaskTreeNode.id"), nullable=True)
+    parent = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("TaskTreeNode.id", onupdate="CASCADE"),
+                               nullable=True)
 
     def __init__(self, code: int = None, start_time: datetime.datetime = None, end_time: datetime.datetime = None,
                  status: str = None, reason: Optional[str] = None, parent: int = None):
@@ -34,7 +35,8 @@ class Code(Base):
 
     __tablename__ = "Code"
     function = sqlalchemy.Column(sqlalchemy.types.String(255))
-    designator = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), nullable=True)
+    designator = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), onupdate="CASCADE",
+                                   nullable=True)
 
     def __init__(self, function: str = None, designator: Optional[int] = None):
         super().__init__()
