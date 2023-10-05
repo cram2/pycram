@@ -7,7 +7,7 @@ from pycram.designators.action_designator import *
 from pycram.designators.object_designator import *
 
 
-def write_database_to_file(in_session: sqlalchemy.orm.Session, filename: str, b_write_to_console: bool = False):
+def write_database_to_file(in_session: sqlalchemy.orm.session, filename: str, b_write_to_console: bool = False):
     """
     Writes all ORM Objects stored within the given session into a local file.
 
@@ -24,7 +24,7 @@ def write_database_to_file(in_session: sqlalchemy.orm.Session, filename: str, b_
                 f.write("\n")
 
 
-def print_database(in_Sessionmaker: sqlalchemy.orm.Sessionmaker):
+def print_database(in_Sessionmaker: sqlalchemy.orm.sessionmaker):
     """
     Prints all ORM Class data within the given Session.
 
@@ -37,7 +37,8 @@ def print_database(in_Sessionmaker: sqlalchemy.orm.Sessionmaker):
         rospy.loginfo(result)
 
 
-def update_primary_key(source_engine: sqlalchemy.orm.Engine, destination_engine: sqlalchemy.orm.Engine):
+def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
+                       destination_session_maker: sqlalchemy.orm.sessionmaker):  # source_engine: sqlalchemy.engine.Engine, destination_engine: sqlalchemy.engine.Engine
     """
     Updates all the primary keys of the database associated with the destination engine, so that there will be no
     problems when merging it into the source database. In order to achieve this the highest id value of the source
@@ -48,36 +49,42 @@ def update_primary_key(source_engine: sqlalchemy.orm.Engine, destination_engine:
     :param source_engine: Engine of the source data_base
     :param destination_engine: Engine of the destination data_base
     """
-    destination_session = sqlalchemy.orm.Session(bind=destination_engine)
-    source_session = sqlalchemy.orm.Session(bind=source_engine)
+    destination_session = destination_session_maker()  # sqlalchemy.orm.Session(bind=destination_engine)
+    source_session = source_session_maker()  # sqlalchemy.orm.Session(bind=source_engine)
     primary_keys = {}
+    print(Base.__subclasses__())
     for table in Base.__subclasses__():  # iterate over all tables
         highest_free_key_value = 0
         primary_keys[table] = {}
         list_of_primary_keys_of_this_table = table.__table__.primary_key.columns.values()
         for key in list_of_primary_keys_of_this_table:
             # make it smart but maybe
-            all_memory_key_values = source_session.query(key).all()
+            all_source_key_values = []
+            for key_value_row in source_session.query(key).all():
+                all_source_key_values.append(key_value_row[0])
             primary_keys[table][key.name] = destination_session.query(key).all()
-            if all_memory_key_values:
-                highest_free_key_value = max(all_memory_key_values)[
-                                             0] + 1
+            if all_source_key_values:
+                highest_free_key_value = max(all_source_key_values) + 1
             for column_object in destination_session.query(table).all():  # iterate over all columns
-                if column_object.__dict__[key.name] in all_memory_key_values:
+                if column_object.__dict__[key.name] in all_source_key_values:
+                    print("Found primary_key collision in table {} value: {} max value in memory {}".format(table,
+                                                                                                            column_object.__dict__[
+                                                                                                                key.name],
+                                                                                                            highest_free_key_value))
                     rospy.loginfo(
                         "Found primary_key collision in table {} value: {} max value in memory {}".format(table,
                                                                                                           column_object.__dict__[
                                                                                                               key.name],
                                                                                                           highest_free_key_value))
-                    column_object.__dict__[key.name] = highest_free_key_value
+                    sqlalchemy.orm.attributes.set_attribute(column_object, key.name, highest_free_key_value)
                     highest_free_key_value += 1
 
     destination_session.commit()
     destination_session.close()
 
 
-def copy_database(source_session_maker: sqlalchemy.orm.Sessionmaker,
-                  destination_session_maker: sqlalchemy.orm.Sessionmaker):
+def copy_database(source_session_maker: sqlalchemy.orm.sessionmaker,
+                  destination_session_maker: sqlalchemy.orm.sessionmaker):
     """
     Iterates through all ORM Objects within tht source database and merges them into the destination database. Careful
     this function does not check if there are any primary key collisions or updates any data.
@@ -101,7 +108,7 @@ def copy_database(source_session_maker: sqlalchemy.orm.Sessionmaker,
                 for key in row:
                     if not sqlalchemy.inspect(row[key]).detached and not sqlalchemy.inspect(
                             row[key]).transient and not sqlalchemy.inspect(row[key]).deleted:
-                        source_session.refresh(row[key])
+                        source_session.refresh(row[key])  # get newest value
                         source_session.expunge(row[key])
                         sqlalchemy.orm.make_transient(row[key])
                         objects_to_add.append(row[key])
