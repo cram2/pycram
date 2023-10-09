@@ -1,3 +1,4 @@
+import os
 import unittest
 
 import sqlalchemy
@@ -194,6 +195,76 @@ class ORMObjectDesignatorTestCase(test_bullet_world.BulletWorldTest):
         tt.insert(self.session)
         action_results = self.session.query(pycram.orm.action_designator.Action).all()
         self.assertEqual(len(tt) - 2, len(action_results))
+
+
+class RelationshipTestCase(test_task_tree.TaskTreeTestCase):
+    engine: sqlalchemy.engine.Engine
+    session: sqlalchemy.orm.Session
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
+
+    def setUp(self):
+        super().setUp()
+        pycram.orm.base.Base.metadata.create_all(self.engine)
+        self.session = sqlalchemy.orm.Session(bind=self.engine)
+        self.session.commit()
+
+    def tearDown(self):
+        super().tearDown()
+        pycram.task.reset_tree()
+        pycram.orm.base.MetaData.reset()
+        pycram.orm.base.Base.metadata.drop_all(self.engine)
+        self.session.close()
+
+    @classmethod
+    def TearDownClass(cls):
+        super().tearDownClass()
+        cls.session.commit()
+        cls.session.close()
+
+    def test_metadata(self):
+        pycram.orm.base.MetaData().description = "MetaDataRelationshipTest"
+        self.plan()
+        pycram.task.task_tree.root.insert(self.session)
+        result = self.session.query(pycram.orm.base.Position).all()
+        print([r.metadata_table_entry for r in result])
+        self.assertTrue(all([r.metadata_table_entry is not None for r in result]), msg="Failing, cause the firsts"
+                                                                                       "and lasts position elements"
+                                                                                       "metadata_id is null; probably"
+                                                                                       "a bug")
+
+    # def test_robot_state(self):
+    #     self.plan()
+    #     pycram.orm.base.MetaData().description = "Unittest"
+    #     pycram.task.task_tree.root.insert(self.session)
+    #     r = self.session.query(pycram.orm.base.RobotState).all()
+    #     print(r)
+    #     print(r[1].metadata_table_entry)
+    #     print(r[1].position_table_entry)
+    #     print(r[1].orientation_table_entry)
+
+    # def test_action_designators(self):
+    #     self.plan()
+    #     pycram.orm.base.MetaData().description = "Unittest"
+    #     pycram.task.task_tree.root.insert(self.session)
+    #     s = self.session.query(pycram.orm.action_designator.NavigateAction).all()
+    #     print(s[0])
+    #     print(s[0].metadata_table_entry)
+    #     print(s[0].robot_state_table_entry)
+    #     # print(s[1].position_table_entry)
+
+    def test_task_tree_node_parents(self):
+        self.plan()
+        pycram.orm.base.MetaData().description = "taskTest"
+        pycram.task.task_tree.root.insert(self.session)
+        r = self.session.query(pycram.orm.task.TaskTreeNode).all()
+        # a = r[5].parent_table_entry
+        # b = r[r[5].parent-1]
+        # x = [r[i].parent_table_entry == r[r[i].parent-1] for i in range(len(r)) if r[i].parent is not None]
+        self.assertTrue([r[i].parent_table_entry == r[r[i].parent-1] for i in range(len(r)) if r[i].parent is not None])
 
 
 if __name__ == '__main__':

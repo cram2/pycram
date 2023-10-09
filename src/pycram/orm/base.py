@@ -2,12 +2,13 @@
 import datetime
 import logging
 import os
-from typing import Optional
+from typing import Optional, List
 
 import rospkg
 
 from sqlalchemy import ForeignKey, String, inspect
-from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column, Session
+from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column, Session, relationship, \
+    declared_attr
 import sqlalchemy.sql.functions
 import sqlalchemy.engine
 
@@ -30,11 +31,8 @@ def get_pycram_version_from_git() -> Optional[str]:
     return repo.head.object.hexsha
 
 
-class Base(DeclarativeBase):
-    """
-    Base class to add orm functionality to all pycram mappings
-    """
-
+class _Base(DeclarativeBase):
+    """Dummy class"""
     type_annotation_map = {
         str: String(255)
     }
@@ -42,15 +40,28 @@ class Base(DeclarativeBase):
     id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True, init=False)
     """Unique integer ID as auto incremented primary key."""
 
+
+class Base(_Base):
+    """
+    Base class to add orm functionality to all pycram mappings
+    """
+    __abstract__ = True
+
     metadata_id: Mapped[Optional[int]] = mapped_column(ForeignKey("MetaData.id"), default=None, init=False)
     """Related MetaData Object to store information about the context of this experiment."""
+
+    @declared_attr
+    def metadata_table_entry(self):
+        return relationship("MetaData")
+    """Declared attribute used to create a basic relationship pattern between the foreign keys of inheriting tables
+    and the MetaData table itself in order to avoid complex queries and joins."""
 
     def __repr__(self):
         return f"{self.__module__}.{self.__class__.__name__}(" + ", ".join(
             [str(self.__getattribute__(c_attr.key)) for c_attr in inspect(self).mapper.column_attrs]) + ")"
 
 
-class MetaData(MappedAsDataclass, Base):
+class MetaData(MappedAsDataclass, _Base):
     """
     MetaData stores information about the context of this experiment.
 
@@ -106,7 +117,7 @@ class Position(MappedAsDataclass, Base):
     x: Mapped[float]
     y: Mapped[float]
     z: Mapped[float]
-    metadata_info: Mapped[Optional[int]] = mapped_column(default=None)
+    metadata_id: Mapped[Optional[int]] = mapped_column(ForeignKey("MetaData.id"), default=None)
 
     # def __init__(self, x: int, y: int, z: int, metadata_id: Optional[int] = None):
     #     super().__init__()
@@ -125,7 +136,7 @@ class Quaternion(MappedAsDataclass, Base):
     y: Mapped[float]
     z: Mapped[float]
     w: Mapped[float]
-    metadata_info: Mapped[Optional[int]] = mapped_column(default=None)
+    metadata_id: Mapped[Optional[int]] = mapped_column(ForeignKey("MetaData.id"), default=None)
 
     # def __init__(self, x: float, y: float, z: float, w: float, metadata_id: Optional[int] = None):
     #     super().__init__()
@@ -160,9 +171,11 @@ class RobotState(MappedAsDataclass, Base):
     __tablename__ = "RobotState"
 
     position: Mapped[int] = mapped_column(ForeignKey("Position.id"), init=False)
+    position_table_entry: Mapped["Position"] = relationship(init=False)
     """The position of the robot."""
 
     orientation: Mapped[int] = mapped_column(ForeignKey("Quaternion.id"), init=False)
+    orientation_table_entry: Mapped["Quaternion"] = relationship(init=False)
     """The orientation of the robot."""
 
     torso_height: Mapped[float] = mapped_column(init=False)

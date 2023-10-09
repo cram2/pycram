@@ -1,6 +1,6 @@
 
-from .base import Base
-from sqlalchemy.orm import Mapped, mapped_column, MappedAsDataclass
+from .base import Base, Position, Quaternion
+from sqlalchemy.orm import Mapped, mapped_column, MappedAsDataclass, relationship
 from sqlalchemy import ForeignKey
 
 
@@ -14,7 +14,9 @@ class ObjectDesignator(MappedAsDataclass, Base):
     type: Mapped[str]
     name: Mapped[str]
     position: Mapped[int] = mapped_column(ForeignKey("Position.id"), init=False)
+    position_table_entry: Mapped[Position] = relationship(init=False)
     orientation: Mapped[int] = mapped_column(ForeignKey("Quaternion.id"), init=False)
+    orientation_table_entry: Mapped[Quaternion] = relationship(init=False)
 
     # def __init__(self, type: str, name: str):
     #     super().__init__()
