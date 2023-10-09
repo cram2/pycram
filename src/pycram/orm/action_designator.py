@@ -1,9 +1,9 @@
 from typing import Optional
 
-from .base import Base
+from .base import Base, RobotState, Position, Quaternion
+from .object_designator import ObjectDesignator
 from ..enums import Arms
-from sqlalchemy.orm import Mapped, mapped_column, MappedAsDataclass
-from sqlalchemy.types import String
+from sqlalchemy.orm import Mapped, mapped_column, MappedAsDataclass, relationship
 from sqlalchemy import ForeignKey
 
 
@@ -16,6 +16,7 @@ class Action(MappedAsDataclass, Base):
 
     dtype: Mapped[str] = mapped_column(init=False)
     robot_state: Mapped[int] = mapped_column(ForeignKey("RobotState.id"), init=False)
+    robot_state_table_entry: Mapped[RobotState] = relationship(init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -46,7 +47,9 @@ class NavigateAction(Action):
 
     id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
     position: Mapped[int] = mapped_column(ForeignKey("Position.id", ), default=None)
+    position_table_entry: Mapped[Position] = relationship(init=False)
     orientation: Mapped[int] = mapped_column(ForeignKey("Quaternion.id"), default=None)
+    orientation_table_entry: Mapped[Quaternion] = relationship(init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -102,6 +105,7 @@ class Release(Action):
     id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
     gripper: Mapped[str] = mapped_column(init=False)
     object: Mapped[int] = mapped_column(ForeignKey("Object.id"), init=False)
+    object_table_entry: Mapped[ObjectDesignator] = relationship(init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -117,6 +121,7 @@ class GripAction(Action):
     gripper: Mapped[str] = mapped_column(init=False)
     effort: Mapped[float] = mapped_column(init=False)
     object: Mapped[int] = mapped_column(ForeignKey("Object.id"), init=False)
+    object_table_entry: Mapped[ObjectDesignator] = relationship(init=False)
     # TODO grasped_object
 
     __mapper_args__ = {
@@ -133,6 +138,7 @@ class PickUpAction(Action):
     arm: Mapped[str]
     grasp: Mapped[str]
     object: Mapped[int] = mapped_column(ForeignKey("Object.id"), init=False)
+    object_table_entry: Mapped[ObjectDesignator] = relationship(init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -152,8 +158,11 @@ class PlaceAction(Action):
     id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
     arm: Mapped[str]
     position: Mapped[int] = mapped_column(ForeignKey("Position.id"), init=False)
+    position_table_entry: Mapped[Position] = relationship(init=False)
     orientation: Mapped[int] = mapped_column(ForeignKey("Quaternion.id"), init=False)
+    orientation_table_entry: Mapped[Quaternion] = relationship(init=False)
     object: Mapped[int] = mapped_column(ForeignKey("Object.id"), init=False)
+    object_table_entry: Mapped[ObjectDesignator] = relationship(init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -166,12 +175,17 @@ class PlaceAction(Action):
 
 class TransportAction(Action):
     """ORM Class of pycram.designators.action_designator.TransportAction."""
+
     __tablename__ = "Transport"
+
     id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
     arm: Mapped[str] = mapped_column(init=False)
     position: Mapped[int] = mapped_column(ForeignKey("Position.id"), init=False)
+    position_table_entry: Mapped[Position] = relationship(init=False)
     orientation: Mapped[int] = mapped_column(ForeignKey("Quaternion.id"), init=False)
+    orientation_table_entry: Mapped[Quaternion] = relationship(init=False)
     object: Mapped[int] = mapped_column(ForeignKey("Object.id"), init=False)
+    object_table_entry: Mapped[ObjectDesignator] = relationship(init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -180,9 +194,12 @@ class TransportAction(Action):
 
 class LookAtAction(Action):
     """ORM Class of pycram.designators.action_designator.LookAtAction."""
+
     __tablename__ = "LookAt"
+
     id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
     position: Mapped[int] = mapped_column(ForeignKey("Position.id"), init=False)
+    position_table_entry: Mapped[Position] = relationship(init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -191,9 +208,12 @@ class LookAtAction(Action):
 
 class DetectAction(Action):
     """ORM Class of pycram.designators.action_designator.DetectAction."""
+
     __tablename__ = "Detect"
+
     id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
     object: Mapped[int] = mapped_column(ForeignKey("Object.id"), init=False)
+    object_table_entry: Mapped[ObjectDesignator] = relationship(init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -209,6 +229,7 @@ class OpenAction(Action):
     arm: Mapped[str] = mapped_column(init=False)
     distance: Mapped[float] = mapped_column(init=False)
     object: Mapped[int] = mapped_column(ForeignKey("Object.id"), init=False)
+    object_table_entry: Mapped[ObjectDesignator] = relationship(init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,

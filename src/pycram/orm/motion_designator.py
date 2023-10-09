@@ -7,9 +7,10 @@ classes.
 """
 
 
-from .base import Base
-from sqlalchemy.orm import Mapped, mapped_column, MappedAsDataclass
+from .base import Base, Position, Quaternion
+from sqlalchemy.orm import Mapped, mapped_column, MappedAsDataclass, relationship
 from sqlalchemy import ForeignKey
+from .object_designator import ObjectDesignator
 
 
 class MotionDesignator(MappedAsDataclass, Base):
@@ -41,7 +42,9 @@ class MoveMotion(MotionDesignator):
 
     id: Mapped[int] = mapped_column(ForeignKey("Motion.id"), primary_key=True, init=False)
     position: Mapped[int] = mapped_column(ForeignKey("Position.id"), init=False)
+    position_table_entry: Mapped[Position] = relationship(init=False)
     orientation: Mapped[int] = mapped_column(ForeignKey("Quaternion.id"), init=False)
+    orientation_table_entry: Mapped[Quaternion] = relationship(init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -61,6 +64,7 @@ class PickUpMotion(MotionDesignator):
 
     id: Mapped[int] = mapped_column(ForeignKey("Motion.id"), primary_key=True, init=False)
     object: Mapped[int] = mapped_column(ForeignKey("Object.id"), init=False)
+    object_table_entry: Mapped[ObjectDesignator] = relationship(init=False)
     arm: Mapped[str] = mapped_column(init=False)
     gripper: Mapped[str] = mapped_column(init=False)
     grasp: Mapped[str] = mapped_column(init=False)
@@ -84,10 +88,13 @@ class PlaceMotion(MotionDesignator):
 
     id: Mapped[int] = mapped_column(ForeignKey("Motion.id"), primary_key=True, init=False)
     object: Mapped[int] = mapped_column(ForeignKey("Object.id"), init=False)
+    object_table_entry: Mapped[ObjectDesignator] = relationship(init=False)
     arm: Mapped[str] = mapped_column(init=False)
     gripper: Mapped[str] = mapped_column(init=False)
     position: Mapped[int] = mapped_column(ForeignKey("Position.id"), init=False)
+    position_table_entry: Mapped[Position] = relationship(init=False)
     orientation: Mapped[int] = mapped_column(ForeignKey("Quaternion.id"), init=False)
+    orientation_table_entry: Mapped[Quaternion] = relationship(init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -108,6 +115,7 @@ class AccessingMotion(MotionDesignator):
 
     id: Mapped[int] = mapped_column(ForeignKey("Motion.id"), primary_key=True, init=False)
     part_of: Mapped[int] = mapped_column(ForeignKey("Object.id"), init=False)
+    object_table_entry: Mapped[ObjectDesignator] = relationship(init=False)
     arm: Mapped[str] = mapped_column(init=False)
     gripper: Mapped[str] = mapped_column(init=False)
     distance: Mapped[float] = mapped_column(init=False)
@@ -131,7 +139,9 @@ class MoveTCPMotion(MotionDesignator):
 
     id: Mapped[int] = mapped_column(ForeignKey("Motion.id"), primary_key=True, init=False)
     position: Mapped[int] = mapped_column(ForeignKey("Position.id"), init=False)
+    position_table_entry: Mapped[Position] = relationship(init=False)
     orientation: Mapped[int] = mapped_column(ForeignKey("Quaternion.id"), init=False)
+    orientation_table_entry: Mapped[Quaternion] = relationship(init=False)
     arm: Mapped[str] = mapped_column(init=False)
 
     __mapper_args__ = {
@@ -152,8 +162,11 @@ class LookingMotion(MotionDesignator):
 
     id: Mapped[int] = mapped_column(ForeignKey("Motion.id"), primary_key=True, init=False)
     position: Mapped[int] = mapped_column(ForeignKey("Position.id"), init=False)
+    position_table_entry: Mapped[Position] = relationship(init=False)
     orientation: Mapped[int] = mapped_column(ForeignKey("Quaternion.id"), init=False)
+    orientation_table_entry: Mapped[Quaternion] = relationship(init=False)
     object: Mapped[int] = mapped_column(ForeignKey("Object.id"), init=False)
+    object_table_entry: Mapped[ObjectDesignator] = relationship(init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
@@ -171,6 +184,7 @@ class MoveGripperMotion(MotionDesignator):
     motion: Mapped[str] = mapped_column(init=False)
     gripper: Mapped[str] = mapped_column(init=False)
     front_facing_axis: Mapped[int] = mapped_column(ForeignKey("Position.id"), init=False)
+    position_table_entry: Mapped[Position] = relationship(init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
