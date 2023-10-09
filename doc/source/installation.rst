@@ -14,6 +14,9 @@ All dependencies are available via PyPi.
 
 PyCRAM is developed and tested currently with Python3.8, Ubuntu 20.04 and ROS Noetic.
 
+This guide excpects you to have a GitHub account with an SSH key (you can read about adding a new ssh key
+`here <https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account>`_).
+
 Installing ROS
 ==============
 
@@ -66,6 +69,8 @@ Now you can install PyCRAM into your ROS workspace.
     rosdep install --ignore-src --from-paths . -r
     cd ..
     catkin_make
+    source devel/setup.bash
+    echo "~/workspace/ros/devel/setup.bash" >> ~/.bashrc
 
 The cloning and setting up can take several minutes. After the command finishes you should see a number of repositories
 in your ROS workspace.
@@ -112,13 +117,15 @@ Building and sourcing your ROS workspace using catkin compiles all ROS packages 
 respective PATH variables. This is necessary to be able to import PyCRAM via the Python import system and to find the
 robot descriptions in the launch file.
 
+If you have been following the tutorial steps until now you can skip this part. 
+
 You can build your ROS workspace with the following commands:
 
 .. code-block:: console
 
     cd ~/workspace/ros
     catkin_make
-    source devel/local_setup.bash
+    source devel/setup.bash
 
 Using PyCRAM
 ============
