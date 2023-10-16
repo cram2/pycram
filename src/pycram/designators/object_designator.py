@@ -4,8 +4,8 @@ import sqlalchemy.orm
 
 from ..bullet_world import BulletWorld, Object as BulletWorldObject
 from ..designator import DesignatorDescription, ObjectDesignatorDescription
-from ..orm.base import (Position as ORMPosition, Quaternion as ORMQuaternion, MetaData)
-from ..orm.object_designator import (ObjectDesignator as ORMObjectDesignator, BelieveObject as ORMBelieveObject,
+from ..orm.base import (Position as ORMPosition, Quaternion as ORMQuaternion, ProcessedMetaData)
+from ..orm.object_designator import (Object as ORMObjectDesignator, BelieveObject as ORMBelieveObject,
                                      ObjectPart as ORMObjectPart)
 from ..pose import Pose
 
@@ -28,8 +28,8 @@ class BelieveObject(ObjectDesignatorDescription):
             self_ = self.to_sql()
             session.add(self_)
             session.commit()
-            metadata = MetaData().insert(session)
-            self_.metadata_id = metadata.id
+            metadata = ProcessedMetaData().insert(session)
+            self_.processed_metadata_id = metadata.id
             return self_
 
 
@@ -49,8 +49,8 @@ class ObjectPart(ObjectDesignatorDescription):
 
         def insert(self, session: sqlalchemy.orm.session.Session) -> ORMObjectPart:
             obj = self.to_sql()
-            metadata = MetaData().insert(session)
-            obj.metadata_id = metadata.id
+            metadata = ProcessedMetaData().insert(session)
+            obj.processed_metadata_id = metadata.id
             # try to create the part_of object
             if self.part_of:
                 part = self.part_of.insert(session)

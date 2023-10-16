@@ -1,3 +1,4 @@
+gitpython>=3.1.37
 pybullet~=3.2.5
 rospkg~=1.4.0
 roslibpy~=1.2.1
