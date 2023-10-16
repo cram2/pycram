@@ -12,7 +12,7 @@ from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, Naviga
                                      PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction,
                                      MoveTorsoAction as ORMMoveTorsoAction, SetGripperAction as ORMSetGripperAction,
                                      Action as ORMAction)
-from ..orm.base import Quaternion, Position, Base, RobotState, MetaData
+from ..orm.base import Quaternion, Position, Base, RobotState, ProcessedMetaData
 from ..plan_failures import ObjectUnfetchable, ReachabilityFailure
 from ..robot_descriptions import robot_description
 from ..task import with_tree
@@ -448,18 +448,20 @@ class NavigateAction(ActionDesignatorDescription):
             return ORMNavigateAction()
 
         def insert(self, session, *args, **kwargs) -> ORMNavigateAction:
+
+            # create the navigate action orm object
+            action = super().insert(session)
+
             # initialize position and orientation
             position = Position(*self.target_location.position_as_list())
+            position.processed_metadata_id = action.processed_metadata_id
             orientation = Quaternion(*self.target_location.orientation_as_list())
+            orientation.processed_metadata_id = action.processed_metadata_id
 
             # add those to the database and get the primary keys
             session.add(position)
             session.add(orientation)
             session.commit()
-
-            # create the navigate action orm object
-            action = super().insert(session)
-
             # set foreign keys
             action.position = position.id
             action.orientation = orientation.id
