@@ -6,8 +6,9 @@ import pybullet as p
 import pycram.bullet_world_reasoning as btr
 import pycram.helper as helper
 from ..bullet_world import BulletWorld
+from ..designators.motion_designator import *
 from ..external_interfaces.ik import request_ik
-from ..local_transformer import LocalTransformer as local_tf
+from ..local_transformer import LocalTransformer as local_tf, LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_descriptions import robot_description
 
@@ -33,18 +34,9 @@ class BoxyNavigation(ProcessModule):
     The process module to move the robot from one position to another.
     """
 
-    def _execute(self, desig):
-        solution = desig.reference()
-        if solution['cmd'] == 'navigate':
-            robot = BulletWorld.robot
-            # Reset odom joints to zero
-            for joint_name in robot_description.odom_joints:
-                robot.set_joint_state(joint_name, 0.0)
-            # Set actual goal pose
-            robot.set_position_and_orientation(solution['target'], solution['orientation'])
-            time.sleep(0.5)
-            local_tf.update_from_btr()
-
+    def _execute(self, desig: MoveMotion.Motion):
+        robot = BulletWorld.robot
+        robot.set_pose(desig.target)
 
 
 class BoxyPickUp(ProcessModule):
@@ -53,23 +45,21 @@ class BoxyPickUp(ProcessModule):
     The object has to be reachable for this process module to succeed.
     """
 
-    def _execute(self, desig):
-        solution = desig.reference()
-        if solution['cmd'] == 'pick':
-            object = solution['object']
-            robot = BulletWorld.robot
-            grasp = robot_description.grasps.get_orientation_for_grasp(solution['grasp'])
-            target = [object.get_position(), grasp]
-            target = helper._transform_to_torso(target, robot)
-            arm = "left" if solution['gripper'] == robot_description.get_tool_frame("left") else "right"
-            joints = robot_description._safely_access_chains(arm).joints
-            #tip = "r_wrist_roll_link" if solution['gripper'] == "r_gripper_tool_frame" else "l_wrist_roll_link"
-            inv = request_ik(robot_description.base_frame, solution['gripper'], target, robot, joints)
-            helper._apply_ik(robot, inv, solution['gripper'])
-            #inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), target,
-            #                                   maxNumIterations=100)
-            robot.attach(object, solution['gripper'])
-            time.sleep(0.5)
+    def _execute(self, desig: PickUpMotion.Motion):
+        object = desig.object_desig.bullet_world_object
+        robot = BulletWorld.robot
+        grasp = robot_description.grasps.get_orientation_for_grasp(desig.grasp)
+        target = object.get_pose()
+        target.orientation.x = grasp[0]
+        target.orientation.y = grasp[1]
+        target.orientation.z = grasp[2]
+        target.orientation.w = grasp[3]
+
+        arm = desig.arm
+
+        _move_arm_tcp(target, robot, arm)
+        tool_frame = robot_description.get_tool_frame(arm)
+        robot.attach(object, tool_frame)
 
 
 class BoxyPlace(ProcessModule):
@@ -77,20 +67,25 @@ class BoxyPlace(ProcessModule):
     This process module places an object at the given position in world coordinate frame.
     """
 
-    def _execute(self, desig):
-        solution = desig.reference()
-        if solution['cmd'] == 'place':
-            object = solution['object']
-            robot = BulletWorld.robot
-            target = object.get_position_and_orientation()
-            target = helper._transform_to_torso(target, robot)
-            arm = "left" if solution['gripper'] == robot_description.get_tool_frame("left") else "right"
-            joints = robot_description._safely_access_chains(arm).joints
-            #tip = "r_wrist_roll_link" if solution['gripper'] == "r_gripper_tool_frame" else "l_wrist_roll_link"
-            inv = request_ik(robot_description.base_frame, solution['gripper'], target, robot, joints)
-            helper._apply_ik(robot, inv, solution['gripper'])
-            robot.detach(object)
-            time.sleep(0.5)
+    def _execute(self, desig: PlaceMotion.Motion):
+        """
+
+        :param desig: A PlaceMotion
+        :return:
+        """
+        object = desig.object.bullet_world_object
+        robot = BulletWorld.robot
+        arm = desig.arm
+
+        # Transformations such that the target position is the position of the object and not the tcp
+        object_pose = object.get_pose()
+        local_tf = LocalTransformer()
+        tcp_to_object = local_tf.transform_pose(object_pose,
+                                                robot.get_link_tf_frame(robot_description.get_tool_frame(arm)))
+        target_diff = desig.target.to_transform("target").inverse_times(tcp_to_object.to_transform("object")).to_pose()
+
+        _move_arm_tcp(target_diff, robot, arm)
+        robot.detach(object)
 
 
 class BoxyAccessing(ProcessModule):
@@ -140,7 +135,6 @@ class BoxyParkArms(ProcessModule):
         solutions = desig.reference()
         if solutions['cmd'] == 'park':
             _park_arms()
-
 
 
 class BoxyMoveHead(ProcessModule):
@@ -285,6 +279,14 @@ class BoxyWorldStateDetecting(ProcessModule):
             obj_type = solution['object_type']
             return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
+
+def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
+    gripper = robot_description.get_tool_frame(arm)
+
+    joints = robot_description.chains[arm].joints
+
+    inv = request_ik(target, robot, joints, gripper)
+    helper._apply_ik(robot, inv, joints)
 
 class BoxyManager(ProcessModuleManager):
 

@@ -45,6 +45,7 @@ class DonbotDescription(RobotDescription):
         arm_manip = ManipulatorDescription(arm_inter, tool_frame="gripper_tool_frame",
                                            gripper_description=gripper)  # or ur5_tool0
         self.add_chain("left", arm_manip)
+        self.add_chain("right", arm_manip)
         # Neck
         neck_base_link = "ur5_base_link"
         neck = ChainDescription("neck", arm_joints, arm_links, base_link=neck_base_link)
