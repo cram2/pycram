@@ -363,12 +363,12 @@ class Pr2MoveGripperReal(ProcessModule):
             rospy.loginfo("Started gripper Movement")
 
         def done_callback(state, result):
-            rospy.loginfo(result.reached_result)
+            rospy.loginfo(f"Reached goal {designator.motion}: {result.reached_goal}")
 
         def feedback_callback(msg):
             pass
 
-        goal = Pr2GripperCommandGoal
+        goal = Pr2GripperCommandGoal()
         goal.command.position = 0.0 if designator.motion == "close" else 0.1
         goal.command.max_effort = 50.0
         controller_topic = "r_gripper_controller/gripper_action" if designator.gripper == "right" else "l_gripper_controller/gripper_action"
