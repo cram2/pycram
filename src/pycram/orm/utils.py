@@ -37,6 +37,19 @@ def print_database(in_Sessionmaker: sqlalchemy.orm.sessionmaker):
         rospy.loginfo(result)
 
 
+def get_all_children_set(in_node, node_set=None):
+    all_nodes = set()
+    if node_set is None:
+        node_set = set()
+    node_set.add(in_node)
+    if in_node.__subclasses__():
+        for node in in_node.__subclasses__():
+            all_nodes.update(get_all_children_set(node, node_set))
+    else:
+        pass
+        all_nodes.update(node_set)
+    return all_nodes
+
 def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
                        destination_session_maker: sqlalchemy.orm.sessionmaker):  # source_engine: sqlalchemy.engine.Engine, destination_engine: sqlalchemy.engine.Engine
     """
@@ -60,11 +73,20 @@ def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
         for key in list_of_primary_keys_of_this_table:
             # make it smart but maybe
             all_source_key_values = []
+            all_destination_key_values = []
             for key_value_row in source_session.query(key).all():
-                all_source_key_values.append(key_value_row[0])
+                all_source_key_values.append(key_value_row[0])  # get all values of key from source session
+            for key_value_row in destination_session.query(key).all():
+                all_destination_key_values.append(key_value_row[0])  # get all values of key from source session
             primary_keys[table][key.name] = destination_session.query(key).all()
             if all_source_key_values:
-                highest_free_key_value = max(all_source_key_values) + 1
+                if all_destination_key_values:  # need to check if destination maybe has more items then source
+                    if max(all_source_key_values) < max(all_destination_key_values):
+                        highest_free_key_value = max(all_destination_key_values) + 1
+                    else:
+                        highest_free_key_value = max(all_source_key_values) + 1
+                else:  # if destination values do not exist we use source
+                    highest_free_key_value = max(all_source_key_values) + 1
             for column_object in destination_session.query(table).all():  # iterate over all columns
                 if column_object.__dict__[key.name] in all_source_key_values:
                     print("Found primary_key collision in table {} value: {} max value in memory {}".format(table,
@@ -78,8 +100,7 @@ def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
                                                                                                           highest_free_key_value))
                     sqlalchemy.orm.attributes.set_attribute(column_object, key.name, highest_free_key_value)
                     highest_free_key_value += 1
-
-    destination_session.commit()
+        destination_session.commit() # commit after every table
     destination_session.close()
 
 
@@ -126,3 +147,33 @@ def copy_database(source_session_maker: sqlalchemy.orm.sessionmaker,
     destination_session.add_all(objects_to_add)
     destination_session.commit()
     destination_session.close()
+
+
+def update_primary_key_constrains(session_maker: sqlalchemy.orm.sessionmaker,orm_classes : list):
+    with session_maker() as session:
+        for orm_class in orm_classes:
+            try:
+                foreign_key_statement = sqlalchemy.text(
+                    "SELECT con.oid, con.conname, con.contype, con.confupdtype, con.confdeltype, con.confmatchtype, pg_get_constraintdef(con.oid) FROM pg_catalog.pg_constraint con INNER JOIN pg_catalog.pg_class rel ON rel.oid = con.conrelid INNER JOIN pg_catalog.pg_namespace nsp ON nsp.oid = connamespace WHERE rel.relname = '{}';".format(
+                        orm_class.__tablename__))
+                response = session.execute(foreign_key_statement)  # engine.connect().execute(foreign_key_statement)
+                print(25 * '~' + "{}".format(orm_class.__tablename__) + 25 * '~')
+                for line in response:
+                    if line.conname.endswith("fkey"):
+                        if 'a' in line.confupdtype:  # a --> no action | if there is no action we set it to cascading
+                            # I just assume there aren't any other constraints
+                            drop_statement = sqlalchemy.text(
+                                "alter table \"{}\" drop constraint \"{}\";".format(orm_class.__tablename__,
+                                                                                    line.conname))
+                            drop_response = session.execute(drop_statement)
+                            # drop_response = engine.connect().execute(drop_statement)
+                            alter_statement = sqlalchemy.text(
+                                "alter table \"{}\" add constraint {} {} on update cascade;".format(
+                                    orm_class.__tablename__,
+                                    line.conname,
+                                    line.pg_get_constraintdef))
+                            # alter_response = engine.connect().execute(alter_statement)
+                            alter_response = session.execute(alter_statement)
+                            session.commit()
+            except AttributeError:
+                print("Attribute Error: {} has no attribute __tablename__".format(orm_class))
