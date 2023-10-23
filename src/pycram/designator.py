@@ -22,7 +22,7 @@ import logging
 from .orm.action_designator import (Action as ORMAction)
 from .orm.object_designator import (Object as ORMObjectDesignator)
 
-from .orm.base import Quaternion, Position, Base, RobotState, ProcessedMetaData
+from .orm.base import Quaternion, Position, Base, RobotState, ProcessMetaData
 from .task import with_tree
 
 
@@ -508,34 +508,21 @@ class ActionDesignatorDescription(DesignatorDescription):
             :return: The completely instanced ORM object
             """
 
+            pose = self.robot_position.insert(session)
+
             # get or create metadata
-            metadata = ProcessedMetaData().insert(session)
-
-            # create position
-            position = Position(*self.robot_position.position_as_list())
-            position.processed_metadata_id = metadata.id
-
-            # create orientation
-            orientation = Quaternion(*self.robot_position.orientation_as_list())
-            orientation.processed_metadata_id = metadata.id
-
-            session.add_all([position, orientation])
-            session.commit()
+            metadata = ProcessMetaData().insert(session)
 
             # create robot-state object
-            robot_state = RobotState()
-            robot_state.position_id = position.id
-            robot_state.orientation_id = orientation.id
-            robot_state.torso_height = self.robot_torso_height
-            robot_state.type = self.robot_type
-            robot_state.processed_metadata_id = metadata.id
+            robot_state = RobotState(self.robot_torso_height, self.robot_type, pose.id)
+            robot_state.process_metadata_id = metadata.id
             session.add(robot_state)
             session.commit()
 
             # create action
             action = self.to_sql()
-            action.processed_metadata_id = metadata.id
-            action.robot_state = robot_state.id
+            action.process_metadata_id = metadata.id
+            action.robot_state_id = robot_state.id
 
             return action
 
@@ -626,21 +613,21 @@ class ObjectDesignatorDescription(DesignatorDescription):
             :param session: Session with a database that is used to add and commit the objects
             :return: The completely instanced ORM object
             """
-            metadata = ProcessedMetaData().insert(session)
+            metadata = ProcessMetaData().insert(session)
             # insert position and orientation of object of the designator
             orm_position = Position(*self.pose.position_as_list())
-            orm_position.processed_metadata_id = metadata.id
+            orm_position.process_metadata_id = metadata.id
             orm_orientation = Quaternion(*self.pose.orientation_as_list())
-            orm_orientation.processed_metadata_id = metadata.id
+            orm_orientation.process_metadata_id = metadata.id
             session.add(orm_position)
             session.add(orm_orientation)
             session.commit()
 
             # create object orm designator
             obj = self.to_sql()
-            obj.processed_metadata_id = metadata.id
-            obj.position = orm_position.id
-            obj.orientation = orm_orientation.id
+            obj.process_metadata_id = metadata.id
+            obj.position_id = orm_position.id
+            obj.orientation_id = orm_orientation.id
             session.add(obj)
             session.commit()
             return obj

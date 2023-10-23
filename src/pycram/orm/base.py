@@ -1,17 +1,14 @@
 """Implementation of base classes for orm modelling."""
 import datetime
-import logging
 import os
-from typing import Optional, List
+from typing import Optional
 
-import rospkg
 import git
-
-from sqlalchemy import ForeignKey, String, inspect
+import rospkg
+import sqlalchemy.sql.functions
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column, Session, relationship, \
     declared_attr
-import sqlalchemy.sql.functions
-import sqlalchemy.engine
 
 
 def get_pycram_version_from_git() -> Optional[str]:
@@ -48,19 +45,15 @@ class Base(_Base):
     __abstract__ = True
 
     @declared_attr
-    def processed_metadata_id(self) -> Mapped[Optional[int]]:
-        return mapped_column(ForeignKey("ProcessedMetaData.id"), default=None, init=False)
+    def process_metadata_id(self) -> Mapped[Optional[int]]:
+        return mapped_column(ForeignKey(f'{ProcessMetaData.__tablename__}.id'), default=None, init=False)
     """Related MetaData Object to store information about the context of this experiment."""
 
     @declared_attr
-    def processed_metadata(self):
-        return relationship("ProcessedMetaData")
-    """model relationship between foreign key in ProcessedMetaData table and the ids of all inheriting
+    def process_metadata(self):
+        return relationship(ProcessMetaData.__tablename__)
+    """model relationship between foreign key in ProcessMetaData table and the ids of all inheriting
     tables"""
-
-    def __repr__(self):
-        return f"{self.__module__}.{self.__class__.__name__}(" + ", ".join(
-            [str(self.__getattribute__(c_attr.key)) for c_attr in inspect(self).mapper.column_attrs]) + ")"
 
 
 class MapperArgsMixin:
@@ -76,23 +69,6 @@ class MapperArgsMixin:
         return {"polymorphic_identity": self.__tablename__}
 
 
-class ObjectMixin:
-    """
-    ObjectMixin holds a foreign key column and its relationship to the referenced table.
-    For information about Mixins, see https://docs.sqlalchemy.org/en/13/orm/extensions/declarative/mixins.html
-    """
-
-    __abstract__ = True
-
-    @declared_attr
-    def object(self) -> Mapped[int]:
-        return mapped_column(ForeignKey("Object.id"), init=False)
-
-    @declared_attr
-    def object_table_entry(self):
-        return relationship("Object", init=False)
-
-
 class PositionMixin:
     """
     PositionMixin holds a foreign key column and its relationship to the referenced table.
@@ -100,14 +76,15 @@ class PositionMixin:
     """
 
     __abstract__ = True
+    position_to_init: bool = False
 
     @declared_attr
-    def position(self) -> Mapped[int]:
-        return mapped_column(ForeignKey("Position.id"), init=False)
+    def position_id(self) -> Mapped[int]:
+        return mapped_column(ForeignKey(f'{Position.__tablename__}.id'), init=self.position_to_init)
 
     @declared_attr
-    def position_table_entry(self):
-        return relationship("Position", init=False)
+    def position(self):
+        return relationship(Position.__tablename__, init=False)
 
 
 class QuaternionMixin:
@@ -117,19 +94,38 @@ class QuaternionMixin:
     """
 
     __abstract__ = True
+    orientation_to_init: bool = False
 
     @declared_attr
-    def orientation(self) -> Mapped[int]:
-        return mapped_column(ForeignKey("Quaternion.id"), init=False)
+    def orientation_id(self) -> Mapped[int]:
+        return mapped_column(ForeignKey(f'{Quaternion.__tablename__}.id'), init=self.orientation_to_init)
 
     @declared_attr
-    def orientation_table_entry(self):
-        return relationship("Quaternion", init=False)
+    def orientation(self):
+        return relationship(Quaternion.__tablename__, init=False)
 
 
-class ProcessedMetaData(MappedAsDataclass, _Base):
+class PoseMixin:
     """
-    ProcessedMetaData stores information about the context of this experiment.
+    PoseMixin holds a foreign key column and its relationship to the referenced table.
+    For information about Mixins, see https://docs.sqlalchemy.org/en/13/orm/extensions/declarative/mixins.html
+    """
+
+    __abstract__ = True
+    pose_to_init: bool = False
+
+    @declared_attr
+    def pose_id(self) -> Mapped[int]:
+        return mapped_column(ForeignKey(f'{Pose.__tablename__}.id'), init=self.pose_to_init)
+
+    @declared_attr
+    def pose(self):
+        return relationship(Pose.__tablename__, init=False)
+
+
+class ProcessMetaData(MappedAsDataclass, _Base):
+    """
+    ProcessMetaData stores information about the context of this experiment.
 
     This class is a singleton and only one MetaData can exist per session.
     """
@@ -190,6 +186,13 @@ class Quaternion(MappedAsDataclass, Base):
     w: Mapped[float]
 
 
+class Pose(PositionMixin, QuaternionMixin, MappedAsDataclass, Base):
+    """ORM Class for Poses."""
+
+    time: Mapped[datetime.datetime]
+    frame: Mapped[str]
+
+
 class Color(MappedAsDataclass, Base):
     """ORM Class for Colors."""
 
@@ -199,20 +202,13 @@ class Color(MappedAsDataclass, Base):
     alpha: Mapped[float]
 
 
-#TODO remove init=False in RobotState, change Designators accordingly
-class RobotState(MappedAsDataclass, Base):
+class RobotState(PoseMixin, MappedAsDataclass, Base):
     """ORM Representation of a robots state."""
 
-    position_id: Mapped[int] = mapped_column(ForeignKey("Position.id"), init=False)
-    position: Mapped["Position"] = relationship(init=False)
-    """The position of the robot."""
+    pose_to_init = True
 
-    orientation_id: Mapped[int] = mapped_column(ForeignKey("Quaternion.id"), init=False)
-    orientation: Mapped["Quaternion"] = relationship(init=False)
-    """The orientation of the robot."""
-
-    torso_height: Mapped[float] = mapped_column(init=False)
+    torso_height: Mapped[float]
     """The torso height of the robot."""
 
-    type: Mapped[str] = mapped_column(init=False)
+    type: Mapped[str]
     """The type of the robot."""

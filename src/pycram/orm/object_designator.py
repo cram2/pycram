@@ -1,7 +1,25 @@
 
-from .base import Base, Position, Quaternion, MapperArgsMixin, PositionMixin, QuaternionMixin
-from sqlalchemy.orm import Mapped, mapped_column, MappedAsDataclass, relationship
+from pycram.orm.base import Base, MapperArgsMixin, PositionMixin, QuaternionMixin
+from sqlalchemy.orm import Mapped, mapped_column, MappedAsDataclass, declared_attr, relationship
 from sqlalchemy import ForeignKey
+
+
+class ObjectMixin:
+    """
+    ObjectMixin holds a foreign key column and its relationship to the referenced table.
+    For information about Mixins, see https://docs.sqlalchemy.org/en/13/orm/extensions/declarative/mixins.html
+    """
+
+    __abstract__ = True
+    object_to_init: bool = False
+
+    @declared_attr
+    def object_id(self) -> Mapped[int]:
+        return mapped_column(ForeignKey(f'{Object.__tablename__}.id'), init=self.object_to_init)
+
+    @declared_attr
+    def object(self):
+        return relationship(Object.__tablename__, init=False)
 
 
 class Object(PositionMixin, QuaternionMixin, MappedAsDataclass, Base):
@@ -20,8 +38,8 @@ class Object(PositionMixin, QuaternionMixin, MappedAsDataclass, Base):
 class ObjectPart(Object):
     """ORM Class of pycram.designators.object_designator.LocatedObject."""
 
-    id: Mapped[int] = mapped_column(ForeignKey("Object.id"), primary_key=True, init=False)
-    part_of: Mapped[int] = mapped_column(ForeignKey("Object.id"), init=False)
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Object.__tablename__}.id'), primary_key=True, init=False)
+    part_of: Mapped[int] = mapped_column(ForeignKey(f'{Object.__tablename__}.id'), init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": "ObjectPart",
@@ -31,4 +49,4 @@ class ObjectPart(Object):
 
 class BelieveObject(MapperArgsMixin, Object):
 
-    id: Mapped[int] = mapped_column(ForeignKey("Object.id"), primary_key=True, init=False)
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Object.__tablename__}.id'), primary_key=True, init=False)

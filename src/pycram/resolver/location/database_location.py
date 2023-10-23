@@ -61,9 +61,9 @@ class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLoca
                                    RobotState.torso_height, robot_pos.x, robot_pos.y, ). \
             join(filtered_code, filtered_code.c.designator == PickUpAction.id). \
             join(PickUpAction, PickUpAction.id == filtered_code.c.designator). \
-            join(RobotState, RobotState.id == PickUpAction.robot_state). \
-            join(robot_pos, RobotState.position_id == robot_pos.id). \
-            join(filtered_objects, filtered_objects.c.id == PickUpAction.object). \
+            join(RobotState, RobotState.id == PickUpAction.robot_state_id). \
+            join(robot_pos, RobotState.pose.position_id == robot_pos.id). \
+            join(filtered_objects, filtered_objects.c.id == PickUpAction.object_id). \
             join(object_pos, filtered_objects.c.position == object_pos.id)
 
 
