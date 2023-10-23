@@ -28,6 +28,6 @@ class Code(MappedAsDataclass, Base):
     """ORM equivalent of pycram.task.Code."""
 
     function: Mapped[str] = mapped_column(default=None)
-    designator: Mapped[Optional[int]] = mapped_column(ForeignKey("Action.id"), default=None)
+    designator: Mapped[Optional[int]] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), default=None)
     designator_table_entry: Mapped[Action] = relationship(init=False)
 

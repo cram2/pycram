@@ -16,7 +16,7 @@ import tqdm
 
 from .bullet_world import BulletWorld
 from .orm.task import (Code as ORMCode, TaskTreeNode as ORMTaskTreeNode)
-from .orm.base import ProcessedMetaData
+from .orm.base import ProcessMetaData
 from .plan_failures import PlanFailure
 from .enums import TaskStatus
 
@@ -101,8 +101,8 @@ class Code:
             code.designator = designator.id
 
         # get and set metadata
-        metadata = ProcessedMetaData().insert(session)
-        code.processed_metadata_id = metadata.id
+        metadata = ProcessMetaData().insert(session)
+        code.process_metadata_id = metadata.id
 
         session.add(code)
         session.commit()
@@ -222,8 +222,8 @@ class TaskTreeNode(anytree.NodeMixin):
         node.code = code.id
 
         # get and set metadata
-        metadata = ProcessedMetaData().insert(session)
-        node.processed_metadata_id = metadata.id
+        metadata = ProcessMetaData().insert(session)
+        node.process_metadata_id = metadata.id
 
         # set parent to id from constructor
         node.parent = parent_id

@@ -1,6 +1,7 @@
 from typing import Optional
 
-from .base import RobotState, Position, Quaternion, Base, MapperArgsMixin, ObjectMixin, PositionMixin, QuaternionMixin
+from .base import RobotState, Position, Quaternion, Base, MapperArgsMixin, PositionMixin, QuaternionMixin
+from .object_designator import ObjectMixin
 from ..enums import Arms
 from sqlalchemy.orm import Mapped, mapped_column, MappedAsDataclass, relationship
 from sqlalchemy import ForeignKey
@@ -13,8 +14,8 @@ class Action(MappedAsDataclass, Base):
     """
 
     dtype: Mapped[str] = mapped_column(init=False)
-    robot_state: Mapped[int] = mapped_column(ForeignKey("RobotState.id"), init=False)
-    robot_state_table_entry: Mapped[RobotState] = relationship(init=False)
+    robot_state_id: Mapped[int] = mapped_column(ForeignKey("RobotState.id"), init=False)
+    robot_state: Mapped[RobotState] = relationship(init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": "Action",
@@ -25,31 +26,27 @@ class Action(MappedAsDataclass, Base):
 class ParkArmsAction(MapperArgsMixin, Action):
     """ORM Class of pycram.designators.action_designator.ParkArmsDesignator."""
 
-    id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
     arm: Mapped[Arms] = mapped_column(default=None)
 
 
-class NavigateAction(MapperArgsMixin, Action):
+class NavigateAction(PositionMixin, QuaternionMixin, MapperArgsMixin, Action):
     """ORM Class of pycram.designators.action_designator.NavigateAction."""
 
-    id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
-    position: Mapped[int] = mapped_column(ForeignKey("Position.id", ), default=None)
-    position_table_entry: Mapped[Position] = relationship(init=False)
-    orientation: Mapped[int] = mapped_column(ForeignKey("Quaternion.id"), default=None)
-    orientation_table_entry: Mapped[Quaternion] = relationship(init=False)
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
 
 
 class MoveTorsoAction(MapperArgsMixin, Action):
     """ORM Class of pycram.designators.action_designator.MoveTorsoAction."""
 
-    id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
     position: Mapped[Optional[float]] = mapped_column(default=None)
 
 
 class SetGripperAction(MapperArgsMixin, Action):
     """ORM Class of pycram.designators.action_designator.SetGripperAction."""
 
-    id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
     gripper: Mapped[str]
     motion: Mapped[str]
 
@@ -57,14 +54,14 @@ class SetGripperAction(MapperArgsMixin, Action):
 class Release(ObjectMixin, MapperArgsMixin, Action):
     """ORM Class of pycram.designators.action_designator.Release."""
 
-    id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
     gripper: Mapped[str] = mapped_column(init=False)
 
 
 class GripAction(ObjectMixin, MapperArgsMixin, Action):
     """ORM Class of pycram.designators.action_designator.GripAction."""
 
-    id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
     gripper: Mapped[str] = mapped_column(init=False)
     effort: Mapped[float] = mapped_column(init=False)
     # TODO grasped_object
@@ -73,7 +70,7 @@ class GripAction(ObjectMixin, MapperArgsMixin, Action):
 class PickUpAction(ObjectMixin, MapperArgsMixin, Action):
     """ORM Class of pycram.designators.action_designator.PickUpAction."""
 
-    id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
     arm: Mapped[str]
     grasp: Mapped[str]
 
@@ -81,33 +78,33 @@ class PickUpAction(ObjectMixin, MapperArgsMixin, Action):
 class PlaceAction(PositionMixin, QuaternionMixin, ObjectMixin, MapperArgsMixin, Action):
     """ORM Class of pycram.designators.action_designator.PlaceAction."""
 
-    id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
     arm: Mapped[str]
 
 
 class TransportAction(PositionMixin, QuaternionMixin, ObjectMixin, MapperArgsMixin, Action):
     """ORM Class of pycram.designators.action_designator.TransportAction."""
 
-    id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
     arm: Mapped[str] = mapped_column(init=False)
 
 
 class LookAtAction(PositionMixin, MapperArgsMixin, Action):
     """ORM Class of pycram.designators.action_designator.LookAtAction."""
 
-    id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
 
 
 class DetectAction(ObjectMixin, MapperArgsMixin, Action):
     """ORM Class of pycram.designators.action_designator.DetectAction."""
 
-    id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
 
 
 class OpenAction(ObjectMixin, MapperArgsMixin, Action):
     """ORM Class of pycram.designators.action_designator.OpenAction."""
 
-    id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
     arm: Mapped[str] = mapped_column(init=False)
     distance: Mapped[float] = mapped_column(init=False)
 
@@ -115,6 +112,6 @@ class OpenAction(ObjectMixin, MapperArgsMixin, Action):
 class CloseAction(MapperArgsMixin, Action):
     """ORM Class of pycram.designators.action_designator.CloseAction."""
 
-    id: Mapped[int] = mapped_column(ForeignKey("Action.id"), primary_key=True, init=False)
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
     arm: Mapped[str] = mapped_column(init=False)
 

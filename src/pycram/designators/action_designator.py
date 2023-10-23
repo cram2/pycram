@@ -12,7 +12,7 @@ from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, Naviga
                                      PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction,
                                      MoveTorsoAction as ORMMoveTorsoAction, SetGripperAction as ORMSetGripperAction,
                                      Action as ORMAction)
-from ..orm.base import Quaternion, Position, Base, RobotState, ProcessedMetaData
+from ..orm.base import Quaternion, Position, Base, RobotState, ProcessMetaData
 from ..plan_failures import ObjectUnfetchable, ReachabilityFailure
 from ..robot_descriptions import robot_description
 from ..task import with_tree
@@ -300,14 +300,14 @@ class PickUpAction(ActionDesignatorDescription):
         def to_sql(self) -> ORMPickUpAction:
             return ORMPickUpAction(self.arm, self.grasp)
 
-        def insert(self, session: sqlalchemy.orm.session.Session, **kwargs):
-            action = super().insert(session)
+        def insert(self, session: sqlalchemy.orm.session.Session, **kwargs) -> ORMPickUpAction:
+            action: ORMPickUpAction = super().insert(session)
             # try to create the object designator
             if self.object_at_execution:
                 od = self.object_at_execution.insert(session, )
-                action.object = od.id
+                action.object_id = od.id
             else:
-                action.object = None
+                action.object_id = None
 
             session.add(action)
             session.commit()
@@ -379,9 +379,9 @@ class PlaceAction(ActionDesignatorDescription):
 
             if self.object_designator:
                 od = self.object_designator.insert(session, )
-                action.object = od.id
+                action.object_id = od.id
             else:
-                action.object = None
+                action.object_id = None
 
             if self.target_location:
                 position = Position(*self.target_location.position_as_list())
@@ -389,11 +389,11 @@ class PlaceAction(ActionDesignatorDescription):
                 session.add(position)
                 session.add(orientation)
                 session.commit()
-                action.position = position.id
-                action.orientation = orientation.id
+                action.position_id = position.id
+                action.orientation_id = orientation.id
             else:
-                action.position = None
-                action.orientation = None
+                action.position_id = None
+                action.orientation_id = None
 
             session.add(action)
             session.commit()
@@ -454,17 +454,17 @@ class NavigateAction(ActionDesignatorDescription):
 
             # initialize position and orientation
             position = Position(*self.target_location.position_as_list())
-            position.processed_metadata_id = action.processed_metadata_id
+            position.process_metadata_id = action.process_metadata_id
             orientation = Quaternion(*self.target_location.orientation_as_list())
-            orientation.processed_metadata_id = action.processed_metadata_id
+            orientation.process_metadata_id = action.process_metadata_id
 
             # add those to the database and get the primary keys
             session.add(position)
             session.add(orientation)
             session.commit()
             # set foreign keys
-            action.position = position.id
-            action.orientation = orientation.id
+            action.position_id = position.id
+            action.orientation_id = orientation.id
 
             # add it to the db
             session.add(action)
