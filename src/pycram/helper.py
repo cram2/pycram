@@ -21,7 +21,7 @@ from .local_transformer import LocalTransformer
 from .pose import Transform
 from .robot_descriptions import robot_description
 import os
-
+import math
 
 class bcolors:
     """
@@ -169,3 +169,59 @@ class GeneratorList:
             return True
         except StopIteration:
             return False
+def axis_angle_to_quaternion(axis, angle):
+    """
+    Convert axis-angle to quaternion.
+    axis: (x, y, z) tuple representing rotation axis.
+    angle: rotation angle in degree
+    """
+    angle = math.radians(angle)
+    axis_length = math.sqrt(sum([i ** 2 for i in axis]))
+    normalized_axis = tuple(i / axis_length for i in axis)
+
+    x = normalized_axis[0] * math.sin(angle / 2)
+    y = normalized_axis[1] * math.sin(angle / 2)
+    z = normalized_axis[2] * math.sin(angle / 2)
+    w = math.cos(angle / 2)
+
+    return (x, y, z, w)
+
+def multiply_quaternions(q1, q2):
+    """
+    Multiply two quaternions using the robotics convention (x, y, z, w).
+    q1, q2: tuple representing quaternion.
+    """
+    x1, y1, z1, w1 = q1
+    x2, y2, z2, w2 = q2
+
+    w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
+    x = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2
+    y = w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2
+    z = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2
+
+    return (x, y, z, w)
+
+def quaternion_rotate(q, v):
+    """
+    Rotate a vector v using quaternion q.
+    """
+    q_conj = (-q[0], -q[1], -q[2], q[3])  # Conjugate of the quaternion
+    v_quat = (*v, 0)  # Represent the vector as a quaternion with w=0
+    return multiply_quaternions(multiply_quaternions(q, v_quat), q_conj)[:3]
+
+
+def multiply_poses(pose1, pose2):
+    """
+    Multiply two poses.
+    """
+    print(pose1, pose2)
+    pos1, quat1 = pose1.pose.position, pose1.pose.orientation
+    pos2, quat2 = pose2.pose.position, pose2.pose.orientation
+    print(pos1, quat1, pos2, quat2)
+    # Multiply the orientations
+    new_quat = multiply_quaternions(quat1, quat2)
+
+    # Transform the position
+    new_pos = np.add(pos1, quaternion_rotate(quat1, pos2))
+
+    return new_pos, new_quat

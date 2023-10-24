@@ -20,7 +20,7 @@ from ..enums import Arms
 from ..designator import ActionDesignatorDescription
 from ..bullet_world import BulletWorld
 from ..pose import Pose
-
+import pycram.helper as helper
 
 class MoveTorsoAction(ActionDesignatorDescription):
     """
@@ -294,8 +294,72 @@ class PickUpAction(ActionDesignatorDescription):
 
         @with_tree
         def perform(self) -> None:
+            # Store the object's data copy at execution
             self.object_at_execution = self.object_designator.data_copy()
-            PickUpMotion(object_desig=self.object_designator, arm=self.arm, grasp=self.grasp).resolve().perform()
+            robot = BulletWorld.robot
+            # Retrieve object and robot from designators
+            object = self.object_designator.bullet_world_object
+            # Get grasp orientation and target pose
+            grasp = robot_description.grasps.get_orientation_for_grasp(self.grasp)
+
+            # oTm = Object Pose in Frame map
+            oTm = object.get_pose()
+            # Transform the object pose to the map frame
+            mTo = object.local_transformer.transform_to_object_frame(oTm, object)
+            # Adjust the pose according to the special knowledge of the object designator
+            adjusted_pose = self.object_designator.special_knowledge_adjustment_pose(self.grasp, mTo)
+            # Transform the adjusted pose to the map frame
+            adjusted_oTm = object.local_transformer.transform_pose(adjusted_pose, "map")
+            # multiplying the orientation therefore "rotating" it, to get the correct orientation of the gripper
+            ori = helper.multiply_quaternions([adjusted_oTm.orientation.x, adjusted_oTm.orientation.y,
+                                        adjusted_oTm.orientation.z, adjusted_oTm.orientation.w],
+                                       grasp)
+
+            # Set the orientation of the object pose by grasp in MAP
+            adjusted_oTm.orientation.x = ori[0]
+            adjusted_oTm.orientation.y = ori[1]
+            adjusted_oTm.orientation.z = ori[2]
+            adjusted_oTm.orientation.w = ori[3]
+
+            # prepose depending on the gripper (its annoying we have to put pr2_1 here tbh
+            gripper_frame = "pr2_1/l_gripper_tool_frame" if self.arm == "left" else "pr2_1/r_gripper_tool_frame"
+            print(adjusted_oTm)
+            # First rotate the gripper, so the further calculations maakes sense
+            tmp_for_rotate_pose = object.local_transformer.transform_pose(adjusted_oTm, gripper_frame)
+            print(tmp_for_rotate_pose)
+            tmp_for_rotate_pose.pose.position.x = 0
+            tmp_for_rotate_pose.pose.position.y = 0
+            tmp_for_rotate_pose.pose.position.z = -0.1
+            gripper_rotate_pose = object.local_transformer.transform_pose(tmp_for_rotate_pose, "map")
+
+            #Perform Gripper Rotate
+            BulletWorld.current_bullet_world.add_vis_axis(gripper_rotate_pose)
+            MoveTCPMotion(gripper_rotate_pose, self.arm).resolve().perform()
+
+            oTg = object.local_transformer.transform_pose(adjusted_oTm, gripper_frame)
+            oTg.pose.position.x -= 0.1 # in x since this is how the gripper is oriented
+            prepose = object.local_transformer.transform_pose(oTg, "map")
+
+            # Perform the motion with the prepose and open gripper
+            BulletWorld.current_bullet_world.add_vis_axis(prepose)
+            MoveTCPMotion(prepose, self.arm).resolve().perform()
+            MoveGripperMotion(motion="open", gripper=self.arm).resolve().perform()
+
+            # Perform the motion with the adjusted pose -> actual grasp and close gripper
+            BulletWorld.current_bullet_world.add_vis_axis(adjusted_oTm)
+            MoveTCPMotion(adjusted_oTm, self.arm).resolve().perform()
+            adjusted_oTm.pose.position.z += 0.03
+            MoveGripperMotion(motion="close", gripper=self.arm).resolve().perform()
+            tool_frame = robot_description.get_tool_frame(self.arm)
+            robot.attach(object, tool_frame)
+
+            # Lift object
+            BulletWorld.current_bullet_world.add_vis_axis(adjusted_oTm)
+            MoveTCPMotion(adjusted_oTm, self.arm).resolve().perform()
+
+            # Remove the vis axis from the world
+            BulletWorld.current_bullet_world.remove_vis_axis()
+
 
         def to_sql(self) -> ORMPickUpAction:
             return ORMPickUpAction(self.arm, self.grasp)
@@ -314,9 +378,7 @@ class PickUpAction(ActionDesignatorDescription):
 
             return action
 
-    def __init__(self,
-                 object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
-                 arms: List[str],
+    def __init__(self, object_designator_description: ObjectDesignatorDescription, arms: List[str],
                  grasps: List[str], resolver=None):
         """
         Lets the robot pick up an object. The description needs an object designator describing the object that should be
@@ -328,8 +390,7 @@ class PickUpAction(ActionDesignatorDescription):
         :param resolver: An optional resolver that returns a performable designator with elements from the lists of possible paramter
         """
         super(PickUpAction, self).__init__(resolver)
-        self.object_designator_description: Union[
-            ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
+        self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.arms: List[str] = arms
         self.grasps: List[str] = grasps
 
@@ -339,11 +400,7 @@ class PickUpAction(ActionDesignatorDescription):
 
         :return: A performable designator
         """
-        obj_desig = self.object_designator_description if isinstance(self.object_designator_description,
-                                                                     ObjectDesignatorDescription.Object) else self.object_designator_description.resolve()
-
-        return self.Action(obj_desig, self.arms[0], self.grasps[0])
-
+        return self.Action(self.object_designator_description.ground(), self.arms[0], self.grasps[0])
 
 class PlaceAction(ActionDesignatorDescription):
     """
