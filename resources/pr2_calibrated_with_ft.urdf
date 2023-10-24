@@ -2689,12 +2689,14 @@
   <gazebo reference="r_wrist_roll_joint">
     <fudgeFactor value="0.5"/>
   </gazebo>
+  <!--
   <transmission name="r_wrist_trans" type="pr2_mechanism_model/WristTransmission">
     <rightActuator mechanicalReduction="60.1714285714" name="r_wrist_r_motor"/>
     <leftActuator mechanicalReduction="60.1714285714" name="r_wrist_l_motor"/>
     <flexJoint mechanicalReduction="-1.0" name="r_wrist_flex_joint"/>
     <rollJoint mechanicalReduction="1.0" name="r_wrist_roll_joint"/>
   </transmission>
+-->
   <joint name="r_gripper_palm_joint" type="fixed">
     <parent link="r_wrist_roll_link"/>
     <child link="r_gripper_palm_link"/>
@@ -3319,6 +3321,7 @@
     
     </gripper>
   </gazebo>
+  <!--
   <transmission name="r_gripper_trans" type="pr2_mechanism_model/PR2GripperTransmission">
     <actuator name="r_gripper_motor"/>
     <gap_joint L0="0.0375528" a="0.0683698" b="0.0433849" gear_ratio="40.095" h="0.0" mechanical_reduction="1.0" name="r_gripper_joint" phi0="0.518518122146" r="0.0915" screw_reduction="0.004" t0="-0.0001914" theta0="0.0628824676201"/>
@@ -3329,6 +3332,7 @@
     <passive_joint name="r_gripper_l_finger_tip_joint"/>
     <simulated_actuated_joint name="r_gripper_motor_screw_joint" passive_actuated_joint="r_gripper_motor_slider_joint" simulated_reduction="3141.6"/>
   </transmission>
+-->
   <joint name="l_shoulder_pan_joint" type="revolute">
     <parent link="torso_lift_link"/>
     <child link="l_shoulder_pan_link"/>
@@ -3676,12 +3680,14 @@
   <gazebo reference="l_wrist_roll_joint">
     <fudgeFactor value="0.5"/>
   </gazebo>
+  <!--
   <transmission name="l_wrist_trans" type="pr2_mechanism_model/WristTransmission">
     <rightActuator mechanicalReduction="60.1714285714" name="l_wrist_r_motor"/>
     <leftActuator mechanicalReduction="60.1714285714" name="l_wrist_l_motor"/>
     <flexJoint mechanicalReduction="-1.0" name="l_wrist_flex_joint"/>
     <rollJoint mechanicalReduction="1.0" name="l_wrist_roll_joint" offset="1.4835298641951802"/>
   </transmission>
+-->
   <joint name="l_force_torque_adapter_joint" type="fixed">
     <parent link="l_wrist_roll_link"/>
     <child link="l_force_torque_adapter_link"/>
@@ -4326,6 +4332,7 @@
     
     </gripper>
   </gazebo>
+  <!--
   <transmission name="l_gripper_trans" type="pr2_mechanism_model/PR2GripperTransmission">
     <actuator name="l_gripper_motor"/>
     <gap_joint L0="0.0375528" a="0.0683698" b="0.0433849" gear_ratio="40.095" h="0.0" mechanical_reduction="1.0" name="l_gripper_joint" phi0="0.518518122146" r="0.0915" screw_reduction="0.004" t0="-0.0001914" theta0="0.0628824676201"/>
@@ -4336,6 +4343,7 @@
     <passive_joint name="l_gripper_l_finger_tip_joint"/>
     <simulated_actuated_joint name="l_gripper_motor_screw_joint" passive_actuated_joint="l_gripper_motor_slider_joint" simulated_reduction="3141.6"/>
   </transmission>
+-->
   <joint name="l_forearm_cam_frame_joint" type="fixed">
     <parent link="l_forearm_roll_link"/>
     <child link="l_forearm_cam_frame"/>
