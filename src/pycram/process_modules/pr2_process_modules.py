@@ -94,7 +94,13 @@ class Pr2Place(ProcessModule):
         robot = BulletWorld.robot
         arm = desig.arm
 
-        _move_arm_tcp(desig.target, robot, arm)
+        # Transformations such that the target position is the position of the object and not the tcp
+        object_pose = object.get_pose()
+        local_tf = LocalTransformer()
+        tcp_to_object = local_tf.transform_pose(object_pose, robot.get_link_tf_frame(robot_description.get_tool_frame(arm)))
+        target_diff = desig.target.to_transform("target").inverse_times(tcp_to_object.to_transform("object")).to_pose()
+
+        _move_arm_tcp(target_diff, robot, arm)
         robot.detach(object)
 
 
@@ -178,18 +184,18 @@ class Pr2MoveArmJoints(ProcessModule):
 
         robot = BulletWorld.robot
         if desig.right_arm_poses:
-            for joint, pose in desig.right_arm_poses.items():
-                robot.set_joint_state(joint, pose)
+            robot.set_joint_states(desig.right_arm_poses)
         if desig.left_arm_poses:
-            for joint, pose in desig.left_arm_poses.items():
-                robot.set_joint_state(joint, pose)
+            robot.set_joint_states(desig.left_arm_poses)
 
 
 class PR2MoveJoints(ProcessModule):
+    """
+    Process Module for generic joint movements, is not confined to the arms but can move any joint of the robot
+    """
     def _execute(self, desig: MoveJointsMotion.Motion):
         robot = BulletWorld.robot
-        for joint, pose in zip(desig.names, desig.positions):
-            robot.set_joint_state(joint, pose)
+        robot.set_joint_states(dict(zip(desig.names, desig.positions)))
 
 
 class Pr2WorldStateDetecting(ProcessModule):
