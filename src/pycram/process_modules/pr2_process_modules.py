@@ -21,6 +21,7 @@ from ..local_transformer import LocalTransformer
 from ..designators.motion_designator import *
 from ..enums import JointType
 from ..external_interfaces import giskard
+from ..external_interfaces.robokudo import query
 
 try:
     from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2
@@ -309,7 +310,28 @@ class Pr2DetectingReal(ProcessModule):
     """
 
     def _execute(self, designator: DetectingMotion.Motion) -> Any:
-        pass
+        query_result = query(ObjectDesignatorDescription(types=[designator.object_type]))
+
+        positions = [possible_pose.position_as_list() for possible_pose in query_result]
+        orientations = [possible_pose.orientation_as_list() for possible_pose in query_result]
+        print(orientations)
+
+        position = list(np.average(positions, axis=0))
+        orientation = list(np.average(orientations, axis=0))
+        obj_pose = Pose(position, orientation, frame="map")
+
+        lt = LocalTransformer()
+        obj_pose = lt.transform_pose(obj_pose, BulletWorld.robot.get_link_tf_frame("torso_lift_link"))
+        obj_pose.orientation = [0, 0, 0, 1]
+        print(obj_pose)
+
+        bullet_obj = BulletWorld.current_bullet_world.get_objects_by_type(designator.object_type)[0]
+        bullet_obj.set_pose(obj_pose)
+
+        return bullet_obj
+
+
+
 
 
 class Pr2MoveTCPReal(ProcessModule):
@@ -443,6 +465,8 @@ class Pr2Manager(ProcessModuleManager):
     def detecting(self):
         if ProcessModuleManager.execution_type == "simulated":
             return Pr2Detecting(self._detecting_lock)
+        elif ProcessModuleManager.execution_type == "real":
+            return Pr2DetectingReal(self._detecting_lock)
 
     def move_tcp(self):
         if ProcessModuleManager.execution_type == "simulated":
