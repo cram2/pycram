@@ -1,6 +1,7 @@
 import time
 from threading import Lock
 
+import numpy as np
 import pybullet as p
 
 import pycram.bullet_world_reasoning as btr
@@ -11,6 +12,7 @@ from ..external_interfaces.ik import request_ik
 from ..local_transformer import LocalTransformer as local_tf, LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_descriptions import robot_description
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
 
 def _park_arms(arm):
@@ -124,7 +126,9 @@ class BoxyAccessing(ProcessModule):
             kitchen.set_joint_state(drawer_joint, 0.3)
             time.sleep(0.5)
 
-
+"""
+Keine Entsprechung im PR2-Modul? Wird dies benötigt? ----- -> Open/Close
+"""
 class BoxyParkArms(ProcessModule):
     """
     This process module is for moving the arms in a parking position.
@@ -136,7 +140,9 @@ class BoxyParkArms(ProcessModule):
         if solutions['cmd'] == 'park':
             _park_arms()
 
-
+"""
+Richtiger Link? Wie Arm ansprechen? -----
+"""
 class BoxyMoveHead(ProcessModule):
     """
     This process module moves the head to look at a specific point in the world coordinate frame.
@@ -144,65 +150,39 @@ class BoxyMoveHead(ProcessModule):
     """
 
     def _execute(self, desig):
-        solutions = desig.reference()
-        if solutions['cmd'] == 'looking':
-            robot = BulletWorld.robot
-            neck_base_frame = local_tf.projection_namespace + '/' + robot_description.chains["neck"].base_link
-            if type(solutions['target']) is str:
-                target = local_tf.projection_namespace + '/' + solutions['target']
-                pose_in_neck_base = local_tf.tf_transform(neck_base_frame, target)
-            elif helper_deprecated.is_list_pose(solutions['target']) or helper_deprecated.is_list_position(solutions['target']):
-                pose = helper_deprecated.ensure_pose(solutions['target'])
-                pose_in_neck_base = local_tf.tf_pose_transform(local_tf.map_frame, neck_base_frame, pose)
+        target = desig.target
+        robot = BulletWorld.robot
 
-            vector = pose_in_neck_base[0]
-            # +x as forward
-            # +y as left
-            # +z as up
-            x = vector[1]
-            y = -vector[0]
-            z = vector[2]
-            conf = None
-            if x > 0:
-                if z < 0.5:
-                    if y > 0.4:
-                        conf = "down_left"
-                    elif y < -0.4:
-                        conf = "down_right"
-                    else:
-                        conf = "down"
-                else:
-                    if y > 0.4:
-                        conf = "left"
-                    elif y < -0.4:
-                        conf = "right"
-                    else:
-                        conf = "forward"
-            else:
-                if z < 0.5:
-                    conf = "behind"
-                else:
-                    conf = "behind_up"
-            for joint, state in robot_description.get_static_joint_chain("neck", conf).items():
-                robot.set_joint_state(joint, state)
+        local_transformer = LocalTransformer()
+
+        pose_in_neck = local_transformer.transform_pose(target, robot.get_link_tf_frame("neck_base_link"))
+
+        new_pan = np.arctan2(pose_in_neck.position.y, pose_in_neck.position.x)
+        new_tilt = np.arctan2(pose_in_neck.position.z,
+                              pose_in_neck.position.x ** 2 + pose_in_neck.position.y ** 2) * -1
+
+        tcp_rotation = quaternion_from_euler(new_tilt, 0, new_pan)
+        shoulder_pose = Pose([-0.2, 0.3, 1.31], [-0.31, 0.63, 0.70, -0.02], "map")
+
+        print(shoulder_pose)
+        """
+        Wie spreche ich den Arm an? Geht das so überhaupt? ----- -> neck
+        """
+        _move_arm_tcp(shoulder_pose, robot, "neck")
 
 
 class BoxyMoveGripper(ProcessModule):
     """
     This process module controls the gripper of the robot. They can either be opened or closed.
-    Furthermore, it can only moved one gripper at a time.
+    Furthermore, it can only move one gripper at a time.
     """
 
     def _execute(self, desig):
-        solution = desig.reference()
-        if solution['cmd'] == "move-gripper":
-            robot = BulletWorld.robot
-            gripper = solution['gripper']
-            motion = solution['motion']
-            for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
-                # TODO: Test this, add gripper-opening/-closing to the demo.py
-                robot.set_joint_state(joint, state)
-            time.sleep(0.5)
+        robot = BulletWorld.robot
+        gripper = desig.gripper
+        motion = desig.motion
+        for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
+            robot.set_joint_state(joint, state)
 
 
 class BoxyDetecting(ProcessModule):
@@ -212,17 +192,17 @@ class BoxyDetecting(ProcessModule):
     """
 
     def _execute(self, desig):
-        solution = desig.reference()
-        if solution['cmd'] == "detecting":
-            robot = BulletWorld.robot
-            object_type = solution['object_type']
-            cam_frame_name = solution['cam_frame']
-            front_facing_axis = solution['front_facing_axis']
+        robot = BulletWorld.robot
+        object_type = desig.object_type
+        # Should be "wide_stereo_optical_frame"
+        cam_frame_name = robot_description.get_camera_frame()
+        # should be [0, 0, 1]
+        front_facing_axis = robot_description.front_facing_axis
 
-            objects = BulletWorld.current_bullet_world.get_objects_by_type(object_type)
-            for obj in objects:
-                if btr.visible(obj, robot.get_link_position_and_orientation(cam_frame_name), front_facing_axis, 0.5):
-                    return obj
+        objects = BulletWorld.current_bullet_world.get_objects_by_type(object_type)
+        for obj in objects:
+            if btr.visible(obj, robot.get_link_pose(cam_frame_name), front_facing_axis):
+                return obj
 
 
 class BoxyMoveTCP(ProcessModule):
@@ -230,42 +210,28 @@ class BoxyMoveTCP(ProcessModule):
     This process moves the tool center point of either the right or the left arm.
     """
 
-    def _execute(self, desig):
-        solution = desig.reference()
-        if solution['cmd'] == "move-tcp":
-            target = solution['target']
-            gripper = solution['gripper']
-            robot = BulletWorld.robot
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), target)
-            helper._apply_ik(robot, inv)
-            time.sleep(0.5)
+    def _execute(self, desig: MoveTCPMotion.Motion):
+        target = desig.target
+        robot = BulletWorld.robot
 
+        _move_arm_tcp(target, robot, desig.arm)
 
-class BoxyMoveJoints(ProcessModule):
+"""
+MoveArmJoints? PR2 hat beides, wird hier auch beides benötigt?----- -> so lassen
+"""
+class BoxyMoveArmJoints(ProcessModule):
     """
     This process modules moves the joints of either the right or the left arm. The joint states can be given as
     list that should be applied or a pre-defined position can be used, such as "parking"
     """
 
-    def _execute(self, desig):
-        solution = desig.reference()
-        if solution['cmd'] == "move-arm-joints":
-            robot = BulletWorld.robot
-            right_arm_poses = solution['right_arm_poses']
-            left_arm_poses = solution['left_arm_poses']
-            if type(right_arm_poses) == dict:
-                for joint, pose in right_arm_poses.items():
-                    robot.set_joint_state(joint, pose)
-            elif type(right_arm_poses) == str and right_arm_poses == "park":
-                _park_arms("right")
+    def _execute(self, desig: MoveArmJointsMotion.Motion):
 
-            if type(left_arm_poses) == dict:
-                for joint, pose in left_arm_poses.items():
-                    robot.set_joint_state(joint, pose)
-            elif type(right_arm_poses) == str and left_arm_poses == "park":
-                _park_arms("left")
-
-            time.sleep(0.5)
+        robot = BulletWorld.robot
+        if desig.right_arm_poses:
+            robot.set_joint_states(desig.right_arm_poses)
+        if desig.left_arm_poses:
+            robot.set_joint_states(desig.left_arm_poses)
 
 
 class BoxyWorldStateDetecting(ProcessModule):
@@ -273,11 +239,9 @@ class BoxyWorldStateDetecting(ProcessModule):
     This process module detectes an object even if it is not in the field of view of the robot.
     """
 
-    def _execute(self, desig):
-        solution = desig.reference()
-        if solution['cmd'] == "world-state-detecting":
-            obj_type = solution['object_type']
-            return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
+    def _execute(self, desig: WorldStateDetectingMotion.Motion):
+        obj_type = desig.object_type
+        return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
 
 def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
@@ -331,7 +295,7 @@ class BoxyManager(ProcessModuleManager):
 
     def move_arm_joints(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return BoxyMoveJoints(self._move_arm_joints_lock)
+            return BoxyMoveArmJoints(self._move_arm_joints_lock)
 
     def world_state_detecting(self):
         if ProcessModuleManager.execution_type == "simulated":
