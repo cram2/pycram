@@ -369,8 +369,19 @@ class PlaceAction(ActionDesignatorDescription):
 
         @with_tree
         def perform(self) -> None:
-            PlaceMotion(object_desig=self.object_designator, arm=self.arm, target=self.target_location).resolve(). \
-                perform()
+            object_pose = self.object_designator.bullet_world_object.get_pose()
+            local_tf = LocalTransformer()
+
+            # Transformations such that the target position is the position of the object and not the tcp
+            tcp_to_object = local_tf.transform_pose(object_pose,
+                                                    BulletWorld.robot.get_link_tf_frame(
+                                                        robot_description.get_tool_frame(self.arm)))
+            target_diff = self.target_location.to_transform("target").inverse_times(
+                tcp_to_object.to_transform("object")).to_pose()
+
+            MoveTCPMotion(target_diff, self.arm).resolve().perform()
+            MoveGripperMotion("open", self.arm).resolve().perform()
+            BulletWorld.robot.detach(self.object_designator.bullet_world_object)
 
         def to_sql(self) -> ORMPlaceAction:
             return ORMPlaceAction(self.arm)
@@ -400,7 +411,8 @@ class PlaceAction(ActionDesignatorDescription):
             session.commit()
             return action
 
-    def __init__(self, object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
+    def __init__(self,
+                 object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
                  target_locations: List[Pose],
                  arms: List[str], resolver=None):
         """
@@ -412,7 +424,8 @@ class PlaceAction(ActionDesignatorDescription):
         :param resolver: Grounding method to resolve this designator
         """
         super().__init__(resolver)
-        self.object_designator_description:  Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
+        self.object_designator_description: Union[
+            ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
         self.target_locations: List[Pose] = target_locations
         self.arms: List[str] = arms
 
@@ -768,6 +781,7 @@ class GraspingAction(ActionDesignatorDescription):
     """
     Grasps an object described by the given Object Designator description
     """
+
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
         arm: str
