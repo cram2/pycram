@@ -1,10 +1,11 @@
 import traceback
-
+from anytree import Node,RenderTree,LevelOrderIter
 import rospy
 import sqlalchemy
 import pycram.orm.base
 from pycram.designators.action_designator import *
 from pycram.designators.object_designator import *
+
 
 
 def write_database_to_file(in_session: sqlalchemy.orm.session, filename: str, b_write_to_console: bool = False):
@@ -50,6 +51,19 @@ def get_all_children_set(in_node, node_set=None):
         all_nodes.update(node_set)
     return all_nodes
 
+
+def get_tree(in_node,parent=None,tree=None):
+    if parent is None:
+        node=Node(in_node)
+        tree=node
+    else:
+        node=Node(in_node,parent)
+    if len(in_node.__subclasses__()):
+        for subnode in in_node.__subclasses__():
+            get_tree(subnode,node,tree)
+    return tree
+
+
 def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
                        destination_session_maker: sqlalchemy.orm.sessionmaker):  # source_engine: sqlalchemy.engine.Engine, destination_engine: sqlalchemy.engine.Engine
     """
@@ -66,7 +80,8 @@ def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
     source_session = source_session_maker()  # sqlalchemy.orm.Session(bind=source_engine)
     primary_keys = {}
     print(Base.__subclasses__())
-    for table in Base.__subclasses__():  # iterate over all tables
+    all_orm_classes = get_all_children_set(pycram.orm.base.Base)
+    for table in all_orm_classes:#Base.__subclasses__():  # iterate over all tables
         highest_free_key_value = 0
         primary_keys[table] = {}
         list_of_primary_keys_of_this_table = table.__table__.primary_key.columns.values()
@@ -100,7 +115,7 @@ def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
                                                                                                           highest_free_key_value))
                     sqlalchemy.orm.attributes.set_attribute(column_object, key.name, highest_free_key_value)
                     highest_free_key_value += 1
-        destination_session.commit() # commit after every table
+        destination_session.commit()  # commit after every table
     destination_session.close()
 
 
@@ -122,7 +137,8 @@ def copy_database(source_session_maker: sqlalchemy.orm.sessionmaker,
     source_session = source_session_maker()
     objects_to_add = []
     try:
-        for orm_object_class in Base.__subclasses__():
+        all_orm_classes=get_all_children_set(pycram.orm.base.Base)
+        for orm_object_class in all_orm_classes:#Base.__subclasses__():
             result = source_session.execute(
                 sqlalchemy.select(orm_object_class).options(sqlalchemy.orm.joinedload('*'))).mappings().all()
             for row in result:
@@ -149,7 +165,14 @@ def copy_database(source_session_maker: sqlalchemy.orm.sessionmaker,
     destination_session.close()
 
 
-def update_primary_key_constrains(session_maker: sqlalchemy.orm.sessionmaker,orm_classes : list):
+def update_primary_key_constrains(session_maker: sqlalchemy.orm.sessionmaker, orm_classes: list):
+    '''
+    Iterates through the list of all ORM Classes and sets in their corresponding tables all foreign keys in the given
+    endpoint to on update cascading. Careful currently only works on postgres databases.
+    :param session_maker:
+    :param orm_classes:
+    :return: empty
+    '''
     with session_maker() as session:
         for orm_class in orm_classes:
             try:
@@ -165,15 +188,15 @@ def update_primary_key_constrains(session_maker: sqlalchemy.orm.sessionmaker,orm
                             drop_statement = sqlalchemy.text(
                                 "alter table \"{}\" drop constraint \"{}\";".format(orm_class.__tablename__,
                                                                                     line.conname))
-                            drop_response = session.execute(drop_statement)
-                            # drop_response = engine.connect().execute(drop_statement)
+                            drop_response = session.execute(
+                                drop_statement)  # There is no real data coming back for this
                             alter_statement = sqlalchemy.text(
                                 "alter table \"{}\" add constraint {} {} on update cascade;".format(
                                     orm_class.__tablename__,
                                     line.conname,
                                     line.pg_get_constraintdef))
-                            # alter_response = engine.connect().execute(alter_statement)
-                            alter_response = session.execute(alter_statement)
+                            alter_response = session.execute(
+                                alter_statement)  # There is no real data coming back for this
                             session.commit()
             except AttributeError:
                 print("Attribute Error: {} has no attribute __tablename__".format(orm_class))
