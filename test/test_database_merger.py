@@ -1,12 +1,9 @@
 import json
-import traceback
 import unittest
 import pathlib
 
 import sqlalchemy
 import pycram.orm.base
-from pycram.designators.action_designator import *
-from pycram.designators.object_designator import *
 import pycram.orm.utils
 
 from pycram.designators.action_designator import *
@@ -67,7 +64,7 @@ class MergerTestCaseBase(unittest.TestCase):
             raise AssertionError("Config File not found:{}".format(in_path))
 
 
-# Note: Can't test full functionallity
+# Note: Can't test full functionality
 
 class MergeDatabaseTest(unittest.TestCase):
     source_engine: sqlalchemy.engine.Engine
@@ -86,7 +83,6 @@ class MergeDatabaseTest(unittest.TestCase):
                 connection_string="postgresql+psycopg2://{}:{}@{}:{}/{}".format(config["postgres"]["user"],config["postgres"]["password"],config["postgres"]["ipaddress"],config["postgres"]["port"],config["postgres"]["database"])
                 cls.destination_engine=sqlalchemy.create_engine(connection_string,echo=False)
         cls.source_engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
-        # cls.destination_engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
         cls.source_session_maker = sqlalchemy.orm.sessionmaker(bind=cls.source_engine)
         cls.destination_session_maker = sqlalchemy.orm.sessionmaker(bind=cls.destination_engine)
         source_session = cls.source_session_maker()
@@ -101,7 +97,6 @@ class MergeDatabaseTest(unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
         source_session = self.source_session_maker()
-        # destination_session = self.destination_session_maker()
         example_plans = ExamplePlans()
         for i in range(2):
             try:
@@ -117,17 +112,9 @@ class MergeDatabaseTest(unittest.TestCase):
         source_meta_data.insert(source_session)
         pycram.task.task_tree.root.insert(source_session)
         source_meta_data.reset()
-        # destination_metadata = pycram.orm.base.MetaData()
-        # destination_metadata.description = "Not all that glitters is gold"
-        # pycram.task.task_tree.root.insert(destination_session)
-        # destination_metadata.insert(destination_session)
-        # if (source_meta_data == destination_metadata):
-        #     print("Then you are lost")
         source_session.commit()
-        # destination_session.commit()
         example_plans.world.exit()
         source_session.close()
-        # destination_session.close()
 
     def tearDown(self) -> None:
         super().tearDown()
@@ -137,17 +124,12 @@ class MergeDatabaseTest(unittest.TestCase):
         super().TearDownClass()
 
     def test_merge_databases(self):
-        all_orm_classes_set = pycram.orm.utils.get_all_children_set(pycram.orm.base.Base)
         orm_tree = pycram.orm.utils.get_tree(pycram.orm.base.Base)
         ordered_orm_classes = [node.name for node in LevelOrderIter(orm_tree)]
         pycram.orm.utils.update_primary_key_constrains(self.destination_session_maker,ordered_orm_classes)
         pycram.orm.utils.update_primary_key(self.source_session_maker,
-                                            self.destination_session_maker)  # self.source_engine,self.destination_engine)
-        # pycram.orm.utils.print_database(self.destination_session_maker)
-        # print("Source:" + 10 * '-')
-        # pycram.orm.utils.print_database(self.source_session_maker)
-        # pycram.orm.utils.copy_database(self.destination_session_maker,self.source_session_maker)
+                                            self.destination_session_maker)
+
         pycram.orm.utils.copy_database(self.source_session_maker, self.destination_session_maker)
         pycram.orm.utils.print_database(self.source_session_maker)
 
-# do stuff
