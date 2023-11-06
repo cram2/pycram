@@ -79,11 +79,13 @@ def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
     destination_session = destination_session_maker()  # sqlalchemy.orm.Session(bind=destination_engine)
     source_session = source_session_maker()  # sqlalchemy.orm.Session(bind=source_engine)
     primary_keys = {}
-    print(Base.__subclasses__())
-    all_orm_classes = get_all_children_set(pycram.orm.base.Base)
-    for table in all_orm_classes:#Base.__subclasses__():  # iterate over all tables
+    orm_tree=get_tree(pycram.orm.base.Base)
+    ordered_orm_classes = [node.name for node in LevelOrderIter(orm_tree)]
+    for table in ordered_orm_classes:#Base.__subclasses__():  # iterate over all tables
         highest_free_key_value = 0
         primary_keys[table] = {}
+        if table is pycram.orm.base.Base: # The baseclase has no table representation
+            continue
         list_of_primary_keys_of_this_table = table.__table__.primary_key.columns.values()
         for key in list_of_primary_keys_of_this_table:
             # make it smart but maybe
@@ -136,9 +138,14 @@ def copy_database(source_session_maker: sqlalchemy.orm.sessionmaker,
     """
     source_session = source_session_maker()
     objects_to_add = []
+    destination_session = destination_session_maker()
     try:
-        all_orm_classes=get_all_children_set(pycram.orm.base.Base)
-        for orm_object_class in all_orm_classes:#Base.__subclasses__():
+        orm_tree = get_tree(pycram.orm.base.Base)
+        ordered_orm_classes = [node.name for node in LevelOrderIter(orm_tree)]
+        for orm_object_class in ordered_orm_classes:#Base.__subclasses__():
+            if orm_object_class is pycram.orm.base.Base:  # The baseclase has no table representation
+                continue
+            objects_to_add = []
             result = source_session.execute(
                 sqlalchemy.select(orm_object_class).options(sqlalchemy.orm.joinedload('*'))).mappings().all()
             for row in result:
@@ -152,17 +159,17 @@ def copy_database(source_session_maker: sqlalchemy.orm.sessionmaker,
                     else:
                         rospy.logwarn("WARNING: Ignored already detached ORM Object {} ".format(
                             row[key]))
+
+            if len(objects_to_add) < 1:
+                return
+            destination_session.add_all(objects_to_add)
+            destination_session.commit()
+
     except Exception as e:
         traceback.print_exc()
     finally:
         source_session.close()
-    if len(objects_to_add) < 1:
-        return
-    destination_session = destination_session_maker()
-
-    destination_session.add_all(objects_to_add)
-    destination_session.commit()
-    destination_session.close()
+        destination_session.close()
 
 
 def update_primary_key_constrains(session_maker: sqlalchemy.orm.sessionmaker, orm_classes: list):
