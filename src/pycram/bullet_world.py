@@ -28,7 +28,7 @@ from urdf_parser_py.urdf import URDF
 from . import utils
 from .event import Event
 from .robot_descriptions import robot_description
-from .enums import JointType
+from .enums import JointType, ObjectType
 from .local_transformer import LocalTransformer
 from sensor_msgs.msg import JointState
 
@@ -54,7 +54,7 @@ class BulletWorld:
     """
 
     # Check is for sphinx autoAPI to be able to work in a CI workflow
-    if rosgraph.is_master_online() and "/pycram" not in rosnode.get_node_names():
+    if rosgraph.is_master_online(): # and "/pycram" not in rosnode.get_node_names():
         rospy.init_node('pycram')
 
     def __init__(self, type: str = "GUI", is_shadow_world: bool = False):
@@ -96,7 +96,7 @@ class BulletWorld:
         # Some default settings
         self.set_gravity([0, 0, -9.8])
         if not is_shadow_world:
-            plane = Object("floor", "environment", "plane.urdf", world=self)
+            plane = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf", world=self)
         # atexit.register(self.exit)
 
     def get_objects_by_name(self, name: str) -> List[Object]:
@@ -719,7 +719,7 @@ class Object:
     Represents a spawned Object in the BulletWorld.
     """
 
-    def __init__(self, name: str, type: str, path: str,
+    def __init__(self, name: str, type: Union[str, ObjectType], path: str,
                  pose: Pose = None,
                  world: BulletWorld = None,
                  color: Optional[List[float]] = [1, 1, 1, 1],
