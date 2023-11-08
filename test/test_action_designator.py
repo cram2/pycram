@@ -4,6 +4,7 @@ from pycram.designators import action_designator, object_designator
 from pycram.robot_descriptions import robot_description
 from pycram.process_module import simulated_robot
 from pycram.pose import Pose
+from pycram.enums import ObjectType
 import pycram.enums
 import test_bullet_world
 import numpy as np
@@ -93,7 +94,7 @@ class TestActionDesignatorGrounding(test_bullet_world.BulletWorldTest):
         with simulated_robot:
             detected_object = description.resolve().perform()
         self.assertEqual(detected_object.name, "milk")
-        self.assertEqual(detected_object.type, "milk")
+        self.assertEqual(detected_object.type, ObjectType.MILK)
         self.assertEqual(detected_object.bullet_world_object, self.milk)
 
     # Skipped since open and close work only in the apartment at the moment
