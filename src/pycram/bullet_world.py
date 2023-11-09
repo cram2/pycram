@@ -1277,6 +1277,23 @@ class Object:
         else:
             return p.getAABB(self.id, physicsClientId=self.world.client_id)
 
+    def get_object_dimensions(self, link_name: Optional[str] = None) -> Tuple[float, float, float]:
+        """
+        Return the dimensions of the object.
+        :param link_name: The Optional name of a link of this object.
+        :return: The dimensions of the object, as a Tuple with float values.
+        """
+        # Retrieve AABB based on link_name presence
+        if link_name:
+            aabb = p.getAABB(self.id, self.links[link_name], self.world.client_id)
+        else:
+            aabb = p.getAABB(self.id, physicsClientId=self.world.client_id)
+
+        # Calculate dimensions
+        dimensions = [np.absolute(aabb[0][i] - aabb[1][i]) for i in range(3)]
+
+        return dimensions
+
     def get_base_origin(self, link_name: Optional[str] = None) -> Pose:
         """
         Returns the origin of the base/bottom of an object/link

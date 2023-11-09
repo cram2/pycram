@@ -1,6 +1,7 @@
 import dataclasses
 import itertools
 import time
+import math
 from typing import List, Optional, Any, Tuple, Union
 
 import sqlalchemy.orm
@@ -21,7 +22,7 @@ from ..enums import Arms
 from ..designator import ActionDesignatorDescription
 from ..bullet_world import BulletWorld
 from ..pose import Pose
-from ..helper import multiply_quaternions
+from ..helper import multiply_quaternions, axis_angle_to_quaternion
 
 
 class MoveTorsoAction(ActionDesignatorDescription):
@@ -872,12 +873,12 @@ class CuttingAction(ActionDesignatorDescription):
             # Store the object's data copy at execution
             self.object_at_execution = self.object_designator.data_copy()
 
-            # Retrieve object and robot from designators
-            object = self.object_designator.bullet_world_object
+
             # Get grasp orientation and target pose
             grasp = robot_description.grasps.get_orientation_for_grasp(self.grasp)
-
-            obj_dim = object.get_Object_Dimensions()
+            # Retrieve object and robot from designators
+            object = self.object_designator.bullet_world_object
+            obj_dim = object.get_object_dimensions()
 
             dim = [max(obj_dim[0], obj_dim[1]), min(obj_dim[0], obj_dim[1]), obj_dim[2]]
             oTm = object.get_pose()
@@ -915,12 +916,12 @@ class CuttingAction(ActionDesignatorDescription):
 
             for slice_pose in slice_poses:
                 # rotate the slice_pose by grasp
-                ori = helper.multiply_quaternions([slice_pose.orientation.x, slice_pose.orientation.y,
+                ori = multiply_quaternions([slice_pose.orientation.x, slice_pose.orientation.y,
                                                    slice_pose.orientation.z, slice_pose.orientation.w],
                                                   grasp)
 
-                oriR = helper.axis_angle_to_quaternion([0, 0, 1], 90)
-                oriM = helper.multiply_quaternions([oriR[0], oriR[1], oriR[2], oriR[3]],
+                oriR = axis_angle_to_quaternion([0, 0, 1], 90)
+                oriM = multiply_quaternions([oriR[0], oriR[1], oriR[2], oriR[3]],
                                                    [ori[0], ori[1], ori[2], ori[3]])
 
                 adjusted_slice_pose = slice_pose.copy()
@@ -1038,7 +1039,7 @@ class MixingAction(ActionDesignatorDescription):
             # Retrieve object and robot from designators
             object = self.object_designator.bullet_world_object
 
-            obj_dim = object.get_Object_Dimensions()
+            obj_dim = object.get_object_dimensions()
 
             dim = [max(obj_dim[0], obj_dim[1]), min(obj_dim[0], obj_dim[1]), obj_dim[2]]
             obj_height = dim[2]
@@ -1076,8 +1077,8 @@ class MixingAction(ActionDesignatorDescription):
 
             BulletWorld.current_bullet_world.remove_vis_axis()
             for spiral_pose in spiral_poses:
-                oriR = helper.axis_angle_to_quaternion([1, 0, 0], 180)
-                ori = helper.multiply_quaternions([spiral_pose.orientation.x, spiral_pose.orientation.y,
+                oriR = axis_angle_to_quaternion([1, 0, 0], 180)
+                ori = multiply_quaternions([spiral_pose.orientation.x, spiral_pose.orientation.y,
                                                    spiral_pose.orientation.z, spiral_pose.orientation.w], oriR)
                 adjusted_slice_pose = spiral_pose.copy()
                 # # Set the orientation of the object pose by grasp in MAP
