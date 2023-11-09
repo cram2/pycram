@@ -169,7 +169,7 @@ class DonbotMoveGripper(ProcessModule):
             gripper = solution['gripper']
             motion = solution['motion']
             for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
-                # TODO: Test this, add gripper-opening/-closing to the cutting-mixing-demo.py
+                # TODO: Test this, add gripper-opening/-closing to the demo.py
                 robot.set_joint_state(joint, state)
             time.sleep(0.5)
 
