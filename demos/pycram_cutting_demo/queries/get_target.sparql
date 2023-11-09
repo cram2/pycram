@@ -1,0 +1,30 @@
+# Query the target for the specific verb. This is either the food itself or a specific shape/part like Halve or Slice
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX soma: <http://www.ease-crc.org/ont/SOMA.owl#>
+PREFIX cut: <http://www.ease-crc.org/ont/food_cutting#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT ?res WHERE {
+	{
+		${verb} rdfs:subClassOf* ?inter_node.
+		?inter_node owl:intersectionOf ?in_res_node.
+		?in_res_node rdf:first ?input_node.
+		?input_node owl:onProperty cut:hasInputObject.
+		?input_node owl:someValuesFrom ?target.
+		FILTER NOT EXISTS {
+			?target owl:unionOf ?union_node.
+		}
+		BIND(REPLACE(STR(?target), "^.*[#/]", "") AS ?res).
+	} 
+	UNION
+	{
+		${verb} rdfs:subClassOf* ?inter_node.
+		?inter_node owl:intersectionOf ?in_res_node.
+		?in_res_node rdf:first ?input_node.
+		?input_node owl:onProperty cut:hasInputObject.
+		?input_node owl:someValuesFrom ?targets_node.
+		?targets_node owl:unionOf ?union_node.
+		?union_node rdf:first ?target.
+		BIND(REPLACE(STR(?target), "^.*[#/]", "") AS ?res).
+	}
+} 

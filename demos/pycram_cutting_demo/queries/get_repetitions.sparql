@@ -1,0 +1,25 @@
+# Query for extracting the amount of repetitions necessary for executing the specific cutting verb
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX cut: <http://www.ease-crc.org/ont/food_cutting#>
+PREFIX soma: <http://www.ease-crc.org/ont/SOMA.owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?res WHERE {
+	{
+		${verb} rdfs:subClassOf* ?rep_node.
+		?rep_node owl:onProperty cut:repetitions.
+		FILTER EXISTS {
+			?rep_node owl:hasValue ?val.
+			}
+		BIND("exactly 1" AS ?res)
+	}
+	UNION
+	{
+		${verb} rdfs:subClassOf* ?rep_node.
+		?rep_node owl:onProperty cut:repetitions.
+		FILTER EXISTS {
+			?rep_node owl:minQualifiedCardinality ?val.
+		}
+		BIND("at least 1" AS ?res)
+	}
+}
