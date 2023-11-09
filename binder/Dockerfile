@@ -27,6 +27,7 @@ COPY --chown=${NB_USER}:users binder/me ${PYCRAM_WS}/src/me
 # Build pycram workspace
 WORKDIR  ${PYCRAM_WS}
 USER root
+RUN apt-get update
 RUN rosdep update \
   && rosdep install -y --ignore-src --from-paths ./ -r \
   && rosdep fix-permissions
@@ -36,5 +37,13 @@ RUN catkin build
 WORKDIR ${PYCRAM_WS}/src/pycram
 RUN git config --global --add safe.directory ${PWD}
 COPY --chown=${NB_USER}:users binder /binder
+
+# === Install additional Packages ===
+USER root
+RUN apt-get install -y man-db nano && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt-get clean
+USER ${NB_USER}
+
 ENTRYPOINT ["/binder/entrypoint.sh"]
 CMD ["start-notebook.sh"]
