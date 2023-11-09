@@ -442,6 +442,9 @@ class PlaceAction(ActionDesignatorDescription):
             MoveTCPMotion(target_diff, self.arm).resolve().perform()
             MoveGripperMotion("open", self.arm).resolve().perform()
             BulletWorld.robot.detach(self.object_designator.bullet_world_object)
+            retract_pose = target_diff
+            retract_pose.position.x -= 0.07
+            MoveTCPMotion(retract_pose, self.arm).resolve().perform()
 
         def to_sql(self) -> ORMPlaceAction:
             return ORMPlaceAction(self.arm)

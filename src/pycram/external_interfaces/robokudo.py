@@ -7,6 +7,7 @@ from ..designator import ObjectDesignatorDescription
 from ..pose import Pose
 from ..local_transformer import LocalTransformer
 from ..bullet_world import BulletWorld
+from ..enums import ObjectType
 
 
 def msg_from_obj_desig(obj_desc: ObjectDesignatorDescription) -> robokudo_ObjetDesignator:
@@ -32,11 +33,11 @@ def make_query_goal_msg(obj_desc: ObjectDesignatorDescription) -> QueryGoal:
     """
     goal_msg = QueryGoal()
     goal_msg.obj.uid = str(id(obj_desc))
-    goal_msg.obj.type = obj_desc.types[0] # For testing purposes
-    pose = Pose([2.3, 3, 1])
-    #goal_msg.obj.pose.append(pose)
-    if 'blue' in obj_desc.types[0]:
+    goal_msg.obj.type = str(obj_desc.types[0].name) # For testing purposes
+    if ObjectType.JEROEN_CUP == obj_desc.types[0]:
         goal_msg.obj.color.append("blue")
+    elif ObjectType.BOWL == obj_desc.types[0]:
+        goal_msg.obj.color.append("red")
     return goal_msg
 
 
@@ -68,14 +69,26 @@ def query(object_desc: ObjectDesignatorDescription) -> ObjectDesignatorDescripti
     client.wait_for_server()
     client.send_goal(object_goal, active_cb=active_callback, done_cb=done_callback, feedback_cb=feedback_callback)
     wait = client.wait_for_result()
-    pose_candidates = []
-    for possible_pose in query_result.res[0].pose:
-        pose = Pose.from_pose_stamped(possible_pose)
+    pose_candidates = {}
+
+    for i in range(0, len(query_result.res[0].pose)):
+        pose = Pose.from_pose_stamped(query_result.res[0].pose[i])
         pose.frame = BulletWorld.current_bullet_world.robot.get_link_tf_frame(pose.frame)
+        source = query_result.res[0].poseSource[i]
 
         lt = LocalTransformer()
         pose = lt.transform_pose(pose, "map")
 
-        pose_candidates.append(pose)
+        pose_candidates[source] = pose
+        # pose_candidates.append(pose)
+
+    # for possible_pose in query_result.res[0].pose:
+    #     pose = Pose.from_pose_stamped(possible_pose)
+    #     pose.frame = BulletWorld.current_bullet_world.robot.get_link_tf_frame(pose.frame)
+
+    #     lt = LocalTransformer()
+    #     pose = lt.transform_pose(pose, "map")
+
+    #     pose_candidates.append(pose)
 
     return pose_candidates
