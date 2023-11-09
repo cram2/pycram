@@ -4,7 +4,6 @@ from pycram.enums import Arms
 from pycram.designators.object_designator import *
 from pycram.designators.object_designator import BelieveObject
 import pycram.helper as helper
-from pycram.resolver.action.cutting import CuttingActionSPARQL
 
 world = BulletWorld()
 world.set_gravity([0, 0, -9.8])
