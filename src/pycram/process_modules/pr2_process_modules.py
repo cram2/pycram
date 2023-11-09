@@ -19,7 +19,7 @@ from ..external_interfaces.ik import request_ik, IKError
 from ..helper import _transform_to_torso, _apply_ik, calculate_wrist_tool_offset, inverseTimes
 from ..local_transformer import LocalTransformer
 from ..designators.motion_designator import *
-from ..enums import JointType
+from ..enums import JointType, ObjectType
 from ..external_interfaces import giskard
 from ..external_interfaces.robokudo import query
 
@@ -317,24 +317,27 @@ class Pr2DetectingReal(ProcessModule):
 
     def _execute(self, designator: DetectingMotion.Motion) -> Any:
         query_result = query(ObjectDesignatorDescription(types=[designator.object_type]))
-
-        positions = [possible_pose.position_as_list() for possible_pose in query_result]
-        orientations = [possible_pose.orientation_as_list() for possible_pose in query_result]
-        print(orientations)
-
-        position = list(np.average(positions, axis=0))
-        orientation = list(np.average(orientations, axis=0))
-        obj_pose = Pose(position, orientation, frame="map")
+        # print(query_result)
+        obj_pose = query_result["ClusterPoseBBAnnotator"]
 
         lt = LocalTransformer()
         obj_pose = lt.transform_pose(obj_pose, BulletWorld.robot.get_link_tf_frame("torso_lift_link"))
         obj_pose.orientation = [0, 0, 0, 1]
-        print(obj_pose)
+        obj_pose.position.x += 0.05
 
-        bullet_obj = BulletWorld.current_bullet_world.get_objects_by_type(designator.object_type)[0]
-        bullet_obj.set_pose(obj_pose)
+        bullet_obj = BulletWorld.current_bullet_world.get_objects_by_type(designator.object_type)
+        if bullet_obj:
+            bullet_obj[0].set_pose(obj_pose)
+            return bullet_obj[0]
+        elif designator.object_type == ObjectType.JEROEN_CUP:
+            cup = Object("cup", ObjectType.JEROEN_CUP, "jeroen_cup.stl", pose=obj_pose)
+            return cup
+        elif designator.object_type == ObjectType.BOWL:
+            bowl = Object("bowl", ObjectType.BOWL, "bowl.stl", pose=obj_pose)
+            return bowl
 
-        return bullet_obj
+
+        return bullet_obj[0]
 
 
 
