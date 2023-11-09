@@ -36,5 +36,15 @@ RUN catkin build
 WORKDIR ${PYCRAM_WS}/src/pycram
 RUN git config --global --add safe.directory ${PWD}
 COPY --chown=${NB_USER}:users binder /binder
+
+# === Install additional Packages ===
+USER root
+RUN apt update && apt install -y \
+    man && \
+    nano && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt clean
+USER ${NB_USER}
+
 ENTRYPOINT ["/binder/entrypoint.sh"]
 CMD ["start-notebook.sh"]
