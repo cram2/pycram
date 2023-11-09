@@ -1,0 +1,22 @@
+# Query for extracting the tool for peeling the specific food object
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX cut: <http://www.ease-crc.org/ont/food_cutting#>
+PREFIX soma: <http://www.ease-crc.org/ont/SOMA.owl#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX foodon: <http://purl.obolibrary.org/obo/>
+SELECT ?res WHERE {
+	foodon:${food} rdfs:subClassOf* ?peel_dis.
+	?peel_dis owl:onProperty soma:hasDisposition.
+	?peel_dis owl:someValuesFrom ?peel_dis_vals.
+	?peel_dis_vals owl:intersectionOf ?afford_vals.
+	?afford_vals rdf:first cut:Peelability.
+	?afford_vals rdf:rest ?task_trigger.
+	?task_trigger rdf:rest ?trigger.
+	?trigger rdf:first ?trigger_wo_nil.
+	?trigger_wo_nil owl:onProperty soma:affordsTrigger.
+	?trigger_wo_nil owl:allValuesFrom ?trigger_tool.
+	?trigger_tool owl:allValuesFrom ?tool.
+	?tool rdfs:subClassOf cut:PeelingTool.
+	BIND(REPLACE(STR(?tool), "^.*[#/]", "") AS ?res).
+}

@@ -1,0 +1,13 @@
+# Query for assessing whether a specific food object has a specific part
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX cut: <http://www.ease-crc.org/ont/food_cutting#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX foodon: <http://purl.obolibrary.org/obo/>
+ASK {
+	foodon:${food} rdfs:subClassOf* ?parts_node.
+	?parts_node owl:onProperty cut:hasPart.
+	?parts_node owl:someValuesFrom ?val_node.
+	?val_node owl:intersectionOf ?inter_node.
+	?inter_node rdf:first cut:${part}.
+}
