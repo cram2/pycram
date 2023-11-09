@@ -18,7 +18,7 @@ from pytransform3d.transformations import transform_from_pq, transform_from, pq_
 from macropy.core.quotes import ast_literal, q
 from .bullet_world import Object as BulletWorldObject
 from .local_transformer import LocalTransformer
-from .pose import Transform
+from .pose import Transform, Pose
 from .robot_descriptions import robot_description
 import os
 import math
@@ -169,11 +169,15 @@ class GeneratorList:
             return True
         except StopIteration:
             return False
-def axis_angle_to_quaternion(axis, angle):
+
+
+def axis_angle_to_quaternion(axis: List, angle: float) -> Tuple:
     """
     Convert axis-angle to quaternion.
-    axis: (x, y, z) tuple representing rotation axis.
-    angle: rotation angle in degree
+
+    :param axis: (x, y, z) tuple representing rotation axis.
+    :param angle: rotation angle in degree
+    :return: The quaternion representing the axis angle
     """
     angle = math.radians(angle)
     axis_length = math.sqrt(sum([i ** 2 for i in axis]))
@@ -186,10 +190,14 @@ def axis_angle_to_quaternion(axis, angle):
 
     return (x, y, z, w)
 
-def multiply_quaternions(q1, q2):
+
+def multiply_quaternions(q1, q2) -> List:
     """
     Multiply two quaternions using the robotics convention (x, y, z, w).
-    q1, q2: tuple representing quaternion.
+
+    :param q1: The first quaternion
+    :param q2: The second quaternion
+    :return: The quaternion resulting from the multiplication
     """
     x1, y1, z1, w1 = q1
     x2, y2, z2, w2 = q2
@@ -201,23 +209,30 @@ def multiply_quaternions(q1, q2):
 
     return (x, y, z, w)
 
-def quaternion_rotate(q, v):
+
+def quaternion_rotate(q: List, v: List) -> List:
     """
     Rotate a vector v using quaternion q.
+
+    :param q: A quaternion of how v should be rotated
+    :param v: A vector that should be rotated by q
+    :return: V rotated by Q as a quaternion
     """
     q_conj = (-q[0], -q[1], -q[2], q[3])  # Conjugate of the quaternion
     v_quat = (*v, 0)  # Represent the vector as a quaternion with w=0
     return multiply_quaternions(multiply_quaternions(q, v_quat), q_conj)[:3]
 
 
-def multiply_poses(pose1, pose2):
+def multiply_poses(pose1: Pose, pose2: Pose) -> Tuple:
     """
     Multiply two poses.
+
+    :param pose1: first Pose that should be multiplied
+    :param pose2: Second Pose that should be multiplied
+    :return: A Tuple of position and quaternion as result of the multiplication
     """
-    print(pose1, pose2)
     pos1, quat1 = pose1.pose.position, pose1.pose.orientation
     pos2, quat2 = pose2.pose.position, pose2.pose.orientation
-    print(pos1, quat1, pos2, quat2)
     # Multiply the orientations
     new_quat = multiply_quaternions(quat1, quat2)
 
