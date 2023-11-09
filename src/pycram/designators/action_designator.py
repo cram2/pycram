@@ -20,7 +20,8 @@ from ..enums import Arms
 from ..designator import ActionDesignatorDescription
 from ..bullet_world import BulletWorld
 from ..pose import Pose
-import pycram.helper as helper
+from ..helper import multiply_quaternions
+
 
 class MoveTorsoAction(ActionDesignatorDescription):
     """
@@ -251,7 +252,7 @@ class ParkArmsAction(ActionDesignatorDescription):
         :param arms: A list of possible arms, that could be used
         :param resolver: An optional resolver that returns a performable designator from the designator description
         """
-        super(ParkArmsAction, self).__init__(resolver)
+        super().__init__(resolver)
         self.arms: List[Arms] = arms
 
     def ground(self) -> Action:
@@ -301,17 +302,16 @@ class PickUpAction(ActionDesignatorDescription):
             object = self.object_designator.bullet_world_object
             # Get grasp orientation and target pose
             grasp = robot_description.grasps.get_orientation_for_grasp(self.grasp)
-
             # oTm = Object Pose in Frame map
             oTm = object.get_pose()
-            # Transform the object pose to the map frame
+            # Transform the object pose to the object frame, basically the origin of the object frame
             mTo = object.local_transformer.transform_to_object_frame(oTm, object)
             # Adjust the pose according to the special knowledge of the object designator
             adjusted_pose = self.object_designator.special_knowledge_adjustment_pose(self.grasp, mTo)
             # Transform the adjusted pose to the map frame
             adjusted_oTm = object.local_transformer.transform_pose(adjusted_pose, "map")
             # multiplying the orientation therefore "rotating" it, to get the correct orientation of the gripper
-            ori = helper.multiply_quaternions([adjusted_oTm.orientation.x, adjusted_oTm.orientation.y,
+            ori = multiply_quaternions([adjusted_oTm.orientation.x, adjusted_oTm.orientation.y,
                                         adjusted_oTm.orientation.z, adjusted_oTm.orientation.w],
                                        grasp)
 
@@ -322,19 +322,18 @@ class PickUpAction(ActionDesignatorDescription):
             adjusted_oTm.orientation.w = ori[3]
 
             # prepose depending on the gripper (its annoying we have to put pr2_1 here tbh
-            gripper_frame = "pr2_1/l_gripper_tool_frame" if self.arm == "left" else "pr2_1/r_gripper_tool_frame"
-            print(adjusted_oTm)
-            # First rotate the gripper, so the further calculations maakes sense
+            # gripper_frame = "pr2_1/l_gripper_tool_frame" if self.arm == "left" else "pr2_1/r_gripper_tool_frame"
+            gripper_frame = robot.get_link_tf_frame(robot_description.get_tool_frame(self.arm))
+            # First rotate the gripper, so the further calculations makes sense
             tmp_for_rotate_pose = object.local_transformer.transform_pose(adjusted_oTm, gripper_frame)
-            print(tmp_for_rotate_pose)
             tmp_for_rotate_pose.pose.position.x = 0
             tmp_for_rotate_pose.pose.position.y = 0
             tmp_for_rotate_pose.pose.position.z = -0.1
             gripper_rotate_pose = object.local_transformer.transform_pose(tmp_for_rotate_pose, "map")
 
             #Perform Gripper Rotate
-            BulletWorld.current_bullet_world.add_vis_axis(gripper_rotate_pose)
-            MoveTCPMotion(gripper_rotate_pose, self.arm).resolve().perform()
+            # BulletWorld.current_bullet_world.add_vis_axis(gripper_rotate_pose)
+            # MoveTCPMotion(gripper_rotate_pose, self.arm).resolve().perform()
 
             oTg = object.local_transformer.transform_pose(adjusted_oTm, gripper_frame)
             oTg.pose.position.x -= 0.1 # in x since this is how the gripper is oriented
@@ -360,7 +359,6 @@ class PickUpAction(ActionDesignatorDescription):
             # Remove the vis axis from the world
             BulletWorld.current_bullet_world.remove_vis_axis()
 
-
         def to_sql(self) -> ORMPickUpAction:
             return ORMPickUpAction(self.arm, self.grasp)
 
@@ -378,8 +376,8 @@ class PickUpAction(ActionDesignatorDescription):
 
             return action
 
-    def __init__(self, object_designator_description: ObjectDesignatorDescription, arms: List[str],
-                 grasps: List[str], resolver=None):
+    def __init__(self, object_designator_description:  Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
+                 arms: List[str], grasps: List[str], resolver=None):
         """
         Lets the robot pick up an object. The description needs an object designator describing the object that should be
         picked up, an arm that should be used as well as the grasp from which side the object should be picked up.
@@ -389,7 +387,7 @@ class PickUpAction(ActionDesignatorDescription):
         :param grasps: List of possible grasps for the object
         :param resolver: An optional resolver that returns a performable designator with elements from the lists of possible paramter
         """
-        super(PickUpAction, self).__init__(resolver)
+        super().__init__(resolver)
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.arms: List[str] = arms
         self.grasps: List[str] = grasps
@@ -400,7 +398,11 @@ class PickUpAction(ActionDesignatorDescription):
 
         :return: A performable designator
         """
-        return self.Action(self.object_designator_description.ground(), self.arms[0], self.grasps[0])
+        obj_desig = self.object_designator_description if isinstance(self.object_designator_description,
+                                                                     ObjectDesignatorDescription.Object) else self.object_designator_description.resolve()
+
+        return self.Action(obj_desig, self.arms[0], self.grasps[0])
+
 
 class PlaceAction(ActionDesignatorDescription):
     """
@@ -481,8 +483,7 @@ class PlaceAction(ActionDesignatorDescription):
         obj_desig = self.object_designator_description if isinstance(self.object_designator_description,
                                                                      ObjectDesignatorDescription.Object) else self.object_designator_description.resolve()
 
-        return self.Action(obj_desig, self.arms[0],
-                           self.target_locations[0])
+        return self.Action(obj_desig, self.arms[0], self.target_locations[0])
 
 
 class NavigateAction(ActionDesignatorDescription):
