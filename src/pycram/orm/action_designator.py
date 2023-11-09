@@ -201,6 +201,24 @@ class CloseAction(Action):
     __tablename__ = "Close"
     id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
     arm = sqlalchemy.Column(sqlalchemy.types.String(255), nullable=False)
+    
+class MixingAction(Action):
+    """ORM Class of pycram.designators.action_designator.MixingAction."""
+    __tablename__ = "Mixing"
+    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), primary_key=True)
+    arm = sqlalchemy.Column(sqlalchemy.types.String(255))
+    grasp = sqlalchemy.Column(sqlalchemy.types.String(255))
+    object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
+
+    __mapper_args__ = {
+        "polymorphic_identity": __tablename__,
+    }
+
+    def __init__(self, arm: str, grasp: str):
+        super(MixingAction, self).__init__()
+        self.arm = arm
+        self.grasp = grasp
+    
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
