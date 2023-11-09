@@ -40,7 +40,7 @@ COPY --chown=${NB_USER}:users binder /binder
 
 # === Install additional Packages ===
 USER root
-RUN apt-get install -y man nano && \
+RUN apt-get install -y man-db nano && \
     rm -rf /var/lib/apt/lists/* && \
     apt-get clean
 USER ${NB_USER}
