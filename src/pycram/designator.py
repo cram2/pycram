@@ -714,28 +714,9 @@ class ObjectDesignatorDescription(DesignatorDescription):
                     pose_in_object.pose.position.x += value[0]
                     pose_in_object.pose.position.y += value[1]
                     pose_in_object.pose.position.z += value[2]
-                    rospy.loginfo("Adjusted target pose based on special knowledge for grasp: ", grasp)
+                    rospy.loginfo("Adjusted target pose based on special knowledge for grasp: " + grasp)
                     return pose_in_object
             return pose
-
-        # def special_knowledge(self, grasp, pose):
-        #     """
-        #     Returns t special knowledge for "grasp front".
-        #     """
-        #
-        #     special_knowledge = []  # Initialize as an empty list
-        #     if self.type in SPECIAL_KNOWLEDGE:
-        #         special_knowledge = SPECIAL_KNOWLEDGE[self.type]
-        #
-        #     for key, value in special_knowledge:
-        #         if key == grasp:
-        #             # Adjust target pose based on special knowledge
-        #             pose.pose.position.x += value[0]
-        #             pose.pose.position.y += value[1]
-        #             pose.pose.position.z += value[2]
-        #             print("Adjusted target pose based on special knowledge for grasp: ", grasp)
-        #             return pose
-        #     return pose
 
     def __init__(self, names: Optional[List[str]] = None, types: Optional[List[str]] = None,
                  resolver: Optional[Callable] = None):

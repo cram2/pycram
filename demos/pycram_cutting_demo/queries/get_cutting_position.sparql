@@ -1,0 +1,11 @@
+# Query for extracting the cutting position for the specific cutting verb
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX cut: <http://www.ease-crc.org/ont/food_cutting#>
+PREFIX soma: <http://www.ease-crc.org/ont/SOMA.owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT * WHERE {
+	${verb} rdfs:subClassOf* ?pos_node.
+	?pos_node owl:onProperty cut:affordsPosition.
+	?pos_node owl:someValuesFrom ?pos.
+	BIND(REPLACE(STR(?pos), "^.*[#/]", "") AS ?res).
+} 
