@@ -1490,13 +1490,16 @@ def _load_object(name: str,
         elif extension == ".urdf":
             with open(path, mode="r") as f:
                 urdf_string = fix_missing_inertial(f.read())
+                urdf_string = remove_error_tags(urdf_string)
+                urdf_string = fix_link_attributes(urdf_string)
+                try:
+                    urdf_string = _correct_urdf_string(urdf_string)
+                except rospkg.ResourceNotFound as e:
+                    rospy.logerr(f"Could not find resource package linked in this URDF")
+                    raise e
             path = cach_dir + pa.name
             with open(path, mode="w") as f:
-                try:
-                    f.write(_correct_urdf_string(urdf_string))
-                except rospkg.ResourceNotFound as e:
-                    os.remove(path)
-                    raise e
+                f.write(urdf_string)
         else:  # Using the urdf from the parameter server
             urdf_string = rospy.get_param(path)
             path = cach_dir + name + ".urdf"
@@ -1591,6 +1594,40 @@ def fix_missing_inertial(urdf_string: str) -> str:
         inertial = [*link_element.iter("inertial")]
         if len(inertial) == 0:
             link_element.append(inertia_tree.getroot())
+
+    return xml.etree.ElementTree.tostring(tree.getroot(), encoding='unicode')
+
+
+def remove_error_tags(urdf_string: str) -> str:
+    """
+    Removes all tags in the removing_tags list from the URDF since these tags are known to cause errors with the
+    URDF_parser
+
+    :param urdf_string: String of the URDF from which the tags should be removed
+    :return: The URDF string with the tags removed
+    """
+    tree = xml.etree.ElementTree.ElementTree(xml.etree.ElementTree.fromstring(urdf_string))
+    removing_tags = ["gazebo", "transmission"]
+    for tag_name in removing_tags:
+        all_tags = tree.findall(tag_name)
+        for tag in all_tags:
+            tree.getroot().remove(tag)
+
+    return xml.etree.ElementTree.tostring(tree.getroot(), encoding='unicode')
+
+
+def fix_link_attributes(urdf_string: str) -> str:
+    """
+    Removes the attribute 'type' from links since this is not parsable by the URDF parser.
+
+    :param urdf_string: The string of the URDF from which the attributes should be removed
+    :return: The URDF string with the attributes removed
+    """
+    tree = xml.etree.ElementTree.ElementTree(xml.etree.ElementTree.fromstring(urdf_string))
+
+    for link in tree.iter("link"):
+        if "type" in link.attrib.keys():
+            del link.attrib["type"]
 
     return xml.etree.ElementTree.tostring(tree.getroot(), encoding='unicode')
 
