@@ -8,6 +8,7 @@ from ..orm.base import (Position as ORMPosition, Quaternion as ORMQuaternion, Me
 from ..orm.object_designator import (ObjectDesignator as ORMObjectDesignator, BelieveObject as ORMBelieveObject,
                                      ObjectPart as ORMObjectPart)
 from ..pose import Pose
+from ..external_interfaces.robokudo import query
 
 
 class BelieveObject(ObjectDesignatorDescription):
@@ -135,3 +136,48 @@ class LocatedObject(ObjectDesignatorDescription):
         super(LocatedObject, self).__init__(names, types, resolver)
         self.reference_frames: List[str] = reference_frames
         self.timestamps: List[float] = timestamps
+
+
+class RealObject(ObjectDesignatorDescription):
+    """
+    Object designator representing an object in the real world, when resolving this object designator description ]
+    RoboKudo is queried to perceive an object fitting the given criteria. Afterward the resolver tries to match
+    the found object to an Object in the BulletWorld.
+    """
+
+    @dataclasses.dataclass
+    class Object(ObjectDesignatorDescription.Object):
+        pose: Pose
+        """
+        Pose of the perceived object
+        """
+
+    def __init__(self, names: Optional[List[str]] = None, types: Optional[List[str]] = None,
+                 bullet_world_object: BulletWorldObject = None, resolver: Optional[Callable] = None):
+        """
+        
+        :param names: 
+        :param types: 
+        :param bullet_world_object: 
+        :param resolver: 
+        """
+        super().__init__(resolver)
+        self.types: Optional[List[str]] = types
+        self.names: Optional[List[str]] = names
+        self.bullet_world_object: BulletWorldObject = bullet_world_object
+
+    def __iter__(self):
+        """
+        Queries RoboKudo for objects that fit the description and then iterates over all BulletWorld objects that have
+        the same type to match a BulletWorld object to the real object.
+
+        :yield: A resolved object designator with reference bullet world object
+        """
+        object_candidates = query(self)
+        for obj_desig in object_candidates:
+            for bullet_obj in BulletWorld.get_objects_by_type(obj_desig.type):
+                obj_desig.bullet_world_object = bullet_obj
+                yield obj_desig
+                # if bullet_obj.get_pose().dist(obj_deisg.pose) < 0.05:
+                #     obj_deisg.bullet_world_object = bullet_obj
+                #     yield obj_deisg

@@ -18,6 +18,7 @@ import pybullet as p
 import rospkg
 import rospy
 import rosgraph
+import rosnode
 import atexit
 
 import urdf_parser_py.urdf
@@ -27,7 +28,7 @@ from urdf_parser_py.urdf import URDF
 from . import utils
 from .event import Event
 from .robot_descriptions import robot_description
-from .enums import JointType
+from .enums import JointType, ObjectType
 from .local_transformer import LocalTransformer
 from sensor_msgs.msg import JointState
 
@@ -46,7 +47,6 @@ class BulletWorld:
     shadow world. In this way you can comfortably use the current_bullet_world, which should point towards the BulletWorld
     used at the moment.
     """
-
     robot: Object = None
     """
     Global reference to the spawned Object that represents the robot. The robot is identified by checking the name in the 
@@ -54,7 +54,7 @@ class BulletWorld:
     """
 
     # Check is for sphinx autoAPI to be able to work in a CI workflow
-    if rosgraph.is_master_online():
+    if rosgraph.is_master_online():  # and "/pycram" not in rosnode.get_node_names():
         rospy.init_node('pycram')
 
     def __init__(self, type: str = "GUI", is_shadow_world: bool = False):
@@ -91,11 +91,12 @@ class BulletWorld:
         if not is_shadow_world:
             self.world_sync.start()
             self.local_transformer.bullet_world = self
+            self.local_transformer.shadow_world = self.shadow_world
 
         # Some default settings
         self.set_gravity([0, 0, -9.8])
         if not is_shadow_world:
-            plane = Object("floor", "environment", "plane.urdf", world=self)
+            plane = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf", world=self)
         # atexit.register(self.exit)
 
     def get_objects_by_name(self, name: str) -> List[Object]:
@@ -718,7 +719,7 @@ class Object:
     Represents a spawned Object in the BulletWorld.
     """
 
-    def __init__(self, name: str, type: str, path: str,
+    def __init__(self, name: str, type: Union[str, ObjectType], path: str,
                  pose: Pose = None,
                  world: BulletWorld = None,
                  color: Optional[List[float]] = [1, 1, 1, 1],
@@ -780,7 +781,8 @@ class Object:
         self.world.objects.append(self)
 
     def __repr__(self):
-        skip_attr = ["links", "joints", "urdf_object", "attachments", "cids"]
+        skip_attr = ["links", "joints", "urdf_object", "attachments", "cids", "_current_link_poses",
+                     "_current_link_transforms", "link_to_geometry"]
         return self.__class__.__qualname__ + f"(" + ', \n'.join(
             [f"{key}={value}" if key not in skip_attr else f"{key}: ..." for key, value in self.__dict__.items()]) + ")"
 
@@ -1489,13 +1491,16 @@ def _load_object(name: str,
         elif extension == ".urdf":
             with open(path, mode="r") as f:
                 urdf_string = fix_missing_inertial(f.read())
+                urdf_string = remove_error_tags(urdf_string)
+                urdf_string = fix_link_attributes(urdf_string)
+                try:
+                    urdf_string = _correct_urdf_string(urdf_string)
+                except rospkg.ResourceNotFound as e:
+                    rospy.logerr(f"Could not find resource package linked in this URDF")
+                    raise e
             path = cach_dir + pa.name
             with open(path, mode="w") as f:
-                try:
-                    f.write(_correct_urdf_string(urdf_string))
-                except rospkg.ResourceNotFound as e:
-                    os.remove(path)
-                    raise e
+                f.write(urdf_string)
         else:  # Using the urdf from the parameter server
             urdf_string = rospy.get_param(path)
             path = cach_dir + name + ".urdf"
@@ -1590,6 +1595,40 @@ def fix_missing_inertial(urdf_string: str) -> str:
         inertial = [*link_element.iter("inertial")]
         if len(inertial) == 0:
             link_element.append(inertia_tree.getroot())
+
+    return xml.etree.ElementTree.tostring(tree.getroot(), encoding='unicode')
+
+
+def remove_error_tags(urdf_string: str) -> str:
+    """
+    Removes all tags in the removing_tags list from the URDF since these tags are known to cause errors with the
+    URDF_parser
+
+    :param urdf_string: String of the URDF from which the tags should be removed
+    :return: The URDF string with the tags removed
+    """
+    tree = xml.etree.ElementTree.ElementTree(xml.etree.ElementTree.fromstring(urdf_string))
+    removing_tags = ["gazebo", "transmission"]
+    for tag_name in removing_tags:
+        all_tags = tree.findall(tag_name)
+        for tag in all_tags:
+            tree.getroot().remove(tag)
+
+    return xml.etree.ElementTree.tostring(tree.getroot(), encoding='unicode')
+
+
+def fix_link_attributes(urdf_string: str) -> str:
+    """
+    Removes the attribute 'type' from links since this is not parsable by the URDF parser.
+
+    :param urdf_string: The string of the URDF from which the attributes should be removed
+    :return: The URDF string with the attributes removed
+    """
+    tree = xml.etree.ElementTree.ElementTree(xml.etree.ElementTree.fromstring(urdf_string))
+
+    for link in tree.iter("link"):
+        if "type" in link.attrib.keys():
+            del link.attrib["type"]
 
     return xml.etree.ElementTree.tostring(tree.getroot(), encoding='unicode')
 

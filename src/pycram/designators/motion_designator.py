@@ -1,6 +1,6 @@
 import dataclasses
 
-from .object_designator import ObjectDesignatorDescription, ObjectPart
+from .object_designator import ObjectDesignatorDescription, ObjectPart, RealObject
 from ..bullet_world import Object, BulletWorld
 from ..designator import DesignatorError
 from ..plan_failures import PerceptionObjectNotFound
@@ -176,24 +176,30 @@ class MoveTCPMotion(MotionDesignatorDescription):
         """
         Arm with the TCP that should be moved to the target
         """
+        allow_gripper_collision: bool
+        """
+        If the gripper can collide with something
+        """
 
         def perform(self):
             pm_manager = ProcessModuleManager.get_manager()
             return pm_manager.move_tcp().execute(self)
 
     def __init__(self, target: Pose, arm: Optional[str] = None,
-                 resolver: Optional[Callable] = None):
+                 resolver: Optional[Callable] = None, allow_gripper_collision: Optional[bool] = None):
         """
         Moves the TCP of the given arm to the given target pose.
 
         :param target: Target pose for the TCP
         :param arm: Arm that should be moved
         :param resolver: Alternative resolver which returns a resolved motion designator
+        :param allow_gripper_collision: If the gripper should be allowed to collide with something, only used on the real robot
         """
         super().__init__(resolver)
         self.cmd: str = 'move-tcp'
         self.target: Pose = target
         self.arm: Optional[str] = arm
+        self.allow_gripper_collision = allow_gripper_collision
 
     def ground(self) -> Motion:
         """
@@ -202,7 +208,7 @@ class MoveTCPMotion(MotionDesignatorDescription):
         :return: A resolved motion designator
         """
         arm = "left" if not self.arm else self.arm
-        return self.Motion(self.cmd, self.target, arm)
+        return self.Motion(self.cmd, self.target, arm, self.allow_gripper_collision)
 
 
 class LookingMotion(MotionDesignatorDescription):
@@ -262,12 +268,17 @@ class MoveGripperMotion(MotionDesignatorDescription):
         """
         Name of the gripper that should be moved
         """
+        allow_gripper_collision: bool
+        """
+        If the gripper is allowed to collide with something
+        """
 
         def perform(self):
             pm_manager = ProcessModuleManager.get_manager()
             return pm_manager.move_gripper().execute(self)
 
-    def __init__(self, motion: str, gripper: str, resolver: Optional[Callable] = None):
+    def __init__(self, motion: str, gripper: str, resolver: Optional[Callable] = None,
+                 allow_gripper_collision: Optional[bool] = None):
         """
         Moves the gripper into a given position.
 
@@ -279,6 +290,7 @@ class MoveGripperMotion(MotionDesignatorDescription):
         self.cmd: str = 'move-gripper'
         self.motion: str = motion
         self.gripper: str = gripper
+        self.allow_gripper_collision = allow_gripper_collision
 
     def ground(self) -> Motion:
         """
@@ -286,7 +298,7 @@ class MoveGripperMotion(MotionDesignatorDescription):
 
         :return: A resolved motion designator
         """
-        return self.Motion(self.cmd, self.motion, self.gripper)
+        return self.Motion(self.cmd, self.motion, self.gripper, self.allow_gripper_collision)
 
 
 class DetectingMotion(MotionDesignatorDescription):
@@ -308,6 +320,10 @@ class DetectingMotion(MotionDesignatorDescription):
             if not bullet_world_object:
                 raise PerceptionObjectNotFound(
                     f"Could not find an object with the type {self.object_type} in the FOV of the robot")
+            if ProcessModuleManager.execution_type == "real":
+                return RealObject.Object(bullet_world_object.name, bullet_world_object.type,
+                                                      bullet_world_object, bullet_world_object.get_pose())
+                
             return ObjectDesignatorDescription.Object(bullet_world_object.name, bullet_world_object.type,
                                                       bullet_world_object)
 
