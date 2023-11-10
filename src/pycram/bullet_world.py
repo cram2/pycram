@@ -54,7 +54,7 @@ class BulletWorld:
     """
 
     # Check is for sphinx autoAPI to be able to work in a CI workflow
-    if rosgraph.is_master_online(): # and "/pycram" not in rosnode.get_node_names():
+    if rosgraph.is_master_online():  # and "/pycram" not in rosnode.get_node_names():
         rospy.init_node('pycram')
 
     def __init__(self, type: str = "GUI", is_shadow_world: bool = False):
@@ -781,7 +781,8 @@ class Object:
         self.world.objects.append(self)
 
     def __repr__(self):
-        skip_attr = ["links", "joints", "urdf_object", "attachments", "cids"]
+        skip_attr = ["links", "joints", "urdf_object", "attachments", "cids", "_current_link_poses",
+                     "_current_link_transforms", "link_to_geometry"]
         return self.__class__.__qualname__ + f"(" + ', \n'.join(
             [f"{key}={value}" if key not in skip_attr else f"{key}: ..." for key, value in self.__dict__.items()]) + ")"
 
