@@ -78,3 +78,21 @@ publishes constantly in the background.
     from pycram.ros.viz_marker_publisher import VizMarkerPublisher
 
     v = VizMarkerPublisher()
+
+-------------------
+Robot State Updater
+-------------------
+The robot state updater is intended for working with a real robot, since the robot in the bullet world should mimic
+the real robot there has to be a module which takes care of updating the state of the robot in the BulletWorld. The
+robot state updated hooks into the TF and joint_state topic to get the current position as well as the current joint
+configuration of the robot and applies it to the robt in the BulletWorld.
+
+As all the other ROS utils the robot state updater only needs to be initialized and then takes care of himself.
+
+To initialize the robot state updater a TF topic as well as a joint state topic have to be provided.
+
+.. code-block:: python
+
+    from pycram.ros.robot_state_updater import RobotStateUpdater
+
+    r = RobotStateUpdater("/tf", "/joint_states")
