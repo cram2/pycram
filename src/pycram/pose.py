@@ -52,6 +52,19 @@ class Pose(PoseStamped):
 
         self.frame = frame
 
+    @staticmethod
+    def from_pose_stamped(pose_stamped: PoseStamped) -> Pose:
+        """
+        Converts a geometry_msgs/PoseStamped message to a Pose object. Should be used for compatability with ROS.
+
+        :param pose_stamped: The pose stamped message which should be converted
+        :return: A Pose object with the same information as the given message
+        """
+        p = Pose()
+        p.header = pose_stamped.header
+        p.pose = pose_stamped.pose
+        return p
+
     @property
     def frame(self) -> str:
         """
@@ -259,6 +272,22 @@ class Transform(TransformStamped):
         self.header.stamp = time if time else rospy.Time.now()
 
         self.frame = frame
+
+    @staticmethod
+    def from_transform_stamped(transform_stamped: TransformStamped) -> Transform:
+        """
+        Creates a Transform instance from a geometry_msgs/TransformStamped message. Should be used for compatibility with
+        ROS.
+
+        :param transform_stamped: The transform stamped message that should be converted
+        :return: An Transform with the same information as the transform stamped message
+        """
+        t = Transform()
+        t.header = transform_stamped.header
+        t.child_frame_id = transform_stamped.child_frame_id
+        t.transform = transform_stamped.transform
+
+        return t
 
     @property
     def frame(self) -> str:

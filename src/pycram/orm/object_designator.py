@@ -1,6 +1,7 @@
 from typing import Optional
 
 from .base import Base, Position, Quaternion
+from ..enums import ObjectType
 import sqlalchemy
 import datetime
 
@@ -11,7 +12,7 @@ class ObjectDesignator(Base):
 
     id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
     dtype = sqlalchemy.Column(sqlalchemy.types.String(255))
-    type = sqlalchemy.Column(sqlalchemy.types.String(255))
+    type = sqlalchemy.Column(sqlalchemy.Enum(ObjectType))
     name = sqlalchemy.Column(sqlalchemy.types.String(255))
     position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
     orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"))

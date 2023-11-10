@@ -11,6 +11,8 @@ import sqlalchemy.orm
 import sqlalchemy.sql.functions
 import sqlalchemy.engine
 
+from ..enums import ObjectType
+
 
 def get_pycram_version_from_git() -> Optional[str]:
     """
@@ -161,5 +163,5 @@ class RobotState(Base):
     torso_height = sqlalchemy.Column(sqlalchemy.types.Float)
     """The torso height of the robot."""
 
-    type = sqlalchemy.Column(sqlalchemy.types.String(255))
+    type = sqlalchemy.Column(sqlalchemy.Enum(ObjectType))
     """The type of the robot."""
