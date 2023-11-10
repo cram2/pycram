@@ -21,34 +21,6 @@ except ModuleNotFoundError as e:
 
 
 # Believe state management between pycram and giskard
-def allow_gripper_collision(gripper: str):
-    """
-    Allows the specified gripper to collide with anything.
-
-    :param gripper: The gripper which can collide, either 'right', 'left' or 'both'
-    :return:
-    """
-    add_gripper_groups()
-    if gripper == "right":
-        giskard_wrapper.allow_collision("right_gripper", CollisionEntry.ALL)
-    elif gripper == "left":
-        giskard_wrapper.allow_collision("left_gripper", CollisionEntry.ALL)
-    elif gripper == "both":
-        giskard_wrapper.allow_collision("right_gripper", CollisionEntry.ALL)
-        giskard_wrapper.allow_collision("left_gripper", CollisionEntry.ALL)
-
-
-def add_gripper_groups() -> None:
-    """
-    Adds the gripper links as a group for collision avoidance.
-
-    :return: Response of the RegisterGroup Service
-    """
-    if "right_gripper" not in giskard_wrapper.get_group_names():
-        for gripper in ["left", "right"]:
-            root_link = robot_description.chains[gripper].gripper.links[-1]
-            giskard_wrapper.register_group(gripper + "_gripper", root_link, robot_description.name)
-
 
 def initial_adding_objects() -> None:
     """
@@ -290,6 +262,34 @@ def achieve_close_container_goal(tip_link: str, environment_link: str) -> 'MoveR
 
 
 # Managing collisions
+
+def allow_gripper_collision(gripper: str):
+    """
+    Allows the specified gripper to collide with anything.
+
+    :param gripper: The gripper which can collide, either 'right', 'left' or 'both'
+    :return:
+    """
+    add_gripper_groups()
+    if gripper == "right":
+        giskard_wrapper.allow_collision("right_gripper", CollisionEntry.ALL)
+    elif gripper == "left":
+        giskard_wrapper.allow_collision("left_gripper", CollisionEntry.ALL)
+    elif gripper == "both":
+        giskard_wrapper.allow_collision("right_gripper", CollisionEntry.ALL)
+        giskard_wrapper.allow_collision("left_gripper", CollisionEntry.ALL)
+
+
+def add_gripper_groups() -> None:
+    """
+    Adds the gripper links as a group for collision avoidance.
+
+    :return: Response of the RegisterGroup Service
+    """
+    if "right_gripper" not in giskard_wrapper.get_group_names():
+        for gripper in ["left", "right"]:
+            root_link = robot_description.chains[gripper].gripper.links[-1]
+            giskard_wrapper.register_group(gripper + "_gripper", root_link, robot_description.name)
 
 
 def avoid_all_collisions() -> None:

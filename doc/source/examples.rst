@@ -28,6 +28,12 @@ Misc
     notebooks/minimal_task_tree
     notebooks/pose
 
+Interface Examples
+==================
+
+.. nbgallery::
+    notebooks/giskard
+
 Object Relational Mapping
 =========================
 
