@@ -1,8 +1,14 @@
 import rospy
 import actionlib
+import sys
+import os
+try:
+    from robokudo_msgs.msg import ObjectDesignator as robokudo_ObjetDesignator
+    from robokudo_msgs.msg import QueryAction, QueryGoal, QueryResult
+except ModuleNotFoundError as e:
+    rospy.logwarn(f"Could not import RoboKudo messages, RoboKudo will not be available")
+    sys.stderr.write(f'\033[93m' + f"[Warning] Could not import RoboKudo messages, RoboKudo will not be available" + '\033[0m')
 
-from robokudo_msgs.msg import ObjectDesignator as robokudo_ObjetDesignator
-from robokudo_msgs.msg import QueryAction, QueryGoal, QueryResult
 from ..designator import ObjectDesignatorDescription
 from ..pose import Pose
 from ..local_transformer import LocalTransformer
@@ -10,7 +16,7 @@ from ..bullet_world import BulletWorld
 from ..enums import ObjectType
 
 
-def msg_from_obj_desig(obj_desc: ObjectDesignatorDescription) -> robokudo_ObjetDesignator:
+def msg_from_obj_desig(obj_desc: ObjectDesignatorDescription) -> 'robokudo_ObjetDesignator':
     """
     Creates a RoboKudo Object designator from a PyCRAM Object Designator description
 
@@ -24,7 +30,7 @@ def msg_from_obj_desig(obj_desc: ObjectDesignatorDescription) -> robokudo_ObjetD
     return obj_msg
 
 
-def make_query_goal_msg(obj_desc: ObjectDesignatorDescription) -> QueryGoal:
+def make_query_goal_msg(obj_desc: ObjectDesignatorDescription) -> 'QueryGoal':
     """
     Creates a QueryGoal message from a PyCRAM Object designator description for the use of Querying RobotKudo.
 
@@ -51,6 +57,7 @@ def query(object_desc: ObjectDesignatorDescription) -> ObjectDesignatorDescripti
     :return: An object designator for the found object, if there was an object that fitted the description.
     """
     global query_result
+
     def active_callback():
         rospy.loginfo("Send query to Robokudo")
 
@@ -80,15 +87,5 @@ def query(object_desc: ObjectDesignatorDescription) -> ObjectDesignatorDescripti
         pose = lt.transform_pose(pose, "map")
 
         pose_candidates[source] = pose
-        # pose_candidates.append(pose)
-
-    # for possible_pose in query_result.res[0].pose:
-    #     pose = Pose.from_pose_stamped(possible_pose)
-    #     pose.frame = BulletWorld.current_bullet_world.robot.get_link_tf_frame(pose.frame)
-
-    #     lt = LocalTransformer()
-    #     pose = lt.transform_pose(pose, "map")
-
-    #     pose_candidates.append(pose)
 
     return pose_candidates
