@@ -10,6 +10,8 @@ from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column, Session, relationship, \
     declared_attr
 
+from ..enums import ObjectType
+
 
 def get_pycram_version_from_git() -> Optional[str]:
     """
@@ -224,5 +226,5 @@ class RobotState(PoseMixin, Base):
     torso_height: Mapped[float]
     """The torso height of the robot."""
 
-    type: Mapped[str]
+    type: Mapped[ObjectType]
     """The type of the robot."""
