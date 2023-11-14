@@ -1,19 +1,27 @@
 import rospy
 import actionlib
-import sys
-import os
-try:
-    from robokudo_msgs.msg import ObjectDesignator as robokudo_ObjetDesignator
-    from robokudo_msgs.msg import QueryAction, QueryGoal, QueryResult
-except ModuleNotFoundError as e:
-    rospy.logwarn(f"Could not import RoboKudo messages, RoboKudo will not be available")
-    sys.stderr.write(f'\033[93m' + f"[Warning] Could not import RoboKudo messages, RoboKudo will not be available" + '\033[0m')
+
 
 from ..designator import ObjectDesignatorDescription
 from ..pose import Pose
 from ..local_transformer import LocalTransformer
 from ..bullet_world import BulletWorld
 from ..enums import ObjectType
+
+is_init = False
+
+
+def init_robokudo_interface():
+    global is_init
+    if is_init:
+        return
+    try:
+        from robokudo_msgs.msg import ObjectDesignator as robokudo_ObjetDesignator
+        from robokudo_msgs.msg import QueryAction, QueryGoal, QueryResult
+        is_init = True
+        rospy.loginfo("Successfully initialized robokudo interface")
+    except ModuleNotFoundError as e:
+        rospy.logwarn(f"Could not import RoboKudo messages, RoboKudo interface could not be initialized")
 
 
 def msg_from_obj_desig(obj_desc: ObjectDesignatorDescription) -> 'robokudo_ObjetDesignator':
@@ -56,6 +64,7 @@ def query(object_desc: ObjectDesignatorDescription) -> ObjectDesignatorDescripti
     :param object_desc: The object designator description which describes the object that should be perceived
     :return: An object designator for the found object, if there was an object that fitted the description.
     """
+    init_robokudo_interface()
     global query_result
 
     def active_callback():
