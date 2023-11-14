@@ -32,30 +32,6 @@ class MoveMotion(PoseMixin, Motion):
     id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
 
 
-class PickUpMotion(ObjectMixin, Motion):
-    """
-    ORM class of pycram.designators.motion_designator.PickUpMotion
-
-    :ivar arm: (String) Name of the arm used
-    :ivar grasp: (String) Type of grasp used
-    """
-
-    id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
-    arm: Mapped[str]
-    grasp: Mapped[str]
-
-
-class PlaceMotion(PoseMixin, ObjectMixin, Motion):
-    """
-    ORM class of pycram.designators.motion_designator.PlaceMotion
-
-    :ivar arm: (String) Name of the arm used
-    """
-
-    id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
-    arm: Mapped[str]
-
-
 class AccessingMotion(Motion):
     """
     ORM class of pycram.designators.motion_designator.AccessingMotion

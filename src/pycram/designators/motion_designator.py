@@ -8,8 +8,7 @@ from ..plan_failures import PerceptionObjectNotFound
 from ..process_module import ProcessModuleManager
 from ..robot_descriptions import robot_description
 from ..designator import MotionDesignatorDescription
-from ..orm.motion_designator import (MoveMotion as ORMMoveMotion, PickUpMotion as ORMPickUpMotion,
-                                     PlaceMotion as ORMPlaceMotion, AccessingMotion as ORMAccessingMotion,
+from ..orm.motion_designator import (MoveMotion as ORMMoveMotion, AccessingMotion as ORMAccessingMotion,
                                      MoveTCPMotion as ORMMoveTCPMotion, LookingMotion as ORMLookingMotion,
                                      MoveGripperMotion as ORMMoveGripperMotion, DetectingMotion as ORMDetectingMotion,
                                      WorldStateDetectingMotion as ORMWorldStateDetectingMotion,
@@ -100,20 +99,6 @@ class PickUpMotion(MotionDesignatorDescription):
             pm_manager = ProcessModuleManager.get_manager()
             return pm_manager.pick_up().execute(self)
 
-        def to_sql(self) -> ORMPickUpMotion:
-            return ORMPickUpMotion(self.arm, self.grasp)
-
-        def insert(self, session: Session, **kwargs) -> ORMPickUpMotion:
-            motion = super().insert(session)
-
-            od = self.object_desig.insert(session)
-            motion.object_id = od.id
-
-            session.add(motion)
-            session.commit()
-
-            return motion
-
     def __init__(self, object_desig: ObjectDesignatorDescription.Object, grasp: str = None, arm: str = None,
                  resolver: Callable = None):
         """
@@ -168,23 +153,6 @@ class PlaceMotion(MotionDesignatorDescription):
         def perform(self):
             pm_manager = ProcessModuleManager.get_manager()
             return pm_manager.place().execute(self)
-
-        def to_sql(self) -> ORMPlaceMotion:
-            return ORMPlaceMotion(self.arm)
-
-        def insert(self, session: Session, *args, **kwargs) -> ORMPlaceMotion:
-            motion = super().insert(session)
-
-            od = self.object.insert(session)
-            motion.object_id = od.id
-
-            pose = self.target.insert(session)
-            motion.pose_id = pose.id
-
-            session.add(motion)
-            session.commit()
-
-            return motion
 
     def __init__(self, object_desig: ObjectDesignatorDescription.Object, target: Pose,
                  arm: Optional[str] = None, resolver: Optional[Callable] = None):
