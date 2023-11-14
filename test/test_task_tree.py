@@ -34,11 +34,12 @@ class TaskTreeTestCase(test_bullet_world.BulletWorldTest):
 
         # print(anytree.RenderTree(tt))
 
-        self.assertEqual(9, len(tt.root))
-        self.assertEqual(4, len(tt.root.leaves))
+        self.assertEqual(15, len(tt.root))
+        self.assertEqual(10, len(tt.root.leaves))
         names = [node.code.function.__name__ for node in anytree.PreOrderIter(tt.root)]
         self.assertEqual(names, ["no_operation", "plan", "perform", "perform", "perform", "perform", "perform",
-                                 "perform", "perform"])
+                                 "perform", "perform", "perform", "perform", "perform", "perform", "perform", "perform"]
+                         )
 
         # check that all nodes succeeded
         for node in anytree.PreOrderIter(tt.root):
@@ -75,11 +76,12 @@ class TaskTreeTestCase(test_bullet_world.BulletWorldTest):
             self.plan()
             tt = pycram.task.task_tree
 
-            self.assertEqual(9, len(tt.root))
-            self.assertEqual(4, len(tt.root.leaves))
+            self.assertEqual(15, len(tt.root))
+            self.assertEqual(10, len(tt.root.leaves))
             names = [node.code.function.__name__ for node in anytree.PreOrderIter(tt.root)]
             self.assertEqual(names, ["simulation", "plan", "perform", "perform", "perform", "perform", "perform",
-                                     "perform", "perform"])
+                                     "perform", "perform", "perform", "perform", "perform", "perform", "perform",
+                                     "perform"])
 
         self.assertEqual(len(pycram.task.task_tree), 1)
 

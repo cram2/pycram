@@ -84,7 +84,7 @@ class MoveTCPMotion(PoseMixin, Motion):
     """
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
-    arm: Mapped[str] = mapped_column(init=False)
+    arm: Mapped[str]
 
 
 class LookingMotion(PoseMixin, Motion):
