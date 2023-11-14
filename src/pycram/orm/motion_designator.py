@@ -6,14 +6,13 @@ The MotionDesignator class is the base class that defines the polymorphic behavi
 classes.
 """
 
-
-from .base import Base, Position, MapperArgsMixin, PositionMixin, QuaternionMixin
+from .base import MapperArgsMixin, Designator, PoseMixin
 from .object_designator import Object, ObjectMixin
-from sqlalchemy.orm import Mapped, mapped_column, MappedAsDataclass, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey
 
 
-class Motion(MappedAsDataclass, Base):
+class Motion(MapperArgsMixin, Designator):
     """
     ORM class of pycram.designators.motion_designator.MotionDesignatorDescription
 
@@ -21,16 +20,11 @@ class Motion(MappedAsDataclass, Base):
     :ivar dtype: (String) Polymorphic discriminator
     """
 
-    id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True, init=False)
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Designator.__tablename__}.id'), primary_key=True, init=False)
     dtype: Mapped[str] = mapped_column(init=False)
 
-    __mapper_args__ = {
-        "polymorphic_identity": "Motion",
-        "polymorphic_on": "dtype",
-    }
 
-
-class MoveMotion(PositionMixin, QuaternionMixin, MapperArgsMixin, Motion):
+class MoveMotion(PoseMixin, Motion):
     """
     ORM class of pycram.designators.motion_designator.MoveMotion
     """
@@ -38,35 +32,31 @@ class MoveMotion(PositionMixin, QuaternionMixin, MapperArgsMixin, Motion):
     id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
 
 
-class PickUpMotion(ObjectMixin, MapperArgsMixin, Motion):
+class PickUpMotion(ObjectMixin, Motion):
     """
     ORM class of pycram.designators.motion_designator.PickUpMotion
 
     :ivar arm: (String) Name of the arm used
-    :ivar gripper: (String) Name of the gripper used
     :ivar grasp: (String) Type of grasp used
     """
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
-    arm: Mapped[str] = mapped_column(init=False)
-    gripper: Mapped[str] = mapped_column(init=False)
-    grasp: Mapped[str] = mapped_column(init=False)
+    arm: Mapped[str]
+    grasp: Mapped[str]
 
 
-class PlaceMotion(PositionMixin, QuaternionMixin, ObjectMixin, MapperArgsMixin, Motion):
+class PlaceMotion(PoseMixin, ObjectMixin, Motion):
     """
     ORM class of pycram.designators.motion_designator.PlaceMotion
 
     :ivar arm: (String) Name of the arm used
-    :ivar gripper: (String) Name of the gripper used
     """
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
-    arm: Mapped[str] = mapped_column(init=False)
-    gripper: Mapped[str] = mapped_column(init=False)
+    arm: Mapped[str]
 
 
-class AccessingMotion(MapperArgsMixin, Motion):
+class AccessingMotion(Motion):
     """
     ORM class of pycram.designators.motion_designator.AccessingMotion
 
@@ -86,7 +76,7 @@ class AccessingMotion(MapperArgsMixin, Motion):
     drawer_handle: Mapped[str] = mapped_column(init=False)
 
 
-class MoveTCPMotion(PositionMixin, QuaternionMixin, MapperArgsMixin, Motion):
+class MoveTCPMotion(PoseMixin, Motion):
     """
     ORM class of pycram.designators.motion_designator.MoveTCPMotion
 
@@ -97,7 +87,7 @@ class MoveTCPMotion(PositionMixin, QuaternionMixin, MapperArgsMixin, Motion):
     arm: Mapped[str] = mapped_column(init=False)
 
 
-class LookingMotion(PositionMixin, QuaternionMixin, ObjectMixin, MapperArgsMixin, Motion):
+class LookingMotion(PoseMixin, Motion):
     """
     ORM class of pycram.designators.motion_designator.LookingMotion
     """
@@ -105,29 +95,26 @@ class LookingMotion(PositionMixin, QuaternionMixin, ObjectMixin, MapperArgsMixin
     id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
 
 
-class MoveGripperMotion(MapperArgsMixin, Motion):
+class MoveGripperMotion(Motion):
     """
     ORM class of pycram.designators.motion_designator.MoveGripperMotion
     """
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
-    motion: Mapped[str] = mapped_column(init=False)
-    gripper: Mapped[str] = mapped_column(init=False)
-    front_facing_axis: Mapped[int] = mapped_column(ForeignKey(f'{Position.__tablename__}.id'), init=False)
-    position: Mapped[Position] = relationship(init=False)
+    motion: Mapped[str]
+    gripper: Mapped[str]
 
 
-class DetectingMotion(MapperArgsMixin, Motion):
+class DetectingMotion(Motion):
     """
     ORM class of pycram.designators.motion_designator.DetectingMotion
     """
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
-    object_type: Mapped[str] = mapped_column(init=False)
-    cam_frame: Mapped[str] = mapped_column(init=False)
+    object_type: Mapped[str]
 
 
-class WorldStateDetectingMotion(MapperArgsMixin, Motion):
+class WorldStateDetectingMotion(Motion):
     """
     ORM class of pycram.designators.motion_designator.WorldStateDetectingMotion
     """
@@ -135,3 +122,20 @@ class WorldStateDetectingMotion(MapperArgsMixin, Motion):
     id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
     object_type: Mapped[str] = mapped_column(init=False)
 
+
+class OpeningMotion(Motion):
+    """
+    ORM class of pycram.designators.motion_designator.OpeningMotion
+    """
+
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
+    arm: Mapped[str]
+
+
+class ClosingMotion(Motion):
+    """
+    ORM class of pycram.designators.motion_designator.ClosingMotion
+    """
+
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
+    arm: Mapped[str]

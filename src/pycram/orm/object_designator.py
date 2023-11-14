@@ -1,6 +1,6 @@
 
-from pycram.orm.base import Base, MapperArgsMixin, PositionMixin, QuaternionMixin
-from sqlalchemy.orm import Mapped, mapped_column, MappedAsDataclass, declared_attr, relationship
+from pycram.orm.base import Base, MapperArgsMixin, PoseMixin
+from sqlalchemy.orm import Mapped, mapped_column, declared_attr, relationship
 from sqlalchemy import ForeignKey
 
 
@@ -22,7 +22,7 @@ class ObjectMixin:
         return relationship(Object.__tablename__, init=False)
 
 
-class Object(PositionMixin, QuaternionMixin, MappedAsDataclass, Base):
+class Object(PoseMixin, Base):
     """ORM class of pycram.designators.object_designator.ObjectDesignator"""
 
     dtype: Mapped[str] = mapped_column(init=False)
@@ -39,7 +39,7 @@ class ObjectPart(Object):
     """ORM Class of pycram.designators.object_designator.LocatedObject."""
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Object.__tablename__}.id'), primary_key=True, init=False)
-    part_of: Mapped[int] = mapped_column(ForeignKey(f'{Object.__tablename__}.id'), init=False)
+    # part_of: Mapped[int] = mapped_column(ForeignKey(f'{Object.__tablename__}.id'), init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": "ObjectPart",

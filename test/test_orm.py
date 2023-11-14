@@ -109,10 +109,10 @@ class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
         self.assertEqual(len(code_results), len(pycram.task.task_tree.root))
 
         position_results = self.session.query(pycram.orm.base.Position).all()
-        self.assertEqual(8, len(position_results))
+        self.assertEqual(12, len(position_results))
 
         quaternion_results = self.session.query(pycram.orm.base.Quaternion).all()
-        self.assertEqual(8, len(quaternion_results))
+        self.assertEqual(12, len(quaternion_results))
 
         park_arms_results = self.session.query(pycram.orm.action_designator.ParkArmsAction).all()
         self.assertEqual(0, len(park_arms_results))
@@ -145,7 +145,6 @@ class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
         self.plan()
         pycram.task.task_tree.root.insert(self.session, )
         metadata_result = self.session.query(pycram.orm.base.ProcessMetaData).first()
-        print(metadata_result)
         self.assertEqual(metadata_result.description, "Test")
 
 
@@ -194,12 +193,24 @@ class ORMObjectDesignatorTestCase(test_bullet_world.BulletWorldTest):
         tt = pycram.task.task_tree
         tt.insert(self.session)
         action_results = self.session.query(pycram.orm.action_designator.Action).all()
-        self.assertEqual(len(tt) - 2, len(action_results))
+        motion_results = self.session.query(pycram.orm.motion_designator.Motion).all()
+        self.assertEqual(len(tt) - 2, len(action_results) + len(motion_results))
 
 
 class RelationshipTestCase(test_task_tree.TaskTreeTestCase):
     engine: sqlalchemy.engine.Engine
     session: sqlalchemy.orm.Session
+
+    @with_tree
+    def plan(self):
+        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], ["left"])
+        self.assertEqual(description.ground().object_designator.name, "milk")
+        with simulated_robot:
+            action_designator.NavigateAction.Action(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            action_designator.MoveTorsoAction.Action(0.3).perform()
+            action_designator.PickUpAction.Action(object_description.resolve(), "left", "front").perform()
+            description.resolve().perform()
 
     @classmethod
     def setUpClass(cls):
@@ -230,17 +241,69 @@ class RelationshipTestCase(test_task_tree.TaskTreeTestCase):
         self.plan()
         pycram.task.task_tree.root.insert(self.session)
         result = self.session.query(pycram.orm.base.Position).all()
-        self.assertTrue(all([r.process_metadata is not None for r in result]), msg="Failing, cause the "
-                                                                                       " last position elements"
-                                                                                       " metadata_id is null; probably"
-                                                                                       " a bug")
+        self.assertTrue(all([r.process_metadata is not None for r in result]))
 
     def test_task_tree_node_parents(self):
         self.plan()
         pycram.orm.base.ProcessMetaData().description = "taskTest"
         pycram.task.task_tree.root.insert(self.session)
         r = self.session.query(pycram.orm.task.TaskTreeNode).all()
-        self.assertTrue([r[i].parent_table_entry == r[r[i].parent-1] for i in range(len(r)) if r[i].parent is not None])
+        self.assertTrue([r[i].parent == r[r[i].parent_id - 1] for i in range(len(r)) if r[i].parent_id is not None])
+
+
+class MotionDesigTest(test_bullet_world.BulletWorldTest):
+    engine: sqlalchemy.engine.Engine
+    session: sqlalchemy.orm.Session
+
+    @with_tree
+    def plan(self):
+        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        description = action_designator.PlaceAction(object_description, [Pose([1.3, 0.9, 0.9], [0, 0, 0, 1])], ["left"])
+        self.assertEqual(description.ground().object_designator.name, "milk")
+        with simulated_robot:
+            action_designator.NavigateAction.Action(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            action_designator.MoveTorsoAction.Action(0.3).perform()
+            action_designator.LookAtAction.Action(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            action_designator.PickUpAction.Action(object_description.resolve(), "left", "front").perform()
+            action_designator.SetGripperAction.Action("right", "open").perform()
+            description.resolve().perform()
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
+
+    def setUp(self):
+        super().setUp()
+        pycram.orm.base.Base.metadata.create_all(self.engine)
+        self.session = sqlalchemy.orm.Session(bind=self.engine)
+        self.session.commit()
+
+    def tearDown(self):
+        super().tearDown()
+        pycram.task.reset_tree()
+        pycram.orm.base.ProcessMetaData.reset()
+        pycram.orm.base.Base.metadata.drop_all(self.engine)
+        self.session.close()
+
+    @classmethod
+    def TearDownClass(cls):
+        super().tearDownClass()
+        cls.session.commit()
+        cls.session.close()
+
+    def testTest(self):
+        self.plan()
+        pycram.orm.base.ProcessMetaData().description = "Unittest"
+        tt = pycram.task.task_tree
+        tt.insert(self.session)
+
+    def test_insert_base_motion(self):
+        motion = pycram.orm.motion_designator.Motion()
+        self.assertIsNone(motion.id)
+        self.session.add(motion)
+        self.session.commit()
+        self.assertIsNotNone(motion.id)
 
 
 if __name__ == '__main__':

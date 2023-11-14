@@ -98,7 +98,7 @@ class Code:
 
         if self_ and getattr(self_, "insert", None):
             designator = self_.insert(session)
-            code.designator = designator.id
+            code.designator_id = designator.id
 
         # get and set metadata
         metadata = ProcessMetaData().insert(session)
@@ -219,14 +219,14 @@ class TaskTreeNode(anytree.NodeMixin):
 
         # convert self to orm object
         node = self.to_sql()
-        node.code = code.id
+        node.code_id = code.id
 
         # get and set metadata
         metadata = ProcessMetaData().insert(session)
         node.process_metadata_id = metadata.id
 
         # set parent to id from constructor
-        node.parent = parent_id
+        node.parent_id = parent_id
 
         # add the node to database to retrieve the new id
         session.add(node)

@@ -30,7 +30,7 @@ class _Base(DeclarativeBase):
         str: String(255)
     }
 
-    id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True, init=False)
+    id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True, init=False, nullable=False)
     """Unique integer ID as auto incremented primary key."""
 
     @declared_attr
@@ -38,7 +38,7 @@ class _Base(DeclarativeBase):
         return self.__name__
 
 
-class Base(_Base):
+class Base(_Base, MappedAsDataclass):
     """
     Base class to add orm functionality to all pycram mappings
     """
@@ -169,7 +169,21 @@ class ProcessMetaData(MappedAsDataclass, _Base):
         cls._self = None
 
 
-class Position(MappedAsDataclass, Base):
+class Designator(Base):
+    """ORM Class holding every performed action and motion serving as every actions and motions root."""
+
+    @declared_attr
+    def dtype(self) -> Mapped[str]:
+        return mapped_column(String(255), nullable=False, init=False)
+
+    @declared_attr
+    def __mapper_args__(self):
+        return {
+            "polymorphic_on": "dtype",
+        }
+
+
+class Position(Base):
     """ORM Class for 3D positions."""
 
     x: Mapped[float]
@@ -177,7 +191,7 @@ class Position(MappedAsDataclass, Base):
     z: Mapped[float]
 
 
-class Quaternion(MappedAsDataclass, Base):
+class Quaternion(Base):
     """ORM Class for Quaternions."""
 
     x: Mapped[float]
@@ -186,14 +200,14 @@ class Quaternion(MappedAsDataclass, Base):
     w: Mapped[float]
 
 
-class Pose(PositionMixin, QuaternionMixin, MappedAsDataclass, Base):
+class Pose(PositionMixin, QuaternionMixin, Base):
     """ORM Class for Poses."""
 
     time: Mapped[datetime.datetime]
     frame: Mapped[str]
 
 
-class Color(MappedAsDataclass, Base):
+class Color(Base):
     """ORM Class for Colors."""
 
     r: Mapped[float]
@@ -202,7 +216,7 @@ class Color(MappedAsDataclass, Base):
     alpha: Mapped[float]
 
 
-class RobotState(PoseMixin, MappedAsDataclass, Base):
+class RobotState(PoseMixin, Base):
     """ORM Representation of a robots state."""
 
     pose_to_init = True

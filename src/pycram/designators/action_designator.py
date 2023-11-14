@@ -11,7 +11,10 @@ from .object_designator import ObjectDesignatorDescription, BelieveObject, Objec
 from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, NavigateAction as ORMNavigateAction,
                                      PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction,
                                      MoveTorsoAction as ORMMoveTorsoAction, SetGripperAction as ORMSetGripperAction,
-                                     Action as ORMAction)
+                                     Action as ORMAction, LookAtAction as ORMLookAtAction,
+                                     DetectAction as ORMDetectAction, TransportAction as ORMTransportAction,
+                                     OpenAction as ORMOpenAction, CloseAction as ORMCloseAction)
+
 from ..orm.base import Quaternion, Position, Base, RobotState, ProcessMetaData
 from ..plan_failures import ObjectUnfetchable, ReachabilityFailure
 from ..robot_descriptions import robot_description
@@ -42,10 +45,10 @@ class MoveTorsoAction(ActionDesignatorDescription):
         def perform(self) -> None:
             MoveJointsMotion([robot_description.torso_joint], [self.position]).resolve().perform()
 
-        def to_sql(self):
+        def to_sql(self) -> ORMMoveTorsoAction:
             return ORMMoveTorsoAction(self.position)
 
-        def insert(self, session: sqlalchemy.orm.session.Session, **kwargs):
+        def insert(self, session: sqlalchemy.orm.session.Session, **kwargs) -> ORMMoveTorsoAction:
             action = super().insert(session)
             session.add(action)
             session.commit()
@@ -99,10 +102,10 @@ class SetGripperAction(ActionDesignatorDescription):
         def perform(self) -> None:
             MoveGripperMotion(gripper=self.gripper, motion=self.motion).resolve().perform()
 
-        def to_sql(self) -> Base:
+        def to_sql(self) -> ORMSetGripperAction:
             return ORMSetGripperAction(self.gripper, self.motion)
 
-        def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
+        def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> ORMSetGripperAction:
             action = super().insert(session)
             session.add(action)
             session.commit()
@@ -301,13 +304,10 @@ class PickUpAction(ActionDesignatorDescription):
             return ORMPickUpAction(self.arm, self.grasp)
 
         def insert(self, session: sqlalchemy.orm.session.Session, **kwargs) -> ORMPickUpAction:
-            action: ORMPickUpAction = super().insert(session)
-            # try to create the object designator
-            if self.object_at_execution:
-                od = self.object_at_execution.insert(session, )
-                action.object_id = od.id
-            else:
-                action.object_id = None
+            action = super().insert(session)
+
+            od = self.object_at_execution.insert(session)
+            action.object_id = od.id
 
             session.add(action)
             session.commit()
@@ -377,26 +377,15 @@ class PlaceAction(ActionDesignatorDescription):
         def insert(self, session, *args, **kwargs) -> ORMPlaceAction:
             action = super().insert(session)
 
-            if self.object_designator:
-                od = self.object_designator.insert(session, )
-                action.object_id = od.id
-            else:
-                action.object_id = None
+            od = self.object_designator.insert(session)
+            action.object_id = od.id
 
-            if self.target_location:
-                position = Position(*self.target_location.position_as_list())
-                orientation = Quaternion(*self.target_location.orientation_as_list())
-                session.add(position)
-                session.add(orientation)
-                session.commit()
-                action.position_id = position.id
-                action.orientation_id = orientation.id
-            else:
-                action.position_id = None
-                action.orientation_id = None
+            pose = self.target_location.insert(session)
+            action.pose_id = pose.id
 
             session.add(action)
             session.commit()
+
             return action
 
     def __init__(self, object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
@@ -448,25 +437,11 @@ class NavigateAction(ActionDesignatorDescription):
             return ORMNavigateAction()
 
         def insert(self, session, *args, **kwargs) -> ORMNavigateAction:
-
-            # create the navigate action orm object
             action = super().insert(session)
 
-            # initialize position and orientation
-            position = Position(*self.target_location.position_as_list())
-            position.process_metadata_id = action.process_metadata_id
-            orientation = Quaternion(*self.target_location.orientation_as_list())
-            orientation.process_metadata_id = action.process_metadata_id
+            pose = self.target_location.insert(session)
+            action.pose_id = pose.id
 
-            # add those to the database and get the primary keys
-            session.add(position)
-            session.add(orientation)
-            session.commit()
-            # set foreign keys
-            action.position_id = position.id
-            action.orientation_id = orientation.id
-
-            # add it to the db
             session.add(action)
             session.commit()
 
@@ -540,11 +515,22 @@ class TransportAction(ActionDesignatorDescription):
             PlaceAction.Action(self.object_designator, self.arm, self.target_location).perform()
             ParkArmsAction.Action(Arms.BOTH).perform()
 
-        def to_sql(self) -> Base:
-            raise NotImplementedError()
+        def to_sql(self) -> ORMTransportAction:
+            return ORMTransportAction(self.arm)
 
-        def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
-            raise NotImplementedError()
+        def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> ORMTransportAction:
+            action = super().insert(session)
+
+            od = self.object_designator.insert(session)
+            action.object_id = od.id
+
+            pose = self.target_location.insert(session)
+            action.pose_id = pose.id
+
+            session.add(action)
+            session.commit()
+
+            return action
 
     def __init__(self,
                  object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
@@ -593,11 +579,18 @@ class LookAtAction(ActionDesignatorDescription):
         def perform(self) -> None:
             LookingMotion(target=self.target).resolve().perform()
 
-        def to_sql(self) -> Base:
-            raise NotImplementedError()
+        def to_sql(self) -> ORMLookAtAction:
+            return ORMLookAtAction()
 
-        def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
-            raise NotImplementedError()
+        def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> ORMLookAtAction:
+            action = super().insert(session)
+
+            pose = self.target.insert(session)
+            action.pose_id = pose.id
+
+            session.add(action)
+            session.commit()
+            return action
 
     def __init__(self, targets: List[Pose], resolver=None):
         """
@@ -634,11 +627,19 @@ class DetectAction(ActionDesignatorDescription):
         def perform(self) -> Any:
             return DetectingMotion(object_type=self.object_designator.type).resolve().perform()
 
-        def to_sql(self) -> Base:
-            raise NotImplementedError()
+        def to_sql(self) -> ORMDetectAction:
+            return ORMDetectAction()
 
-        def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
-            raise NotImplementedError()
+        def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> ORMDetectAction:
+            action = super().insert(session)
+
+            od = self.object_designator.insert(session)
+            action.object_id = od.id
+
+            session.add(action)
+            session.commit()
+
+            return action
 
     def __init__(self, object_designator_description: ObjectDesignatorDescription, resolver=None):
         """
@@ -682,11 +683,19 @@ class OpenAction(ActionDesignatorDescription):
             MoveTCPMotion(self.object_designator.part_pose, self.arm).resolve().perform()
             OpeningMotion(self.object_designator, self.arm).resolve().perform()
 
-        def to_sql(self) -> Base:
-            raise NotImplementedError()
+        def to_sql(self) -> ORMOpenAction:
+            return ORMOpenAction(self.arm)
 
-        def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
-            raise NotImplementedError()
+        def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> ORMOpenAction:
+            action = super().insert(session)
+
+            op = self.object_designator.insert(session)
+            action.object_id = op.id
+
+            session.add(action)
+            session.commit()
+
+            return action
 
     def __init__(self, object_designator_description: ObjectPart, arms: List[str], resolver=None):
         """
@@ -728,15 +737,24 @@ class CloseAction(ActionDesignatorDescription):
         Arm that should be used for closing
         """
 
+        @with_tree
         def perform(self) -> Any:
             MoveTCPMotion(self.object_designator.part_pose, self.arm).resolve().perform()
             ClosingMotion(self.object_designator, self.arm).resolve().perform()
 
-        def to_sql(self) -> Base:
-            raise NotImplementedError()
+        def to_sql(self) -> ORMCloseAction:
+            return ORMCloseAction(self.arm)
 
-        def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
-            raise NotImplementedError()
+        def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> ORMCloseAction:
+            action = super().insert(session)
+
+            op = self.object_designator.insert(session)
+            action.id = op.id
+
+            session.add(action)
+            session.commit()
+
+            return action
 
     def __init__(self, object_designator_description: ObjectPart, arms: List[str],
                  resolver=None):
