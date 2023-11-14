@@ -5,22 +5,37 @@ from ..robot_descriptions import robot_description
 from ..bullet_world import BulletWorld, Object
 
 from typing import List, Tuple, Dict
+from geometry_msgs.msg import PoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
 
-topics = list(map(lambda x: x[0], rospy.get_published_topics()))
-try:
-    from giskardpy.python_interface import GiskardWrapper
-    from geometry_msgs.msg import PoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
-    from giskard_msgs.msg import WorldBody, MoveResult, CollisionEntry
-    from giskard_msgs.srv import UpdateWorldRequest, UpdateWorld, UpdateWorldResponse, RegisterGroupResponse
+giskard_wrapper = None
+giskard_update_service = None
+is_init = False
 
-    if "/giskard/command/goal" in topics:
-        giskard_wrapper = GiskardWrapper()
-        giskard_update_service = rospy.ServiceProxy("/giskard/update_world", UpdateWorld)
-except ModuleNotFoundError as e:
-    rospy.logwarn("No Giskard topic available")
 
+def init_giskard_interface():
+    global giskard_wrapper
+    global giskard_update_service
+    global is_init
+    if is_init:
+        return
+    topics = list(map(lambda x: x[0], rospy.get_published_topics()))
+    try:
+        from giskardpy.python_interface import GiskardWrapper
+        from giskard_msgs.msg import WorldBody, MoveResult, CollisionEntry
+        from giskard_msgs.srv import UpdateWorldRequest, UpdateWorld, UpdateWorldResponse, RegisterGroupResponse
+
+        if "/giskard/command/goal" in topics:
+            giskard_wrapper = GiskardWrapper()
+            giskard_update_service = rospy.ServiceProxy("/giskard/update_world", UpdateWorld)
+            is_init = True
+            rospy.loginfo("Successfully initialized Giskard interface")
+        else:
+            rospy.logwarn("Giskard is not running, could not initialize Giskard interface")
+    except ModuleNotFoundError as e:
+        rospy.logwarn("Failed to import Giskard messages, giskard interface could not be initialized")
 
 # Believe state management between pycram and giskard
+
 
 def initial_adding_objects() -> None:
     """
@@ -53,6 +68,7 @@ def sync_worlds() -> None:
     belief state such that it matches the objects present in the BulletWorld and moving the robot to the position it is
     currently at in the BulletWorld.
     """
+    init_giskard_interface()
     add_gripper_groups()
     bullet_object_names = set()
     for obj in BulletWorld.current_bullet_world.objects:
