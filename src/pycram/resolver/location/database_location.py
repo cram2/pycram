@@ -44,10 +44,10 @@ class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLoca
 
         # create subqueries, such that filters are executed before joins
         # filter for successful tasks
-        filtered_tasks = self.session.query(TaskTreeNode.code).filter(TaskTreeNode.status == "SUCCEEDED").subquery()
+        filtered_tasks = self.session.query(TaskTreeNode.code_id).filter(TaskTreeNode.status == "SUCCEEDED").subquery()
 
         # remove all no operation codes
-        filtered_code = self.session.query(Code.id, Code.designator).filter(Code.designator != None).subquery()
+        filtered_code = self.session.query(Code.id, Code.designator_id).filter(Code.designator_id != None).subquery()
 
         # join task and code
         filtered_code = self.session.query(filtered_code.c.designator).\
@@ -59,8 +59,8 @@ class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLoca
 
         query = self.session.query(PickUpAction.arm, PickUpAction.grasp,
                                    RobotState.torso_height, robot_pos.x, robot_pos.y, ). \
-            join(filtered_code, filtered_code.c.designator == PickUpAction.id). \
-            join(PickUpAction, PickUpAction.id == filtered_code.c.designator). \
+            join(filtered_code, filtered_code.c.designator_id == PickUpAction.id). \
+            join(PickUpAction, PickUpAction.id == filtered_code.c.designator_id). \
             join(RobotState, RobotState.id == PickUpAction.robot_state_id). \
             join(robot_pos, RobotState.pose.position_id == robot_pos.id). \
             join(filtered_objects, filtered_objects.c.id == PickUpAction.object_id). \

@@ -2,11 +2,9 @@ import dataclasses
 from typing import List, Union, Optional, Callable, Tuple, Iterable
 import sqlalchemy.orm
 
-from ..bullet_world import BulletWorld, Object as BulletWorldObject
 from ..designator import DesignatorDescription, ObjectDesignatorDescription
-from ..orm.base import (Position as ORMPosition, Quaternion as ORMQuaternion, ProcessMetaData)
-from ..orm.object_designator import (Object as ORMObjectDesignator, BelieveObject as ORMBelieveObject,
-                                     ObjectPart as ORMObjectPart)
+from ..orm.base import ProcessMetaData
+from ..orm.object_designator import (BelieveObject as ORMBelieveObject, ObjectPart as ORMObjectPart)
 from ..pose import Pose
 
 
@@ -51,12 +49,14 @@ class ObjectPart(ObjectDesignatorDescription):
             obj = self.to_sql()
             metadata = ProcessMetaData().insert(session)
             obj.process_metadata_id = metadata.id
+            pose = self.part_pose.insert(session)
+            obj.pose_id = pose.id
             # try to create the part_of object
-            if self.part_of:
-                part = self.part_of.insert(session)
-                obj.part_of = part.id
-            else:
-                obj.part_of = None
+            # if self.part_of:
+            #     part = self.part_of.insert(session)
+            #     obj.part_of = part.id
+            # else:
+            #     obj.part_of = None
 
             session.add(obj)
             session.commit()

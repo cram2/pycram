@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from copy import copy
 from inspect import isgenerator, isgeneratorfunction
 
-import sqlalchemy
+from sqlalchemy.orm.session import Session
 
 from .bullet_world import (Object as BulletWorldObject, BulletWorld)
 from .helper import GeneratorList, bcolors
@@ -21,6 +21,7 @@ import logging
 
 from .orm.action_designator import (Action as ORMAction)
 from .orm.object_designator import (Object as ORMObjectDesignator)
+from .orm.motion_designator import (Motion as ORMMotionDesignator)
 
 from .orm.base import Quaternion, Position, Base, RobotState, ProcessMetaData
 from .task import with_tree
@@ -375,6 +376,7 @@ class MotionDesignatorDescription(DesignatorDescription):
         every motion designator.
         """
 
+        @with_tree
         def perform(self):
             """
             Passes this designator to the process module for execution.
@@ -384,29 +386,32 @@ class MotionDesignatorDescription(DesignatorDescription):
             raise NotImplementedError()
             # return ProcessModule.perform(self)
 
+        def to_sql(self) -> ORMMotionDesignator:
+            """
+            Create an ORM object that corresponds to this description.
+
+            :return: The created ORM object.
+            """
+            return ORMMotionDesignator()
+
+        def insert(self, session: Session, *args, **kwargs) -> ORMMotionDesignator:
+            """
+            Add and commit this and all related objects to the session.
+            Auto-Incrementing primary keys and foreign keys have to be filled by this method.
+
+            :param session: Session with a database that is used to add and commit the objects
+            :return: The completely instanced ORM motion.
+            """
+            metadata = ProcessMetaData().insert(session)
+
+            motion = self.to_sql()
+            motion.process_metadata_id = metadata.id
+
+            return motion
+
     def ground(self) -> Motion:
         """Fill all missing parameters and pass the designator to the process module. """
         raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
-
-    def to_sql(self) -> Base:
-        """
-        Create an ORM object that corresponds to this description.
-
-        :return: The created ORM object.
-        """
-        raise NotImplementedError(f"{type(self)} has no implementation of to_sql. Feel free to implement it.")
-
-    def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
-        """
-        Add and commit this and all related objects to the session.
-        Auto-Incrementing primary keys and foreign keys have to be filled by this method.
-
-        :param session: Session with a database that is used to add and commit the objects
-        :param args: Possible extra arguments
-        :param kwargs: Possible extra keyword arguments
-        :return: The completely instanced ORM object
-        """
-        raise NotImplementedError(f"{type(self)} has no implementation of insert. Feel free to implement it.")
 
     def __init__(self, resolver=None):
         """
@@ -497,7 +502,7 @@ class ActionDesignatorDescription(DesignatorDescription):
             """
             raise NotImplementedError(f"{type(self)} has no implementation of to_sql. Feel free to implement it.")
 
-        def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> ORMAction:
+        def insert(self, session: Session, *args, **kwargs) -> ORMAction:
             """
             Add and commit this and all related objects to the session.
             Auto-Incrementing primary keys and foreign keys have to be filled by this method.
@@ -605,7 +610,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
             """
             return ORMObjectDesignator(self.type, self.name)
 
-        def insert(self, session: sqlalchemy.orm.session.Session) -> ORMObjectDesignator:
+        def insert(self, session: Session) -> ORMObjectDesignator:
             """
             Add and commit this and all related objects to the session.
             Auto-Incrementing primary keys and foreign keys have to be filled by this method.
@@ -614,20 +619,14 @@ class ObjectDesignatorDescription(DesignatorDescription):
             :return: The completely instanced ORM object
             """
             metadata = ProcessMetaData().insert(session)
-            # insert position and orientation of object of the designator
-            orm_position = Position(*self.pose.position_as_list())
-            orm_position.process_metadata_id = metadata.id
-            orm_orientation = Quaternion(*self.pose.orientation_as_list())
-            orm_orientation.process_metadata_id = metadata.id
-            session.add(orm_position)
-            session.add(orm_orientation)
-            session.commit()
 
             # create object orm designator
             obj = self.to_sql()
             obj.process_metadata_id = metadata.id
-            obj.position_id = orm_position.id
-            obj.orientation_id = orm_orientation.id
+
+            pose = self.pose.insert(session)
+            obj.pose_id = pose.id
+
             session.add(obj)
             session.commit()
             return obj
