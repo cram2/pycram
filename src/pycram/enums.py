@@ -40,3 +40,17 @@ class Grasp(Enum):
     RIGHT = 2
     TOP = 3
 
+
+class ObjectType(Enum):
+    """
+    Enum for Object types to easier identify different objects
+    """
+    MILK = auto()
+    SPOON = auto()
+    BOWL = auto()
+    BREAKFAST_CEREAL = auto()
+    JEROEN_CUP = auto()
+    ROBOT = auto()
+    ENVIRONMENT = auto()
+    GENERIC_OBJECT = auto()
+

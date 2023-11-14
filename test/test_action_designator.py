@@ -4,6 +4,7 @@ from pycram.designators import action_designator, object_designator
 from pycram.robot_descriptions import robot_description
 from pycram.process_module import simulated_robot
 from pycram.pose import Pose
+from pycram.enums import ObjectType
 import pycram.enums
 import test_bullet_world
 import numpy as np
@@ -93,7 +94,7 @@ class TestActionDesignatorGrounding(test_bullet_world.BulletWorldTest):
         with simulated_robot:
             detected_object = description.resolve().perform()
         self.assertEqual(detected_object.name, "milk")
-        self.assertEqual(detected_object.type, "milk")
+        self.assertEqual(detected_object.type, ObjectType.MILK)
         self.assertEqual(detected_object.bullet_world_object, self.milk)
 
     # Skipped since open and close work only in the apartment at the moment
@@ -120,6 +121,18 @@ class TestActionDesignatorGrounding(test_bullet_world.BulletWorldTest):
             description.resolve().perform()
         self.assertEqual(description.ground().object_designator.name, "milk")
         dist = np.linalg.norm(np.array(self.milk.get_pose().position_as_list()) - np.array([-1.35, 0.78, 0.95]))
+        self.assertTrue(dist < 0.01)
+
+    def test_grasping(self):
+        self.milk.set_pose(Pose([-1.4, 1, 1]))
+        self.robot.set_pose(Pose([-2.14, 1.06, 0]))
+        milk_desig = object_designator.ObjectDesignatorDescription(names=["milk"])
+        description = action_designator.GraspingAction(["right"], milk_desig)
+        with simulated_robot:
+            description.resolve().perform()
+        dist = np.linalg.norm(
+            np.array(self.robot.get_link_pose(robot_description.get_tool_frame("right")).position_as_list()) -
+            np.array(self.milk.get_pose().position_as_list()))
         self.assertTrue(dist < 0.01)
 
 

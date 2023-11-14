@@ -1,6 +1,8 @@
 import sys
 import logging
 
+import tf
+
 if 'bullet_world' in sys.modules:
     logging.warning("(publisher) Make sure that you are not loading this module from pycram.bullet_world.")
 import rospkg
@@ -37,7 +39,7 @@ class LocalTransformer(TransformerROS):
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
-            cls._instance = super(LocalTransformer, cls).__new__(cls, *args, **kwargs)
+            cls._instance = super().__new__(cls, *args, **kwargs)
             cls._instance._initialized = False
         return cls._instance
 
@@ -53,6 +55,7 @@ class LocalTransformer(TransformerROS):
 
         # Since this file can't import bullet_world.py this holds the reference to the current_bullet_world
         self.bullet_world = None
+        self.shadow_world = None
 
         # If the singelton was already initialized
         self._initialized = True
@@ -132,6 +135,7 @@ class LocalTransformer(TransformerROS):
         for transform in bullet_object._current_link_transforms.values():
             transform.header.stamp = time
             self.setTransform(transform)
+
 
     def get_all_frames(self) -> List[str]:
         """
