@@ -338,7 +338,7 @@ def allow_gripper_collision(gripper: str) -> None:
     for gripper_group in get_gripper_group_names():
         if gripper in gripper_group or gripper == "all":
             giskard_wrapper.allow_collision(gripper_group, CollisionEntry.ALL)
-            
+
 
 @init_giskard_interface
 def get_gripper_group_names() -> List[str]:
