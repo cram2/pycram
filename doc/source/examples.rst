@@ -34,6 +34,7 @@ Interface Examples
 
 .. nbgallery::
     notebooks/giskard
+    notebooks/robokudo
 
 Object Relational Mapping
 =========================
