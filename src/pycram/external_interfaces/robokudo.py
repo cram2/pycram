@@ -36,7 +36,7 @@ def init_robokudo_interface(func: Callable) -> Callable:
             robokudo_action_client = create_robokudo_action_client()
             rospy.loginfo("Successfully initialized robokudo interface")
         else:
-            rospy.logwarn("There is no Query service running, could not initialize RoboKudo interface")
+            rospy.logwarn("RoboKudo is not running, could not initialize RoboKudo interface")
             return
 
         func(*args, **kwargs)
@@ -119,6 +119,9 @@ def query(object_desc: ObjectDesignatorDescription) -> ObjectDesignatorDescripti
     """
     query_result = robokudo_action_client(object_desc)
     pose_candidates = {}
+    if query_result.res == []:
+        rospy.logwarn("No suitable object could be found")
+        return
 
     for i in range(0, len(query_result.res[0].pose)):
         pose = Pose.from_pose_stamped(query_result.res[0].pose[i])
