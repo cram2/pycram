@@ -2,10 +2,12 @@ import rosnode
 import rospy
 import sys
 import rosnode
+import urdf_parser_py
 
 from ..pose import Pose
 from ..robot_descriptions import robot_description
 from ..bullet_world import BulletWorld, Object
+from ..robot_description import ManipulatorDescription
 
 from typing import List, Tuple, Dict, Callable
 from geometry_msgs.msg import PoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
@@ -68,7 +70,7 @@ def initial_adding_objects() -> None:
     """
     groups = giskard_wrapper.get_group_names()
     for obj in BulletWorld.current_bullet_world.objects:
-        if obj == BulletWorld.robot or len(obj.links) == 1:
+        if obj == BulletWorld.robot:
             continue
         name = obj.name + "_" + str(obj.id)
         if name not in groups:
@@ -127,7 +129,13 @@ def spawn_object(object: Object) -> None:
 
     :param object: BulletWorld object that should be spawned
     """
-    spawn_urdf(object.name + "_" + str(object.id), object.path, object.get_pose())
+    if len(object.links) == 1:
+        geometry = object.urdf_object.link_map[object.urdf_object.get_root()].collision.geometry
+        if isinstance(geometry, urdf_parser_py.urdf.Mesh):
+            filename = geometry.filename
+            spawn_mesh(object.name + "_" + str(object.id), filename, object.get_pose())
+    else:
+        spawn_urdf(object.name + "_" + str(object.id), object.path, object.get_pose())
 
 
 @init_giskard_interface
@@ -320,21 +328,27 @@ def achieve_close_container_goal(tip_link: str, environment_link: str) -> 'MoveR
 # Managing collisions
 
 @init_giskard_interface
-def allow_gripper_collision(gripper: str):
+def allow_gripper_collision(gripper: str) -> None:
     """
     Allows the specified gripper to collide with anything.
 
-    :param gripper: The gripper which can collide, either 'right', 'left' or 'both'
-    :return:
+    :param gripper: The gripper which can collide, either 'right', 'left' or 'all'
     """
     add_gripper_groups()
-    if gripper == "right":
-        giskard_wrapper.allow_collision("right_gripper", CollisionEntry.ALL)
-    elif gripper == "left":
-        giskard_wrapper.allow_collision("left_gripper", CollisionEntry.ALL)
-    elif gripper == "both":
-        giskard_wrapper.allow_collision("right_gripper", CollisionEntry.ALL)
-        giskard_wrapper.allow_collision("left_gripper", CollisionEntry.ALL)
+    for gripper_group in get_gripper_group_names():
+        if gripper in gripper_group or gripper == "all":
+            giskard_wrapper.allow_collision(gripper_group, CollisionEntry.ALL)
+            
+
+@init_giskard_interface
+def get_gripper_group_names() -> List[str]:
+    """
+    Returns a list of groups that are registered in giskard which have 'gripper' in their name.
+
+    :return: The list of gripper groups
+    """
+    groups = giskard_wrapper.get_group_names()
+    return list(filter(lambda elem: "gripper" in elem, groups))
 
 
 @init_giskard_interface
@@ -344,10 +358,14 @@ def add_gripper_groups() -> None:
 
     :return: Response of the RegisterGroup Service
     """
-    if "right_gripper" not in giskard_wrapper.get_group_names():
-        for gripper in ["left", "right"]:
-            root_link = robot_description.chains[gripper].gripper.links[-1]
-            giskard_wrapper.register_group(gripper + "_gripper", root_link, robot_description.name)
+    for name in giskard_wrapper.get_group_names():
+        if "gripper" in name:
+            return
+
+    for name, description in robot_description.chains.items():
+        if isinstance(description, ManipulatorDescription):
+            root_link = robot_description.chains[name].gripper.links[-1]
+            giskard_wrapper.register_group(name + "_gripper", root_link, robot_description.name)
 
 
 @init_giskard_interface
