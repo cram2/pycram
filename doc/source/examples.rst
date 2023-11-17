@@ -27,6 +27,14 @@ Misc
     notebooks/bullet_world
     notebooks/minimal_task_tree
     notebooks/pose
+    notebooks/custom_resolver
+
+Interface Examples
+==================
+
+.. nbgallery::
+    notebooks/giskard
+    notebooks/robokudo
 
 Object Relational Mapping
 =========================

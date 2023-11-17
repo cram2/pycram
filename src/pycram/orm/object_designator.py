@@ -1,52 +1,52 @@
-from typing import Optional
 
-from .base import Base, Position, Quaternion
-import sqlalchemy
-import datetime
+from pycram.orm.base import Base, MapperArgsMixin, PoseMixin
+from sqlalchemy.orm import Mapped, mapped_column, declared_attr, relationship
+from sqlalchemy import ForeignKey
+from ..enums import ObjectType
+
+class ObjectMixin:
+    """
+    ObjectMixin holds a foreign key column and its relationship to the referenced table.
+    For information about Mixins, see https://docs.sqlalchemy.org/en/13/orm/extensions/declarative/mixins.html
+    """
+
+    __abstract__ = True
+    object_to_init: bool = False
+
+    @declared_attr
+    def object_id(self) -> Mapped[int]:
+        return mapped_column(ForeignKey(f'{Object.__tablename__}.id'), init=self.object_to_init)
+
+    @declared_attr
+    def object(self):
+        return relationship(Object.__tablename__, init=False)
 
 
-class ObjectDesignator(Base):
+class Object(PoseMixin, Base):
     """ORM class of pycram.designators.object_designator.ObjectDesignator"""
-    __tablename__ = "Object"
 
-    id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
-    dtype = sqlalchemy.Column(sqlalchemy.types.String(255))
-    type = sqlalchemy.Column(sqlalchemy.types.String(255))
-    name = sqlalchemy.Column(sqlalchemy.types.String(255))
-    position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
-    orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"))
-
-    def __init__(self, type: str, name: str):
-        super().__init__()
-        self.type = type
-        self.name = name
+    dtype: Mapped[str] = mapped_column(init=False)
+    type: Mapped[ObjectType]
+    name: Mapped[str]
 
     __mapper_args__ = {
-        "polymorphic_identity": __tablename__,
+        "polymorphic_identity": "Object",
         "polymorphic_on": "dtype",
     }
 
 
-class ObjectPart(ObjectDesignator):
+class ObjectPart(Object):
     """ORM Class of pycram.designators.object_designator.LocatedObject."""
 
-    __tablename__ = "ObjectPart"
-    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Object.id"), primary_key=True)
-    part_of = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Object.id"))
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Object.__tablename__}.id'), primary_key=True, init=False)
+    # part_of: Mapped[int] = mapped_column(ForeignKey(f'{Object.__tablename__}.id'), init=False)
 
     __mapper_args__ = {
-        "polymorphic_identity": __tablename__,
-        "inherit_condition": ObjectDesignator.id == id
+        "polymorphic_identity": "ObjectPart",
+        "inherit_condition": Object.id == id
     }
 
 
-class BelieveObject(ObjectDesignator):
-    __tablename__ = "BelieveObject"
-    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Object.id"), primary_key=True)
+class BelieveObject(MapperArgsMixin, Object):
 
-    __mapper_args__ = {
-        "polymorphic_identity": __tablename__,
-    }
-
-    def __init__(self, type: str, name: str):
-        super().__init__(type, name)
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Object.__tablename__}.id'), primary_key=True, init=False)
