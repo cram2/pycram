@@ -5,7 +5,7 @@ class HSRDescription(RobotDescription):
 
     def __init__(self):
 
-        super().__init__("hsr", "base_footprint", "base_link", "arm_lift_link", "arm_lift_joint")
+        super().__init__("hsrb", "base_footprint", "base_link", "arm_lift_link", "arm_lift_joint")
         # Camera
         head_center_camera = CameraDescription("head_center_camera_frame",
                                                horizontal_angle=0.99483, vertical_angle=0.75049)

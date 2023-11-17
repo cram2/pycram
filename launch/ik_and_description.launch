@@ -33,6 +33,12 @@
               textfile="$(find pycram)/resources/donbot.urdf"/>
   </group>
 
+  <!-- HSR -->
+  <group if="$(eval robot == 'hsrb')">
+    <param name="robot_description"
+              textfile="$(find pycram)/resources/hsrb.urdf"/>
+  </group>
+
   <!-- Use Knowrob -->
   <group if="$(eval use_knowrob)">
       <include file="$(find knowrob)/launch/knowrob.launch"/>

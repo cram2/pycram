@@ -1125,7 +1125,7 @@ POSSIBILITY OF SUCH DAMAGE.
     </inertial>
   </link>
   <joint name="gripper_tool_joint" type="fixed">
-    <origin rpy="0.0 0.0 1.5707963267948963d0" xyz="0.0 0.0 0.23090002"/>
+    <origin rpy="0.0 0.0 1.5707963267948963" xyz="0.0 0.0 0.23090002"/>
     <parent link="wrist_roll_link" />
     <child link="gripper_tool_frame"/>
   </joint>
