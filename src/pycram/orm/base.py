@@ -1,15 +1,16 @@
 """Implementation of base classes for orm modelling."""
-import logging
+import datetime
 import os
 from typing import Optional
 
+import git
 import rospkg
-
-import sqlalchemy
-import sqlalchemy.event
-import sqlalchemy.orm
 import sqlalchemy.sql.functions
-import sqlalchemy.engine
+from sqlalchemy import ForeignKey, String
+from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column, Session, relationship, \
+    declared_attr
+
+from ..enums import ObjectType
 
 
 def get_pycram_version_from_git() -> Optional[str]:
@@ -19,53 +20,130 @@ def get_pycram_version_from_git() -> Optional[str]:
     This assumes that you have gitpython installed and that the PyCRAM git repository on your system can be found
     with "roscd pycram".
     """
-    try:
-        import git
-    except ImportError:
-        logging.warning("gitpython is not installed.")
-        return None
 
     r = rospkg.RosPack()
     repo = git.Repo(path=r.get_path('pycram'))
     return repo.head.object.hexsha
 
 
-class Base(sqlalchemy.orm.DeclarativeBase):
+class _Base(DeclarativeBase):
+    """Dummy class"""
+    type_annotation_map = {
+        str: String(255)
+    }
+
+    id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True, init=False, nullable=False)
+    """Unique integer ID as auto incremented primary key."""
+
+    @declared_attr
+    def __tablename__(self):
+        return self.__name__
+
+
+class Base(_Base, MappedAsDataclass):
     """
     Base class to add orm functionality to all pycram mappings
     """
+    __abstract__ = True
 
-    id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
-    """Unique integer ID as auto incremented primary key."""
-
-    metadata_id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("MetaData.id"), nullable=True)
+    @declared_attr
+    def process_metadata_id(self) -> Mapped[Optional[int]]:
+        return mapped_column(ForeignKey(f'{ProcessMetaData.__tablename__}.id'), default=None, init=False)
     """Related MetaData Object to store information about the context of this experiment."""
 
-    def __repr__(self):
-        return f"{self.__module__}.{self.__class__.__name__}(" + ", ".join(
-            [str(self.__getattribute__(c_attr.key)) for c_attr in sqlalchemy.inspect(self).mapper.column_attrs]) + ")"
+    @declared_attr
+    def process_metadata(self):
+        return relationship(ProcessMetaData.__tablename__)
+    """model relationship between foreign key in ProcessMetaData table and the ids of all inheriting
+    tables"""
 
 
-class MetaData(Base):
+class MapperArgsMixin:
     """
-    MetaData stores information about the context of this experiment.
+    MapperArgsMixin stores __mapper_args__ information for certain subclass-tables.
+    For information about Mixins, see https://docs.sqlalchemy.org/en/13/orm/extensions/declarative/mixins.html
+    """
+
+    __abstract__ = True
+
+    @declared_attr
+    def __mapper_args__(self):
+        return {"polymorphic_identity": self.__tablename__}
+
+
+class PositionMixin:
+    """
+    PositionMixin holds a foreign key column and its relationship to the referenced table.
+    For information about Mixins, see https://docs.sqlalchemy.org/en/13/orm/extensions/declarative/mixins.html
+    """
+
+    __abstract__ = True
+    position_to_init: bool = False
+
+    @declared_attr
+    def position_id(self) -> Mapped[int]:
+        return mapped_column(ForeignKey(f'{Position.__tablename__}.id'), init=self.position_to_init)
+
+    @declared_attr
+    def position(self):
+        return relationship(Position.__tablename__, init=False)
+
+
+class QuaternionMixin:
+    """
+    QuaternionMixin holds a foreign key column and its relationship to the referenced table.
+    For information about Mixins, see https://docs.sqlalchemy.org/en/13/orm/extensions/declarative/mixins.html
+    """
+
+    __abstract__ = True
+    orientation_to_init: bool = False
+
+    @declared_attr
+    def orientation_id(self) -> Mapped[int]:
+        return mapped_column(ForeignKey(f'{Quaternion.__tablename__}.id'), init=self.orientation_to_init)
+
+    @declared_attr
+    def orientation(self):
+        return relationship(Quaternion.__tablename__, init=False)
+
+
+class PoseMixin:
+    """
+    PoseMixin holds a foreign key column and its relationship to the referenced table.
+    For information about Mixins, see https://docs.sqlalchemy.org/en/13/orm/extensions/declarative/mixins.html
+    """
+
+    __abstract__ = True
+    pose_to_init: bool = False
+
+    @declared_attr
+    def pose_id(self) -> Mapped[int]:
+        return mapped_column(ForeignKey(f'{Pose.__tablename__}.id'), init=self.pose_to_init)
+
+    @declared_attr
+    def pose(self):
+        return relationship(Pose.__tablename__, init=False)
+
+
+class ProcessMetaData(MappedAsDataclass, _Base):
+    """
+    ProcessMetaData stores information about the context of this experiment.
 
     This class is a singleton and only one MetaData can exist per session.
     """
 
-    __tablename__ = "MetaData"
-
-    created_at = sqlalchemy.Column(sqlalchemy.DateTime, server_default=sqlalchemy.sql.functions.current_timestamp())
+    created_at: Mapped[datetime.datetime] = mapped_column(server_default=sqlalchemy.sql.functions.current_timestamp(),
+                                                          init=False)
     """The timestamp where this row got created. This is an aid for versioning."""
 
-    created_by = sqlalchemy.Column(sqlalchemy.String(255), default=os.getlogin())
+    created_by: Mapped[str] = mapped_column(default=os.getlogin(), init=False)
     """The user that created the experiment."""
 
-    description = sqlalchemy.Column(sqlalchemy.String(255), default=None, nullable=False)
+    description: Mapped[str] = mapped_column(init=False)
     """A description of the purpose (?) of this experiment."""
 
-    pycram_version = sqlalchemy.Column(sqlalchemy.String(255), default=get_pycram_version_from_git(),
-                                       nullable=True)
+    pycram_version: Mapped[str] = mapped_column(default=get_pycram_version_from_git(),
+                                                nullable=True, init=False)
     """The PyCRAM version used to generate this row."""
 
     _self = None
@@ -80,7 +158,7 @@ class MetaData(Base):
         """Return if this object is in the database or not."""
         return self.id is not None
 
-    def insert(self, session: sqlalchemy.orm.Session):
+    def insert(self, session: Session):
         """Insert this into the database using the session. Skipped if it already is inserted."""
         if not self.committed():
             session.add(self)
@@ -93,73 +171,60 @@ class MetaData(Base):
         cls._self = None
 
 
+class Designator(Base):
+    """ORM Class holding every performed action and motion serving as every actions and motions root."""
+
+    @declared_attr
+    def dtype(self) -> Mapped[str]:
+        return mapped_column(String(255), nullable=False, init=False)
+
+    @declared_attr
+    def __mapper_args__(self):
+        return {
+            "polymorphic_on": "dtype",
+        }
+
+
 class Position(Base):
     """ORM Class for 3D positions."""
 
-    __tablename__ = "Position"
-
-    x = sqlalchemy.Column(sqlalchemy.types.Float)
-    y = sqlalchemy.Column(sqlalchemy.types.Float)
-    z = sqlalchemy.Column(sqlalchemy.types.Float)
-
-    def __init__(self, x: int, y: int, z: int, metadata_id: Optional[int] = None):
-        super().__init__()
-        self.x = x
-        self.y = y
-        self.z = z
-        self.metadata_id = metadata_id
+    x: Mapped[float]
+    y: Mapped[float]
+    z: Mapped[float]
 
 
 class Quaternion(Base):
     """ORM Class for Quaternions."""
 
-    __tablename__ = "Quaternion"
+    x: Mapped[float]
+    y: Mapped[float]
+    z: Mapped[float]
+    w: Mapped[float]
 
-    x = sqlalchemy.Column(sqlalchemy.types.Float)
-    y = sqlalchemy.Column(sqlalchemy.types.Float)
-    z = sqlalchemy.Column(sqlalchemy.types.Float)
-    w = sqlalchemy.Column(sqlalchemy.types.Float)
 
-    def __init__(self, x: float, y: float, z: float, w: float,  metadata_id: Optional[int] = None):
-        super().__init__()
-        self.x = x
-        self.y = y
-        self.z = z
-        self.w = w
-        self.metadata_id = metadata_id
+class Pose(PositionMixin, QuaternionMixin, Base):
+    """ORM Class for Poses."""
+
+    time: Mapped[datetime.datetime]
+    frame: Mapped[str]
 
 
 class Color(Base):
     """ORM Class for Colors."""
 
-    __tablename__ = "Color"
-
-    r = sqlalchemy.Column(sqlalchemy.types.Float)
-    g = sqlalchemy.Column(sqlalchemy.types.Float)
-    b = sqlalchemy.Column(sqlalchemy.types.Float)
-    alpha = sqlalchemy.Column(sqlalchemy.types.Float)
-
-    def __init__(self, r: float, g: float, b: float, alpha: float):
-        super().__init__()
-        self.r = r
-        self.g = g
-        self.b = b
-        self.alpha = alpha
+    r: Mapped[float]
+    g: Mapped[float]
+    b: Mapped[float]
+    alpha: Mapped[float]
 
 
-class RobotState(Base):
+class RobotState(PoseMixin, Base):
     """ORM Representation of a robots state."""
 
-    __tablename__ = "RobotState"
+    pose_to_init = True
 
-    position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
-    """The position of the robot."""
-
-    orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"))
-    """The orientation of the robot."""
-
-    torso_height = sqlalchemy.Column(sqlalchemy.types.Float)
+    torso_height: Mapped[float]
     """The torso height of the robot."""
 
-    type = sqlalchemy.Column(sqlalchemy.types.String(255))
+    type: Mapped[ObjectType]
     """The type of the robot."""

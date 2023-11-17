@@ -23,8 +23,9 @@ from . import utils
 import logging
 import logging.config
 
-with utils.suppress_stdout_stderr():
-    import pycram.process_modules
+# with utils.suppress_stdout_stderr():
+#     import pycram.process_modules
+import pycram.process_modules
 
 logging.basicConfig(level=logging.WARNING, format='%(levelname)s - %(name)s  - Line:%(lineno)d - %(message)s')
 

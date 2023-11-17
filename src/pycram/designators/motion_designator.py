@@ -1,17 +1,22 @@
 import dataclasses
 
-from .object_designator import ObjectDesignatorDescription, ObjectPart
+from sqlalchemy.orm import Session
+from .object_designator import ObjectDesignatorDescription, ObjectPart, RealObject
 from ..bullet_world import Object, BulletWorld
 from ..designator import DesignatorError
 from ..plan_failures import PerceptionObjectNotFound
-from ..process_module import ProcessModule, ProcessModuleManager
-from ..orm.base import Quaternion, Position, Base
+from ..process_module import ProcessModuleManager
 from ..robot_descriptions import robot_description
 from ..designator import MotionDesignatorDescription
+from ..orm.motion_designator import (MoveMotion as ORMMoveMotion, AccessingMotion as ORMAccessingMotion,
+                                     MoveTCPMotion as ORMMoveTCPMotion, LookingMotion as ORMLookingMotion,
+                                     MoveGripperMotion as ORMMoveGripperMotion, DetectingMotion as ORMDetectingMotion,
+                                     WorldStateDetectingMotion as ORMWorldStateDetectingMotion,
+                                     OpeningMotion as ORMOpeningMotion, ClosingMotion as ORMClosingMotion)
 
-from typing import Tuple, List, Dict, get_type_hints, Callable, Optional
-import sqlalchemy.orm
+from typing import List, Dict, Callable, Optional
 from ..pose import Pose
+from ..task import with_tree
 
 
 class MoveMotion(MotionDesignatorDescription):
@@ -27,10 +32,25 @@ class MoveMotion(MotionDesignatorDescription):
         Location to which the robot should be moved
         """
 
+        @with_tree
         def perform(self):
             pm_manager = ProcessModuleManager.get_manager()
             return pm_manager.navigate().execute(self)
             # return ProcessModule.perform(self)
+
+        def to_sql(self) -> ORMMoveMotion:
+            return ORMMoveMotion()
+
+        def insert(self, session, *args, **kwargs) -> ORMMoveMotion:
+            motion = super().insert(session)
+
+            pose = self.target.insert(session)
+            motion.pose_id = pose.id
+
+            session.add(motion)
+            session.commit()
+
+            return motion
 
     def __init__(self, target: Pose, resolver: Callable = None):
         """
@@ -74,6 +94,7 @@ class PickUpMotion(MotionDesignatorDescription):
         From which direction the object should be grasped, e.g. 'left', 'front', etc.
         """
 
+        @with_tree
         def perform(self):
             pm_manager = ProcessModuleManager.get_manager()
             return pm_manager.pick_up().execute(self)
@@ -128,6 +149,7 @@ class PlaceMotion(MotionDesignatorDescription):
         Arm that is currently holding the object
         """
 
+        @with_tree
         def perform(self):
             pm_manager = ProcessModuleManager.get_manager()
             return pm_manager.place().execute(self)
@@ -176,24 +198,45 @@ class MoveTCPMotion(MotionDesignatorDescription):
         """
         Arm with the TCP that should be moved to the target
         """
+        allow_gripper_collision: bool
+        """
+        If the gripper can collide with something
+        """
 
+        @with_tree
         def perform(self):
             pm_manager = ProcessModuleManager.get_manager()
             return pm_manager.move_tcp().execute(self)
 
+        def to_sql(self) -> ORMMoveTCPMotion:
+            return ORMMoveTCPMotion(self.arm, self.allow_gripper_collision)
+
+        def insert(self, session: Session, *args, **kwargs) -> ORMMoveTCPMotion:
+            motion = super().insert(session)
+
+            pose = self.target.insert(session)
+            motion.pose_id = pose.id
+
+            session.add(motion)
+            session.commit()
+
+            return motion
+
     def __init__(self, target: Pose, arm: Optional[str] = None,
-                 resolver: Optional[Callable] = None):
+                 resolver: Optional[Callable] = None, allow_gripper_collision: Optional[bool] = None):
         """
         Moves the TCP of the given arm to the given target pose.
 
         :param target: Target pose for the TCP
         :param arm: Arm that should be moved
         :param resolver: Alternative resolver which returns a resolved motion designator
+        :param allow_gripper_collision: If the gripper should be allowed to collide with something, only used on the real robot
         """
         super().__init__(resolver)
         self.cmd: str = 'move-tcp'
         self.target: Pose = target
         self.arm: Optional[str] = arm
+        self.allow_gripper_collision = allow_gripper_collision
 
     def ground(self) -> Motion:
         """
@@ -202,7 +245,7 @@ class MoveTCPMotion(MotionDesignatorDescription):
         :return: A resolved motion designator
         """
         arm = "left" if not self.arm else self.arm
-        return self.Motion(self.cmd, self.target, arm)
+        return self.Motion(self.cmd, self.target, arm, self.allow_gripper_collision)
 
 
 class LookingMotion(MotionDesignatorDescription):
@@ -215,9 +258,24 @@ class LookingMotion(MotionDesignatorDescription):
         # cmd: str
         target: Pose
 
+        @with_tree
         def perform(self):
             pm_manager = ProcessModuleManager.get_manager()
             return pm_manager.looking().execute(self)
+
+        def to_sql(self) -> ORMLookingMotion:
+            return ORMLookingMotion()
+
+        def insert(self, session: Session, *args, **kwargs) -> ORMLookingMotion:
+            motion = super().insert(session)
+
+            pose = self.target.insert(session)
+            motion.pose_id = pose.id
+
+            session.add(motion)
+            session.commit()
+
+            return motion
 
     def __init__(self, target: Optional[Pose] = None, object: Optional[ObjectDesignatorDescription.Object] = None,
                  resolver: Optional[Callable] = None):
@@ -262,12 +320,28 @@ class MoveGripperMotion(MotionDesignatorDescription):
         """
         Name of the gripper that should be moved
         """
+        allow_gripper_collision: bool
+        """
+        If the gripper is allowed to collide with something
+        """
 
+        @with_tree
         def perform(self):
             pm_manager = ProcessModuleManager.get_manager()
             return pm_manager.move_gripper().execute(self)
 
-    def __init__(self, motion: str, gripper: str, resolver: Optional[Callable] = None):
+        def to_sql(self) -> ORMMoveGripperMotion:
+            return ORMMoveGripperMotion(self.motion, self.gripper, self.allow_gripper_collision)
+
+        def insert(self, session: Session, *args, **kwargs) -> ORMMoveGripperMotion:
+            motion = super().insert(session)
+
+            session.add(motion)
+            session.commit()
+            return motion
+
+    def __init__(self, motion: str, gripper: str, resolver: Optional[Callable] = None,
+                 allow_gripper_collision: Optional[bool] = None):
         """
         Moves the gripper into a given position.
 
@@ -279,6 +353,7 @@ class MoveGripperMotion(MotionDesignatorDescription):
         self.cmd: str = 'move-gripper'
         self.motion: str = motion
         self.gripper: str = gripper
+        self.allow_gripper_collision = allow_gripper_collision
 
     def ground(self) -> Motion:
         """
@@ -286,7 +361,7 @@ class MoveGripperMotion(MotionDesignatorDescription):
 
         :return: A resolved motion designator
         """
-        return self.Motion(self.cmd, self.motion, self.gripper)
+        return self.Motion(self.cmd, self.motion, self.gripper, self.allow_gripper_collision)
 
 
 class DetectingMotion(MotionDesignatorDescription):
@@ -302,14 +377,28 @@ class DetectingMotion(MotionDesignatorDescription):
         Type of the object that should be detected
         """
 
+        @with_tree
         def perform(self):
             pm_manager = ProcessModuleManager.get_manager()
             bullet_world_object = pm_manager.detecting().execute(self)
             if not bullet_world_object:
                 raise PerceptionObjectNotFound(
                     f"Could not find an object with the type {self.object_type} in the FOV of the robot")
+            if ProcessModuleManager.execution_type == "real":
+                return RealObject.Object(bullet_world_object.name, bullet_world_object.type,
+                                                      bullet_world_object, bullet_world_object.get_pose())
+
             return ObjectDesignatorDescription.Object(bullet_world_object.name, bullet_world_object.type,
                                                       bullet_world_object)
+
+        def to_sql(self) -> ORMDetectingMotion:
+            return ORMDetectingMotion(self.object_type)
+
+        def insert(self, session: Session, *args, **kwargs) -> ORMDetectingMotion:
+            motion = super().insert(session)
+            session.add(motion)
+            session.commit()
+            return motion
 
     def __init__(self, object_type: str, resolver: Optional[Callable] = None):
         """
@@ -502,9 +591,24 @@ class OpeningMotion(MotionDesignatorDescription):
         Arm that should be used
         """
 
+        @with_tree
         def perform(self):
             pm_manager = ProcessModuleManager.get_manager()
             return pm_manager.open().execute(self)
+
+        def to_sql(self) -> ORMOpeningMotion:
+            return ORMOpeningMotion(self.arm)
+
+        def insert(self, session: Session, *args, **kwargs) -> ORMOpeningMotion:
+            motion = super().insert(session)
+
+            op = self.object_part.insert(session)
+            motion.object_id = op.id
+
+            session.add(motion)
+            session.commit()
+
+            return motion
 
     def __init__(self, object_part: ObjectPart.Object, arm: str, resolver: Optional[Callable] = None):
         """
@@ -546,9 +650,24 @@ class ClosingMotion(MotionDesignatorDescription):
         Arm that should be used
         """
 
+        @with_tree
         def perform(self):
             pm_manager = ProcessModuleManager.get_manager()
             return pm_manager.close().execute(self)
+
+        def to_sql(self) -> ORMClosingMotion:
+            return ORMClosingMotion(self.arm)
+
+        def insert(self, session: Session, *args, **kwargs) -> ORMClosingMotion:
+            motion = super().insert(session)
+
+            op = self.object_part.insert(session)
+            motion.object_id = op.id
+
+            session.add(motion)
+            session.commit()
+
+            return motion
 
     def __init__(self, object_part: ObjectPart.Object, arm: str, resolver: Optional[Callable] = None):
         """

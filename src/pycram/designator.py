@@ -6,7 +6,8 @@ from abc import ABC, abstractmethod
 from copy import copy
 from inspect import isgenerator, isgeneratorfunction
 
-import sqlalchemy
+from sqlalchemy.orm.session import Session
+import rospy
 
 from .bullet_world import (Object as BulletWorldObject, BulletWorld)
 from .helper import GeneratorList, bcolors
@@ -14,15 +15,17 @@ from threading import Lock
 from time import time
 from typing import List, Dict, Any, Type, Optional, Union, get_type_hints, Callable, Tuple, Iterable
 
+from .local_transformer import LocalTransformer
 from .pose import Pose
 from .robot_descriptions import robot_description
 
 import logging
 
 from .orm.action_designator import (Action as ORMAction)
-from .orm.object_designator import (ObjectDesignator as ORMObjectDesignator)
+from .orm.object_designator import (Object as ORMObjectDesignator)
+from .orm.motion_designator import (Motion as ORMMotionDesignator)
 
-from .orm.base import Quaternion, Position, Base, RobotState, MetaData
+from .orm.base import Quaternion, Position, Base, RobotState, ProcessMetaData
 from .task import with_tree
 
 
@@ -375,6 +378,7 @@ class MotionDesignatorDescription(DesignatorDescription):
         every motion designator.
         """
 
+        @with_tree
         def perform(self):
             """
             Passes this designator to the process module for execution.
@@ -384,29 +388,32 @@ class MotionDesignatorDescription(DesignatorDescription):
             raise NotImplementedError()
             # return ProcessModule.perform(self)
 
+        def to_sql(self) -> ORMMotionDesignator:
+            """
+            Create an ORM object that corresponds to this description.
+
+            :return: The created ORM object.
+            """
+            return ORMMotionDesignator()
+
+        def insert(self, session: Session, *args, **kwargs) -> ORMMotionDesignator:
+            """
+            Add and commit this and all related objects to the session.
+            Auto-Incrementing primary keys and foreign keys have to be filled by this method.
+
+            :param session: Session with a database that is used to add and commit the objects
+            :return: The completely instanced ORM motion.
+            """
+            metadata = ProcessMetaData().insert(session)
+
+            motion = self.to_sql()
+            motion.process_metadata_id = metadata.id
+
+            return motion
+
     def ground(self) -> Motion:
         """Fill all missing parameters and pass the designator to the process module. """
         raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
-
-    def to_sql(self) -> Base:
-        """
-        Create an ORM object that corresponds to this description.
-
-        :return: The created ORM object.
-        """
-        raise NotImplementedError(f"{type(self)} has no implementation of to_sql. Feel free to implement it.")
-
-    def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> Base:
-        """
-        Add and commit this and all related objects to the session.
-        Auto-Incrementing primary keys and foreign keys have to be filled by this method.
-
-        :param session: Session with a database that is used to add and commit the objects
-        :param args: Possible extra arguments
-        :param kwargs: Possible extra keyword arguments
-        :return: The completely instanced ORM object
-        """
-        raise NotImplementedError(f"{type(self)} has no implementation of insert. Feel free to implement it.")
 
     def __init__(self, resolver=None):
         """
@@ -497,7 +504,7 @@ class ActionDesignatorDescription(DesignatorDescription):
             """
             raise NotImplementedError(f"{type(self)} has no implementation of to_sql. Feel free to implement it.")
 
-        def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> ORMAction:
+        def insert(self, session: Session, *args, **kwargs) -> ORMAction:
             """
             Add and commit this and all related objects to the session.
             Auto-Incrementing primary keys and foreign keys have to be filled by this method.
@@ -508,34 +515,21 @@ class ActionDesignatorDescription(DesignatorDescription):
             :return: The completely instanced ORM object
             """
 
+            pose = self.robot_position.insert(session)
+
             # get or create metadata
-            metadata = MetaData().insert(session)
-
-            # create position
-            position = Position(*self.robot_position.position_as_list())
-            position.metadata_id = metadata.id
-
-            # create orientation
-            orientation = Quaternion(*self.robot_position.orientation_as_list())
-            orientation.metadata_id = metadata.id
-
-            session.add_all([position, orientation])
-            session.commit()
+            metadata = ProcessMetaData().insert(session)
 
             # create robot-state object
-            robot_state = RobotState()
-            robot_state.position = position.id
-            robot_state.orientation = orientation.id
-            robot_state.torso_height = self.robot_torso_height
-            robot_state.type = self.robot_type
-            robot_state.metadata_id = metadata.id
+            robot_state = RobotState(self.robot_torso_height, self.robot_type, pose.id)
+            robot_state.process_metadata_id = metadata.id
             session.add(robot_state)
             session.commit()
 
             # create action
             action = self.to_sql()
-            action.metadata_id = metadata.id
-            action.robot_state = robot_state.id
+            action.process_metadata_id = metadata.id
+            action.robot_state_id = robot_state.id
 
             return action
 
@@ -571,6 +565,18 @@ class LocationDesignatorDescription(DesignatorDescription):
         Find a location that satisfies all constrains.
         """
         raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
+
+
+#this knowledge should be somewhere else i guess
+SPECIAL_KNOWLEDGE = {
+    'bigknife':
+        [("top", [-0.08, 0, 0])],
+    'whisk':
+        [("top", [-0.08, 0, 0])],
+    'bowl':
+        [("front", [1.0, 2.0, 3.0]),
+         ("key2", [4.0, 5.0, 6.0])]
+}
 
 
 class ObjectDesignatorDescription(DesignatorDescription):
@@ -618,7 +624,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
             """
             return ORMObjectDesignator(self.type, self.name)
 
-        def insert(self, session: sqlalchemy.orm.session.Session) -> ORMObjectDesignator:
+        def insert(self, session: Session) -> ORMObjectDesignator:
             """
             Add and commit this and all related objects to the session.
             Auto-Incrementing primary keys and foreign keys have to be filled by this method.
@@ -626,19 +632,15 @@ class ObjectDesignatorDescription(DesignatorDescription):
             :param session: Session with a database that is used to add and commit the objects
             :return: The completely instanced ORM object
             """
-            metadata = MetaData().insert(session)
-            # insert position and orientation of object of the designator
-            orm_position = Position(*self.pose.position_as_list(), metadata.id)
-            orm_orientation = Quaternion(*self.pose.orientation_as_list(), metadata.id)
-            session.add(orm_position)
-            session.add(orm_orientation)
-            session.commit()
+            metadata = ProcessMetaData().insert(session)
 
             # create object orm designator
             obj = self.to_sql()
-            obj.metadata_id = metadata.id
-            obj.position = orm_position.id
-            obj.orientation = orm_orientation.id
+            obj.process_metadata_id = metadata.id
+
+            pose = self.pose.insert(session)
+            obj.pose_id = pose.id
+
             session.add(obj)
             session.commit()
             return obj
@@ -678,6 +680,50 @@ class ObjectDesignatorDescription(DesignatorDescription):
             return self.__class__.__qualname__ + f"(" + ', '.join(
                 [f"{f.name}={self.__getattribute__(f.name)}" for f in dataclasses.fields(self)] + [
                     f"pose={self.pose}"]) + ')'
+
+        def special_knowledge_adjustment_pose(self, grasp: str, pose: Pose) -> Pose:
+            """
+            Returns the adjusted target pose based on special knowledge for "grasp front".
+
+            :param grasp: From which side the object should be grasped
+            :param pose: Pose at which the object should be grasped, before adjustment
+            :return: The adjusted grasp pose
+            """
+            lt = LocalTransformer()
+            pose_in_object = lt.transform_to_object_frame(pose, self.bullet_world_object)
+
+            special_knowledge = []  # Initialize as an empty list
+            if self.type in SPECIAL_KNOWLEDGE:
+                special_knowledge = SPECIAL_KNOWLEDGE[self.type]
+
+            for key, value in special_knowledge:
+                if key == grasp:
+                    # Adjust target pose based on special knowledge
+                    pose_in_object.pose.position.x += value[0]
+                    pose_in_object.pose.position.y += value[1]
+                    pose_in_object.pose.position.z += value[2]
+                    rospy.loginfo("Adjusted target pose based on special knowledge for grasp: ", grasp)
+                    return pose_in_object
+            return pose
+
+        # def special_knowledge(self, grasp, pose):
+        #     """
+        #     Returns t special knowledge for "grasp front".
+        #     """
+        #
+        #     special_knowledge = []  # Initialize as an empty list
+        #     if self.type in SPECIAL_KNOWLEDGE:
+        #         special_knowledge = SPECIAL_KNOWLEDGE[self.type]
+        #
+        #     for key, value in special_knowledge:
+        #         if key == grasp:
+        #             # Adjust target pose based on special knowledge
+        #             pose.pose.position.x += value[0]
+        #             pose.pose.position.y += value[1]
+        #             pose.pose.position.z += value[2]
+        #             print("Adjusted target pose based on special knowledge for grasp: ", grasp)
+        #             return pose
+        #     return pose
 
     def __init__(self, names: Optional[List[str]] = None, types: Optional[List[str]] = None,
                  resolver: Optional[Callable] = None):
