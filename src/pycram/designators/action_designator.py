@@ -14,7 +14,8 @@ from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, Naviga
                                      MoveTorsoAction as ORMMoveTorsoAction, SetGripperAction as ORMSetGripperAction,
                                      Action as ORMAction, LookAtAction as ORMLookAtAction,
                                      DetectAction as ORMDetectAction, TransportAction as ORMTransportAction,
-                                     OpenAction as ORMOpenAction, CloseAction as ORMCloseAction)
+                                     OpenAction as ORMOpenAction, CloseAction as ORMCloseAction,
+                                     GraspingAction as ORMGraspingAction)
 
 from ..orm.base import Quaternion, Position, Base, RobotState, ProcessMetaData
 from ..plan_failures import ObjectUnfetchable, ReachabilityFailure
@@ -829,7 +830,7 @@ class CloseAction(ActionDesignatorDescription):
             action = super().insert(session)
 
             op = self.object_designator.insert(session)
-            action.id = op.id
+            action.object_id = op.id
 
             session.add(action)
             session.commit()
@@ -895,11 +896,19 @@ class GraspingAction(ActionDesignatorDescription):
             MoveTCPMotion(object_pose, self.arm, allow_gripper_collision=True).resolve().perform()
             MoveGripperMotion("close", self.arm, allow_gripper_collision=True).resolve().perform()
 
-        def to_sql(self) -> ORMAction:
-            raise NotImplementedError
+        def to_sql(self) -> ORMGraspingAction:
+            return ORMGraspingAction(self.arm)
 
-        def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> ORMAction:
-            raise NotImplementedError
+        def insert(self, session: sqlalchemy.orm.session.Session, *args, **kwargs) -> ORMGraspingAction:
+            action = super().insert(session)
+
+            od = self.object_desig.insert(session)
+            action.object_id = od.id
+
+            session.add(action)
+            session.commit()
+
+            return action
 
     def __init__(self, arms: List[str], object_description: Union[ObjectDesignatorDescription, ObjectPart],
                  resolver: Callable = None):

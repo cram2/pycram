@@ -5,6 +5,7 @@ Each motion designator class has its own table in the database with columns repr
 The MotionDesignator class is the base class that defines the polymorphic behavior of all other motion designator
 classes.
 """
+from typing import Optional
 
 from .base import MapperArgsMixin, Designator, PoseMixin
 from .object_designator import Object, ObjectMixin
@@ -61,6 +62,7 @@ class MoveTCPMotion(PoseMixin, Motion):
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
     arm: Mapped[str]
+    allow_gripper_collision: Mapped[Optional[bool]]
 
 
 class LookingMotion(PoseMixin, Motion):
@@ -79,6 +81,7 @@ class MoveGripperMotion(Motion):
     id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
     motion: Mapped[str]
     gripper: Mapped[str]
+    allow_gripper_collision: Mapped[Optional[bool]]
 
 
 class DetectingMotion(Motion):
