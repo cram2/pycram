@@ -3,14 +3,17 @@ from __future__ import annotations
 
 import copy
 import math
+import datetime
 from typing import List, Union, Optional
 
 import numpy as np
 import rospy
+import sqlalchemy.orm
 from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3
 from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
 from std_msgs.msg import Header
 from tf import transformations
+from .orm.base import Pose as ORMPose, Position, Quaternion, ProcessMetaData
 
 
 class Pose(PoseStamped):
@@ -230,6 +233,31 @@ class Pose(PoseStamped):
         :param new_orientation: New orientation as a quaternion with xyzw
         """
         self.orientation = new_orientation
+
+    def to_sql(self) -> ORMPose:
+        return ORMPose(datetime.datetime.utcfromtimestamp(self.header.stamp.to_sec()), self.frame)
+
+    def insert(self, session: sqlalchemy.orm.Session) -> ORMPose:
+
+        metadata = ProcessMetaData().insert(session)
+
+        position = Position(*self.position_as_list())
+        position.process_metadata_id = metadata.id
+        orientation = Quaternion(*self.orientation_as_list())
+        orientation.process_metadata_id = metadata.id
+
+        session.add(position)
+        session.add(orientation)
+        session.commit()
+        pose = self.to_sql()
+        pose.process_metadata_id = metadata.id
+        pose.position_id = position.id
+        pose.orientation_id = orientation.id
+
+        session.add(pose)
+        session.commit()
+
+        return pose
 
 
 class Transform(TransformStamped):

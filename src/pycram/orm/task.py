@@ -1,8 +1,10 @@
 """Implementation of ORM classes associated with pycram.task."""
 from typing import Optional
-
-import sqlalchemy
-from .base import Base
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import MappedAsDataclass, Mapped, mapped_column, relationship
+from .action_designator import Action
+from .base import Base, Designator
+from .motion_designator import Motion
 from ..enums import TaskStatus
 import datetime
 
@@ -10,33 +12,23 @@ import datetime
 class TaskTreeNode(Base):
     """ORM equivalent of pycram.task.TaskTreeNode."""
 
-    __tablename__ = "TaskTreeNode"
-    code = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Code.id"))
-    start_time = sqlalchemy.Column(sqlalchemy.types.DateTime)
-    end_time = sqlalchemy.Column(sqlalchemy.types.DateTime, nullable=True)
-    status = sqlalchemy.Column(sqlalchemy.types.Enum(TaskStatus))
-    reason = sqlalchemy.Column(sqlalchemy.types.String(255), nullable=True)
-    parent = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("TaskTreeNode.id"), nullable=True)
+    id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True, init=False)
+    """id overriden in order to be able to set the remote_side of the parent attribute"""
 
-    def __init__(self, code: int = None, start_time: datetime.datetime = None, end_time: datetime.datetime = None,
-                 status: str = None, reason: Optional[str] = None, parent: int = None):
-        super().__init__()
-        self.code = code
-        self.status = status
-        self.start_time = start_time
-        self.end_time = end_time
-        self.reason = reason
-        self.parent = parent
+    code_id: Mapped[int] = mapped_column(ForeignKey("Code.id"), default=None)
+    code: Mapped["Code"] = relationship(init=False)
+    start_time: Mapped[datetime.datetime] = mapped_column(default=None)
+    end_time: Mapped[Optional[datetime.datetime]] = mapped_column(default=None)
+    status: Mapped[TaskStatus] = mapped_column(default=None)
+    reason: Mapped[Optional[str]] = mapped_column(default=None)
+    parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("TaskTreeNode.id"), default=None)
+    parent: Mapped["TaskTreeNode"] = relationship(foreign_keys=[parent_id], init=False, remote_side=[id])
 
 
 class Code(Base):
     """ORM equivalent of pycram.task.Code."""
 
-    __tablename__ = "Code"
-    function = sqlalchemy.Column(sqlalchemy.types.String(255))
-    designator = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Action.id"), nullable=True)
+    function: Mapped[str] = mapped_column(default=None)
+    designator_id: Mapped[Optional[int]] = mapped_column(ForeignKey(f'{Designator.__tablename__}.id'), default=None)
+    designator: Mapped[Designator] = relationship(init=False)
 
-    def __init__(self, function: str = None, designator: Optional[int] = None):
-        super().__init__()
-        self.function = function
-        self.designator = designator

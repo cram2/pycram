@@ -5,190 +5,116 @@ Each motion designator class has its own table in the database with columns repr
 The MotionDesignator class is the base class that defines the polymorphic behavior of all other motion designator
 classes.
 """
+from typing import Optional
 
-import sqlalchemy
+from .base import MapperArgsMixin, Designator, PoseMixin
+from .object_designator import Object, ObjectMixin
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import ForeignKey
 
-from .base import Base
 
-
-class MotionDesignator(Base):
+class Motion(MapperArgsMixin, Designator):
     """
     ORM class of pycram.designators.motion_designator.MotionDesignatorDescription
 
     :ivar id: (Integer) Auto-incrementing primary key
     :ivar dtype: (String) Polymorphic discriminator
     """
-    __tablename__ = "Motion"
 
-    id = sqlalchemy.Column(sqlalchemy.types.Integer, autoincrement=True, primary_key=True)
-    dtype = sqlalchemy.Column(sqlalchemy.types.String(255))
-
-    __mapper_args__ = {
-        "polymorphic_identity": __tablename__,
-        "polymorphic_on": "dtype",
-    }
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Designator.__tablename__}.id'), primary_key=True, init=False)
+    dtype: Mapped[str] = mapped_column(init=False)
 
 
-class MoveMotion(MotionDesignator):
+class MoveMotion(PoseMixin, Motion):
     """
     ORM class of pycram.designators.motion_designator.MoveMotion
-
-    :ivar position: (Integer) Foreign key to Position table
-    :ivar orientation: (Integer) Foreign key to Quaternion table
     """
-    __tablename__ = "MoveMotion"
-    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Motion.id"), primary_key=True)
-    position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
-    orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"))
-    __mapper_args__ = {
-        "polymorphic_identity": __tablename__,
-    }
+
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
 
 
-class PickUpMotion(MotionDesignator):
-    """
-    ORM class of pycram.designators.motion_designator.PickUpMotion
-
-    :ivar object: (Integer) Foreign key to Object table
-    :ivar arm: (String) Name of the arm used
-    :ivar gripper: (String) Name of the gripper used
-    :ivar grasp: (String) Type of grasp used
-    """
-    __tablename__ = "PickUpMotion"
-    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Motion.id"), primary_key=True)
-    object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
-    arm = sqlalchemy.Column(sqlalchemy.types.String(255))
-    gripper = sqlalchemy.Column(sqlalchemy.types.String(255))
-    grasp = sqlalchemy.Column(sqlalchemy.types.String(255))
-    __mapper_args__ = {
-        "polymorphic_identity": __tablename__,
-    }
-
-
-class PlaceMotion(MotionDesignator):
-    """
-    ORM class of pycram.designators.motion_designator.PlaceMotion
-
-    :ivar object: (Integer) Foreign key to Object table
-    :ivar arm: (String) Name of the arm used
-    :ivar gripper: (String) Name of the gripper used
-    :ivar position: (Integer) Foreign key to Position table
-    :ivar orientation: (Integer) Foreign key to Quaternion table
-    """
-    __tablename__ = "PlaceMotion"
-    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Motion.id"), primary_key=True)
-    object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
-    arm = sqlalchemy.Column(sqlalchemy.types.String(255))
-    gripper = sqlalchemy.Column(sqlalchemy.types.String(255))
-    position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
-    orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"))
-    __mapper_args__ = {
-        "polymorphic_identity": __tablename__,
-    }
-
-
-class AccessingMotion(MotionDesignator):
+class AccessingMotion(Motion):
     """
     ORM class of pycram.designators.motion_designator.AccessingMotion
 
-    :ivar part_of: (Integer) Foreign key to Object table
     :ivar arm: (String) Name of the arm used
     :ivar gripper: (String) Name of the gripper used
     :ivar distance: (Float) Distance from the drawer to the robot
     :ivar drawer_joint:
     """
-    __tablename__ = "AccessingMotion"
-    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Motion.id"), primary_key=True)
-    part_of = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
-    arm = sqlalchemy.Column(sqlalchemy.types.String(255))
-    gripper = sqlalchemy.Column(sqlalchemy.types.String(255))
-    distance = sqlalchemy.Column(sqlalchemy.types.Float)
-    drawer_joint = sqlalchemy.Column(sqlalchemy.types.String(255))
-    drawer_handle = sqlalchemy.Column(sqlalchemy.types.String(255))
 
-    __mapper_args__ = {
-        "polymorphic_identity": __tablename__,
-    }
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
+    part_of: Mapped[int] = mapped_column(ForeignKey(f'{Object.__tablename__}.id'), init=False)
+    object: Mapped[Object] = relationship(init=False)
+    arm: Mapped[str] = mapped_column(init=False)
+    gripper: Mapped[str] = mapped_column(init=False)
+    distance: Mapped[float] = mapped_column(init=False)
+    drawer_joint: Mapped[str] = mapped_column(init=False)
+    drawer_handle: Mapped[str] = mapped_column(init=False)
 
 
-class MoveTCPMotion(MotionDesignator):
+class MoveTCPMotion(PoseMixin, Motion):
     """
     ORM class of pycram.designators.motion_designator.MoveTCPMotion
 
-    :ivar position: Integer id of the position to move the TCP to
-    :ivar orientation: Integer id of the quaternion orientation to move the TCP to
     :ivar arm: String specifying which arm to move the TCP of
     """
-    __tablename__ = "MoveTCPMotion"
-    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Motion.id"), primary_key=True)
-    position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
-    orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"))
-    arm = sqlalchemy.Column(sqlalchemy.types.String(255))
 
-    __mapper_args__ = {
-        "polymorphic_identity": __tablename__,
-    }
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
+    arm: Mapped[str]
+    allow_gripper_collision: Mapped[Optional[bool]]
 
 
-class LookingMotion(MotionDesignator):
+class LookingMotion(PoseMixin, Motion):
     """
     ORM class of pycram.designators.motion_designator.LookingMotion
-
-    :ivar position: Integer id of the position to move the TCP to
-    :ivar orientation: Integer id of the quaternion orientation to move the TCP to
-    :ivar object: (Integer) Foreign key to Object table
     """
 
-    __tablename__ = "LookingMotion"
-    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Motion.id"), primary_key=True)
-    position = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
-    orientation = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Quaternion.id"))
-    object = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("Object.id"))
-
-    __mapper_args__ = {
-        "polymorphic_identity": __tablename__,
-    }
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
 
 
-class MoveGripperMotion(MotionDesignator):
+class MoveGripperMotion(Motion):
     """
     ORM class of pycram.designators.motion_designator.MoveGripperMotion
     """
 
-    __tablename__ = "MoveGripperMotion"
-    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Motion.id"), primary_key=True)
-    motion = sqlalchemy.Column(sqlalchemy.types.String(255))
-    gripper = sqlalchemy.Column(sqlalchemy.types.String(255))
-    front_facing_axis = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Position.id"))
-    __mapper_args__ = {
-        "polymorphic_identity": __tablename__,
-    }
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
+    motion: Mapped[str]
+    gripper: Mapped[str]
+    allow_gripper_collision: Mapped[Optional[bool]]
 
 
-class DetectingMotion(MotionDesignator):
+class DetectingMotion(Motion):
     """
     ORM class of pycram.designators.motion_designator.DetectingMotion
     """
 
-    __tablename__ = "DetectingMotion"
-    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Motion.id"), primary_key=True)
-    object_type = sqlalchemy.Column(sqlalchemy.types.String(255))
-    cam_frame = sqlalchemy.Column(sqlalchemy.types.String(255))
-
-    __mapper_args__ = {
-        "polymorphic_identity": __tablename__,
-    }
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
+    object_type: Mapped[str]
 
 
-class WorldStateDetectingMotion(MotionDesignator):
+class WorldStateDetectingMotion(Motion):
     """
     ORM class of pycram.designators.motion_designator.WorldStateDetectingMotion
     """
 
-    __tablename__ = "WorldStateDetectingMotion"
-    id = sqlalchemy.Column(sqlalchemy.types.Integer, sqlalchemy.ForeignKey("Motion.id"), primary_key=True)
-    object_type = sqlalchemy.Column(sqlalchemy.types.String(255))
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
+    object_type: Mapped[str] = mapped_column(init=False)
 
-    __mapper_args__ = {
-        "polymorphic_identity": __tablename__,
-    }
+
+class OpeningMotion(Motion):
+    """
+    ORM class of pycram.designators.motion_designator.OpeningMotion
+    """
+
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
+    arm: Mapped[str]
+
+
+class ClosingMotion(Motion):
+    """
+    ORM class of pycram.designators.motion_designator.ClosingMotion
+    """
+
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
+    arm: Mapped[str]

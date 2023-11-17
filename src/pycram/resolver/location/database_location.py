@@ -6,7 +6,7 @@ import pycram.designators.location_designator
 import pycram.task
 from pycram.costmaps import OccupancyCostmap
 from pycram.orm.action_designator import PickUpAction
-from pycram.orm.object_designator import ObjectDesignator
+from pycram.orm.object_designator import Object
 from pycram.orm.base import Position, RobotState
 from pycram.orm.task import TaskTreeNode, Code
 from .jpt_location import JPTCostmapLocation
@@ -44,26 +44,26 @@ class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLoca
 
         # create subqueries, such that filters are executed before joins
         # filter for successful tasks
-        filtered_tasks = self.session.query(TaskTreeNode.code).filter(TaskTreeNode.status == "SUCCEEDED").subquery()
+        filtered_tasks = self.session.query(TaskTreeNode.code_id).filter(TaskTreeNode.status == "SUCCEEDED").subquery()
 
         # remove all no operation codes
-        filtered_code = self.session.query(Code.id, Code.designator).filter(Code.designator != None).subquery()
+        filtered_code = self.session.query(Code.id, Code.designator_id).filter(Code.designator_id != None).subquery()
 
         # join task and code
         filtered_code = self.session.query(filtered_code.c.designator).\
             join(filtered_tasks, filtered_tasks.c.code == filtered_code.c.id).subquery()
 
         # filter all objects that have the same type as the target
-        filtered_objects = self.session.query(ObjectDesignator).filter(ObjectDesignator.type == self.target.type).\
+        filtered_objects = self.session.query(Object).filter(Object.type == self.target.type).\
             subquery()
 
         query = self.session.query(PickUpAction.arm, PickUpAction.grasp,
                                    RobotState.torso_height, robot_pos.x, robot_pos.y, ). \
-            join(filtered_code, filtered_code.c.designator == PickUpAction.id). \
-            join(PickUpAction, PickUpAction.id == filtered_code.c.designator). \
-            join(RobotState, RobotState.id == PickUpAction.robot_state). \
-            join(robot_pos, RobotState.position == robot_pos.id). \
-            join(filtered_objects, filtered_objects.c.id == PickUpAction.object). \
+            join(filtered_code, filtered_code.c.designator_id == PickUpAction.id). \
+            join(PickUpAction, PickUpAction.id == filtered_code.c.designator_id). \
+            join(RobotState, RobotState.id == PickUpAction.robot_state_id). \
+            join(robot_pos, RobotState.pose.position_id == robot_pos.id). \
+            join(filtered_objects, filtered_objects.c.id == PickUpAction.object_id). \
             join(object_pos, filtered_objects.c.position == object_pos.id)
 
 

@@ -16,7 +16,7 @@ import tqdm
 
 from .bullet_world import BulletWorld
 from .orm.task import (Code as ORMCode, TaskTreeNode as ORMTaskTreeNode)
-from .orm.base import MetaData
+from .orm.base import ProcessMetaData
 from .plan_failures import PlanFailure
 from .enums import TaskStatus
 
@@ -98,11 +98,11 @@ class Code:
 
         if self_ and getattr(self_, "insert", None):
             designator = self_.insert(session)
-            code.designator = designator.id
+            code.designator_id = designator.id
 
         # get and set metadata
-        metadata = MetaData().insert(session)
-        code.metadata_id = metadata.id
+        metadata = ProcessMetaData().insert(session)
+        code.process_metadata_id = metadata.id
 
         session.add(code)
         session.commit()
@@ -191,8 +191,8 @@ class TaskTreeNode(anytree.NodeMixin):
         else:
             reason = None
 
-        return ORMTaskTreeNode(None, self.start_time, self.end_time, self.status.name, reason,
-                               id(self.parent) if self.parent else None)
+        return ORMTaskTreeNode(None, self.start_time, self.end_time, self.status.name,
+                               reason, id(self.parent) if self.parent else None)
 
     def insert(self, session: sqlalchemy.orm.session.Session, recursive: bool = True,
                parent_id: Optional[int] = None, use_progress_bar: bool = True,
@@ -219,14 +219,14 @@ class TaskTreeNode(anytree.NodeMixin):
 
         # convert self to orm object
         node = self.to_sql()
-        node.code = code.id
+        node.code_id = code.id
 
         # get and set metadata
-        metadata = MetaData().insert(session)
-        node.metadata_id = metadata.id
+        metadata = ProcessMetaData().insert(session)
+        node.process_metadata_id = metadata.id
 
         # set parent to id from constructor
-        node.parent = parent_id
+        node.parent_id = parent_id
 
         # add the node to database to retrieve the new id
         session.add(node)
