@@ -106,6 +106,7 @@ Authors
    designators
    resolvers
    examples
+   troubleshooting
    ros_utils
    remarks
 
