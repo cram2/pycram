@@ -219,7 +219,7 @@ class HSRWorldStateDetecting(ProcessModule):
 class HSRManager(ProcessModuleManager):
 
     def __init__(self):
-        super().__init__("hsr")
+        super().__init__("hsrb")
         self._navigate_lock = Lock()
         self._pick_up_lock = Lock()
         self._place_lock = Lock()
