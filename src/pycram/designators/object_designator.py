@@ -52,12 +52,6 @@ class ObjectPart(ObjectDesignatorDescription):
             obj.process_metadata_id = metadata.id
             pose = self.part_pose.insert(session)
             obj.pose_id = pose.id
-            # try to create the part_of object
-            # if self.part_of:
-            #     part = self.part_of.insert(session)
-            #     obj.part_of = part.id
-            # else:
-            #     obj.part_of = None
 
             session.add(obj)
             session.commit()

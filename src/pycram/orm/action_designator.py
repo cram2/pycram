@@ -111,3 +111,10 @@ class CloseAction(ObjectMixin, Action):
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
     arm: Mapped[str]
 
+
+class GraspingAction(ObjectMixin, Action):
+    """ORM Class of pycram.designators.action_designator.GraspingAction."""
+
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
+    arm: Mapped[str]
+

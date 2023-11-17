@@ -209,7 +209,7 @@ class MoveTCPMotion(MotionDesignatorDescription):
             return pm_manager.move_tcp().execute(self)
 
         def to_sql(self) -> ORMMoveTCPMotion:
-            return ORMMoveTCPMotion(self.arm)
+            return ORMMoveTCPMotion(self.arm, self.allow_gripper_collision)
 
         def insert(self, session: Session, *args, **kwargs) -> ORMMoveTCPMotion:
             motion = super().insert(session)
@@ -331,7 +331,7 @@ class MoveGripperMotion(MotionDesignatorDescription):
             return pm_manager.move_gripper().execute(self)
 
         def to_sql(self) -> ORMMoveGripperMotion:
-            return ORMMoveGripperMotion(self.motion, self.gripper)
+            return ORMMoveGripperMotion(self.motion, self.gripper, self.allow_gripper_collision)
 
         def insert(self, session: Session, *args, **kwargs) -> ORMMoveGripperMotion:
             motion = super().insert(session)
