@@ -87,6 +87,10 @@ Examples of features can be found either in the documentation under the 'Example
 The examples in the `examples` folder are Jupyter Notebooks which can be viewed and executed, for more information 
 how to do that take a look at the respective `README` file. 
 
+## Troubleshooting 
+If you encounter some error please first take a look at the 
+[troubleshooting](https://pycram.readthedocs.io/en/latest/troubleshooting.html) section and see if the error is mentioned 
+there. 
 
 ## Authors
 
