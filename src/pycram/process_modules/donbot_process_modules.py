@@ -90,24 +90,37 @@ class DonbotMoveHead(ProcessModule):
         target = desig.target
         robot = BulletWorld.robot
 
+        _park_arms("left")
+
         local_transformer = LocalTransformer()
 
         pose_in_shoulder = local_transformer.transform_pose(target, robot.get_link_tf_frame("ur5_shoulder_link"))
 
-        new_pan = np.arctan2(pose_in_shoulder.position.y, pose_in_shoulder.position.x)
-        new_tilt = np.arctan2(pose_in_shoulder.position.z, pose_in_shoulder.position.x ** 2 + pose_in_shoulder.position.y ** 2) * -1
+        if pose_in_shoulder.position.x >= 0 and pose_in_shoulder.position.x >= abs(pose_in_shoulder.position.y):
+            for joint, pose in robot_description.get_static_joint_chain("left", "front").items():
+                robot.set_joint_state(joint, pose)
+        if pose_in_shoulder.position.y >= 0 and pose_in_shoulder.position.y >= abs(pose_in_shoulder.position.x):
+            for joint, pose in robot_description.get_static_joint_chain("left", "arm_right").items():
+                robot.set_joint_state(joint, pose)
+        if pose_in_shoulder.position.x <= 0 and abs(pose_in_shoulder.position.x) > abs(pose_in_shoulder.position.y):
+            for joint, pose in robot_description.get_static_joint_chain("left", "back").items():
+                robot.set_joint_state(joint, pose)
+        if pose_in_shoulder.position.y <= 0 and abs(pose_in_shoulder.position.y) > abs(pose_in_shoulder.position.x):
+            for joint, pose in robot_description.get_static_joint_chain("left", "arm_left").items():
+                robot.set_joint_state(joint, pose)
 
-        tcp_rotation = quaternion_from_euler(new_tilt, 0, new_pan)
-        shoulder_pose = Pose([-0.2, 0.3, 1.31], [-0.31, 0.63, 0.70, -0.02], "map")
+        new_pan = (np.arctan2(pose_in_shoulder.position.y, pose_in_shoulder.position.x) + np.pi)
 
-        print(shoulder_pose)
+        print(new_pan)
 
-        _move_arm_tcp(shoulder_pose, robot, "left")
+        print(pose_in_shoulder)
+
+        robot.set_joint_state("ur5_shoulder_pan_joint", new_pan)
 
 class DonbotMoveGripper(ProcessModule):
     """
     This process module controls the gripper of the robot. They can either be opened or closed.
-    Furthermore, it can only moved one gripper at a time.
+    Furthermore, it can only move one gripper at a time.
     """
 
     def _execute(self, desig):

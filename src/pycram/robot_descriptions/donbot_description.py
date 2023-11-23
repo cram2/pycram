@@ -72,6 +72,12 @@ class DonbotDescription(RobotDescription):
         park = [3.234022855758667, -1.5068710486041468, -0.7870314756976526, -2.337625328694479,
                 1.5699548721313477, -1.6504042784320276]
         self.add_static_joint_chain("left", "park", park)
+        front = [-1.5, -1.5, 0, 1.5, -1.5, 1.5]
+        arm_right = [-3, -1.5, 0, 1.5, -1.5, 1.5]
+        back = [-4.7, -1.5, 0, 1.5, -1.5, 1.5]
+        arm_left = [0, -1.5, 0, 1.5, -1.5, 1.5]
+        self.add_static_joint_chains("left", {"front": front, "arm_right": arm_right, "back": back,
+                                              "arm_left": arm_left})
 
     def get_camera_frame(self, name="rgb_camera"):
         # TODO: Hacky since only one optical camera frame from pr2 is used
