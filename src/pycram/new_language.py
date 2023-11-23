@@ -2,20 +2,14 @@
 from __future__ import annotations
 
 from typing import Type, Iterable
-from enum import Enum
+
+import rospy
 from anytree import NodeMixin, Node, PreOrderIter
+from .enums import State
 import threading
 
-from pycram.plan_failures import PlanFailure
-
-
-class State(Enum):
-    """
-    Enumeration which describes the result of a language expression.
-    """
-    SUCCEEDED = 1
-    FAILED = 0
-
+from .plan_failures import PlanFailure, NotALanguageExpression
+from .external_interfaces import giskard
 
 class Language(NodeMixin):
     """
@@ -23,7 +17,7 @@ class Language(NodeMixin):
     tree.
     """
 
-    def __init__(self, parent: Type[NodeMixin] = None, children: Iterable[NodeMixin] = None):
+    def __init__(self, parent: NodeMixin = None, children: Iterable[NodeMixin] = None):
         """
         Default constructor for anytree nodes. If the parent is none this is the root node.
 
@@ -31,6 +25,7 @@ class Language(NodeMixin):
         :param children: All children of this node as a tuple oder iterable
         """
         self.parent = parent
+        self.exceptions = []
         if children:
             self.children = children
 
@@ -56,7 +51,9 @@ class Language(NodeMixin):
         :param other: Another Language expression, either a designator or language expression
         :return: A :func:`~Sequential` object which is the new root node of the language tree
         """
-        return Sequential(parent=None, children=(self, other))
+        if not issubclass(other.__class__, Language):
+            raise NotALanguageExpression(f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
+        return Sequential(parent=None, children=(self, other)).simplify()
 
     def __sub__(self, other: Language) -> TryInOrder:
         """
@@ -65,7 +62,10 @@ class Language(NodeMixin):
         :param other: Another Language expression, either a designator or language expression
         :return: A :func:`~TryInOrder` object which is the new root node of the language tree
         """
-        return TryInOrder(parent=None, children=(self, other))
+        if not issubclass(other.__class__, Language):
+            raise NotALanguageExpression(
+                f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
+        return TryInOrder(parent=None, children=(self, other)).simplify()
 
     def __or__(self, other: Language) -> Parallel:
         """
@@ -74,27 +74,36 @@ class Language(NodeMixin):
         :param other: Another Language expression, either a designator or language expression
         :return: A :func:`~Parallel` object which is the new root node of the language tree
         """
-        return Parallel(parent=None, children=(self, other))
+        if not issubclass(other.__class__, Language):
+            raise NotALanguageExpression(
+                f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
+        return Parallel(parent=None, children=(self, other)).simplify()
 
-    def __truediv__(self, other: Language) -> Pursue:
-        """
-        Language expression for purse execution.
+    # def __truediv__(self, other: Language) -> Pursue:
+    #     """
+    #     Language expression for purse execution.
+    #
+    #     :param other: Another Language expression, either a designator or language expression
+    #     :return: A :func:`~Pursue` object which is the new root node of the language tree
+    #     """
+    #     if not issubclass(other.__class__, Language):
+    #         raise NotALanguageExpression(
+    #             f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
+    #     return Pursue(parent=None, children=(self, other)).simplify()
 
-        :param other: Another Language expression, either a designator or language expression
-        :return: A :func:`~Pursue` object which is the new root node of the language tree
-        """
-        return Pursue(parent=None, children=(self, other))
-
-    def __rshift__(self, other: Language) -> TryAll:
+    def __xor__(self, other: Language) -> TryAll:
         """
         Language expression for try all execution.
 
         :param other: Another Language expression, either a designator or language expression
         :return: A :func:`~TryAll` object which is the new root node of the language tree
         """
-        return TryAll(parent=None, children=(self, other))
+        if not issubclass(other.__class__, Language):
+            raise NotALanguageExpression(
+                f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
+        return TryAll(parent=None, children=(self, other)).simplify()
 
-    def simplify(self) -> None:
+    def simplify(self) -> Language:
         """
         Simplifies the language tree by merging which have a parent-child relation and are of the same type.
 
@@ -119,6 +128,7 @@ class Language(NodeMixin):
             for child in node.children:
                 if type(node) is type(child):
                     self.merge_nodes(node, child)
+        return self.root
 
     @staticmethod
     def merge_nodes(node1: Node, node2: Node) -> None:
@@ -153,6 +163,7 @@ class Sequential(Language):
             for child in self.children:
                 child.resolve().perform()
         except PlanFailure as e:
+            self.root.exceptions.append(e)
             return State.FAILED
         return State.SUCCEEDED
 
@@ -163,8 +174,8 @@ class TryInOrder(Language):
     Instead, the exception is saved to a list of all exceptions thrown during execution and returned.
 
     Behaviour:
-      Returns the State :py:attr:`~State.SUCCEEDED` if one or more children are executed without
-      exception. In the case that all children could not be executed the State :py:attr:`~State.FAILED` will be returned.
+        Returns the State :py:attr:`~State.SUCCEEDED` if one or more children are executed without
+        exception. In the case that all children could not be executed the State :py:attr:`~State.FAILED` will be returned.
     """
 
     def perform(self) -> State:
@@ -180,6 +191,7 @@ class TryInOrder(Language):
             except PlanFailure as e:
                 failure_list.append(e)
         if len(failure_list) == len(self.children):
+            self.root.exceptions.append(failure_list)
             return State.FAILED
         else:
             return State.SUCCEEDED
@@ -194,6 +206,7 @@ class Parallel(Language):
         Returns the State :py:attr:`~State.SUCCEEDED` *iff* all children could be executed without an exception. In any
         other case the State :py:attr:`~State.FAILED` will be returned.
     """
+
     def perform(self) -> State:
         """
         Behaviour of Parallel, creates a new thread for each child and calls perform() of the child in the respective
@@ -202,16 +215,16 @@ class Parallel(Language):
         :return: The state according to the behaviour described in :func:`Parallel`
         """
         threads = []
-        result = None
+        giskard.number_of_par_goals = len(self.children)
         for child in self.children:
             t = threading.Thread(target=child.resolve().perform)
             try:
-                t.run()
+                t.start()
             except PlanFailure as e:
-                result = State.FAILED
                 for thread in threads:
                     thread.join()
-                return result
+                self.root.exceptions.append(e)
+                return State.FAILED
             threads.append(t)
         for thread in threads:
             thread.join()
@@ -228,6 +241,7 @@ class Pursue(Language):
         Returns the State :py:attr:`~State.SUCCEEDED` if the first child to finish did not raise an exception and
         returns the State :py:attr:`~State.FAILED` if the first child to finish raise an exception.
     """
+
     def perform(self) -> State:
         """
         Behaviour of Pursue, creates a new thread for each child and calls perform() of the child in the respective
@@ -255,11 +269,19 @@ class TryAll(Language):
         :return: The state according to the behaviour described in :func:`TryAll`
         """
         threads = []
+        failure_list = []
+        giskard.number_of_par_goals = len(self.children)
         for child in self.children:
             t = threading.Thread(target=child.resolve().perform)
-            t.run()
+            try:
+                t.start()
+            except PlanFailure as e:
+                failure_list.append(e)
             threads.append(t)
         for thread in threads:
             thread.join()
-
-
+        if len(self.children) == len(failure_list):
+            self.root.exceptions.append(failure_list)
+            return State.FAILED
+        else:
+            return State.SUCCEEDED

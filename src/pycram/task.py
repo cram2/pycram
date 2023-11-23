@@ -18,10 +18,11 @@ from .bullet_world import BulletWorld
 from .orm.task import (Code as ORMCode, TaskTreeNode as ORMTaskTreeNode)
 from .orm.base import ProcessMetaData
 from .plan_failures import PlanFailure
+from .new_language import Language
 from .enums import TaskStatus
 
 
-class Code:
+class Code(Language):
     """
     Executable code block in a plan.
 
@@ -42,6 +43,7 @@ class Code:
         if kwargs is None:
             kwargs = dict()
         self.kwargs: Dict[str, Any] = kwargs
+        self.perform = self.execute
 
     def execute(self) -> Any:
         """
@@ -50,10 +52,6 @@ class Code:
         :returns: Anything that the function associated with this object will return.
         """
         return self.function(**self.kwargs)
-
-    # def __str__(self) -> str:
-    #     return "%s(%s)" % (self.function.__name__, ", ".join(["%s = %s" % (key, str(value)) for key, value in
-    #                                                           self.kwargs.items()]))
 
     def __str__(self) -> str:
         return "%s(%s)" % (
