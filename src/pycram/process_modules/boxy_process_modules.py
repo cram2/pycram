@@ -8,6 +8,7 @@ import pycram.bullet_world_reasoning as btr
 import pycram.helper as helper
 from ..bullet_world import BulletWorld
 from ..designators.motion_designator import *
+from ..enums import JointType
 from ..external_interfaces.ik import request_ik
 from ..local_transformer import LocalTransformer as local_tf, LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
@@ -90,44 +91,46 @@ class BoxyPlace(ProcessModule):
         robot.detach(object)
 
 
-class BoxyAccessing(ProcessModule):
+class BoxyOpen(ProcessModule):
     """
-    This process module responsible for opening drawers to access the objects inside. This works by firstly moving
-    the end effector to the handle of the drawer. Next, the end effector is moved the respective distance to the back.
-    This provides the illusion the robot would open the drawer by himself.
-    Then the drawer will be opened by setting the joint pose of the drawer joint.
+    Low-level implementation of opening a container in the simulation. Assumes the handle is already grasped.
     """
 
-    def _execute(self, desig):
-        solution = desig.reference()
-        if solution['cmd'] == 'access':
-            kitchen = solution['part_of']
-            robot = BulletWorld.robot
-            gripper = solution['gripper']
-            drawer_handle = solution['drawer_handle']
-            drawer_joint = solution['drawer_joint']
-            dis = solution['distance']
-            robot.set_joint_state(robot_description.torso_joint, -0.1)
-            arm = "left" if solution['gripper'] == robot_description.get_tool_frame("left") else "right"
-            joints = robot_description._safely_access_chains(arm).joints
-            #inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), kitchen.get_link_position(drawer_handle))
-            target = helper._transform_to_torso(kitchen.get_link_position_and_orientation(drawer_handle), robot)
-            #target = (target[0], [0, 0, 0, 1])
-            inv = request_ik(robot_description.base_frame, gripper, target , robot, joints )
-            helper._apply_ik(robot, inv, gripper)
-            time.sleep(0.2)
-            cur_pose = robot.get_pose()
-            robot.set_position([cur_pose[0]-dis, cur_pose[1], cur_pose[2]])
-            han_pose = kitchen.get_link_position(drawer_handle)
-            new_p = [[han_pose[0] - dis, han_pose[1], han_pose[2]], kitchen.get_link_orientation(drawer_handle)]
-            new_p = helper._transform_to_torso(new_p, robot)
-            inv = request_ik(robot_description.base_frame, gripper, new_p, robot, joints)
-            helper._apply_ik(robot, inv, gripper)
-            kitchen.set_joint_state(drawer_joint, 0.3)
-            time.sleep(0.5)
+    def _execute(self, desig: OpeningMotion.Motion):
+        part_of_object = desig.object_part.bullet_world_object
+
+        container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
+
+        goal_pose = btr.link_pose_for_joint_config(part_of_object, {
+            container_joint: part_of_object.get_joint_limits(container_joint)[1] - 0.05}, desig.object_part.name)
+
+        _move_arm_tcp(goal_pose, BulletWorld.robot, desig.arm)
+
+        desig.object_part.bullet_world_object.set_joint_state(container_joint,
+                                                              part_of_object.get_joint_limits(
+                                                                  container_joint)[1])
+
+
+class BoxyClose(ProcessModule):
+    """
+    Low-level implementation that lets the robot close a grasped container, in simulation
+    """
+    def _execute(self, desig: ClosingMotion.Motion):
+        part_of_object = desig.object_part.bullet_world_object
+
+        container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
+
+        goal_pose = btr.link_pose_for_joint_config(part_of_object, {
+            container_joint: part_of_object.get_joint_limits(container_joint)[0]}, desig.object_part.name)
+
+        _move_arm_tcp(goal_pose, BulletWorld.robot, desig.arm)
+
+        desig.object_part.bullet_world_object.set_joint_state(container_joint,
+                                                              part_of_object.get_joint_limits(
+                                                                  container_joint)[0])
 
 """
-Keine Entsprechung im PR2-Modul? Wird dies benötigt? ----- -> Open/Close
+Keine Entsprechung im PR2-Modul? Wird dies benötigt? ----- -> Open/Close --> Done, noch nicht getestet
 """
 class BoxyParkArms(ProcessModule):
     """
@@ -140,9 +143,7 @@ class BoxyParkArms(ProcessModule):
         if solutions['cmd'] == 'park':
             _park_arms()
 
-"""
-Richtiger Link? Wie Arm ansprechen? -----
-"""
+
 class BoxyMoveHead(ProcessModule):
     """
     This process module moves the head to look at a specific point in the world coordinate frame.
@@ -153,22 +154,32 @@ class BoxyMoveHead(ProcessModule):
         target = desig.target
         robot = BulletWorld.robot
 
+        _park_arms("left")
+
         local_transformer = LocalTransformer()
 
-        pose_in_neck = local_transformer.transform_pose(target, robot.get_link_tf_frame("neck_base_link"))
+        pose_in_shoulder = local_transformer.transform_pose(target, robot.get_link_tf_frame("neck_shoulder_link"))
 
-        new_pan = np.arctan2(pose_in_neck.position.y, pose_in_neck.position.x)
-        new_tilt = np.arctan2(pose_in_neck.position.z,
-                              pose_in_neck.position.x ** 2 + pose_in_neck.position.y ** 2) * -1
+        if pose_in_shoulder.position.x >= 0 and pose_in_shoulder.position.x >= abs(pose_in_shoulder.position.y):
+            for joint, pose in robot_description.get_static_joint_chain("left", "front").items():
+                robot.set_joint_state(joint, pose)
+        if pose_in_shoulder.position.y >= 0 and pose_in_shoulder.position.y >= abs(pose_in_shoulder.position.x):
+            for joint, pose in robot_description.get_static_joint_chain("left", "neck_right").items():
+                robot.set_joint_state(joint, pose)
+        if pose_in_shoulder.position.x <= 0 and abs(pose_in_shoulder.position.x) > abs(pose_in_shoulder.position.y):
+            for joint, pose in robot_description.get_static_joint_chain("left", "back").items():
+                robot.set_joint_state(joint, pose)
+        if pose_in_shoulder.position.y <= 0 and abs(pose_in_shoulder.position.y) > abs(pose_in_shoulder.position.x):
+            for joint, pose in robot_description.get_static_joint_chain("left", "neck_left").items():
+                robot.set_joint_state(joint, pose)
 
-        tcp_rotation = quaternion_from_euler(new_tilt, 0, new_pan)
-        shoulder_pose = Pose([-0.2, 0.3, 1.31], [-0.31, 0.63, 0.70, -0.02], "map")
+        new_pan = (np.arctan2(pose_in_shoulder.position.y, pose_in_shoulder.position.x) + np.pi)
 
-        print(shoulder_pose)
-        """
-        Wie spreche ich den Arm an? Geht das so überhaupt? ----- -> neck
-        """
-        _move_arm_tcp(shoulder_pose, robot, "neck")
+        print(new_pan)
+
+        print(pose_in_shoulder)
+
+        robot.set_joint_state("neck_shoulder_pan_joint", new_pan)
 
 
 class BoxyMoveGripper(ProcessModule):
@@ -216,9 +227,7 @@ class BoxyMoveTCP(ProcessModule):
 
         _move_arm_tcp(target, robot, desig.arm)
 
-"""
-MoveArmJoints? PR2 hat beides, wird hier auch beides benötigt?----- -> so lassen
-"""
+
 class BoxyMoveArmJoints(ProcessModule):
     """
     This process modules moves the joints of either the right or the left arm. The joint states can be given as

@@ -28,12 +28,18 @@ class BoxyDescription(RobotDescription):
         neck_behind = [-1.68, -0.26, -0.12, -0.24, 1.49, 3.09]
         # neck_forward = [-1.39, -3.09, -0.78, 1.91, 1.51, -0.14]
         neck_forward = [-1.20, 2.39, 0.17, 1.77, 1.44, -0.35]
-        neck_right = [-1.20, 2.39, 0.17, 1.77, 1.44, 0.0]
-        neck_left = [-1.20, 2.39, 0.17, 1.77, 1.44, -0.7]
+        # neck_right = [-1.20, 2.39, 0.17, 1.77, 1.44, 0.0]
+        # neck_left = [-1.20, 2.39, 0.17, 1.77, 1.44, -0.7]
         neck = ChainDescription("neck", neck_joints, neck_links, base_link=neck_base)
         neck.add_static_joint_chains({"away": neck_away, "down": neck_down, "down_left": neck_down_left,
                                       "down_right": neck_down_right, "behind_up": neck_behind_up, "behind": neck_behind,
-                                      "forward": neck_forward, "right": neck_right, "left": neck_left})
+                                      "forward": neck_forward})
+        front = [-1.5, -1.5, 0, 1.5, -1.5, 1.5]
+        neck_right = [-3, -1.5, 0, 1.5, -1.5, 1.5]
+        back = [-4.7, -1.5, 0, 1.5, -1.5, 1.5]
+        neck_left = [0, -1.5, 0, 1.5, -1.5, 1.5]
+        self.add_static_joint_chains("left", {"front": front, "arm_right": neck_right, "back": back,
+                                              "arm_left": neck_left})
         self.add_chain("neck", neck)
         # Arms
         left_joints = ["left_arm_0_joint", "left_arm_1_joint", "left_arm_2_joint",
