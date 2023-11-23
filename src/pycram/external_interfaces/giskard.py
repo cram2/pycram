@@ -11,6 +11,7 @@ from ..robot_description import ManipulatorDescription
 
 from typing import List, Tuple, Dict, Callable
 from geometry_msgs.msg import PoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
+from threading import Lock
 
 try:
     from giskardpy.python_interface import GiskardWrapper
@@ -22,6 +23,9 @@ except ModuleNotFoundError as e:
 giskard_wrapper = None
 giskard_update_service = None
 is_init = False
+
+number_of_par_goals = None
+giskard_lock = Lock()
 
 
 def init_giskard_interface(func: Callable) -> Callable:
@@ -55,7 +59,6 @@ def init_giskard_interface(func: Callable) -> Callable:
         else:
             rospy.logwarn("Giskard is not running, could not initialize Giskard interface")
             return
-
         return func(*args, **kwargs)
 
     return wrapper
@@ -192,7 +195,11 @@ def achieve_joint_goal(goal_poses: Dict[str, float]) -> 'MoveResult':
     """
     sync_worlds()
     giskard_wrapper.set_joint_goal(goal_poses)
-    return giskard_wrapper.plan_and_execute()
+    global number_of_par_goals
+    if number_of_par_goals == 1:
+        return giskard_wrapper.plan_and_execute()
+    else:
+        number_of_par_goals -= 1
 
 
 @init_giskard_interface
@@ -208,7 +215,11 @@ def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str) -> 'M
     """
     sync_worlds()
     giskard_wrapper.set_cart_goal(_pose_to_pose_stamped(goal_pose), tip_link, root_link)
-    return giskard_wrapper.plan_and_execute()
+    global number_of_par_goals
+    if number_of_par_goals == 1:
+        return giskard_wrapper.plan_and_execute()
+    else:
+        number_of_par_goals -= 1
 
 
 @init_giskard_interface
@@ -225,7 +236,11 @@ def achieve_straight_cartesian_goal(goal_pose: Pose, tip_link: str,
     """
     sync_worlds()
     giskard_wrapper.set_straight_cart_goal(_pose_to_pose_stamped(goal_pose), tip_link, root_link)
-    return giskard_wrapper.plan_and_execute()
+    global number_of_par_goals
+    if number_of_par_goals == 1:
+        return giskard_wrapper.plan_and_execute()
+    else:
+        number_of_par_goals -= 1
 
 
 @init_giskard_interface
@@ -241,7 +256,11 @@ def achieve_translation_goal(goal_point: List[float], tip_link: str, root_link: 
     """
     sync_worlds()
     giskard_wrapper.set_translation_goal(make_point_stamped(goal_point), tip_link, root_link)
-    return giskard_wrapper.plan_and_execute()
+    global number_of_par_goals
+    if number_of_par_goals == 1:
+        return giskard_wrapper.plan_and_execute()
+    else:
+        number_of_par_goals -= 1
 
 
 @init_giskard_interface
@@ -257,7 +276,11 @@ def achieve_straight_translation_goal(goal_point: List[float], tip_link: str, ro
     """
     sync_worlds()
     giskard_wrapper.set_straight_translation_goal(make_point_stamped(goal_point), tip_link, root_link)
-    return giskard_wrapper.plan_and_execute()
+    global number_of_par_goals
+    if number_of_par_goals == 1:
+        return giskard_wrapper.plan_and_execute()
+    else:
+        number_of_par_goals -= 1
 
 
 @init_giskard_interface
@@ -273,7 +296,11 @@ def achieve_rotation_goal(quat: List[float], tip_link: str, root_link: str) -> '
     """
     sync_worlds()
     giskard_wrapper.set_rotation_goal(make_quaternion_stamped(quat), tip_link, root_link)
-    return giskard_wrapper.plan_and_execute()
+    global number_of_par_goals
+    if number_of_par_goals == 1:
+        return giskard_wrapper.plan_and_execute()
+    else:
+        number_of_par_goals -= 1
 
 
 @init_giskard_interface
@@ -292,7 +319,11 @@ def achieve_align_planes_goal(goal_normal: List[float], tip_link: str, tip_norma
     sync_worlds()
     giskard_wrapper.set_align_planes_goal(make_vector_stamped(goal_normal), tip_link, make_vector_stamped(tip_normal),
                                           root_link)
-    return giskard_wrapper.plan_and_execute()
+    global number_of_par_goals
+    if number_of_par_goals == 1:
+        return giskard_wrapper.plan_and_execute()
+    else:
+        number_of_par_goals -= 1
 
 
 @init_giskard_interface
@@ -307,7 +338,11 @@ def achieve_open_container_goal(tip_link: str, environment_link: str) -> 'MoveRe
     """
     sync_worlds()
     giskard_wrapper.set_open_container_goal(tip_link, environment_link)
-    return giskard_wrapper.plan_and_execute()
+    global number_of_par_goals
+    if number_of_par_goals == 1:
+        return giskard_wrapper.plan_and_execute()
+    else:
+        number_of_par_goals -= 1
 
 
 @init_giskard_interface
@@ -322,7 +357,11 @@ def achieve_close_container_goal(tip_link: str, environment_link: str) -> 'MoveR
     """
     sync_worlds()
     giskard_wrapper.set_close_container_goal(tip_link, environment_link)
-    return giskard_wrapper.plan_and_execute()
+    global number_of_par_goals
+    if number_of_par_goals == 1:
+        return giskard_wrapper.plan_and_execute()
+    else:
+        number_of_par_goals -= 1
 
 
 # Managing collisions
@@ -358,14 +397,15 @@ def add_gripper_groups() -> None:
 
     :return: Response of the RegisterGroup Service
     """
-    for name in giskard_wrapper.get_group_names():
-        if "gripper" in name:
-            return
+    with giskard_lock:
+        for name in giskard_wrapper.get_group_names():
+            if "gripper" in name:
+                return
 
-    for name, description in robot_description.chains.items():
-        if isinstance(description, ManipulatorDescription):
-            root_link = robot_description.chains[name].gripper.links[-1]
-            giskard_wrapper.register_group(name + "_gripper", root_link, robot_description.name)
+        for name, description in robot_description.chains.items():
+            if isinstance(description, ManipulatorDescription):
+                root_link = robot_description.chains[name].gripper.links[-1]
+                giskard_wrapper.register_group(name + "_gripper", root_link, robot_description.name)
 
 
 @init_giskard_interface

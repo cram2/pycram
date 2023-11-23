@@ -54,3 +54,11 @@ class ObjectType(Enum):
     ENVIRONMENT = auto()
     GENERIC_OBJECT = auto()
 
+
+class State(Enum):
+    """
+    Enumeration which describes the result of a language expression.
+    """
+    SUCCEEDED = 1
+    FAILED = 0
+
