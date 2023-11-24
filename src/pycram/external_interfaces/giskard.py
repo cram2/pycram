@@ -1,8 +1,12 @@
+import threading
+
 import rosnode
 import rospy
 import sys
 import rosnode
 import urdf_parser_py
+
+import traceback
 
 from ..pose import Pose
 from ..robot_descriptions import robot_description
@@ -24,8 +28,25 @@ giskard_wrapper = None
 giskard_update_service = None
 is_init = False
 
-number_of_par_goals = None
+number_of_par_goals = 0
 giskard_lock = Lock()
+with giskard_lock:
+    par_threads = {}
+with giskard_lock:
+    par_motion_goal = {}
+
+
+def thread_safe(func: Callable) -> Callable:
+    """
+    Adds thread safety to a function via a decorator. This uses the giskard_lock
+
+    :param func: Function that should be thread safe
+    :return: A function with thread safety
+    """
+    def wrapper(*args, **kwargs):
+        with giskard_lock:
+            return func(*args, **kwargs)
+    return wrapper
 
 
 def init_giskard_interface(func: Callable) -> Callable:
@@ -73,7 +94,7 @@ def initial_adding_objects() -> None:
     """
     groups = giskard_wrapper.get_group_names()
     for obj in BulletWorld.current_bullet_world.objects:
-        if obj == BulletWorld.robot:
+        if obj is BulletWorld.robot:
             continue
         name = obj.name + "_" + str(obj.id)
         if name not in groups:
@@ -194,12 +215,26 @@ def achieve_joint_goal(goal_poses: Dict[str, float]) -> 'MoveResult':
     :return: MoveResult message for this goal
     """
     sync_worlds()
+    for key, value in par_threads.items():
+        if threading.get_ident() in value:
+            tmp = giskard_wrapper.cmd_seq
+
+            if key in par_motion_goal.keys():
+                giskard_wrapper.cmd_seq = par_motion_goal[key]
+            else:
+                giskard_wrapper.clear_cmds()
+
+            giskard_wrapper.set_joint_goal(goal_poses)
+
+            par_threads[key].remove(threading.get_ident())
+            if len(par_threads) == 0:
+                return giskard_wrapper.plan_and_execute()
+            else:
+                par_motion_goal[key] = giskard_wrapper.cmd_seq
+            giskard_wrapper.cmd_seq = tmp
+
     giskard_wrapper.set_joint_goal(goal_poses)
-    global number_of_par_goals
-    if number_of_par_goals == 1:
-        return giskard_wrapper.plan_and_execute()
-    else:
-        number_of_par_goals -= 1
+    return giskard_wrapper.plan_and_execute()
 
 
 @init_giskard_interface
@@ -216,10 +251,9 @@ def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str) -> 'M
     sync_worlds()
     giskard_wrapper.set_cart_goal(_pose_to_pose_stamped(goal_pose), tip_link, root_link)
     global number_of_par_goals
-    if number_of_par_goals == 1:
+    number_of_par_goals -= 1
+    if number_of_par_goals == 0:
         return giskard_wrapper.plan_and_execute()
-    else:
-        number_of_par_goals -= 1
 
 
 @init_giskard_interface
@@ -237,10 +271,9 @@ def achieve_straight_cartesian_goal(goal_pose: Pose, tip_link: str,
     sync_worlds()
     giskard_wrapper.set_straight_cart_goal(_pose_to_pose_stamped(goal_pose), tip_link, root_link)
     global number_of_par_goals
-    if number_of_par_goals == 1:
+    number_of_par_goals -= 1
+    if number_of_par_goals == 0:
         return giskard_wrapper.plan_and_execute()
-    else:
-        number_of_par_goals -= 1
 
 
 @init_giskard_interface
@@ -257,10 +290,9 @@ def achieve_translation_goal(goal_point: List[float], tip_link: str, root_link: 
     sync_worlds()
     giskard_wrapper.set_translation_goal(make_point_stamped(goal_point), tip_link, root_link)
     global number_of_par_goals
-    if number_of_par_goals == 1:
+    number_of_par_goals -= 1
+    if number_of_par_goals == 0:
         return giskard_wrapper.plan_and_execute()
-    else:
-        number_of_par_goals -= 1
 
 
 @init_giskard_interface
@@ -277,10 +309,9 @@ def achieve_straight_translation_goal(goal_point: List[float], tip_link: str, ro
     sync_worlds()
     giskard_wrapper.set_straight_translation_goal(make_point_stamped(goal_point), tip_link, root_link)
     global number_of_par_goals
-    if number_of_par_goals == 1:
+    number_of_par_goals -= 1
+    if number_of_par_goals == 0:
         return giskard_wrapper.plan_and_execute()
-    else:
-        number_of_par_goals -= 1
 
 
 @init_giskard_interface
@@ -297,10 +328,9 @@ def achieve_rotation_goal(quat: List[float], tip_link: str, root_link: str) -> '
     sync_worlds()
     giskard_wrapper.set_rotation_goal(make_quaternion_stamped(quat), tip_link, root_link)
     global number_of_par_goals
-    if number_of_par_goals == 1:
+    number_of_par_goals -= 1
+    if number_of_par_goals == 0:
         return giskard_wrapper.plan_and_execute()
-    else:
-        number_of_par_goals -= 1
 
 
 @init_giskard_interface
@@ -320,10 +350,9 @@ def achieve_align_planes_goal(goal_normal: List[float], tip_link: str, tip_norma
     giskard_wrapper.set_align_planes_goal(make_vector_stamped(goal_normal), tip_link, make_vector_stamped(tip_normal),
                                           root_link)
     global number_of_par_goals
-    if number_of_par_goals == 1:
+    number_of_par_goals -= 1
+    if number_of_par_goals == 0:
         return giskard_wrapper.plan_and_execute()
-    else:
-        number_of_par_goals -= 1
 
 
 @init_giskard_interface
@@ -339,10 +368,9 @@ def achieve_open_container_goal(tip_link: str, environment_link: str) -> 'MoveRe
     sync_worlds()
     giskard_wrapper.set_open_container_goal(tip_link, environment_link)
     global number_of_par_goals
-    if number_of_par_goals == 1:
+    number_of_par_goals -= 1
+    if number_of_par_goals == 0:
         return giskard_wrapper.plan_and_execute()
-    else:
-        number_of_par_goals -= 1
 
 
 @init_giskard_interface
@@ -358,10 +386,9 @@ def achieve_close_container_goal(tip_link: str, environment_link: str) -> 'MoveR
     sync_worlds()
     giskard_wrapper.set_close_container_goal(tip_link, environment_link)
     global number_of_par_goals
-    if number_of_par_goals == 1:
+    number_of_par_goals -= 1
+    if number_of_par_goals == 0:
         return giskard_wrapper.plan_and_execute()
-    else:
-        number_of_par_goals -= 1
 
 
 # Managing collisions
