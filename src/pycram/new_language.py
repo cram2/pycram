@@ -5,6 +5,7 @@ from typing import Type, Iterable
 
 import rospy
 from anytree import NodeMixin, Node, PreOrderIter
+
 from .enums import State
 import threading
 
@@ -215,9 +216,18 @@ class Parallel(Language):
         :return: The state according to the behaviour described in :func:`Parallel`
         """
         threads = []
-        giskard.number_of_par_goals = len(self.children)
+
+        def lang_call(child_node):
+            # if isinstance(child_node, DesignatorDescription):
+            if "DesignatorDescription" in [cls.__name__ for cls in child_node.__class__.__mro__]:
+                if self not in giskard.par_threads.keys():
+                    giskard.par_threads[self] = [threading.get_ident()]
+                else:
+                    giskard.par_threads[self].append(threading.get_ident())
+            child_node.resolve().perform()
+
         for child in self.children:
-            t = threading.Thread(target=child.resolve().perform)
+            t = threading.Thread(target=lambda: lang_call(child))
             try:
                 t.start()
             except PlanFailure as e:
