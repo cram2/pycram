@@ -1,5 +1,5 @@
 <launch>
-  <arg name="robot" default="donbot" />
+  <arg name="robot" default="boxy" />
   <arg name="use_knowrob" default="false"/>
 
 <node pkg="kdl_ik_service" type="start_ros_server.py" name="kdl_ik_service" output="screen" />
