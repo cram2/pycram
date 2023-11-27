@@ -154,40 +154,24 @@ class BoxyMoveHead(ProcessModule):
         target = desig.target
         robot = BulletWorld.robot
 
-        _park_arms("neck")
-
         local_transformer = LocalTransformer()
 
         pose_in_shoulder = local_transformer.transform_pose(target, robot.get_link_tf_frame("neck_shoulder_link"))
 
-        BulletWorld.current_bullet_world.add_vis_axis(pose_in_shoulder)
-
         if pose_in_shoulder.position.x >= 0 and pose_in_shoulder.position.x >= abs(pose_in_shoulder.position.y):
-            for joint, pose in robot_description.get_static_joint_chain("neck", "front").items():
-                robot.set_joint_state(joint, pose)
+            robot.set_joint_states(robot_description.get_static_joint_chain("neck", "front"))
         if pose_in_shoulder.position.y >= 0 and pose_in_shoulder.position.y >= abs(pose_in_shoulder.position.x):
-            for joint, pose in robot_description.get_static_joint_chain("neck", "neck_right").items():
-                robot.set_joint_state(joint, pose)
+            robot.set_joint_states(robot_description.get_static_joint_chain("neck", "neck_right"))
         if pose_in_shoulder.position.x <= 0 and abs(pose_in_shoulder.position.x) > abs(pose_in_shoulder.position.y):
-            for joint, pose in robot_description.get_static_joint_chain("neck", "back").items():
-                robot.set_joint_state(joint, pose)
+            robot.set_joint_states(robot_description.get_static_joint_chain("neck", "back"))
         if pose_in_shoulder.position.y <= 0 and abs(pose_in_shoulder.position.y) > abs(pose_in_shoulder.position.x):
-            for joint, pose in robot_description.get_static_joint_chain("neck", "neck_left").items():
-                robot.set_joint_state(joint, pose)
+            robot.set_joint_states(robot_description.get_static_joint_chain("neck", "neck_left"))
 
         pose_in_shoulder = local_transformer.transform_pose(target, robot.get_link_tf_frame("neck_shoulder_link"))
 
-        new_pan = np.arctan2(pose_in_shoulder.position.y, pose_in_shoulder.position.x) + np.pi
+        new_pan = np.arctan2(pose_in_shoulder.position.y, pose_in_shoulder.position.x)
 
-        print(new_pan)
-
-        print(pose_in_shoulder)
-
-        print(robot.get_joint_state("neck_shoulder_pan_joint"))
-
-        robot.set_joint_state("neck_shoulder_pan_joint", new_pan)
-
-        print(robot.get_joint_state("neck_shoulder_pan_joint"))
+        robot.set_joint_state("neck_shoulder_pan_joint", new_pan + robot.get_joint_state("neck_shoulder_pan_joint"))
 
 
 class BoxyMoveGripper(ProcessModule):
