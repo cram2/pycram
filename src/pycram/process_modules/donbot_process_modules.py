@@ -90,32 +90,24 @@ class DonbotMoveHead(ProcessModule):
         target = desig.target
         robot = BulletWorld.robot
 
-        _park_arms("left")
-
         local_transformer = LocalTransformer()
 
         pose_in_shoulder = local_transformer.transform_pose(target, robot.get_link_tf_frame("ur5_shoulder_link"))
 
         if pose_in_shoulder.position.x >= 0 and pose_in_shoulder.position.x >= abs(pose_in_shoulder.position.y):
-            for joint, pose in robot_description.get_static_joint_chain("left", "front").items():
-                robot.set_joint_state(joint, pose)
+            robot.set_joint_states(robot_description.get_static_joint_chain("left", "front"))
         if pose_in_shoulder.position.y >= 0 and pose_in_shoulder.position.y >= abs(pose_in_shoulder.position.x):
-            for joint, pose in robot_description.get_static_joint_chain("left", "arm_right").items():
-                robot.set_joint_state(joint, pose)
+            robot.set_joint_states(robot_description.get_static_joint_chain("left", "arm_right"))
         if pose_in_shoulder.position.x <= 0 and abs(pose_in_shoulder.position.x) > abs(pose_in_shoulder.position.y):
-            for joint, pose in robot_description.get_static_joint_chain("left", "back").items():
-                robot.set_joint_state(joint, pose)
+            robot.set_joint_states(robot_description.get_static_joint_chain("left", "back"))
         if pose_in_shoulder.position.y <= 0 and abs(pose_in_shoulder.position.y) > abs(pose_in_shoulder.position.x):
-            for joint, pose in robot_description.get_static_joint_chain("left", "arm_left").items():
-                robot.set_joint_state(joint, pose)
+            robot.set_joint_states(robot_description.get_static_joint_chain("left", "arm_left"))
 
-        new_pan = (np.arctan2(pose_in_shoulder.position.y, pose_in_shoulder.position.x) + np.pi)
+        pose_in_shoulder = local_transformer.transform_pose(target, robot.get_link_tf_frame("ur5_shoulder_link"))
 
-        print(new_pan)
+        new_pan = np.arctan2(pose_in_shoulder.position.y, pose_in_shoulder.position.x)
 
-        print(pose_in_shoulder)
-
-        robot.set_joint_state("ur5_shoulder_pan_joint", new_pan)
+        robot.set_joint_state("ur5_shoulder_pan_joint", new_pan + robot.get_joint_state("ur5_shoulder_pan_joint"))
 
 class DonbotMoveGripper(ProcessModule):
     """
