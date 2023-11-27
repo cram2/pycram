@@ -31,10 +31,8 @@ class RobotStateUpdater:
         self.tf_topic = tf_topic
         self.joint_state_topic = joint_state_topic
 
-        self.tf_timer = rospy.Timer(rospy.Duration(0.1), self._subscribe_tf)
-        self.joint_state_timer = rospy.Timer(rospy.Duration(0.1), self._subscribe_joint_state)
-
-        
+        self.tf_timer = rospy.Timer(rospy.Duration.from_sec(0.1), self._subscribe_tf)
+        self.joint_state_timer = rospy.Timer(rospy.Duration.from_sec(0.1), self._subscribe_joint_state)
 
         atexit.register(self._stop_subscription)
 
@@ -44,14 +42,20 @@ class RobotStateUpdater:
 
         :param msg: TransformStamped message published to the topic
         """
-        trans, rot = self.tf_listener.lookupTransform("/map", robot_description.base_frame, rospy.Time(0))
-        BulletWorld.robot.set_pose(Pose(trans, rot))
+        try:
+            trans, rot = self.tf_listener.lookupTransform("/map",
+                                                          robot_description.name + '/' + robot_description.base_frame,
+                                                          rospy.Time(0)
+                                                          )
+            BulletWorld.robot.set_pose(Pose(trans, rot))
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            pass
 
     def _subscribe_joint_state(self, msg: JointState) -> None:
         """
         Sets the current joint configuration of the robot in the bullet world to the configuration published on the topic.
-        Since this uses rospy.wait_for_message which can have errors when used with threads there might be an attribute error 
-        in the rospy implementation. 
+        Since this uses rospy.wait_for_message which can have errors when used with threads there might be an attribute error
+        in the rospy implementation.
 
         :param msg: JointState message published to the topic.
         """
@@ -61,7 +65,6 @@ class RobotStateUpdater:
                 BulletWorld.robot.set_joint_state(name, position)
         except AttributeError:
             pass
-        
 
     def _stop_subscription(self) -> None:
         """
