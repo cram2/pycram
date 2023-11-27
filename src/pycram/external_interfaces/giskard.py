@@ -15,7 +15,7 @@ from ..robot_description import ManipulatorDescription
 
 from typing import List, Tuple, Dict, Callable
 from geometry_msgs.msg import PoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
-from threading import Lock
+from threading import Lock, RLock
 
 try:
     from giskardpy.python_interface import GiskardWrapper
@@ -30,9 +30,9 @@ is_init = False
 
 number_of_par_goals = 0
 giskard_lock = Lock()
-with giskard_lock:
+giskard_rlock = RLock()
+with giskard_rlock:
     par_threads = {}
-with giskard_lock:
     par_motion_goal = {}
 
 
@@ -44,7 +44,7 @@ def thread_safe(func: Callable) -> Callable:
     :return: A function with thread safety
     """
     def wrapper(*args, **kwargs):
-        with giskard_lock:
+        with giskard_rlock:
             return func(*args, **kwargs)
     return wrapper
 
@@ -206,6 +206,7 @@ def spawn_mesh(name: str, path: str, pose: Pose) -> 'UpdateWorldResponse':
 
 
 @init_giskard_interface
+@thread_safe
 def achieve_joint_goal(goal_poses: Dict[str, float]) -> 'MoveResult':
     """
     Takes a dictionary of joint position that should be achieved, the keys in the dictionary are the joint names and
@@ -227,17 +228,21 @@ def achieve_joint_goal(goal_poses: Dict[str, float]) -> 'MoveResult':
             giskard_wrapper.set_joint_goal(goal_poses)
 
             par_threads[key].remove(threading.get_ident())
-            if len(par_threads) == 0:
+            if len(par_threads[key]) == 0:
+                del par_motion_goal[key]
+                del par_threads[key]
                 return giskard_wrapper.plan_and_execute()
             else:
                 par_motion_goal[key] = giskard_wrapper.cmd_seq
             giskard_wrapper.cmd_seq = tmp
+            return
 
     giskard_wrapper.set_joint_goal(goal_poses)
     return giskard_wrapper.plan_and_execute()
 
 
 @init_giskard_interface
+@thread_safe
 def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str) -> 'MoveResult':
     """
     Takes a cartesian position and tries to move the tip_link to this position using the chain defined by
