@@ -13,7 +13,7 @@ from ..robot_descriptions import robot_description
 from ..bullet_world import BulletWorld, Object
 from ..robot_description import ManipulatorDescription
 
-from typing import List, Tuple, Dict, Callable
+from typing import List, Tuple, Dict, Callable, Optional
 from geometry_msgs.msg import PoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
 from threading import Lock, RLock
 
@@ -43,9 +43,11 @@ def thread_safe(func: Callable) -> Callable:
     :param func: Function that should be thread safe
     :return: A function with thread safety
     """
+
     def wrapper(*args, **kwargs):
         with giskard_rlock:
             return func(*args, **kwargs)
+
     return wrapper
 
 
@@ -57,6 +59,7 @@ def init_giskard_interface(func: Callable) -> Callable:
     :param func: Function this decorator should be wrapping
     :return: A callable function which initializes the interface and then calls the wrapped function
     """
+
     def wrapper(*args, **kwargs):
         global giskard_wrapper
         global giskard_update_service
@@ -83,6 +86,7 @@ def init_giskard_interface(func: Callable) -> Callable:
         return func(*args, **kwargs)
 
     return wrapper
+
 
 # Believe state management between pycram and giskard
 
@@ -204,6 +208,41 @@ def spawn_mesh(name: str, path: str, pose: Pose) -> 'UpdateWorldResponse':
 
 # Sending Goals to Giskard
 
+@thread_safe
+def _manage_par_motion_goals(goal_func, *args) -> Optional['MoveResult']:
+    """
+    Manages multiple goals that should be executed in parallel. The current sequence of motion goals is saved and the
+    parallel motion goal is loaded if there is one, then the new motion goal given by ``goal_func`` is added to the
+    parallel motion goal. If this was the last motion goal for the parallel motion goal it is then executed.
+
+    :param goal_func: Function which adds a new motion goal to the giskard_wrapper
+    :param args: Arguments for the ``goal_func`` function
+    :return: MoveResult of the execution if there was an execution, True if a new motion goal was added to the giskard_wrapper and None in any other case
+    """
+    for key, value in par_threads.items():
+        if threading.get_ident() in value:
+            tmp = giskard_wrapper.cmd_seq
+
+            if key in par_motion_goal.keys():
+                giskard_wrapper.cmd_seq = par_motion_goal[key]
+            else:
+                giskard_wrapper.clear_cmds()
+
+            goal_func(*args)
+
+            par_threads[key].remove(threading.get_ident())
+            if len(par_threads[key]) == 0:
+                if key in par_motion_goal.keys():
+                    del par_motion_goal[key]
+                del par_threads[key]
+                res = giskard_wrapper.plan_and_execute()
+                giskard_wrapper.cmd_seq = tmp
+                return res
+            else:
+                par_motion_goal[key] = giskard_wrapper.cmd_seq
+                giskard_wrapper.cmd_seq = tmp
+                return True
+
 
 @init_giskard_interface
 @thread_safe
@@ -216,26 +255,9 @@ def achieve_joint_goal(goal_poses: Dict[str, float]) -> 'MoveResult':
     :return: MoveResult message for this goal
     """
     sync_worlds()
-    for key, value in par_threads.items():
-        if threading.get_ident() in value:
-            tmp = giskard_wrapper.cmd_seq
-
-            if key in par_motion_goal.keys():
-                giskard_wrapper.cmd_seq = par_motion_goal[key]
-            else:
-                giskard_wrapper.clear_cmds()
-
-            giskard_wrapper.set_joint_goal(goal_poses)
-
-            par_threads[key].remove(threading.get_ident())
-            if len(par_threads[key]) == 0:
-                del par_motion_goal[key]
-                del par_threads[key]
-                return giskard_wrapper.plan_and_execute()
-            else:
-                par_motion_goal[key] = giskard_wrapper.cmd_seq
-            giskard_wrapper.cmd_seq = tmp
-            return
+    par_return = _manage_par_motion_goals(giskard_wrapper.set_joint_goal, goal_poses)
+    if par_return:
+        return par_return
 
     giskard_wrapper.set_joint_goal(goal_poses)
     return giskard_wrapper.plan_and_execute()
@@ -254,14 +276,17 @@ def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str) -> 'M
     :return: MoveResult message for this goal
     """
     sync_worlds()
+    par_return = _manage_par_motion_goals(giskard_wrapper.set_cart_goal, _pose_to_pose_stamped(goal_pose),
+                                          tip_link, root_link)
+    if par_return:
+        return par_return
+
     giskard_wrapper.set_cart_goal(_pose_to_pose_stamped(goal_pose), tip_link, root_link)
-    global number_of_par_goals
-    number_of_par_goals -= 1
-    if number_of_par_goals == 0:
-        return giskard_wrapper.plan_and_execute()
+    return giskard_wrapper.plan_and_execute()
 
 
 @init_giskard_interface
+@thread_safe
 def achieve_straight_cartesian_goal(goal_pose: Pose, tip_link: str,
                                     root_link: str) -> 'MoveResult':
     """
@@ -274,14 +299,17 @@ def achieve_straight_cartesian_goal(goal_pose: Pose, tip_link: str,
     :return: MoveResult message for this goal
     """
     sync_worlds()
+    par_return = _manage_par_motion_goals(giskard_wrapper.set_straight_cart_goal, _pose_to_pose_stamped(goal_pose),
+                                          tip_link, root_link)
+    if par_return:
+        return par_return
+
     giskard_wrapper.set_straight_cart_goal(_pose_to_pose_stamped(goal_pose), tip_link, root_link)
-    global number_of_par_goals
-    number_of_par_goals -= 1
-    if number_of_par_goals == 0:
-        return giskard_wrapper.plan_and_execute()
+    return giskard_wrapper.plan_and_execute()
 
 
 @init_giskard_interface
+@thread_safe
 def achieve_translation_goal(goal_point: List[float], tip_link: str, root_link: str) -> 'MoveResult':
     """
     Tries to move the tip_link to the position defined by goal_point using the chain defined by root_link and
@@ -293,14 +321,17 @@ def achieve_translation_goal(goal_point: List[float], tip_link: str, root_link: 
     :return: MoveResult message for this goal
     """
     sync_worlds()
+    par_return = _manage_par_motion_goals(giskard_wrapper.set_translation_goal, make_point_stamped(goal_point),
+                                          tip_link, root_link)
+    if par_return:
+        return par_return
+
     giskard_wrapper.set_translation_goal(make_point_stamped(goal_point), tip_link, root_link)
-    global number_of_par_goals
-    number_of_par_goals -= 1
-    if number_of_par_goals == 0:
-        return giskard_wrapper.plan_and_execute()
+    return giskard_wrapper.plan_and_execute()
 
 
 @init_giskard_interface
+@thread_safe
 def achieve_straight_translation_goal(goal_point: List[float], tip_link: str, root_link: str) -> 'MoveResult':
     """
     Tries to move the tip_link to the position defined by goal_point in a straight line, using the chain defined by
@@ -312,14 +343,17 @@ def achieve_straight_translation_goal(goal_point: List[float], tip_link: str, ro
     :return: MoveResult message for this goal
     """
     sync_worlds()
+    par_return = _manage_par_motion_goals(giskard_wrapper.set_straight_translation_goal, make_point_stamped(goal_point),
+                                          tip_link, root_link)
+    if par_return:
+        return par_return
+
     giskard_wrapper.set_straight_translation_goal(make_point_stamped(goal_point), tip_link, root_link)
-    global number_of_par_goals
-    number_of_par_goals -= 1
-    if number_of_par_goals == 0:
-        return giskard_wrapper.plan_and_execute()
+    return giskard_wrapper.plan_and_execute()
 
 
 @init_giskard_interface
+@thread_safe
 def achieve_rotation_goal(quat: List[float], tip_link: str, root_link: str) -> 'MoveResult':
     """
     Tries to bring the tip link into the rotation defined by quat using the chain defined by root_link and
@@ -331,14 +365,17 @@ def achieve_rotation_goal(quat: List[float], tip_link: str, root_link: str) -> '
     :return: MoveResult message for this goal
     """
     sync_worlds()
+    par_return = _manage_par_motion_goals(giskard_wrapper.set_rotation_goal, make_quaternion_stamped(quat),
+                                          tip_link, root_link)
+    if par_threads:
+        return par_return
+
     giskard_wrapper.set_rotation_goal(make_quaternion_stamped(quat), tip_link, root_link)
-    global number_of_par_goals
-    number_of_par_goals -= 1
-    if number_of_par_goals == 0:
-        return giskard_wrapper.plan_and_execute()
+    return giskard_wrapper.plan_and_execute()
 
 
 @init_giskard_interface
+@thread_safe
 def achieve_align_planes_goal(goal_normal: List[float], tip_link: str, tip_normal: List[float],
                               root_link: str) -> 'MoveResult':
     """
@@ -352,15 +389,18 @@ def achieve_align_planes_goal(goal_normal: List[float], tip_link: str, tip_norma
     :return: MoveResult message for this goal
     """
     sync_worlds()
+    par_return = _manage_par_motion_goals(giskard_wrapper.set_align_planes_goal, make_vector_stamped(goal_normal),
+                                          tip_link, make_vector_stamped(tip_normal), root_link)
+    if par_return:
+        return par_return
+
     giskard_wrapper.set_align_planes_goal(make_vector_stamped(goal_normal), tip_link, make_vector_stamped(tip_normal),
                                           root_link)
-    global number_of_par_goals
-    number_of_par_goals -= 1
-    if number_of_par_goals == 0:
-        return giskard_wrapper.plan_and_execute()
+    return giskard_wrapper.plan_and_execute()
 
 
 @init_giskard_interface
+@thread_safe
 def achieve_open_container_goal(tip_link: str, environment_link: str) -> 'MoveResult':
     """
     Tries to open a container in an environment, this only works if the container was added as a URDF. This goal assumes
@@ -371,14 +411,15 @@ def achieve_open_container_goal(tip_link: str, environment_link: str) -> 'MoveRe
     :return: MoveResult message for this goal
     """
     sync_worlds()
+    par_return = _manage_par_motion_goals(giskard_wrapper.set_open_container_goal, tip_link, environment_link)
+    if par_return:
+        return par_return
     giskard_wrapper.set_open_container_goal(tip_link, environment_link)
-    global number_of_par_goals
-    number_of_par_goals -= 1
-    if number_of_par_goals == 0:
-        return giskard_wrapper.plan_and_execute()
+    return giskard_wrapper.plan_and_execute()
 
 
 @init_giskard_interface
+@thread_safe
 def achieve_close_container_goal(tip_link: str, environment_link: str) -> 'MoveResult':
     """
     Tries to close a container, this only works if the container was added as a URDF. Assumes that the handle of the
@@ -389,11 +430,12 @@ def achieve_close_container_goal(tip_link: str, environment_link: str) -> 'MoveR
     :return: MoveResult message for this goal
     """
     sync_worlds()
+    par_return = _manage_par_motion_goals(giskard_wrapper.set_close_container_goal, tip_link, environment_link)
+    if par_return:
+        return par_return
+
     giskard_wrapper.set_close_container_goal(tip_link, environment_link)
-    global number_of_par_goals
-    number_of_par_goals -= 1
-    if number_of_par_goals == 0:
-        return giskard_wrapper.plan_and_execute()
+    return giskard_wrapper.plan_and_execute()
 
 
 # Managing collisions
