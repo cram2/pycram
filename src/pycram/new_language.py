@@ -104,6 +104,9 @@ class Language(NodeMixin):
                 f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
         return TryAll(parent=None, children=(self, other)).simplify()
 
+    def __invert__(self) -> Language:
+        print(self)
+
     def simplify(self) -> Language:
         """
         Simplifies the language tree by merging which have a parent-child relation and are of the same type.
