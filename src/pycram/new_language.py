@@ -18,6 +18,7 @@ class Language(NodeMixin):
     Parent class for language expressions. Implements the operators as well as methods to reduce the resulting language
     tree.
     """
+    parallel_blocklist = ["PickUpAction", "PlaceAction", "OpenAction", "CloseAction", "TransportAction"]
 
     def __init__(self, parent: NodeMixin = None, children: Iterable[NodeMixin] = None):
         """
@@ -30,6 +31,7 @@ class Language(NodeMixin):
         self.exceptions = {}
         if children:
             self.children = children
+
 
     def resolve(self) -> Language:
         """
@@ -54,7 +56,8 @@ class Language(NodeMixin):
         :return: A :func:`~Sequential` object which is the new root node of the language tree
         """
         if not issubclass(other.__class__, Language):
-            raise NotALanguageExpression(f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
+            raise NotALanguageExpression(
+                f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
         return Sequential(parent=None, children=(self, other)).simplify()
 
     def __sub__(self, other: Language) -> TryInOrder:
@@ -79,6 +82,10 @@ class Language(NodeMixin):
         if not issubclass(other.__class__, Language):
             raise NotALanguageExpression(
                 f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
+        if self.__class__.__name__ in self.parallel_blocklist or other.__class__.__name__ in self.parallel_blocklist:
+            raise TypeError(
+                f"You can not execute the Designator {self if self.__class__.__name__ in self.parallel_blocklist else other} in a parallel language expression.")
+
         return Parallel(parent=None, children=(self, other)).simplify()
 
     def __xor__(self, other: Language) -> TryAll:
@@ -91,6 +98,9 @@ class Language(NodeMixin):
         if not issubclass(other.__class__, Language):
             raise NotALanguageExpression(
                 f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
+        if self.__class__.__name__ in self.parallel_blocklist or other.__class__.__name__ in self.parallel_blocklist:
+            raise TypeError(
+                f"You can not execute the Designator {self if self.__class__.__name__ in self.parallel_blocklist else other} in a try all language expression.")
         return TryAll(parent=None, children=(self, other)).simplify()
 
     def simplify(self) -> Language:
@@ -180,6 +190,8 @@ class TryInOrder(Language):
                 child.resolve().perform()
             except PlanFailure as e:
                 failure_list.append(e)
+        if len(failure_list) > 0:
+            self.root.exceptions[self] = failure_list
         if len(failure_list) == len(self.children):
             self.root.exceptions[self] = failure_list
             return State.FAILED
@@ -226,7 +238,7 @@ class Parallel(Language):
             threads.append(t)
         for thread in threads:
             thread.join()
-        if len(self.root.exceptions[self]) != 0:
+        if self in self.root.exceptions.keys() and (self.root.exceptions[self]) != 0:
             return State.FAILED
         return State.SUCCEEDED
 
