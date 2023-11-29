@@ -1,7 +1,7 @@
 import json
 import unittest
 import pathlib
-
+import yaml
 import sqlalchemy
 import pycram.orm.base
 import pycram.orm.utils
@@ -9,22 +9,38 @@ import pycram.orm.utils
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
-from pycram.enums import Arms
+from pycram.enums import Arms, ObjectType
 from pycram.task import with_tree
 import pycram.task
 from pycram.bullet_world import BulletWorld, Object
 from pycram.designators.object_designator import *
 import anytree
-from anytree import Node,RenderTree,LevelOrderIter
+from anytree import Node, RenderTree, LevelOrderIter
+
+
+class Configuration:
+    def __init__(self, path="test_database_merger.yaml"):
+        with open(path) as f:
+            yaml_data = yaml.safe_load(f)
+            try:
+                self.user = yaml_data["postgres"]["user"]
+                self.password = yaml_data["postgres"]["password"]
+                self.ipaddress = yaml_data["postgres"]["ipaddress"]
+                self.port = yaml_data["postgres"]["port"]
+                self.database = yaml_data["postgres"]["database"]
+            except yaml.YAMLError as exc:
+                print("Error with the YAML File {}", format(exc))
+            except KeyError as e:
+                print("Missing key in YAML File make sure everything that is needed is there: {}".format(e))
+
 
 class ExamplePlans():
     def __init__(self):
         self.world = BulletWorld("DIRECT")
-        self.pr2 = Object("pr2", "robot", "pr2.urdf")
-        self.kitchen = Object("kitchen", "environment", "kitchen.urdf")
-        self.milk = Object("milk", "milk", "milk.stl", pose=Pose([2.5, 2, 1.02]), color=[1, 0, 0, 1])
-        self.cereal = Object("cereal", "cereal", "breakfast_cereal.stl", pose=Pose([2.5, 2.3, 1.05]),
-                             color=[0, 1, 0, 1])
+        self.pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
+        self.kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
+        self.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+        self.cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", pose=Pose([1.3, 0.7, 0.95]))
         self.milk_desig = ObjectDesignatorDescription(names=["milk"])
         self.cereal_desig = ObjectDesignatorDescription(names=["cereal"])
         self.robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
@@ -54,9 +70,6 @@ class ExamplePlans():
 
             ParkArmsAction.Action(Arms.BOTH).perform()
 
-    def clear_tree(self):  # not sure if needed
-        pycram.task.reset_tree()
-
 
 class MergerTestCaseBase(unittest.TestCase):
     def assertIsFile(self, in_path):
@@ -71,17 +84,18 @@ class MergeDatabaseTest(unittest.TestCase):
     destination_engine: sqlalchemy.engine.Engine
     source_session_maker: sqlalchemy.orm.sessionmaker
     destination_session_maker: sqlalchemy.orm.sessionmaker
+    numbers_of_example_runs: int
 
-    @unittest.skipIf(not (pathlib.Path("test_database_merger.json").resolve().is_file()),
-                     "Config File not found: test_database_merger.json")
+    @unittest.skipIf(not (pathlib.Path("test_database_merger.yaml").resolve().is_file()),
+                     "Config File not found: test_database_merger.yaml")
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        with open("test_database_merger.json") as f:
-            config=json.load(f)
-            if ("postgres" in config):
-                connection_string="postgresql+psycopg2://{}:{}@{}:{}/{}".format(config["postgres"]["user"],config["postgres"]["password"],config["postgres"]["ipaddress"],config["postgres"]["port"],config["postgres"]["database"])
-                cls.destination_engine=sqlalchemy.create_engine(connection_string,echo=False)
+        config = Configuration("test_database_merger.yaml")
+        connection_string = "postgresql+psycopg2://{}:{}@{}:{}/{}".format(config.user, config.password,
+                                                                          config.ipaddress, config.port,
+                                                                          config.database)
+        cls.destination_engine = sqlalchemy.create_engine(connection_string, echo=False)
         cls.source_engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
         cls.source_session_maker = sqlalchemy.orm.sessionmaker(bind=cls.source_engine)
         cls.destination_session_maker = sqlalchemy.orm.sessionmaker(bind=cls.destination_engine)
@@ -93,25 +107,24 @@ class MergeDatabaseTest(unittest.TestCase):
         destination_session.commit()
         source_session.close()
         destination_session.close()
+        cls.numbers_of_example_runs=3
 
     def setUp(self) -> None:
         super().setUp()
         source_session = self.source_session_maker()
         example_plans = ExamplePlans()
-        for i in range(2):
+        for i in range(self.numbers_of_example_runs):
             try:
                 print("ExamplePlans run {}".format(i))
                 example_plans.pick_and_place_plan()
                 example_plans.world.reset_bullet_world()
-                pycram.orm.base.MetaData().description = "Unittest: Example pick and place {}".format(i)
+                process_meta_data = pycram.orm.base.ProcessMetaData()
+                process_meta_data.description = "Database merger Unittest: Example pick and place {}".format(i)
+                process_meta_data.insert(source_session)
+                pycram.task.task_tree.root.insert(source_session)
+                process_meta_data.reset()
             except Exception as e:
                 print("Error: {}\n{}".format(type(e).__name__, e))
-
-        source_meta_data = pycram.orm.base.MetaData()
-        source_meta_data.description = "Not all who wander are lost"
-        source_meta_data.insert(source_session)
-        pycram.task.task_tree.root.insert(source_session)
-        source_meta_data.reset()
         source_session.commit()
         example_plans.world.exit()
         source_session.close()
@@ -124,12 +137,13 @@ class MergeDatabaseTest(unittest.TestCase):
         super().TearDownClass()
 
     def test_merge_databases(self):
-        orm_tree = pycram.orm.utils.get_tree(pycram.orm.base.Base)
-        ordered_orm_classes = [node.name for node in LevelOrderIter(orm_tree)]
-        pycram.orm.utils.update_primary_key_constrains(self.destination_session_maker,ordered_orm_classes)
-        pycram.orm.utils.update_primary_key(self.source_session_maker,
-                                            self.destination_session_maker)
+        with self.destination_session_maker() as session:
+            amount_before_of_process_meta_data=session.query(pycram.orm.base.ProcessMetaData).count()
 
+        pycram.orm.utils.update_primary_key_constrains(self.destination_session_maker)
+        pycram.orm.utils.update_primary_key(self.source_session_maker,self.destination_session_maker)
         pycram.orm.utils.copy_database(self.source_session_maker, self.destination_session_maker)
-        pycram.orm.utils.print_database(self.source_session_maker)
-
+        # test ideas Count if more seemed to work (insert something so random and see if it is there in the end?)
+        with self.destination_session_maker() as session:
+            amount_after_of_process_meta_data = session.query(pycram.orm.base.ProcessMetaData).count()
+        self.assertTrue(amount_before_of_process_meta_data<amount_after_of_process_meta_data)
