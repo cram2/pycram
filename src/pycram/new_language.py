@@ -12,6 +12,7 @@ import threading
 from .plan_failures import PlanFailure, NotALanguageExpression
 from .external_interfaces import giskard
 
+
 class Language(NodeMixin):
     """
     Parent class for language expressions. Implements the operators as well as methods to reduce the resulting language
@@ -26,7 +27,7 @@ class Language(NodeMixin):
         :param children: All children of this node as a tuple oder iterable
         """
         self.parent = parent
-        self.exceptions = []
+        self.exceptions = {}
         if children:
             self.children = children
 
@@ -80,18 +81,6 @@ class Language(NodeMixin):
                 f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
         return Parallel(parent=None, children=(self, other)).simplify()
 
-    # def __truediv__(self, other: Language) -> Pursue:
-    #     """
-    #     Language expression for purse execution.
-    #
-    #     :param other: Another Language expression, either a designator or language expression
-    #     :return: A :func:`~Pursue` object which is the new root node of the language tree
-    #     """
-    #     if not issubclass(other.__class__, Language):
-    #         raise NotALanguageExpression(
-    #             f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
-    #     return Pursue(parent=None, children=(self, other)).simplify()
-
     def __xor__(self, other: Language) -> TryAll:
         """
         Language expression for try all execution.
@@ -103,9 +92,6 @@ class Language(NodeMixin):
             raise NotALanguageExpression(
                 f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
         return TryAll(parent=None, children=(self, other)).simplify()
-
-    def __invert__(self) -> Language:
-        print(self)
 
     def simplify(self) -> Language:
         """
@@ -167,7 +153,7 @@ class Sequential(Language):
             for child in self.children:
                 child.resolve().perform()
         except PlanFailure as e:
-            self.root.exceptions.append(e)
+            self.root.exceptions[self] = e
             return State.FAILED
         return State.SUCCEEDED
 
@@ -195,7 +181,7 @@ class TryInOrder(Language):
             except PlanFailure as e:
                 failure_list.append(e)
         if len(failure_list) == len(self.children):
-            self.root.exceptions.append(failure_list)
+            self.root.exceptions[self] = failure_list
             return State.FAILED
         else:
             return State.SUCCEEDED
@@ -221,48 +207,28 @@ class Parallel(Language):
         threads = []
 
         def lang_call(child_node):
-            # if isinstance(child_node, DesignatorDescription):
             if "DesignatorDescription" in [cls.__name__ for cls in child_node.__class__.__mro__]:
                 if self not in giskard.par_threads.keys():
                     giskard.par_threads[self] = [threading.get_ident()]
                 else:
                     giskard.par_threads[self].append(threading.get_ident())
-            child_node.resolve().perform()
+            try:
+                child_node.resolve().perform()
+            except PlanFailure as e:
+                if self in self.root.exceptions.keys():
+                    self.root.exceptions[self].append(e)
+                else:
+                    self.root.exceptions[self] = [e]
 
         for child in self.children:
             t = threading.Thread(target=lambda: lang_call(child))
-            try:
-                t.start()
-            except PlanFailure as e:
-                for thread in threads:
-                    thread.join()
-                self.root.exceptions.append(e)
-                return State.FAILED
+            t.start()
             threads.append(t)
         for thread in threads:
             thread.join()
+        if len(self.root.exceptions[self]) != 0:
+            return State.FAILED
         return State.SUCCEEDED
-
-
-class Pursue(Language):
-    """
-    Executes all children in parallel by creating a thread per children and executing them in the respective thread. As
-    soon as one child finishes successfully the execution of all other children will be interrupted.
-    All exceptions during execution will be caught, saved to a list and returned upon end.
-
-    Behaviour:
-        Returns the State :py:attr:`~State.SUCCEEDED` if the first child to finish did not raise an exception and
-        returns the State :py:attr:`~State.FAILED` if the first child to finish raise an exception.
-    """
-
-    def perform(self) -> State:
-        """
-        Behaviour of Pursue, creates a new thread for each child and calls perform() of the child in the respective
-        thread. Interrupts all threads if the one thread finishes.
-
-        :return: The state according to the behaviour described in :func:`Pursue`
-        """
-        ...
 
 
 class TryAll(Language):
@@ -283,18 +249,30 @@ class TryAll(Language):
         """
         threads = []
         failure_list = []
-        giskard.number_of_par_goals = len(self.children)
-        for child in self.children:
-            t = threading.Thread(target=child.resolve().perform)
+
+        def lang_call(child_node):
+            if "DesignatorDescription" in [cls.__name__ for cls in child_node.__class__.__mro__]:
+                if self not in giskard.par_threads.keys():
+                    giskard.par_threads[self] = [threading.get_ident()]
+                else:
+                    giskard.par_threads[self].append(threading.get_ident())
             try:
-                t.start()
+                child_node.resolve().perform()
             except PlanFailure as e:
                 failure_list.append(e)
+                if self in self.root.exceptions.keys():
+                    self.root.exceptions[self].append(e)
+                else:
+                    self.root.exceptions[self] = [e]
+
+        for child in self.children:
+            t = threading.Thread(target=lambda: lang_call(child))
+            t.start()
             threads.append(t)
         for thread in threads:
             thread.join()
         if len(self.children) == len(failure_list):
-            self.root.exceptions.append(failure_list)
+            self.root.exceptions[self] = failure_list
             return State.FAILED
         else:
             return State.SUCCEEDED
