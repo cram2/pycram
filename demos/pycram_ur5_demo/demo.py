@@ -5,7 +5,7 @@ from rospkg import RosPack
 import pybullet as pb
 
 from pycram import robot_description
-from pycram.bullet_world import BulletWorld, Object
+from pycram.world import BulletWorld, Object
 from pycram.pose import Pose
 from pycram.ros.force_torque_sensor import ForceTorqueSensor
 from pycram.ros.joint_state_publisher import JointStatePublisher

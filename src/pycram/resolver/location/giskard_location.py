@@ -1,6 +1,6 @@
 from pycram.external_interfaces.giskard import achieve_cartesian_goal
 from pycram.designators.location_designator import CostmapLocation
-from pycram.bullet_world import Use_shadow_world, BulletWorld
+from pycram.world import Use_shadow_world, BulletWorld
 from pycram.helper import _apply_ik
 from pycram.pose import Pose
 from pycram.robot_descriptions import robot_description

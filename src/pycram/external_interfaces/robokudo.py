@@ -9,7 +9,7 @@ import rosnode
 from ..designator import ObjectDesignatorDescription
 from ..pose import Pose
 from ..local_transformer import LocalTransformer
-from ..bullet_world import BulletWorld
+from ..world import BulletWorld
 from ..enums import ObjectType
 
 try:

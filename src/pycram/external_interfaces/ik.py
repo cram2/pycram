@@ -7,7 +7,7 @@ from moveit_msgs.msg import RobotState
 from moveit_msgs.srv import GetPositionIK
 from sensor_msgs.msg import JointState
 
-from ..bullet_world import Object
+from ..world import Object
 from ..helper import calculate_wrist_tool_offset
 from ..local_transformer import LocalTransformer
 from ..pose import Pose, Transform

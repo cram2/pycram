@@ -3,7 +3,7 @@ import itertools
 import numpy as np
 import rospy
 
-from .bullet_world import _world_and_id, Object, Use_shadow_world, BulletWorld
+from .world import _world_and_id, Object, Use_shadow_world, BulletWorld
 from .external_interfaces.ik import request_ik
 from .local_transformer import LocalTransformer
 from .plan_failures import IKError
@@ -360,5 +360,5 @@ def link_pose_for_joint_config(object: Object, joint_config: Dict[str, float], l
     shadow_object = BulletWorld.current_bullet_world.get_shadow_object(object)
     with Use_shadow_world():
         for joint, pose in joint_config.items():
-            shadow_object.set_joint_state(joint, pose)
+            shadow_object.set_joint_position(joint, pose)
         return shadow_object.get_link_pose(link_name)

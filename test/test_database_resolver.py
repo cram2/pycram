@@ -5,7 +5,7 @@ import sqlalchemy
 import sqlalchemy.orm
 
 import pycram.plan_failures
-from pycram.bullet_world import BulletWorld, Object
+from pycram.world import BulletWorld, Object
 from pycram.designators import action_designator, object_designator
 from pycram.process_module import ProcessModule
 from pycram.process_module import simulated_robot

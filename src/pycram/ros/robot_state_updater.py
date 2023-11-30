@@ -6,7 +6,7 @@ import time
 
 from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import JointState
-from pycram.bullet_world import BulletWorld
+from pycram.world import BulletWorld
 from pycram.robot_descriptions import robot_description
 from pycram.pose import Transform, Pose
 
@@ -58,7 +58,7 @@ class RobotStateUpdater:
         try:
             msg = rospy.wait_for_message(self.joint_state_topic, JointState)
             for name, position in zip(msg.name, msg.position):
-                BulletWorld.robot.set_joint_state(name, position)
+                BulletWorld.robot.set_joint_position(name, position)
         except AttributeError:
             pass
         

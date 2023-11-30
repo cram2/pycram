@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 from matplotlib import colors
 import psutil
 import time
-from .bullet_world import BulletWorld, Use_shadow_world, Object
-from .bullet_world_reasoning import _get_images_for_target
+from .world import BulletWorld, Use_shadow_world, Object
+from .world_reasoning import _get_images_for_target
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 from typing import Tuple, List, Union, Optional
 

@@ -16,7 +16,7 @@ from pytransform3d.rotations import quaternion_wxyz_from_xyzw, quaternion_xyzw_f
 from pytransform3d.transformations import transform_from_pq, transform_from, pq_from_transform
 
 from macropy.core.quotes import ast_literal, q
-from .bullet_world import Object as BulletWorldObject
+from .world import Object as BulletWorldObject
 from .local_transformer import LocalTransformer
 from .pose import Transform, Pose
 from .robot_descriptions import robot_description
@@ -54,7 +54,7 @@ def _apply_ik(robot: BulletWorldObject, joint_poses: List[float], joints: List[s
     # arm ="left" if gripper == robot_description.get_tool_frame("left") else "right"
     # ik_joints = [robot_description.torso_joint] + robot_description._safely_access_chains(arm).joints
     # ik_joints = robot_description._safely_access_chains(arm).joints
-    robot.set_joint_states(dict(zip(joints, joint_poses)))
+    robot.set_positions_of_all_joints(dict(zip(joints, joint_poses)))
     # for i in range(0, len(joints)):
     #     robot.set_joint_state(joints[i], joint_poses[i])
 

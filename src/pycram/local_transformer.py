@@ -53,7 +53,7 @@ class LocalTransformer(TransformerROS):
         self.tf_stampeds: List[TransformStamped] = []
         self.static_tf_stampeds: List[TransformStamped] = []
 
-        # Since this file can't import bullet_world.py this holds the reference to the current_bullet_world
+        # Since this file can't import world.py this holds the reference to the current_bullet_world
         self.bullet_world = None
         self.shadow_world = None
 

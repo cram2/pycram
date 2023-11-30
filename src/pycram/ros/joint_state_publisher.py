@@ -6,7 +6,7 @@ import rospy
 
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
-from ..bullet_world import BulletWorld
+from ..world import BulletWorld
 
 
 class JointStatePublisher:
@@ -41,7 +41,7 @@ class JointStatePublisher:
         seq = 0
 
         while not self.kill_event.is_set():
-            current_joint_states = [robot.get_joint_state(joint_name) for joint_name in joint_names]
+            current_joint_states = [robot.get_joint_position(joint_name) for joint_name in joint_names]
             h = Header()
             h.stamp = rospy.Time.now()
             h.seq = seq

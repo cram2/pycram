@@ -1,7 +1,7 @@
 import time
 
 from test_bullet_world import BulletWorldTest
-import pycram.bullet_world_reasoning as btr
+import pycram.world_reasoning as btr
 from pycram.pose import Pose
 from pycram.robot_descriptions import robot_description
 

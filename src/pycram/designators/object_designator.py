@@ -1,7 +1,7 @@
 import dataclasses
 from typing import List, Union, Optional, Callable, Tuple, Iterable
 import sqlalchemy.orm
-from ..bullet_world import BulletWorld, Object as BulletWorldObject
+from ..world import BulletWorld, Object as BulletWorldObject
 from ..designator import DesignatorDescription, ObjectDesignatorDescription
 from ..orm.base import ProcessMetaData
 from ..orm.object_designator import (BelieveObject as ORMBelieveObject, ObjectPart as ORMObjectPart)
