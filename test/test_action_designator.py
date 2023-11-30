@@ -94,7 +94,7 @@ class TestActionDesignatorGrounding(test_bullet_world.BulletWorldTest):
         with simulated_robot:
             detected_object = description.resolve().perform()
         self.assertEqual(detected_object.name, "milk")
-        self.assertEqual(detected_object.type, ObjectType.MILK)
+        self.assertEqual(detected_object.mode, ObjectType.MILK)
         self.assertEqual(detected_object.bullet_world_object, self.milk)
 
     # Skipped since open and close work only in the apartment at the moment

@@ -3,8 +3,8 @@ import logging
 
 import tf
 
-if 'bullet_world' in sys.modules:
-    logging.warning("(publisher) Make sure that you are not loading this module from pycram.bullet_world.")
+if 'world' in sys.modules:
+    logging.warning("(publisher) Make sure that you are not loading this module from pycram.world.")
 import rospkg
 import rospy
 import atexit
@@ -54,18 +54,18 @@ class LocalTransformer(TransformerROS):
         self.static_tf_stampeds: List[TransformStamped] = []
 
         # Since this file can't import world.py this holds the reference to the current_bullet_world
-        self.bullet_world = None
-        self.shadow_world = None
+        self.world = None
+        self.prospection_world = None
 
         # If the singelton was already initialized
         self._initialized = True
 
     def update_objects_for_current_world(self) -> None:
         """
-        Updates transformations for all objects that are currently in :py:attr:`~pycram.bullet_world.BulletWorld.current_bullet_world`
+        Updates transformations for all objects that are currently in :py:attr:`~pycram.world.World.current_world`
         """
         curr_time = rospy.Time.now()
-        for obj in list(self.bullet_world.current_bullet_world.objects):
+        for obj in list(self.world.current_bullet_world.objects):
             self.update_transforms_for_object(obj, curr_time)
 
     def transform_pose(self, pose: Pose, target_frame: str) -> Union[Pose, None]:
@@ -92,20 +92,20 @@ class LocalTransformer(TransformerROS):
         return Pose(*copy_pose.to_list(), frame=new_pose.header.frame_id)
 
     def transform_to_object_frame(self, pose: Pose,
-                                  bullet_object: 'bullet_world.Object', link_name: str = None) -> Union[Pose, None]:
+                                  world_object: 'world.Object', link_name: str = None) -> Union[Pose, None]:
         """
         Transforms the given pose to the coordinate frame of the given BulletWorld object. If no link name is given the
         base frame of the Object is used, otherwise the link frame is used as target for the transformation.
 
         :param pose: Pose that should be transformed
-        :param bullet_object: BulletWorld Object in which frame the pose should be transformed
-        :param link_name: A link of the BulletWorld Object which will be used as target coordinate frame instead
+        :param world_object: World Object in which frame the pose should be transformed
+        :param link_name: A link of the World Object which will be used as target coordinate frame instead
         :return: The new pose the in coordinate frame of the object
         """
         if link_name:
-            target_frame = bullet_object.get_link_tf_frame(link_name)
+            target_frame = world_object.get_link_tf_frame(link_name)
         else:
-            target_frame = bullet_object.tf_frame
+            target_frame = world_object.tf_frame
         return self.transform_pose(pose, target_frame)
 
     def tf_transform(self, source_frame: str, target_frame: str,
@@ -124,15 +124,15 @@ class LocalTransformer(TransformerROS):
         translation, rotation = self.lookupTransform(source_frame, target_frame, tf_time)
         return Transform(translation, rotation, source_frame, target_frame)
 
-    def update_transforms_for_object(self, bullet_object: 'bullet_world.Object', time: rospy.Time = None) -> None:
+    def update_transforms_for_object(self, world_object: 'world.Object', time: rospy.Time = None) -> None:
         """
         Updates local transforms for a Bullet Object, this includes the base as well as all links
 
-        :param bullet_object: Object for which the Transforms should be updated
+        :param world_object: Object for which the Transforms should be updated
         :param time: a specific time that should be used
         """
         time = time if time else rospy.Time.now()
-        for transform in bullet_object._current_link_transforms.values():
+        for transform in world_object._current_link_transforms.values():
             transform.header.stamp = time
             self.setTransform(transform)
 

@@ -31,8 +31,648 @@ from sensor_msgs.msg import JointState
 
 from .pose import Pose, Transform
 
+from abc import ABC, abstractproperty, abstractmethod
 
-class BulletWorld:
+
+class World(ABC):
+    """
+    The World Class represents the physics Simulation and belief state.
+    """
+    current_world: World = None
+    """
+    Global reference to the currently used World, usually this is the
+    graphical one. However, if you are inside a Use_shadow_world() environment the current_world points to the
+    shadow world. In this way you can comfortably use the current_world, which should point towards the World
+    used at the moment.
+    """
+    robot: Object = None
+    """
+    Global reference to the spawned Object that represents the robot. The robot is identified by checking the name in the 
+    URDF with the name of the URDF on the parameter server. 
+    """
+    def __init__(self, mode: str, is_prospection_world: bool):
+        """
+       Creates a new simulation, the mode decides if the simulation should be a rendered window or just run in the
+       background. There can only be one rendered simulation.
+       The World object also initializes the Events for attachment, detachment and for manipulating the world.
+
+       :param mode: Can either be "GUI" for rendered window or "DIRECT" for non-rendered. The default parameter is "GUI"
+       :param is_prospection_world: For internal usage, decides if this World should be used as a prospection world.
+        """
+        self.objects: List[Object] = []
+        self.client_id: int = -1
+        self.detachment_event: Event = Event()
+        self.attachment_event: Event = Event()
+        self.manipulation_event: Event = Event()
+        self.mode: str = mode
+        if World.current_world is None:
+            World.current_world = self
+        self.coll_callbacks: Dict[Tuple[Object, Object], Tuple[Callable, Callable]] = {}
+        self.data_directory: List[str] = [os.path.dirname(__file__) + "/../../resources"]
+        self.prospection_world: World = World("DIRECT", True) if not is_prospection_world else None
+        self.world_sync: WorldSync = WorldSync(self, self.prospection_world) if not is_prospection_world else None
+        self.is_prospection_world: bool = is_prospection_world
+        self.local_transformer = LocalTransformer()
+        if not is_prospection_world:
+            self.world_sync.start()
+            self.local_transformer.world = self
+            self.local_transformer.prospection_world = self.prospection_world
+
+    def get_objects_by_name(self, name: str) -> List[Object]:
+        """
+        Returns a list of all Objects in this World with the same name as the given one.
+
+        :param name: The name of the returned Objects.
+        :return: A list of all Objects with the name 'name'.
+        """
+        return list(filter(lambda obj: obj.name == name, self.objects))
+
+    def get_objects_by_type(self, obj_type: str) -> List[Object]:
+        """
+        Returns a list of all Objects which have the type 'obj_type'.
+
+        :param obj_type: The type of the returned Objects.
+        :return: A list of all Objects that have the type 'obj_type'.
+        """
+        return list(filter(lambda obj: obj.type == obj_type, self.objects))
+
+    def get_object_by_id(self, id: int) -> Object:
+        """
+        Returns the single Object that has the unique id.
+
+        :param id: The unique id for which the Object should be returned.
+        :return: The Object with the id 'id'.
+        """
+        return list(filter(lambda obj: obj.id == id, self.objects))[0]
+
+    @abstractmethod
+    def remove_object(self, obj_id: int) -> None:
+        """
+        Remove an object by its ID.
+
+        :param obj_id: The unique id of the object to be removed.
+        """
+        pass
+
+    def add_constraint(self,
+                       parent_obj_id: int,
+                       child_obj_id: int,
+                       parent_link_id: int,
+                       joint_type: int,
+                       parent_to_child_transform: Transform,
+                       joint_axis: List,
+                       child_link_id: int) -> int:
+        """
+        Add a constraint between two objects so that attachment they become attached
+        """
+        cid = p.createConstraint(parent_obj_id, parent_link_id, child_obj_id, child_link_id, joint_type,
+                                 joint_axis, parent_to_child_transform.translation_as_list(), [0, 0, 0],
+                                 parent_to_child_transform.rotation_as_list(),
+                                 physicsClientId=self.client_id)
+        return cid
+    def attach_objects(self,
+                       parent_obj: Object,
+                       child_obj: Object,
+                       parent_link: Optional[str] = None,
+                       loose: Optional[bool] = False) -> None:
+        """
+        Attaches another object to this object. This is done by
+        saving the transformation between the given link, if there is one, and
+        the base pose of the other object. Additionally, the name of the link, to
+        which the object is attached, will be saved.
+        Furthermore, a constraint will be created so the attachment
+        also works while simulation.
+        Loose attachments means that the attachment will only be one-directional.
+        For example, if the parent object moves, the child object will also move, but not the other way around.
+
+        :param parent_obj: The parent object (jf loose, then this would not move when child moves)
+        :param child_obj: The child object
+        :param parent_link: The link of the parent object to which the child object should be attached
+        :param loose: If the attachment should be a loose attachment.
+        """
+        link_id = parent_obj.get_link_id(parent_link) if parent_link else -1
+        link_to_object = parent_obj._calculate_transform(child_obj, parent_link)
+        parent_obj.attachments[child_obj] = [link_to_object, parent_link, loose]
+        child_obj.attachments[parent_obj] = [link_to_object.invert(), None, False]
+
+        cid = p.createConstraint(parent_obj.id, link_id, child_obj.id, -1, p.JOINT_FIXED,
+                                 [0, 1, 0], link_to_object.translation_as_list(), [0, 0, 0],
+                                 link_to_object.rotation_as_list(),
+                                 physicsClientId=self.client_id)
+        parent_obj.cids[child_obj] = cid
+        child_obj.cids[parent_obj] = cid
+        self.attachment_event(parent_obj, [parent_obj, child_obj])
+
+    def detach_objects(self, obj1: Object, obj2: Object) -> None:
+        """
+        Detaches obj2 from obj1. This is done by
+        deleting the attachment from the attachments dictionary of both objects
+        and deleting the constraint of pybullet.
+        Afterward the detachment event of the corresponding BulletWorld will be fired.
+
+        :param obj1: The object from which an object should be detached.
+        :param obj2: The object which should be detached.
+        """
+        del obj1.attachments[obj2]
+        del obj2.attachments[obj1]
+
+        p.removeConstraint(obj1.cids[obj2], physicsClientId=self.client_id)
+
+        del obj1.cids[obj2]
+        del obj2.cids[obj1]
+        obj1.world.detachment_event(obj1, [obj1, obj2])
+
+    def _set_attached_objects(self, obj, prev_object: List[Object]) -> None:
+        """
+        Updates the positions of all attached objects. This is done
+        by calculating the new pose in world coordinate frame and setting the
+        base pose of the attached objects to this new pose.
+        After this the _set_attached_objects method of all attached objects
+        will be called.
+
+        :param prev_object: A list of Objects that were already moved,
+         these will be excluded to prevent loops in the update.
+        """
+        for att_obj in obj.attachments:
+            if att_obj in prev_object:
+                continue
+            if obj.attachments[att_obj][2]:
+                # Updates the attachment transformation and constraint if the
+                # attachment is loose, instead of updating the position of all attached objects
+                link_to_object = obj._calculate_transform(att_obj, obj.attachments[att_obj][1])
+                link_id = obj.get_link_id(obj.attachments[att_obj][1]) if obj.attachments[att_obj][1] else -1
+                obj.attachments[att_obj][0] = link_to_object
+                att_obj.attachments[obj][0] = link_to_object.invert()
+                p.removeConstraint(obj.cids[att_obj], physicsClientId=self.client_id)
+                cid = p.createConstraint(obj.id, link_id, att_obj.id, -1, p.JOINT_FIXED, [0, 0, 0],
+                                         link_to_object.translation_as_list(),
+                                         [0, 0, 0], link_to_object.rotation_as_list(),
+                                         physicsClientId=self.client_id)
+                obj.cids[att_obj] = cid
+                att_obj.cids[obj] = cid
+            else:
+                link_to_object = obj.attachments[att_obj][0]
+
+                world_to_object = obj.local_transformer.transform_pose(link_to_object.to_pose(), "map")
+                p.resetBasePositionAndOrientation(att_obj.id, world_to_object.position_as_list(),
+                                                  world_to_object.orientation_as_list(),
+                                                  physicsClientId=self.client_id)
+                att_obj._current_pose = world_to_object
+                self._set_attached_objects(att_obj, prev_object + [obj])
+
+    def get_object_joint_limits(self, obj: Object, joint_name: str) -> Tuple[float, float]:
+        """
+        Get the joint limits of an articulated object
+
+        :param obj: The object
+        :param joint_name: The name of the joint
+        :return: A tuple containing the upper and the lower limits of the joint.
+        """
+        up_lim, low_lim = p.getJointInfo(obj.id, obj.joints[joint_name], physicsClientId=self.client_id)[8:10]
+        return up_lim, low_lim
+
+    def get_object_joint_axis(self, obj: Object, joint_name: str) -> Tuple[float]:
+        """
+        Returns the axis along which a joint is moving. The given joint_name has to be part of this object.
+
+        :param obj: The object
+        :param joint_name: Name of the joint for which the axis should be returned.
+        :return: The axis a vector of xyz
+        """
+        return p.getJointInfo(obj.id, obj.joints[joint_name], self.client_id)[13]
+
+    def get_object_joint_type(self, obj: Object, joint_name: str) -> JointType:
+        """
+        Returns the type of the joint as element of the Enum :mod:`~pycram.enums.JointType`.
+
+        :param obj: The object
+        :param joint_name: Joint name for which the type should be returned
+        :return: The type of  the joint
+        """
+        joint_type = p.getJointInfo(obj.id, obj.joints[joint_name], self.client_id)[2]
+        return JointType(joint_type)
+
+    def get_object_joint_position(self, obj: Object, joint_name: str) -> float:
+        """
+        Get the state of a joint of an articulated object
+
+        :param obj: The object
+        :param joint_name: The name of the joint
+        """
+        return p.getJointState(obj.id, obj.joints[joint_name], physicsClientId=self.client_id)[0]
+
+    def get_object_link_pose(self, obj: Object, link_name: str) -> Tuple[List, List]:
+        """
+        Get the pose of a link of an articulated object with respect to the world frame.
+        The pose is given as a tuple of position and orientation.
+
+        :param obj: The object
+        :param link_name: The name of the link
+        """
+        return p.getLinkState(obj.id, obj.links[link_name], physicsClientId=self.client_id)[4:6]
+
+    def get_object_contact_points(self, obj: Object) -> List:
+        """
+        Returns a list of contact points of this Object with other Objects. For a more detailed explanation of the returned
+        list please look at `PyBullet Doc <https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#>`_
+
+        :param obj: The object.
+        :return: A list of all contact points with other objects
+        """
+        return p.getContactPoints(obj.id)
+
+    def get_object_joint_id(self, obj: Object, joint_idx: int) -> int:
+        """
+        Get the ID of a joint in an articulated object.
+
+        :param obj: The object
+        :param joint_idx: The index of the joint (would indicate order).
+        """
+        return p.getJointInfo(obj.id, joint_idx, self.client_id)[0]
+
+    def get_object_joint_name(self, obj: Object, joint_idx: int) -> str:
+        """
+        Get the name of a joint in an articulated object.
+
+        :param obj: The object
+        :param joint_idx: The index of the joint (would indicate order).
+        """
+        return p.getJointInfo(obj.id, joint_idx, self.client_id)[1].decode('utf-8')
+
+    def get_object_link_name(self, obj: Object, link_idx: int) -> str:
+        """
+        Get the name of a link in an articulated object.
+
+        :param obj: The object
+        :param link_idx: The index of the link (would indicate order).
+        """
+        return p.getJointInfo(obj.id, link_idx, self.client_id)[12].decode('utf-8')
+
+    def get_object_number_of_joints(self, obj: Object) -> int:
+        """
+        Get the number of joints of an articulated object
+
+        :param obj: The object
+        """
+        return p.getNumJoints(obj.id, self.client_id)
+
+    def reset_joint_position(self, obj: Object, joint_name: str, joint_pose: float) -> None:
+        """
+        Reset the joint position instantly without physics simulation
+
+        :param obj: The object
+        :param joint_name: The name of the joint
+        :param joint_pose: The new joint pose
+        """
+        p.resetJointState(obj.id, obj.joints[joint_name], joint_pose, physicsClientId=self.client_id)
+
+    def reset_object_base_pose(self, obj: Object, position: List[float], orientation: List[float]):
+        """
+        Reset the world position and orientation of the base of the object instantaneously,
+        not through physics simulation. (x,y,z) position vector and (x,y,z,w) quaternion orientation.
+
+        :param obj: The object
+        :param position: The new position of the object as a vector of x,y,z
+        :param orientation: The new orientation of the object as a quaternion of x,y,z,w
+        """
+        p.resetBasePositionAndOrientation(obj.id, position, orientation, self.client_id)
+
+    def step(self):
+        """
+        Step the world simulation using forward dynamics
+        """
+        p.stepSimulation(self.client_id)
+
+    def set_object_color(self, obj: Object, color: List[float], link: Optional[str] = ""):
+        """
+        Changes the color of this object, the color has to be given as a list
+        of RGBA values. Optionally a link name can can be provided, if no link
+        name is provided all links of this object will be colored.
+
+        :param obj: The object which should be colored
+        :param color: The color as RGBA values between 0 and 1
+        :param link: The link name of the link which should be colored
+        """
+        if link == "":
+            # Check if there is only one link, this is the case for primitive
+            # forms or if loaded from an .stl or .obj file
+            if obj.links != {}:
+                for link_id in obj.links.values():
+                    p.changeVisualShape(obj.id, link_id, rgbaColor=color, physicsClientId=self.client_id)
+            else:
+                p.changeVisualShape(obj.id, -1, rgbaColor=color, physicsClientId=self.client_id)
+        else:
+            p.changeVisualShape(obj.id, obj.links[link], rgbaColor=color, physicsClientId=self.client_id)
+
+    def get_object_color(self,
+                         obj: Object,
+                         link: Optional[str] = None) -> Union[List[float], Dict[str, List[float]], None]:
+        """
+        This method returns the color of this object or a link of this object. If no link is given then the
+        return is either:
+
+            1. A list with the color as RGBA values, this is the case if the object only has one link (this
+                happens for example if the object is spawned from a .obj or .stl file)
+            2. A dict with the link name as key and the color as value. The color is given as RGBA values.
+                Please keep in mind that not every link may have a color. This is dependent on the URDF from which the
+                object is spawned.
+
+        If a link is specified then the return is a list with RGBA values representing the color of this link.
+        It may be that this link has no color, in this case the return is None as well as an error message.
+
+        :param obj: The object for which the color should be returned.
+        :param link: the link name for which the color should be returned.
+        :return: The color of the object or link, or a dictionary containing every colored link with its color
+        """
+        visual_data = p.getVisualShapeData(obj.id, physicsClientId=self.client_id)
+        swap = {v: k for k, v in obj.links.items()}
+        links = list(map(lambda x: swap[x[1]] if x[1] != -1 else "base", visual_data))
+        colors = list(map(lambda x: x[7], visual_data))
+        link_to_color = dict(zip(links, colors))
+
+        if link:
+            if link in link_to_color.keys():
+                return link_to_color[link]
+            elif link not in obj.links.keys():
+                rospy.logerr(f"The link '{link}' is not part of this obejct")
+                return None
+            else:
+                rospy.logerr(f"The link '{link}' has no color")
+                return None
+
+        if len(visual_data) == 1:
+            return list(visual_data[0][7])
+        else:
+            return link_to_color
+
+    def get_object_AABB(self, obj: Object, link_name: Optional[str] = None) -> Tuple[List[float], List[float]]:
+        """
+        Returns the axis aligned bounding box of this object, optionally a link name can be provided in this case
+        the axis aligned bounding box of the link will be returned. The return of this method are two points in
+        world coordinate frame which define a bounding box.
+
+        :param obj: The object for which the bounding box should be returned.
+        :param link_name: The Optional name of a link of this object.
+        :return: Two lists of x,y,z which define the bounding box.
+        """
+        if link_name:
+            return p.getAABB(obj.id, obj.links[link_name], self.client_id)
+        else:
+            return p.getAABB(obj.id, physicsClientId=self.client_id)
+
+    def get_attachment_event(self) -> Event:
+        """
+        Returns the event reference that is fired if an attachment occurs.
+
+        :return: The reference to the attachment event
+        """
+        return self.attachment_event
+
+    def get_detachment_event(self) -> Event:
+        """
+        Returns the event reference that is fired if a detachment occurs.
+
+        :return: The event reference for the detachment event.
+        """
+        return self.detachment_event
+
+    def get_manipulation_event(self) -> Event:
+        """
+        Returns the event reference that is fired if any manipulation occurs.
+
+        :return: The event reference for the manipulation event.
+        """
+        return self.manipulation_event
+
+    def set_realtime(self, real_time: bool) -> None:
+        """
+        Enables the real time simulation of Physic in the BulletWorld. By default this is disabled and Physic is only
+        simulated to reason about it.
+
+        :param real_time: Whether the BulletWorld should simulate Physic in real time.
+        """
+        p.setRealTimeSimulation(1 if real_time else 0, self.client_id)
+
+    def set_gravity(self, velocity: List[float]) -> None:
+        """
+        Sets the gravity that is used in the BullteWorld, by default the is the gravity on earth ([0, 0, -9.8]). Gravity
+        is given as a vector in x,y,z. Gravity is only applied while simulating Physic.
+
+        :param velocity: The gravity vector that should be used in the BulletWorld.
+        """
+        p.setGravity(velocity[0], velocity[1], velocity[2], physicsClientId=self.client_id)
+
+    def set_robot(self, robot: Object) -> None:
+        """
+        Sets the global variable for the robot Object. This should be set on spawning the robot.
+
+        :param robot: The Object reference to the Object representing the robot.
+        """
+        BulletWorld.robot = robot
+
+    def simulate(self, seconds: float, real_time: Optional[float] = False) -> None:
+        """
+        Simulates Physic in the BulletWorld for a given amount of seconds. Usually this simulation is faster than real
+        time, meaning you can simulate for example 10 seconds of Physic in the BulletWorld in 1 second real time. By
+        setting the 'real_time' parameter this simulation is slowed down such that the simulated time is equal to real
+        time.
+
+        :param seconds: The amount of seconds that should be simulated.
+        :param real_time: If the simulation should happen in real time or faster.
+        """
+        for i in range(0, int(seconds * 240)):
+            p.stepSimulation(self.client_id)
+            for objects, callback in self.coll_callbacks.items():
+                contact_points = p.getContactPoints(objects[0].id, objects[1].id, physicsClientId=self.client_id)
+                # contact_points = p.getClosestPoints(objects[0].id, objects[1].id, 0.02)
+                # print(contact_points[0][5])
+                if contact_points != ():
+                    callback[0]()
+                elif callback[1] != None:  # Call no collision callback
+                    callback[1]()
+            if real_time:
+                # Simulation runs at 240 Hz
+                time.sleep(0.004167)
+
+    def exit(self) -> None:
+        """
+        Closes the BulletWorld as well as the shadow world, also collects any other thread that is running. This is the
+        preferred method to close the BulletWorld.
+        """
+        # True if this is NOT the shadow world since it has a reference to the
+        # Shadow world
+        time.sleep(0.1)
+        if self.prospection_world:
+            self.world_sync.terminate = True
+            self.world_sync.join()
+            self.prospection_world.exit()
+        p.disconnect(self.client_id)
+        if self._gui_thread:
+            self._gui_thread.join()
+        if BulletWorld.current_bullet_world == self:
+            BulletWorld.current_bullet_world = None
+        BulletWorld.robot = None
+
+    def save_state(self) -> Tuple[int, Dict]:
+        """
+        Returns the id of the saved state of the BulletWorld. The saved state contains the position, orientation and joint
+        position of every Object in the BulletWorld.
+
+        :return: A unique id of the state
+        """
+        objects2attached = {}
+        # ToDo find out what this is for and where it is used
+        for o in self.objects:
+            objects2attached[o] = (o.attachments.copy(), o.cids.copy())
+        return p.saveState(self.client_id), objects2attached
+
+    def restore_state(self, state, objects2attached: Optional[Dict] = None) -> None:
+        """
+        Restores the state of the BulletWorld according to the given state id. This includes position, orientation and
+        joint states. However, restore can not respawn objects if there are objects that were deleted between creation of
+        the state and restoring they will be skiped.
+
+        :param state: The unique id representing the state, as returned by :func:`~save_state`
+        :param objects2attached: A dictionary of attachments, as saved in :py:attr:`~world.Object.attachments`
+        """
+        p.restoreState(state, physicsClientId=self.client_id)
+        objects2attached = {} if objects2attached is None else objects2attached
+        for obj in self.objects:
+            try:
+                obj.attachments, obj.cids = objects2attached[obj]
+            except KeyError:
+                continue
+
+    def copy(self) -> BulletWorld:
+        """
+        Copies this Bullet World into another and returns it. The other BulletWorld
+        will be in Direct mode. The shadow world should always be preferred instead of creating a new BulletWorld.
+        This method should only be used if necessary since there can be unforeseen problems.
+
+        :return: The reference to the new BulletWorld
+        """
+        world = BulletWorld("DIRECT")
+        for obj in self.objects:
+            o = Object(obj.name, obj.type, obj.path, Pose(obj.get_position(), obj.get_orientation()),
+                       world, obj.color)
+            for joint in obj.joints:
+                o.set_joint_position(joint, obj.get_joint_position(joint))
+        return world
+
+    def add_vis_axis(self, pose: Pose,
+                     length: Optional[float] = 0.2) -> None:
+        """
+        Creates a Visual object which represents the coordinate frame at the given
+        position and orientation. There can be an unlimited amount of vis axis objects.
+
+        :param pose: The pose at which the axis should be spawned
+        :param length: Optional parameter to configure the length of the axes
+        """
+
+        position, orientation = pose.to_list()
+
+        vis_x = p.createVisualShape(p.GEOM_BOX, halfExtents=[length, 0.01, 0.01],
+                                    rgbaColor=[1, 0, 0, 0.8], visualFramePosition=[length, 0.01, 0.01])
+        vis_y = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.01, length, 0.01],
+                                    rgbaColor=[0, 1, 0, 0.8], visualFramePosition=[0.01, length, 0.01])
+        vis_z = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.01, 0.01, length],
+                                    rgbaColor=[0, 0, 1, 0.8], visualFramePosition=[0.01, 0.01, length])
+
+        obj = p.createMultiBody(baseVisualShapeIndex=-1, linkVisualShapeIndices=[vis_x, vis_y, vis_z],
+                                basePosition=position, baseOrientation=orientation,
+                                linkPositions=[[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                                linkMasses=[1.0, 1.0, 1.0], linkOrientations=[[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1]],
+                                linkInertialFramePositions=[[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                                linkInertialFrameOrientations=[[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1]],
+                                linkParentIndices=[0, 0, 0],
+                                linkJointTypes=[p.JOINT_FIXED, p.JOINT_FIXED, p.JOINT_FIXED],
+                                linkJointAxis=[[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+                                linkCollisionShapeIndices=[-1, -1, -1])
+
+        self.vis_axis.append(obj)
+
+    def remove_vis_axis(self) -> None:
+        """
+        Removes all spawned vis axis objects that are currently in this BulletWorld.
+        """
+        for id in self.vis_axis:
+            p.removeBody(id)
+        self.vis_axis = []
+
+    def register_collision_callback(self, objectA: Object, objectB: Object,
+                                    callback_collision: Callable,
+                                    callback_no_collision: Optional[Callable] = None) -> None:
+        """
+        Registers callback methods for contact between two Objects. There can be a callback for when the two Objects
+        get in contact and, optionally, for when they are not in contact anymore.
+
+        :param objectA: An object in the BulletWorld
+        :param objectB: Another object in the BulletWorld
+        :param callback_collision: A function that should be called if the objects are in contact
+        :param callback_no_collision: A function that should be called if the objects are not in contact
+        """
+        self.coll_callbacks[(objectA, objectB)] = (callback_collision, callback_no_collision)
+
+    def add_additional_resource_path(self, path: str) -> None:
+        """
+        Adds a resource path in which the BulletWorld will search for files. This resource directory is searched if an
+        Object is spawned only with a filename.
+
+        :param path: A path in the filesystem in which to search for files.
+        """
+        self.data_directory.append(path)
+
+    def get_shadow_object(self, object: Object) -> Object:
+        """
+        Returns the corresponding object from the shadow world for the given object. If the given Object is already in
+        the shadow world it is returned.
+
+        :param object: The object for which the shadow worlds object should be returned.
+        :return: The corresponding object in the shadow world.
+        """
+        try:
+            return self.world_sync.object_mapping[object]
+        except KeyError:
+            shadow_world = self if self.is_prospection_world else self.prospection_world
+            if object in shadow_world.objects:
+                return object
+            else:
+                raise ValueError(
+                    f"There is no shadow object for the given object: {object}, this could be the case if the object isn't anymore in the main (graphical) BulletWorld or if the given object is already a shadow object. ")
+
+    def get_bullet_object_for_shadow(self, object: Object) -> Object:
+        """
+        Returns the corresponding object from the main Bullet World for a given
+        object in the shadow world. If the  given object is not in the shadow
+        world an error will be raised.
+
+        :param object: The object for which the corresponding object in the main Bullet World should be found
+        :return: The object in the main Bullet World
+        """
+        map = self.world_sync.object_mapping
+        try:
+            return list(map.keys())[list(map.values()).index(object)]
+        except ValueError:
+            raise ValueError("The given object is not in the shadow world.")
+
+    def reset_bullet_world(self) -> None:
+        """
+        Resets the BulletWorld to the state it was first spawned in.
+        All attached objects will be detached, all joints will be set to the
+        default position of 0 and all objects will be set to the position and
+        orientation in which they were spawned.
+        """
+        for obj in self.objects:
+            if obj.attachments:
+                attached_objects = list(obj.attachments.keys())
+                for att_obj in attached_objects:
+                    obj.detach(att_obj)
+            joint_names = list(obj.joints.keys())
+            joint_poses = [0 for j in joint_names]
+            obj.set_positions_of_all_joints(dict(zip(joint_names, joint_poses)))
+            obj.set_pose(obj.original_pose)
+
+class BulletWorld(World):
     """
     The BulletWorld Class represents the physics Simulation and belief state.
     """
@@ -54,45 +694,29 @@ class BulletWorld:
     if rosgraph.is_master_online():  # and "/pycram" not in rosnode.get_node_names():
         rospy.init_node('pycram')
 
-    def __init__(self, type: str = "GUI", is_shadow_world: bool = False):
+    def __init__(self, mode: str = "GUI", is_prospection_world: bool = False):
         """
         Creates a new simulation, the type decides of the simulation should be a rendered window or just run in the
         background. There can only be one rendered simulation.
         The BulletWorld object also initializes the Events for attachment, detachment and for manipulating the world.
 
-        :param type: Can either be "GUI" for rendered window or "DIRECT" for non-rendered. The default parameter is "GUI"
-        :param is_shadow_world: For internal usage, decides if this BulletWorld should be used as a shadow world.
+        :param mode: Can either be "GUI" for rendered window or "DIRECT" for non-rendered. The default parameter is "GUI"
+        :param is_prospection_world: For internal usage, decides if this BulletWorld should be used as a shadow world.
         """
-        self.objects: List[Object] = []
-        self.client_id: int = -1
-        self.detachment_event: Event = Event()
-        self.attachment_event: Event = Event()
-        self.manipulation_event: Event = Event()
-        self.type: str = type
-        self._gui_thread: Gui = Gui(self, type)
+        super().__init__(mode=mode, is_prospection_world=is_prospection_world)
+
+        self._gui_thread: Gui = Gui(self, mode)
         self._gui_thread.start()
         # This disables file caching from PyBullet, since this would also cache
         # files that can not be loaded
         p.setPhysicsEngineParameter(enableFileCaching=0)
         # Needed to let the other thread start the simulation, before Objects are spawned.
         time.sleep(0.1)
-        if BulletWorld.current_bullet_world == None:
-            BulletWorld.current_bullet_world = self
         self.vis_axis: List[Object] = []
-        self.coll_callbacks: Dict[Tuple[Object, Object], Tuple[Callable, Callable]] = {}
-        self.data_directory: List[str] = [os.path.dirname(__file__) + "/../../resources"]
-        self.shadow_world: BulletWorld = BulletWorld("DIRECT", True) if not is_shadow_world else None
-        self.world_sync: WorldSync = WorldSync(self, self.shadow_world) if not is_shadow_world else None
-        self.is_shadow_world: bool = is_shadow_world
-        self.local_transformer = LocalTransformer()
-        if not is_shadow_world:
-            self.world_sync.start()
-            self.local_transformer.bullet_world = self
-            self.local_transformer.shadow_world = self.shadow_world
 
         # Some default settings
         self.set_gravity([0, 0, -9.8])
-        if not is_shadow_world:
+        if not is_prospection_world:
             plane = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf", world=self)
         # atexit.register(self.exit)
 
@@ -504,10 +1128,10 @@ class BulletWorld:
         # True if this is NOT the shadow world since it has a reference to the
         # Shadow world
         time.sleep(0.1)
-        if self.shadow_world:
+        if self.prospection_world:
             self.world_sync.terminate = True
             self.world_sync.join()
-            self.shadow_world.exit()
+            self.prospection_world.exit()
         p.disconnect(self.client_id)
         if self._gui_thread:
             self._gui_thread.join()
@@ -535,7 +1159,7 @@ class BulletWorld:
         the state and restoring they will be skiped.
 
         :param state: The unique id representing the state, as returned by :func:`~save_state`
-        :param objects2attached: A dictionary of attachments, as saved in :py:attr:`~bullet_world.Object.attachments`
+        :param objects2attached: A dictionary of attachments, as saved in :py:attr:`~world.Object.attachments`
         """
         p.restoreState(state, physicsClientId=self.client_id)
         objects2attached = {} if objects2attached is None else objects2attached
@@ -635,7 +1259,7 @@ class BulletWorld:
         try:
             return self.world_sync.object_mapping[object]
         except KeyError:
-            shadow_world = self if self.is_shadow_world else self.shadow_world
+            shadow_world = self if self.is_prospection_world else self.prospection_world
             if object in shadow_world.objects:
                 return object
             else:
@@ -689,7 +1313,7 @@ class Use_shadow_world():
         self.prev_world: BulletWorld = None
 
     def __enter__(self):
-        if not BulletWorld.current_bullet_world.is_shadow_world:
+        if not BulletWorld.current_bullet_world.is_prospection_world:
             time.sleep(20 / 240)
             # blocks until the adding queue is ready
             BulletWorld.current_bullet_world.world_sync.add_obj_queue.join()
@@ -700,7 +1324,7 @@ class Use_shadow_world():
 
             self.prev_world = BulletWorld.current_bullet_world
             BulletWorld.current_bullet_world.world_sync.pause_sync = True
-            BulletWorld.current_bullet_world = BulletWorld.current_bullet_world.shadow_world
+            BulletWorld.current_bullet_world = BulletWorld.current_bullet_world.prospection_world
 
     def __exit__(self, *args):
         if not self.prev_world == None:
@@ -719,11 +1343,11 @@ class WorldSync(threading.Thread):
     if reasoning should be done in the shadow world.
     """
 
-    def __init__(self, world: BulletWorld, shadow_world: BulletWorld):
+    def __init__(self, world: World, prospection_world: World):
         threading.Thread.__init__(self)
-        self.world: BulletWorld = world
-        self.shadow_world: BulletWorld = shadow_world
-        self.shadow_world.world_sync: WorldSync = self
+        self.world: World = world
+        self.prospection_world: World = prospection_world
+        self.prospection_world.world_sync = self
 
         self.terminate: bool = False
         self.add_obj_queue: Queue = Queue()
@@ -747,7 +1371,7 @@ class WorldSync(threading.Thread):
             # self.equal_states = False
             for i in range(self.add_obj_queue.qsize()):
                 obj = self.add_obj_queue.get()
-                # [name, type, path, position, orientation, self.world.shadow_world, color, bulletworld object]
+                # [name, type, path, position, orientation, self.world.prospection_world, color, bulletworld object]
                 o = Object(obj[0], obj[1], obj[2], Pose(obj[3], obj[4]), obj[5], obj[6])
                 # Maps the BulletWorld object to the shadow world object
                 self.object_mapping[obj[7]] = o
@@ -1050,12 +1674,12 @@ class Object:
         self.cids: Dict[Object, int] = {}
         self.original_pose = pose_in_map
 
-        self.tf_frame = ("shadow/" if self.world.is_shadow_world else "") + self.name + "_" + str(self.id)
+        self.tf_frame = ("shadow/" if self.world.is_prospection_world else "") + self.name + "_" + str(self.id)
 
         # This means "world" is not the shadow world since it has a reference to a shadow world
-        if self.world.shadow_world != None:
+        if self.world.prospection_world != None:
             self.world.world_sync.add_obj_queue.put(
-                [name, type, path, position, orientation, self.world.shadow_world, color, self])
+                [name, type, path, position, orientation, self.world.prospection_world, color, self])
 
         with open(self.path) as f:
             self.urdf_object = URDF.from_xml_string(f.read())
@@ -1095,7 +1719,7 @@ class Object:
         self.world.objects.remove(self)
         # This means the current world of the object is not the shadow world, since it
         # has a reference to the shadow world
-        if self.world.shadow_world is not None:
+        if self.world.prospection_world is not None:
             self.world.world_sync.remove_obj_queue.put(self)
             self.world.world_sync.remove_obj_queue.join()
         self.world.remove_object(self.id)
