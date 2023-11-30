@@ -90,8 +90,8 @@ class BulletWorld:
         self.local_transformer = LocalTransformer()
         if not is_shadow_world:
             self.world_sync.start()
-            self.local_transformer.bullet_world = self
-            self.local_transformer.shadow_world = self.shadow_world
+            self.local_transformer.world = self
+            self.local_transformer.prospection_world = self.shadow_world
 
         # Some default settings
         self.set_gravity([0, 0, -9.8])
@@ -239,7 +239,7 @@ class BulletWorld:
         the state and restoring they will be skiped.
 
         :param state: The unique id representing the state, as returned by :func:`~save_state`
-        :param objects2attached: A dictionary of attachments, as saved in :py:attr:`~bullet_world.Object.attachments`
+        :param objects2attached: A dictionary of attachments, as saved in :py:attr:`~world.Object.attachments`
         """
         p.restoreState(state, physicsClientId=self.client_id)
         for obj in self.objects:
@@ -450,7 +450,7 @@ class WorldSync(threading.Thread):
             # self.equal_states = False
             for i in range(self.add_obj_queue.qsize()):
                 obj = self.add_obj_queue.get()
-                # [name, type, path, position, orientation, self.world.shadow_world, color, bulletworld object]
+                # [name, type, path, position, orientation, self.world.prospection_world, color, bulletworld object]
                 o = Object(obj[0], obj[1], obj[2], Pose(obj[3], obj[4]), obj[5], obj[6])
                 # Maps the BulletWorld object to the shadow world object
                 self.object_mapping[obj[7]] = o

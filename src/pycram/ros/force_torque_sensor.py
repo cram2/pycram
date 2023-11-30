@@ -13,12 +13,12 @@ from..world import BulletWorld
 class ForceTorqueSensor:
     """
     Simulated force-torque sensor for a joint with a given name.
-    Reads simulated forces and torques at that joint from bullet_world and publishes geometry_msgs/Wrench messages
+    Reads simulated forces and torques at that joint from world and publishes geometry_msgs/Wrench messages
     to the given topic.
     """
     def __init__(self, joint_name, fts_topic="/pycram/fts", interval=0.1):
         """
-        The given joint_name has to be part of :py:attr:`~pycram.bullet_world.BulletWorld.robot` otherwise a
+        The given joint_name has to be part of :py:attr:`~pycram.world.BulletWorld.robot` otherwise a
         RuntimeError will be raised.
 
         :param joint_name: Name of the joint for which force-torque should be simulated
