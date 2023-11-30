@@ -3,8 +3,8 @@ import numpy as np
 import rospy
 import pybullet as p
 
-from .bullet_world import Object, BulletWorld, Use_shadow_world
-from .bullet_world_reasoning import contact
+from .world import Object, BulletWorld, Use_shadow_world
+from .world_reasoning import contact
 from .costmaps import Costmap
 from .pose import Pose, Transform
 from .robot_descriptions import robot_description

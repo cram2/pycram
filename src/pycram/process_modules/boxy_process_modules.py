@@ -3,9 +3,9 @@ from threading import Lock
 
 import pybullet as p
 
-import pycram.bullet_world_reasoning as btr
+import pycram.world_reasoning as btr
 import pycram.helper as helper
-from ..bullet_world import BulletWorld
+from ..world import BulletWorld
 from ..external_interfaces.ik import request_ik
 from ..local_transformer import LocalTransformer as local_tf
 from ..process_module import ProcessModule, ProcessModuleManager
@@ -22,10 +22,10 @@ def _park_arms(arm):
     robot = BulletWorld.robot
     if arm == "right":
         for joint, pose in robot_description.get_static_joint_chain("right", "park").items():
-            robot.set_joint_state(joint, pose)
+            robot.set_joint_position(joint, pose)
     if arm == "left":
         for joint, pose in robot_description.get_static_joint_chain("left", "park").items():
-            robot.set_joint_state(joint, pose)
+            robot.set_joint_position(joint, pose)
 
 
 class BoxyNavigation(ProcessModule):
@@ -39,7 +39,7 @@ class BoxyNavigation(ProcessModule):
             robot = BulletWorld.robot
             # Reset odom joints to zero
             for joint_name in robot_description.odom_joints:
-                robot.set_joint_state(joint_name, 0.0)
+                robot.set_joint_position(joint_name, 0.0)
             # Set actual goal pose
             robot.set_position_and_orientation(solution['target'], solution['orientation'])
             time.sleep(0.5)
@@ -110,7 +110,7 @@ class BoxyAccessing(ProcessModule):
             drawer_handle = solution['drawer_handle']
             drawer_joint = solution['drawer_joint']
             dis = solution['distance']
-            robot.set_joint_state(robot_description.torso_joint, -0.1)
+            robot.set_joint_position(robot_description.torso_joint, -0.1)
             arm = "left" if solution['gripper'] == robot_description.get_tool_frame("left") else "right"
             joints = robot_description._safely_access_chains(arm).joints
             #inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), kitchen.get_link_position(drawer_handle))
@@ -126,7 +126,7 @@ class BoxyAccessing(ProcessModule):
             new_p = helper._transform_to_torso(new_p, robot)
             inv = request_ik(robot_description.base_frame, gripper, new_p, robot, joints)
             helper._apply_ik(robot, inv, gripper)
-            kitchen.set_joint_state(drawer_joint, 0.3)
+            kitchen.set_joint_position(drawer_joint, 0.3)
             time.sleep(0.5)
 
 
@@ -190,7 +190,7 @@ class BoxyMoveHead(ProcessModule):
                 else:
                     conf = "behind_up"
             for joint, state in robot_description.get_static_joint_chain("neck", conf).items():
-                robot.set_joint_state(joint, state)
+                robot.set_joint_position(joint, state)
 
 
 class BoxyMoveGripper(ProcessModule):
@@ -207,7 +207,7 @@ class BoxyMoveGripper(ProcessModule):
             motion = solution['motion']
             for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
                 # TODO: Test this, add gripper-opening/-closing to the demo.py
-                robot.set_joint_state(joint, state)
+                robot.set_joint_position(joint, state)
             time.sleep(0.5)
 
 
@@ -261,13 +261,13 @@ class BoxyMoveJoints(ProcessModule):
             left_arm_poses = solution['left_arm_poses']
             if type(right_arm_poses) == dict:
                 for joint, pose in right_arm_poses.items():
-                    robot.set_joint_state(joint, pose)
+                    robot.set_joint_position(joint, pose)
             elif type(right_arm_poses) == str and right_arm_poses == "park":
                 _park_arms("right")
 
             if type(left_arm_poses) == dict:
                 for joint, pose in left_arm_poses.items():
-                    robot.set_joint_state(joint, pose)
+                    robot.set_joint_position(joint, pose)
             elif type(right_arm_poses) == str and left_arm_poses == "park":
                 _park_arms("left")
 

@@ -4,7 +4,7 @@ from typing import Any
 
 import actionlib
 
-import pycram.bullet_world_reasoning as btr
+import pycram.world_reasoning as btr
 import numpy as np
 import time
 import rospy
@@ -13,7 +13,7 @@ import pybullet as p
 from ..plan_failures import EnvironmentManipulationImpossible
 from ..robot_descriptions import robot_description
 from ..process_module import ProcessModule, ProcessModuleManager
-from ..bullet_world import BulletWorld, Object
+from ..world import BulletWorld, Object
 from ..helper import transform
 from ..external_interfaces.ik import request_ik, IKError
 from ..helper import _transform_to_torso, _apply_ik, calculate_wrist_tool_offset, inverseTimes
@@ -39,10 +39,10 @@ def _park_arms(arm):
     robot = BulletWorld.robot
     if arm == "right":
         for joint, pose in robot_description.get_static_joint_chain("right", "park").items():
-            robot.set_joint_state(joint, pose)
+            robot.set_joint_position(joint, pose)
     if arm == "left":
         for joint, pose in robot_description.get_static_joint_chain("left", "park").items():
-            robot.set_joint_state(joint, pose)
+            robot.set_joint_position(joint, pose)
 
 
 class Pr2Navigation(ProcessModule):
@@ -121,11 +121,11 @@ class Pr2MoveHead(ProcessModule):
         new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
         new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2) * -1
 
-        current_pan = robot.get_joint_state("head_pan_joint")
-        current_tilt = robot.get_joint_state("head_tilt_joint")
+        current_pan = robot.get_joint_position("head_pan_joint")
+        current_tilt = robot.get_joint_position("head_tilt_joint")
 
-        robot.set_joint_state("head_pan_joint", new_pan + current_pan)
-        robot.set_joint_state("head_tilt_joint", new_tilt + current_tilt)
+        robot.set_joint_position("head_pan_joint", new_pan + current_pan)
+        robot.set_joint_position("head_tilt_joint", new_tilt + current_tilt)
 
 
 class Pr2MoveGripper(ProcessModule):
@@ -139,7 +139,7 @@ class Pr2MoveGripper(ProcessModule):
         gripper = desig.gripper
         motion = desig.motion
         for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
-            robot.set_joint_state(joint, state)
+            robot.set_joint_position(joint, state)
 
 
 class Pr2Detecting(ProcessModule):
@@ -184,9 +184,9 @@ class Pr2MoveArmJoints(ProcessModule):
 
         robot = BulletWorld.robot
         if desig.right_arm_poses:
-            robot.set_joint_states(desig.right_arm_poses)
+            robot.set_positions_of_all_joints(desig.right_arm_poses)
         if desig.left_arm_poses:
-            robot.set_joint_states(desig.left_arm_poses)
+            robot.set_positions_of_all_joints(desig.left_arm_poses)
 
 
 class PR2MoveJoints(ProcessModule):
@@ -195,7 +195,7 @@ class PR2MoveJoints(ProcessModule):
     """
     def _execute(self, desig: MoveJointsMotion.Motion):
         robot = BulletWorld.robot
-        robot.set_joint_states(dict(zip(desig.names, desig.positions)))
+        robot.set_positions_of_all_joints(dict(zip(desig.names, desig.positions)))
 
 
 class Pr2WorldStateDetecting(ProcessModule):
@@ -223,8 +223,8 @@ class Pr2Open(ProcessModule):
 
         _move_arm_tcp(goal_pose, BulletWorld.robot, desig.arm)
 
-        desig.object_part.bullet_world_object.set_joint_state(container_joint,
-                                                              part_of_object.get_joint_limits(
+        desig.object_part.bullet_world_object.set_joint_position(container_joint,
+                                                                 part_of_object.get_joint_limits(
                                                                   container_joint)[1])
 
 
@@ -243,8 +243,8 @@ class Pr2Close(ProcessModule):
 
         _move_arm_tcp(goal_pose, BulletWorld.robot, desig.arm)
 
-        desig.object_part.bullet_world_object.set_joint_state(container_joint,
-                                                              part_of_object.get_joint_limits(
+        desig.object_part.bullet_world_object.set_joint_position(container_joint,
+                                                                 part_of_object.get_joint_limits(
                                                                   container_joint)[0])
 
 
@@ -301,8 +301,8 @@ class Pr2MoveHeadReal(ProcessModule):
         new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
         new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2) * -1
 
-        current_pan = robot.get_joint_state("head_pan_joint")
-        current_tilt = robot.get_joint_state("head_tilt_joint")
+        current_pan = robot.get_joint_position("head_pan_joint")
+        current_tilt = robot.get_joint_position("head_tilt_joint")
 
         giskard.avoid_all_collisions()
         giskard.achieve_joint_goal({"head_pan_joint": new_pan + current_pan,

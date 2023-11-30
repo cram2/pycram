@@ -18,7 +18,7 @@ class TestActionDesignatorGrounding(test_bullet_world.BulletWorldTest):
         self.assertEqual(description.ground().position, 0.3)
         with simulated_robot:
             description.resolve().perform()
-        self.assertEqual(self.world.robot.get_joint_state(robot_description.torso_joint), 0.3)
+        self.assertEqual(self.world.robot.get_joint_position(robot_description.torso_joint), 0.3)
 
     def test_set_gripper(self):
         description = action_designator.SetGripperAction(["left"], ["open", "close"])
@@ -28,7 +28,7 @@ class TestActionDesignatorGrounding(test_bullet_world.BulletWorldTest):
         with simulated_robot:
             description.resolve().perform()
         for joint, state in robot_description.get_static_gripper_chain("left", "open").items():
-            self.assertEqual(self.world.robot.get_joint_state(joint), state)
+            self.assertEqual(self.world.robot.get_joint_position(joint), state)
 
     def test_release(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
@@ -48,9 +48,9 @@ class TestActionDesignatorGrounding(test_bullet_world.BulletWorldTest):
         with simulated_robot:
             description.resolve().perform()
         for joint, pose in robot_description.get_static_joint_chain("right", "park").items():
-            self.assertEqual(self.world.robot.get_joint_state(joint), pose)
+            self.assertEqual(self.world.robot.get_joint_position(joint), pose)
         for joint, pose in robot_description.get_static_joint_chain("left", "park").items():
-            self.assertEqual(self.world.robot.get_joint_state(joint), pose)
+            self.assertEqual(self.world.robot.get_joint_position(joint), pose)
 
     def test_navigate(self):
         description = action_designator.NavigateAction([Pose([0, 0, 0], [0, 0, 0, 1])])

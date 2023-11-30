@@ -9,7 +9,7 @@ from inspect import isgenerator, isgeneratorfunction
 from sqlalchemy.orm.session import Session
 import rospy
 
-from .bullet_world import (Object as BulletWorldObject, BulletWorld)
+from .world import (Object as BulletWorldObject, BulletWorld)
 from .helper import GeneratorList, bcolors
 from threading import Lock
 from time import time
@@ -486,7 +486,7 @@ class ActionDesignatorDescription(DesignatorDescription):
 
         def __post_init__(self):
             self.robot_position = BulletWorld.robot.get_pose()
-            self.robot_torso_height = BulletWorld.robot.get_joint_state(robot_description.torso_joint)
+            self.robot_torso_height = BulletWorld.robot.get_joint_position(robot_description.torso_joint)
             self.robot_type = BulletWorld.robot.type
 
         @with_tree

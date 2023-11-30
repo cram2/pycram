@@ -3,9 +3,9 @@ from threading import Lock
 
 import pybullet as p
 
-import pycram.bullet_world_reasoning as btr
+import pycram.world_reasoning as btr
 import pycram.helper as helper
-from ..bullet_world import BulletWorld
+from ..world import BulletWorld
 from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_descriptions import robot_description
@@ -21,7 +21,7 @@ def _park_arms(arm):
     robot = BulletWorld.robot
     if arm == "left":
         for joint, pose in robot_description.get_static_joint_chain("left", "park").items():
-            robot.set_joint_state(joint, pose)
+            robot.set_joint_position(joint, pose)
 
 
 class DonbotNavigation(ProcessModule):
@@ -35,7 +35,7 @@ class DonbotNavigation(ProcessModule):
             robot = BulletWorld.robot
             # Reset odom joints to zero
             for joint_name in robot_description.odom_joints:
-                robot.set_joint_state(joint_name, 0.0)
+                robot.set_joint_position(joint_name, 0.0)
             # Set actual goal pose
             robot.set_position_and_orientation(solution['target'], solution['orientation'])
             time.sleep(0.5)
@@ -102,7 +102,7 @@ class DonbotAccessing(ProcessModule):
             new_p = [han_pose[0] - dis, han_pose[1], han_pose[2]]
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), new_p)
             helper._apply_ik(robot, inv)
-            kitchen.set_joint_state(drawer_joint, 0.3)
+            kitchen.set_joint_position(drawer_joint, 0.3)
             time.sleep(0.5)
 
 
@@ -153,7 +153,7 @@ class DonbotMoveHead(ProcessModule):
             else:
                 conf = "right"
             for joint, state in robot_description.get_static_joint_chain("neck", conf).items():
-                robot.set_joint_state(joint, state)
+                robot.set_joint_position(joint, state)
 
 
 class DonbotMoveGripper(ProcessModule):
@@ -170,7 +170,7 @@ class DonbotMoveGripper(ProcessModule):
             motion = solution['motion']
             for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
                 # TODO: Test this, add gripper-opening/-closing to the demo.py
-                robot.set_joint_state(joint, state)
+                robot.set_joint_position(joint, state)
             time.sleep(0.5)
 
 
@@ -224,7 +224,7 @@ class DonbotMoveJoints(ProcessModule):
 
             if type(left_arm_poses) == dict:
                 for joint, pose in left_arm_poses.items():
-                    robot.set_joint_state(joint, pose)
+                    robot.set_joint_position(joint, pose)
             elif type(left_arm_poses) == str and left_arm_poses == "park":
                 _park_arms("left")
 

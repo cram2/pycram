@@ -2,9 +2,9 @@ from threading import Lock
 
 from ..robot_descriptions import robot_description
 from ..process_module import ProcessModule, ProcessModuleManager
-from ..bullet_world import BulletWorld
+from ..world import BulletWorld
 from ..helper import _apply_ik
-import pycram.bullet_world_reasoning as btr
+import pycram.world_reasoning as btr
 import pybullet as p
 import logging
 import time
@@ -20,7 +20,7 @@ def _park_arms(arm):
     robot = BulletWorld.robot
     if arm == "left":
         for joint, pose in robot_description.get_static_joint_chain("left", "park").items():
-            robot.set_joint_state(joint, pose)
+            robot.set_joint_position(joint, pose)
 
 
 class HSRNavigation(ProcessModule):
@@ -96,7 +96,7 @@ class HSRAccessing(ProcessModule):
             new_p = [han_pose[0] - dis, han_pose[1], han_pose[2]]
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), new_p)
             _apply_ik(robot, inv)
-            kitchen.set_joint_state(drawer_joint, 0.3)
+            kitchen.set_joint_position(drawer_joint, 0.3)
             time.sleep(0.5)
 
 
@@ -125,7 +125,7 @@ class HSRMoveHead(ProcessModule):
             if target == 'forward' or target == 'down':
                 robot = BulletWorld.robot
                 for joint, state in robot_description.get_static_joint_chain("neck", target).items():
-                    robot.set_joint_state(joint, state)
+                    robot.set_joint_position(joint, state)
             else:
                 logging.error("There is no target position defined with the target %s.", target)
 
@@ -143,7 +143,7 @@ class HSRMoveGripper(ProcessModule):
             gripper = solution['gripper']
             motion = solution['motion']
             for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
-                robot.set_joint_state(joint, state)
+                robot.set_joint_position(joint, state)
             time.sleep(0.5)
 
 
@@ -197,7 +197,7 @@ class HSRMoveJoints(ProcessModule):
 
             if type(left_arm_poses) == dict:
                 for joint, pose in left_arm_poses.items():
-                    robot.set_joint_state(joint, pose)
+                    robot.set_joint_position(joint, pose)
             elif type(left_arm_poses) == str and left_arm_poses == "park":
                 _park_arms("left")
 

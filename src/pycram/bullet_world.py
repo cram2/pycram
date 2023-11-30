@@ -261,7 +261,7 @@ class BulletWorld:
             o = Object(obj.name, obj.type, obj.path, obj.get_position(), obj.get_orientation(),
                        world, obj.color)
             for joint in obj.joints:
-                o.set_joint_state(joint, obj.get_joint_state(joint))
+                o.set_joint_position(joint, obj.get_joint_position(joint))
         return world
 
     def add_vis_axis(self, pose: Pose,
@@ -374,7 +374,7 @@ class BulletWorld:
                     obj.detach(att_obj)
             joint_names = list(obj.joints.keys())
             joint_poses = [0 for j in joint_names]
-            obj.set_joint_states(dict(zip(joint_names, joint_poses)))
+            obj.set_joint_positions(dict(zip(joint_names, joint_poses)))
             obj.set_pose(obj.original_pose)
 
 
@@ -472,8 +472,8 @@ class WorldSync(threading.Thread):
                 # Manage joint positions
                 if len(bulletworld_obj.joints) > 2:
                     for joint_name in bulletworld_obj.joints.keys():
-                        if shadow_obj.get_joint_state(joint_name) != bulletworld_obj.get_joint_state(joint_name):
-                            shadow_obj.set_joint_states(bulletworld_obj.get_complete_joint_state())
+                        if shadow_obj.get_joint_position(joint_name) != bulletworld_obj.get_joint_position(joint_name):
+                            shadow_obj.set_joint_positions(bulletworld_obj.get_positions_of_all_joints())
                             break
 
             self.check_for_pause()
@@ -770,8 +770,8 @@ class Object:
         self._current_pose = pose_in_map
         self._current_link_poses = {}
         self._current_link_transforms = {}
-        self._current_joint_states = {}
-        self._init_current_joint_states()
+        self._current_joints_positions = {}
+        self._init_current_positions_of_joints()
         self._update_link_poses()
 
         self.base_origin_shift = np.array(position) - np.array(self.get_base_origin().position_as_list())
@@ -1104,7 +1104,7 @@ class Object:
         return self._current_link_poses[name]
         # return Pose(*p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[4:6])
 
-    def set_joint_state(self, joint_name: str, joint_pose: float) -> None:
+    def set_joint_position(self, joint_name: str, joint_pose: float) -> None:
         """
         Sets the state of the given joint to the given joint pose. If the pose is outside the joint limits, as stated
         in the URDF, an error will be printed. However, the joint will be set either way.
@@ -1124,12 +1124,12 @@ class Object:
             # Temporarily disabled because kdl outputs values exciting joint limits
             # return
         p.resetJointState(self.id, self.joints[joint_name], joint_pose, physicsClientId=self.world.client_id)
-        self._current_joint_states[joint_name] = joint_pose
+        self._current_joints_positions[joint_name] = joint_pose
         # self.local_transformer.update_transforms_for_object(self)
         self._update_link_poses()
         self._set_attached_objects([self])
 
-    def set_joint_states(self, joint_poses: dict) -> None:
+    def set_joint_positions(self, joint_poses: dict) -> None:
         """
         Sets the current state of multiple joints at once, this method should be preferred when setting multiple joints
         at once instead of running :func:`~Object.set_joint_state` in a loop.
@@ -1139,18 +1139,18 @@ class Object:
         """
         for joint_name, joint_pose in joint_poses.items():
             p.resetJointState(self.id, self.joints[joint_name], joint_pose, physicsClientId=self.world.client_id)
-            self._current_joint_states[joint_name] = joint_pose
+            self._current_joints_positions[joint_name] = joint_pose
         self._update_link_poses()
         self._set_attached_objects([self])
 
-    def get_joint_state(self, joint_name: str) -> float:
+    def get_joint_position(self, joint_name: str) -> float:
         """
         Returns the joint state for the given joint name.
 
         :param joint_name: The name of the joint
         :return: The current pose of the joint
         """
-        return self._current_joint_states[joint_name]
+        return self._current_joints_positions[joint_name]
 
     def contact_points(self) -> List:
         """
@@ -1187,7 +1187,7 @@ class Object:
         joint_positions = msg.position
         if set(joint_names).issubset(self.joints.keys()):
             for i in range(len(joint_names)):
-                self.set_joint_state(joint_names[i], joint_positions[i])
+                self.set_joint_position(joint_names[i], joint_positions[i])
         else:
             add_joints = set(joint_names) - set(self.joints.keys())
             rospy.logerr(f"There are joints in the published joint state which are not in this model: /n \
@@ -1345,13 +1345,13 @@ class Object:
             rospy.logwarn(f"No joint of type {joint_type} found above link {link_name}")
         return container_joint
 
-    def get_complete_joint_state(self) -> Dict[str: float]:
+    def get_positions_of_all_joints(self) -> Dict[str: float]:
         """
-        Returns the complete joint state of the object as a dictionary of joint names and joint values.
+        Returns the positions of all joints of the object as a dictionary of joint names and joint positions.
 
-        :return: A dictionary with the complete joint state
+        :return: A dictionary with all joints positions'.
         """
-        return self._current_joint_states
+        return self._current_joints_positions
 
     def get_link_tf_frame(self, link_name: str) -> str:
         """
@@ -1392,12 +1392,12 @@ class Object:
                 self._current_link_transforms[link_name] = self._current_link_poses[link_name].to_transform(
                     self.get_link_tf_frame(link_name))
 
-    def _init_current_joint_states(self) -> None:
+    def _init_current_positions_of_joints(self) -> None:
         """
         Initialize the cached joint position for each joint.
         """
         for joint_name in self.joints.keys():
-            self._current_joint_states[joint_name] = \
+            self._current_joints_positions[joint_name] = \
                 p.getJointState(self.id, self.joints[joint_name], physicsClientId=self.world.client_id)[0]
 
 

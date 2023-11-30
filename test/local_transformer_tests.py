@@ -3,7 +3,7 @@ import rospy
 from time import sleep
 
 
-from src.pycram.bullet_world import BulletWorld, Object
+from src.pycram.world import BulletWorld, Object
 from src.pycram.local_transformer import LocalTransformer
 from pycram.robot_descriptions import robot_description
 from pycram.pose import Pose, Transform

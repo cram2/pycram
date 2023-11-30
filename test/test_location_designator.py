@@ -11,7 +11,7 @@ import test_bullet_world
 class TestActionDesignatorGrounding(test_bullet_world.BulletWorldTest):
 
     def test_reachability(self):
-        self.robot.set_joint_state(robot_description.torso_joint, 0.3)
+        self.robot.set_joint_position(robot_description.torso_joint, 0.3)
         object_desig = ObjectDesignatorDescription(names=["milk"])
         robot_desig = ObjectDesignatorDescription(names=[robot_description.name])
         location_desig = CostmapLocation(object_desig.resolve(), reachable_for=robot_desig.resolve())
@@ -37,7 +37,7 @@ class TestActionDesignatorGrounding(test_bullet_world.BulletWorldTest):
         self.assertTrue(len(location.pose.orientation_as_list()) == 4)
 
     def test_reachability_and_visibility(self):
-        self.robot.set_joint_state(robot_description.torso_joint, 0.3)
+        self.robot.set_joint_position(robot_description.torso_joint, 0.3)
         object_desig = ObjectDesignatorDescription(names=["milk"])
         robot_desig = ObjectDesignatorDescription(names=[robot_description.name])
         location_desig = CostmapLocation(object_desig.resolve(), reachable_for=robot_desig.resolve(), visible_for=robot_desig.resolve())
