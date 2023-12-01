@@ -40,12 +40,13 @@ def print_database(in_sessionmaker: sqlalchemy.orm.sessionmaker):
             try:
                 smt = sqlalchemy.select('*').select_from(table)
                 result = session.execute(smt).all()
-                rospy.loginfo("Table: {}\tcontent:{}".format(table,result))
+                rospy.loginfo("Table: {}\tcontent:{}".format(table, result))
             except sqlalchemy.exc.ArgumentError as e:
                 print(e)
 
+
 def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
-                       destination_session_maker: sqlalchemy.orm.sessionmaker):  # source_engine: sqlalchemy.engine.Engine, destination_engine: sqlalchemy.engine.Engine
+                       destination_session_maker: sqlalchemy.orm.sessionmaker):
     """
     Updates all the primary keys of the database associated with the destination engine, so that there will be no
     problems when merging it into the source database. In order to achieve this the highest id value of the source
@@ -53,21 +54,18 @@ def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
     Cascading triggers in the database will take care of the rest. Careful 2023 this will not work in
     memory databases as there are no triggers.
 
-    :param source_engine: Engine of the source data_base
-    :param destination_engine: Engine of the destination data_base
+    :param source_session_maker: Session maker of the source data_base
+    :param destination_session_maker: Session maker of the destination data_base
     """
-    destination_session = destination_session_maker()  # sqlalchemy.orm.Session(bind=destination_engine)
-    source_session = source_session_maker()  # sqlalchemy.orm.Session(bind=source_engine)
+    destination_session = destination_session_maker()
+    source_session = source_session_maker()
     sortedTables = pycram.orm.base.Base.metadata.sorted_tables
     for table in sortedTables:
         try:
             list_of_primary_keys_of_this_table = table.primary_key.columns.values()
             for key in list_of_primary_keys_of_this_table:
-                # make it smart but maybe
                 all_source_key_values = []
                 all_destination_key_values = []
-                # print("table:{}\tprimarykeys:{}\tIdInQuestion:{}\tsourcekeyvalues:{} count:{}".format(table,list_of_primary_keys_of_this_table,key,source_session.query(key).all(),source_session.query(key).count()))
-                # print("table:{}\tprimarykeys:{}\tIdInQuestion:{}\tdestinationvalues:{} count{}".format(table,list_of_primary_keys_of_this_table,key, destination_session.query(key).all(),destination_session.query(key).count()))
                 for key_value_row in source_session.query(key).all():
                     all_source_key_values.append(key_value_row[0])  # get all values of key from source session
                 for key_value_row in destination_session.query(key).all():
@@ -87,23 +85,23 @@ def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
                                                                                                               column_object.__getattr__(
                                                                                                                   key.name),
                                                                                                               highest_free_key_value))
-                        mini_dict = {}
+                        mini_dict = dict()
                         mini_dict[key.name] = highest_free_key_value
-                        update_statment = sqlalchemy.update(table).where(
+                        update_statement = sqlalchemy.update(table).where(
                             table.c.id == column_object.__getattr__(key)).values(mini_dict)
-                        destination_session.execute(update_statment)
+                        destination_session.execute(update_statement)
                         highest_free_key_value += 1
             destination_session.commit()  # commit after every table
         except AttributeError as e:
-            print(e)
             print("Possible found abstract ORM class {}".format(e.__name__))
+            print(e)
     destination_session.close()
 
 
 def copy_database(source_session_maker: sqlalchemy.orm.sessionmaker,
                   destination_session_maker: sqlalchemy.orm.sessionmaker):
     """
-    Iterates through all ORM Objects within tht source database and merges them into the destination database. Careful
+    Iterates through all tables within tht source database and merges them into the destination database. Careful
     this function does not check if there are any primary key collisions or updates any data.
 
      .. note::
@@ -118,11 +116,11 @@ def copy_database(source_session_maker: sqlalchemy.orm.sessionmaker,
     source_session = source_session_maker()
     destination_session = destination_session_maker()
     try:
-        sortedTables = pycram.orm.base.Base.metadata.sorted_tables
-        for table in sortedTables:
+        sorted_tables = pycram.orm.base.Base.metadata.sorted_tables
+        for table in sorted_tables:
             for value in source_session.query(table).all():
-                insert_statment = sqlalchemy.insert(table).values(value)
-                destination_session.execute(insert_statment)
+                insert_statement = sqlalchemy.insert(table).values(value)
+                destination_session.execute(insert_statement)
             destination_session.commit()  # commit after every table
     except Exception as e:
         traceback.print_exc()
@@ -149,7 +147,7 @@ def update_primary_key_constrains(session_maker: sqlalchemy.orm.sessionmaker):
                 for line in response:
                     if line.conname.endswith("fkey"):
                         if 'a' in line.confupdtype:  # a --> no action | if there is no action we set it to cascading
-                            # I just assume there aren't any other constraints
+                            # Assumes there aren't any other constraints
                             drop_statement = sqlalchemy.text(
                                 "alter table \"{}\" drop constraint \"{}\";".format(table,
                                                                                     line.conname))
