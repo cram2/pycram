@@ -61,7 +61,7 @@ class Base(_Base, MappedAsDataclass):
 class MapperArgsMixin:
     """
     MapperArgsMixin stores __mapper_args__ information for certain subclass-tables.
-    For information about Mixins, see https://docs.sqlalchemy.org/en/13/orm/extensions/declarative/mixins.html
+    For information about Mixins, see https://docs.sqlalchemy.org/en/20/orm/declarative_mixins.html
     """
 
     __abstract__ = True
@@ -74,7 +74,7 @@ class MapperArgsMixin:
 class PositionMixin:
     """
     PositionMixin holds a foreign key column and its relationship to the referenced table.
-    For information about Mixins, see https://docs.sqlalchemy.org/en/13/orm/extensions/declarative/mixins.html
+    For information about Mixins, see https://docs.sqlalchemy.org/en/20/orm/declarative_mixins.html
     """
 
     __abstract__ = True
@@ -92,7 +92,7 @@ class PositionMixin:
 class QuaternionMixin:
     """
     QuaternionMixin holds a foreign key column and its relationship to the referenced table.
-    For information about Mixins, see https://docs.sqlalchemy.org/en/13/orm/extensions/declarative/mixins.html
+    For information about Mixins, see https://docs.sqlalchemy.org/en/20/orm/declarative_mixins.html
     """
 
     __abstract__ = True
@@ -110,7 +110,7 @@ class QuaternionMixin:
 class PoseMixin:
     """
     PoseMixin holds a foreign key column and its relationship to the referenced table.
-    For information about Mixins, see https://docs.sqlalchemy.org/en/13/orm/extensions/declarative/mixins.html
+    For information about Mixins, see https://docs.sqlalchemy.org/en/20/orm/declarative_mixins.html
     """
 
     __abstract__ = True
