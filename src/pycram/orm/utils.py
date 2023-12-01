@@ -5,32 +5,37 @@ import sqlalchemy
 import pycram.orm.base
 from pycram.designators.action_designator import *
 from pycram.designators.object_designator import *
+import json
 
 
-def write_database_to_file(in_session: sqlalchemy.orm.session, filename: str, b_write_to_console: bool = False):
+def write_database_to_file(in_sessionmaker: sqlalchemy.orm.sessionmaker, filename: str,
+                           b_write_to_console: bool = False):
     """
-    Writes all ORM Objects stored within the given session into a local file.
+    Writes all Tables stored within the given session into a local file.
 
-    :param in_session: Database Session which should be logged
+    :param in_sessionmaker: sessionmaker that allows us to access the Database
     :param filename: Filename of the logfile
     :param b_write_to_console: enables writing to the console. Default false
     """
-    with open(filename, "w") as f:
-        for table in Base.__subclasses__():
-            for column_object in in_session.query(table).all():
-                if b_write_to_console:
-                    rospy.loginfo("I am writing: {}".format(str(column_object.__dict__)))
-                f.write(str(column_object.__dict__))
-                f.write("\n")
+    with in_sessionmaker() as session:
+        with open("whatever.txt", "w") as f:
+            to_json_dict = dict()
+            for table in pycram.orm.base.Base.metadata.sorted_tables:
+                list_of_row = list()
+                for column_object in session.query(table).all():
+                    list_of_row.append(column_object)
+                to_json_dict[table.name] = list_of_row
+            json_data_dict = json.dumps(to_json_dict, default=str)
+            f.write(json_data_dict)
 
 
-def print_database(in_Sessionmaker: sqlalchemy.orm.sessionmaker):
+def print_database(in_sessionmaker: sqlalchemy.orm.sessionmaker):
     """
     Prints all ORM Class data within the given Session.
 
     :param in_sessionmaker: Database Session which should be printed
     """
-    memory_session = in_Sessionmaker()
+    memory_session = in_sessionmaker()
     tree = get_tree(pycram.orm.base._Base)
     all_tables = [node.name for node in LevelOrderIter(tree)]
     for table in all_tables:
@@ -41,20 +46,6 @@ def print_database(in_Sessionmaker: sqlalchemy.orm.sessionmaker):
             rospy.loginfo(result)
         except sqlalchemy.exc.ArgumentError as e:
             print(e)
-
-
-def get_all_children_set(in_node, node_set=None):
-    all_nodes = set()
-    if node_set is None:
-        node_set = set()
-    node_set.add(in_node)
-    if in_node.__subclasses__():
-        for node in in_node.__subclasses__():
-            all_nodes.update(get_all_children_set(node, node_set))
-    else:
-        pass
-        all_nodes.update(node_set)
-    return all_nodes
 
 
 def get_tree(in_node, parent=None, tree=None):
