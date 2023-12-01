@@ -113,26 +113,23 @@ def copy_database(source_session_maker: sqlalchemy.orm.sessionmaker,
     :param source_session_maker: Sessionmaker of the source database
     :param destination_session_maker: Sessionmaker of the destination database
     """
-    source_session = source_session_maker()
-    destination_session = destination_session_maker()
-    try:
+
+    with source_session_maker() as source_session, destination_session_maker() as destination_session:
         sorted_tables = pycram.orm.base.Base.metadata.sorted_tables
         for table in sorted_tables:
             for value in source_session.query(table).all():
                 insert_statement = sqlalchemy.insert(table).values(value)
                 destination_session.execute(insert_statement)
             destination_session.commit()  # commit after every table
-    except Exception as e:
-        traceback.print_exc()
-    finally:
-        source_session.close()
-        destination_session.close()
-
 
 def update_primary_key_constrains(session_maker: sqlalchemy.orm.sessionmaker):
     '''
     Iterates through all tables related to any ORM Class and sets in their corresponding foreign keys in the given
-    endpoint to "ON UPDATE CASCADING". Careful currently only works on postgres databases.
+    endpoint to "ON UPDATE CASCADING".
+
+        .. note::
+            Careful currently only works on postgres databases.
+
     :param session_maker:
     :return: empty
     '''
