@@ -1,7 +1,6 @@
-import json
 import unittest
 import pathlib
-import yaml
+import json
 import sqlalchemy
 import pycram.orm.base
 import pycram.orm.utils
@@ -12,26 +11,18 @@ from pycram.process_module import simulated_robot
 from pycram.enums import Arms, ObjectType
 from pycram.task import with_tree
 import pycram.task
-from pycram.bullet_world import BulletWorld, Object
+from pycram.bullet_world import Object
 from pycram.designators.object_designator import *
-import anytree
-from anytree import Node, RenderTree, LevelOrderIter
+from dataclasses import dataclass
 
 
+@dataclass
 class Configuration:
-    def __init__(self, path="test_database_merger.yaml"):
-        with open(path) as f:
-            yaml_data = yaml.safe_load(f)
-            try:
-                self.user = yaml_data["postgres"]["user"]
-                self.password = yaml_data["postgres"]["password"]
-                self.ipaddress = yaml_data["postgres"]["ipaddress"]
-                self.port = yaml_data["postgres"]["port"]
-                self.database = yaml_data["postgres"]["database"]
-            except yaml.YAMLError as exc:
-                print("Error with the YAML File {}", format(exc))
-            except KeyError as e:
-                print("Missing key in YAML File make sure everything that is needed is there: {}".format(e))
+    user: str
+    password: str
+    ipaddress: str
+    port: int
+    database: str
 
 
 class ExamplePlans():
@@ -86,12 +77,14 @@ class MergeDatabaseTest(unittest.TestCase):
     destination_session_maker: sqlalchemy.orm.sessionmaker
     numbers_of_example_runs: int
 
-    @unittest.skipIf(not (pathlib.Path("test_database_merger.yaml").resolve().is_file()),
-                     "Config File not found: test_database_merger.yaml")
+    @unittest.skipIf(not (pathlib.Path("test_database_merger.json").resolve().is_file()),
+                     "Config File not found: test_database_merger.json")
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        config = Configuration("test_database_merger.yaml")
+        with open("test_database_merger.json") as f:
+            json_data = json.load(f)
+            config = Configuration(**json_data)
         connection_string = "postgresql+psycopg2://{}:{}@{}:{}/{}".format(config.user, config.password,
                                                                           config.ipaddress, config.port,
                                                                           config.database)
@@ -107,7 +100,7 @@ class MergeDatabaseTest(unittest.TestCase):
         destination_session.commit()
         source_session.close()
         destination_session.close()
-        cls.numbers_of_example_runs=3
+        cls.numbers_of_example_runs = 3
 
     def setUp(self) -> None:
         super().setUp()
@@ -138,12 +131,13 @@ class MergeDatabaseTest(unittest.TestCase):
 
     def test_merge_databases(self):
         with self.destination_session_maker() as session:
-            amount_before_of_process_meta_data=session.query(pycram.orm.base.ProcessMetaData).count()
+            amount_before_of_process_meta_data = session.query(pycram.orm.base.ProcessMetaData).count()
 
         pycram.orm.utils.update_primary_key_constrains(self.destination_session_maker)
-        pycram.orm.utils.update_primary_key(self.source_session_maker,self.destination_session_maker)
+        pycram.orm.utils.update_primary_key(self.source_session_maker, self.destination_session_maker)
         pycram.orm.utils.copy_database(self.source_session_maker, self.destination_session_maker)
-        # test ideas Count if more seemed to work (insert something so random and see if it is there in the end?)
         with self.destination_session_maker() as session:
             amount_after_of_process_meta_data = session.query(pycram.orm.base.ProcessMetaData).count()
-        self.assertTrue(amount_before_of_process_meta_data<amount_after_of_process_meta_data)
+        self.assertTrue(amount_before_of_process_meta_data < amount_after_of_process_meta_data)
+        self.assertEqual(amount_before_of_process_meta_data + self.numbers_of_example_runs,
+                         amount_after_of_process_meta_data)
