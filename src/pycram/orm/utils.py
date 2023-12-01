@@ -44,19 +44,6 @@ def print_database(in_sessionmaker: sqlalchemy.orm.sessionmaker):
             except sqlalchemy.exc.ArgumentError as e:
                 print(e)
 
-
-def get_tree(in_node, parent=None, tree=None):
-    if parent is None:
-        node = Node(in_node)
-        tree = node
-    else:
-        node = Node(in_node, parent)
-    if len(in_node.__subclasses__()):
-        for subnode in in_node.__subclasses__():
-            get_tree(subnode, node, tree)
-    return tree
-
-
 def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
                        destination_session_maker: sqlalchemy.orm.sessionmaker):  # source_engine: sqlalchemy.engine.Engine, destination_engine: sqlalchemy.engine.Engine
     """
