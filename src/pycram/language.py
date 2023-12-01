@@ -1,345 +1,320 @@
-"""Implementation of the CRAM language.
-
-Macros:
-seq -- macro to execute statements sequentially and fail if one fails, succeed after all succeeded.
-par -- macro to execute statements in parallel and fail if one fails, succeed after all succeeded.
-pursue -- macro to execute statements in parallel and fail if one fails, succeed after one succeeded.
-try_all -- macro to execute statements in parallel and fail if all fail, succeed after one succeeded.
-try_in_order -- macro to execute statements sequentially and fail if all fail, succeed after one succeeded.
-failure_handling -- macro to wrap the body into a function named retry which can be called to execute it again.
-
-Classes:
-State -- enumeration to describe the result of a macro.
-"""
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-import _ast
-import ast
-from .fluent import Fluent
-from .helper import _block
-from enum import Enum
-from macropy.core.macros import Macros
-from macropy.core.hquotes import macros, hq
-from macropy.core.quotes import macros, ast_literal, q
-from threading import Thread
-from typing import Optional, List, Tuple, Union
+from typing import Iterable, Optional, Callable, Dict, Any
+from anytree import NodeMixin, Node, PreOrderIter
 
-macros = Macros()
-"""Must be imported before macros defined in this module can be imported."""
+from .enums import State
+import threading
+from .plan_failures import PlanFailure, NotALanguageExpression
+from .external_interfaces import giskard
 
 
-def _state(target: '_ast.Name', state: Optional[State] = None) -> List['_ast.If']:
-    """This is a helper function for internal usage only.
-
-    Set the state which macros return as result. If it's already set, nothing happens. If the given argument "state" is None, the current state is returned.
-
-    :param target: the varibale which stores the state as fluent.
-    :param state: the state (default is None).
+class Language(NodeMixin):
     """
-    target_load = ast.Name(target.id, ast.Load())
-
-    if state is None:
-        return q[ast_literal[target_load].get_value()]
-
-    with hq as tree:
-        if not ast_literal[target_load].get_value():
-            ast_literal[target_load].set_value(state)
-
-    return tree
-
-
-def _init(target: '_ast.Name', threads: Optional[bool] = True) -> List['_ast.Assign']:
-    """This is a helper function for internal usage only.
-
-    Initialize variables which macros need.
-
-    :param target: the variable which stores the state.
-    :param threads: boolean value describing whether the macro needs a list to store threads in.
+    Parent class for language expressions. Implements the operators as well as methods to reduce the resulting language
+    tree.
     """
-    with hq as tree:
-        ast_literal[target] = Fluent()
-        _exceptions = []
+    parallel_blocklist = ["PickUpAction", "PlaceAction", "OpenAction", "CloseAction", "TransportAction"]
 
-    if threads:
-        with q as temp_tree:
-            _threads = []
+    def __init__(self, parent: NodeMixin = None, children: Iterable[NodeMixin] = None):
+        """
+        Default constructor for anytree nodes. If the parent is none this is the root node.
 
-        tree.append(temp_tree)
-    return tree
+        :param parent: The parent node of this node
+        :param children: All children of this node as a tuple oder iterable
+        """
+        self.parent = parent
+        self.exceptions = {}
+        if children:
+            self.children = children
+
+    def resolve(self) -> Language:
+        """
+        Dummy method for compatability to designator descriptions
+
+        :return: self reference
+        """
+        return self
+
+    def perform(self):
+        """
+        This method should be overwritten in subclasses and implement the behaviour of the language expression regarding
+        each child.
+        """
+        raise NotImplementedError
+
+    def __add__(self, other: Language) -> Sequential:
+        """
+        Language expression for sequential execution.
+
+        :param other: Another Language expression, either a designator or language expression
+        :return: A :func:`~Sequential` object which is the new root node of the language tree
+        """
+        if not issubclass(other.__class__, Language):
+            raise NotALanguageExpression(
+                f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
+        return Sequential(parent=None, children=(self, other)).simplify()
+
+    def __sub__(self, other: Language) -> TryInOrder:
+        """
+        Language expression for try in order.
+
+        :param other: Another Language expression, either a designator or language expression
+        :return: A :func:`~TryInOrder` object which is the new root node of the language tree
+        """
+        if not issubclass(other.__class__, Language):
+            raise NotALanguageExpression(
+                f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
+        return TryInOrder(parent=None, children=(self, other)).simplify()
+
+    def __or__(self, other: Language) -> Parallel:
+        """
+        Language expression for parallel execution.
+
+        :param other: Another Language expression, either a designator or language expression
+        :return: A :func:`~Parallel` object which is the new root node of the language tree
+        """
+        if not issubclass(other.__class__, Language):
+            raise NotALanguageExpression(
+                f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
+        if self.__class__.__name__ in self.parallel_blocklist or other.__class__.__name__ in self.parallel_blocklist:
+            raise TypeError(
+                f"You can not execute the Designator {self if self.__class__.__name__ in self.parallel_blocklist else other} in a parallel language expression.")
+
+        return Parallel(parent=None, children=(self, other)).simplify()
+
+    def __xor__(self, other: Language) -> TryAll:
+        """
+        Language expression for try all execution.
+
+        :param other: Another Language expression, either a designator or language expression
+        :return: A :func:`~TryAll` object which is the new root node of the language tree
+        """
+        if not issubclass(other.__class__, Language):
+            raise NotALanguageExpression(
+                f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
+        if self.__class__.__name__ in self.parallel_blocklist or other.__class__.__name__ in self.parallel_blocklist:
+            raise TypeError(
+                f"You can not execute the Designator {self if self.__class__.__name__ in self.parallel_blocklist else other} in a try all language expression.")
+        return TryAll(parent=None, children=(self, other)).simplify()
+
+    def simplify(self) -> Language:
+        """
+        Simplifies the language tree by merging which have a parent-child relation and are of the same type.
+
+        .. code-block:: python
+
+            <pycram.new_language.Parallel>
+            ├── <pycram.new_language.Parallel>
+            │   ├── <pycram.designators.action_designator.NavigateAction>
+            │   └── <pycram.designators.action_designator.MoveTorsoAction>
+            └── <pycram.designators.action_designator.DetectAction>
 
 
-def _exceptions(tree: List[Union['_ast.Assign', '_ast.If']], args: Tuple) -> None:
-    """This is a helper function for internal usage only.
+            would be simplified to:
 
-    Store the list of exceptions if the argument is given.
+           <pycram.new_language.Parallel>
+            ├── <pycram.designators.action_designator.NavigateAction>
+            ├── <pycram.designators.action_designator.MoveTorsoAction>
+            └── <pycram.designators.action_designator.DetectAction>
 
-    :param tree: the syntax tree to append the subtree to.
-    :param args: arguments passed to the macro.
+        """
+        for node in PreOrderIter(self.root):
+            for child in node.children:
+                if type(node) is type(child):
+                    self.merge_nodes(node, child)
+        return self.root
+
+    @staticmethod
+    def merge_nodes(node1: Node, node2: Node) -> None:
+        """
+        Merges node1 with node2 in a tree. The children of node2 will be re-parented to node1 and node2 will be deleted
+        from the tree.
+
+        :param node1: Node that should be left in the tree
+        :param node2: Node which children should be appended to node1 and then deleted
+        """
+        node2.parent = None
+        node1.children = node2.children + node1.children
+
+
+class Sequential(Language):
     """
-    if len(args) > 0:
-        with hq as new_tree:
-            ast_literal[ast.Name(args[0].id, ast.Store())] = unhygienic[_exceptions]
+    Executes all children sequentially, an exception while executing a child does not terminate the whole process.
+    Instead, the exception is saved to a list of all exceptions thrown during execution and returned.
 
-        tree.append(new_tree)
-
-
-def _thread(tree: List) -> None:
-    """This is a helper function for internal usage only.
-
-    Create a thread and start it.
-
-    :param tree: -- the syntax tree to append the subtree to.
+    Behaviour:
+        Return the state :py:attr:`~State.SUCCEEDED` *iff* all children are executed without exception.
+        In any other case the State :py:attr:`~State.FAILED` will be returned.
     """
-    with hq as new_tree:
-        _thread = Thread(target = unhygienic[_func])
-        unhygienic[_threads].append(_thread)
-        _thread.start()
 
-    tree.append(new_tree)
+    def perform(self) -> State:
+        """
+        Behaviour of Sequential, calls perform() on each child sequentially
+
+        :return: The state according to the behaviour described in :func:`Sequential`
+        """
+        try:
+            for child in self.children:
+                child.resolve().perform()
+        except PlanFailure as e:
+            self.root.exceptions[self] = e
+            return State.FAILED
+        return State.SUCCEEDED
 
 
-def _join(tree: List) -> None:
-    """This is a helper function for internal usage only.
-
-    Join all threads (wait for them to finish).
-
-    :param tree: the syntax tree to append the subtree to.
+class TryInOrder(Language):
     """
-    with hq as new_tree:
-        for _thread in unhygienic[_threads]:
-            _thread.join()
+    Executes all children sequentially, an exception while executing a child does not terminate the whole process.
+    Instead, the exception is saved to a list of all exceptions thrown during execution and returned.
 
-    tree.append(new_tree)
-
-
-@macros.block
-def seq(tree: List, target: '_ast.Name', args: Tuple, **kw) -> List:
-    """Execute statements sequentially and fail if one fails, succeed after all succeeded. If one failed, the others are not executed anymore.
-    The result is returned as fluent. One can access the state within the macro, too.
-    Exceptions do not terminate the current thread, they get stored as list into a variable passed as optional argument instead.
-
-    This macro can also be used to wrap multiple statements into a single block and thus treating multiple statements as one.
-
-    Example usage:
-
-    .. code-block:: python
-
-        with seq(exceptions) as state:
-            statement1
-            statement2
-            ...
-
-    :param exceptions: variable to store a list of exceptions in (optional).
+    Behaviour:
+        Returns the State :py:attr:`~State.SUCCEEDED` if one or more children are executed without
+        exception. In the case that all children could not be executed the State :py:attr:`~State.FAILED` will be returned.
     """
-    new_tree = _init(target, False)
 
-    for statement in tree:
-        with hq as temp_tree:
-            if ast_literal[_state(target)] is None:
-                try:
-                    ast_literal[statement]
-                except Exception as e:
-                    ast_literal[_state(target, State.FAILED)]
-                    unhygienic[_exceptions].append(e)
+    def perform(self) -> State:
+        """
+        Behaviour of TryInOrder, calls perform() on each child sequentially and catches raised exceptions.
 
-        new_tree.append(temp_tree);
-
-    new_tree.append(_state(target, State.SUCCEEDED))
-    _exceptions(new_tree, args)
-    return _block(new_tree)
-
-
-@macros.block
-def par(tree: List, target: '_ast.Name', args: Tuple, **kw) -> List:
-    """Execute statements in parallel and fail if one fails, succeed after all succeeded.
-    The result is returned as fluent. One can access the state within the macro, too. This is especially useful to
-    evaporate all statements if one finished.
-    Exceptions do not terminate the current thread, they get stored as list into a variable passed as optional
-    argument instead.
-
-    Example usage:
-
-    .. code-block:: python
-
-        with par(exceptions) as state:
-            statement1
-            statement2
-            ...
-
-    :param exceptions: -- variable to store a list of exceptions in (optional).
-    """
-    new_tree = _init(target)
-
-    for statement in tree:
-        with hq as temp_tree:
-            def _func():
-                try:
-                    ast_literal[statement]
-                except Exception as e:
-                    ast_literal[_state(target, State.FAILED)]
-                    unhygienic[_exceptions].append(e)
-
-        new_tree.append(temp_tree)
-        _thread(new_tree)
-
-    _join(new_tree)
-    new_tree.append(_state(target, State.SUCCEEDED))
-    _exceptions(new_tree, args)
-    return _block(new_tree)
-
-
-@macros.block
-def pursue(tree: List, target: '_ast.Name', args: Tuple, **kw) -> List:
-    """Execute statements in parallel and fail if one fails, succeed after one succeeded.
-    The result is returned as fluent. One can access the state within the macro, too. This is especially useful to evaporate all statements if one finished.
-    Exceptions do not terminate the current thread, they get stored as list into a variable passed as optional argument instead.
-
-    Example usage:
-
-    .. code-block:: python
-
-        with pursue(exceptions) as state:
-            statement1
-            statement2
-            ...
-
-    :param exceptions: variable to store a list of exceptions in (optional).
-    """
-    new_tree = _init(target)
-
-    for statement in tree:
-        with hq as temp_tree:
-            def _func():
-                try:
-                    ast_literal[statement]
-                    ast_literal[_state(target, State.SUCCEEDED)]
-                except Exception as e:
-                    ast_literal[_state(target, State.FAILED)]
-                    unhygienic[_exceptions].append(e)
-
-        new_tree.append(temp_tree)
-        _thread(new_tree)
-
-    _join(new_tree)
-    _exceptions(new_tree, args)
-    return _block(new_tree)
-
-
-@macros.block
-def try_all(tree: List, target: '_ast.Name', args: Tuple, **kw) -> List:
-    """Execute statements in parallel and fail if all fail, succeed after one succeeded.
-    The result is returned as fluent. One can access the state within the macro, too. This is especially useful to evaporate all statements if one finished.
-    Exceptions do not terminate the current thread, they get stored as list into a variable passed as optional argument instead.
-
-    Example usage:
-
-    .. code-block:: python
-
-        with try_all(exceptions) as state:
-            statement1
-            statement2
-            ...
-
-    :param exceptions: variable to store a list of exceptions in (optional).
-    """
-    new_tree = _init(target)
-
-    for statement in tree:
-        with hq as temp_tree:
-            def _func():
-                try:
-                    ast_literal[statement]
-                    ast_literal[_state(target, State.SUCCEEDED)]
-                except Exception as e:
-                    unhygienic[_exceptions].append(e)
-
-        new_tree.append(temp_tree)
-        _thread(new_tree)
-
-    _join(new_tree)
-    new_tree.append(_state(target, State.FAILED))
-    _exceptions(new_tree, args)
-    return _block(new_tree)
-
-
-@macros.block
-def try_in_order(tree: List, target: '_ast.Name', args: Tuple, **kw) -> List:
-    """Execute statements sequentially and fail if all fail, succeed after one succeeded. If one succeeded, the others are not executed anymore.
-    The result is returned as fluent. One can access the state within the macro, too.
-    Exceptions do not terminate the current thread, they get stored as list into a variable passed as optional argument instead.
-
-    Example usage:
-
-    .. code-block:: python
-
-        with try_in_order(exceptions) as state:
-            statement1
-            statement2
-            ...
-
-    :param exceptions: variable to store a list of exceptions in (optional).
-    """
-    new_tree = _init(target, False)
-
-    for statement in tree:
-        with hq as temp_tree:
-            if ast_literal[_state(target)] is None:
-                try:
-                    ast_literal[statement]
-                    ast_literal[_state(target, State.SUCCEEDED)]
-                except Exception as e:
-                    unhygienic[_exceptions].append(e)
-
-        new_tree.append(temp_tree);
-
-    new_tree.append(_state(target, State.FAILED))
-    _exceptions(new_tree, args)
-    return _block(new_tree)
-
-
-@macros.block
-def failure_handling(tree: List, args: Tuple, **kw) -> List:
-    """Wrap the body into a function named retry which can be called to execute it again, for example in case of an exception being raised.
-    The maximum number of retries can be specified.
-
-    Example usage:
-
-    .. code-block:: python
-
-        with failure_handling(5):
+        :return: The state according to the behaviour described in :func:`TryInOrder`
+        """
+        failure_list = []
+        for child in self.children:
             try:
-                body
-            except Exception as e:
-                retry()
+                child.resolve().perform()
+            except PlanFailure as e:
+                failure_list.append(e)
+        if len(failure_list) > 0:
+            self.root.exceptions[self] = failure_list
+        if len(failure_list) == len(self.children):
+            self.root.exceptions[self] = failure_list
+            return State.FAILED
+        else:
+            return State.SUCCEEDED
 
-    :param retries: the maximum number of retries (not given or a negative value equals infinite).
+
+class Parallel(Language):
     """
-    if len(args) == 0:
-        args = [q[-1]]
+    Executes all children in parallel by creating a thread per children and executing them in the respective thread. All
+    exceptions during execution will be caught, saved to a list and returned upon end.
 
-    with hq as new_tree:
-        _retries = Fluent(0)
-
-        def retry():
-            if ast_literal[args[0]] >= 0 and _retries.get_value() > ast_literal[args[0]]:
-                return
-
-            _retries.set_value(_retries.get_value() + 1)
-
-            ast_literal[tree]
-
-        retry()
-
-    return _block(new_tree)
-
-
-class State(Enum):
-    """Enumeration which describes the result of a macro.
-
-    Fields:
-    SUCCEEDED -- macro execution succeeded.
-    FAILED -- macro execution failed.
+    Behaviour:
+        Returns the State :py:attr:`~State.SUCCEEDED` *iff* all children could be executed without an exception. In any
+        other case the State :py:attr:`~State.FAILED` will be returned.
     """
-    SUCCEEDED = 1
-    FAILED = 2
+
+    def perform(self) -> State:
+        """
+        Behaviour of Parallel, creates a new thread for each child and calls perform() of the child in the respective
+        thread.
+
+        :return: The state according to the behaviour described in :func:`Parallel`
+        """
+        threads = []
+
+        def lang_call(child_node):
+            if "DesignatorDescription" in [cls.__name__ for cls in child_node.__class__.__mro__]:
+                if self not in giskard.par_threads.keys():
+                    giskard.par_threads[self] = [threading.get_ident()]
+                else:
+                    giskard.par_threads[self].append(threading.get_ident())
+            try:
+                child_node.resolve().perform()
+            except PlanFailure as e:
+                if self in self.root.exceptions.keys():
+                    self.root.exceptions[self].append(e)
+                else:
+                    self.root.exceptions[self] = [e]
+
+        for child in self.children:
+            t = threading.Thread(target=lambda: lang_call(child))
+            t.start()
+            threads.append(t)
+        for thread in threads:
+            thread.join()
+        if self in self.root.exceptions.keys() and (self.root.exceptions[self]) != 0:
+            return State.FAILED
+        return State.SUCCEEDED
+
+
+class TryAll(Language):
+    """
+    Executes all children in parallel by creating a thread per children and executing them in the respective thread. All
+    exceptions during execution will be caught, saved to a list and returned upon end.
+
+    Behaviour:
+        Returns the State :py:attr:`~State.SUCCEEDED` if one or more children could be executed without raising an
+        exception. If all children fail the State :py:attr:`~State.FAILED` will be returned.
+    """
+
+    def perform(self) -> State:
+        """
+        Behaviour of TryAll, creates a new thread for each child and executes all children in their respective threads.
+
+        :return: The state according to the behaviour described in :func:`TryAll`
+        """
+        threads = []
+        failure_list = []
+
+        def lang_call(child_node):
+            if "DesignatorDescription" in [cls.__name__ for cls in child_node.__class__.__mro__]:
+                if self not in giskard.par_threads.keys():
+                    giskard.par_threads[self] = [threading.get_ident()]
+                else:
+                    giskard.par_threads[self].append(threading.get_ident())
+            try:
+                child_node.resolve().perform()
+            except PlanFailure as e:
+                failure_list.append(e)
+                if self in self.root.exceptions.keys():
+                    self.root.exceptions[self].append(e)
+                else:
+                    self.root.exceptions[self] = [e]
+
+        for child in self.children:
+            t = threading.Thread(target=lambda: lang_call(child))
+            t.start()
+            threads.append(t)
+        for thread in threads:
+            thread.join()
+        if len(self.children) == len(failure_list):
+            self.root.exceptions[self] = failure_list
+            return State.FAILED
+        else:
+            return State.SUCCEEDED
+
+
+class Code(Language):
+    """
+    Executable code block in a plan.
+
+    :ivar function: The function (plan) that was called
+    :ivar kwargs: Dictionary holding the keyword arguments of the function
+    """
+
+    def __init__(self, function: Optional[Callable] = None,
+                 kwargs: Optional[Dict] = None):
+        """
+        Initialize a code call
+
+        :param function: The function that was called
+        :param kwargs: The keyword arguments of the function as dict
+        """
+        self.function: Callable = function
+
+        if kwargs is None:
+            kwargs = dict()
+        self.kwargs: Dict[str, Any] = kwargs
+        self.perform = self.execute
+
+    def execute(self) -> Any:
+        """
+        Execute the code with its arguments
+
+        :returns: Anything that the function associated with this object will return.
+        """
+        return self.function(**self.kwargs)
+
+
