@@ -11,7 +11,7 @@ import json
 def write_database_to_file(in_sessionmaker: sqlalchemy.orm.sessionmaker, filename: str,
                            b_write_to_console: bool = False):
     """
-    Writes all Tables stored within the given session into a local file.
+    Writes all Tables stored within the given session into a local file. File will be written in JSON Format
 
     :param in_sessionmaker: sessionmaker that allows us to access the Database
     :param filename: Filename of the logfile
@@ -35,17 +35,14 @@ def print_database(in_sessionmaker: sqlalchemy.orm.sessionmaker):
 
     :param in_sessionmaker: Database Session which should be printed
     """
-    memory_session = in_sessionmaker()
-    tree = get_tree(pycram.orm.base._Base)
-    all_tables = [node.name for node in LevelOrderIter(tree)]
-    for table in all_tables:
-        # for table in Base.__subclasses__():
-        try:
-            smt = sqlalchemy.select('*').select_from(table)
-            result = memory_session.execute(smt).all()
-            rospy.loginfo(result)
-        except sqlalchemy.exc.ArgumentError as e:
-            print(e)
+    with in_sessionmaker() as session:
+        for table in pycram.orm.base.Base.metadata.sorted_tables:
+            try:
+                smt = sqlalchemy.select('*').select_from(table)
+                result = session.execute(smt).all()
+                rospy.loginfo("Table: {}\tcontent:{}".format(table,result))
+            except sqlalchemy.exc.ArgumentError as e:
+                print(e)
 
 
 def get_tree(in_node, parent=None, tree=None):
