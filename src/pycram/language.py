@@ -15,7 +15,8 @@ class Language(NodeMixin):
     Parent class for language expressions. Implements the operators as well as methods to reduce the resulting language
     tree.
     """
-    parallel_blocklist = ["PickUpAction", "PlaceAction", "OpenAction", "CloseAction", "TransportAction"]
+    parallel_blocklist = ["PickUpAction", "PlaceAction", "OpenAction", "CloseAction", "TransportAction", "GraspingAction"]
+    do_not_use_giskard = ["SetGripperAction", "MoveGripperMotion", "DetectAction", "DetectingMotion"]
 
     def __init__(self, parent: NodeMixin = None, children: Iterable[NodeMixin] = None):
         """
@@ -215,7 +216,8 @@ class Parallel(Language):
         threads = []
 
         def lang_call(child_node):
-            if "DesignatorDescription" in [cls.__name__ for cls in child_node.__class__.__mro__]:
+            if ("DesignatorDescription" in [cls.__name__ for cls in child_node.__class__.__mro__]
+                    and self.__class__.__name__ not in self.do_not_use_giskard):
                 if self not in giskard.par_threads.keys():
                     giskard.par_threads[self] = [threading.get_ident()]
                 else:
@@ -234,7 +236,7 @@ class Parallel(Language):
             threads.append(t)
         for thread in threads:
             thread.join()
-        if self in self.root.exceptions.keys() and (self.root.exceptions[self]) != 0:
+        if self in self.root.exceptions.keys() and len(self.root.exceptions[self]) != 0:
             return State.FAILED
         return State.SUCCEEDED
 
@@ -259,7 +261,8 @@ class TryAll(Language):
         failure_list = []
 
         def lang_call(child_node):
-            if "DesignatorDescription" in [cls.__name__ for cls in child_node.__class__.__mro__]:
+            if ("DesignatorDescription" in [cls.__name__ for cls in child_node.__class__.__mro__]
+                    and self.__class__.__name__ not in self.do_not_use_giskard):
                 if self not in giskard.par_threads.keys():
                     giskard.par_threads[self] = [threading.get_ident()]
                 else:

@@ -363,7 +363,7 @@ class DesignatorDescription(ABC):
         return self
 
 
-class MotionDesignatorDescription(DesignatorDescription):
+class MotionDesignatorDescription(DesignatorDescription, Language):
     """
     Parent class of motion designator descriptions.
     """
