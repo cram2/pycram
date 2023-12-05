@@ -45,7 +45,7 @@ def _make_request_msg(root_link: str, tip_link: str, target_pose: Pose, robot_ob
     :return: A moveit_msgs/PositionIKRequest message containing all the information from the parameter
     """
     local_transformer = LocalTransformer()
-    target_pose = local_transformer.transform_pose(target_pose, robot_object.get_link_tf_frame(root_link))
+    target_pose = local_transformer.transform_pose_to_target_frame(target_pose, robot_object.get_link_tf_frame(root_link))
 
     robot_state = RobotState()
     joint_state = JointState()
@@ -124,7 +124,7 @@ def request_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str
     # Get link after last joint in chain
     end_effector = robot_description.get_child(joints[-1])
 
-    target_torso = local_transformer.transform_pose(target_pose, robot.get_link_tf_frame(base_link))
+    target_torso = local_transformer.transform_pose_to_target_frame(target_pose, robot.get_link_tf_frame(base_link))
     # target_torso = _transform_to_torso(pose, shadow_robot)
 
     diff = calculate_wrist_tool_offset(end_effector, gripper, robot)

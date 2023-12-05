@@ -73,7 +73,7 @@ def _transform_to_torso(pose_and_rotation: Tuple[List[float], List[float]], robo
 def calculate_wrist_tool_offset(wrist_frame: str, tool_frame: str, robot: BulletWorldObject) -> Transform:
     local_transformer = LocalTransformer()
     tool_pose = robot.get_link_pose(tool_frame)
-    wrist_to_tool = local_transformer.transform_pose(tool_pose, robot.get_link_tf_frame(wrist_frame))
+    wrist_to_tool = local_transformer.transform_pose_to_target_frame(tool_pose, robot.get_link_tf_frame(wrist_frame))
     return wrist_to_tool.to_transform(robot.get_link_tf_frame(tool_frame))
 
 

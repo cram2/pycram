@@ -311,7 +311,7 @@ def blocking(pose_or_object: Union[Object, Pose],
         joints = robot_description.chains[arm].joints
         local_transformer = LocalTransformer()
 
-        target_map = local_transformer.transform_pose(input_pose, "map")
+        target_map = local_transformer.transform_pose_to_target_frame(input_pose, "map")
         if grasp:
             grasp_orientation = robot_description.grasps.get_orientation_for_grasp(grasp)
             target_map.orientation.x = grasp_orientation[0]

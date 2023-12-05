@@ -42,7 +42,7 @@ class Costmap:
         self.height: int = height
         self.width: int = width
         local_transformer = LocalTransformer()
-        self.origin: Pose = local_transformer.transform_pose(origin, 'map')
+        self.origin: Pose = local_transformer.transform_pose_to_target_frame(origin, 'map')
         self.map: np.ndarray = map
         self.vis_ids: List[int] = []
 
