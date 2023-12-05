@@ -68,7 +68,7 @@ class LocalTransformer(TransformerROS):
         for obj in list(self.world.current_bullet_world.objects):
             self.update_transforms_for_object(obj, curr_time)
 
-    def transform_pose(self, pose: Pose, target_frame: str) -> Union[Pose, None]:
+    def transform_pose_to_target_frame(self, pose: Pose, target_frame: str) -> Union[Pose, None]:
         """
         Transforms a given pose to the target frame.
 
@@ -91,6 +91,28 @@ class LocalTransformer(TransformerROS):
 
         return Pose(*copy_pose.to_list(), frame=new_pose.header.frame_id)
 
+    def transform_pose_to_object_base_frame(self, pose: Pose, world_object: 'world.Object') -> Union[Pose, None]:
+        """
+        Transforms the given pose to the base frame of the given BulletWorld object.
+
+        :param pose: Pose that should be transformed
+        :param world_object: World Object with frame to which the pose should be transformed
+        :return: The new pose transformed to the base coordinate frame of the object
+        """
+        return self.transform_to_object_frame(pose, world_object.tf_frame)
+
+    def transform_pose_to_object_link_frame(self, pose: Pose, world_object: 'world.Object', link_name: str) -> Union[Pose, None]:
+        """
+        Transforms the given pose to the link frame of the given BulletWorld object.
+
+        :param pose: Pose that should be transformed
+        :param world_object: World Object with frame to which the pose should be transformed
+        :param link_name: Name of the link of the object to which the pose should be transformed
+        :return: The new pose transformed to the link coordinate frame of the object
+        """
+        target_frame = world_object.get_link_tf_frame(link_name)
+        return self.transform_to_object_frame(pose, target_frame)
+
     def transform_to_object_frame(self, pose: Pose,
                                   world_object: 'world.Object', link_name: str = None) -> Union[Pose, None]:
         """
@@ -106,7 +128,7 @@ class LocalTransformer(TransformerROS):
             target_frame = world_object.get_link_tf_frame(link_name)
         else:
             target_frame = world_object.tf_frame
-        return self.transform_pose(pose, target_frame)
+        return self.transform_pose_to_target_frame(pose, target_frame)
 
     def tf_transform(self, source_frame: str, target_frame: str,
                      time: Optional[rospy.rostime.Time] = None) -> Transform:
@@ -156,5 +178,5 @@ class LocalTransformer(TransformerROS):
         :param ps: Pose that should be transformed
         :return: Input pose in the target_frame
         """
-        return self.transform_pose(ps, target_frame)
+        return self.transform_pose_to_target_frame(ps, target_frame)
 

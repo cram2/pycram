@@ -129,7 +129,7 @@ def query(object_desc: ObjectDesignatorDescription) -> ObjectDesignatorDescripti
         source = query_result.res[0].poseSource[i]
 
         lt = LocalTransformer()
-        pose = lt.transform_pose(pose, "map")
+        pose = lt.transform_pose_to_target_frame(pose, "map")
 
         pose_candidates[source] = pose
 

@@ -10,7 +10,7 @@ import time
 import xml.etree.ElementTree
 from queue import Queue
 import tf
-from typing import List, Optional, Dict, Tuple, Callable
+from typing import List, Optional, Dict, Tuple, Callable, Set
 from typing import Union
 
 import numpy as np
@@ -32,24 +32,51 @@ from sensor_msgs.msg import JointState
 from .pose import Pose, Transform
 
 from abc import ABC, abstractproperty, abstractmethod
+from dataclasses import dataclass
+
+
+@dataclass
+class Constraint:
+    parent_obj_id: int
+    child_obj_id: int
+    parent_link_id: int
+    child_link_id: int
+    parent_to_child_transform: Transform
+    joint_type: int
+    joint_axis: List
+
+
+@dataclass
+class Attachment:
+    parent_obj: Object
+    child_obj: Object
+    parent_link: Optional[str]
+    loose: bool
 
 
 class World(ABC):
     """
     The World Class represents the physics Simulation and belief state.
     """
-    current_world: World = None
     """
     Global reference to the currently used World, usually this is the
     graphical one. However, if you are inside a Use_shadow_world() environment the current_world points to the
     shadow world. In this way you can comfortably use the current_world, which should point towards the World
     used at the moment.
     """
-    robot: Object = None
+    current_world: World = None
+
     """
     Global reference to the spawned Object that represents the robot. The robot is identified by checking the name in the 
     URDF with the name of the URDF on the parameter server. 
     """
+    robot: Object = None
+
+    """
+    Global reference for the data directories, this is used to search for the URDF files of the robot and the objects.
+    """
+    data_directory: List[str] = {os.path.dirname(__file__) + "/../../resources"}
+
     def __init__(self, mode: str, is_prospection_world: bool):
         """
        Creates a new simulation, the mode decides if the simulation should be a rendered window or just run in the
@@ -61,22 +88,40 @@ class World(ABC):
         """
         self.objects: List[Object] = []
         self.client_id: int = -1
+        self.mode: str = mode
+        self._initialize_events()
+        World.current_world = self if World.current_world is None else World.current_world
+        self.coll_callbacks: Dict[Tuple[Object, Object], Tuple[Callable, Callable]] = {}
+        self.local_transformer = LocalTransformer()
+
+        self.is_prospection_world: bool = is_prospection_world
+
+        if is_prospection_world:  # then no need to add another prospection world
+            self.prospection_world = None
+            self.world_sync = None
+        else:  # a normal world should have a synced prospection world
+            self._init_and_sync_prospection_world()
+            self._update_local_transformer_worlds()
+
+    def _init_and_sync_prospection_world(self):
+        self._init_prospection_world()
+        self._sync_prospection_world()
+
+    def _update_local_transformer_worlds(self):
+        self.local_transformer.world = self
+        self.local_transformer.prospection_world = self.prospection_world
+
+    def _init_prospection_world(self):
+        self.prospection_world: World = World("DIRECT", True)
+
+    def _sync_prospection_world(self):
+        self.world_sync: WorldSync = WorldSync(self, self.prospection_world)
+        self.world_sync.start()
+
+    def _initialize_events(self):
         self.detachment_event: Event = Event()
         self.attachment_event: Event = Event()
         self.manipulation_event: Event = Event()
-        self.mode: str = mode
-        if World.current_world is None:
-            World.current_world = self
-        self.coll_callbacks: Dict[Tuple[Object, Object], Tuple[Callable, Callable]] = {}
-        self.data_directory: List[str] = [os.path.dirname(__file__) + "/../../resources"]
-        self.prospection_world: World = World("DIRECT", True) if not is_prospection_world else None
-        self.world_sync: WorldSync = WorldSync(self, self.prospection_world) if not is_prospection_world else None
-        self.is_prospection_world: bool = is_prospection_world
-        self.local_transformer = LocalTransformer()
-        if not is_prospection_world:
-            self.world_sync.start()
-            self.local_transformer.world = self
-            self.local_transformer.prospection_world = self.prospection_world
 
     def get_objects_by_name(self, name: str) -> List[Object]:
         """
@@ -114,22 +159,33 @@ class World(ABC):
         """
         pass
 
-    def add_constraint(self,
-                       parent_obj_id: int,
-                       child_obj_id: int,
-                       parent_link_id: int,
-                       joint_type: int,
-                       parent_to_child_transform: Transform,
-                       joint_axis: List,
-                       child_link_id: int) -> int:
+    def add_constraint(self, constraint: Constraint) -> int:
         """
         Add a constraint between two objects so that attachment they become attached
         """
-        cid = p.createConstraint(parent_obj_id, parent_link_id, child_obj_id, child_link_id, joint_type,
-                                 joint_axis, parent_to_child_transform.translation_as_list(), [0, 0, 0],
-                                 parent_to_child_transform.rotation_as_list(),
+        cid = p.createConstraint(constraint.parent_obj_id,
+                                 constraint.parent_link_id,
+                                 constraint.child_obj_id,
+                                 constraint.child_link_id,
+                                 constraint.joint_type,
+                                 constraint.joint_axis,
+                                 constraint.parent_to_child_transform.translation_as_list(),
+                                 [0, 0, 0],
+                                 constraint.parent_to_child_transform.rotation_as_list(),
                                  physicsClientId=self.client_id)
         return cid
+
+    def attach_object_base_to_parent_object_base(self, parent_obj: Object,
+                                                 child_obj: Object,
+                                                 loose: Optional[bool] = False) -> None:
+        pass  # TODO: implement this function
+
+    def attach_object_base_to_parent_object_link(self, parent_obj: Object,
+                                                 child_obj: Object,
+                                                 parent_link: str,
+                                                 loose: Optional[bool] = False) -> None:
+        pass  # TODO: implement this function
+
     def attach_objects(self,
                        parent_obj: Object,
                        child_obj: Object,
@@ -151,7 +207,7 @@ class World(ABC):
         :param loose: If the attachment should be a loose attachment.
         """
         link_id = parent_obj.get_link_id(parent_link) if parent_link else -1
-        link_to_object = parent_obj._calculate_transform(child_obj, parent_link)
+        link_to_object = parent_obj._calculate_transform_of_object_base_to_this_object_link(child_obj, parent_link)
         parent_obj.attachments[child_obj] = [link_to_object, parent_link, loose]
         child_obj.attachments[parent_obj] = [link_to_object.invert(), None, False]
 
@@ -213,7 +269,7 @@ class World(ABC):
             else:
                 link_to_object = obj.attachments[att_obj][0]
 
-                world_to_object = obj.local_transformer.transform_pose(link_to_object.to_pose(), "map")
+                world_to_object = obj.local_transformer.transform_pose_to_target_frame(link_to_object.to_pose(), "map")
                 p.resetBasePositionAndOrientation(att_obj.id, world_to_object.position_as_list(),
                                                   world_to_object.orientation_as_list(),
                                                   physicsClientId=self.client_id)
@@ -620,7 +676,7 @@ class World(ABC):
 
         :param path: A path in the filesystem in which to search for files.
         """
-        self.data_directory.append(path)
+        World.data_directory.append(path)
 
     def get_shadow_object(self, object: Object) -> Object:
         """
@@ -707,18 +763,20 @@ class BulletWorld(World):
 
         self._gui_thread: Gui = Gui(self, mode)
         self._gui_thread.start()
+
         # This disables file caching from PyBullet, since this would also cache
         # files that can not be loaded
         p.setPhysicsEngineParameter(enableFileCaching=0)
+
         # Needed to let the other thread start the simulation, before Objects are spawned.
         time.sleep(0.1)
         self.vis_axis: List[Object] = []
 
         # Some default settings
         self.set_gravity([0, 0, -9.8])
+
         if not is_prospection_world:
             plane = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf", world=self)
-        # atexit.register(self.exit)
 
     def get_objects_by_name(self, name: str) -> List[Object]:
         """
@@ -839,7 +897,7 @@ class BulletWorld(World):
             else:
                 link_to_object = obj.attachments[att_obj][0]
 
-                world_to_object = obj.local_transformer.transform_pose(link_to_object.to_pose(), "map")
+                world_to_object = obj.local_transformer.transform_pose_to_target_frame(link_to_object.to_pose(), "map")
                 p.resetBasePositionAndOrientation(att_obj.id, world_to_object.position_as_list(),
                                                   world_to_object.orientation_as_list(),
                                                   physicsClientId=self.client_id)
@@ -1238,15 +1296,6 @@ class BulletWorld(World):
         :param callback_no_collision: A function that should be called if the objects are not in contact
         """
         self.coll_callbacks[(objectA, objectB)] = (callback_collision, callback_no_collision)
-
-    def add_additional_resource_path(self, path: str) -> None:
-        """
-        Adds a resource path in which the BulletWorld will search for files. This resource directory is searched if an
-        Object is spawned only with a filename.
-
-        :param path: A path in the filesystem in which to search for files.
-        """
-        self.data_directory.append(path)
 
     def get_shadow_object(self, object: Object) -> Object:
         """
@@ -1665,7 +1714,7 @@ class Object:
         self.name: str = name
         self.type: str = type
         self.color: List[float] = color
-        pose_in_map = self.local_transformer.transform_pose(pose, "map")
+        pose_in_map = self.local_transformer.transform_pose_to_target_frame(pose, "map")
         position, orientation = pose_in_map.to_list()
         self.id, self.path = _load_object(name, path, position, orientation, self.world, color, ignoreCachedFiles)
         self.joints: Dict[str, int] = self._joint_or_link_name_to_id("joint")
@@ -1793,7 +1842,7 @@ class Object:
         :param pose: New Pose for the object
         :param base: If True places the object base instead of origin at the specified position and orientation
         """
-        pose_in_map = self.local_transformer.transform_pose(pose, "map")
+        pose_in_map = self.local_transformer.transform_pose_to_target_frame(pose, "map")
         position, orientation = pose_in_map.to_list()
         if base:
             position = np.array(position) + self.base_origin_shift
@@ -1838,6 +1887,14 @@ class Object:
         :param prev_object: A list of Objects that were already moved, these will be excluded to prevent loops in the update.
         """
         self.world._set_attached_objects(self, prev_object)
+
+    def _calculate_transform_of_object_base_to_this_object_base(self, obj: Object):
+        transform = self.local_transformer.transform_pose_to_object_base_frame(obj.pose, self)
+        return Transform(transform.position_as_list(), transform.orientation_as_list(), transform.frame, obj.tf_frame)
+
+    def _calculate_transform_of_object_base_to_this_object_link(self, obj: Object, link: str):
+        transform = self.local_transformer.transform_pose_to_object_link_frame(obj.pose, self, link)
+        return Transform(transform.position_as_list(), transform.orientation_as_list(), transform.frame, obj.tf_frame)
 
     def _calculate_transform(self, obj: Object, link: str = None) -> Transform:
         """
@@ -2267,7 +2324,6 @@ def get_path_from_data_dir(file_name: str, data_directory: str) -> str:
     :param data_directory: The directory in which to search for the file.
     :return: The full path in the filesystem or None if there is no file with the filename in the directory
     """
-    dir = pathlib.Path(data_directory)
     for file in os.listdir(data_directory):
         if file == file_name:
             return data_directory + f"/{file_name}"
