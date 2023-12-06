@@ -38,20 +38,22 @@ from dataclasses import dataclass
 @dataclass
 class Constraint:
     parent_obj_id: int
-    child_obj_id: int
     parent_link_id: int
+    child_obj_id: int
     child_link_id: int
-    parent_to_child_transform: Transform
-    joint_type: int
-    joint_axis: List
+    joint_type: JointType
+    joint_axis_in_child_link_frame: List[int]
+    joint_frame_position_wrt_parent_origin: List[float]
+    joint_frame_position_wrt_child_origin: List[float]
+    joint_frame_orientation_wrt_parent_origin: Optional[List[float]] = None
+    joint_frame_orientation_wrt_child_origin: Optional[List[float]] = None
 
 
 @dataclass
 class Attachment:
-    parent_obj: Object
-    child_obj: Object
-    parent_link: Optional[str]
-    loose: bool
+    transform_from_child_base_to_parent_link: Transform
+    parent_link: Optional[str] = None
+    loose: Optional[bool] = False
 
 
 class World(ABC):
@@ -123,6 +125,10 @@ class World(ABC):
         self.attachment_event: Event = Event()
         self.manipulation_event: Event = Event()
 
+    @abstractmethod
+    def load_urdf_with_pose_and_get_world_object_id(self, path: str, pose: Pose) -> int:
+        pass
+
     def get_objects_by_name(self, name: str) -> List[Object]:
         """
         Returns a list of all Objects in this World with the same name as the given one.
@@ -159,32 +165,72 @@ class World(ABC):
         """
         pass
 
+    @abstractmethod
     def add_constraint(self, constraint: Constraint) -> int:
         """
-        Add a constraint between two objects so that attachment they become attached
+        Add a constraint between two objects so that they become attached
         """
-        cid = p.createConstraint(constraint.parent_obj_id,
-                                 constraint.parent_link_id,
-                                 constraint.child_obj_id,
-                                 constraint.child_link_id,
-                                 constraint.joint_type,
-                                 constraint.joint_axis,
-                                 constraint.parent_to_child_transform.translation_as_list(),
-                                 [0, 0, 0],
-                                 constraint.parent_to_child_transform.rotation_as_list(),
-                                 physicsClientId=self.client_id)
-        return cid
+        pass
 
-    def attach_object_base_to_parent_object_base(self, parent_obj: Object,
-                                                 child_obj: Object,
-                                                 loose: Optional[bool] = False) -> None:
+    @abstractmethod
+    def remove_constraint(self, constraint_id):
+        pass
+
+    def create_fixed_constraint_to_parent_link_at_child_origin(self,
+                                                               parent_object: Object,
+                                                               child_object: Object,
+                                                               parent_link: str) -> Constraint:
+        parent_link_id = parent_object.get_link_id(parent_link)
+        child_base_wrt_parent_link = \
+            parent_object._calculate_transform_from_other_object_base_to_this_object_link(child_object, parent_link)
+        constraint = Constraint(parent_object.id,
+                                parent_link_id,
+                                child_object.id,
+                                child_link_id=-1,  # -1 means use the base link
+                                joint_type=JointType.FIXED,
+                                joint_axis_in_child_link_frame=[0, 1, 0],
+                                joint_frame_position_wrt_parent_origin=child_base_wrt_parent_link.translation_as_list(),
+                                joint_frame_position_wrt_child_origin=[0, 0, 0],
+                                joint_frame_orientation_wrt_parent_origin=child_base_wrt_parent_link.rotation_as_list(),
+                                )
+        return constraint
+
+    def add_attachment_to_parent_and_child_attachments(self,
+                                                       parent_object: Object,
+                                                       child_object: Object,
+                                                       new_attachment: Attachment):
+
+        parent_object.attachments[child_object] = [child_base_wrt_parent_link, parent_link, loose]
+        child_object.attachments[parent_object] = [child_base_wrt_parent_link.invert(), None, False]
+
+    def attach_child_object_base_to_parent_object_base(self, parent_obj: Object,
+                                                       child_obj: Object,
+                                                       loose: Optional[bool] = False) -> None:
         pass  # TODO: implement this function
 
-    def attach_object_base_to_parent_object_link(self, parent_obj: Object,
-                                                 child_obj: Object,
-                                                 parent_link: str,
-                                                 loose: Optional[bool] = False) -> None:
-        pass  # TODO: implement this function
+    def attach_child_object_base_to_parent_object_link(self, parent_obj: Object,
+                                                       child_obj: Object,
+                                                       parent_link: str,
+                                                       loose: Optional[bool] = False) -> None:
+        parent_link_id = parent_obj.get_link_id(parent_link)
+        child_base_wrt_parent_link = \
+            parent_obj._calculate_transform_from_other_object_base_to_this_object_link(child_obj, parent_link)
+        parent_obj.attachments[child_obj] = [child_base_wrt_parent_link, parent_link, loose]
+        child_obj.attachments[parent_obj] = [child_base_wrt_parent_link.invert(), None, False]
+        constraint = Constraint(parent_obj.id,
+                                parent_link_id,
+                                child_obj.id,
+                                child_link_id=-1,  # -1 means use the base link
+                                joint_type=JointType.FIXED,
+                                joint_axis_in_child_link_frame=[0, 1, 0],
+                                joint_frame_position_wrt_parent_origin=child_base_wrt_parent_link.translation_as_list(),
+                                joint_frame_position_wrt_child_origin=[0, 0, 0],
+                                joint_frame_orientation_wrt_parent_origin=child_base_wrt_parent_link.rotation_as_list(),
+                                )
+        constraint_id = self.add_constraint(constraint)
+        parent_obj.cids[child_obj] = constraint_id
+        child_obj.cids[parent_obj] = constraint_id
+        self.attachment_event(parent_obj, [parent_obj, child_obj])
 
     def attach_objects(self,
                        parent_obj: Object,
@@ -206,17 +252,24 @@ class World(ABC):
         :param parent_link: The link of the parent object to which the child object should be attached
         :param loose: If the attachment should be a loose attachment.
         """
-        link_id = parent_obj.get_link_id(parent_link) if parent_link else -1
-        link_to_object = parent_obj._calculate_transform_of_object_base_to_this_object_link(child_obj, parent_link)
-        parent_obj.attachments[child_obj] = [link_to_object, parent_link, loose]
-        child_obj.attachments[parent_obj] = [link_to_object.invert(), None, False]
-
-        cid = p.createConstraint(parent_obj.id, link_id, child_obj.id, -1, p.JOINT_FIXED,
-                                 [0, 1, 0], link_to_object.translation_as_list(), [0, 0, 0],
-                                 link_to_object.rotation_as_list(),
-                                 physicsClientId=self.client_id)
-        parent_obj.cids[child_obj] = cid
-        child_obj.cids[parent_obj] = cid
+        parent_link_id = parent_obj.get_link_id(parent_link) if parent_link else -1
+        child_base_wrt_parent_link =\
+            parent_obj._calculate_transform_from_other_object_base_to_this_object_link(child_obj, parent_link)
+        parent_obj.attachments[child_obj] = [child_base_wrt_parent_link, parent_link, loose]
+        child_obj.attachments[parent_obj] = [child_base_wrt_parent_link.invert(), None, False]
+        constraint = Constraint(parent_obj.id,
+                                parent_link_id,
+                                child_obj.id,
+                                child_link_id=-1,
+                                joint_type=JointType.FIXED,
+                                joint_axis_in_child_link_frame=[0, 1, 0],
+                                joint_frame_position_wrt_parent_origin=child_base_wrt_parent_link.translation_as_list(),
+                                joint_frame_position_wrt_child_origin=[0, 0, 0],
+                                joint_frame_orientation_wrt_parent_origin=child_base_wrt_parent_link.rotation_as_list(),
+                                )
+        constraint_id = self.add_constraint(constraint)
+        parent_obj.cids[child_obj] = constraint_id
+        child_obj.cids[parent_obj] = constraint_id
         self.attachment_event(parent_obj, [parent_obj, child_obj])
 
     def detach_objects(self, obj1: Object, obj2: Object) -> None:
@@ -252,14 +305,17 @@ class World(ABC):
         for att_obj in obj.attachments:
             if att_obj in prev_object:
                 continue
-            if obj.attachments[att_obj][2]:
+            if obj.attachments[att_obj].loose:
                 # Updates the attachment transformation and constraint if the
                 # attachment is loose, instead of updating the position of all attached objects
-                link_to_object = obj._calculate_transform(att_obj, obj.attachments[att_obj][1])
-                link_id = obj.get_link_id(obj.attachments[att_obj][1]) if obj.attachments[att_obj][1] else -1
-                obj.attachments[att_obj][0] = link_to_object
-                att_obj.attachments[obj][0] = link_to_object.invert()
-                p.removeConstraint(obj.cids[att_obj], physicsClientId=self.client_id)
+                link_to_object = (
+                    obj._calculate_transform_from_other_object_base_to_this_object_link(att_obj,
+                                                                                        obj.attachments[att_obj].parent_link))
+                link_id = obj.get_link_id(obj.attachments[att_obj].parent_link) if obj.attachments[att_obj].parent_link else -1
+                obj.attachments[att_obj].transform_from_child_base_to_parent_link = link_to_object
+                att_obj.attachments[obj].transform_from_child_base_to_parent_link = link_to_object.invert()
+                self.remove_constraint(obj.cids[att_obj])
+                # TODO: Ask Jonas what is the benefit of joint axis in a fixed joint.
                 cid = p.createConstraint(obj.id, link_id, att_obj.id, -1, p.JOINT_FIXED, [0, 0, 0],
                                          link_to_object.translation_as_list(),
                                          [0, 0, 0], link_to_object.rotation_as_list(),
@@ -729,22 +785,6 @@ class World(ABC):
             obj.set_pose(obj.original_pose)
 
 class BulletWorld(World):
-    """
-    The BulletWorld Class represents the physics Simulation and belief state.
-    """
-
-    current_bullet_world: BulletWorld = None
-    """
-    Global reference to the currently used BulletWorld, usually this is the
-    graphical one. However, if you are inside a Use_shadow_world() environment the current_bullet_world points to the
-    shadow world. In this way you can comfortably use the current_bullet_world, which should point towards the BulletWorld
-    used at the moment.
-    """
-    robot: Object = None
-    """
-    Global reference to the spawned Object that represents the robot. The robot is identified by checking the name in the 
-    URDF with the name of the URDF on the parameter server. 
-    """
 
     # Check is for sphinx autoAPI to be able to work in a CI workflow
     if rosgraph.is_master_online():  # and "/pycram" not in rosnode.get_node_names():
@@ -777,6 +817,11 @@ class BulletWorld(World):
 
         if not is_prospection_world:
             plane = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf", world=self)
+
+    def load_urdf_with_pose_and_get_world_object_id(self, path: str, pose: Pose) -> int:
+        return p.loadURDF(path,
+                          basePosition=pose.position_as_list(),
+                          baseOrientation=pose.orientation_as_list(), physicsClientId=self.client_id)
 
     def get_objects_by_name(self, name: str) -> List[Object]:
         """
@@ -813,6 +858,26 @@ class BulletWorld(World):
         """
 
         p.removeBody(obj_id, self.client_id)
+
+    def add_constraint(self, constraint: Constraint) -> int:
+        """
+        Add a constraint between two objects so that attachment they become attached
+        """
+        constraint_id = p.createConstraint(constraint.parent_obj_id,
+                                           constraint.parent_link_id,
+                                           constraint.child_obj_id,
+                                           constraint.child_link_id,
+                                           constraint.joint_type,
+                                           constraint.joint_axis,
+                                           constraint.joint_frame_position_wrt_parent_origin,
+                                           constraint.joint_frame_position_wrt_child_origin,
+                                           constraint.joint_frame_orientation_wrt_parent_origin,
+                                           constraint.joint_frame_orientation_wrt_child_origin,
+                                           physicsClientId=self.client_id)
+        return constraint_id
+
+    def remove_constraint(self, constraint_id):
+        p.removeConstraint(constraint_id, physicsClientId=self.client_id)
 
     def attach_objects(self,
                parent_obj: Object,
@@ -1686,30 +1751,30 @@ class Gui(threading.Thread):
 
 class Object:
     """
-    Represents a spawned Object in the BulletWorld.
+    Represents a spawned Object in the World.
     """
 
     def __init__(self, name: str, type: Union[str, ObjectType], path: str,
                  pose: Pose = None,
-                 world: BulletWorld = None,
+                 world: World = None,
                  color: Optional[List[float]] = [1, 1, 1, 1],
                  ignoreCachedFiles: Optional[bool] = False):
         """
-        The constructor loads the urdf file into the given BulletWorld, if no BulletWorld is specified the
-        :py:attr:`~BulletWorld.current_bullet_world` will be used. It is also possible to load .obj and .stl file into the BulletWorld.
+        The constructor loads the urdf file into the given World, if no World is specified the
+        :py:attr:`~World.current_world` will be used. It is also possible to load .obj and .stl file into the World.
         The color parameter is only used when loading .stl or .obj files, for URDFs :func:`~Object.set_color` can be used.
 
         :param name: The name of the object
         :param type: The type of the object
         :param path: The path to the source file, if only a filename is provided then the resourcer directories will be searched
         :param pose: The pose at which the Object should be spawned
-        :param world: The BulletWorld in which the object should be spawned, if no world is specified the :py:attr:`~BulletWorld.current_bullet_world` will be used
+        :param world: The World in which the object should be spawned, if no world is specified the :py:attr:`~World.current_world` will be used
         :param color: The color with which the object should be spawned.
         :param ignoreCachedFiles: If true the file will be spawned while ignoring cached files.
         """
         if not pose:
             pose = Pose()
-        self.world: BulletWorld = world if world is not None else BulletWorld.current_bullet_world
+        self.world: World = world if world is not None else World.current_world
         self.local_transformer = LocalTransformer()
         self.name: str = name
         self.type: str = type
@@ -1719,21 +1784,21 @@ class Object:
         self.id, self.path = _load_object(name, path, position, orientation, self.world, color, ignoreCachedFiles)
         self.joints: Dict[str, int] = self._joint_or_link_name_to_id("joint")
         self.links: Dict[str, int] = self._joint_or_link_name_to_id("link")
-        self.attachments: Dict[Object, List] = {}
+        self.attachments: Dict[Object, Attachment] = {}
         self.cids: Dict[Object, int] = {}
         self.original_pose = pose_in_map
 
         self.tf_frame = ("shadow/" if self.world.is_prospection_world else "") + self.name + "_" + str(self.id)
 
         # This means "world" is not the shadow world since it has a reference to a shadow world
-        if self.world.prospection_world != None:
+        if self.world.prospection_world is not None:
             self.world.world_sync.add_obj_queue.put(
                 [name, type, path, position, orientation, self.world.prospection_world, color, self])
 
         with open(self.path) as f:
             self.urdf_object = URDF.from_xml_string(f.read())
-            if self.urdf_object.name == robot_description.name and not BulletWorld.robot:
-                BulletWorld.robot = self
+            if self.urdf_object.name == robot_description.name and not World.robot:
+                World.robot = self
 
         self.links[self.urdf_object.get_root()] = -1
 
@@ -1758,13 +1823,13 @@ class Object:
 
     def remove(self) -> None:
         """
-        Removes this object from the BulletWorld it currently resides in.
+        Removes this object from the World it currently resides in.
         For the object to be removed it has to be detached from all objects it
         is currently attached to. After this is done a call to PyBullet is done
         to remove this Object from the simulation.
         """
         for obj in self.attachments.keys():
-            self.world.detach(self, obj)
+            self.world.detach_objects(self, obj)
         self.world.objects.remove(self)
         # This means the current world of the object is not the shadow world, since it
         # has a reference to the shadow world
@@ -1772,8 +1837,8 @@ class Object:
             self.world.world_sync.remove_obj_queue.put(self)
             self.world.world_sync.remove_obj_queue.join()
         self.world.remove_object(self.id)
-        if BulletWorld.robot == self:
-            BulletWorld.robot = None
+        if World.robot == self:
+            World.robot = None
 
     def attach(self, obj: Object, link: Optional[str] = None, loose: Optional[bool] = False) -> None:
         """
@@ -1797,7 +1862,7 @@ class Object:
         Detaches another object from this object. This is done by
         deleting the attachment from the attachments dictionary of both objects
         and deleting the constraint of pybullet.
-        Afterward the detachment event of the corresponding BulletWorld will be fired.
+        Afterward the detachment event of the corresponding World will be fired.
 
         :param object: The object which should be detached
         """
@@ -1809,7 +1874,7 @@ class Object:
         """
         attachments = self.attachments.copy()
         for att in attachments.keys():
-            self.world.detach(self, att)
+            self.world.detach_objects(self, att)
 
     def get_position(self) -> Pose:
         """
@@ -1888,13 +1953,17 @@ class Object:
         """
         self.world._set_attached_objects(self, prev_object)
 
-    def _calculate_transform_of_object_base_to_this_object_base(self, obj: Object):
-        transform = self.local_transformer.transform_pose_to_object_base_frame(obj.pose, self)
-        return Transform(transform.position_as_list(), transform.orientation_as_list(), transform.frame, obj.tf_frame)
+    def _calculate_transform_from_other_object_base_to_this_object_base(self, other_object: Object):
+        pose_wrt_this_object_base = self.local_transformer.transform_pose_to_object_base_frame(other_object.pose, self)
+        return Transform.from_pose_and_child_frame(pose_wrt_this_object_base, other_object.tf_frame)
 
-    def _calculate_transform_of_object_base_to_this_object_link(self, obj: Object, link: str):
-        transform = self.local_transformer.transform_pose_to_object_link_frame(obj.pose, self, link)
-        return Transform(transform.position_as_list(), transform.orientation_as_list(), transform.frame, obj.tf_frame)
+    def _calculate_transform_from_other_object_base_to_this_object_link(self,
+                                                                        other_object: Object,
+                                                                        this_object_link_name: str):
+        pose_wrt_this_object_link = self.local_transformer.transform_pose_to_object_link_frame(other_object.pose,
+                                                                                               self,
+                                                                                               this_object_link_name)
+        return Transform.from_pose_and_child_frame(pose_wrt_this_object_link, other_object.tf_frame)
 
     def _calculate_transform(self, obj: Object, link: str = None) -> Transform:
         """
@@ -2348,11 +2417,11 @@ def _load_object(name: str,
                  path: str,
                  position: List[float],
                  orientation: List[float],
-                 world: BulletWorld,
+                 world: World,
                  color: List[float],
                  ignoreCachedFiles: bool) -> Tuple[int, str]:
     """
-    Loads an object to the given BulletWorld with the given position and orientation. The color will only be
+    Loads an object to the given World with the given position and orientation. The color will only be
     used when an .obj or .stl file is given.
     If a .obj or .stl file is given, before spawning, an urdf file with the .obj or .stl as mesh will be created
     and this URDf file will be loaded instead.
@@ -2364,7 +2433,7 @@ def _load_object(name: str,
     :param path: The path to the source file or the name on the ROS parameter server
     :param position: The position in which the object should be spawned
     :param orientation: The orientation in which the object should be spawned
-    :param world: The BulletWorld to which the Object should be spawned
+    :param world: The World to which the Object should be spawned
     :param color: The color of the object, only used when .obj or .stl file is given
     :param ignoreCachedFiles: Whether to ignore files in the cache directory.
     :return: The unique id of the object and the path to the file used for spawning
@@ -2417,7 +2486,7 @@ def _load_object(name: str,
         path = cach_dir + name + ".urdf"
 
     try:
-        obj = p.loadURDF(path, basePosition=position, baseOrientation=orientation, physicsClientId=world_id)
+        obj = world.load_urdf_with_pose_and_get_world_object_id(path, Pose(position, orientation))
         return obj, path
     except p.error as e:
         logging.error(

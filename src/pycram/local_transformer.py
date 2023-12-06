@@ -99,7 +99,7 @@ class LocalTransformer(TransformerROS):
         :param world_object: World Object with frame to which the pose should be transformed
         :return: The new pose transformed to the base coordinate frame of the object
         """
-        return self.transform_to_object_frame(pose, world_object.tf_frame)
+        return self.transform_pose_to_target_frame(pose, world_object.tf_frame)
 
     def transform_pose_to_object_link_frame(self, pose: Pose, world_object: 'world.Object', link_name: str) -> Union[Pose, None]:
         """
@@ -111,7 +111,7 @@ class LocalTransformer(TransformerROS):
         :return: The new pose transformed to the link coordinate frame of the object
         """
         target_frame = world_object.get_link_tf_frame(link_name)
-        return self.transform_to_object_frame(pose, target_frame)
+        return self.transform_pose_to_target_frame(pose, target_frame)
 
     def transform_to_object_frame(self, pose: Pose,
                                   world_object: 'world.Object', link_name: str = None) -> Union[Pose, None]:
