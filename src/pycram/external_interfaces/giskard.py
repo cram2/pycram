@@ -1,3 +1,4 @@
+import json
 import threading
 
 import rosnode
@@ -230,6 +231,29 @@ def _manage_par_motion_goals(goal_func, *args) -> Optional['MoveResult']:
 
             goal_func(*args)
 
+            # Check if there are multiple constraints that use the same joint, if this is the case the
+            used_joints = set()
+            for cmd in giskard_wrapper.cmd_seq:
+                for con in cmd.constraints:
+                    par_value_pair = json.loads(con.parameter_value_pair)
+                    if "tip_link" in par_value_pair.keys() and "root_link" in par_value_pair.keys():
+                        if par_value_pair["tip_link"] == robot_description.base_link:
+                            continue
+                        chain = BulletWorld.robot.urdf_object.get_chain(par_value_pair["root_link"],
+                                                                        par_value_pair["tip_link"])
+                        if set(chain).intersection(used_joints) != set():
+                            giskard_wrapper.cmd_seq = tmp
+                            raise AttributeError(f"The joint(s) {set(chain).intersection(used_joints)} is used by multiple Designators")
+                        else:
+                            [used_joints.add(joint) for joint in chain]
+                            
+                    elif "goal_state" in par_value_pair.keys():
+                        if set(par_value_pair["goal_state"].keys()).intersection(used_joints) != set():
+                            giskard_wrapper.cmd_seq = tmp
+                            raise AttributeError(f"The joint(s) {set(par_value_pair['goal_state'].keys()).intersection(used_joints)} is used by multiple Designators")
+                        else:
+                            [used_joints.add(joint) for joint in par_value_pair["goal_state"].keys()]
+
             par_threads[key].remove(threading.get_ident())
             if len(par_threads[key]) == 0:
                 if key in par_motion_goal.keys():
@@ -343,7 +367,8 @@ def achieve_straight_translation_goal(goal_point: List[float], tip_link: str, ro
     :return: MoveResult message for this goal
     """
     sync_worlds()
-    par_return = _manage_par_motion_goals(giskard_wrapper.set_straight_translation_goal, make_point_stamped(goal_point),
+    par_return = _manage_par_motion_goals(giskard_wrapper.set_straight_translation_goal,
+                                          make_point_stamped(goal_point),
                                           tip_link, root_link)
     if par_return:
         return par_return
@@ -394,7 +419,8 @@ def achieve_align_planes_goal(goal_normal: List[float], tip_link: str, tip_norma
     if par_return:
         return par_return
 
-    giskard_wrapper.set_align_planes_goal(make_vector_stamped(goal_normal), tip_link, make_vector_stamped(tip_normal),
+    giskard_wrapper.set_align_planes_goal(make_vector_stamped(goal_normal), tip_link,
+                                          make_vector_stamped(tip_normal),
                                           root_link)
     return giskard_wrapper.plan_and_execute()
 
@@ -510,7 +536,6 @@ def avoid_collisions(object1: Object, object2: Object) -> None:
 
 
 # Creating ROS messages
-
 
 @init_giskard_interface
 def make_world_body(object: Object) -> 'WorldBody':
