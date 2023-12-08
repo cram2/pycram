@@ -24,8 +24,16 @@ class Configuration:
     port: int
     database: str
 
+    def __init__(self, in_user="alice", in_password="alice123", in_ipaddress="localhost", in_port=5432,
+                 in_database="pycram"):
+        self.user = in_user
+        self.password = in_password
+        self.ipaddress = in_ipaddress
+        self.port = in_port
+        self.database = in_database
 
-class ExamplePlans():
+
+class ExamplePlans:
     def __init__(self):
         self.world = BulletWorld("DIRECT")
         self.pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
@@ -130,14 +138,22 @@ class MergeDatabaseTest(unittest.TestCase):
         super().TearDownClass()
 
     def test_merge_databases(self):
-        with self.destination_session_maker() as session:
-            amount_before_of_process_meta_data = session.query(pycram.orm.base.ProcessMetaData).count()
-
         pycram.orm.utils.update_primary_key_constrains(self.destination_session_maker)
         pycram.orm.utils.update_primary_key(self.source_session_maker, self.destination_session_maker)
         pycram.orm.utils.copy_database(self.source_session_maker, self.destination_session_maker)
+        destination_content = dict()
+        source_content = dict()
         with self.destination_session_maker() as session:
-            amount_after_of_process_meta_data = session.query(pycram.orm.base.ProcessMetaData).count()
-        self.assertTrue(amount_before_of_process_meta_data < amount_after_of_process_meta_data)
-        self.assertEqual(amount_before_of_process_meta_data + self.numbers_of_example_runs,
-                         amount_after_of_process_meta_data)
+            for table in pycram.orm.base.Base.metadata.sorted_tables:
+                table_content_set = set()
+                table_content_set.update(session.query(table).all())
+                destination_content[table] = table_content_set
+
+        with self.source_session_maker() as session:
+            for table in pycram.orm.base.Base.metadata.sorted_tables:
+                table_content_set = set()
+                table_content_set.update(session.query(table).all())
+                source_content[table] = table_content_set
+
+        for key in destination_content:
+            self.assertEqual(destination_content[key], destination_content[key].union(source_content[key]))
