@@ -1,7 +1,7 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-from typing import Iterable, Optional, Callable, Dict, Any
+from typing import Iterable, Optional, Callable, Dict, Any, List
 from anytree import NodeMixin, Node, PreOrderIter
 
 from .enums import State
@@ -17,6 +17,7 @@ class Language(NodeMixin):
     """
     parallel_blocklist = ["PickUpAction", "PlaceAction", "OpenAction", "CloseAction", "TransportAction", "GraspingAction"]
     do_not_use_giskard = ["SetGripperAction", "MoveGripperMotion", "DetectAction", "DetectingMotion"]
+    block_list = []
 
     def __init__(self, parent: NodeMixin = None, children: Iterable[NodeMixin] = None):
         """
@@ -27,8 +28,11 @@ class Language(NodeMixin):
         """
         self.parent = parent
         self.exceptions = {}
+        self.state = None
+        self.executing_thread = {}
+        self.interrupted = False
         if children:
-            self.children = children
+            self.children: Language = children
 
     def resolve(self) -> Language:
         """
@@ -100,6 +104,9 @@ class Language(NodeMixin):
                 f"You can not execute the Designator {self if self.__class__.__name__ in self.parallel_blocklist else other} in a try all language expression.")
         return TryAll(parent=None, children=(self, other)).simplify()
 
+    def __rshift__(self, other):
+        return Monitor(parent=None, children=(self, other)).simplify()
+
     def simplify(self) -> Language:
         """
         Simplifies the language tree by merging which have a parent-child relation and are of the same type.
@@ -139,6 +146,22 @@ class Language(NodeMixin):
         node2.parent = None
         node1.children = node2.children + node1.children
 
+    def interrupt(self):
+        raise NotImplementedError
+
+
+class Monitor(Language):
+    def __init__(self, parent=None, children=None, condition=None):
+        super().__init__(parent, children)
+        self.condition = condition
+
+    def perform(self):
+        ...
+
+    def interrupt(self):
+        for child in self.children:
+            child.interrupt()
+
 
 class Sequential(Language):
     """
@@ -158,11 +181,21 @@ class Sequential(Language):
         """
         try:
             for child in self.children:
+                if self.interrupted:
+                    if threading.get_ident() in self.block_list:
+                        self.block_list.remove(threading.get_ident())
+                    return
+                self.root.executing_thread[child] = threading.get_ident()
                 child.resolve().perform()
         except PlanFailure as e:
             self.root.exceptions[self] = e
             return State.FAILED
         return State.SUCCEEDED
+
+    def interrupt(self):
+        self.interrupted = True
+        self.block_list.append(threading.get_ident())
+        giskard.giskard_wrapper.interrupt()
 
 
 class TryInOrder(Language):
@@ -183,6 +216,10 @@ class TryInOrder(Language):
         """
         failure_list = []
         for child in self.children:
+            if self.interrupted:
+                if threading.get_ident() in self.block_list:
+                    self.block_list.remove(threading.get_ident())
+                return
             try:
                 child.resolve().perform()
             except PlanFailure as e:
@@ -194,6 +231,11 @@ class TryInOrder(Language):
             return State.FAILED
         else:
             return State.SUCCEEDED
+
+    def interrupt(self):
+        self.interrupted = True
+        self.block_list.append(threading.get_ident())
+        giskard.giskard_wrapper.interrupt()
 
 
 class Parallel(Language):
@@ -213,7 +255,7 @@ class Parallel(Language):
 
         :return: The state according to the behaviour described in :func:`Parallel`
         """
-        threads = []
+        self.threads: List[threading.Thread] = []
 
         def lang_call(child_node):
             if ("DesignatorDescription" in [cls.__name__ for cls in child_node.__class__.__mro__]
@@ -223,6 +265,7 @@ class Parallel(Language):
                 else:
                     giskard.par_threads[self].append(threading.get_ident())
             try:
+                self.root.executing_thread[child] = threading.get_ident()
                 child_node.resolve().perform()
             except PlanFailure as e:
                 if self in self.root.exceptions.keys():
@@ -231,14 +274,23 @@ class Parallel(Language):
                     self.root.exceptions[self] = [e]
 
         for child in self.children:
+            if self.interrupted:
+                break
             t = threading.Thread(target=lambda: lang_call(child))
             t.start()
-            threads.append(t)
-        for thread in threads:
+            self.threads.append(t)
+        for thread in self.threads:
             thread.join()
+            if thread.ident in self.block_list:
+                self.block_list.remove(thread.ident)
         if self in self.root.exceptions.keys() and len(self.root.exceptions[self]) != 0:
             return State.FAILED
         return State.SUCCEEDED
+
+    def interrupt(self):
+        self.interrupted = True
+        self.block_list += [t.ident for t in self.threads]
+        giskard.giskard_wrapper.interrupt()
 
 
 class TryAll(Language):
@@ -257,7 +309,7 @@ class TryAll(Language):
 
         :return: The state according to the behaviour described in :func:`TryAll`
         """
-        threads = []
+        self.threads: List[threading.Thread] = []
         failure_list = []
 
         def lang_call(child_node):
@@ -279,14 +331,21 @@ class TryAll(Language):
         for child in self.children:
             t = threading.Thread(target=lambda: lang_call(child))
             t.start()
-            threads.append(t)
-        for thread in threads:
+            self.threads.append(t)
+        for thread in self.threads:
             thread.join()
+            if thread.ident in self.block_list:
+                self.block_list.remove(thread.ident)
         if len(self.children) == len(failure_list):
             self.root.exceptions[self] = failure_list
             return State.FAILED
         else:
             return State.SUCCEEDED
+
+    def interrupt(self):
+        self.interrupted = True
+        self.block_list += [t.ident for t in self.threads]
+        giskard.giskard_wrapper.interrupt()
 
 
 class Code(Language):
