@@ -42,7 +42,7 @@ def print_database(in_sessionmaker: sqlalchemy.orm.sessionmaker):
                 result = session.execute(smt).all()
                 rospy.loginfo("Table: {}\tcontent:{}".format(table, result))
             except sqlalchemy.exc.ArgumentError as e:
-                print(e)
+                rospy.logwarn(e)
 
 
 def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
@@ -76,10 +76,6 @@ def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
                 results = destination_session.execute(sqlalchemy.select(table))
                 for column_object in results:  # iterate over all columns
                     if column_object.__getattr__(key.name) in all_source_key_values:
-                        print("Found primary_key collision in table {} value: {} max value in memory {}".format(table,
-                                                                                                                column_object.__getattr__(
-                                                                                                                    key.name),
-                                                                                                                highest_free_key_value))
                         rospy.loginfo(
                             "Found primary_key collision in table {} value: {} max value in memory {}".format(table,
                                                                                                               column_object.__getattr__(
@@ -93,8 +89,8 @@ def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
                         highest_free_key_value += 1
             destination_session.commit()  # commit after every table
         except AttributeError as e:
-            print("Possible found abstract ORM class {}".format(e.__name__))
-            print(e)
+            rospy.logwarn("Possible found abstract ORM class {}".format(e.__name__))
+            rospy.logwarn(e)
     destination_session.close()
 
 
@@ -140,7 +136,7 @@ def update_primary_key_constrains(session_maker: sqlalchemy.orm.sessionmaker):
                     "SELECT con.oid, con.conname, con.contype, con.confupdtype, con.confdeltype, con.confmatchtype, pg_get_constraintdef(con.oid) FROM pg_catalog.pg_constraint con INNER JOIN pg_catalog.pg_class rel ON rel.oid = con.conrelid INNER JOIN pg_catalog.pg_namespace nsp ON nsp.oid = connamespace WHERE rel.relname = '{}';".format(
                         table))
                 response = session.execute(foreign_key_statement)
-                print(25 * '~' + "{}".format(table) + 25 * '~')
+                rospy.loginfo(25 * '~' + "{}".format(table) + 25 * '~')
                 for line in response:
                     if line.conname.endswith("fkey"):
                         if 'a' in line.confupdtype:  # a --> no action | if there is no action we set it to cascading
@@ -159,4 +155,4 @@ def update_primary_key_constrains(session_maker: sqlalchemy.orm.sessionmaker):
                                 alter_statement)  # There is no real data coming back for this
                             session.commit()
             except AttributeError:
-                print("Attribute Error: {} has no attribute __tablename__".format(table))
+                rospy.loginfo("Attribute Error: {} has no attribute __tablename__".format(table))
