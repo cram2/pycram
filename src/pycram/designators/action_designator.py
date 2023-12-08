@@ -310,7 +310,7 @@ class PickUpAction(ActionDesignatorDescription):
             # oTm = Object Pose in Frame map
             oTm = object.get_pose()
             # Transform the object pose to the object frame, basically the origin of the object frame
-            mTo = object.local_transformer.transform_pose_to_object_base_frame(oTm, object)
+            mTo = object.local_transformer.transform_pose_to_target_frame(oTm, object.tf_frame)
             # Adjust the pose according to the special knowledge of the object designator
             adjusted_pose = self.object_designator.special_knowledge_adjustment_pose(self.grasp, mTo)
             # Transform the adjusted pose to the map frame

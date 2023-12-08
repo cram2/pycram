@@ -156,7 +156,7 @@ class BoxyMoveHead(ProcessModule):
             neck_base_frame = local_tf.projection_namespace + '/' + robot_description.chains["neck"].base_link
             if type(solutions['target']) is str:
                 target = local_tf.projection_namespace + '/' + solutions['target']
-                pose_in_neck_base = local_tf.tf_transform(neck_base_frame, target)
+                pose_in_neck_base = local_tf.lookup_transform_from_source_to_target_frame(neck_base_frame, target)
             elif helper_deprecated.is_list_pose(solutions['target']) or helper_deprecated.is_list_position(solutions['target']):
                 pose = helper_deprecated.ensure_pose(solutions['target'])
                 pose_in_neck_base = local_tf.tf_pose_transform(local_tf.map_frame, neck_base_frame, pose)
