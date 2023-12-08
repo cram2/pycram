@@ -61,4 +61,6 @@ class State(Enum):
     """
     SUCCEEDED = 1
     FAILED = 0
+    RUNNING = 2
+    INTERRUPTED = 3
 
