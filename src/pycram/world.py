@@ -53,7 +53,8 @@ class Attachment:
     def __init__(self,
                  parent_object: Object,
                  child_object: Object,
-                 parent_link: Optional[str] = None,
+                 parent_link: str,
+                 child_link: str,
                  bidirectional: Optional[bool] = False):
         """
         Creates an attachment between the parent object and the child object.
@@ -61,16 +62,12 @@ class Attachment:
         self.parent_object = parent_object
         self.child_object = child_object
         self.parent_link = parent_link
-        self.child_link = None
+        self.child_link = child_link
         self.bidirectional = bidirectional
         self.child_base_to_parent_link_transform = self._calculate_transforms()
 
     def _calculate_transforms(self):
-        # TODO: need to handle inverse case where there is a child link but no parent link
-        if self.parent_link is None:
-            return self.parent_object._calculate_transform_from_other_object_base_to_this_object_base(self.child_object)
-        else:
-            return self.parent_object._calculate_transform_from_other_object_base_to_this_object_link(self.child_object,
+        return self.parent_object._calculate_transform_from_other_object_base_to_this_object_link(self.child_object,
                                                                                                       self.parent_link)
 
     def update_transforms(self):
@@ -797,6 +794,15 @@ class World(ABC):
             obj.set_positions_of_all_joints(dict(zip(joint_names, joint_poses)))
             obj.set_pose(obj.original_pose)
 
+    def update_transforms_for_objects_in_current_world(self) -> None:
+        """
+        Updates transformations for all objects that are currently in :py:attr:`~pycram.world.World.current_world`.
+        """
+        curr_time = rospy.Time.now()
+        for obj in list(self.current_world.objects):
+            obj._update_link_transforms(curr_time)
+
+
 class BulletWorld(World):
 
     # Check is for sphinx autoAPI to be able to work in a CI workflow
@@ -892,39 +898,6 @@ class BulletWorld(World):
     def remove_constraint(self, constraint_id):
         p.removeConstraint(constraint_id, physicsClientId=self.client_id)
 
-    def attach_child_object_base_to_parent_object_link(self,
-                                                       parent_obj: Object,
-                                                       child_obj: Object,
-                                                       parent_link: Optional[str] = None,
-                                                       loose: Optional[bool] = False) -> None:
-        """
-        Attaches another object to this object. This is done by
-        saving the transformation between the given link, if there is one, and
-        the base pose of the other object. Additionally, the name of the link, to
-        which the object is attached, will be saved.
-        Furthermore, a constraint of pybullet will be created so the attachment
-        also works while simulation.
-        Loose attachments means that the attachment will only be one-directional.
-        For example, if the parent object moves, the child object will also move, but not the other way around.
-
-        :param parent_obj: The parent object (jf loose, then this would not move when child moves)
-        :param child_obj: The child object
-        :param parent_link: The link of the parent object to which the child object should be attached
-        :param loose: If the attachment should be a loose attachment.
-        """
-        link_id = parent_obj.get_link_id(parent_link) if parent_link else -1
-        link_to_object = parent_obj._calculate_transform(child_obj, parent_link)
-        parent_obj.attachments[child_obj] = [link_to_object, parent_link, loose]
-        child_obj.attachments[parent_obj] = [link_to_object.invert(), None, False]
-
-        cid = p.createConstraint(parent_obj.id, link_id, child_obj.id, -1, p.JOINT_FIXED,
-                                 [0, 1, 0], link_to_object.translation_as_list(), [0, 0, 0],
-                                 link_to_object.rotation_as_list(),
-                                 physicsClientId=self.client_id)
-        parent_obj.cids[child_obj] = cid
-        child_obj.cids[parent_obj] = cid
-        self.attachment_event(parent_obj, [parent_obj, child_obj])
-
     def detach_objects(self, obj1: Object, obj2: Object) -> None:
         """
         Detaches obj2 from obj1. This is done by
@@ -943,44 +916,6 @@ class BulletWorld(World):
         del obj1.cids[obj2]
         del obj2.cids[obj1]
         obj1.world.detachment_event(obj1, [obj1, obj2])
-
-    def _set_attached_objects(self, obj, prev_object: List[Object]) -> None:
-        """
-        Updates the positions of all attached objects. This is done
-        by calculating the new pose in world coordinate frame and setting the
-        base pose of the attached objects to this new pose.
-        After this the _set_attached_objects method of all attached objects
-        will be called.
-
-        :param prev_object: A list of Objects that were already moved,
-         these will be excluded to prevent loops in the update.
-        """
-        for att_obj in obj.attachments:
-            if att_obj in prev_object:
-                continue
-            if obj.attachments[att_obj][2]:
-                # Updates the attachment transformation and constraint if the
-                # attachment is loose, instead of updating the position of all attached objects
-                link_to_object = obj._calculate_transform(att_obj, obj.attachments[att_obj][1])
-                link_id = obj.get_link_id(obj.attachments[att_obj][1]) if obj.attachments[att_obj][1] else -1
-                obj.attachments[att_obj][0] = link_to_object
-                att_obj.attachments[obj][0] = link_to_object.invert()
-                p.removeConstraint(obj.cids[att_obj], physicsClientId=self.client_id)
-                cid = p.createConstraint(obj.id, link_id, att_obj.id, -1, p.JOINT_FIXED, [0, 0, 0],
-                                         link_to_object.translation_as_list(),
-                                         [0, 0, 0], link_to_object.rotation_as_list(),
-                                         physicsClientId=self.client_id)
-                obj.cids[att_obj] = cid
-                att_obj.cids[obj] = cid
-            else:
-                link_to_object = obj.attachments[att_obj][0]
-
-                world_to_object = obj.local_transformer.transform_pose_to_target_frame(link_to_object.to_pose(), "map")
-                p.resetBasePositionAndOrientation(att_obj.id, world_to_object.position_as_list(),
-                                                  world_to_object.orientation_as_list(),
-                                                  physicsClientId=self.client_id)
-                att_obj._current_pose = world_to_object
-                self._set_attached_objects(att_obj, prev_object + [obj])
 
     def get_object_joint_limits(self, obj: Object, joint_name: str) -> Tuple[float, float]:
         """
@@ -1816,14 +1751,14 @@ class Object:
         self.links[self.urdf_object.get_root()] = -1
 
         self._current_pose = pose_in_map
-        self._current_link_poses = {}
-        self._current_link_transforms = {}
+        self._current_link_poses: Dict[str, Pose] = {}
+        self._current_link_transforms: Dict[str, Transform] = {}
         self._current_joints_positions = {}
         self._init_current_positions_of_joint()
         self._update_link_poses()
 
         self.base_origin_shift = np.array(position) - np.array(self.get_base_origin().position_as_list())
-        self.local_transformer.update_transforms_for_object(self)
+        self._update_link_transforms()
         self.link_to_geometry = self._get_geometry_for_link()
 
         self.world.objects.append(self)
@@ -1967,29 +1902,22 @@ class Object:
         self.world._set_attached_objects(self, prev_object)
 
     def _calculate_transform_from_other_object_base_to_this_object_base(self, other_object: Object):
-        pose_wrt_this_object_base = self.local_transformer.transform_pose_to_object_base_frame(other_object.pose, self)
+        pose_wrt_this_object_base = self.local_transformer.transform_pose_to_target_frame(other_object.pose,
+                                                                                          self.tf_frame)
         return Transform.from_pose_and_child_frame(pose_wrt_this_object_base, other_object.tf_frame)
 
     def _calculate_transform_from_other_object_base_to_this_object_link(self,
                                                                         other_object: Object,
                                                                         this_object_link_name: str):
-        pose_wrt_this_object_link = self.local_transformer.transform_pose_to_object_link_frame(other_object.pose,
-                                                                                               self,
-                                                                                               this_object_link_name)
+        pose_wrt_this_object_link = self.transform_pose_to_link_frame(other_object.pose, this_object_link_name)
         return Transform.from_pose_and_child_frame(pose_wrt_this_object_link, other_object.tf_frame)
 
-    def _calculate_transform(self, obj: Object, link: str = None) -> Transform:
+    def transform_pose_to_link_frame(self, pose: Pose, link_name: str) -> Union[Pose, None]:
         """
-        Calculates the transformation between another object and the given
-        link of this object. If no link is provided then the base position will be used.
-
-        :param obj: The other object for which the transformation should be calculated
-        :param link: The optional link name
-        :return: The transformation from the link (or base position) to the other objects base position
+        :return: The new pose transformed to be relative to the link coordinate frame.
         """
-        transform = self.local_transformer.transform_to_object_frame(obj.pose, self, link)
-
-        return Transform(transform.position_as_list(), transform.orientation_as_list(), transform.frame, obj.tf_frame)
+        target_frame = self.get_link_tf_frame(link_name)
+        return self.local_transformer.transform_pose_to_target_frame(pose, target_frame)
 
     def set_position(self, position: Union[Pose, Point], base=False) -> None:
         """
@@ -2083,16 +2011,22 @@ class Object:
         """
         return dict(zip(self.joints.values(), self.joints.keys()))[joint_id]
 
-    def get_link_relative_to_other_link(self, source_frame: str, target_frame: str) -> Pose:
+    def get_link_pose_relative_to_other_link(self, child_link_name: str, parent_link_name: str) -> Pose:
         """
-        Calculates the position of a link in the coordinate frame of another link.
-
-        :param source_frame: The name of the source frame
-        :param target_frame: The name of the target frame
+        Calculates the pose of a link (child_link) in the coordinate frame of another link (parent_link).
         :return: The pose of the source frame in the target frame
         """
-        source_pose = self.get_link_pose(source_frame)
-        return self.local_transformer.transform_to_object_frame(source_pose, self, target_frame)
+        child_link_pose = self.get_link_pose(child_link_name)
+        parent_link_frame = self.get_link_tf_frame(parent_link_name)
+        return self.local_transformer.transform_pose_to_target_frame(child_link_pose, parent_link_frame)
+
+    def get_transform_between_two_links(self, source_link_name: str, target_link_name: str) -> Transform:
+        """
+        Calculates the transform from source link frame to target link frame.
+        """
+        source_tf_frame = self.get_link_tf_frame(source_link_name)
+        target_tf_frame = self.get_link_tf_frame(target_link_name)
+        return self.local_transformer.lookup_transform_from_source_to_target_frame(source_tf_frame, target_tf_frame)
 
     def get_link_position(self, name: str) -> Point:
         """
@@ -2364,6 +2298,9 @@ class Object:
             else:
                 link_to_geometry[link] = link_obj.collision.geometry
         return link_to_geometry
+
+    def _update_link_transforms(self, transform_time: Optional[rospy.Time] = None):
+        self.local_transformer.update_transforms(self._current_link_transforms.values(), transform_time)
 
     def _update_link_poses(self) -> None:
         """
