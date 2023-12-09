@@ -39,50 +39,55 @@ class Attachment:
     def __init__(self,
                  parent_object: Object,
                  child_object: Object,
-                 constraint_id: int,
                  parent_link_id: Optional[int] = -1,  # -1 means base link
                  child_link_id: Optional[int] = -1,
-                 bidirectional: Optional[bool] = False):
+                 bidirectional: Optional[bool] = False,
+                 constraint_id: Optional[int] = None):
         """
         Creates an attachment between the parent object and the child object.
         """
         self.parent_object = parent_object
         self.child_object = child_object
-        self.constraint_id = constraint_id
         self.parent_link_id = parent_link_id
         self.child_link_id = child_link_id
         self.bidirectional = bidirectional
         self.child_to_parent_transform = self.calculate_transforms()
         self._loose = False and not self.bidirectional
+        self.constraint_id = self.update_constraint() if constraint_id is None else constraint_id
 
     def update_attachment(self):
         self.update_transforms()
         self.update_constraint()
-        self.update_objects_constraints_collection()
         self.update_objects_attachments_collection()
 
     def update_transforms(self):
         self.child_to_parent_transform = self.calculate_transforms()
 
     def update_constraint(self):
-        self.parent_object.world.remove_constraint(self.constraint_id)
-        self.constraint_id = self.parent_object.world.add_fixed_constraint(self.parent_object.id,
-                                                                           self.child_object.id,
-                                                                           self.child_to_parent_transform,
-                                                                           self.parent_link_id,
-                                                                           self.child_link_id)
-
-    def update_objects_constraints_collection(self):
-        self.parent_object.cids[self.child_object] = self.constraint_id
-        self.child_object.cids[self.parent_object] = self.constraint_id
+        if self.constraint_id is not None:
+            self.parent_object.world.remove_constraint(self.constraint_id)
+        self.constraint_id = self.add_fixed_constraint()
+        self.update_objects_constraints_collection()
 
     def update_objects_attachments_collection(self):
         self.parent_object.attachments[self.child_object] = self
         self.child_object.attachments[self.parent_object] = self.get_inverse()
 
+    def add_fixed_constraint(self):
+        constraint_id = self.parent_object.world.add_fixed_constraint(self.parent_object.id,
+                                                                      self.child_object.id,
+                                                                      self.child_to_parent_transform,
+                                                                      self.parent_link_id,
+                                                                      self.child_link_id)
+        return constraint_id
+
+    def update_objects_constraints_collection(self):
+        self.parent_object.cids[self.child_object] = self.constraint_id
+        self.child_object.cids[self.parent_object] = self.constraint_id
+
     def get_inverse(self):
-        attachment = Attachment(self.child_object, self.parent_object, self.constraint_id, self.child_link_id,
-                                self.parent_link_id, self.bidirectional)
+        attachment = Attachment(self.child_object, self.parent_object, self.child_link_id,
+                                self.parent_link_id, self.bidirectional, self.constraint_id)
         attachment.loose = False if self.loose else True
         return attachment
 
@@ -258,54 +263,22 @@ class World(ABC):
                 child._current_pose = world_to_object
                 self._set_attached_objects(child, prev_object + [parent])
 
-    def attach_child_object_base_to_parent_object_base(self, parent_obj: Object,
-                                                       child_obj: Object,
-                                                       loose: Optional[bool] = False) -> None:
-        pass  # TODO: implement this function
-
-    def attach_child_object_base_to_parent_object_link(self,
-                                                       parent_obj: Object,
-                                                       child_obj: Object,
-                                                       parent_link: Optional[str] = None,
-                                                       loose: Optional[bool] = False) -> None:
+    def attach_objects(self,
+                       parent_object: Object,
+                       child_object: Object,
+                       parent_link_id: Optional[int] = -1,
+                       child_link_id: Optional[int] = -1,
+                       bidirectional: Optional[bool] = True) -> None:
         """
-        Attaches another object to this object. This is done by
-        saving the transformation between the given link, if there is one, and
-        the base pose of the other object. Additionally, the name of the link, to
-        which the object is attached, will be saved.
-        Furthermore, a constraint will be created so the attachment
-        also works while simulation.
-        Loose attachments means that the attachment will only be one-directional.
-        For example, if the parent object moves, the child object will also move, but not the other way around.
+        Attaches two objects together by saving the current transformation between the links coordinate frames.
+        Furthermore, a constraint will be created so the attachment also works while in simulation.
 
-        :param parent_obj: The parent object (jf loose, then this would not move when child moves)
-        :param child_obj: The child object
-        :param parent_link: The link of the parent object to which the child object should be attached
-        :param loose: If the attachment should be a loose attachment.
+        :param bidirectional: If the parent should also follow the child.
         """
-
-        self._create_attachment_and_constraint(parent_obj, child_obj, parent_link, loose)
-        self.attachment_event(parent_obj, [parent_obj, child_obj])
-
-    def _create_attachment_and_constraint(self,
-                                          parent_object: Object,
-                                          child_object: Object,
-                                          parent_link_id: Optional[int] = -1,
-                                          child_link_id: Optional[int] = -1,
-                                          loose: Optional[bool] = False) -> None:
 
         # Add the attachment to the attachment dictionary of both objects
-        attachment = Attachment(parent_object, child_object, parent_link_id, loose)
-
-        # Create the constraint
-        constraint_id = self.add_fixed_constraint(parent_object.id,
-                                                  child_object.id,
-                                                  attachment.child_to_parent_transform,
-                                                  parent_object.get_link_id(parent_link_id))
-
-        # Update the attachment and constraint dictionary in both objects
-        parent_object.cids[child_object] = constraint_id
-        child_object.cids[parent_object] = constraint_id
+        Attachment(parent_object, child_object, parent_link_id, child_link_id, bidirectional)
+        self.attachment_event(parent_object, [parent_object, child_object])
 
     def add_fixed_constraint(self,
                              parent_object_id: int,
@@ -315,8 +288,8 @@ class World(ABC):
                              child_link_id: Optional[int] = -1) -> int:
         """
         Creates a fixed joint constraint between the given parent and child links,
-        the joint frame will be at the origin of the child link, and would have the same orientation
-        as the child base frame. if no link is given, the base link will be used (id = -1).
+        the joint frame will be at the origin of the child link frame, and would have the same orientation
+        as the child link frame. if no link is given, the base link will be used (id = -1).
 
         returns the constraint id
         """
@@ -1810,7 +1783,11 @@ class Object:
         if World.robot == self:
             World.robot = None
 
-    def attach(self, obj: Object, link: Optional[str] = None, loose: Optional[bool] = False) -> None:
+    def attach(self,
+               child_object: Object,
+               parent_link: Optional[str] = None,
+               child_link: Optional[str] = None,
+               bidirectional: Optional[bool] = True) -> None:
         """
         Attaches another object to this object. This is done by
         saving the transformation between the given link, if there is one, and
@@ -1821,22 +1798,27 @@ class Object:
         Loose attachments means that the attachment will only be one-directional. For example, if this object moves the
         other, attached, object will also move but not the other way around.
 
-        :param object: The other object that should be attached
-        :param link: The link of this object to which the other object should be
-        :param loose: If the attachment should be a loose attachment.
+        :param child_object: The other object that should be attached.
+        :param parent_link: The link name of this object.
+        :param child_link: The link name of the other object.
+        :param bidirectional: If the attachment should be a loose attachment.
         """
-        self.world.attach_child_object_base_to_parent_object_link(self, obj, link, loose)
+        self.world.attach_objects(self,
+                                  child_object,
+                                  self.get_link_id(parent_link),
+                                  child_object.get_link_id(child_link),
+                                  bidirectional)
 
-    def detach(self, obj: Object) -> None:
+    def detach(self, child_object: Object) -> None:
         """
         Detaches another object from this object. This is done by
         deleting the attachment from the attachments dictionary of both objects
         and deleting the constraint of pybullet.
         Afterward the detachment event of the corresponding World will be fired.
 
-        :param object: The object which should be detached
+        :param child_object: The object which should be detached
         """
-        self.world.detach_objects(self, obj)
+        self.world.detach_objects(self, child_object)
 
     def detach_all(self) -> None:
         """
@@ -2007,6 +1989,8 @@ class Object:
         :param name: The link name
         :return: The unique id
         """
+        if name is None:
+            return -1
         return self.links[name]
 
     def get_link_by_id(self, id: int) -> str:
