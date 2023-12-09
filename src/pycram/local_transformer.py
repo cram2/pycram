@@ -43,11 +43,13 @@ class LocalTransformer(TransformerROS):
         # TF tf_stampeds and static_tf_stampeds of the Robot in the World:
         # These are initialized with the function init_transforms_from_urdf and are
         # used to update the local transformer with the function update_local_transformer_from_btr
+        # TODO: Ask Jonas if this is still needed
         self.tf_stampeds: List[TransformStamped] = []
         self.static_tf_stampeds: List[TransformStamped] = []
 
         # Since this file can't import world.py this holds the reference to the current_bullet_world
         self.world = None
+        # TODO: Ask Jonas if this is still needed
         self.prospection_world = None
 
         # If the singelton was already initialized
@@ -55,7 +57,7 @@ class LocalTransformer(TransformerROS):
 
     def transform_pose_to_target_frame(self, pose: Pose, target_frame: str) -> Union[Pose, None]:
         """
-        Transforms a given pose to the target frame.
+        Transforms a given pose to the target frame after updating the transforms for all objects in the current world.
 
         :param pose: Pose that should be transformed
         :param target_frame: Name of the TF frame into which the Pose should be transformed
@@ -79,8 +81,8 @@ class LocalTransformer(TransformerROS):
     def lookup_transform_from_source_to_target_frame(self, source_frame: str, target_frame: str,
                                                      time: Optional[rospy.rostime.Time] = None) -> Transform:
         """
-        Look up for the latest known transform that transforms a point from source frame to target frame.
-         If no time is given the last common time between the two frames is used.
+        Update the transforms for all world objects then Look up for the latest known transform that transforms a point
+         from source frame to target frame. If no time is given the last common time between the two frames is used.
         :param time: Time at which the transform should be looked up
         """
         self.world.update_transforms_for_objects_in_current_world()
