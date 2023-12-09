@@ -35,6 +35,79 @@ from abc import ABC, abstractproperty, abstractmethod
 from dataclasses import dataclass
 
 
+class Attachment:
+    def __init__(self,
+                 parent_object: Object,
+                 child_object: Object,
+                 constraint_id: int,
+                 parent_link_id: Optional[int] = -1,  # -1 means base link
+                 child_link_id: Optional[int] = -1,
+                 bidirectional: Optional[bool] = False):
+        """
+        Creates an attachment between the parent object and the child object.
+        """
+        self.parent_object = parent_object
+        self.child_object = child_object
+        self.constraint_id = constraint_id
+        self.parent_link_id = parent_link_id
+        self.child_link_id = child_link_id
+        self.bidirectional = bidirectional
+        self.child_to_parent_transform = self.calculate_transforms()
+        self._loose = False and not self.bidirectional
+
+    def update_attachment(self):
+        self.update_transforms()
+        self.update_constraint()
+        self.update_objects_constraints_collection()
+        self.update_objects_attachments_collection()
+
+    def update_transforms(self):
+        self.child_to_parent_transform = self.calculate_transforms()
+
+    def update_constraint(self):
+        self.parent_object.world.remove_constraint(self.constraint_id)
+        self.constraint_id = self.parent_object.world.add_fixed_constraint(self.parent_object.id,
+                                                                           self.child_object.id,
+                                                                           self.child_to_parent_transform,
+                                                                           self.parent_link_id,
+                                                                           self.child_link_id)
+
+    def update_objects_constraints_collection(self):
+        self.parent_object.cids[self.child_object] = self.constraint_id
+        self.child_object.cids[self.parent_object] = self.constraint_id
+
+    def update_objects_attachments_collection(self):
+        self.parent_object.attachments[self.child_object] = self
+        self.child_object.attachments[self.parent_object] = self.get_inverse()
+
+    def get_inverse(self):
+        attachment = Attachment(self.child_object, self.parent_object, self.constraint_id, self.child_link_id,
+                                self.parent_link_id, self.bidirectional)
+        attachment.loose = False if self.loose else True
+        return attachment
+
+    def calculate_transforms(self):
+        return self.parent_object.get_transform_between_two_links(self.parent_link_id, self.child_link_id)
+
+    @property
+    def loose(self) -> bool:
+        """
+        If true, then the child object will not move when parent moves.
+        """
+        return self._loose
+
+    @loose.setter
+    def loose(self, loose: bool):
+        self._loose = loose and not self.bidirectional
+
+    @property
+    def is_reversed(self) -> bool:
+        """
+        If true means that when child moves, parent moves not the other way around.
+        """
+        return self.loose
+
+
 @dataclass
 class Constraint:
     parent_obj_id: int
@@ -47,40 +120,6 @@ class Constraint:
     joint_frame_position_wrt_child_origin: List[float]
     joint_frame_orientation_wrt_parent_origin: Optional[List[float]] = None
     joint_frame_orientation_wrt_child_origin: Optional[List[float]] = None
-
-
-class Attachment:
-    def __init__(self,
-                 parent_object: Object,
-                 child_object: Object,
-                 parent_link: str,
-                 child_link: str,
-                 bidirectional: Optional[bool] = False):
-        """
-        Creates an attachment between the parent object and the child object.
-        """
-        self.parent_object = parent_object
-        self.child_object = child_object
-        self.parent_link = parent_link
-        self.child_link = child_link
-        self.bidirectional = bidirectional
-        self.child_base_to_parent_link_transform = self._calculate_transforms()
-
-    def _calculate_transforms(self):
-        return self.parent_object._calculate_transform_from_other_object_base_to_this_object_link(self.child_object,
-                                                                                                      self.parent_link)
-
-    def update_transforms(self):
-        self.child_base_to_parent_link_transform = self._calculate_transforms()
-
-    def get_inverse(self):
-        attachment = Attachment(self.child_object, self.parent_object, None, self.bidirectional)
-        attachment.child_link = self.parent_link
-        return attachment
-
-    def add_to_objects_attachments_collection(self):
-        self.parent_object.attachments[self.child_object] = self
-        self.child_object.attachments[self.parent_object] = self.get_inverse()
 
 
 class World(ABC):
@@ -119,7 +158,7 @@ class World(ABC):
         self.objects: List[Object] = []
         self.client_id: int = -1
         self.mode: str = mode
-        self._initialize_events()
+        self._init_events()
         World.current_world = self if World.current_world is None else World.current_world
         self.coll_callbacks: Dict[Tuple[Object, Object], Tuple[Callable, Callable]] = {}
         self.local_transformer = LocalTransformer()
@@ -132,6 +171,11 @@ class World(ABC):
         else:  # a normal world should have a synced prospection world
             self._init_and_sync_prospection_world()
             self._update_local_transformer_worlds()
+
+    def _init_events(self):
+        self.detachment_event: Event = Event()
+        self.attachment_event: Event = Event()
+        self.manipulation_event: Event = Event()
 
     def _init_and_sync_prospection_world(self):
         self._init_prospection_world()
@@ -148,13 +192,8 @@ class World(ABC):
         self.world_sync: WorldSync = WorldSync(self, self.prospection_world)
         self.world_sync.start()
 
-    def _initialize_events(self):
-        self.detachment_event: Event = Event()
-        self.attachment_event: Event = Event()
-        self.manipulation_event: Event = Event()
-
     @abstractmethod
-    def load_urdf_with_pose_and_get_world_object_id(self, path: str, pose: Pose) -> int:
+    def load_urdf_at_pose_and_get_object_id(self, path: str, pose: Pose) -> int:
         pass
 
     def get_objects_by_name(self, name: str) -> List[Object]:
@@ -193,66 +232,36 @@ class World(ABC):
         """
         pass
 
-    @abstractmethod
-    def add_constraint(self, constraint: Constraint) -> int:
+    def _set_attached_objects(self, parent, prev_object: List[Object]) -> None:
         """
-        Add a constraint between two objects so that they become attached
+        Updates the positions of all attached objects. This is done
+        by calculating the new pose in world coordinate frame and setting the
+        base pose of the attached objects to this new pose.
+        After this the _set_attached_objects method of all attached objects
+        will be called.
+
+        :param prev_object: A list of Objects that were already moved,
+         these will be excluded to prevent loops in the update.
         """
-        pass
+        for child in parent.attachments:
+            if child in prev_object:
+                continue
+            if not parent.attachments[child].bidirectional:
+                parent.attachments[child].update_attachment()
+            else:
+                link_to_object = parent.attachments[child].child_to_parent_transform
 
-    @abstractmethod
-    def remove_constraint(self, constraint_id):
-        pass
-
-    def add_fixed_constraint_between_parent_link_and_child_base(self,
-                                                                parent_object: Object,
-                                                                child_object: Object,
-                                                                child_base_wrt_parent_link: Transform,
-                                                                parent_link: Optional[str] = None) -> int:
-        """
-        Creates a fixed joint constraint between the given parent link and the base of the child object,
-        the joint frame will be at the origin of the parent link and the child base, and would have the same orientation
-        as the child base frame.
-
-        returns the constraint id
-        """
-
-        constraint = Constraint(parent_obj_id=parent_object.id,
-                                parent_link_id=parent_object.get_link_id(parent_link) if parent_link else -1,
-                                child_obj_id=child_object.id,
-                                child_link_id=-1,  # -1 means use the base link
-                                joint_type=JointType.FIXED,
-                                joint_axis_in_child_link_frame=[0, 0, 0],
-                                joint_frame_position_wrt_parent_origin=child_base_wrt_parent_link.translation_as_list(),
-                                joint_frame_position_wrt_child_origin=[0, 0, 0],
-                                joint_frame_orientation_wrt_parent_origin=child_base_wrt_parent_link.rotation_as_list(),
-                                )
-        constraint_id = self.add_constraint(constraint)
-        return constraint_id
+                world_to_object = parent.local_transformer.transform_pose_to_target_frame(link_to_object.to_pose(), "map")
+                p.resetBasePositionAndOrientation(child.id, world_to_object.position_as_list(),
+                                                  world_to_object.orientation_as_list(),
+                                                  physicsClientId=self.client_id)
+                child._current_pose = world_to_object
+                self._set_attached_objects(child, prev_object + [parent])
 
     def attach_child_object_base_to_parent_object_base(self, parent_obj: Object,
                                                        child_obj: Object,
                                                        loose: Optional[bool] = False) -> None:
         pass  # TODO: implement this function
-
-    def _create_attachment_and_constraint(self,
-                                          parent_object: Object,
-                                          child_object: Object,
-                                          parent_link: str,
-                                          loose: Optional[bool] = False) -> None:
-
-        # Add the attachment to the attachment dictionary of both objects
-        attachment = Attachment(parent_object, child_object, parent_link, loose)
-
-        # Create the constraint
-        constraint_id = self.add_fixed_constraint_between_parent_link_and_child_base(parent_object,
-                                                                                     child_object,
-                                                                                     attachment.transform_from_child_base_to_parent_link,
-                                                                                     parent_link)
-
-        # Update the attachment and constraint dictionary in both objects
-        parent_object.cids[child_object] = constraint_id
-        child_object.cids[parent_object] = constraint_id
 
     def attach_child_object_base_to_parent_object_link(self,
                                                        parent_obj: Object,
@@ -278,6 +287,64 @@ class World(ABC):
         self._create_attachment_and_constraint(parent_obj, child_obj, parent_link, loose)
         self.attachment_event(parent_obj, [parent_obj, child_obj])
 
+    def _create_attachment_and_constraint(self,
+                                          parent_object: Object,
+                                          child_object: Object,
+                                          parent_link_id: Optional[int] = -1,
+                                          child_link_id: Optional[int] = -1,
+                                          loose: Optional[bool] = False) -> None:
+
+        # Add the attachment to the attachment dictionary of both objects
+        attachment = Attachment(parent_object, child_object, parent_link_id, loose)
+
+        # Create the constraint
+        constraint_id = self.add_fixed_constraint(parent_object.id,
+                                                  child_object.id,
+                                                  attachment.child_to_parent_transform,
+                                                  parent_object.get_link_id(parent_link_id))
+
+        # Update the attachment and constraint dictionary in both objects
+        parent_object.cids[child_object] = constraint_id
+        child_object.cids[parent_object] = constraint_id
+
+    def add_fixed_constraint(self,
+                             parent_object_id: int,
+                             child_object_id: int,
+                             child_to_parent_transform: Transform,
+                             parent_link_id: Optional[int] = -1,
+                             child_link_id: Optional[int] = -1) -> int:
+        """
+        Creates a fixed joint constraint between the given parent and child links,
+        the joint frame will be at the origin of the child link, and would have the same orientation
+        as the child base frame. if no link is given, the base link will be used (id = -1).
+
+        returns the constraint id
+        """
+        # -1 in link id means use the base link of the object
+        constraint = Constraint(parent_obj_id=parent_object_id,
+                                parent_link_id=parent_link_id,
+                                child_obj_id=child_object_id,
+                                child_link_id=child_link_id,
+                                joint_type=JointType.FIXED,
+                                joint_axis_in_child_link_frame=[0, 0, 0],
+                                joint_frame_position_wrt_parent_origin=child_to_parent_transform.translation_as_list(),
+                                joint_frame_position_wrt_child_origin=[0, 0, 0],
+                                joint_frame_orientation_wrt_parent_origin=child_to_parent_transform.rotation_as_list(),
+                                )
+        constraint_id = self.add_constraint(constraint)
+        return constraint_id
+
+    @abstractmethod
+    def add_constraint(self, constraint: Constraint) -> int:
+        """
+        Add a constraint between two objects so that they become attached
+        """
+        pass
+
+    @abstractmethod
+    def remove_constraint(self, constraint_id):
+        pass
+
     def detach_objects(self, obj1: Object, obj2: Object) -> None:
         """
         Detaches obj2 from obj1. This is done by
@@ -296,51 +363,6 @@ class World(ABC):
         del obj1.cids[obj2]
         del obj2.cids[obj1]
         obj1.world.detachment_event(obj1, [obj1, obj2])
-
-    def _set_attached_objects(self, parent, prev_object: List[Object]) -> None:
-        """
-        Updates the positions of all attached objects. This is done
-        by calculating the new pose in world coordinate frame and setting the
-        base pose of the attached objects to this new pose.
-        After this the _set_attached_objects method of all attached objects
-        will be called.
-
-        :param prev_object: A list of Objects that were already moved,
-         these will be excluded to prevent loops in the update.
-        """
-        for child in parent.attachments:
-            if child in prev_object:
-                continue
-            if parent.attachments[child].loose:
-                parent_link = parent.attachments[child].parent_link
-                # Updates the attachment transformation and constraint if the
-                # attachment is loose, instead of updating the position of all attached objects
-
-                # Update the attachment transformation
-                # link_to_object = (
-                #     parent._calculate_transform_from_other_object_base_to_this_object_link(child, parent_link))
-                # link_id = parent.get_link_id(parent.attachments[child].parent_link) if parent.attachments[child].parent_link else -1
-                # parent.attachments[child].transform_from_child_base_to_parent_link = link_to_object
-                # child.attachments[parent].transform_from_child_base_to_parent_link = link_to_object.invert()
-
-                # Update the constraint
-                self.remove_constraint(parent.cids[child])
-                constraint_id = self.add_fixed_constraint_between_parent_link_and_child_base(parent, child, parent_link)
-                # cid = p.createConstraint(parent.id, link_id, child.id, -1, p.JOINT_FIXED, [0, 0, 0],
-                #                          link_to_object.translation_as_list(),
-                #                          [0, 0, 0], link_to_object.rotation_as_list(),
-                #                          physicsClientId=self.client_id)
-                parent.cids[child] = constraint_id
-                child.cids[parent] = constraint_id
-            else:
-                link_to_object = parent.attachments[child].transform_from_child_base_to_parent_link
-
-                world_to_object = parent.local_transformer.transform_pose_to_target_frame(link_to_object.to_pose(), "map")
-                p.resetBasePositionAndOrientation(child.id, world_to_object.position_as_list(),
-                                                  world_to_object.orientation_as_list(),
-                                                  physicsClientId=self.client_id)
-                child._current_pose = world_to_object
-                self._set_attached_objects(child, prev_object + [parent])
 
     def get_object_joint_limits(self, obj: Object, joint_name: str) -> Tuple[float, float]:
         """
@@ -837,7 +859,7 @@ class BulletWorld(World):
         if not is_prospection_world:
             plane = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf", world=self)
 
-    def load_urdf_with_pose_and_get_world_object_id(self, path: str, pose: Pose) -> int:
+    def load_urdf_at_pose_and_get_object_id(self, path: str, pose: Pose) -> int:
         return p.loadURDF(path,
                           basePosition=pose.position_as_list(),
                           baseOrientation=pose.orientation_as_list(), physicsClientId=self.client_id)
@@ -1906,12 +1928,6 @@ class Object:
                                                                                           self.tf_frame)
         return Transform.from_pose_and_child_frame(pose_wrt_this_object_base, other_object.tf_frame)
 
-    def _calculate_transform_from_other_object_base_to_this_object_link(self,
-                                                                        other_object: Object,
-                                                                        this_object_link_name: str):
-        pose_wrt_this_object_link = self.transform_pose_to_link_frame(other_object.pose, this_object_link_name)
-        return Transform.from_pose_and_child_frame(pose_wrt_this_object_link, other_object.tf_frame)
-
     def transform_pose_to_link_frame(self, pose: Pose, link_name: str) -> Union[Pose, None]:
         """
         :return: The new pose transformed to be relative to the link coordinate frame.
@@ -2020,12 +2036,12 @@ class Object:
         parent_link_frame = self.get_link_tf_frame(parent_link_name)
         return self.local_transformer.transform_pose_to_target_frame(child_link_pose, parent_link_frame)
 
-    def get_transform_between_two_links(self, source_link_name: str, target_link_name: str) -> Transform:
+    def get_transform_between_two_links(self, source_link_id: int, target_link_id: int) -> Transform:
         """
         Calculates the transform from source link frame to target link frame.
         """
-        source_tf_frame = self.get_link_tf_frame(source_link_name)
-        target_tf_frame = self.get_link_tf_frame(target_link_name)
+        source_tf_frame = self.get_link_tf_frame_by_id(source_link_id)
+        target_tf_frame = self.get_link_tf_frame_by_id(target_link_id)
         return self.local_transformer.lookup_transform_from_source_to_target_frame(source_tf_frame, target_tf_frame)
 
     def get_link_position(self, name: str) -> Point:
@@ -2056,7 +2072,9 @@ class Object:
         if name in self.links.keys() and self.links[name] == -1:
             return self.get_pose()
         return self._current_link_poses[name]
-        # return Pose(*p.getLinkState(self.id, self.links[name], physicsClientId=self.world.client_id)[4:6])
+
+    def get_link_pose_by_id(self, link_id: int) -> Pose:
+        return self.get_link_pose(self.get_link_by_id(link_id))
 
     def set_joint_position(self, joint_name: str, joint_pose: float) -> None:
         """
@@ -2284,6 +2302,9 @@ class Object:
         """
         return self.tf_frame + "/" + link_name
 
+    def get_link_tf_frame_by_id(self, link_id: int) -> str:
+        return self.get_link_tf_frame(self.get_link_by_id(link_id))
+
     def _get_geometry_for_link(self) -> Dict[str, urdf_parser_py.urdf.Geometry]:
         """
         Extracts the geometry information for each collision of each link and links them to the respective link.
@@ -2436,7 +2457,7 @@ def _load_object(name: str,
         path = cach_dir + name + ".urdf"
 
     try:
-        obj = world.load_urdf_with_pose_and_get_world_object_id(path, Pose(position, orientation))
+        obj = world.load_urdf_at_pose_and_get_object_id(path, Pose(position, orientation))
         return obj, path
     except p.error as e:
         logging.error(
