@@ -732,7 +732,7 @@ class SemanticCostmap(Costmap):
             link_orientation_trans = link_orientation.to_transform(self.object.get_link_tf_frame(self.link))
             inverse_orientation = link_orientation_trans.invert()
             shadow_obj.set_orientation(inverse_orientation.to_pose())
-            return shadow_obj.get_AABB(self.link)
+            return shadow_obj.get_link_AABB(self.link)
 
 
 cmap = colors.ListedColormap(['white', 'black', 'green', 'red', 'blue'])
