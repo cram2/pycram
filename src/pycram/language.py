@@ -1,6 +1,7 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+import time
 from typing import Iterable, Optional, Callable, Dict, Any, List
 from anytree import NodeMixin, Node, PreOrderIter
 
@@ -105,7 +106,18 @@ class Language(NodeMixin):
         return TryAll(parent=None, children=(self, other)).simplify()
 
     def __rshift__(self, other):
-        return Monitor(parent=None, children=(self, other)).simplify()
+        """
+        
+        :param other:
+        :return:
+        """
+        if type(self) == Monitor:
+            self.children = [other]
+            return self
+        elif type(other) == Monitor:
+            other.children = [self]
+            return other
+        # return Monitor(parent=None, children=(self, other)).simplify()
 
     def simplify(self) -> Language:
         """
@@ -130,6 +142,8 @@ class Language(NodeMixin):
         """
         for node in PreOrderIter(self.root):
             for child in node.children:
+                if type(child) == Monitor:
+                    continue
                 if type(node) is type(child):
                     self.merge_nodes(node, child)
         return self.root
@@ -151,14 +165,46 @@ class Language(NodeMixin):
 
 
 class Monitor(Language):
-    def __init__(self, parent=None, children=None, condition=None):
-        super().__init__(parent, children)
+    """
+    Monitors a Language Expression and interrupts it when the given condition is evaluated to True.
+
+    Behaviour:
+        This Monitor is attached to a language expression, when perform on this Monitor is called it will start a new
+        thread which continuously checks if the condition is True. When the condition is True the interrupt function of
+        the child will be called.
+    """
+    def __init__(self, condition=None):
+        """
+        When initializing a Monitor a condition must be provided. The condition is a callable which returns to True or
+        False.
+
+        :param condition: The condition upon which the Monitor should interrupt the attached language expression.
+        """
+        super().__init__(None, None)
         self.condition = condition
 
     def perform(self):
-        ...
+        """
+        Behavior of the Monitor, starts a new Thread which checks the condition and then performs the attached language
+        expression
+
+        :return: The result of the attached language expression
+        """
+        def check_condition():
+            while not self.condition():
+                time.sleep(0.1)
+            for child in self.children:
+                child.interrupt()
+
+        t = threading.Thread(target=check_condition)
+        t.start()
+        return self.children[0].perform()
+        t.join()
 
     def interrupt(self):
+        """
+        Calls interrupt for each child
+        """
         for child in self.children:
             child.interrupt()
 
