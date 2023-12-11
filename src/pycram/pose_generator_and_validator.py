@@ -3,7 +3,7 @@ import numpy as np
 import rospy
 import pybullet as p
 
-from .world import Object, BulletWorld, Use_shadow_world
+from .world import Object, BulletWorld, UseProspectionWorld
 from .world_reasoning import contact
 from .costmaps import Costmap
 from .pose import Pose, Transform
@@ -157,7 +157,7 @@ def reachability_validator(pose: Pose,
 
         _apply_ik(robot, resp, left_joints)
 
-        for obj in BulletWorld.current_bullet_world.objects:
+        for obj in BulletWorld.current_world.objects:
             if obj.name == "floor":
                 continue
             in_contact, contact_links = contact(robot, obj, return_links=True)
@@ -181,7 +181,7 @@ def reachability_validator(pose: Pose,
 
         _apply_ik(robot, resp, right_joints)
 
-        for obj in BulletWorld.current_bullet_world.objects:
+        for obj in BulletWorld.current_world.objects:
             if obj.name == "floor":
                 continue
             in_contact, contact_links = contact(robot, obj, return_links=True)

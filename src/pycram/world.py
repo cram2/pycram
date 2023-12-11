@@ -10,7 +10,7 @@ import time
 import xml.etree.ElementTree
 from queue import Queue
 import tf
-from typing import List, Optional, Dict, Tuple, Callable, Set
+from typing import List, Optional, Dict, Tuple, Callable, Set, Type, TypeVar
 from typing import Union
 
 import numpy as np
@@ -158,6 +158,8 @@ class World(ABC):
     Global reference for the data directories, this is used to search for the URDF files of the robot and the objects.
     """
 
+    simulation_time_step: float = None
+
     def __init__(self, mode: str, is_prospection_world: bool, simulation_time_step: float):
         """
        Creates a new simulation, the mode decides if the simulation should be a rendered window or just run in the
@@ -184,7 +186,7 @@ class World(ABC):
             self._init_and_sync_prospection_world()
             self._update_local_transformer_worlds()
 
-        self.simulation_time_step = simulation_time_step
+        World.simulation_time_step = simulation_time_step
         self.simulation_frequency = int(1/self.simulation_time_step)
         self._saved_states: Dict[int, WorldState] = {}  # Different states of the world indexed by int state id.
 
@@ -815,7 +817,7 @@ class World(ABC):
             except KeyError:
                 continue
 
-    def copy(self) -> BulletWorld:
+    def _copy(self) -> World:
         """
         Copies this Bullet World into another and returns it. The other BulletWorld
         will be in Direct mode. The shadow world should always be preferred instead of creating a new BulletWorld.
@@ -831,103 +833,66 @@ class World(ABC):
                 o.set_joint_position(joint, obj.get_joint_position(joint))
         return world
 
-    def add_vis_axis(self, pose: Pose,
-                     length: Optional[float] = 0.2) -> None:
-        """
-        Creates a Visual object which represents the coordinate frame at the given
-        position and orientation. There can be an unlimited amount of vis axis objects.
-
-        :param pose: The pose at which the axis should be spawned
-        :param length: Optional parameter to configure the length of the axes
-        """
-
-        position, orientation = pose.to_list()
-
-        vis_x = p.createVisualShape(p.GEOM_BOX, halfExtents=[length, 0.01, 0.01],
-                                    rgbaColor=[1, 0, 0, 0.8], visualFramePosition=[length, 0.01, 0.01])
-        vis_y = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.01, length, 0.01],
-                                    rgbaColor=[0, 1, 0, 0.8], visualFramePosition=[0.01, length, 0.01])
-        vis_z = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.01, 0.01, length],
-                                    rgbaColor=[0, 0, 1, 0.8], visualFramePosition=[0.01, 0.01, length])
-
-        obj = p.createMultiBody(baseVisualShapeIndex=-1, linkVisualShapeIndices=[vis_x, vis_y, vis_z],
-                                basePosition=position, baseOrientation=orientation,
-                                linkPositions=[[0, 0, 0], [0, 0, 0], [0, 0, 0]],
-                                linkMasses=[1.0, 1.0, 1.0], linkOrientations=[[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1]],
-                                linkInertialFramePositions=[[0, 0, 0], [0, 0, 0], [0, 0, 0]],
-                                linkInertialFrameOrientations=[[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1]],
-                                linkParentIndices=[0, 0, 0],
-                                linkJointTypes=[p.JOINT_FIXED, p.JOINT_FIXED, p.JOINT_FIXED],
-                                linkJointAxis=[[1, 0, 0], [0, 1, 0], [0, 0, 1]],
-                                linkCollisionShapeIndices=[-1, -1, -1])
-
-        self.vis_axis.append(obj)
-
-    def remove_vis_axis(self) -> None:
-        """
-        Removes all spawned vis axis objects that are currently in this BulletWorld.
-        """
-        for id in self.vis_axis:
-            p.removeBody(id)
-        self.vis_axis = []
-
-    def register_collision_callback(self, objectA: Object, objectB: Object,
-                                    callback_collision: Callable,
-                                    callback_no_collision: Optional[Callable] = None) -> None:
+    def register_two_objects_collision_callbacks(self, object_a: Object, object_b: Object,
+                                                 on_collision_callback: Callable,
+                                                 on_collision_removal_callback: Optional[Callable] = None) -> None:
         """
         Registers callback methods for contact between two Objects. There can be a callback for when the two Objects
         get in contact and, optionally, for when they are not in contact anymore.
 
-        :param objectA: An object in the BulletWorld
-        :param objectB: Another object in the BulletWorld
-        :param callback_collision: A function that should be called if the objects are in contact
-        :param callback_no_collision: A function that should be called if the objects are not in contact
+        :param object_a: An object in the World
+        :param object_b: Another object in the World
+        :param on_collision_callback: A function that should be called if the objects are in contact
+        :param on_collision_removal_callback: A function that should be called if the objects are not in contact
         """
-        self.coll_callbacks[(objectA, objectB)] = (callback_collision, callback_no_collision)
+        self.coll_callbacks[(object_a, object_b)] = (on_collision_callback, on_collision_removal_callback)
 
-    def add_additional_resource_path(self, path: str) -> None:
+    @classmethod
+    def add_additional_resource_path(cls, path: str) -> None:
         """
         Adds a resource path in which the BulletWorld will search for files. This resource directory is searched if an
         Object is spawned only with a filename.
 
         :param path: A path in the filesystem in which to search for files.
         """
-        World.data_directory.append(path)
+        cls.data_directory.append(path)
 
-    def get_shadow_object(self, object: Object) -> Object:
+    def get_prospection_object(self, obj: Object) -> Object:
         """
-        Returns the corresponding object from the shadow world for the given object. If the given Object is already in
-        the shadow world it is returned.
+        Returns the corresponding object from the prospection world for a given object in the main world.
+         If the given Object is already in the prospection world, it is returned.
 
-        :param object: The object for which the shadow worlds object should be returned.
-        :return: The corresponding object in the shadow world.
+        :param obj: The object for which the corresponding object in the prospection World should be found.
+        :return: The corresponding object in the prospection world.
         """
         try:
-            return self.world_sync.object_mapping[object]
+            return self.world_sync.object_mapping[obj]
         except KeyError:
-            shadow_world = self if self.is_prospection_world else self.prospection_world
-            if object in shadow_world.objects:
-                return object
+            prospection_world = self if self.is_prospection_world else self.prospection_world
+            if obj in prospection_world.objects:
+                return obj
             else:
                 raise ValueError(
-                    f"There is no shadow object for the given object: {object}, this could be the case if the object isn't anymore in the main (graphical) BulletWorld or if the given object is already a shadow object. ")
+                    f"There is no prospection object for the given object: {obj}, this could be the case if"
+                    f" the object isn't anymore in the main (graphical) World"
+                    f" or if the given object is already a prospection object. ")
 
-    def get_bullet_object_for_shadow(self, object: Object) -> Object:
+    def get_object_from_prospection(self, prospection_object: Object) -> Object:
         """
-        Returns the corresponding object from the main Bullet World for a given
+        Returns the corresponding object from the main World for a given
         object in the shadow world. If the  given object is not in the shadow
         world an error will be raised.
 
-        :param object: The object for which the corresponding object in the main Bullet World should be found
-        :return: The object in the main Bullet World
+        :param prospection_object: The object for which the corresponding object in the main World should be found.
+        :return: The object in the main World.
         """
-        map = self.world_sync.object_mapping
+        object_map = self.world_sync.object_mapping
         try:
-            return list(map.keys())[list(map.values()).index(object)]
+            return list(object_map.keys())[list(object_map.values()).index(prospection_object)]
         except ValueError:
             raise ValueError("The given object is not in the shadow world.")
 
-    def reset_bullet_world(self) -> None:
+    def reset_world(self) -> None:
         """
         Resets the BulletWorld to the state it was first spawned in.
         All attached objects will be detached, all joints will be set to the
@@ -960,7 +925,7 @@ class BulletWorld(World):
     manipulate the Bullet World.
     """
 
-    current_world: World = None
+    current_world: BulletWorld = None
     """
         Global reference to the currently used World, usually this is the
         graphical one. However, if you are inside a Use_shadow_world() environment the current_world points to the
@@ -1267,23 +1232,11 @@ class BulletWorld(World):
         """
         super().exit(wait_time_before_exit_in_secs)
 
-    def exit_prospection_world_if_exists(self):
-        if self.prospection_world:
-            self.terminate_world_sync()
-            self.prospection_world.exit()
-
     def disconnect_from_physics_server(self):
         """
         Disconnects the world from the physics server.
         """
         p.disconnect(self.client_id)
-
-    def reset_current_world(self):
-        if self.current_world == self:
-            self.current_world = None
-
-    def reset_robot(self):
-        self.set_robot(None)
 
     def join_threads(self):
         """
@@ -1294,10 +1247,6 @@ class BulletWorld(World):
     def join_gui_thread_if_exists(self):
         if self._gui_thread:
             self._gui_thread.join()
-
-    def terminate_world_sync(self):
-        self.world_sync.terminate = True
-        self.world_sync.join()
 
     def save_physics_simulator_state(self) -> int:
         """
@@ -1311,22 +1260,6 @@ class BulletWorld(World):
          the given state using the unique state id.
         """
         p.restoreState(state_id, self.client_id)
-
-    def copy(self) -> BulletWorld:
-        """
-        Copies this Bullet World into another and returns it. The other BulletWorld
-        will be in Direct mode. The shadow world should always be preferred instead of creating a new BulletWorld.
-        This method should only be used if necessary since there can be unforeseen problems.
-
-        :return: The reference to the new BulletWorld
-        """
-        world = BulletWorld("DIRECT")
-        for obj in self.objects:
-            o = Object(obj.name, obj.type, obj.path, Pose(obj.get_position(), obj.get_orientation()),
-                       world, obj.color)
-            for joint in obj.joints:
-                o.set_joint_position(joint, obj.get_joint_position(joint))
-        return world
 
     def add_vis_axis(self, pose: Pose,
                      length: Optional[float] = 0.2) -> None:
@@ -1368,113 +1301,49 @@ class BulletWorld(World):
             p.removeBody(id)
         self.vis_axis = []
 
-    def register_collision_callback(self, objectA: Object, objectB: Object,
-                                    callback_collision: Callable,
-                                    callback_no_collision: Optional[Callable] = None) -> None:
-        """
-        Registers callback methods for contact between two Objects. There can be a callback for when the two Objects
-        get in contact and, optionally, for when they are not in contact anymore.
 
-        :param objectA: An object in the BulletWorld
-        :param objectB: Another object in the BulletWorld
-        :param callback_collision: A function that should be called if the objects are in contact
-        :param callback_no_collision: A function that should be called if the objects are not in contact
-        """
-        self.coll_callbacks[(objectA, objectB)] = (callback_collision, callback_no_collision)
-
-    def get_shadow_object(self, object: Object) -> Object:
-        """
-        Returns the corresponding object from the shadow world for the given object. If the given Object is already in
-        the shadow world it is returned.
-
-        :param object: The object for which the shadow worlds object should be returned.
-        :return: The corresponding object in the shadow world.
-        """
-        try:
-            return self.world_sync.object_mapping[object]
-        except KeyError:
-            shadow_world = self if self.is_prospection_world else self.prospection_world
-            if object in shadow_world.objects:
-                return object
-            else:
-                raise ValueError(
-                    f"There is no shadow object for the given object: {object}, this could be the case if the object isn't anymore in the main (graphical) BulletWorld or if the given object is already a shadow object. ")
-
-    def get_bullet_object_for_shadow(self, object: Object) -> Object:
-        """
-        Returns the corresponding object from the main Bullet World for a given
-        object in the shadow world. If the  given object is not in the shadow
-        world an error will be raised.
-
-        :param object: The object for which the corresponding object in the main Bullet World should be found
-        :return: The object in the main Bullet World
-        """
-        map = self.world_sync.object_mapping
-        try:
-            return list(map.keys())[list(map.values()).index(object)]
-        except ValueError:
-            raise ValueError("The given object is not in the shadow world.")
-
-    def reset_bullet_world(self) -> None:
-        """
-        Resets the BulletWorld to the state it was first spawned in.
-        All attached objects will be detached, all joints will be set to the
-        default position of 0 and all objects will be set to the position and
-        orientation in which they were spawned.
-        """
-        for obj in self.objects:
-            if obj.attachments:
-                attached_objects = list(obj.attachments.keys())
-                for att_obj in attached_objects:
-                    obj.detach(att_obj)
-            joint_names = list(obj.joints.keys())
-            joint_poses = [0 for j in joint_names]
-            obj.set_positions_of_all_joints(dict(zip(joint_names, joint_poses)))
-            obj.set_pose(obj.original_pose)
-
-
-class Use_shadow_world():
+class UseProspectionWorld:
     """
-    An environment for using the shadow world, while in this environment the :py:attr:`~BulletWorld.current_bullet_world`
-    variable will point to the shadow world.
+    An environment for using the prospection world, while in this environment the :py:attr:`~World.current_world`
+    variable will point to the prospection world.
 
     Example:
-        with Use_shadow_world():
+        with UseProspectionWorld():
             NavigateAction.Action([[1, 0, 0], [0, 0, 0, 1]]).perform()
     """
 
-    def __init__(self):
-        self.prev_world: BulletWorld = None
+    def __init__(self, world_impl: Type[World]):
+        """
+        :param world_impl: A class that implements a World (for example BulletWorld).
+        """
+        self.world_impl = world_impl
+        self.prev_world: type(world_impl) = None
 
     def __enter__(self):
-        if not BulletWorld.current_bullet_world.is_prospection_world:
-            time.sleep(20 / 240)
+        if not self.world_impl.current_world.is_prospection_world:
+            time.sleep(20 * self.world_impl.simulation_time_step)
             # blocks until the adding queue is ready
-            BulletWorld.current_bullet_world.world_sync.add_obj_queue.join()
-            # **This is currently not used since the sleep(20/240) seems to be enough, but on weaker hardware this might
-            # not be a feasible solution**
-            # while not BulletWorld.current_bullet_world.world_sync.equal_states:
-            #     time.sleep(0.1)
+            self.world_impl.current_world.world_sync.add_obj_queue.join()
 
-            self.prev_world = BulletWorld.current_bullet_world
-            BulletWorld.current_bullet_world.world_sync.pause_sync = True
-            BulletWorld.current_bullet_world = BulletWorld.current_bullet_world.prospection_world
+            self.prev_world = self.world_impl.current_world
+            self.world_impl.current_world.world_sync.pause_sync = True
+            self.world_impl.current_world = self.world_impl.current_world.prospection_world
 
     def __exit__(self, *args):
-        if not self.prev_world == None:
-            BulletWorld.current_bullet_world = self.prev_world
-            BulletWorld.current_bullet_world.world_sync.pause_sync = False
+        if self.prev_world is not None:
+            self.world_impl.current_world = self.prev_world
+            self.world_impl.current_world.world_sync.pause_sync = False
 
 
 class WorldSync(threading.Thread):
     """
-    Synchronizes the state between the BulletWorld and its shadow world.
-    Meaning the cartesian and joint position of everything in the shadow world will be
-    synchronized with the main BulletWorld.
+    Synchronizes the state between the World and its prospection world.
+    Meaning the cartesian and joint position of everything in the prospection world will be
+    synchronized with the main World.
     Adding and removing objects is done via queues, such that loading times of objects
-    in the shadow world does not affect the BulletWorld.
+    in the prospection world does not affect the World.
     The class provides the possibility to pause the synchronization, this can be used
-    if reasoning should be done in the shadow world.
+    if reasoning should be done in the prospection world.
     """
 
     def __init__(self, world: World, prospection_world: World):
@@ -1487,7 +1356,7 @@ class WorldSync(threading.Thread):
         self.add_obj_queue: Queue = Queue()
         self.remove_obj_queue: Queue = Queue()
         self.pause_sync: bool = False
-        # Maps bullet to shadow world objects
+        # Maps bullet to prospection world objects
         self.object_mapping: Dict[Object, Object] = {}
         self.equal_states = False
 
@@ -1496,8 +1365,8 @@ class WorldSync(threading.Thread):
         Main method of the synchronization, this thread runs in a loop until the
         terminate flag is set.
         While this loop runs it continuously checks the cartesian and joint position of
-        every object in the BulletWorld and updates the corresponding object in the
-        shadow world. When there are entries in the adding or removing queue the corresponding objects will be added
+        every object in the World and updates the corresponding object in the
+        prospection world. When there are entries in the adding or removing queue the corresponding objects will be added
         or removed in the same iteration.
         """
         while not self.terminate:
@@ -1507,28 +1376,28 @@ class WorldSync(threading.Thread):
                 obj = self.add_obj_queue.get()
                 # [name, type, path, position, orientation, self.world.prospection_world, color, bulletworld object]
                 o = Object(obj[0], obj[1], obj[2], Pose(obj[3], obj[4]), obj[5], obj[6])
-                # Maps the BulletWorld object to the shadow world object
+                # Maps the World object to the prospection world object
                 self.object_mapping[obj[7]] = o
                 self.add_obj_queue.task_done()
             for i in range(self.remove_obj_queue.qsize()):
                 obj = self.remove_obj_queue.get()
-                # Get shadow world object reference from object mapping
-                shadow_obj = self.object_mapping[obj]
-                shadow_obj.remove()
+                # Get prospection world object reference from object mapping
+                prospection_obj = self.object_mapping[obj]
+                prospection_obj.remove()
                 del self.object_mapping[obj]
                 self.remove_obj_queue.task_done()
 
-            for bulletworld_obj, shadow_obj in self.object_mapping.items():
+            for bulletworld_obj, prospection_obj in self.object_mapping.items():
                 b_pose = bulletworld_obj.get_pose()
-                s_pose = shadow_obj.get_pose()
+                s_pose = prospection_obj.get_pose()
                 if b_pose.dist(s_pose) != 0.0:
-                    shadow_obj.set_pose(bulletworld_obj.get_pose())
+                    prospection_obj.set_pose(bulletworld_obj.get_pose())
 
                 # Manage joint positions
                 if len(bulletworld_obj.joints) > 2:
                     for joint_name in bulletworld_obj.joints.keys():
-                        if shadow_obj.get_joint_position(joint_name) != bulletworld_obj.get_joint_position(joint_name):
-                            shadow_obj.set_positions_of_all_joints(bulletworld_obj.get_positions_of_all_joints())
+                        if prospection_obj.get_joint_position(joint_name) != bulletworld_obj.get_joint_position(joint_name):
+                            prospection_obj.set_positions_of_all_joints(bulletworld_obj.get_positions_of_all_joints())
                             break
 
             self.check_for_pause()
@@ -1547,25 +1416,25 @@ class WorldSync(threading.Thread):
 
     def check_for_equal(self) -> None:
         """
-        Checks if both BulletWorlds have the same state, meaning all objects are in the same position.
+        Checks if both Worlds have the same state, meaning all objects are in the same position.
         This is currently not used, but might be used in the future if synchronization issues worsen.
         """
         eql = True
-        for obj, shadow_obj in self.object_mapping.items():
-            eql = eql and obj.get_pose() == shadow_obj.get_pose()
+        for obj, prospection_obj in self.object_mapping.items():
+            eql = eql and obj.get_pose() == prospection_obj.get_pose()
         self.equal_states = eql
 
 
 class Gui(threading.Thread):
     """
-    For internal use only. Creates a new thread for the physics simulation that is active until closed by :func:`~BulletWorld.exit`
+    For internal use only. Creates a new thread for the physics simulation that is active until closed by :func:`~World.exit`
     Also contains the code for controlling the camera.
     """
 
-    def __init__(self, world, type):
+    def __init__(self, world: World, mode: str):
         threading.Thread.__init__(self)
-        self.world: BulletWorld = world
-        self.type: str = type
+        self.world = world
+        self.mode: str = mode
 
     def run(self):
         """
@@ -1573,7 +1442,7 @@ class Gui(threading.Thread):
         if it is still active. If it is the thread will be suspended for 1/80 seconds, if it is not the method and
         thus the thread terminates. The loop also checks for mouse and keyboard inputs to control the camera.
         """
-        if self.type != "GUI":
+        if self.mode != "GUI":
             self.world.client_id = p.connect(p.DIRECT)
         else:
             self.world.client_id = p.connect(p.GUI)
@@ -1808,9 +1677,9 @@ class Object:
         self.cids: Dict[Object, int] = {}
         self.original_pose = pose_in_map
 
-        self.tf_frame = ("shadow/" if self.world.is_prospection_world else "") + self.name + "_" + str(self.id)
+        self.tf_frame = ("prospection/" if self.world.is_prospection_world else "") + self.name + "_" + str(self.id)
 
-        # This means "world" is not the shadow world since it has a reference to a shadow world
+        # This means "world" is not the prospection world since it has a reference to a prospection world
         if self.world.prospection_world is not None:
             self.world.world_sync.add_obj_queue.put(
                 [name, type, path, position, orientation, self.world.prospection_world, color, self])
@@ -1851,8 +1720,8 @@ class Object:
         for obj in self.attachments.keys():
             self.world.detach_objects(self, obj)
         self.world.objects.remove(self)
-        # This means the current world of the object is not the shadow world, since it
-        # has a reference to the shadow world
+        # This means the current world of the object is not the prospection world, since it
+        # has a reference to the prospection world
         if self.world.prospection_world is not None:
             self.world.world_sync.remove_obj_queue.put(self)
             self.world.world_sync.remove_obj_queue.join()
@@ -1905,7 +1774,7 @@ class Object:
         for att in attachments.keys():
             self.world.detach_objects(self, att)
 
-    def get_position(self) -> Pose:
+    def get_position(self) -> Pose.position:
         """
         Returns the position of this Object as a list of xyz.
 
@@ -1913,7 +1782,7 @@ class Object:
         """
         return self.get_pose().position
 
-    def get_orientation(self) -> Quaternion:
+    def get_orientation(self) -> Pose.orientation:
         """
         Returns the orientation of this object as a list of xyzw, representing a quaternion.
 
@@ -2105,7 +1974,7 @@ class Object:
         target_tf_frame = self.get_link_tf_frame_by_id(target_link_id)
         return self.local_transformer.lookup_transform_from_source_to_target_frame(source_tf_frame, target_tf_frame)
 
-    def get_link_position(self, name: str) -> Point:
+    def get_link_position(self, name: str) -> Pose.position:
         """
         Returns the position of a link of this Object. Position is returned as a list of xyz.
 
@@ -2269,7 +2138,7 @@ class Object:
         """
         return self.world.get_object_color(self, link)
 
-    def get_AABB(self) -> Tuple[List[float], List[float]]:
+    def get_aabb(self) -> Tuple[List[float], List[float]]:
         """
         Returns the axis aligned bounding box of this object. The return of this method are two points in
         world coordinate frame which define a bounding box.
@@ -2278,7 +2147,7 @@ class Object:
         """
         return self.world.get_object_AABB(self)
 
-    def get_link_AABB(self, link_name: str) -> Tuple[List[float], List[float]]:
+    def get_link_aabb(self, link_name: str) -> Tuple[List[float], List[float]]:
         """
         Returns the axis aligned bounding box of the given link name. The return of this method are two points in
         world coordinate frame which define a bounding box.
@@ -2295,7 +2164,7 @@ class Object:
         :param link_name: The link name for which the bottom position should be returned
         :return: The position of the bottom of this Object or link
         """
-        aabb = self.get_link_AABB(link_name=link_name)
+        aabb = self.get_link_aabb(link_name=link_name)
         base_width = np.absolute(aabb[0][0] - aabb[1][0])
         base_length = np.absolute(aabb[0][1] - aabb[1][1])
         return Pose([aabb[0][0] + base_width / 2, aabb[0][1] + base_length / 2, aabb[0][2]],
@@ -2374,7 +2243,7 @@ class Object:
     def get_link_tf_frame_by_id(self, link_id: int) -> str:
         return self.get_link_tf_frame(self.get_link_by_id(link_id))
 
-    def _get_geometry_for_link(self) -> Dict[str, urdf_parser_py.urdf.Geometry]:
+    def _get_geometry_for_link(self) -> Dict[str, urdf_parser_py.urdf.GeometricType]:
         """
         Extracts the geometry information for each collision of each link and links them to the respective link.
 
@@ -2450,7 +2319,8 @@ def _get_robot_name_from_urdf(urdf_string: str) -> str:
         begin = res[0].find("\"")
         end = res[0][begin + 1:].find("\"")
         robot = res[0][begin + 1:begin + 1 + end].lower()
-    return robot
+        return robot
+    raise Exception("Robot Name not Found")
 
 
 def _load_object(name: str,
@@ -2459,7 +2329,7 @@ def _load_object(name: str,
                  orientation: List[float],
                  world: World,
                  color: List[float],
-                 ignoreCachedFiles: bool) -> Tuple[int, str]:
+                 ignore_cached_files: bool) -> Tuple[int, str]:
     """
     Loads an object to the given World with the given position and orientation. The color will only be
     used when an .obj or .stl file is given.
@@ -2475,7 +2345,7 @@ def _load_object(name: str,
     :param orientation: The orientation in which the object should be spawned
     :param world: The World to which the Object should be spawned
     :param color: The color of the object, only used when .obj or .stl file is given
-    :param ignoreCachedFiles: Whether to ignore files in the cache directory.
+    :param ignore_cached_files: Whether to ignore files in the cache directory.
     :return: The unique id of the object and the path to the file used for spawning
     """
     pa = pathlib.Path(path)
@@ -2496,7 +2366,7 @@ def _load_object(name: str,
         os.mkdir(cach_dir)
 
     # if file is not yet cached corrcet the urdf and save if in the cache directory
-    if not _is_cached(path, name, cach_dir) or ignoreCachedFiles:
+    if not _is_cached(path, name, cach_dir) or ignore_cached_files:
         if extension == ".obj" or extension == ".stl":
             path = _generate_urdf_file(name, path, color, cach_dir)
         elif extension == ".urdf":
@@ -2564,7 +2434,7 @@ def _correct_urdf_string(urdf_string: str) -> str:
     Changes paths for files in the URDF from ROS paths to paths in the file system. Since PyBullet can't deal with ROS
     package paths.
 
-    :param urdf_name: The name of the URDf on the parameter server
+    :param urdf_string: The name of the URDf on the parameter server
     :return: The URDF string with paths in the filesystem instead of ROS packages
     """
     r = rospkg.RosPack()
@@ -2684,13 +2554,13 @@ def _generate_urdf_file(name: str, path: str, color: List[float], cach_dir: str)
     return cach_dir + pathlib_obj.stem + ".urdf"
 
 
-def _world_and_id(world: BulletWorld) -> Tuple[BulletWorld, int]:
+def _world_and_id(world: World) -> Tuple[World, int]:
     """
-    Selects the world to be used. If the given world is None the 'current_bullet_world' is used.
+    Selects the world to be used. If the given world is None the 'current_world' is used.
 
-    :param world: The world which should be used or None if 'current_bullet_world' should be used
-    :return: The BulletWorld object and the id of this BulletWorld
+    :param world: The world which should be used or None if 'current_world' should be used
+    :return: The World object and the id of this World
     """
-    world = world if world is not None else BulletWorld.current_bullet_world
-    id = world.client_id if world is not None else BulletWorld.current_bullet_world.client_id
+    world = world if world is not None else World.current_world
+    id = world.client_id if world is not None else World.current_world.client_id
     return world, id

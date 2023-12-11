@@ -21,7 +21,7 @@ class JointStatePublisher:
         :param joint_state_topic: Topic name to which the joint states should be published
         :param interval: Interval at which the joint states should be published, in seconds
         """
-        self.world = BulletWorld.current_bullet_world
+        self.world = BulletWorld.current_world
 
         self.joint_state_pub = rospy.Publisher(joint_state_topic, JointState, queue_size=10)
         self.interval = interval

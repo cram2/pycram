@@ -69,7 +69,7 @@ def initial_adding_objects() -> None:
     Adds object that are loaded in the BulletWorld to the Giskard belief state, if they are not present at the moment.
     """
     groups = giskard_wrapper.get_group_names()
-    for obj in BulletWorld.current_bullet_world.objects:
+    for obj in BulletWorld.current_world.objects:
         if obj == BulletWorld.robot:
             continue
         name = obj.name + "_" + str(obj.id)
@@ -84,7 +84,7 @@ def removing_of_objects() -> None:
     """
     groups = giskard_wrapper.get_group_names()
     object_names = list(
-        map(lambda obj: object_names.name + "_" + str(obj.id), BulletWorld.current_bullet_world.objects))
+        map(lambda obj: object_names.name + "_" + str(obj.id), BulletWorld.current_world.objects))
     diff = list(set(groups) - set(object_names))
     for grp in diff:
         giskard_wrapper.remove_group(grp)
@@ -99,7 +99,7 @@ def sync_worlds() -> None:
     """
     add_gripper_groups()
     bullet_object_names = set()
-    for obj in BulletWorld.current_bullet_world.objects:
+    for obj in BulletWorld.current_world.objects:
         if obj.name != robot_description.name and len(obj.links) != 1:
             bullet_object_names.add(obj.name + "_" + str(obj.id))
 

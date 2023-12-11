@@ -1,6 +1,6 @@
 from pycram.external_interfaces.giskard import achieve_cartesian_goal
 from pycram.designators.location_designator import CostmapLocation
-from pycram.world import Use_shadow_world, BulletWorld
+from pycram.world import UseProspectionWorld, BulletWorld
 from pycram.helper import _apply_ik
 from pycram.pose import Pose
 from pycram.robot_descriptions import robot_description
@@ -28,8 +28,8 @@ class GiskardLocation(CostmapLocation):
             pose_left, end_config_left = self._get_reachable_pose_for_arm(self.target,
                                                                           robot_description.get_tool_frame("left"))
 
-            test_robot = BulletWorld.current_bullet_world.get_shadow_object(BulletWorld.robot)
-            with Use_shadow_world():
+            test_robot = BulletWorld.current_world.get_prospection_object(BulletWorld.robot)
+            with UseProspectionWorld(BulletWorld):
                 valid, arms = reachability_validator(pose_right, test_robot, self.target, {})
                 if valid:
                     yield CostmapLocation.Location(pose_right, arms)

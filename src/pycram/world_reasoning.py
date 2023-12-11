@@ -3,7 +3,7 @@ import itertools
 import numpy as np
 import rospy
 
-from .world import _world_and_id, Object, Use_shadow_world, BulletWorld
+from .world import _world_and_id, Object, UseProspectionWorld, BulletWorld
 from .external_interfaces.ik import request_ik
 from .local_transformer import LocalTransformer
 from .plan_failures import IKError
@@ -97,14 +97,14 @@ def stable(object: Object,
     :return: True if the given object is stable in the world False else
     """
     world, world_id = _world_and_id(world)
-    shadow_obj = BulletWorld.current_bullet_world.get_shadow_object(object)
-    with Use_shadow_world():
+    shadow_obj = BulletWorld.current_world.get_prospection_object(object)
+    with UseProspectionWorld(BulletWorld):
         coords_prev = shadow_obj.pose.position_as_list()
-        state = p.saveState(physicsClientId=BulletWorld.current_bullet_world.client_id)
-        p.setGravity(0, 0, -9.8, BulletWorld.current_bullet_world.client_id)
+        state = p.saveState(physicsClientId=BulletWorld.current_world.client_id)
+        p.setGravity(0, 0, -9.8, BulletWorld.current_world.client_id)
 
         # one Step is approximately 1/240 seconds
-        BulletWorld.current_bullet_world.simulate(2)
+        BulletWorld.current_world.simulate(2)
         # coords_past = p.getBasePositionAndOrientation(object.id, physicsClientId=world_id)[0]
         coords_past = shadow_obj.pose.position_as_list()
 
@@ -128,12 +128,12 @@ def contact(object1: Object,
     :return: True if the two objects are in contact False else. If links should be returned a list of links in contact
     """
 
-    with Use_shadow_world():
-        shadow_obj1 = BulletWorld.current_bullet_world.get_shadow_object(object1)
-        shadow_obj2 = BulletWorld.current_bullet_world.get_shadow_object(object2)
-        p.performCollisionDetection(BulletWorld.current_bullet_world.client_id)
+    with UseProspectionWorld(BulletWorld):
+        shadow_obj1 = BulletWorld.current_world.get_prospection_object(object1)
+        shadow_obj2 = BulletWorld.current_world.get_prospection_object(object2)
+        p.performCollisionDetection(BulletWorld.current_world.client_id)
         con_points = p.getContactPoints(shadow_obj1.id, shadow_obj2.id,
-                                        physicsClientId=BulletWorld.current_bullet_world.client_id)
+                                        physicsClientId=BulletWorld.current_world.client_id)
 
         if return_links:
             contact_links = []
@@ -163,12 +163,12 @@ def visible(object: Object,
     :return: True if the object is visible from the camera_position False if not
     """
     front_facing_axis = robot_description.front_facing_axis if not front_facing_axis else front_facing_axis
-    with Use_shadow_world():
-        shadow_obj = BulletWorld.current_bullet_world.get_shadow_object(object)
+    with UseProspectionWorld(BulletWorld):
+        shadow_obj = BulletWorld.current_world.get_prospection_object(object)
         if BulletWorld.robot:
-            shadow_robot = BulletWorld.current_bullet_world.get_shadow_object(BulletWorld.robot)
-        state = p.saveState(physicsClientId=BulletWorld.current_bullet_world.client_id)
-        for obj in BulletWorld.current_bullet_world.objects:
+            shadow_robot = BulletWorld.current_world.get_prospection_object(BulletWorld.robot)
+        state = p.saveState(physicsClientId=BulletWorld.current_world.client_id)
+        for obj in BulletWorld.current_world.objects:
             if obj == shadow_obj or BulletWorld.robot and obj == shadow_robot:
                 continue
             else:
@@ -180,15 +180,15 @@ def visible(object: Object,
         # target_point = p.multiplyTransforms(world_to_cam.translation_as_list(), world_to_cam.rotation_as_list(), cam_to_point.translation_as_list(), [0, 0, 0, 1])
         # print(target_point)
 
-        seg_mask = _get_images_for_target(target_point, world_to_cam.to_pose(), BulletWorld.current_bullet_world)[2]
+        seg_mask = _get_images_for_target(target_point, world_to_cam.to_pose(), BulletWorld.current_world)[2]
         flat_list = list(itertools.chain.from_iterable(seg_mask))
         max_pixel = sum(list(map(lambda x: 1 if x == shadow_obj.id else 0, flat_list)))
-        p.restoreState(state, physicsClientId=BulletWorld.current_bullet_world.client_id)
+        p.restoreState(state, physicsClientId=BulletWorld.current_world.client_id)
         if max_pixel == 0:
             # Object is not visible
             return False
 
-        seg_mask = _get_images_for_target(target_point, world_to_cam.to_pose(), BulletWorld.current_bullet_world)[2]
+        seg_mask = _get_images_for_target(target_point, world_to_cam.to_pose(), BulletWorld.current_world)[2]
         flat_list = list(itertools.chain.from_iterable(seg_mask))
         real_pixel = sum(list(map(lambda x: 1 if x == shadow_obj.id else 0, flat_list)))
 
@@ -215,9 +215,9 @@ def occluding(object: Object,
     world, world_id = _world_and_id(world)
     # occ_world = world.copy()
     # state = p.saveState(physicsClientId=occ_world.client_id)
-    with Use_shadow_world():
-        state = p.saveState(physicsClientId=BulletWorld.current_bullet_world.client_id)
-        for obj in BulletWorld.current_bullet_world.objects:
+    with UseProspectionWorld(BulletWorld):
+        state = p.saveState(physicsClientId=BulletWorld.current_world.client_id)
+        for obj in BulletWorld.current_world.objects:
             if obj.name == BulletWorld.robot.name:
                 continue
             elif object.get_pose() == obj.get_pose():
@@ -229,22 +229,22 @@ def occluding(object: Object,
         cam_to_point = Transform(list(np.multiply(front_facing_axis, 2)), [0, 0, 0, 1], "camera", "point")
         target_point = (world_to_cam * cam_to_point).to_pose()
 
-        seg_mask = _get_images_for_target(target_point, world_to_cam.to_pose(), BulletWorld.current_bullet_world)[2]
+        seg_mask = _get_images_for_target(target_point, world_to_cam.to_pose(), BulletWorld.current_world)[2]
 
         # All indices where the object that could be occluded is in the image
         # [0] at the end is to reduce by one dimension because dstack adds an unnecessary dimension
         pix = np.dstack((seg_mask == object.id).nonzero())[0]
 
-        p.restoreState(state, physicsClientId=BulletWorld.current_bullet_world.client_id)
+        p.restoreState(state, physicsClientId=BulletWorld.current_world.client_id)
 
         occluding = []
-        seg_mask = _get_images_for_target(target_point, world_to_cam.to_pose(), BulletWorld.current_bullet_world)[2]
+        seg_mask = _get_images_for_target(target_point, world_to_cam.to_pose(), BulletWorld.current_world)[2]
         for c in pix:
             if not seg_mask[c[0]][c[1]] == object.id:
                 occluding.append(seg_mask[c[0]][c[1]])
 
-        occ_objects = list(set(map(BulletWorld.current_bullet_world.get_object_by_id, occluding)))
-        occ_objects = list(map(world.get_bullet_object_for_shadow, occ_objects))
+        occ_objects = list(set(map(BulletWorld.current_world.get_object_by_id, occluding)))
+        occ_objects = list(map(world.get_object_from_prospection, occ_objects))
 
         return occ_objects
 
@@ -267,8 +267,8 @@ def reachable(pose: Union[Object, Pose],
     if type(pose) == Object:
         pose = pose.get_pose()
 
-    shadow_robot = BulletWorld.current_bullet_world.get_shadow_object(robot)
-    with Use_shadow_world():
+    shadow_robot = BulletWorld.current_world.get_prospection_object(robot)
+    with UseProspectionWorld(BulletWorld):
         arm = "left" if gripper_name == robot_description.get_tool_frame("left") else "right"
         joints = robot_description.chains[arm].joints
         try:
@@ -305,8 +305,8 @@ def blocking(pose_or_object: Union[Object, Pose],
     else:
         input_pose = pose_or_object
 
-    shadow_robot = BulletWorld.current_bullet_world.get_shadow_object(robot)
-    with Use_shadow_world():
+    shadow_robot = BulletWorld.current_world.get_prospection_object(robot)
+    with UseProspectionWorld(BulletWorld):
         arm = "left" if gripper_name == robot_description.get_tool_frame("left") else "right"
         joints = robot_description.chains[arm].joints
         local_transformer = LocalTransformer()
@@ -327,9 +327,9 @@ def blocking(pose_or_object: Union[Object, Pose],
         _apply_ik(shadow_robot, inv, joints)
 
         block = []
-        for obj in BulletWorld.current_bullet_world.objects:
+        for obj in BulletWorld.current_world.objects:
             if contact(shadow_robot, obj):
-                block.append(BulletWorld.current_bullet_world.get_bullet_object_for_shadow(obj))
+                block.append(BulletWorld.current_world.get_object_from_prospection(obj))
     return block
 
 
@@ -357,8 +357,8 @@ def link_pose_for_joint_config(object: Object, joint_config: Dict[str, float], l
     :param link_name: Name of the link for which the pose should be returned
     :return: The pose of the link after applying the joint configuration
     """
-    shadow_object = BulletWorld.current_bullet_world.get_shadow_object(object)
-    with Use_shadow_world():
+    shadow_object = BulletWorld.current_world.get_prospection_object(object)
+    with UseProspectionWorld(BulletWorld):
         for joint, pose in joint_config.items():
             shadow_object.set_joint_position(joint, pose)
         return shadow_object.get_link_pose(link_name)
