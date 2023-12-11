@@ -74,10 +74,9 @@ class Attachment:
         self.add_constraint_and_update_objects_constraints_collection()
 
     def calculate_transform(self):
-        relative_pose = self.parent_object.get_other_object_link_pose_relative_to_my_link(self.parent_link_id,
-                                                                                          self.child_link_id,
-                                                                                          self.child_object)
-        return relative_pose.to_transform(self.child_object.get_link_tf_frame_by_id(self.child_link_id))
+        return self.parent_object.get_transform_of_other_object_link_relative_to_my_link(self.parent_link_id,
+                                                                                         self.child_link_id,
+                                                                                         self.child_object)
 
     def remove_constraint_if_exists(self):
         if self.constraint_id is not None:
@@ -1989,14 +1988,10 @@ class Object:
 
     def get_transform_of_other_object_link_relative_to_my_link(self,
                                                                my_link_id: int,
-                                                               other_object: Object,
-                                                               other_link_id: int) -> Transform:
-        """
-        Calculates the transform from source link frame to target link frame.
-        """
-        source_tf_frame = self.get_link_tf_frame_by_id(my_link_id)
-        target_tf_frame = other_object.get_link_tf_frame_by_id(other_link_id)
-        return self.local_transformer.lookup_transform_from_source_to_target_frame(source_tf_frame, target_tf_frame)
+                                                               other_link_id: int,
+                                                               other_object: Object) -> Transform:
+        pose = self.get_other_object_link_pose_relative_to_my_link(my_link_id, other_link_id, other_object)
+        return pose.to_transform(other_object.get_link_tf_frame_by_id(other_link_id))
 
     def get_link_position(self, name: str) -> Pose.position:
         """
