@@ -7,7 +7,7 @@ import pybullet as pb
 
 from geometry_msgs.msg import WrenchStamped
 from std_msgs.msg import Header
-from..world import BulletWorld
+from..bullet_world import BulletWorld
 
 
 class ForceTorqueSensor:

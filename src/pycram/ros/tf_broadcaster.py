@@ -4,7 +4,7 @@ import threading
 import atexit
 
 from ..pose import Pose
-from ..world import BulletWorld
+from ..bullet_world import BulletWorld
 from tf2_msgs.msg import TFMessage
 
 

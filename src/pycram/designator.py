@@ -9,7 +9,8 @@ from inspect import isgenerator, isgeneratorfunction
 from sqlalchemy.orm.session import Session
 import rospy
 
-from .world import (Object as BulletWorldObject, BulletWorld)
+from .world import Object as BulletWorldObject
+from pycram.bullet_world import BulletWorld
 from .helper import GeneratorList, bcolors
 from threading import Lock
 from time import time
