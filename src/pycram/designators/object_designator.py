@@ -21,7 +21,7 @@ class BelieveObject(ObjectDesignatorDescription):
         """
 
         def to_sql(self) -> ORMBelieveObject:
-            return ORMBelieveObject(self.type, self.name)
+            return ORMBelieveObject(self.obj_type, self.name)
 
         def insert(self, session: sqlalchemy.orm.session.Session) -> ORMBelieveObject:
             self_ = self.to_sql()
@@ -44,7 +44,7 @@ class ObjectPart(ObjectDesignatorDescription):
         part_pose: Pose
 
         def to_sql(self) -> ORMObjectPart:
-            return ORMObjectPart(self.type, self.name)
+            return ORMObjectPart(self.obj_type, self.name)
 
         def insert(self, session: sqlalchemy.orm.session.Session) -> ORMObjectPart:
             obj = self.to_sql()
@@ -169,9 +169,6 @@ class RealObject(ObjectDesignatorDescription):
         """
         object_candidates = query(self)
         for obj_desig in object_candidates:
-            for bullet_obj in BulletWorld.get_objects_by_type(obj_desig.type):
+            for bullet_obj in BulletWorld.get_objects_by_type(obj_desig.obj_type):
                 obj_desig.bullet_world_object = bullet_obj
                 yield obj_desig
-                # if bullet_obj.get_pose().dist(obj_deisg.pose) < 0.05:
-                #     obj_deisg.bullet_world_object = bullet_obj
-                #     yield obj_deisg

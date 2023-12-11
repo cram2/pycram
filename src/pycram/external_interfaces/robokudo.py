@@ -85,7 +85,7 @@ def msg_from_obj_desig(obj_desc: ObjectDesignatorDescription) -> 'robokudo_Objet
     """
     obj_msg = robokudo_ObjetDesignator()
     obj_msg.uid = str(id(obj_desc))
-    obj_msg.type = obj_desc.types[0] # For testing purposes
+    obj_msg.obj_type = obj_desc.types[0] # For testing purposes
 
     return obj_msg
 
@@ -99,7 +99,7 @@ def make_query_goal_msg(obj_desc: ObjectDesignatorDescription) -> 'QueryGoal':
     """
     goal_msg = QueryGoal()
     goal_msg.obj.uid = str(id(obj_desc))
-    goal_msg.obj.type = str(obj_desc.types[0].name) # For testing purposes
+    goal_msg.obj.obj_type = str(obj_desc.types[0].name) # For testing purposes
     if ObjectType.JEROEN_CUP == obj_desc.types[0]:
         goal_msg.obj.color.append("blue")
     elif ObjectType.BOWL == obj_desc.types[0]:

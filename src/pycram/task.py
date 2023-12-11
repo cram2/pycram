@@ -254,7 +254,7 @@ class SimulatedTaskTree:
         def simulation(): return None
 
         self.suspended_tree = task_tree
-        self.world_state, self.objects2attached = BulletWorld.current_world.save_state()
+        self.world_state = BulletWorld.current_world.save_state()
         self.simulated_root = TaskTreeNode(code=Code(simulation))
         task_tree = self.simulated_root
         pybullet.addUserDebugText("Simulating...", [0, 0, 1.75], textColorRGB=[0, 0, 0],
@@ -267,7 +267,7 @@ class SimulatedTaskTree:
         """
         global task_tree
         task_tree = self.suspended_tree
-        BulletWorld.current_world.restore_state(self.world_state, self.objects2attached)
+        BulletWorld.current_world.restore_state(self.world_state)
         pybullet.removeAllUserDebugItems()
 
 

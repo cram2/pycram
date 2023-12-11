@@ -385,10 +385,10 @@ class DetectingMotion(MotionDesignatorDescription):
                 raise PerceptionObjectNotFound(
                     f"Could not find an object with the type {self.object_type} in the FOV of the robot")
             if ProcessModuleManager.execution_type == "real":
-                return RealObject.Object(bullet_world_object.name, bullet_world_object.type,
-                                                      bullet_world_object, bullet_world_object.get_pose())
+                return RealObject.Object(bullet_world_object.name, bullet_world_object.obj_type,
+                                         bullet_world_object, bullet_world_object.get_pose())
 
-            return ObjectDesignatorDescription.Object(bullet_world_object.name, bullet_world_object.type,
+            return ObjectDesignatorDescription.Object(bullet_world_object.name, bullet_world_object.obj_type,
                                                       bullet_world_object)
 
         def to_sql(self) -> ORMDetectingMotion:

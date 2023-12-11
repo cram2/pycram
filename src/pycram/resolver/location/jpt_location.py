@@ -116,7 +116,7 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
         """
         evidence = dict()
 
-        evidence["type"] = {self.target.type}
+        evidence["type"] = {self.target.obj_type}
 
         if use_success:
             evidence["status"] = {"SUCCEEDED"}

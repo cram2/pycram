@@ -1,11 +1,7 @@
-import unittest
 import rospy
-from time import sleep
 
 
-from src.pycram.world import BulletWorld, Object
-from src.pycram.local_transformer import LocalTransformer
-from pycram.robot_descriptions import robot_description
+from pycram.local_transformer import LocalTransformer
 from pycram.pose import Pose, Transform
 import test_bullet_world
 
@@ -44,7 +40,7 @@ class TestLocalTransformer(test_bullet_world.BulletWorldTest):
     def test_update_for_object(self):
         l = LocalTransformer()
         self.milk.set_pose(Pose([1, 2, 1]))
-        l.update_transforms_for_object(self.milk)
+        self.milk.update_link_transforms()
         self.assertTrue(l.canTransform("map", self.milk.tf_frame, rospy.Time(0)))
 
 

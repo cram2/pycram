@@ -240,7 +240,7 @@ class DonbotWorldStateDetecting(ProcessModule):
         solution = desig.reference()
         if solution['cmd'] == "world-state-detecting":
             obj_type = solution['object_type']
-            return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_world.objects))[0]
+            return list(filter(lambda obj: obj.obj_type == obj_type, BulletWorld.current_world.objects))[0]
 
 
 class DonbotManager(ProcessModuleManager):

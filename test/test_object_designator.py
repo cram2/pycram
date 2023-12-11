@@ -11,7 +11,7 @@ class TestObjectDesignator(test_bullet_world.BulletWorldTest):
         obj = description.ground()
 
         self.assertEqual(obj.name, "milk")
-        self.assertEqual(obj.type, ObjectType.MILK)
+        self.assertEqual(obj.obj_type, ObjectType.MILK)
 
     def test_data_copy(self):
         description = ObjectDesignatorDescription(["milk"], [ObjectType.MILK])
