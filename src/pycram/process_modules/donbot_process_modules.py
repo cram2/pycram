@@ -188,7 +188,7 @@ class DonbotDetecting(ProcessModule):
             cam_frame_name = solution['cam_frame']
             front_facing_axis = solution['front_facing_axis']
 
-            objects = BulletWorld.current_bullet_world.get_objects_by_type(object_type)
+            objects = BulletWorld.current_world.get_objects_by_type(object_type)
             for obj in objects:
                 if btr.visible(obj, robot.get_link_position_and_orientation(cam_frame_name), front_facing_axis, 0.5):
                     return obj
@@ -240,7 +240,7 @@ class DonbotWorldStateDetecting(ProcessModule):
         solution = desig.reference()
         if solution['cmd'] == "world-state-detecting":
             obj_type = solution['object_type']
-            return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
+            return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_world.objects))[0]
 
 
 class DonbotManager(ProcessModuleManager):

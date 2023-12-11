@@ -25,7 +25,7 @@ class ForceTorqueSensor:
         :param fts_topic: Name of the ROS topic to which should be published
         :param interval: Interval at which the messages should be published, in seconds
         """
-        self.world = BulletWorld.current_bullet_world
+        self.world = BulletWorld.current_world
         self.fts_joint_idx = None
         self.joint_name = joint_name
         if joint_name in self.world.robot.joints.keys():

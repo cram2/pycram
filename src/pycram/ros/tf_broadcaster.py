@@ -21,7 +21,7 @@ class TFBroadcaster:
         :param odom_frame: Name of the statically published odom frame
         :param interval: Interval at which the TFs should be published, in seconds
         """
-        self.world = BulletWorld.current_bullet_world
+        self.world = BulletWorld.current_world
 
         self.tf_static_publisher = rospy.Publisher("/tf_static", TFMessage, queue_size=10)
         self.tf_publisher = rospy.Publisher("/tf", TFMessage, queue_size=10)

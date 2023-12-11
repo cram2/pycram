@@ -65,7 +65,7 @@ class TaskTreeTestCase(test_bullet_world.BulletWorldTest):
 
     def test_execution(self):
         self.plan()
-        self.world.reset_bullet_world()
+        self.world.reset_world()
         tt = pycram.task.task_tree
         # self.setUpBulletWorld(False)
         with simulated_robot:

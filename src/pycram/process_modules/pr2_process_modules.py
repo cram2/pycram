@@ -156,7 +156,7 @@ class Pr2Detecting(ProcessModule):
         # should be [0, 0, 1]
         front_facing_axis = robot_description.front_facing_axis
 
-        objects = BulletWorld.current_bullet_world.get_objects_by_type(object_type)
+        objects = BulletWorld.current_world.get_objects_by_type(object_type)
         for obj in objects:
             if btr.visible(obj, robot.get_link_pose(cam_frame_name), front_facing_axis):
                 return obj
@@ -205,7 +205,7 @@ class Pr2WorldStateDetecting(ProcessModule):
 
     def _execute(self, desig: WorldStateDetectingMotion.Motion):
         obj_type = desig.object_type
-        return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
+        return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_world.objects))[0]
 
 
 class Pr2Open(ProcessModule):
@@ -325,7 +325,7 @@ class Pr2DetectingReal(ProcessModule):
         obj_pose.orientation = [0, 0, 0, 1]
         obj_pose.position.x += 0.05
 
-        bullet_obj = BulletWorld.current_bullet_world.get_objects_by_type(designator.object_type)
+        bullet_obj = BulletWorld.current_world.get_objects_by_type(designator.object_type)
         if bullet_obj:
             bullet_obj[0].set_pose(obj_pose)
             return bullet_obj[0]

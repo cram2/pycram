@@ -753,7 +753,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
         :yield: A resolved object designator
         """
         # for every bullet world object
-        for obj in BulletWorld.current_bullet_world.objects:
+        for obj in BulletWorld.current_world.objects:
 
             # skip if name does not match specification
             if self.names and obj.name not in self.names:

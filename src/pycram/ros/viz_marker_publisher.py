@@ -56,7 +56,7 @@ class VizMarkerPublisher:
         :return: An Array of Visualization Marker
         """
         marker_array = MarkerArray()
-        for obj in BulletWorld.current_bullet_world.objects:
+        for obj in BulletWorld.current_world.objects:
             if obj.name == "floor":
                 continue
             for link in obj.links.keys():

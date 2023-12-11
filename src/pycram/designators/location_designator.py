@@ -3,7 +3,7 @@ import time
 from typing import List, Tuple, Union, Iterable, Optional, Callable
 
 from .object_designator import ObjectDesignatorDescription, ObjectPart
-from ..world import Object, BulletWorld, Use_shadow_world
+from ..world import Object, BulletWorld, UseProspectionWorld
 from ..world_reasoning import link_pose_for_joint_config
 from ..designator import Designator, DesignatorError, LocationDesignatorDescription
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
@@ -180,16 +180,16 @@ class CostmapLocation(LocationDesignatorDescription):
 
         if self.visible_for or self.reachable_for:
             robot_object = self.visible_for.bullet_world_object if self.visible_for else self.reachable_for.bullet_world_object
-            test_robot = BulletWorld.current_bullet_world.get_shadow_object(robot_object)
+            test_robot = BulletWorld.current_world.get_prospection_object(robot_object)
 
-        with Use_shadow_world():
+        with UseProspectionWorld(BulletWorld):
 
             for maybe_pose in pose_generator(final_map, number_of_samples=600):
                 res = True
                 arms = None
                 if self.visible_for:
                     res = res and visibility_validator(maybe_pose, test_robot, target_pose,
-                                                       BulletWorld.current_bullet_world)
+                                                       BulletWorld.current_world)
                 if self.reachable_for:
                     hand_links = []
                     for name, chain in robot_description.chains.items():
@@ -256,7 +256,7 @@ class AccessingLocation(LocationDesignatorDescription):
 
         final_map = occupancy + gaussian
 
-        test_robot = BulletWorld.current_bullet_world.get_shadow_object(self.robot)
+        test_robot = BulletWorld.current_world.get_prospection_object(self.robot)
 
         # Find a Joint of type prismatic which is above the handle in the URDF tree
         container_joint = self.handle.bullet_world_object.find_joint_above(self.handle.name, JointType.PRISMATIC)
@@ -275,7 +275,7 @@ class AccessingLocation(LocationDesignatorDescription):
             container_joint: self.handle.bullet_world_object.get_joint_limits(container_joint)[1] / 1.5},
                                                self.handle.name)
 
-        with Use_shadow_world():
+        with UseProspectionWorld(BulletWorld):
             for maybe_pose in pose_generator(final_map, number_of_samples=600,
                                              orientation_generator=lambda p, o: generate_orientation(p, half_pose)):
 
@@ -338,7 +338,7 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
         sem_costmap = SemanticCostmap(self.part_of.bullet_world_object, self.urdf_link_name)
         height_offset = 0
         if self.for_object:
-            min, max = self.for_object.bullet_world_object.get_AABB()
+            min, max = self.for_object.bullet_world_object.get_aabb()
             height_offset = (max[2] - min[2]) / 2
         for maybe_pose in pose_generator(sem_costmap):
             maybe_pose.position.z += height_offset

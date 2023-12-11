@@ -79,7 +79,7 @@ class DatabaseResolverTestCase(unittest.TestCase):
         raise pycram.plan_failures.PlanFailure()
 
     def tearDown(self) -> None:
-        self.world.reset_bullet_world()
+        self.world.reset_world()
 
     @classmethod
     def tearDownClass(cls) -> None:

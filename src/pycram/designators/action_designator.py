@@ -345,12 +345,12 @@ class PickUpAction(ActionDesignatorDescription):
             prepose = object.local_transformer.transform_pose_to_target_frame(oTg, "map")
 
             # Perform the motion with the prepose and open gripper
-            BulletWorld.current_bullet_world.add_vis_axis(prepose)
+            BulletWorld.current_world.add_vis_axis(prepose)
             MoveTCPMotion(prepose, self.arm).resolve().perform()
             MoveGripperMotion(motion="open", gripper=self.arm).resolve().perform()
 
             # Perform the motion with the adjusted pose -> actual grasp and close gripper
-            BulletWorld.current_bullet_world.add_vis_axis(adjusted_oTm)
+            BulletWorld.current_world.add_vis_axis(adjusted_oTm)
             MoveTCPMotion(adjusted_oTm, self.arm).resolve().perform()
             adjusted_oTm.pose.position.z += 0.03
             MoveGripperMotion(motion="close", gripper=self.arm).resolve().perform()
@@ -358,11 +358,11 @@ class PickUpAction(ActionDesignatorDescription):
             robot.attach(object, tool_frame)
 
             # Lift object
-            BulletWorld.current_bullet_world.add_vis_axis(adjusted_oTm)
+            BulletWorld.current_world.add_vis_axis(adjusted_oTm)
             MoveTCPMotion(adjusted_oTm, self.arm).resolve().perform()
 
             # Remove the vis axis from the world
-            BulletWorld.current_bullet_world.remove_vis_axis()
+            BulletWorld.current_world.remove_vis_axis()
 
         def to_sql(self) -> ORMPickUpAction:
             return ORMPickUpAction(self.arm, self.grasp)

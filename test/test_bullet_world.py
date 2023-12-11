@@ -25,7 +25,7 @@ class BulletWorldTest(unittest.TestCase):
         ProcessModule.execution_delay = False
 
     def setUp(self):
-        self.world.reset_bullet_world()
+        self.world.reset_world()
 
     def test_object_movement(self):
         self.milk.set_position(Pose([0, 1, 1]))
@@ -39,7 +39,7 @@ class BulletWorldTest(unittest.TestCase):
         self.assertEqual(self.robot.get_link_position('head_pan_link').z, head_position)
 
     def tearDown(self):
-        self.world.reset_bullet_world()
+        self.world.reset_world()
 
     @classmethod
     def tearDownClass(cls):

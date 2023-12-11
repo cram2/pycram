@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib import colors
 import psutil
 import time
-from .world import BulletWorld, Use_shadow_world, Object
+from .world import BulletWorld, UseProspectionWorld, Object
 from .world_reasoning import _get_images_for_target
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 from typing import Tuple, List, Union, Optional
@@ -385,17 +385,17 @@ class OccupancyCostmap(Costmap):
         i = 0
         j = 0
         for n in self._chunks(np.array(rays), 16380):
-            with Use_shadow_world():
+            with UseProspectionWorld(BulletWorld):
                 r_t = p.rayTestBatch(n[:, 0], n[:, 1], numThreads=0,
-                                     physicsClientId=BulletWorld.current_bullet_world.client_id)
+                                     physicsClientId=BulletWorld.current_world.client_id)
                 while r_t is None:
                     r_t = p.rayTestBatch(n[:, 0], n[:, 1], numThreads=0,
-                                         physicsClientId=BulletWorld.current_bullet_world.client_id)
+                                         physicsClientId=BulletWorld.current_world.client_id)
                 j += len(n)
                 if BulletWorld.robot:
-                    shadow_robot = BulletWorld.current_bullet_world.get_shadow_object(BulletWorld.robot)
+                    shadow_robot = BulletWorld.current_world.get_prospection_object(BulletWorld.robot)
                     attached_objs = BulletWorld.robot.attachments.keys()
-                    attached_objs_shadow_id = [BulletWorld.current_bullet_world.get_shadow_object(x).id for x in
+                    attached_objs_shadow_id = [BulletWorld.current_world.get_prospection_object(x).id for x in
                                                attached_objs]
                     res[i:j] = [
                         1 if ray[0] == -1 or ray[0] == shadow_robot.id or ray[0] in attached_objs_shadow_id else 0 for
@@ -470,7 +470,7 @@ class VisibilityCostmap(Costmap):
         if (11 * size ** 2 + size ** 3) * 2 > psutil.virtual_memory().available:
             raise OSError("Not enough free RAM to calculate a costmap of this size")
 
-        self.world = world if world else BulletWorld.current_bullet_world
+        self.world = world if world else BulletWorld.current_world
         self.map = np.zeros((size, size))
         self.size = size
         self.resolution = resolution
@@ -494,26 +494,26 @@ class VisibilityCostmap(Costmap):
         images = []
         camera_pose = self.origin
 
-        with Use_shadow_world():
+        with UseProspectionWorld(BulletWorld):
             origin_copy = self.origin.copy()
             origin_copy.position.y += 1
             images.append(
-                _get_images_for_target(origin_copy, camera_pose, BulletWorld.current_bullet_world, size=self.size)[1])
+                _get_images_for_target(origin_copy, camera_pose, BulletWorld.current_world, size=self.size)[1])
 
             origin_copy = self.origin.copy()
             origin_copy.position.x -= 1
             images.append(
-                _get_images_for_target(origin_copy, camera_pose, BulletWorld.current_bullet_world, size=self.size)[1])
+                _get_images_for_target(origin_copy, camera_pose, BulletWorld.current_world, size=self.size)[1])
 
             origin_copy = self.origin.copy()
             origin_copy.position.y -= 1
             images.append(
-                _get_images_for_target(origin_copy, camera_pose, BulletWorld.current_bullet_world, size=self.size)[1])
+                _get_images_for_target(origin_copy, camera_pose, BulletWorld.current_world, size=self.size)[1])
 
             origin_copy = self.origin.copy()
             origin_copy.position.x += 1
             images.append(
-                _get_images_for_target(origin_copy, camera_pose, BulletWorld.current_bullet_world, size=self.size)[1])
+                _get_images_for_target(origin_copy, camera_pose, BulletWorld.current_world, size=self.size)[1])
 
         for i in range(0, 4):
             images[i] = self._depth_buffer_to_meter(images[i])
@@ -695,7 +695,7 @@ class SemanticCostmap(Costmap):
         :param resolution: Resolution of the final costmap
         :param world: The BulletWorld from which the costmap should be created
         """
-        self.world: BulletWorld = world if world else BulletWorld.current_bullet_world
+        self.world: BulletWorld = world if world else BulletWorld.current_world
         self.object: Object = object
         self.link: str = urdf_link_name
         self.resolution: float = resolution
@@ -725,14 +725,14 @@ class SemanticCostmap(Costmap):
 
         :return: Two points in world coordinate space, which span a rectangle
         """
-        shadow_obj = BulletWorld.current_bullet_world.get_shadow_object(self.object)
-        with Use_shadow_world():
+        shadow_obj = BulletWorld.current_world.get_prospection_object(self.object)
+        with UseProspectionWorld(BulletWorld):
             shadow_obj.set_orientation(Pose(orientation=[0, 0, 0, 1]))
             link_orientation = shadow_obj.get_link_pose(self.link)
             link_orientation_trans = link_orientation.to_transform(self.object.get_link_tf_frame(self.link))
             inverse_orientation = link_orientation_trans.invert()
             shadow_obj.set_orientation(inverse_orientation.to_pose())
-            return shadow_obj.get_link_AABB(self.link)
+            return shadow_obj.get_link_aabb(self.link)
 
 
 cmap = colors.ListedColormap(['white', 'black', 'green', 'red', 'blue'])
