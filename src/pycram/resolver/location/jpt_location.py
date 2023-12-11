@@ -12,7 +12,8 @@ import pycram.task
 from ...costmaps import OccupancyCostmap, plot_grid
 from ...plan_failures import PlanFailure
 from ...pose import Pose
-from pycram.world import BulletWorld, Object
+from pycram.bullet_world import BulletWorld
+from pycram.world import Object
 
 
 class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation):

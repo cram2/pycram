@@ -6,7 +6,7 @@ import rospy
 
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
-from ..world import BulletWorld
+from ..bullet_world import BulletWorld
 
 
 class JointStatePublisher:

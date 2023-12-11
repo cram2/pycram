@@ -6,7 +6,8 @@ import urdf_parser_py
 
 from ..pose import Pose
 from ..robot_descriptions import robot_description
-from ..world import BulletWorld, Object
+from ..bullet_world import BulletWorld
+from pycram.world import Object
 from ..robot_description import ManipulatorDescription
 
 from typing import List, Tuple, Dict, Callable

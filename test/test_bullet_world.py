@@ -1,7 +1,8 @@
 import unittest
 
 import numpy as np
-from pycram.world import BulletWorld, Object, fix_missing_inertial
+from pycram.bullet_world import BulletWorld
+from pycram.world import Object, fix_missing_inertial
 from pycram.pose import Pose
 from pycram.robot_descriptions import robot_description
 from pycram.process_module import ProcessModule

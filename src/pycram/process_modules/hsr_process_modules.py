@@ -2,7 +2,7 @@ from threading import Lock
 
 from ..robot_descriptions import robot_description
 from ..process_module import ProcessModule, ProcessModuleManager
-from ..world import BulletWorld
+from ..bullet_world import BulletWorld
 from ..helper import _apply_ik
 import pycram.world_reasoning as btr
 import pybullet as p

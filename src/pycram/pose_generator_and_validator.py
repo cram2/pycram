@@ -3,7 +3,8 @@ import numpy as np
 import rospy
 import pybullet as p
 
-from .world import Object, BulletWorld, UseProspectionWorld
+from .world import Object
+from .bullet_world import BulletWorld
 from .world_reasoning import contact
 from .costmaps import Costmap
 from .pose import Pose, Transform

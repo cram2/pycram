@@ -23,7 +23,7 @@ from ..robot_descriptions import robot_description
 from ..task import with_tree
 from ..enums import Arms
 from ..designator import ActionDesignatorDescription
-from ..world import BulletWorld
+from ..bullet_world import BulletWorld
 from ..pose import Pose
 from ..helper import multiply_quaternions
 

@@ -5,7 +5,7 @@ import pybullet as p
 
 import pycram.world_reasoning as btr
 import pycram.helper as helper
-from ..world import BulletWorld
+from ..bullet_world import BulletWorld
 from ..external_interfaces.ik import request_ik
 from ..local_transformer import LocalTransformer as local_tf
 from ..process_module import ProcessModule, ProcessModuleManager

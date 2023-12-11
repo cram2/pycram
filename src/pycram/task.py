@@ -14,7 +14,7 @@ import pybullet
 import sqlalchemy.orm.session
 import tqdm
 
-from .world import BulletWorld
+from .bullet_world import BulletWorld
 from .orm.task import (Code as ORMCode, TaskTreeNode as ORMTaskTreeNode)
 from .orm.base import ProcessMetaData
 from .plan_failures import PlanFailure

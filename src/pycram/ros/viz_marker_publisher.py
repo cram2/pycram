@@ -5,7 +5,7 @@ import time
 from geometry_msgs.msg import Vector3
 from std_msgs.msg import ColorRGBA
 
-from pycram.world import BulletWorld, Object
+from pycram.bullet_world import BulletWorld
 from visualization_msgs.msg import MarkerArray, Marker
 import rospy
 import urdf_parser_py

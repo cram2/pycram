@@ -3,7 +3,8 @@ import time
 from typing import List, Tuple, Union, Iterable, Optional, Callable
 
 from .object_designator import ObjectDesignatorDescription, ObjectPart
-from ..world import Object, BulletWorld, UseProspectionWorld
+from ..world import Object, UseProspectionWorld
+from ..bullet_world import BulletWorld
 from ..world_reasoning import link_pose_for_joint_config
 from ..designator import Designator, DesignatorError, LocationDesignatorDescription
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap

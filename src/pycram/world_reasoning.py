@@ -3,7 +3,8 @@ import itertools
 import numpy as np
 import rospy
 
-from .world import _world_and_id, Object, UseProspectionWorld, BulletWorld
+from .world import _world_and_id, Object, UseProspectionWorld
+from .bullet_world import BulletWorld
 from .external_interfaces.ik import request_ik
 from .local_transformer import LocalTransformer
 from .plan_failures import IKError
