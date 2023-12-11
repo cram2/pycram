@@ -487,7 +487,7 @@ class ActionDesignatorDescription(DesignatorDescription):
         def __post_init__(self):
             self.robot_position = BulletWorld.robot.get_pose()
             self.robot_torso_height = BulletWorld.robot.get_joint_position(robot_description.torso_joint)
-            self.robot_type = BulletWorld.robot.type
+            self.robot_type = BulletWorld.robot.obj_type
 
         @with_tree
         def perform(self) -> Any:
@@ -596,7 +596,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
         Name of the object
         """
 
-        type: str
+        obj_type: str
         """
         Type of the object
         """
@@ -622,7 +622,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
             :return: The created ORM object.
             """
-            return ORMObjectDesignator(self.type, self.name)
+            return ORMObjectDesignator(self.obj_type, self.name)
 
         def insert(self, session: Session) -> ORMObjectDesignator:
             """
@@ -651,7 +651,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
             object is not copied. The _pose gets set to a method that statically returns the pose of the object when
             this method was called.
             """
-            result = ObjectDesignatorDescription.Object(self.name, self.type, None)
+            result = ObjectDesignatorDescription.Object(self.name, self.obj_type, None)
             # get current object pose and set resulting pose to always be that
             pose = self.pose
             result.pose = lambda: pose
@@ -693,8 +693,8 @@ class ObjectDesignatorDescription(DesignatorDescription):
             pose_in_object = lt.transform_pose_to_target_frame(pose, self.bullet_world_object.tf_frame)
 
             special_knowledge = []  # Initialize as an empty list
-            if self.type in SPECIAL_KNOWLEDGE:
-                special_knowledge = SPECIAL_KNOWLEDGE[self.type]
+            if self.obj_type in SPECIAL_KNOWLEDGE:
+                special_knowledge = SPECIAL_KNOWLEDGE[self.obj_type]
 
             for key, value in special_knowledge:
                 if key == grasp:
@@ -760,7 +760,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
                 continue
 
             # skip if type does not match specification
-            if self.types and obj.type not in self.types:
+            if self.types and obj.obj_type not in self.types:
                 continue
 
-            yield self.Object(obj.name, obj.type, obj)
+            yield self.Object(obj.name, obj.obj_type, obj)

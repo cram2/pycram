@@ -401,8 +401,10 @@ class PickUpAction(ActionDesignatorDescription):
 
         :return: A performable designator
         """
-        obj_desig = self.object_designator_description if isinstance(self.object_designator_description,
-                                                                     ObjectDesignatorDescription.Object) else self.object_designator_description.resolve()
+        if isinstance(self.object_designator_description, ObjectDesignatorDescription.Object):
+            obj_desig = self.object_designator_description
+        else:
+            obj_desig = self.object_designator_description.resolve()
 
         return self.Action(obj_desig, self.arms[0], self.grasps[0])
 
@@ -702,7 +704,7 @@ class DetectAction(ActionDesignatorDescription):
 
         @with_tree
         def perform(self) -> Any:
-            return DetectingMotion(object_type=self.object_designator.type).resolve().perform()
+            return DetectingMotion(object_type=self.object_designator.obj_type).resolve().perform()
 
         def to_sql(self) -> ORMDetectAction:
             return ORMDetectAction()

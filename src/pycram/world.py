@@ -42,6 +42,7 @@ class Attachment:
                  parent_link_id: Optional[int] = -1,  # -1 means base link
                  child_link_id: Optional[int] = -1,
                  bidirectional: Optional[bool] = False,
+                 child_to_parent_transform: Optional[Transform] = None,
                  constraint_id: Optional[int] = None):
         """
         Creates an attachment between the parent object and the child object.
@@ -51,27 +52,40 @@ class Attachment:
         self.parent_link_id = parent_link_id
         self.child_link_id = child_link_id
         self.bidirectional = bidirectional
-        self.child_to_parent_transform = self.calculate_transforms()
         self._loose = False and not self.bidirectional
-        self.constraint_id = self.update_constraint() if constraint_id is None else constraint_id
+
+        self.child_to_parent_transform = child_to_parent_transform
+        if self.child_to_parent_transform is None:
+            self.update_transform()
+
+        self.constraint_id = constraint_id
+        if self.constraint_id is None:
+            self.add_constraint_and_update_objects_constraints_collection()
 
     def update_attachment(self):
-        self.update_transforms()
+        self.update_transform()
         self.update_constraint()
-        self.update_objects_attachments_collection()
 
-    def update_transforms(self):
-        self.child_to_parent_transform = self.calculate_transforms()
+    def update_transform(self):
+        self.child_to_parent_transform = self.calculate_transform()
 
     def update_constraint(self):
+        self.remove_constraint_if_exists()
+        self.add_constraint_and_update_objects_constraints_collection()
+
+    def calculate_transform(self):
+        relative_pose = self.parent_object.get_other_object_link_pose_relative_to_my_link(self.parent_link_id,
+                                                                                          self.child_link_id,
+                                                                                          self.child_object)
+        return relative_pose.to_transform(self.child_object.get_link_tf_frame_by_id(self.child_link_id))
+
+    def remove_constraint_if_exists(self):
         if self.constraint_id is not None:
             self.parent_object.world.remove_constraint(self.constraint_id)
+
+    def add_constraint_and_update_objects_constraints_collection(self):
         self.constraint_id = self.add_fixed_constraint()
         self.update_objects_constraints_collection()
-
-    def update_objects_attachments_collection(self):
-        self.parent_object.attachments[self.child_object] = self
-        self.child_object.attachments[self.parent_object] = self.get_inverse()
 
     def add_fixed_constraint(self):
         constraint_id = self.parent_object.world.add_fixed_constraint(self.parent_object.id,
@@ -87,12 +101,10 @@ class Attachment:
 
     def get_inverse(self):
         attachment = Attachment(self.child_object, self.parent_object, self.child_link_id,
-                                self.parent_link_id, self.bidirectional, self.constraint_id)
+                                self.parent_link_id, self.bidirectional, self.child_to_parent_transform.invert(),
+                                self.constraint_id)
         attachment.loose = False if self.loose else True
         return attachment
-
-    def calculate_transforms(self):
-        return self.parent_object.get_transform_between_two_links(self.parent_link_id, self.child_link_id)
 
     @property
     def loose(self) -> bool:
@@ -153,7 +165,7 @@ class World(ABC):
     URDF with the name of the URDF on the parameter server. 
     """
 
-    data_directory: List[str] = {os.path.dirname(__file__) + "/../../resources"}
+    data_directory: List[str] = [os.path.dirname(__file__) + "/../../resources"]
     """
     Global reference for the data directories, this is used to search for the URDF files of the robot and the objects.
     """
@@ -169,16 +181,19 @@ class World(ABC):
        :param mode: Can either be "GUI" for rendered window or "DIRECT" for non-rendered. The default parameter is "GUI"
        :param is_prospection_world: For internal usage, decides if this World should be used as a prospection world.
         """
+
+        self._init_current_world_and_simulation_time_step(simulation_time_step)
+        # init the current world and simulation time step which are class variables.
+
         self.objects: List[Object] = []
         self.client_id: int = -1
         self.mode: str = mode
+
         self._init_events()
-        World.current_world = self if World.current_world is None else World.current_world
         self.coll_callbacks: Dict[Tuple[Object, Object], Tuple[Callable, Callable]] = {}
         self.local_transformer = LocalTransformer()
 
         self.is_prospection_world: bool = is_prospection_world
-
         if is_prospection_world:  # then no need to add another prospection world
             self.prospection_world = None
             self.world_sync = None
@@ -186,9 +201,12 @@ class World(ABC):
             self._init_and_sync_prospection_world()
             self._update_local_transformer_worlds()
 
+        self._saved_states: Dict[int, WorldState] = {}
+        # Different states of the world indexed by int state id.
+
+    def _init_current_world_and_simulation_time_step(self, simulation_time_step):
+        World.current_world = self if World.current_world is None else World.current_world
         World.simulation_time_step = simulation_time_step
-        self.simulation_frequency = int(1/self.simulation_time_step)
-        self._saved_states: Dict[int, WorldState] = {}  # Different states of the world indexed by int state id.
 
     def _init_events(self):
         self.detachment_event: Event = Event()
@@ -203,12 +221,17 @@ class World(ABC):
         self.local_transformer.world = self
         self.local_transformer.prospection_world = self.prospection_world
 
-    def _init_prospection_world(self):
-        self.prospection_world: World = World("DIRECT", True)
+    @classmethod
+    def _init_prospection_world(cls):
+        cls.prospection_world: World = cls("DIRECT", True)
 
     def _sync_prospection_world(self):
         self.world_sync: WorldSync = WorldSync(self, self.prospection_world)
         self.world_sync.start()
+
+    @property
+    def simulation_frequency(self):
+        return int(1/World.simulation_time_step)
 
     @abstractmethod
     def load_urdf_at_pose_and_get_object_id(self, path: str, pose: Pose) -> int:
@@ -230,7 +253,7 @@ class World(ABC):
         :param obj_type: The type of the returned Objects.
         :return: A list of all Objects that have the type 'obj_type'.
         """
-        return list(filter(lambda obj: obj.type == obj_type, self.objects))
+        return list(filter(lambda obj: obj.obj_type == obj_type, self.objects))
 
     def get_object_by_id(self, id: int) -> Object:
         """
@@ -266,6 +289,7 @@ class World(ABC):
                 continue
             if not parent.attachments[child].bidirectional:
                 parent.attachments[child].update_attachment()
+                child.attachments[parent].update_attachment()
             else:
                 link_to_object = parent.attachments[child].child_to_parent_transform
 
@@ -290,8 +314,16 @@ class World(ABC):
         """
 
         # Add the attachment to the attachment dictionary of both objects
-        Attachment(parent_object, child_object, parent_link_id, child_link_id, bidirectional)
+        attachment = Attachment(parent_object, child_object, parent_link_id, child_link_id, bidirectional)
+        self.update_objects_attachments_collection(parent_object, child_object, attachment)
         self.attachment_event(parent_object, [parent_object, child_object])
+
+    def update_objects_attachments_collection(self,
+                                              parent_object: Object,
+                                              child_object: Object,
+                                              attachment: Attachment) -> None:
+        parent_object.attachments[child_object] = attachment
+        child_object.attachments[parent_object] = attachment.get_inverse()
 
     def add_fixed_constraint(self,
                              parent_object_id: int,
@@ -629,7 +661,7 @@ class World(ABC):
         pass
 
     @abstractmethod
-    def get_object_link_AABB(self, obj: Object, link_name: str) -> Tuple[List[float], List[float]]:
+    def get_object_link_aabb(self, obj: Object, link_name: str) -> Tuple[List[float], List[float]]:
         """
         Returns the axis aligned bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
@@ -827,7 +859,7 @@ class World(ABC):
         """
         world = BulletWorld("DIRECT")
         for obj in self.objects:
-            o = Object(obj.name, obj.type, obj.path, Pose(obj.get_position(), obj.get_orientation()),
+            o = Object(obj.name, obj.obj_type, obj.path, Pose(obj.get_position(), obj.get_orientation()),
                        world, obj.color)
             for joint in obj.joints:
                 o.set_joint_position(joint, obj.get_joint_position(joint))
@@ -915,7 +947,7 @@ class World(ABC):
         """
         curr_time = rospy.Time.now()
         for obj in list(self.current_world.objects):
-            obj._update_link_transforms(curr_time)
+            obj.update_link_transforms(curr_time)
 
 
 class BulletWorld(World):
@@ -923,25 +955,6 @@ class BulletWorld(World):
     This class represents a BulletWorld, which is a simulation environment that uses the Bullet Physics Engine. This
     class is the main interface to the Bullet Physics Engine and should be used to spawn Objects, simulate Physic and
     manipulate the Bullet World.
-    """
-
-    current_world: BulletWorld = None
-    """
-        Global reference to the currently used World, usually this is the
-        graphical one. However, if you are inside a Use_shadow_world() environment the current_world points to the
-        shadow world. In this way you can comfortably use the current_world, which should point towards the World
-        used at the moment.
-    """
-
-    robot: Object = None
-    """
-    Global reference to the spawned Object that represents the robot. The robot is identified by checking the name
-     in the URDF with the name of the URDF on the parameter server. 
-    """
-
-    data_directory: List[str] = {os.path.dirname(__file__) + "/../../resources"}
-    """
-    Global reference for the data directories, this is used to search for the URDF files of the robot and the objects.
     """
 
     # Check is for sphinx autoAPI to be able to work in a CI workflow
@@ -998,7 +1011,7 @@ class BulletWorld(World):
                                            constraint.parent_link_id,
                                            constraint.child_obj_id,
                                            constraint.child_link_id,
-                                           constraint.joint_type,
+                                           constraint.joint_type.as_int(),
                                            constraint.joint_axis_in_child_link_frame,
                                            constraint.joint_frame_position_wrt_parent_origin,
                                            constraint.joint_frame_position_wrt_child_origin,
@@ -1071,7 +1084,7 @@ class BulletWorld(World):
         return p.getLinkState(obj.id, obj.links[link_name], physicsClientId=self.client_id)[4:6]
 
     def get_object_contact_points(self, obj: Object) -> List:
-        """
+        """l.update_transforms_for_object(self.milk)
         Returns a list of contact points of this Object with other Objects. For a more detailed explanation of the returned
         list please look at `PyBullet Doc <https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#>`_
 
@@ -1187,7 +1200,7 @@ class BulletWorld(World):
         """
         return p.getAABB(obj.id, physicsClientId=self.client_id)
 
-    def get_object_link_AABB(self, obj: Object, link_name: str) -> Tuple[List[float], List[float]]:
+    def get_object_link_aabb(self, obj: Object, link_name: str) -> Tuple[List[float], List[float]]:
         """
         Returns the axis aligned bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
@@ -1259,7 +1272,7 @@ class BulletWorld(World):
         Restores the objects and environment state in the physics simulator according to
          the given state using the unique state id.
         """
-        p.restoreState(state_id, self.client_id)
+        p.restoreState(state_id, physicsClientId=self.client_id)
 
     def add_vis_axis(self, pose: Pose,
                      length: Optional[float] = 0.2) -> None:
@@ -1312,27 +1325,23 @@ class UseProspectionWorld:
             NavigateAction.Action([[1, 0, 0], [0, 0, 0, 1]]).perform()
     """
 
-    def __init__(self, world_impl: Type[World]):
-        """
-        :param world_impl: A class that implements a World (for example BulletWorld).
-        """
-        self.world_impl = world_impl
-        self.prev_world: type(world_impl) = None
+    def __init__(self):
+        self.prev_world: World = None
 
     def __enter__(self):
-        if not self.world_impl.current_world.is_prospection_world:
-            time.sleep(20 * self.world_impl.simulation_time_step)
+        if not World.current_world.is_prospection_world:
+            time.sleep(20 * World.simulation_time_step)
             # blocks until the adding queue is ready
-            self.world_impl.current_world.world_sync.add_obj_queue.join()
+            World.current_world.world_sync.add_obj_queue.join()
 
-            self.prev_world = self.world_impl.current_world
-            self.world_impl.current_world.world_sync.pause_sync = True
-            self.world_impl.current_world = self.world_impl.current_world.prospection_world
+            self.prev_world = World.current_world
+            World.current_world.world_sync.pause_sync = True
+            World.current_world = World.current_world.prospection_world
 
     def __exit__(self, *args):
         if self.prev_world is not None:
-            self.world_impl.current_world = self.prev_world
-            self.world_impl.current_world.world_sync.pause_sync = False
+            World.current_world = self.prev_world
+            World.current_world.world_sync.pause_sync = False
 
 
 class WorldSync(threading.Thread):
@@ -1643,34 +1652,35 @@ class Object:
     Represents a spawned Object in the World.
     """
 
-    def __init__(self, name: str, type: Union[str, ObjectType], path: str,
+    # TODO: make a color dataclass or change initialization of color to be non mutable
+    def __init__(self, name: str, obj_type: Union[str, ObjectType], path: str,
                  pose: Pose = None,
                  world: World = None,
                  color: Optional[List[float]] = [1, 1, 1, 1],
-                 ignoreCachedFiles: Optional[bool] = False):
+                 ignore_cached_files: Optional[bool] = False):
         """
         The constructor loads the urdf file into the given World, if no World is specified the
         :py:attr:`~World.current_world` will be used. It is also possible to load .obj and .stl file into the World.
         The color parameter is only used when loading .stl or .obj files, for URDFs :func:`~Object.set_color` can be used.
 
         :param name: The name of the object
-        :param type: The type of the object
+        :param obj_type: The type of the object
         :param path: The path to the source file, if only a filename is provided then the resourcer directories will be searched
         :param pose: The pose at which the Object should be spawned
         :param world: The World in which the object should be spawned, if no world is specified the :py:attr:`~World.current_world` will be used
         :param color: The color with which the object should be spawned.
-        :param ignoreCachedFiles: If true the file will be spawned while ignoring cached files.
+        :param ignore_cached_files: If true the file will be spawned while ignoring cached files.
         """
         if not pose:
             pose = Pose()
         self.world: World = world if world is not None else World.current_world
         self.local_transformer = LocalTransformer()
         self.name: str = name
-        self.type: str = type
+        self.obj_type: Union[str, ObjectType] = obj_type
         self.color: List[float] = color
         pose_in_map = self.local_transformer.transform_pose_to_target_frame(pose, "map")
         position, orientation = pose_in_map.to_list()
-        self.id, self.path = _load_object(name, path, position, orientation, self.world, color, ignoreCachedFiles)
+        self.id, self.path = _load_object(name, path, position, orientation, self.world, color, ignore_cached_files)
         self.joints: Dict[str, int] = self._joint_or_link_name_to_id("joint")
         self.links: Dict[str, int] = self._joint_or_link_name_to_id("link")
         self.attachments: Dict[Object, Attachment] = {}
@@ -1682,7 +1692,7 @@ class Object:
         # This means "world" is not the prospection world since it has a reference to a prospection world
         if self.world.prospection_world is not None:
             self.world.world_sync.add_obj_queue.put(
-                [name, type, path, position, orientation, self.world.prospection_world, color, self])
+                [name, obj_type, path, position, orientation, self.world.prospection_world, color, self])
 
         with open(self.path) as f:
             self.urdf_object = URDF.from_xml_string(f.read())
@@ -1696,13 +1706,20 @@ class Object:
         self._current_link_transforms: Dict[str, Transform] = {}
         self._current_joints_positions = {}
         self._init_current_positions_of_joint()
-        self._update_link_poses()
+        self._update_current_link_poses_and_transforms()
 
         self.base_origin_shift = np.array(position) - np.array(self.get_base_origin().position_as_list())
-        self._update_link_transforms()
-        self.link_to_geometry = self._get_geometry_for_link()
+        self.update_link_transforms()
+        self.link_to_geometry = self.get_geometry_for_link()
 
         self.world.objects.append(self)
+
+    def _init_current_positions_of_joint(self) -> None:
+        """
+        Initialize the cached joint position for each joint.
+        """
+        for joint_name in self.joints.keys():
+            self._current_joints_positions[joint_name] = self.world.get_object_joint_position(self, joint_name)
 
     def __repr__(self):
         skip_attr = ["links", "joints", "urdf_object", "attachments", "cids", "_current_link_poses",
@@ -1811,7 +1828,7 @@ class Object:
             position = np.array(position) + self.base_origin_shift
         self.world.reset_object_base_pose(self, position, orientation)
         self._current_pose = pose_in_map
-        self._update_link_poses()
+        self._update_current_link_poses_and_transforms()
         self.world._set_attached_objects(self, [self])
 
     @property
@@ -1957,21 +1974,28 @@ class Object:
         """
         return dict(zip(self.joints.values(), self.joints.keys()))[joint_id]
 
-    def get_link_pose_relative_to_other_link(self, child_link_name: str, parent_link_name: str) -> Pose:
+    def get_other_object_link_pose_relative_to_my_link(self,
+                                                       my_link_id: int,
+                                                       other_link_id: int,
+                                                       other_object: Object) -> Pose:
         """
         Calculates the pose of a link (child_link) in the coordinate frame of another link (parent_link).
         :return: The pose of the source frame in the target frame
         """
-        child_link_pose = self.get_link_pose(child_link_name)
-        parent_link_frame = self.get_link_tf_frame(parent_link_name)
+
+        child_link_pose = other_object.get_link_pose(other_object.get_link_by_id(other_link_id))
+        parent_link_frame = self.get_link_tf_frame(self.get_link_by_id(my_link_id))
         return self.local_transformer.transform_pose_to_target_frame(child_link_pose, parent_link_frame)
 
-    def get_transform_between_two_links(self, source_link_id: int, target_link_id: int) -> Transform:
+    def get_transform_of_other_object_link_relative_to_my_link(self,
+                                                               my_link_id: int,
+                                                               other_object: Object,
+                                                               other_link_id: int) -> Transform:
         """
         Calculates the transform from source link frame to target link frame.
         """
-        source_tf_frame = self.get_link_tf_frame_by_id(source_link_id)
-        target_tf_frame = self.get_link_tf_frame_by_id(target_link_id)
+        source_tf_frame = self.get_link_tf_frame_by_id(my_link_id)
+        target_tf_frame = other_object.get_link_tf_frame_by_id(other_link_id)
         return self.local_transformer.lookup_transform_from_source_to_target_frame(source_tf_frame, target_tf_frame)
 
     def get_link_position(self, name: str) -> Pose.position:
@@ -2026,8 +2050,7 @@ class Object:
             # return
         self.world.reset_joint_position(self, joint_name, joint_pose)
         self._current_joints_positions[joint_name] = joint_pose
-        # self.local_transformer.update_transforms_for_object(self)
-        self._update_link_poses()
+        self._update_current_link_poses_and_transforms()
         self.world._set_attached_objects(self, [self])
 
     def set_positions_of_all_joints(self, joint_poses: dict) -> None:
@@ -2041,7 +2064,7 @@ class Object:
         for joint_name, joint_pose in joint_poses.items():
             self.world.reset_joint_position(self, joint_name, joint_pose)
             self._current_joints_positions[joint_name] = joint_pose
-        self._update_link_poses()
+        self._update_current_link_poses_and_transforms()
         self.world._set_attached_objects(self, [self])
 
     def get_joint_position(self, joint_name: str) -> float:
@@ -2155,16 +2178,15 @@ class Object:
         :param link_name: The name of a link of this object.
         :return: Two lists of x,y,z which define the bounding box.
         """
-        return self.world.get_object_link_AABB(self, link_name)
+        return self.world.get_object_link_aabb(self, link_name)
 
-    def get_base_origin(self, link_name: Optional[str] = None) -> Pose:
+    def get_base_origin(self) -> Pose:
         """
-        Returns the origin of the base/bottom of an object/link
+        Returns the origin of the base/bottom of an object
 
-        :param link_name: The link name for which the bottom position should be returned
-        :return: The position of the bottom of this Object or link
+        :return: The position of the bottom of this Object
         """
-        aabb = self.get_link_aabb(link_name=link_name)
+        aabb = self.get_link_aabb(link_name=self.urdf_object.get_root())
         base_width = np.absolute(aabb[0][0] - aabb[1][0])
         base_length = np.absolute(aabb[0][1] - aabb[1][1])
         return Pose([aabb[0][0] + base_width / 2, aabb[0][1] + base_length / 2, aabb[0][2]],
@@ -2243,7 +2265,7 @@ class Object:
     def get_link_tf_frame_by_id(self, link_id: int) -> str:
         return self.get_link_tf_frame(self.get_link_by_id(link_id))
 
-    def _get_geometry_for_link(self) -> Dict[str, urdf_parser_py.urdf.GeometricType]:
+    def get_geometry_for_link(self) -> Dict[str, urdf_parser_py.urdf.GeometricType]:
         """
         Extracts the geometry information for each collision of each link and links them to the respective link.
 
@@ -2258,28 +2280,28 @@ class Object:
                 link_to_geometry[link] = link_obj.collision.geometry
         return link_to_geometry
 
-    def _update_link_transforms(self, transform_time: Optional[rospy.Time] = None):
+    def update_link_transforms(self, transform_time: Optional[rospy.Time] = None):
         self.local_transformer.update_transforms(self._current_link_transforms.values(), transform_time)
 
-    def _update_link_poses(self) -> None:
+    def _update_current_link_poses_and_transforms(self) -> None:
         """
         Updates the cached poses and transforms for each link of this Object
         """
         for link_name in self.links.keys():
             if link_name == self.urdf_object.get_root():
-                self._current_link_poses[link_name] = self._current_pose
-                self._current_link_transforms[link_name] = self._current_pose.to_transform(self.tf_frame)
+                self._update_root_link_pose_and_transform()
             else:
-                self._current_link_poses[link_name] = Pose(*self.world.get_object_link_pose(self, link_name))
-                self._current_link_transforms[link_name] = self._current_link_poses[link_name].to_transform(
-                    self.get_link_tf_frame(link_name))
+                self._update_link_pose_and_transform(link_name)
 
-    def _init_current_positions_of_joint(self) -> None:
-        """
-        Initialize the cached joint position for each joint.
-        """
-        for joint_name in self.joints.keys():
-            self._current_joints_positions[joint_name] = self.world.get_object_joint_position(self, joint_name)
+    def _update_root_link_pose_and_transform(self) -> None:
+        link_name = self.urdf_object.get_root()
+        self._current_link_poses[link_name] = self._current_pose
+        self._current_link_transforms[link_name] = self._current_pose.to_transform(self.tf_frame)
+
+    def _update_link_pose_and_transform(self, link_name: str) -> None:
+        self._current_link_poses[link_name] = Pose(*self.world.get_object_link_pose(self, link_name))
+        self._current_link_transforms[link_name] = self._current_link_poses[link_name].to_transform(
+            self.get_link_tf_frame(link_name))
 
 
 def filter_contact_points(contact_points, exclude_ids) -> List:

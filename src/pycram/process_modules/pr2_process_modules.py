@@ -205,7 +205,7 @@ class Pr2WorldStateDetecting(ProcessModule):
 
     def _execute(self, desig: WorldStateDetectingMotion.Motion):
         obj_type = desig.object_type
-        return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_world.objects))[0]
+        return list(filter(lambda obj: obj.obj_type == obj_type, BulletWorld.current_world.objects))[0]
 
 
 class Pr2Open(ProcessModule):

@@ -385,7 +385,7 @@ class OccupancyCostmap(Costmap):
         i = 0
         j = 0
         for n in self._chunks(np.array(rays), 16380):
-            with UseProspectionWorld(BulletWorld):
+            with UseProspectionWorld():
                 r_t = p.rayTestBatch(n[:, 0], n[:, 1], numThreads=0,
                                      physicsClientId=BulletWorld.current_world.client_id)
                 while r_t is None:
@@ -494,7 +494,7 @@ class VisibilityCostmap(Costmap):
         images = []
         camera_pose = self.origin
 
-        with UseProspectionWorld(BulletWorld):
+        with UseProspectionWorld():
             origin_copy = self.origin.copy()
             origin_copy.position.y += 1
             images.append(
@@ -726,7 +726,7 @@ class SemanticCostmap(Costmap):
         :return: Two points in world coordinate space, which span a rectangle
         """
         shadow_obj = BulletWorld.current_world.get_prospection_object(self.object)
-        with UseProspectionWorld(BulletWorld):
+        with UseProspectionWorld():
             shadow_obj.set_orientation(Pose(orientation=[0, 0, 0, 1]))
             link_orientation = shadow_obj.get_link_pose(self.link)
             link_orientation_trans = link_orientation.to_transform(self.object.get_link_tf_frame(self.link))

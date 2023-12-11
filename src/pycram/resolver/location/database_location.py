@@ -54,7 +54,7 @@ class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLoca
             join(filtered_tasks, filtered_tasks.c.code == filtered_code.c.id).subquery()
 
         # filter all objects that have the same type as the target
-        filtered_objects = self.session.query(Object).filter(Object.type == self.target.type).\
+        filtered_objects = self.session.query(Object).filter(Object.obj_type == self.target.obj_type).\
             subquery()
 
         query = self.session.query(PickUpAction.arm, PickUpAction.grasp,

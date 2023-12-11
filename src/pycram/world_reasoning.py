@@ -98,7 +98,7 @@ def stable(object: Object,
     """
     world, world_id = _world_and_id(world)
     shadow_obj = BulletWorld.current_world.get_prospection_object(object)
-    with UseProspectionWorld(BulletWorld):
+    with UseProspectionWorld():
         coords_prev = shadow_obj.pose.position_as_list()
         state = p.saveState(physicsClientId=BulletWorld.current_world.client_id)
         p.setGravity(0, 0, -9.8, BulletWorld.current_world.client_id)
@@ -128,7 +128,7 @@ def contact(object1: Object,
     :return: True if the two objects are in contact False else. If links should be returned a list of links in contact
     """
 
-    with UseProspectionWorld(BulletWorld):
+    with UseProspectionWorld():
         shadow_obj1 = BulletWorld.current_world.get_prospection_object(object1)
         shadow_obj2 = BulletWorld.current_world.get_prospection_object(object2)
         p.performCollisionDetection(BulletWorld.current_world.client_id)
@@ -163,7 +163,7 @@ def visible(object: Object,
     :return: True if the object is visible from the camera_position False if not
     """
     front_facing_axis = robot_description.front_facing_axis if not front_facing_axis else front_facing_axis
-    with UseProspectionWorld(BulletWorld):
+    with UseProspectionWorld():
         shadow_obj = BulletWorld.current_world.get_prospection_object(object)
         if BulletWorld.robot:
             shadow_robot = BulletWorld.current_world.get_prospection_object(BulletWorld.robot)
@@ -215,7 +215,7 @@ def occluding(object: Object,
     world, world_id = _world_and_id(world)
     # occ_world = world.copy()
     # state = p.saveState(physicsClientId=occ_world.client_id)
-    with UseProspectionWorld(BulletWorld):
+    with UseProspectionWorld():
         state = p.saveState(physicsClientId=BulletWorld.current_world.client_id)
         for obj in BulletWorld.current_world.objects:
             if obj.name == BulletWorld.robot.name:
@@ -268,7 +268,7 @@ def reachable(pose: Union[Object, Pose],
         pose = pose.get_pose()
 
     shadow_robot = BulletWorld.current_world.get_prospection_object(robot)
-    with UseProspectionWorld(BulletWorld):
+    with UseProspectionWorld():
         arm = "left" if gripper_name == robot_description.get_tool_frame("left") else "right"
         joints = robot_description.chains[arm].joints
         try:
@@ -306,7 +306,7 @@ def blocking(pose_or_object: Union[Object, Pose],
         input_pose = pose_or_object
 
     shadow_robot = BulletWorld.current_world.get_prospection_object(robot)
-    with UseProspectionWorld(BulletWorld):
+    with UseProspectionWorld():
         arm = "left" if gripper_name == robot_description.get_tool_frame("left") else "right"
         joints = robot_description.chains[arm].joints
         local_transformer = LocalTransformer()
@@ -358,7 +358,7 @@ def link_pose_for_joint_config(object: Object, joint_config: Dict[str, float], l
     :return: The pose of the link after applying the joint configuration
     """
     shadow_object = BulletWorld.current_world.get_prospection_object(object)
-    with UseProspectionWorld(BulletWorld):
+    with UseProspectionWorld():
         for joint, pose in joint_config.items():
             shadow_object.set_joint_position(joint, pose)
         return shadow_object.get_link_pose(link_name)

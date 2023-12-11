@@ -87,14 +87,13 @@ class TestActionDesignatorGrounding(test_bullet_world.BulletWorldTest):
     def test_detect(self):
         self.kitchen.set_pose(Pose([10, 10, 0]))
         self.milk.set_pose(Pose([1.5, 0, 1.2]))
-        # time.sleep(1)
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.DetectAction(object_description)
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
             detected_object = description.resolve().perform()
         self.assertEqual(detected_object.name, "milk")
-        self.assertEqual(detected_object.mode, ObjectType.MILK)
+        self.assertEqual(detected_object.obj_type, ObjectType.MILK)
         self.assertEqual(detected_object.bullet_world_object, self.milk)
 
     # Skipped since open and close work only in the apartment at the moment
