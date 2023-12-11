@@ -78,6 +78,8 @@ class LocalTransformer(TransformerROS):
 
         return Pose(*copy_pose.to_list(), frame=new_pose.header.frame_id)
 
+    # TODO: This is not working correctly, the lookup fails to find the frames,
+    #  this is probably because the frames are not published.
     def lookup_transform_from_source_to_target_frame(self, source_frame: str, target_frame: str,
                                                      time: Optional[rospy.rostime.Time] = None) -> Transform:
         """
