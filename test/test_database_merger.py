@@ -13,24 +13,16 @@ from pycram.task import with_tree
 import pycram.task
 from pycram.bullet_world import Object
 from pycram.designators.object_designator import *
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
 class Configuration:
-    user: str
-    password: str
-    ipaddress: str
-    port: int
-    database: str
-
-    def __init__(self, in_user="alice", in_password="alice123", in_ipaddress="localhost", in_port=5432,
-                 in_database="pycram"):
-        self.user = in_user
-        self.password = in_password
-        self.ipaddress = in_ipaddress
-        self.port = in_port
-        self.database = in_database
+    user: str = field(default="alice")
+    password: str = field(default="alice123")
+    ipaddress: str = field(default="localhost")
+    port: int = field(default=5432)
+    database: str = field(default="pycram")
 
 
 class ExamplePlans:
@@ -141,6 +133,25 @@ class MergeDatabaseTest(unittest.TestCase):
         pycram.orm.utils.update_primary_key_constrains(self.destination_session_maker)
         pycram.orm.utils.update_primary_key(self.source_session_maker, self.destination_session_maker)
         pycram.orm.utils.copy_database(self.source_session_maker, self.destination_session_maker)
+        destination_content = dict()
+        source_content = dict()
+        with self.destination_session_maker() as session:
+            for table in pycram.orm.base.Base.metadata.sorted_tables:
+                table_content_set = set()
+                table_content_set.update(session.query(table).all())
+                destination_content[table] = table_content_set
+
+        with self.source_session_maker() as session:
+            for table in pycram.orm.base.Base.metadata.sorted_tables:
+                table_content_set = set()
+                table_content_set.update(session.query(table).all())
+                source_content[table] = table_content_set
+
+        for key in destination_content:
+            self.assertEqual(destination_content[key], destination_content[key].union(source_content[key]))
+
+    def test_migrate_neems(self):
+        pycram.orm.utils.migrate_neems(self.source_session_maker,self.destination_session_maker)
         destination_content = dict()
         source_content = dict()
         with self.destination_session_maker() as session:
