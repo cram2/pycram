@@ -62,6 +62,4 @@ Example
 .. nbgallery::
 
     notebooks/orm_example
-
-
-
+    notebooks/migrate_neems
