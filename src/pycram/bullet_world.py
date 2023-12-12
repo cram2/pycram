@@ -26,7 +26,7 @@ class BulletWorld(World):
     if rosgraph.is_master_online():  # and "/pycram" not in rosnode.get_node_names():
         rospy.init_node('pycram')
 
-    def __init__(self, mode: str = "GUI", is_prospection_world: bool = False):
+    def __init__(self, mode: str = "GUI", is_prospection_world: bool = False, sim_time_step=0.004167):  # 240 Hz
         """
         Creates a new simulation, the type decides of the simulation should be a rendered window or just run in the
         background. There can only be one rendered simulation.
@@ -35,7 +35,7 @@ class BulletWorld(World):
         :param mode: Can either be "GUI" for rendered window or "DIRECT" for non-rendered. The default parameter is "GUI"
         :param is_prospection_world: For internal usage, decides if this BulletWorld should be used as a shadow world.
         """
-        super().__init__(mode=mode, is_prospection_world=is_prospection_world, simulation_time_step=0.004167)  # 240 Hz
+        super().__init__(mode=mode, is_prospection_world=is_prospection_world, simulation_time_step=sim_time_step)
 
         self._gui_thread: Gui = Gui(self, mode)
         self._gui_thread.start()

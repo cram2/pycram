@@ -10,7 +10,7 @@ import time
 import xml.etree.ElementTree
 from queue import Queue
 import tf
-from typing import List, Optional, Dict, Tuple, Callable
+from typing import List, Optional, Dict, Tuple, Callable, Type
 from typing import Union
 
 import numpy as np
@@ -31,6 +31,13 @@ from .pose import Pose, Transform
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+
+
+@dataclass
+class WorldState:
+    state_id: int
+    attachments: Dict[Object, Dict[Object, Attachment]]
+    constraint_ids: Dict[Object, Dict[Object, int]]
 
 
 class World(ABC):
@@ -58,6 +65,10 @@ class World(ABC):
     """
 
     simulation_time_step: float = None
+    """
+    Global reference for the simulation time step, this is used to calculate the frequency of the simulation,
+    and also for calculating the equivalent real time for the simulation.
+    """
 
     def __init__(self, mode: str, is_prospection_world: bool, simulation_time_step: float):
         """
@@ -110,7 +121,7 @@ class World(ABC):
 
     @classmethod
     def _init_prospection_world(cls):
-        cls.prospection_world: World = cls("DIRECT", True, World.simulation_time_step)
+        cls.prospection_world: World = cls("DIRECT", True, cls.simulation_time_step)
 
     def _sync_prospection_world(self):
         self.world_sync: WorldSync = WorldSync(self, self.prospection_world)
@@ -956,13 +967,6 @@ class WorldSync(threading.Thread):
         self.equal_states = eql
 
 
-@dataclass
-class WorldState:
-    state_id: int
-    attachments: Dict[Object, Dict[Object, Attachment]]
-    constraint_ids: Dict[Object, Dict[Object, int]]
-
-
 class Object:
     """
     Represents a spawned Object in the World.
@@ -1303,10 +1307,10 @@ class Object:
         parent_link_frame = self.get_link_tf_frame(self.get_link_by_id(my_link_id))
         return self.local_transformer.transform_pose_to_target_frame(child_link_pose, parent_link_frame)
 
-    def get_transform_of_other_object_link_relative_to_my_link(self,
-                                                               my_link_id: int,
-                                                               other_link_id: int,
-                                                               other_object: Object) -> Transform:
+    def get_transform_from_my_link_to_other_object_link(self,
+                                                        my_link_id: int,
+                                                        other_link_id: int,
+                                                        other_object: Object) -> Transform:
         pose = self.get_other_object_link_pose_relative_to_my_link(my_link_id, other_link_id, other_object)
         return pose.to_transform(other_object.get_link_tf_frame_by_id(other_link_id))
 
@@ -1572,6 +1576,8 @@ class Object:
         :param link_name: Name of a link for which the tf frame should be returned
         :return: A TF frame name for a specific link
         """
+        if link_name == self.urdf_object.get_root():
+            return self.tf_frame
         return self.tf_frame + "/" + link_name
 
     def get_link_tf_frame_by_id(self, link_id: int) -> str:
@@ -1696,9 +1702,9 @@ class Attachment:
         self.add_constraint_and_update_objects_constraints_collection()
 
     def calculate_transform(self):
-        return self.parent_object.get_transform_of_other_object_link_relative_to_my_link(self.parent_link_id,
-                                                                                         self.child_link_id,
-                                                                                         self.child_object)
+        return self.parent_object.get_transform_from_my_link_to_other_object_link(self.parent_link_id,
+                                                                                  self.child_link_id,
+                                                                                  self.child_object)
 
     def remove_constraint_if_exists(self):
         if self.constraint_id is not None:
