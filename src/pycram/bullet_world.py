@@ -12,7 +12,8 @@ import rosgraph
 
 from .enums import JointType, ObjectType
 from .pose import Pose
-from .world import World, Object, Constraint
+from .world import World, Object
+from .world_dataclasses import Color, Constraint, AxisAlignedBoundingBox
 
 
 class BulletWorld(World):
@@ -230,7 +231,7 @@ class BulletWorld(World):
         """
         p.stepSimulation(self.client_id)
 
-    def set_object_link_color(self, obj: Object, link_id: int, rgba_color: List[float]):
+    def set_object_link_color(self, obj: Object, link_id: int, rgba_color: Color):
         """
         Changes the color of a link of this object, the color has to be given as a 4 element list
         of RGBA values.
@@ -241,7 +242,7 @@ class BulletWorld(World):
         """
         p.changeVisualShape(obj.id, link_id, rgbaColor=rgba_color, physicsClientId=self.client_id)
 
-    def get_object_colors(self, obj: Object) -> Dict[str, List[float]]:
+    def get_object_colors(self, obj: Object) -> Dict[str, Color]:
         """
         Get the RGBA colors of each link in the object as a dictionary from link name to color.
 
@@ -251,21 +252,21 @@ class BulletWorld(World):
         visual_data = p.getVisualShapeData(obj.id, physicsClientId=self.client_id)
         swap = {v: k for k, v in obj.links.items()}
         links = list(map(lambda x: swap[x[1]] if x[1] != -1 else "base", visual_data))
-        colors = list(map(lambda x: x[7], visual_data))
+        colors = Color.from_rgba(list(map(lambda x: x[7], visual_data)))
         link_to_color = dict(zip(links, colors))
         return link_to_color
 
-    def get_object_AABB(self, obj: Object) -> Tuple[List[float], List[float]]:
+    def get_object_aabb(self, obj: Object) -> AxisAlignedBoundingBox:
         """
         Returns the axis aligned bounding box of this object. The return of this method are two points in
         world coordinate frame which define a bounding box.
 
         :param obj: The object for which the bounding box should be returned.
-        :return: Two lists of x,y,z which define the bounding box.
+        :return: AxisAlignedBoundingBox object with min and max box points.
         """
-        return p.getAABB(obj.id, physicsClientId=self.client_id)
+        return AxisAlignedBoundingBox.from_min_max(*p.getAABB(obj.id, physicsClientId=self.client_id))
 
-    def get_object_link_aabb(self, obj: Object, link_name: str) -> Tuple[List[float], List[float]]:
+    def get_object_link_aabb(self, obj: Object, link_name: str) -> AxisAlignedBoundingBox:
         """
         Returns the axis aligned bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
@@ -274,7 +275,7 @@ class BulletWorld(World):
         :param link_name: The name of a link of this object.
         :return: Two lists of x,y,z which define the bounding box.
         """
-        return p.getAABB(obj.id, obj.links[link_name], self.client_id)
+        return AxisAlignedBoundingBox.from_min_max(*p.getAABB(obj.id, obj.links[link_name], self.client_id))
 
     def set_realtime(self, real_time: bool) -> None:
         """

@@ -10,7 +10,7 @@ import time
 import xml.etree.ElementTree
 from queue import Queue
 import tf
-from typing import List, Optional, Dict, Tuple, Callable, Type
+from typing import List, Optional, Dict, Tuple, Callable
 from typing import Union
 
 import numpy as np
@@ -31,6 +31,7 @@ from .pose import Pose, Transform
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from .world_dataclasses import Color, Constraint, AxisAlignedBoundingBox
 
 
 @dataclass
@@ -467,14 +468,14 @@ class World(ABC):
         """
         pass
 
-    def set_object_color(self, obj: Object, color: List[float], link: Optional[str] = ""):
+    def set_object_color(self, obj: Object, color: Color, link: Optional[str] = ""):
         """
         Changes the color of this object, the color has to be given as a list
         of RGBA values. Optionally a link name can can be provided, if no link
         name is provided all links of this object will be colored.
 
         :param obj: The object which should be colored
-        :param color: The color as RGBA values between 0 and 1
+        :param color: The color as Color object with RGBA values between 0 and 1
         :param link: The link name of the link which should be colored
         """
         if link == "":
@@ -489,27 +490,26 @@ class World(ABC):
             self.set_object_link_color(obj, obj.links[link], color)
 
     @abstractmethod
-    def set_object_link_color(self, obj: Object, link_id: int, rgba_color: List[float]):
+    def set_object_link_color(self, obj: Object, link_id: int, rgba_color: Color):
         """
-        Changes the color of a link of this object, the color has to be given as a 4 element list
-        of RGBA values.
+        Changes the color of a link of this object, the color has to be given as Color object.
 
         :param obj: The object which should be colored
         :param link_id: The link id of the link which should be colored
-        :param rgba_color: The color as RGBA values between 0 and 1
+        :param rgba_color: The color as Color object with RGBA values between 0 and 1
         """
         pass
 
     def get_object_color(self,
                          obj: Object,
-                         link: Optional[str] = None) -> Union[List[float], Dict[str, List[float]], None]:
+                         link: Optional[str] = None) -> Union[Color, Dict[str, Color], None]:
         """
         This method returns the color of this object or a link of this object. If no link is given then the
         return is either:
 
-            1. A list with the color as RGBA values, this is the case if the object only has one link (this
+            1. A Color object with RGBA values, this is the case if the object only has one link (this
                 happens for example if the object is spawned from a .obj or .stl file)
-            2. A dict with the link name as key and the color as value. The color is given as RGBA values.
+            2. A dict with the link name as key and the color as value. The color is given as a Color Object.
                 Please keep in mind that not every link may have a color. This is dependent on the URDF from which the
                 object is spawned.
 
@@ -538,35 +538,35 @@ class World(ABC):
             return link_to_color_dict
 
     @abstractmethod
-    def get_object_colors(self, obj: Object) -> Dict[str, List[float]]:
+    def get_object_colors(self, obj: Object) -> Dict[str, Color]:
         """
         Get the RGBA colors of each link in the object as a dictionary from link name to color.
 
         :param obj: The object
-        :return: A dictionary with link names as keys and 4 element list with the RGBA values for each link as value.
+        :return: A dictionary with link names as keys and a Color object for each link as value.
         """
         pass
 
     @abstractmethod
-    def get_object_AABB(self, obj: Object) -> Tuple[List[float], List[float]]:
+    def get_object_aabb(self, obj: Object) -> AxisAlignedBoundingBox:
         """
         Returns the axis aligned bounding box of this object. The return of this method are two points in
         world coordinate frame which define a bounding box.
 
         :param obj: The object for which the bounding box should be returned.
-        :return: Two lists of x,y,z which define the bounding box.
+        :return: AxisAlignedBoundingBox object containing the min and max points of the bounding box.
         """
         pass
 
     @abstractmethod
-    def get_object_link_aabb(self, obj: Object, link_name: str) -> Tuple[List[float], List[float]]:
+    def get_object_link_aabb(self, obj: Object, link_name: str) -> AxisAlignedBoundingBox:
         """
         Returns the axis aligned bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
 
         :param obj: The object for which the bounding box should be returned.
         :param link_name: The name of a link of this object.
-        :return: Two lists of x,y,z which define the bounding box.
+        :return: AxisAlignedBoundingBox object containing the min and max points of the bounding box.
         """
         pass
 
@@ -916,7 +916,7 @@ class WorldSync(threading.Thread):
             # self.equal_states = False
             for i in range(self.add_obj_queue.qsize()):
                 obj = self.add_obj_queue.get()
-                # [name, type, path, position, orientation, self.world.prospection_world, color, bulletworld object]
+                # [name, type, path, position, orientation, self.world.prospection_world, color, world object]
                 o = Object(obj[0], obj[1], obj[2], Pose(obj[3], obj[4]), obj[5], obj[6])
                 # Maps the World object to the prospection world object
                 self.object_mapping[obj[7]] = o
@@ -972,11 +972,10 @@ class Object:
     Represents a spawned Object in the World.
     """
 
-    # TODO: make a color dataclass or change initialization of color to be non mutable
     def __init__(self, name: str, obj_type: Union[str, ObjectType], path: str,
                  pose: Pose = None,
                  world: World = None,
-                 color: Optional[List[float]] = [1, 1, 1, 1],
+                 color: Optional[Color] = Color(),
                  ignore_cached_files: Optional[bool] = False):
         """
         The constructor loads the urdf file into the given World, if no World is specified the
@@ -997,7 +996,7 @@ class Object:
         self.local_transformer = LocalTransformer()
         self.name: str = name
         self.obj_type: Union[str, ObjectType] = obj_type
-        self.color: List[float] = color
+        self.color: Color = color
         pose_in_map = self.local_transformer.transform_pose_to_target_frame(pose, "map")
         position, orientation = pose_in_map.to_list()
         self.id, self.path = _load_object(name, path, position, orientation, self.world, color, ignore_cached_files)
@@ -1447,7 +1446,7 @@ class Object:
                     position[0][2]]
         self.set_position(Pose(position, orientation))
 
-    def set_color(self, color: List[float], link: Optional[str] = "") -> None:
+    def set_color(self, color: Color, link: Optional[str] = "") -> None:
         """
         Changes the color of this object, the color has to be given as a list
         of RGBA values. Optionally a link name can can be provided, if no link
@@ -1458,42 +1457,13 @@ class Object:
         """
         self.world.set_object_color(self, color, link)
 
-    def get_color(self, link: Optional[str] = None) -> Union[List[float], Dict[str, List[float]], None]:
-        """
-        This method returns the color of this object or a link of this object. If no link is given then the
-        return is either:
-
-            1. A list with the color as RGBA values, this is the case if the object only has one link (this
-                happens for example if the object is spawned from a .obj or .stl file)
-            2. A dict with the link name as key and the color as value. The color is given as RGBA values.
-                Please keep in mind that not every link may have a color. This is dependent on the URDF from which the
-                object is spawned.
-
-        If a link is specified then the return is a list with RGBA values representing the color of this link.
-        It may be that this link has no color, in this case the return is None as well as an error message.
-
-        :param link: the link name for which the color should be returned.
-        :return: The color of the object or link, or a dictionary containing every colored link with its color
-        """
+    def get_color(self, link: Optional[str] = None) -> Union[Color, Dict[str, Color], None]:
         return self.world.get_object_color(self, link)
 
-    def get_aabb(self) -> Tuple[List[float], List[float]]:
-        """
-        Returns the axis aligned bounding box of this object. The return of this method are two points in
-        world coordinate frame which define a bounding box.
+    def get_aabb(self) -> AxisAlignedBoundingBox:
+        return self.world.get_object_aabb(self)
 
-        :return: Two lists of x,y,z which define the bounding box.
-        """
-        return self.world.get_object_AABB(self)
-
-    def get_link_aabb(self, link_name: str) -> Tuple[List[float], List[float]]:
-        """
-        Returns the axis aligned bounding box of the given link name. The return of this method are two points in
-        world coordinate frame which define a bounding box.
-
-        :param link_name: The name of a link of this object.
-        :return: Two lists of x,y,z which define the bounding box.
-        """
+    def get_link_aabb(self, link_name: str) -> AxisAlignedBoundingBox:
         return self.world.get_object_link_aabb(self, link_name)
 
     def get_base_origin(self) -> Pose:
@@ -1503,9 +1473,9 @@ class Object:
         :return: The position of the bottom of this Object
         """
         aabb = self.get_link_aabb(link_name=self.urdf_object.get_root())
-        base_width = np.absolute(aabb[0][0] - aabb[1][0])
-        base_length = np.absolute(aabb[0][1] - aabb[1][1])
-        return Pose([aabb[0][0] + base_width / 2, aabb[0][1] + base_length / 2, aabb[0][2]],
+        base_width = np.absolute(aabb.min_x - aabb.max_x)
+        base_length = np.absolute(aabb.min_y - aabb.max_y)
+        return Pose([aabb.min_x + base_width / 2, aabb.min_y + base_length / 2, aabb.min_z],
                     self.get_pose().orientation_as_list())
 
     def get_joint_limits(self, joint: str) -> Tuple[float, float]:
@@ -1752,26 +1722,12 @@ class Attachment:
         return self.loose
 
 
-@dataclass
-class Constraint:
-    parent_obj_id: int
-    parent_link_id: int
-    child_obj_id: int
-    child_link_id: int
-    joint_type: JointType
-    joint_axis_in_child_link_frame: List[int]
-    joint_frame_position_wrt_parent_origin: List[float]
-    joint_frame_position_wrt_child_origin: List[float]
-    joint_frame_orientation_wrt_parent_origin: Optional[List[float]] = None
-    joint_frame_orientation_wrt_child_origin: Optional[List[float]] = None
-
-
 def _load_object(name: str,
                  path: str,
                  position: List[float],
                  orientation: List[float],
                  world: World,
-                 color: List[float],
+                 color: Color,
                  ignore_cached_files: bool) -> Tuple[int, str]:
     """
     Loads an object to the given World with the given position and orientation. The color will only be
@@ -1846,7 +1802,6 @@ def _load_object(name: str,
             "The File could not be loaded. Plese note that the path has to be either a URDF, stl or obj file or the name of an URDF string on the parameter server.")
         os.remove(path)
         raise (e)
-        # print(f"{bcolors.BOLD}{bcolors.WARNING}The path has to be either a path to a URDf file, stl file, obj file or the name of a URDF on the parameter server.{bcolors.ENDC}")
 
 
 def _is_cached(path: str, name: str, cach_dir: str) -> bool:
@@ -1957,7 +1912,7 @@ def fix_link_attributes(urdf_string: str) -> str:
     return xml.etree.ElementTree.tostring(tree.getroot(), encoding='unicode')
 
 
-def _generate_urdf_file(name: str, path: str, color: List[float], cach_dir: str) -> str:
+def _generate_urdf_file(name: str, path: str, color: Color, cach_dir: str) -> str:
     """
     Generates an URDf file with the given .obj or .stl file as mesh. In addition, the given color will be
     used to crate a material tag in the URDF. The resulting file will then be saved in the cach_dir path with the name
@@ -1988,7 +1943,7 @@ def _generate_urdf_file(name: str, path: str, color: List[float], cach_dir: str)
                     </link> \n \
                     </robot>'
     urdf_template = fix_missing_inertial(urdf_template)
-    rgb = " ".join(list(map(str, color)))
+    rgb = " ".join(list(map(str, color.get_rgba())))
     pathlib_obj = pathlib.Path(path)
     path = str(pathlib_obj.resolve())
     content = urdf_template.replace("~a", name).replace("~b", path).replace("~c", rgb)
