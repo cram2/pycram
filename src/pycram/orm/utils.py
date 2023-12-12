@@ -7,6 +7,13 @@ from pycram.designators.action_designator import *
 from pycram.designators.object_designator import *
 import json
 
+from pycram.designators.action_designator import *
+from pycram.designators.location_designator import *
+from pycram.process_module import simulated_robot
+from pycram.enums import Arms, ObjectType
+from pycram.task import with_tree
+import pycram.orm
+
 
 def write_database_to_file(in_sessionmaker: sqlalchemy.orm.sessionmaker, filename: str,
                            b_write_to_console: bool = False):
@@ -118,6 +125,7 @@ def copy_database(source_session_maker: sqlalchemy.orm.sessionmaker,
                 destination_session.execute(insert_statement)
             destination_session.commit()  # commit after every table
 
+
 def update_primary_key_constrains(session_maker: sqlalchemy.orm.sessionmaker):
     '''
     Iterates through all tables related to any ORM Class and sets in their corresponding foreign keys in the given
@@ -156,3 +164,23 @@ def update_primary_key_constrains(session_maker: sqlalchemy.orm.sessionmaker):
                             session.commit()
             except AttributeError:
                 rospy.loginfo("Attribute Error: {} has no attribute __tablename__".format(table))
+
+
+def migrate_neems(source_session_maker: sqlalchemy.orm.sessionmaker,
+                  destination_session_maker: sqlalchemy.orm.sessionmaker):
+    """
+        Merges the database connected to the source session maker into the database connected to the destination session
+        maker. Will first update the primary constrains inside the destination database (if needed). Afterwards
+        updates the primary keys within the destination database (as there are cascading updates now) and then merges
+        the source database into the destination.
+
+         .. note::
+            Assumes the destination database is a postgres database
+
+        :param source_session_maker: Sessionmaker of the source database
+        :param destination_session_maker: Sessionmaker of the destination database
+        """
+
+    update_primary_key_constrains(destination_session_maker)
+    update_primary_key(source_session_maker, destination_session_maker)
+    copy_database(source_session_maker, destination_session_maker)
