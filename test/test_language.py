@@ -5,13 +5,12 @@ from anytree import RenderTree
 
 from pycram.designators.action_designator import *
 from pycram.enums import ObjectType, State
+from pycram.fluent import Fluent
 from pycram.plan_failures import PlanFailure
 from pycram.pose import Pose
-from pycram.language import Sequential, Language, Parallel, TryAll, TryInOrder
+from pycram.language import Sequential, Language, Parallel, TryAll, TryInOrder, Monitor, Repeat, Code
 from pycram.process_module import simulated_robot
 import test_bullet_world
-
-from pycram.language import Code
 
 
 class LanguageTestCase(test_bullet_world.BulletWorldTest):
@@ -88,13 +87,47 @@ class LanguageTestCase(test_bullet_world.BulletWorldTest):
         act = NavigateAction([Pose()])
         act2 = PickUpAction(BelieveObject(names=["milk"]), ["left"], ["front"])
 
-        self.assertRaises(TypeError, lambda: act | act2)
+        self.assertRaises(AttributeError, lambda: act | act2)
 
     def test_pickup_try_all_construction(self):
         act = NavigateAction([Pose()])
         act2 = PickUpAction(BelieveObject(names=["milk"]), ["left"], ["front"])
 
-        self.assertRaises(TypeError, lambda: act ^ act2)
+        self.assertRaises(AttributeError, lambda: act ^ act2)
+
+    def test_monitor_construction(self):
+        act = ParkArmsAction([Arms.BOTH])
+        act2 = MoveTorsoAction([0.3])
+
+        plan = act + act2 >> Monitor(lambda x: print())
+        self.assertEqual(len(plan.children), 1)
+        self.assertEqual(plan.height, 2)
+
+    def test_monitor_construction_error(self):
+        self.assertRaises(AttributeError, lambda: Monitor(lambda x: print()) >> Monitor(lambda x: print()))
+
+    def test_repeat_construction(self):
+        act = ParkArmsAction([Arms.BOTH])
+        act2 = MoveTorsoAction([0.3])
+
+        plan = (act + act2) * 5
+        self.assertEqual(len(plan.children), 1)
+        self.assertEqual(plan.height, 2)
+
+    def test_repeat_construction_reverse(self):
+        act = ParkArmsAction([Arms.BOTH])
+        act2 = MoveTorsoAction([0.3])
+
+        plan = 5 * (act + act2)
+        self.assertEqual(len(plan.children), 1)
+        self.assertEqual(plan.height, 2)
+
+    def test_repeat_construction_error(self):
+        act = ParkArmsAction([Arms.BOTH])
+        act2 = MoveTorsoAction([0.3])
+        park = ParkArmsAction([Arms.BOTH])
+
+        self.assertRaises(AttributeError, lambda: (act + act2) * park)
 
     def test_perform_desig(self):
         act = NavigateAction([Pose([1, 1, 0])])
@@ -135,6 +168,16 @@ class LanguageTestCase(test_bullet_world.BulletWorldTest):
         plan = act | act2 | act3
         with simulated_robot:
             plan.perform()
+
+    def test_perform_repeat(self):
+        test_var = Fluent(0)
+
+        def inc(var):
+            var.set_value(var.get_value() + 1)
+        plan = Code(lambda: inc(test_var)) * 10
+        with simulated_robot:
+            plan.perform()
+        self.assertEqual(10, test_var.get_value())
 
     def test_exception_sequential(self):
         def raise_except():
