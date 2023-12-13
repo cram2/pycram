@@ -14,7 +14,7 @@ class Action(MapperArgsMixin, Designator):
     """
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Designator.__tablename__}.id'), primary_key=True, init=False)
-    dtype: Mapped[str] = mapped_column(init=False)
+    dtype: Mapped[str] = mapped_column("action_dtype", init=False)
     robot_state_id: Mapped[int] = mapped_column(ForeignKey(f"{RobotState.__tablename__}.id"), init=False)
     robot_state: Mapped[RobotState] = relationship(init=False)
 
@@ -82,7 +82,7 @@ class TransportAction(PoseMixin, ObjectMixin, Action):
     """ORM Class of pycram.designators.action_designator.TransportAction."""
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
-    arm: Mapped[str] = mapped_column(init=False)
+    arm: Mapped[str]
 
 
 class LookAtAction(PoseMixin, Action):
