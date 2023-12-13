@@ -258,7 +258,8 @@ class World(ABC):
         """
         pass
 
-    def detach_objects(self, obj1: Object, obj2: Object) -> None:
+    @staticmethod
+    def detach_objects(obj1: Object, obj2: Object) -> None:
         """
         Detaches obj2 from obj1. This is done by
         deleting the attachment from the attachments dictionary of both objects
@@ -270,9 +271,6 @@ class World(ABC):
         """
         del obj1.attachments[obj2]
         del obj2.attachments[obj1]
-
-        self.remove_constraint(obj1.cids[obj2])
-
         del obj1.cids[obj2]
         del obj2.cids[obj1]
 
@@ -439,7 +437,7 @@ class World(ABC):
         pass
 
     @abstractmethod
-    def reset_joint_position(self, obj: Object, joint_name: str, joint_pose: float) -> None:
+    def reset_object_joint_position(self, obj: Object, joint_name: str, joint_pose: float) -> None:
         """
         Reset the joint position instantly without physics simulation
 
@@ -614,15 +612,32 @@ class World(ABC):
         """
         pass
 
-    @classmethod
-    @abstractmethod
-    def set_robot(cls, robot: Object) -> None:
+    def set_robot_if_not_set(self, robot: Object) -> None:
+        """
+        Sets the robot if it is not set yet.
+
+        :param robot: The Object reference to the Object representing the robot.
+        """
+        if not self.robot_is_set():
+            self.set_robot(robot)
+
+    @staticmethod
+    def set_robot(robot: Union[Object, None]) -> None:
         """
         Sets the global variable for the robot Object. This should be set on spawning the robot.
 
         :param robot: The Object reference to the Object representing the robot.
         """
-        pass
+        World.robot = robot
+
+    @staticmethod
+    def robot_is_set() -> bool:
+        """
+        Returns whether the robot has been set or not.
+
+        :return: True if the robot has been set, False otherwise.
+        """
+        return World.robot is not None
 
     def exit(self, wait_time_before_exit_in_secs: Optional[float] = None) -> None:
         """
@@ -649,8 +664,8 @@ class World(ABC):
         pass
 
     def reset_current_world(self):
-        if self.current_world == self:
-            self.current_world = None
+        if World.current_world == self:
+            World.current_world = None
 
     def reset_robot(self):
         self.set_robot(None)
@@ -749,16 +764,16 @@ class World(ABC):
 
     def _copy(self) -> World:
         """
-        Copies this Bullet World into another and returns it. The other BulletWorld
-        will be in Direct mode. The shadow world should always be preferred instead of creating a new BulletWorld.
+        Copies this World into another and returns it. The other World
+        will be in Direct mode. The prospection world should always be preferred instead of creating a new World.
         This method should only be used if necessary since there can be unforeseen problems.
 
-        :return: The reference to the new BulletWorld
+        :return: The reference to the new World
         """
         world = World("DIRECT", False, World.simulation_time_step)
         for obj in self.objects:
-            o = Object(obj.name, obj.obj_type, obj.path, Pose(obj.get_position(), obj.get_orientation()),
-                       world, obj.color)
+            o = Object(obj.name, obj.obj_type, obj.path, Pose(obj.get_position(), obj.get_orientation()), world,
+                       obj.color)
             for joint in obj.joints:
                 o.set_joint_position(joint, obj.get_joint_position(joint))
         return world
@@ -778,7 +793,7 @@ class World(ABC):
         self.coll_callbacks[(object_a, object_b)] = (on_collision_callback, on_collision_removal_callback)
 
     @classmethod
-    def add_additional_resource_path(cls, path: str) -> None:
+    def add_resource_path(cls, path: str) -> None:
         """
         Adds a resource path in which the BulletWorld will search for files. This resource directory is searched if an
         Object is spawned only with a filename.
@@ -787,7 +802,7 @@ class World(ABC):
         """
         cls.data_directory.append(path)
 
-    def get_prospection_object(self, obj: Object) -> Object:
+    def get_prospection_object_from_object(self, obj: Object) -> Object:
         """
         Returns the corresponding object from the prospection world for a given object in the main world.
          If the given Object is already in the prospection world, it is returned.
@@ -807,7 +822,7 @@ class World(ABC):
                     f" the object isn't anymore in the main (graphical) World"
                     f" or if the given object is already a prospection object. ")
 
-    def get_object_from_prospection(self, prospection_object: Object) -> Object:
+    def get_object_from_prospection_object(self, prospection_object: Object) -> Object:
         """
         Returns the corresponding object from the main World for a given
         object in the shadow world. If the  given object is not in the shadow
@@ -824,19 +839,14 @@ class World(ABC):
 
     def reset_world(self) -> None:
         """
-        Resets the BulletWorld to the state it was first spawned in.
+        Resets the World to the state it was first spawned in.
         All attached objects will be detached, all joints will be set to the
         default position of 0 and all objects will be set to the position and
         orientation in which they were spawned.
         """
         for obj in self.objects:
-            if obj.attachments:
-                attached_objects = list(obj.attachments.keys())
-                for att_obj in attached_objects:
-                    obj.detach(att_obj)
-            joint_names = list(obj.joints.keys())
-            joint_poses = [0 for j in joint_names]
-            obj.set_positions_of_all_joints(dict(zip(joint_names, joint_poses)))
+            obj.detach_all()
+            obj.reset_all_joints_positions()
             obj.set_pose(obj.original_pose)
 
     def update_transforms_for_objects_in_current_world(self) -> None:
@@ -972,11 +982,8 @@ class Object:
     Represents a spawned Object in the World.
     """
 
-    def __init__(self, name: str, obj_type: Union[str, ObjectType], path: str,
-                 pose: Pose = None,
-                 world: World = None,
-                 color: Optional[Color] = Color(),
-                 ignore_cached_files: Optional[bool] = False):
+    def __init__(self, name: str, obj_type: Union[str, ObjectType], path: str, pose: Pose = None, world: World = None,
+                 color: Optional[Color] = Color(), ignore_cached_files: Optional[bool] = False):
         """
         The constructor loads the urdf file into the given World, if no World is specified the
         :py:attr:`~World.current_world` will be used. It is also possible to load .obj and .stl file into the World.
@@ -990,7 +997,7 @@ class Object:
         :param color: The color with which the object should be spawned.
         :param ignore_cached_files: If true the file will be spawned while ignoring cached files.
         """
-        if not pose:
+        if pose is None:
             pose = Pose()
         self.world: World = world if world is not None else World.current_world
         self.local_transformer = LocalTransformer()
@@ -1008,15 +1015,14 @@ class Object:
 
         self.tf_frame = ("prospection/" if self.world.is_prospection_world else "") + self.name + "_" + str(self.id)
 
-        # This means "world" is not the prospection world since it has a reference to a prospection world
-        if self.world.prospection_world is not None:
+        if not self.world.is_prospection_world:
             self.world.world_sync.add_obj_queue.put(
                 [name, obj_type, path, position, orientation, self.world.prospection_world, color, self])
 
         with open(self.path) as f:
             self.urdf_object = URDF.from_xml_string(f.read())
-            if self.urdf_object.name == robot_description.name and not World.robot:
-                World.robot = self
+            if self.urdf_object.name == robot_description.name:
+                self.world.set_robot_if_not_set(self)
 
         self.links[self.urdf_object.get_root()] = -1
 
@@ -1050,18 +1056,21 @@ class Object:
         """
         Removes this object from the World it currently resides in.
         For the object to be removed it has to be detached from all objects it
-        is currently attached to. After this is done a call to PyBullet is done
-        to remove this Object from the simulation.
+        is currently attached to. After this is done a call to world remove object is done
+        to remove this Object from the simulation/world.
         """
-        for obj in self.attachments.keys():
-            self.world.detach_objects(self, obj)
+        self.detach_all()
+
         self.world.objects.remove(self)
+
         # This means the current world of the object is not the prospection world, since it
         # has a reference to the prospection world
         if self.world.prospection_world is not None:
             self.world.world_sync.remove_obj_queue.put(self)
             self.world.world_sync.remove_obj_queue.join()
+
         self.world.remove_object(self.id)
+
         if World.robot == self:
             World.robot = None
 
@@ -1345,40 +1354,49 @@ class Object:
     def get_link_pose_by_id(self, link_id: int) -> Pose:
         return self.get_link_pose(self.get_link_by_id(link_id))
 
-    def set_joint_position(self, joint_name: str, joint_pose: float) -> None:
+    def reset_all_joints_positions(self) -> None:
+        """
+        Sets the current position of all joints to 0. This is useful if the joints should be reset to their default
+        """
+        joint_names = list(self.joints.keys())
+        joint_positions = [0] * len(joint_names)
+        self.set_positions_of_all_joints(dict(zip(joint_names, joint_positions)))
+
+    def set_positions_of_all_joints(self, joint_poses: dict) -> None:
+        """
+        Sets the current position of multiple joints at once, this method should be preferred when setting
+         multiple joints at once instead of running :func:`~Object.set_joint_position` in a loop.
+
+        :param joint_poses:
+        :return:
+        """
+        for joint_name, joint_position in joint_poses.items():
+            self.world.reset_object_joint_position(self, joint_name, joint_position)
+            self._current_joints_positions[joint_name] = joint_position
+        self._update_current_link_poses_and_transforms()
+        self.world._set_attached_objects(self, [self])
+
+    def set_joint_position(self, joint_name: str, joint_position: float) -> None:
         """
         Sets the position of the given joint to the given joint pose. If the pose is outside the joint limits, as stated
         in the URDF, an error will be printed. However, the joint will be set either way.
 
         :param joint_name: The name of the joint
-        :param joint_pose: The target pose for this joint
+        :param joint_position: The target pose for this joint
         """
         # TODO Limits for rotational (infinitie) joints are 0 and 1, they should be considered seperatly
         up_lim, low_lim = self.world.get_object_joint_limits(self, joint_name)
         if low_lim > up_lim:
             low_lim, up_lim = up_lim, low_lim
-        if not low_lim <= joint_pose <= up_lim:
+        if not low_lim <= joint_position <= up_lim:
             logging.error(
-                f"The joint position has to be within the limits of the joint. The joint limits for {joint_name} are {low_lim} and {up_lim}")
-            logging.error(f"The given joint position was: {joint_pose}")
+                f"The joint position has to be within the limits of the joint. The joint limits for {joint_name}"
+                f" are {low_lim} and {up_lim}")
+            logging.error(f"The given joint position was: {joint_position}")
             # Temporarily disabled because kdl outputs values exciting joint limits
             # return
-        self.world.reset_joint_position(self, joint_name, joint_pose)
-        self._current_joints_positions[joint_name] = joint_pose
-        self._update_current_link_poses_and_transforms()
-        self.world._set_attached_objects(self, [self])
-
-    def set_positions_of_all_joints(self, joint_poses: dict) -> None:
-        """
-        Sets the current position of multiple joints at once, this method should be preferred when setting multiple joints
-        at once instead of running :func:`~Object.set_joint_position` in a loop.
-
-        :param joint_poses:
-        :return:
-        """
-        for joint_name, joint_pose in joint_poses.items():
-            self.world.reset_joint_position(self, joint_name, joint_pose)
-            self._current_joints_positions[joint_name] = joint_pose
+        self.world.reset_object_joint_position(self, joint_name, joint_position)
+        self._current_joints_positions[joint_name] = joint_position
         self._update_current_link_poses_and_transforms()
         self.world._set_attached_objects(self, [self])
 
@@ -1720,6 +1738,9 @@ class Attachment:
         If true means that when child moves, parent moves not the other way around.
         """
         return self.loose
+
+    def __del__(self):
+        self.remove_constraint_if_exists()
 
 
 def _load_object(name: str,
