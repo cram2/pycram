@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import time
-from typing import Iterable, Optional, Callable, Dict, Any, List
+from typing import Iterable, Optional, Callable, Dict, Any, List, Union
 from anytree import NodeMixin, Node, PreOrderIter
 
 from .enums import State
@@ -87,7 +87,7 @@ class Language(NodeMixin):
             raise NotALanguageExpression(
                 f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
         if self.__class__.__name__ in self.parallel_blocklist or other.__class__.__name__ in self.parallel_blocklist:
-            raise TypeError(
+            raise AttributeError(
                 f"You can not execute the Designator {self if self.__class__.__name__ in self.parallel_blocklist else other} in a parallel language expression.")
 
         return Parallel(parent=None, children=(self, other)).simplify()
@@ -103,7 +103,7 @@ class Language(NodeMixin):
             raise NotALanguageExpression(
                 f"Only classes that inherit from the Language class can be used with the plan language, these are usually Designators or Code objects. \nThe object '{other}' does not inherit from the Language class.")
         if self.__class__.__name__ in self.parallel_blocklist or other.__class__.__name__ in self.parallel_blocklist:
-            raise TypeError(
+            raise AttributeError(
                 f"You can not execute the Designator {self if self.__class__.__name__ in self.parallel_blocklist else other} in a try all language expression.")
         return TryAll(parent=None, children=(self, other)).simplify()
 
@@ -122,6 +122,32 @@ class Language(NodeMixin):
         elif isinstance(other, Monitor):
             other.children = [self]
             return other
+
+    def __mul__(self, other):
+        """
+        Language expression for Repeated execution. The other attribute of this operator has to be an integer.
+
+        :param other: An integer which states how often the Language expression should be repeated
+        :return: A :func:`~Repeat` object which is the new root node of the language tree
+        """
+        if not isinstance(other, int):
+            raise AttributeError("Repeat can only be used in combination with integers")
+        return Repeat(parent=None, children=[self], repeat=other)
+
+    def __rmul__(self, other):
+        """
+        Language expression for Repeated execution. The other attribute of this operator has to be an integer. This is
+        the reversed operator of __mul__ which allows to write:
+
+        .. code-block:: python
+            2 * ParkAction()
+
+        :param other: An integer which states how often the Language expression should be repeated
+        :return: A :func:`~Repeat` object which is the new root node of the language tree
+        """
+        if not isinstance(other, int):
+            raise AttributeError("Repeat can only be used in combination with integers")
+        return Repeat(parent=None, children=[self], repeat=other)
 
     def simplify(self) -> Language:
         """
@@ -164,8 +190,52 @@ class Language(NodeMixin):
         node2.parent = None
         node1.children = node2.children + node1.children
 
-    def interrupt(self):
+    def interrupt(self) -> None:
+        """
+        Base method for interrupting the execution of Language expression. To be overwritten in a sub-class.
+        """
         raise NotImplementedError
+
+
+class Repeat(Language):
+    """
+    Executes all children a given number of times.
+    """
+    def perform(self):
+        """
+        Behaviour of repeat, executes all children in a loop as often as stated on initialization.
+
+        :return:
+        """
+        for i in range(self.repeat):
+            for child in self.children:
+                if self.interrupted:
+                    return
+                try:
+                    child.resolve().perform()
+                except PlanFailure as e:
+                    self.root.exceptions[self] = e
+
+    def __init__(self, parent: NodeMixin = None, children: Iterable[NodeMixin] = None, repeat: int = 1):
+        """
+        Initializes the Repeat expression with a parent and children for the language tree construction and a number
+        which states how often the children should be executed.
+
+        :param parent: Parent node of this node, if None this will be the root node
+        :param children: A list of children of this node
+        :param repeat: An integer of how often the children should be executed.
+        """
+        super().__init__(parent, children)
+        self.repeat: int = repeat
+
+    def interrupt(self):
+        """
+        Stops the execution of this language expression by setting the ``interrupted`` variable to True, adding this
+        thread to the block_list in ProcessModule and interrupting the current giskard goal
+        """
+        self.interrupted = True
+        self.block_list.append(threading.get_ident())
+        giskard.giskard_wrapper.interrupt()
 
 
 class Monitor(Language):
@@ -177,7 +247,7 @@ class Monitor(Language):
         thread which continuously checks if the condition is True. When the condition is True the interrupt function of
         the child will be called.
     """
-    def __init__(self, condition=None):
+    def __init__(self, condition: Union[Callable, Fluent] = None):
         """
         When initializing a Monitor a condition must be provided. The condition is a callable or a Fluent which returns \
         True or False.
