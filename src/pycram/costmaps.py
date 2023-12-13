@@ -394,9 +394,9 @@ class OccupancyCostmap(Costmap):
                                          physicsClientId=BulletWorld.current_world.client_id)
                 j += len(n)
                 if BulletWorld.robot:
-                    shadow_robot = BulletWorld.current_world.get_prospection_object(BulletWorld.robot)
+                    shadow_robot = BulletWorld.current_world.get_prospection_object_from_object(BulletWorld.robot)
                     attached_objs = BulletWorld.robot.attachments.keys()
-                    attached_objs_shadow_id = [BulletWorld.current_world.get_prospection_object(x).id for x in
+                    attached_objs_shadow_id = [BulletWorld.current_world.get_prospection_object_from_object(x).id for x in
                                                attached_objs]
                     res[i:j] = [
                         1 if ray[0] == -1 or ray[0] == shadow_robot.id or ray[0] in attached_objs_shadow_id else 0 for
@@ -726,7 +726,7 @@ class SemanticCostmap(Costmap):
 
         :return: Two points in world coordinate space, which span a rectangle
         """
-        shadow_obj = BulletWorld.current_world.get_prospection_object(self.object)
+        shadow_obj = BulletWorld.current_world.get_prospection_object_from_object(self.object)
         with UseProspectionWorld():
             shadow_obj.set_orientation(Pose(orientation=[0, 0, 0, 1]))
             link_orientation = shadow_obj.get_link_pose(self.link)

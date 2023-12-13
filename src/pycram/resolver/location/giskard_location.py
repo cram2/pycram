@@ -28,7 +28,7 @@ class GiskardLocation(CostmapLocation):
             pose_left, end_config_left = self._get_reachable_pose_for_arm(self.target,
                                                                           robot_description.get_tool_frame("left"))
 
-            test_robot = BulletWorld.current_world.get_prospection_object(BulletWorld.robot)
+            test_robot = BulletWorld.current_world.get_prospection_object_from_object(BulletWorld.robot)
             with UseProspectionWorld():
                 valid, arms = reachability_validator(pose_right, test_robot, self.target, {})
                 if valid:

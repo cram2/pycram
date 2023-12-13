@@ -38,7 +38,7 @@ if __name__ == '__main__':
     lab = Object("kitchen", "environment", kitchen_urdf_path)
     robot = Object("ur", "robot", robot_urdf_path, pose=SPAWNING_POSES["robot"])
     cereal = Object("cereal", "object", os.path.join(RESOURCE_DIR, "breakfast_cereal.stl"),
-                         pose=SPAWNING_POSES["cereal"])
+                    pose=SPAWNING_POSES["cereal"])
     BulletWorld.robot = robot
 
     tf_broadcaster = TFBroadcaster("projection", "odom", 1.0)

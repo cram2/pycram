@@ -204,7 +204,7 @@ class BulletWorld(World):
         """
         return p.getNumJoints(obj.id, self.client_id)
 
-    def reset_joint_position(self, obj: Object, joint_name: str, joint_pose: float) -> None:
+    def reset_object_joint_position(self, obj: Object, joint_name: str, joint_pose: float) -> None:
         """
         Reset the joint position instantly without physics simulation
 
@@ -294,15 +294,6 @@ class BulletWorld(World):
         :param gravity_vector: The gravity vector that should be used in the World.
         """
         p.setGravity(gravity_vector[0], gravity_vector[1], gravity_vector[2], physicsClientId=self.client_id)
-
-    @classmethod
-    def set_robot(cls, robot: Object) -> None:
-        """
-        Sets the global variable for the robot Object. This should be set on spawning the robot.
-
-        :param robot: The Object reference to the Object representing the robot.
-        """
-        cls.robot = robot
 
     def exit(self, wait_time_before_exit_in_secs: Optional[float] = 0.1) -> None:
         """
