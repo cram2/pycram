@@ -7,6 +7,8 @@ from anytree import NodeMixin, Node, PreOrderIter
 
 from .enums import State
 import threading
+
+from .fluent import Fluent
 from .plan_failures import PlanFailure, NotALanguageExpression
 from .external_interfaces import giskard
 
@@ -107,17 +109,19 @@ class Language(NodeMixin):
 
     def __rshift__(self, other):
         """
+        Operator for Monitors, this always makes the Monitor the parent of the other expression.
         
-        :param other:
-        :return:
+        :param other: Another Language expression
+        :return: The Monitor which is now the new root node.
         """
-        if type(self) == Monitor:
+        if isinstance(self, Monitor) and isinstance(other, Monitor):
+            raise AttributeError("You can't attach a Monitor to another Monitor.")
+        if isinstance(self, Monitor):
             self.children = [other]
             return self
-        elif type(other) == Monitor:
+        elif isinstance(other, Monitor):
             other.children = [self]
             return other
-        # return Monitor(parent=None, children=(self, other)).simplify()
 
     def simplify(self) -> Language:
         """
@@ -142,7 +146,7 @@ class Language(NodeMixin):
         """
         for node in PreOrderIter(self.root):
             for child in node.children:
-                if type(child) == Monitor:
+                if isinstance(child, Monitor):
                     continue
                 if type(node) is type(child):
                     self.merge_nodes(node, child)
@@ -175,13 +179,19 @@ class Monitor(Language):
     """
     def __init__(self, condition=None):
         """
-        When initializing a Monitor a condition must be provided. The condition is a callable which returns to True or
-        False.
+        When initializing a Monitor a condition must be provided. The condition is a callable or a Fluent which returns \
+        True or False.
 
         :param condition: The condition upon which the Monitor should interrupt the attached language expression.
         """
         super().__init__(None, None)
-        self.condition = condition
+        self.kill_event = threading.Event()
+        if callable(condition):
+            self.condition = Fluent(condition)
+        elif isinstance(condition, Fluent):
+            self.condition = condition
+        else:
+            raise AttributeError("The condition of a Monitor has to be a Callable or a Fluent")
 
     def perform(self):
         """
@@ -191,15 +201,19 @@ class Monitor(Language):
         :return: The result of the attached language expression
         """
         def check_condition():
-            while not self.condition():
+            while not self.condition.get_value() and not self.kill_event.is_set():
                 time.sleep(0.1)
+            if self.kill_event.is_set():
+                return
             for child in self.children:
                 child.interrupt()
 
         t = threading.Thread(target=check_condition)
         t.start()
-        return self.children[0].perform()
+        res = self.children[0].perform()
+        self.kill_event.set()
         t.join()
+        return res
 
     def interrupt(self):
         """
