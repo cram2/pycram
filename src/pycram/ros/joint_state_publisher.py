@@ -37,7 +37,7 @@ class JointStatePublisher:
         The joint states are published as long as the kill_event is not set by :py:meth:`~JointStatePublisher._stop_publishing`
         """
         robot = BulletWorld.robot
-        joint_names = [joint_name for joint_name in robot.joints.keys()]
+        joint_names = [joint_name for joint_name in robot.joint_name_to_id.keys()]
         seq = 0
 
         while not self.kill_event.is_set():

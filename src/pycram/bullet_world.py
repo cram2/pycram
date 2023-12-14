@@ -97,7 +97,7 @@ class BulletWorld(World):
         :param joint_name: The name of the joint.
         :return: The joint upper limit as a float.
         """
-        return p.getJointInfo(obj.id, obj.joints[joint_name], physicsClientId=self.client_id)[8]
+        return p.getJointInfo(obj.id, obj.joint_name_to_id[joint_name], physicsClientId=self.client_id)[8]
 
     def get_object_joint_lower_limit(self, obj: Object, joint_name: str) -> float:
         """
@@ -107,7 +107,7 @@ class BulletWorld(World):
         :param joint_name: The name of the joint.
         :return: The joint lower limit as a float.
         """
-        return p.getJointInfo(obj.id, obj.joints[joint_name], physicsClientId=self.client_id)[9]
+        return p.getJointInfo(obj.id, obj.joint_name_to_id[joint_name], physicsClientId=self.client_id)[9]
 
     def get_object_joint_axis(self, obj: Object, joint_name: str) -> Tuple[float]:
         """
@@ -117,7 +117,7 @@ class BulletWorld(World):
         :param joint_name: Name of the joint for which the axis should be returned.
         :return: The axis a vector of xyz
         """
-        return p.getJointInfo(obj.id, obj.joints[joint_name], self.client_id)[13]
+        return p.getJointInfo(obj.id, obj.joint_name_to_id[joint_name], self.client_id)[13]
 
     def get_object_joint_type(self, obj: Object, joint_name: str) -> JointType:
         """
@@ -127,7 +127,7 @@ class BulletWorld(World):
         :param joint_name: Joint name for which the type should be returned
         :return: The type of  the joint
         """
-        joint_type = p.getJointInfo(obj.id, obj.joints[joint_name], self.client_id)[2]
+        joint_type = p.getJointInfo(obj.id, obj.joint_name_to_id[joint_name], self.client_id)[2]
         return JointType(joint_type)
 
     def get_object_joint_position(self, obj: Object, joint_name: str) -> float:
@@ -137,17 +137,17 @@ class BulletWorld(World):
         :param obj: The object
         :param joint_name: The name of the joint
         """
-        return p.getJointState(obj.id, obj.joints[joint_name], physicsClientId=self.client_id)[0]
+        return p.getJointState(obj.id, obj.joint_name_to_id[joint_name], physicsClientId=self.client_id)[0]
 
-    def get_object_link_pose(self, obj: Object, link_name: str) -> Tuple[List, List]:
+    def get_object_link_pose(self, obj_id: int, link_id: int) -> Pose:
         """
         Get the pose of a link of an articulated object with respect to the world frame.
         The pose is given as a tuple of position and orientation.
 
-        :param obj: The object
-        :param link_name: The name of the link
+        :param obj_id: The object
+        :param link_id: The name of the link
         """
-        return p.getLinkState(obj.id, obj.links[link_name], physicsClientId=self.client_id)[4:6]
+        return Pose(*p.getLinkState(obj_id, link_id, physicsClientId=self.client_id)[4:6])
 
     def get_object_contact_points(self, obj: Object) -> List:
         """l.update_transforms_for_object(self.milk)
@@ -169,40 +169,44 @@ class BulletWorld(World):
         """
         return p.getContactPoints(obj1.id, obj2.id)
 
-    def get_object_joint_id(self, obj: Object, joint_idx: int) -> int:
+    def get_object_joint_names(self, obj_id: int) -> List[str]:
         """
-        Get the ID of a joint in an articulated object.
-
-        :param obj: The object
-        :param joint_idx: The index of the joint (would indicate order).
+        Get the names of all joints of an articulated object.
         """
-        return p.getJointInfo(obj.id, joint_idx, self.client_id)[0]
+        num_joints = self.get_object_number_of_joints(obj_id)
+        return [p.getJointInfo(obj_id, i, self.client_id)[1].decode('utf-8') for i in range(num_joints)]
 
-    def get_object_joint_name(self, obj: Object, joint_idx: int) -> str:
+    def get_object_link_names(self, obj_id: int) -> List[str]:
         """
-        Get the name of a joint in an articulated object.
-
-        :param obj: The object
-        :param joint_idx: The index of the joint (would indicate order).
+        Get the names of all joints of an articulated object.
         """
-        return p.getJointInfo(obj.id, joint_idx, self.client_id)[1].decode('utf-8')
+        num_links = self.get_object_number_of_links(obj_id)
+        return [p.getJointInfo(obj_id, i, self.client_id)[12].decode('utf-8') for i in range(num_links)]
 
-    def get_object_link_name(self, obj: Object, link_idx: int) -> str:
+    def get_object_number_of_links(self, obj_id: int) -> int:
         """
-        Get the name of a link in an articulated object.
+        Get the number of links of an articulated object
 
-        :param obj: The object
-        :param link_idx: The index of the link (would indicate order).
+        :param obj_id: The object
         """
-        return p.getJointInfo(obj.id, link_idx, self.client_id)[12].decode('utf-8')
+        return self.get_object_number_of_joints(obj_id)
 
-    def get_object_number_of_joints(self, obj: Object) -> int:
+    def get_object_number_of_joints(self, obj_id: int) -> int:
         """
         Get the number of joints of an articulated object
 
-        :param obj: The object
+        :param obj_id: The object
         """
-        return p.getNumJoints(obj.id, self.client_id)
+        return p.getNumJoints(obj_id, self.client_id)
+
+    def get_object_link_id(self, obj_id: int, link_name: str) -> int:
+        """
+        Get the ID of a link in an articulated object.
+
+        :param obj: The object
+        :param link_name: The name of the link
+        """
+        return self.get_object_by_id(obj_id).link_name_to_id[link_name]
 
     def reset_object_joint_position(self, obj: Object, joint_name: str, joint_pose: float) -> None:
         """
@@ -212,7 +216,7 @@ class BulletWorld(World):
         :param joint_name: The name of the joint
         :param joint_pose: The new joint pose
         """
-        p.resetJointState(obj.id, obj.joints[joint_name], joint_pose, physicsClientId=self.client_id)
+        p.resetJointState(obj.id, obj.joint_name_to_id[joint_name], joint_pose, physicsClientId=self.client_id)
 
     def reset_object_base_pose(self, obj: Object, position: List[float], orientation: List[float]):
         """
@@ -250,7 +254,7 @@ class BulletWorld(World):
         :return: A dictionary with link names as keys and 4 element list with the RGBA values for each link as value.
         """
         visual_data = p.getVisualShapeData(obj.id, physicsClientId=self.client_id)
-        swap = {v: k for k, v in obj.links.items()}
+        swap = {v: k for k, v in obj.link_name_to_id.items()}
         links = list(map(lambda x: swap[x[1]] if x[1] != -1 else "base", visual_data))
         colors = Color.from_rgba(list(map(lambda x: x[7], visual_data)))
         link_to_color = dict(zip(links, colors))
@@ -266,16 +270,12 @@ class BulletWorld(World):
         """
         return AxisAlignedBoundingBox.from_min_max(*p.getAABB(obj.id, physicsClientId=self.client_id))
 
-    def get_object_link_aabb(self, obj: Object, link_name: str) -> AxisAlignedBoundingBox:
+    def get_object_link_aabb(self, obj_id: int, link_id: int) -> AxisAlignedBoundingBox:
         """
         Returns the axis aligned bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
-
-        :param obj: The object for which the bounding box should be returned.
-        :param link_name: The name of a link of this object.
-        :return: Two lists of x,y,z which define the bounding box.
         """
-        return AxisAlignedBoundingBox.from_min_max(*p.getAABB(obj.id, obj.links[link_name], self.client_id))
+        return AxisAlignedBoundingBox.from_min_max(*p.getAABB(obj_id, link_id, self.client_id))
 
     def set_realtime(self, real_time: bool) -> None:
         """

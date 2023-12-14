@@ -28,8 +28,8 @@ class ForceTorqueSensor:
         self.world = BulletWorld.current_world
         self.fts_joint_idx = None
         self.joint_name = joint_name
-        if joint_name in self.world.robot.joints.keys():
-            self.fts_joint_idx = self.world.robot.joints[joint_name]
+        if joint_name in self.world.robot.joint_name_to_id.keys():
+            self.fts_joint_idx = self.world.robot.joint_name_to_id[joint_name]
         else:
             raise RuntimeError(f"Could not register ForceTorqueSensor: Joint {joint_name} does not exist in robot object")
         pb.enableJointForceTorqueSensor(self.world.robot.id, self.fts_joint_idx, enableSensor=1)
