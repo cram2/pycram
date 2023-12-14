@@ -53,7 +53,7 @@ class TFBroadcaster:
         for obj in self.world.objects:
             pose = obj.get_pose()
             self._publish_pose(obj.tf_frame, pose)
-            for link in obj.links.keys():
+            for link in obj.link_name_to_id.keys():
                 link_pose = obj.get_link_pose(link)
                 self._publish_pose(obj.get_link_tf_frame(link), link_pose)
 

@@ -11,6 +11,7 @@ import time
 from .bullet_world import BulletWorld
 from pycram.world import UseProspectionWorld, Object
 from .world_reasoning import _get_images_for_target
+from .world_dataclasses import AxisAlignedBoundingBox
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 from typing import Tuple, List, Union, Optional
 
@@ -713,12 +714,12 @@ class SemanticCostmap(Costmap):
         Generates the semantic costmap according to the provided parameters. To do this the axis aligned bounding box (AABB)
         for the link name will be used. Height and width of the final Costmap will be the x and y sizes of the AABB.
         """
-        min, max = self.get_aabb_for_link()
-        self.height = int((max[0] - min[0]) // self.resolution)
-        self.width = int((max[1] - min[1]) // self.resolution)
+        min_p, max_p = self.get_aabb_for_link().get_min_max_points()
+        self.height = int((max_p.x - min_p.x) // self.resolution)
+        self.width = int((max_p.y - min_p.y) // self.resolution)
         self.map = np.ones((self.height, self.width))
 
-    def get_aabb_for_link(self) -> Tuple[List[float], List[float]]:
+    def get_aabb_for_link(self) -> AxisAlignedBoundingBox:
         """
         Returns the axis aligned bounding box (AABB) of the link provided when creating this costmap. To try and let the
         AABB as close to the actual object as possible, the Object will be rotated such that the link will be in the
@@ -726,14 +727,14 @@ class SemanticCostmap(Costmap):
 
         :return: Two points in world coordinate space, which span a rectangle
         """
-        shadow_obj = BulletWorld.current_world.get_prospection_object_from_object(self.object)
+        prospection_object = BulletWorld.current_world.get_prospection_object_from_object(self.object)
         with UseProspectionWorld():
-            shadow_obj.set_orientation(Pose(orientation=[0, 0, 0, 1]))
-            link_orientation = shadow_obj.get_link_pose(self.link)
+            prospection_object.set_orientation(Pose(orientation=[0, 0, 0, 1]))
+            link_orientation = prospection_object.get_link_pose(self.link)
             link_orientation_trans = link_orientation.to_transform(self.object.get_link_tf_frame(self.link))
             inverse_orientation = link_orientation_trans.invert()
-            shadow_obj.set_orientation(inverse_orientation.to_pose())
-            return shadow_obj.get_link_aabb(self.link)
+            prospection_object.set_orientation(inverse_orientation.to_pose())
+            return prospection_object.get_link_aabb(self.object.get_link_id(self.link))
 
 
 cmap = colors.ListedColormap(['white', 'black', 'green', 'red', 'blue'])

@@ -19,7 +19,7 @@ import rospy
 
 import urdf_parser_py.urdf
 from geometry_msgs.msg import Quaternion, Point
-from urdf_parser_py.urdf import URDF
+from urdf_parser_py.urdf import URDF, Collision, GeometricType
 
 from .event import Event
 from .robot_descriptions import robot_description
@@ -345,13 +345,10 @@ class World(ABC):
         pass
 
     @abstractmethod
-    def get_object_link_pose(self, obj: Object, link_name: str) -> Tuple[List, List]:
+    def get_object_link_pose(self, obj_id: int, link_id: int) -> Pose:
         """
         Get the pose of a link of an articulated object with respect to the world frame.
         The pose is given as a tuple of position and orientation.
-
-        :param obj: The object
-        :param link_name: The name of the link
         """
         pass
 
@@ -398,27 +395,20 @@ class World(ABC):
         pass
 
     @abstractmethod
-    def get_object_joint_id(self, obj: Object, joint_idx: int) -> int:
+    def get_object_joint_names(self, obj_id: int) -> List[str]:
         """
-        Get the ID of a joint in an articulated object.
-
-        :param obj: The object
-        :param joint_idx: The index of the joint (would indicate order).
+        Get the names of all joints of an articulated object.
         """
         pass
 
     @abstractmethod
-    def get_object_joint_name(self, obj: Object, joint_idx: int) -> str:
+    def get_object_link_names(self, obj_id: int) -> List[str]:
         """
-        Get the name of a joint in an articulated object.
-
-        :param obj: The object
-        :param joint_idx: The index of the joint (would indicate order).
+        Get the names of all links of an articulated object.
         """
         pass
 
-    @abstractmethod
-    def get_object_link_name(self, obj: Object, link_idx: int) -> str:
+    def get_object_link_id(self, obj: Object, link_idx: int) -> str:
         """
         Get the name of a link in an articulated object.
 
@@ -428,11 +418,15 @@ class World(ABC):
         pass
 
     @abstractmethod
-    def get_object_number_of_joints(self, obj: Object) -> int:
+    def get_object_number_of_joints(self, obj_id: int) -> int:
         """
         Get the number of joints of an articulated object
+        """
+        pass
 
-        :param obj: The object
+    def get_object_number_of_links(self, obj_id: int) -> int:
+        """
+        Get the number of links of an articulated object
         """
         pass
 
@@ -479,13 +473,13 @@ class World(ABC):
         if link == "":
             # Check if there is only one link, this is the case for primitive
             # forms or if loaded from an .stl or .obj file
-            if obj.links != {}:
-                for link_id in obj.links.values():
+            if obj.link_name_to_id != {}:
+                for link_id in obj.link_name_to_id.values():
                     self.set_object_link_color(obj, link_id, color)
             else:
                 self.set_object_link_color(obj, -1, color)
         else:
-            self.set_object_link_color(obj, obj.links[link], color)
+            self.set_object_link_color(obj, obj.link_name_to_id[link], color)
 
     @abstractmethod
     def set_object_link_color(self, obj: Object, link_id: int, rgba_color: Color):
@@ -523,7 +517,7 @@ class World(ABC):
         if link:
             if link in link_to_color_dict.keys():
                 return link_to_color_dict[link]
-            elif link not in obj.links.keys():
+            elif link not in obj.link_name_to_id.keys():
                 rospy.logerr(f"The link '{link}' is not part of this obejct")
                 return None
             else:
@@ -557,14 +551,10 @@ class World(ABC):
         pass
 
     @abstractmethod
-    def get_object_link_aabb(self, obj: Object, link_name: str) -> AxisAlignedBoundingBox:
+    def get_object_link_aabb(self, obj_id: int, link_id: int) -> AxisAlignedBoundingBox:
         """
         Returns the axis aligned bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
-
-        :param obj: The object for which the bounding box should be returned.
-        :param link_name: The name of a link of this object.
-        :return: AxisAlignedBoundingBox object containing the min and max points of the bounding box.
         """
         pass
 
@@ -774,7 +764,7 @@ class World(ABC):
         for obj in self.objects:
             o = Object(obj.name, obj.obj_type, obj.path, Pose(obj.get_position(), obj.get_orientation()), world,
                        obj.color)
-            for joint in obj.joints:
+            for joint in obj.joint_name_to_id:
                 o.set_joint_position(joint, obj.get_joint_position(joint))
         return world
 
@@ -946,8 +936,8 @@ class WorldSync(threading.Thread):
                     prospection_obj.set_pose(world_obj.get_pose())
 
                 # Manage joint positions
-                if len(world_obj.joints) > 2:
-                    for joint_name in world_obj.joints.keys():
+                if len(world_obj.joint_name_to_id) > 2:
+                    for joint_name in world_obj.joint_name_to_id.keys():
                         if prospection_obj.get_joint_position(joint_name) != world_obj.get_joint_position(joint_name):
                             prospection_obj.set_positions_of_all_joints(world_obj.get_positions_of_all_joints())
                             break
@@ -977,13 +967,81 @@ class WorldSync(threading.Thread):
         self.equal_states = eql
 
 
+class Link:
+
+    def __init__(self,
+                 _id: int,
+                 obj_id: int,
+                 obj_tf_frame: str,
+                 urdf_link: urdf_parser_py.urdf.Link,
+                 world: World,
+                 is_root: Optional[bool] = False):
+        self.id = _id
+        self.obj_id = obj_id
+        self.tf_frame = f"{obj_tf_frame}/{self.name}" if not is_root else obj_tf_frame
+        self.urdf_link = urdf_link
+        self.world = world
+        self.object = world.get_object_by_id(obj_id)
+        self.local_transformer = self.object.local_transformer
+
+    @property
+    def transform(self) -> Transform:
+        """
+        The transformation from the world frame to this link frame.
+        """
+        return self.pose.to_transform(self.tf_frame)
+
+    def get_transform_to_other_link(self, other_link: Link):
+        new_pose = self.local_transformer.transform_pose_to_target_frame(other_link.pose, self.tf_frame)
+        return new_pose.to_transform(other_link.tf_frame)
+
+    def get_pose_wrt_other_link(self, other_link: Link):
+        return self.local_transformer.transform_pose_to_target_frame(self.pose, other_link.tf_frame)
+
+    def get_aabb(self) -> AxisAlignedBoundingBox:
+        return self.world.get_object_link_aabb(self.obj_id, self.id)
+
+    @property
+    def position(self) -> Point:
+        return self.pose.position
+
+    @property
+    def orientation(self):
+        return self.pose.orientation
+
+    @property
+    def pose(self):
+        """
+        The pose of the link relative to the world frame.
+        """
+        return self.world.get_object_link_pose(self.obj_id, self.id)
+
+    @property
+    def name(self):
+        return self.urdf_link.name
+
+    def get_geometry(self) -> GeometricType:
+        return None if not self.collision else self.collision.geometry
+
+    @property
+    def collision(self):
+        return self.urdf_link.collision
+
+
+
+
+
+
 class Object:
     """
     Represents a spawned Object in the World.
     """
 
-    def __init__(self, name: str, obj_type: Union[str, ObjectType], path: str, pose: Pose = None, world: World = None,
-                 color: Optional[Color] = Color(), ignore_cached_files: Optional[bool] = False):
+    def __init__(self, name: str, obj_type: Union[str, ObjectType], path: str,
+                 pose: Pose = None,
+                 world: World = None,
+                 color: Optional[Color] = Color(),
+                 ignore_cached_files: Optional[bool] = False):
         """
         The constructor loads the urdf file into the given World, if no World is specified the
         :py:attr:`~World.current_world` will be used. It is also possible to load .obj and .stl file into the World.
@@ -1007,8 +1065,8 @@ class Object:
         pose_in_map = self.local_transformer.transform_pose_to_target_frame(pose, "map")
         position, orientation = pose_in_map.to_list()
         self.id, self.path = _load_object(name, path, position, orientation, self.world, color, ignore_cached_files)
-        self.joints: Dict[str, int] = self._joint_or_link_name_to_id("joint")
-        self.links: Dict[str, int] = self._joint_or_link_name_to_id("link")
+        self.joint_name_to_id: Dict[str, int] = self._get_joint_name_to_id_map()
+        self.link_name_to_id: Dict[str, int] = self._get_link_name_to_id_map()
         self.attachments: Dict[Object, Attachment] = {}
         self.cids: Dict[Object, int] = {}
         self.original_pose = pose_in_map
@@ -1024,7 +1082,7 @@ class Object:
             if self.urdf_object.name == robot_description.name:
                 self.world.set_robot_if_not_set(self)
 
-        self.links[self.urdf_object.get_root()] = -1
+        self.link_name_to_id[self.urdf_object.get_root()] = -1
 
         self._current_pose = pose_in_map
         self._current_link_poses: Dict[str, Pose] = {}
@@ -1043,7 +1101,7 @@ class Object:
         """
         Initialize the cached joint position for each joint.
         """
-        for joint_name in self.joints.keys():
+        for joint_name in self.joint_name_to_id.keys():
             self._current_joints_positions[joint_name] = self.world.get_object_joint_position(self, joint_name)
 
     def __repr__(self):
@@ -1246,23 +1304,21 @@ class Object:
         pose.pose.orientation = target_orientation
         self.set_pose(pose)
 
-    def _joint_or_link_name_to_id(self, name_type: str) -> Dict[str, int]:
+    def _get_joint_name_to_id_map(self) -> Dict[str, int]:
         """
-        Creates a dictionary which maps the link or joint name to the unique ids used by pybullet.
+        Creates a dictionary which maps the joint names to their unique ids.
+        """
+        joint_names = self.world.get_object_joint_names(self.id)
+        n_joints = len(joint_names)
+        return dict(zip(joint_names, range(n_joints)))
 
-        :param name_type: Determines if the dictionary should be for joints or links
-        :return: A dictionary that maps joint or link names to unique ids
+    def _get_link_name_to_id_map(self) -> Dict[str, int]:
         """
-        n_joints = self.world.get_object_number_of_joints(self)
-        joint_name_to_id = {}
-        for i in range(0, n_joints):
-            _id = self.world.get_object_joint_id(self, i)
-            if name_type == "joint":
-                _name = self.world.get_object_joint_name(self, i)
-            else:
-                _name = self.world.get_object_link_name(self, i)
-            joint_name_to_id[_name] = _id
-        return joint_name_to_id
+        Creates a dictionary which maps the link names to their unique ids.
+        """
+        link_names = self.world.get_object_link_names(self.id)
+        n_links = len(link_names)
+        return dict(zip(link_names, range(n_links)))
 
     def get_joint_id(self, name: str) -> int:
         """
@@ -1271,7 +1327,7 @@ class Object:
         :param name: The joint name
         :return: The unique id
         """
-        return self.joints[name]
+        return self.joint_name_to_id[name]
 
     def get_link_id(self, name: str) -> int:
         """
@@ -1282,7 +1338,7 @@ class Object:
         """
         if name is None:
             return -1
-        return self.links[name]
+        return self.link_name_to_id[name]
 
     def get_link_by_id(self, id: int) -> str:
         """
@@ -1291,7 +1347,7 @@ class Object:
         :param id: id for link
         :return: The link name
         """
-        return dict(zip(self.links.values(), self.links.keys()))[id]
+        return dict(zip(self.link_name_to_id.values(), self.link_name_to_id.keys()))[id]
 
     def get_joint_by_id(self, joint_id: int) -> str:
         """
@@ -1300,7 +1356,7 @@ class Object:
         :param joint_id: The Pybullet id of for joint
         :return: The joint name
         """
-        return dict(zip(self.joints.values(), self.joints.keys()))[joint_id]
+        return dict(zip(self.joint_name_to_id.values(), self.joint_name_to_id.keys()))[joint_id]
 
     def get_other_object_link_pose_relative_to_my_link(self,
                                                        my_link_id: int,
@@ -1347,7 +1403,7 @@ class Object:
         :param name: Link name for which a Pose should be returned
         :return: The pose of the link
         """
-        if name in self.links.keys() and self.links[name] == -1:
+        if name in self.link_name_to_id.keys() and self.link_name_to_id[name] == -1:
             return self.get_pose()
         return self._current_link_poses[name]
 
@@ -1358,7 +1414,7 @@ class Object:
         """
         Sets the current position of all joints to 0. This is useful if the joints should be reset to their default
         """
-        joint_names = list(self.joints.keys())
+        joint_names = list(self.joint_name_to_id.keys())
         joint_positions = [0] * len(joint_names)
         self.set_positions_of_all_joints(dict(zip(joint_names, joint_positions)))
 
@@ -1442,11 +1498,11 @@ class Object:
         msg = rospy.wait_for_message(topic_name, JointState)
         joint_names = msg.name
         joint_positions = msg.position
-        if set(joint_names).issubset(self.joints.keys()):
+        if set(joint_names).issubset(self.joint_name_to_id.keys()):
             for i in range(len(joint_names)):
                 self.set_joint_position(joint_names[i], joint_positions[i])
         else:
-            add_joints = set(joint_names) - set(self.joints.keys())
+            add_joints = set(joint_names) - set(self.joint_name_to_id.keys())
             rospy.logerr(f"There are joints in the published joint state which are not in this model: /n \
                     The following joint{'s' if len(add_joints) != 1 else ''}: {add_joints}")
 
@@ -1481,8 +1537,8 @@ class Object:
     def get_aabb(self) -> AxisAlignedBoundingBox:
         return self.world.get_object_aabb(self)
 
-    def get_link_aabb(self, link_name: str) -> AxisAlignedBoundingBox:
-        return self.world.get_object_link_aabb(self, link_name)
+    def get_link_aabb(self, link_id: int) -> AxisAlignedBoundingBox:
+        return self.world.get_object_link_aabb(self.id, link_id)
 
     def get_base_origin(self) -> Pose:
         """
@@ -1490,7 +1546,7 @@ class Object:
 
         :return: The position of the bottom of this Object
         """
-        aabb = self.get_link_aabb(link_name=self.urdf_object.get_root())
+        aabb = self.get_link_aabb(-1)
         base_width = np.absolute(aabb.min_x - aabb.max_x)
         base_length = np.absolute(aabb.min_y - aabb.max_y)
         return Pose([aabb.min_x + base_width / 2, aabb.min_y + base_length / 2, aabb.min_z],
@@ -1504,7 +1560,7 @@ class Object:
         :param joint: The name of the joint for which the limits should be found.
         :return: The lower and upper limit of the joint.
         """
-        if joint not in self.joints.keys():
+        if joint not in self.joint_name_to_id.keys():
             raise KeyError(f"The given Joint: {joint} is not part of this object")
         lower, upper = self.world.get_object_joint_limits(self, joint)
         if lower > upper:
@@ -1541,7 +1597,7 @@ class Object:
         reversed_chain = reversed(chain)
         container_joint = None
         for element in reversed_chain:
-            if element in self.joints and self.get_joint_type(element) == joint_type:
+            if element in self.joint_name_to_id and self.get_joint_type(element) == joint_type:
                 container_joint = element
                 break
         if not container_joint:
@@ -1578,7 +1634,7 @@ class Object:
         :return: A dictionary with link name as key and geometry information as value
         """
         link_to_geometry = {}
-        for link in self.links.keys():
+        for link in self.link_name_to_id.keys():
             link_obj = self.urdf_object.link_map[link]
             if not link_obj.collision:
                 link_to_geometry[link] = None
@@ -1593,7 +1649,7 @@ class Object:
         """
         Updates the cached poses and transforms for each link of this Object
         """
-        for link_name in self.links.keys():
+        for link_name in self.link_name_to_id.keys():
             if link_name == self.urdf_object.get_root():
                 self._update_root_link_pose_and_transform()
             else:
@@ -1605,7 +1661,7 @@ class Object:
         self._current_link_transforms[link_name] = self._current_pose.to_transform(self.tf_frame)
 
     def _update_link_pose_and_transform(self, link_name: str) -> None:
-        self._current_link_poses[link_name] = Pose(*self.world.get_object_link_pose(self, link_name))
+        self._current_link_poses[link_name] = self.world.get_object_link_pose(self.id, self.get_link_id(link_name))
         self._current_link_transforms[link_name] = self._current_link_poses[link_name].to_transform(
             self.get_link_tf_frame(link_name))
 

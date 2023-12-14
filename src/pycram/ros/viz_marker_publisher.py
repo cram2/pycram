@@ -59,14 +59,14 @@ class VizMarkerPublisher:
         for obj in BulletWorld.current_world.objects:
             if obj.name == "floor":
                 continue
-            for link in obj.links.keys():
+            for link in obj.link_name_to_id.keys():
                 geom = obj.link_to_geometry[link]
                 if not geom:
                     continue
                 msg = Marker()
                 msg.header.frame_id = "map"
                 msg.ns = obj.name
-                msg.id = obj.links[link]
+                msg.id = obj.link_name_to_id[link]
                 msg.type = Marker.MESH_RESOURCE
                 msg.action = Marker.ADD
                 link_pose = obj.get_link_pose(link).to_transform(link)
@@ -78,7 +78,7 @@ class VizMarkerPublisher:
                 link_pose_with_origin = link_pose * link_origin
                 msg.pose = link_pose_with_origin.to_pose().pose
 
-                color = [1, 1, 1, 1] if obj.links[link] == -1 else obj.get_color(link)
+                color = [1, 1, 1, 1] if obj.link_name_to_id[link] == -1 else obj.get_color(link)
 
                 msg.color = ColorRGBA(*color)
                 msg.lifetime = rospy.Duration(1)

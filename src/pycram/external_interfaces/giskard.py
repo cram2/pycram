@@ -101,7 +101,7 @@ def sync_worlds() -> None:
     add_gripper_groups()
     bullet_object_names = set()
     for obj in BulletWorld.current_world.objects:
-        if obj.name != robot_description.name and len(obj.links) != 1:
+        if obj.name != robot_description.name and len(obj.link_name_to_id) != 1:
             bullet_object_names.add(obj.name + "_" + str(obj.id))
 
     giskard_object_names = set(giskard_wrapper.get_group_names())
@@ -130,7 +130,7 @@ def spawn_object(object: Object) -> None:
 
     :param object: BulletWorld object that should be spawned
     """
-    if len(object.links) == 1:
+    if len(object.link_name_to_id) == 1:
         geometry = object.urdf_object.link_map[object.urdf_object.get_root()].collision.geometry
         if isinstance(geometry, urdf_parser_py.urdf.Mesh):
             filename = geometry.filename

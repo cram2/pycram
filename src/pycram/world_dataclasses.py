@@ -49,6 +49,21 @@ class Constraint:
 
 
 @dataclass
+class Point:
+    x: float
+    y: float
+    z: float
+
+    @classmethod
+    def from_list(cls, point: List[float]):
+        """
+        Sets the point from a list of x, y, z values.
+
+        :param point: The list of x, y, z values
+        """
+        return cls(point[0], point[1], point[2])
+
+@dataclass
 class AxisAlignedBoundingBox:
     """
     Dataclass for storing an axis-aligned bounding box.
@@ -70,7 +85,7 @@ class AxisAlignedBoundingBox:
         """
         return cls(min_point[0], min_point[1], min_point[2], max_point[0], max_point[1], max_point[2])
 
-    def get_min_max(self) -> Tuple[List[float], List[float]]:
+    def get_min_max_points(self) -> Tuple[Point, Point]:
         """
         Returns the axis-aligned bounding box as a tuple of minimum and maximum points.
 
@@ -78,7 +93,31 @@ class AxisAlignedBoundingBox:
         """
         return self.get_min_point(), self.get_max_point()
 
-    def get_min_point(self) -> List[float]:
+    def get_min_point(self) -> Point:
+        """
+        Returns the axis-aligned bounding box as a minimum point.
+
+        :return: The axis-aligned bounding box as a minimum point
+        """
+        return Point(self.min_x, self.min_y, self.min_z)
+
+    def get_max_point(self) -> Point:
+        """
+        Returns the axis-aligned bounding box as a maximum point.
+
+        :return: The axis-aligned bounding box as a maximum point
+        """
+        return Point(self.max_x, self.max_y, self.max_z)
+
+    def get_min_max(self) -> Tuple[List[float], List[float]]:
+        """
+        Returns the axis-aligned bounding box as a tuple of minimum and maximum points.
+
+        :return: The axis-aligned bounding box as a tuple of minimum and maximum points
+        """
+        return self.get_min(), self.get_max()
+
+    def get_min(self) -> List[float]:
         """
         Returns the minimum point of the axis-aligned bounding box.
 
@@ -86,7 +125,7 @@ class AxisAlignedBoundingBox:
         """
         return [self.min_x, self.min_y, self.min_z]
 
-    def get_max_point(self) -> List[float]:
+    def get_max(self) -> List[float]:
         """
         Returns the maximum point of the axis-aligned bounding box.
 

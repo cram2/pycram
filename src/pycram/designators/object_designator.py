@@ -95,7 +95,7 @@ class ObjectPart(ObjectDesignatorDescription):
         :yield: A resolved Object designator
         """
         for name in self.names:
-            if name in self.part_of.bullet_world_object.links.keys():
+            if name in self.part_of.bullet_world_object.link_name_to_id.keys():
                 yield self.Object(name, self.type, self.part_of.bullet_world_object,
                                   self.part_of.bullet_world_object.get_link_pose(name))
 
