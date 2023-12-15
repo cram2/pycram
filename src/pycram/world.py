@@ -348,7 +348,6 @@ class World(ABC):
     def get_object_link_pose(self, obj_id: int, link_id: int) -> Pose:
         """
         Get the pose of a link of an articulated object with respect to the world frame.
-        The pose is given as a tuple of position and orientation.
         """
         pass
 
@@ -971,18 +970,21 @@ class Link:
 
     def __init__(self,
                  _id: int,
-                 obj_id: int,
-                 obj_tf_frame: str,
                  urdf_link: urdf_parser_py.urdf.Link,
-                 world: World,
-                 is_root: Optional[bool] = False):
+                 obj: Object):
         self.id = _id
-        self.obj_id = obj_id
-        self.tf_frame = f"{obj_tf_frame}/{self.name}" if not is_root else obj_tf_frame
         self.urdf_link = urdf_link
-        self.world = world
-        self.object = world.get_object_by_id(obj_id)
-        self.local_transformer = self.object.local_transformer
+        self.object = obj
+        self.world = obj.world
+        self.tf_frame = f"{obj.tf_frame}/{urdf_link.name}" if not self.is_root else obj.tf_frame
+        self.local_transformer = LocalTransformer()
+
+    @property
+    def is_root(self) -> bool:
+        return self.object.urdf_object.get_root() == self.urdf_link.name
+
+    def update_transform(self, transform_time: Optional[rospy.Time] = None):
+        self.local_transformer.update_transforms([self.transform], transform_time)
 
     @property
     def transform(self) -> Transform:
@@ -991,45 +993,45 @@ class Link:
         """
         return self.pose.to_transform(self.tf_frame)
 
-    def get_transform_to_other_link(self, other_link: Link):
-        new_pose = self.local_transformer.transform_pose_to_target_frame(other_link.pose, self.tf_frame)
-        return new_pose.to_transform(other_link.tf_frame)
+    def calc_transform_to_link(self, link: Link):
+        return link.calc_transform_from_link(self)
 
-    def get_pose_wrt_other_link(self, other_link: Link):
-        return self.local_transformer.transform_pose_to_target_frame(self.pose, other_link.tf_frame)
+    def calc_transform_from_link(self, link: Link) -> Transform:
+        return self.calc_pose_wrt_link(link).to_transform(self.tf_frame)
 
-    def get_aabb(self) -> AxisAlignedBoundingBox:
-        return self.world.get_object_link_aabb(self.obj_id, self.id)
+    def calc_pose_wrt_link(self, link: Link) -> Pose:
+        return self.local_transformer.transform_pose_to_target_frame(self.pose, link.tf_frame)
+
+    def calc_aabb(self) -> AxisAlignedBoundingBox:
+        return self.world.get_object_link_aabb(self.object.id, self.id)
 
     @property
     def position(self) -> Point:
         return self.pose.position
 
     @property
-    def orientation(self):
+    def orientation(self) -> Quaternion:
         return self.pose.orientation
 
     @property
-    def pose(self):
+    def pose(self) -> Pose:
         """
         The pose of the link relative to the world frame.
         """
-        return self.world.get_object_link_pose(self.obj_id, self.id)
+        if self.is_root:
+            return self.object.get_pose()
+        return self.world.get_object_link_pose(self.object.id, self.id)
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.urdf_link.name
 
     def get_geometry(self) -> GeometricType:
         return None if not self.collision else self.collision.geometry
 
     @property
-    def collision(self):
+    def collision(self) -> Collision:
         return self.urdf_link.collision
-
-
-
-
 
 
 class Object:
@@ -1045,13 +1047,16 @@ class Object:
         """
         The constructor loads the urdf file into the given World, if no World is specified the
         :py:attr:`~World.current_world` will be used. It is also possible to load .obj and .stl file into the World.
-        The color parameter is only used when loading .stl or .obj files, for URDFs :func:`~Object.set_color` can be used.
+        The color parameter is only used when loading .stl or .obj files,
+         for URDFs :func:`~Object.set_color` can be used.
 
         :param name: The name of the object
         :param obj_type: The type of the object
-        :param path: The path to the source file, if only a filename is provided then the resourcer directories will be searched
+        :param path: The path to the source file, if only a filename is provided then the resourcer directories will be
+         searched
         :param pose: The pose at which the Object should be spawned
-        :param world: The World in which the object should be spawned, if no world is specified the :py:attr:`~World.current_world` will be used
+        :param world: The World in which the object should be spawned,
+         if no world is specified the :py:attr:`~World.current_world` will be used.
         :param color: The color with which the object should be spawned.
         :param ignore_cached_files: If true the file will be spawned while ignoring cached files.
         """
@@ -1083,19 +1088,27 @@ class Object:
                 self.world.set_robot_if_not_set(self)
 
         self.link_name_to_id[self.urdf_object.get_root()] = -1
+        self.links = self._init_links()
 
         self._current_pose = pose_in_map
         self._current_link_poses: Dict[str, Pose] = {}
         self._current_link_transforms: Dict[str, Transform] = {}
         self._current_joints_positions = {}
         self._init_current_positions_of_joint()
-        self._update_current_link_poses_and_transforms()
 
         self.base_origin_shift = np.array(position) - np.array(self.get_base_origin().position_as_list())
         self.update_link_transforms()
         self.link_to_geometry = self.get_geometry_for_link()
 
         self.world.objects.append(self)
+
+    def _init_links(self):
+        links = {}
+        for urdf_link in self.urdf_object.links:
+            link_name = urdf_link.name
+            link_id = self.link_name_to_id[link_name]
+            links[link_name] = Link(link_id, urdf_link, self)
+        return links
 
     def _init_current_positions_of_joint(self) -> None:
         """
@@ -1214,7 +1227,6 @@ class Object:
             position = np.array(position) + self.base_origin_shift
         self.world.reset_object_base_pose(self, position, orientation)
         self._current_pose = pose_in_map
-        self._update_current_link_poses_and_transforms()
         self.world._set_attached_objects(self, [self])
 
     @property
@@ -1403,9 +1415,8 @@ class Object:
         :param name: Link name for which a Pose should be returned
         :return: The pose of the link
         """
-        if name in self.link_name_to_id.keys() and self.link_name_to_id[name] == -1:
-            return self.get_pose()
-        return self._current_link_poses[name]
+        link = self.links[name]
+        return link.pose if not link.is_root else self.get_pose()
 
     def get_link_pose_by_id(self, link_id: int) -> Pose:
         return self.get_link_pose(self.get_link_by_id(link_id))
@@ -1429,7 +1440,6 @@ class Object:
         for joint_name, joint_position in joint_poses.items():
             self.world.reset_object_joint_position(self, joint_name, joint_position)
             self._current_joints_positions[joint_name] = joint_position
-        self._update_current_link_poses_and_transforms()
         self.world._set_attached_objects(self, [self])
 
     def set_joint_position(self, joint_name: str, joint_position: float) -> None:
@@ -1453,7 +1463,6 @@ class Object:
             # return
         self.world.reset_object_joint_position(self, joint_name, joint_position)
         self._current_joints_positions[joint_name] = joint_position
-        self._update_current_link_poses_and_transforms()
         self.world._set_attached_objects(self, [self])
 
     def get_joint_position(self, joint_name: str) -> float:
@@ -1643,27 +1652,8 @@ class Object:
         return link_to_geometry
 
     def update_link_transforms(self, transform_time: Optional[rospy.Time] = None):
-        self.local_transformer.update_transforms(self._current_link_transforms.values(), transform_time)
-
-    def _update_current_link_poses_and_transforms(self) -> None:
-        """
-        Updates the cached poses and transforms for each link of this Object
-        """
-        for link_name in self.link_name_to_id.keys():
-            if link_name == self.urdf_object.get_root():
-                self._update_root_link_pose_and_transform()
-            else:
-                self._update_link_pose_and_transform(link_name)
-
-    def _update_root_link_pose_and_transform(self) -> None:
-        link_name = self.urdf_object.get_root()
-        self._current_link_poses[link_name] = self._current_pose
-        self._current_link_transforms[link_name] = self._current_pose.to_transform(self.tf_frame)
-
-    def _update_link_pose_and_transform(self, link_name: str) -> None:
-        self._current_link_poses[link_name] = self.world.get_object_link_pose(self.id, self.get_link_id(link_name))
-        self._current_link_transforms[link_name] = self._current_link_poses[link_name].to_transform(
-            self.get_link_tf_frame(link_name))
+        for link in self.links.values():
+            link.update_transform(transform_time)
 
 
 def filter_contact_points(contact_points, exclude_ids) -> List:

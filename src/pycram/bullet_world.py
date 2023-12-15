@@ -142,10 +142,6 @@ class BulletWorld(World):
     def get_object_link_pose(self, obj_id: int, link_id: int) -> Pose:
         """
         Get the pose of a link of an articulated object with respect to the world frame.
-        The pose is given as a tuple of position and orientation.
-
-        :param obj_id: The object
-        :param link_id: The name of the link
         """
         return Pose(*p.getLinkState(obj_id, link_id, physicsClientId=self.client_id)[4:6])
 
