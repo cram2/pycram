@@ -279,7 +279,7 @@ def reachable(pose: Union[Object, Pose],
 
         _apply_ik(shadow_robot, inv, joints)
 
-        diff = pose.dist(shadow_robot.get_link_pose(gripper_name))
+        diff = pose.dist(shadow_robot.links[gripper_name].pose)
 
     return diff < threshold
 
@@ -362,4 +362,4 @@ def link_pose_for_joint_config(object: Object, joint_config: Dict[str, float], l
     with UseProspectionWorld():
         for joint, pose in joint_config.items():
             shadow_object.set_joint_position(joint, pose)
-        return shadow_object.get_link_pose(link_name)
+        return shadow_object.links[link_name].pose

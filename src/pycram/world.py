@@ -10,6 +10,7 @@ import time
 import xml.etree.ElementTree
 from queue import Queue
 import tf
+from tf.transformations import quaternion_from_euler
 from typing import List, Optional, Dict, Tuple, Callable
 from typing import Union
 
@@ -993,16 +994,16 @@ class Link:
         """
         return self.pose.to_transform(self.tf_frame)
 
-    def calc_transform_to_link(self, link: Link):
-        return link.calc_transform_from_link(self)
+    def get_transform_to_link(self, link: Link):
+        return link.get_transform_from_link(self)
 
-    def calc_transform_from_link(self, link: Link) -> Transform:
-        return self.calc_pose_wrt_link(link).to_transform(self.tf_frame)
+    def get_transform_from_link(self, link: Link) -> Transform:
+        return self.get_pose_wrt_link(link).to_transform(self.tf_frame)
 
-    def calc_pose_wrt_link(self, link: Link) -> Pose:
+    def get_pose_wrt_link(self, link: Link) -> Pose:
         return self.local_transformer.transform_pose_to_target_frame(self.pose, link.tf_frame)
 
-    def calc_aabb(self) -> AxisAlignedBoundingBox:
+    def get_aabb(self) -> AxisAlignedBoundingBox:
         return self.world.get_object_link_aabb(self.object.id, self.id)
 
     @property
@@ -1010,8 +1011,16 @@ class Link:
         return self.pose.position
 
     @property
+    def position_as_list(self) -> List[float]:
+        return self.pose.position_as_list()
+
+    @property
     def orientation(self) -> Quaternion:
         return self.pose.orientation
+
+    @property
+    def orientation_as_list(self) -> List[float]:
+        return self.pose.orientation_as_list()
 
     @property
     def pose(self) -> Pose:
@@ -1023,11 +1032,22 @@ class Link:
         return self.world.get_object_link_pose(self.object.id, self.id)
 
     @property
+    def pose_as_list(self) -> List[List[float]]:
+        return self.pose.to_list()
+
+    @property
     def name(self) -> str:
         return self.urdf_link.name
 
     def get_geometry(self) -> GeometricType:
         return None if not self.collision else self.collision.geometry
+
+    def get_origin_transform(self):
+        return Transform(self.origin.xyz, list(quaternion_from_euler(*self.origin.rpy)))
+
+    @property
+    def origin(self):
+        return self.collision.origin
 
     @property
     def collision(self) -> Collision:
@@ -1072,6 +1092,7 @@ class Object:
         self.id, self.path = _load_object(name, path, position, orientation, self.world, color, ignore_cached_files)
         self.joint_name_to_id: Dict[str, int] = self._get_joint_name_to_id_map()
         self.link_name_to_id: Dict[str, int] = self._get_link_name_to_id_map()
+        self.link_id_to_name: Dict[int, str] = dict(zip(self.link_name_to_id.values(), self.link_name_to_id.keys()))
         self.attachments: Dict[Object, Attachment] = {}
         self.cids: Dict[Object, int] = {}
         self.original_pose = pose_in_map
@@ -1088,17 +1109,13 @@ class Object:
                 self.world.set_robot_if_not_set(self)
 
         self.link_name_to_id[self.urdf_object.get_root()] = -1
+        self.link_id_to_name[-1] = self.urdf_object.get_root()
         self.links = self._init_links()
 
         self._current_pose = pose_in_map
-        self._current_link_poses: Dict[str, Pose] = {}
-        self._current_link_transforms: Dict[str, Transform] = {}
         self._current_joints_positions = {}
         self._init_current_positions_of_joint()
-
-        self.base_origin_shift = np.array(position) - np.array(self.get_base_origin().position_as_list())
         self.update_link_transforms()
-        self.link_to_geometry = self.get_geometry_for_link()
 
         self.world.objects.append(self)
 
@@ -1117,9 +1134,15 @@ class Object:
         for joint_name in self.joint_name_to_id.keys():
             self._current_joints_positions[joint_name] = self.world.get_object_joint_position(self, joint_name)
 
+    @property
+    def base_origin_shift(self) -> np.ndarray:
+        """
+        The shift between the base of the object and the origin of the object.
+        """
+        return np.array(self.get_pose().position_as_list()) - np.array(self.get_base_origin().position_as_list())
+
     def __repr__(self):
-        skip_attr = ["links", "joints", "urdf_object", "attachments", "cids", "_current_link_poses",
-                     "_current_link_transforms", "link_to_geometry"]
+        skip_attr = ["links", "joints", "urdf_object", "attachments", "cids"]
         return self.__class__.__qualname__ + f"(" + ', \n'.join(
             [f"{key}={value}" if key not in skip_attr else f"{key}: ..." for key, value in self.__dict__.items()]) + ")"
 
@@ -1266,18 +1289,6 @@ class Object:
         """
         self.world._set_attached_objects(self, prev_object)
 
-    def _calculate_transform_from_other_object_base_to_this_object_base(self, other_object: Object):
-        pose_wrt_this_object_base = self.local_transformer.transform_pose_to_target_frame(other_object.pose,
-                                                                                          self.tf_frame)
-        return Transform.from_pose_and_child_frame(pose_wrt_this_object_base, other_object.tf_frame)
-
-    def transform_pose_to_link_frame(self, pose: Pose, link_name: str) -> Union[Pose, None]:
-        """
-        :return: The new pose transformed to be relative to the link coordinate frame.
-        """
-        target_frame = self.get_link_tf_frame(link_name)
-        return self.local_transformer.transform_pose_to_target_frame(pose, target_frame)
-
     def set_position(self, position: Union[Pose, Point], base=False) -> None:
         """
         Sets this Object to the given position, if base is true the bottom of the Object will be placed at the position
@@ -1341,25 +1352,22 @@ class Object:
         """
         return self.joint_name_to_id[name]
 
-    def get_link_id(self, name: str) -> int:
+    def get_link_id(self, link_name: str) -> int:
         """
-        Returns a unique id for a link name. If the name is None return -1.
+        Returns a unique id for a link name.
+        """
+        if link_name is None:
+            return self.get_root_link_id()
+        return self.link_name_to_id[link_name]
 
-        :param name: The link name
-        :return: The unique id
-        """
-        if name is None:
-            return -1
-        return self.link_name_to_id[name]
+    def get_root_link_id(self) -> int:
+        return self.get_link_id(self.urdf_object.get_root())
 
-    def get_link_by_id(self, id: int) -> str:
+    def get_link_by_id(self, link_id: int) -> Link:
         """
-        Returns the name of a link for a given unique link id
-
-        :param id: id for link
-        :return: The link name
+        Returns the link for a given unique link id
         """
-        return dict(zip(self.link_name_to_id.values(), self.link_name_to_id.keys()))[id]
+        return self.links[self.link_id_to_name[link_id]]
 
     def get_joint_by_id(self, joint_id: int) -> str:
         """
@@ -1369,57 +1377,6 @@ class Object:
         :return: The joint name
         """
         return dict(zip(self.joint_name_to_id.values(), self.joint_name_to_id.keys()))[joint_id]
-
-    def get_other_object_link_pose_relative_to_my_link(self,
-                                                       my_link_id: int,
-                                                       other_link_id: int,
-                                                       other_object: Object) -> Pose:
-        """
-        Calculates the pose of a link (child_link) in the coordinate frame of another link (parent_link).
-        :return: The pose of the source frame in the target frame
-        """
-
-        child_link_pose = other_object.get_link_pose(other_object.get_link_by_id(other_link_id))
-        parent_link_frame = self.get_link_tf_frame(self.get_link_by_id(my_link_id))
-        return self.local_transformer.transform_pose_to_target_frame(child_link_pose, parent_link_frame)
-
-    def get_transform_from_my_link_to_other_object_link(self,
-                                                        my_link_id: int,
-                                                        other_link_id: int,
-                                                        other_object: Object) -> Transform:
-        pose = self.get_other_object_link_pose_relative_to_my_link(my_link_id, other_link_id, other_object)
-        return pose.to_transform(other_object.get_link_tf_frame_by_id(other_link_id))
-
-    def get_link_position(self, name: str) -> Pose.position:
-        """
-        Returns the position of a link of this Object. Position is returned as a list of xyz.
-
-        :param name: The link name
-        :return: The link position as xyz
-        """
-        return self.get_link_pose(name).position
-
-    def get_link_orientation(self, name: str) -> Quaternion:
-        """
-        Returns the orientation of a link of this Object. Orientation is returned as a quaternion.
-
-        :param name: The name of the link
-        :return: The orientation of the link as a quaternion
-        """
-        return self.get_link_pose(name).orientation
-
-    def get_link_pose(self, name: str) -> Pose:
-        """
-        Returns a Pose of the link corresponding to the given name. The returned Pose will be in world coordinate frame.
-
-        :param name: Link name for which a Pose should be returned
-        :return: The pose of the link
-        """
-        link = self.links[name]
-        return link.pose if not link.is_root else self.get_pose()
-
-    def get_link_pose_by_id(self, link_id: int) -> Pose:
-        return self.get_link_pose(self.get_link_by_id(link_id))
 
     def reset_all_joints_positions(self) -> None:
         """
@@ -1546,16 +1503,13 @@ class Object:
     def get_aabb(self) -> AxisAlignedBoundingBox:
         return self.world.get_object_aabb(self)
 
-    def get_link_aabb(self, link_id: int) -> AxisAlignedBoundingBox:
-        return self.world.get_object_link_aabb(self.id, link_id)
-
     def get_base_origin(self) -> Pose:
         """
         Returns the origin of the base/bottom of an object
 
         :return: The position of the bottom of this Object
         """
-        aabb = self.get_link_aabb(-1)
+        aabb = self.get_link_by_id(-1).get_aabb()
         base_width = np.absolute(aabb.min_x - aabb.max_x)
         base_length = np.absolute(aabb.min_y - aabb.max_y)
         return Pose([aabb.min_x + base_width / 2, aabb.min_y + base_length / 2, aabb.min_z],
@@ -1621,36 +1575,6 @@ class Object:
         """
         return self._current_joints_positions
 
-    def get_link_tf_frame(self, link_name: str) -> str:
-        """
-        Returns the name of the tf frame for the given link name. This method does not check if the given name is
-        actually a link of this object.
-
-        :param link_name: Name of a link for which the tf frame should be returned
-        :return: A TF frame name for a specific link
-        """
-        if link_name == self.urdf_object.get_root():
-            return self.tf_frame
-        return self.tf_frame + "/" + link_name
-
-    def get_link_tf_frame_by_id(self, link_id: int) -> str:
-        return self.get_link_tf_frame(self.get_link_by_id(link_id))
-
-    def get_geometry_for_link(self) -> Dict[str, urdf_parser_py.urdf.GeometricType]:
-        """
-        Extracts the geometry information for each collision of each link and links them to the respective link.
-
-        :return: A dictionary with link name as key and geometry information as value
-        """
-        link_to_geometry = {}
-        for link in self.link_name_to_id.keys():
-            link_obj = self.urdf_object.link_map[link]
-            if not link_obj.collision:
-                link_to_geometry[link] = None
-            else:
-                link_to_geometry[link] = link_obj.collision.geometry
-        return link_to_geometry
-
     def update_link_transforms(self, transform_time: Optional[rospy.Time] = None):
         for link in self.links.values():
             link.update_transform(transform_time)
@@ -1711,10 +1635,10 @@ class Attachment:
         """
         self.parent_object = parent_object
         self.child_object = child_object
-        self.parent_link_id = parent_link_id
-        self.child_link_id = child_link_id
+        self.parent_link = parent_object.get_link_by_id(parent_link_id)
+        self.child_link = child_object.get_link_by_id(child_link_id)
         self.bidirectional = bidirectional
-        self._loose = False and not self.bidirectional
+        self._loose = False and not bidirectional
 
         self.child_to_parent_transform = child_to_parent_transform
         if self.child_to_parent_transform is None:
@@ -1736,9 +1660,7 @@ class Attachment:
         self.add_constraint_and_update_objects_constraints_collection()
 
     def calculate_transform(self):
-        return self.parent_object.get_transform_from_my_link_to_other_object_link(self.parent_link_id,
-                                                                                  self.child_link_id,
-                                                                                  self.child_object)
+        return self.parent_link.get_transform_to_link(self.child_link)
 
     def remove_constraint_if_exists(self):
         if self.constraint_id is not None:
@@ -1752,8 +1674,8 @@ class Attachment:
         constraint_id = self.parent_object.world.add_fixed_constraint(self.parent_object.id,
                                                                       self.child_object.id,
                                                                       self.child_to_parent_transform,
-                                                                      self.parent_link_id,
-                                                                      self.child_link_id)
+                                                                      self.parent_link.id,
+                                                                      self.child_link.id)
         return constraint_id
 
     def update_objects_constraints_collection(self):
@@ -1761,8 +1683,8 @@ class Attachment:
         self.child_object.cids[self.parent_object] = self.constraint_id
 
     def get_inverse(self):
-        attachment = Attachment(self.child_object, self.parent_object, self.child_link_id,
-                                self.parent_link_id, self.bidirectional, self.child_to_parent_transform.invert(),
+        attachment = Attachment(self.child_object, self.parent_object, self.child_link.id,
+                                self.parent_link.id, self.bidirectional, self.child_to_parent_transform.invert(),
                                 self.constraint_id)
         attachment.loose = False if self.loose else True
         return attachment

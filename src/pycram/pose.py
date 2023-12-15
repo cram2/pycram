@@ -87,7 +87,7 @@ class Pose(PoseStamped):
         self.header.frame_id = value
 
     @property
-    def position(self) -> Union[Point,GeoPose]:
+    def position(self) -> GeoPose:
         """
         Property that points to the position of this pose
         """

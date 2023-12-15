@@ -97,14 +97,14 @@ def visibility_validator(pose: Pose,
     robot_pose = robot.get_pose()
     if type(object_or_pose) == Object:
         robot.set_pose(pose)
-        camera_pose = robot.get_link_pose(robot_description.get_camera_frame())
+        camera_pose = robot.links[robot_description.get_camera_frame()].pose
         robot.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
         ray = p.rayTest(camera_pose.position_as_list(), object_or_pose.get_pose().position_as_list(),
                         physicsClientId=world.client_id)
         res = ray[0][0] == object_or_pose.id
     else:
         robot.set_pose(pose)
-        camera_pose = robot.get_link_pose(robot_description.get_camera_frame())
+        camera_pose = robot.links[robot_description.get_camera_frame()].pose
         robot.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
         ray = p.rayTest(camera_pose.position_as_list(), object_or_pose, physicsClientId=world.client_id)
         res = ray[0][0] == -1
@@ -155,7 +155,6 @@ def reachability_validator(pose: Pose,
     try:
         # resp = request_ik(base_link, end_effector, target_diff, robot, left_joints)
         resp = request_ik(target, robot, left_joints, left_gripper)
-
         _apply_ik(robot, resp, left_joints)
 
         for obj in BulletWorld.current_world.objects:
@@ -166,8 +165,7 @@ def reachability_validator(pose: Pose,
 
             if in_contact:
                 for link in contact_links:
-
-                    if link[0] in allowed_robot_links or link[1] in allowed_links:
+                    if link[0].name in allowed_robot_links or link[1].name in allowed_links:
                         in_contact = False
 
         if not in_contact:
@@ -179,7 +177,6 @@ def reachability_validator(pose: Pose,
     try:
         # resp = request_ik(base_link, end_effector, target_diff, robot, right_joints)
         resp = request_ik(target, robot, right_joints, right_gripper)
-
         _apply_ik(robot, resp, right_joints)
 
         for obj in BulletWorld.current_world.objects:
@@ -190,8 +187,7 @@ def reachability_validator(pose: Pose,
 
             if in_contact:
                 for link in contact_links:
-
-                    if link[0] in allowed_robot_links or link[1] in allowed_links:
+                    if link[0].name in allowed_robot_links or link[1].name in allowed_links:
                         in_contact = False
 
         if not in_contact:
