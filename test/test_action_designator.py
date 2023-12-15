@@ -130,7 +130,7 @@ class TestActionDesignatorGrounding(test_bullet_world.BulletWorldTest):
         with simulated_robot:
             description.resolve().perform()
         dist = np.linalg.norm(
-            np.array(self.robot.get_link_pose(robot_description.get_tool_frame("right")).position_as_list()) -
+            np.array(self.robot.links[robot_description.get_tool_frame("right")].position_as_list) -
             np.array(self.milk.get_pose().position_as_list()))
         self.assertTrue(dist < 0.01)
 

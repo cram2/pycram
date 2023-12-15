@@ -97,7 +97,8 @@ class Pr2Place(ProcessModule):
         # Transformations such that the target position is the position of the object and not the tcp
         object_pose = object.get_pose()
         local_tf = LocalTransformer()
-        tcp_to_object = local_tf.transform_pose_to_target_frame(object_pose, robot.get_link_tf_frame(robot_description.get_tool_frame(arm)))
+        tool_name = robot_description.get_tool_frame(arm)
+        tcp_to_object = local_tf.transform_pose_to_target_frame(object_pose, robot.links[tool_name].tf_frame)
         target_diff = desig.target.to_transform("target").inverse_times(tcp_to_object.to_transform("object")).to_pose()
 
         _move_arm_tcp(target_diff, robot, arm)
@@ -115,8 +116,8 @@ class Pr2MoveHead(ProcessModule):
         robot = BulletWorld.robot
 
         local_transformer = LocalTransformer()
-        pose_in_pan = local_transformer.transform_pose_to_target_frame(target, robot.get_link_tf_frame("head_pan_link"))
-        pose_in_tilt = local_transformer.transform_pose_to_target_frame(target, robot.get_link_tf_frame("head_tilt_link"))
+        pose_in_pan = local_transformer.transform_pose_to_target_frame(target, robot.links["head_pan_link"].tf_frame)
+        pose_in_tilt = local_transformer.transform_pose_to_target_frame(target, robot.links["head_tilt_link"].tf_frame)
 
         new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
         new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2) * -1
@@ -158,7 +159,7 @@ class Pr2Detecting(ProcessModule):
 
         objects = BulletWorld.current_world.get_objects_by_type(object_type)
         for obj in objects:
-            if btr.visible(obj, robot.get_link_pose(cam_frame_name), front_facing_axis):
+            if btr.visible(obj, robot.links[cam_frame_name].pose, front_facing_axis):
                 return obj
 
 
@@ -295,8 +296,8 @@ class Pr2MoveHeadReal(ProcessModule):
         robot = BulletWorld.robot
 
         local_transformer = LocalTransformer()
-        pose_in_pan = local_transformer.transform_pose_to_target_frame(target, robot.get_link_tf_frame("head_pan_link"))
-        pose_in_tilt = local_transformer.transform_pose_to_target_frame(target, robot.get_link_tf_frame("head_tilt_link"))
+        pose_in_pan = local_transformer.transform_pose_to_target_frame(target, robot.links["head_pan_link"].tf_frame)
+        pose_in_tilt = local_transformer.transform_pose_to_target_frame(target, robot.links["head_tilt_link"].tf_frame)
 
         new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
         new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2) * -1
@@ -321,7 +322,7 @@ class Pr2DetectingReal(ProcessModule):
         obj_pose = query_result["ClusterPoseBBAnnotator"]
 
         lt = LocalTransformer()
-        obj_pose = lt.transform_pose_to_target_frame(obj_pose, BulletWorld.robot.get_link_tf_frame("torso_lift_link"))
+        obj_pose = lt.transform_pose_to_target_frame(obj_pose, BulletWorld.robot.links["torso_lift_link"].tf_frame)
         obj_pose.orientation = [0, 0, 0, 1]
         obj_pose.position.x += 0.05
 

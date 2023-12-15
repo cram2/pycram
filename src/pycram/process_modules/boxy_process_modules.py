@@ -113,16 +113,14 @@ class BoxyAccessing(ProcessModule):
             robot.set_joint_position(robot_description.torso_joint, -0.1)
             arm = "left" if solution['gripper'] == robot_description.get_tool_frame("left") else "right"
             joints = robot_description._safely_access_chains(arm).joints
-            #inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), kitchen.get_link_position(drawer_handle))
-            target = helper._transform_to_torso(kitchen.get_link_position_and_orientation(drawer_handle), robot)
-            #target = (target[0], [0, 0, 0, 1])
+            target = helper._transform_to_torso(kitchen.links[drawer_handle].pose, robot)
             inv = request_ik(robot_description.base_frame, gripper, target , robot, joints )
             helper._apply_ik(robot, inv, gripper)
             time.sleep(0.2)
             cur_pose = robot.get_pose()
             robot.set_position([cur_pose[0]-dis, cur_pose[1], cur_pose[2]])
-            han_pose = kitchen.get_link_position(drawer_handle)
-            new_p = [[han_pose[0] - dis, han_pose[1], han_pose[2]], kitchen.get_link_orientation(drawer_handle)]
+            han_pose = kitchen.links[drawer_handle].position
+            new_p = [[han_pose[0] - dis, han_pose[1], han_pose[2]], kitchen.links[drawer_handle].orientation]
             new_p = helper._transform_to_torso(new_p, robot)
             inv = request_ik(robot_description.base_frame, gripper, new_p, robot, joints)
             helper._apply_ik(robot, inv, gripper)
@@ -227,7 +225,7 @@ class BoxyDetecting(ProcessModule):
 
             objects = BulletWorld.current_world.get_objects_by_type(object_type)
             for obj in objects:
-                if btr.visible(obj, robot.get_link_position_and_orientation(cam_frame_name), front_facing_axis, 0.5):
+                if btr.visible(obj, robot.links[cam_frame_name].pose, front_facing_axis, 0.5):
                     return obj
 
 

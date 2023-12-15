@@ -89,10 +89,10 @@ class HSRAccessing(ProcessModule):
             drawer_joint = solution['drawer_joint']
             dis = solution['distance']
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper),
-                                               kitchen.get_link_position(drawer_handle))
+                                               kitchen.links[drawer_handle].position)
             _apply_ik(robot, inv)
             time.sleep(0.2)
-            han_pose = kitchen.get_link_position(drawer_handle)
+            han_pose = kitchen.links[drawer_handle].position
             new_p = [han_pose[0] - dis, han_pose[1], han_pose[2]]
             inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), new_p)
             _apply_ik(robot, inv)
@@ -163,7 +163,7 @@ class HSRDetecting(ProcessModule):
 
             objects = BulletWorld.current_world.get_objects_by_type(object_type)
             for obj in objects:
-                if btr.visible(obj, robot.get_link_position_and_orientation(cam_frame_name), front_facing_axis, 0.5):
+                if btr.visible(obj, robot.links[cam_frame_name].pose, front_facing_axis, 0.5):
                     return obj
 
 

@@ -60,7 +60,7 @@ class VizMarkerPublisher:
             if obj.name == "floor":
                 continue
             for link in obj.link_name_to_id.keys():
-                geom = obj.link_to_geometry[link]
+                geom = obj.links[link].get_geometry()
                 if not geom:
                     continue
                 msg = Marker()
@@ -69,10 +69,9 @@ class VizMarkerPublisher:
                 msg.id = obj.link_name_to_id[link]
                 msg.type = Marker.MESH_RESOURCE
                 msg.action = Marker.ADD
-                link_pose = obj.get_link_pose(link).to_transform(link)
-                if obj.urdf_object.link_map[link].collision.origin:
-                    link_origin = Transform(obj.urdf_object.link_map[link].collision.origin.xyz,
-                                            list(quaternion_from_euler(*obj.urdf_object.link_map[link].collision.origin.rpy)))
+                link_pose = obj.links[link].transform
+                if obj.links[link].origin:
+                    link_origin = obj.links[link].get_origin_transform()
                 else:
                     link_origin = Transform()
                 link_pose_with_origin = link_pose * link_origin

@@ -61,9 +61,7 @@ def _apply_ik(robot: BulletWorldObject, joint_poses: List[float], joints: List[s
 
 def _transform_to_torso(pose_and_rotation: Tuple[List[float], List[float]], robot: BulletWorldObject) -> Tuple[
     List[float], List[float]]:
-    # map_T_torso = robot.get_link_position_and_orientation("base_footprint")
-    # map_T_torso = robot.get_position_and_orientation()
-    map_T_torso = robot.get_link_pose(robot_description.torso_link).to_list()
+    map_T_torso = robot.links[robot_description.torso_link].pose_as_list
     torso_T_map = p.invertTransform(map_T_torso[0], map_T_torso[1])
     map_T_target = pose_and_rotation
     torso_T_target = p.multiplyTransforms(torso_T_map[0], torso_T_map[1], map_T_target[0], map_T_target[1])
@@ -71,10 +69,7 @@ def _transform_to_torso(pose_and_rotation: Tuple[List[float], List[float]], robo
 
 
 def calculate_wrist_tool_offset(wrist_frame: str, tool_frame: str, robot: BulletWorldObject) -> Transform:
-    local_transformer = LocalTransformer()
-    tool_pose = robot.get_link_pose(tool_frame)
-    wrist_to_tool = local_transformer.transform_pose_to_target_frame(tool_pose, robot.get_link_tf_frame(wrist_frame))
-    return wrist_to_tool.to_transform(robot.get_link_tf_frame(tool_frame))
+    return robot.links[wrist_frame].get_transform_to_link(robot.links[tool_frame])
 
 
 def inverseTimes(transform1: Tuple[List[float], List[float]], transform2: Tuple[List[float], List[float]]) -> Tuple[

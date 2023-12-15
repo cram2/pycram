@@ -61,7 +61,7 @@ with simulated_robot:
     spoon.detach(apartment)
 
     # Detect and pickup the spoon
-    LookAtAction([apartment.get_link_pose("handle_cab10_t")]).resolve().perform()
+    LookAtAction([apartment.links["handle_cab10_t"].pose]).resolve().perform()
 
     spoon_desig = DetectAction(BelieveObject(types=[ObjectType.SPOON])).resolve().perform()
 

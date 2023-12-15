@@ -9,7 +9,7 @@ from matplotlib import colors
 import psutil
 import time
 from .bullet_world import BulletWorld
-from pycram.world import UseProspectionWorld, Object
+from pycram.world import UseProspectionWorld, Object, Link
 from .world_reasoning import _get_images_for_target
 from .world_dataclasses import AxisAlignedBoundingBox
 from nav_msgs.msg import OccupancyGrid, MapMetaData
@@ -699,9 +699,9 @@ class SemanticCostmap(Costmap):
         """
         self.world: BulletWorld = world if world else BulletWorld.current_world
         self.object: Object = object
-        self.link: str = urdf_link_name
+        self.link: Link = object.links[urdf_link_name]
         self.resolution: float = resolution
-        self.origin: Pose = object.get_link_pose(urdf_link_name)
+        self.origin: Pose = object.links[urdf_link_name].pose
         self.height: int = 0
         self.width: int = 0
         self.map: np.ndarray = []
@@ -730,11 +730,10 @@ class SemanticCostmap(Costmap):
         prospection_object = BulletWorld.current_world.get_prospection_object_from_object(self.object)
         with UseProspectionWorld():
             prospection_object.set_orientation(Pose(orientation=[0, 0, 0, 1]))
-            link_orientation = prospection_object.get_link_pose(self.link)
-            link_orientation_trans = link_orientation.to_transform(self.object.get_link_tf_frame(self.link))
-            inverse_orientation = link_orientation_trans.invert()
-            prospection_object.set_orientation(inverse_orientation.to_pose())
-            return prospection_object.get_link_aabb(self.object.get_link_id(self.link))
+            link_pose_trans = self.link.transform
+            inverse_trans = link_pose_trans.invert()
+            prospection_object.set_orientation(inverse_trans.to_pose())
+            return self.link.get_aabb()
 
 
 cmap = colors.ListedColormap(['white', 'black', 'green', 'red', 'blue'])
