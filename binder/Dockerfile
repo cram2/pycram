@@ -1,4 +1,4 @@
-FROM intel4coro/intel4coro:jupyterhub-ros-full-0.5
+FROM intel4coro/base-notebook:20.04-noetic-full-xpra
 
 ENV PATH=$PATH:/home/user/.local/bin
 ENV PYCRAM_WS=/home/${NB_USER}/workspace/ros
@@ -47,3 +47,4 @@ USER ${NB_USER}
 
 ENTRYPOINT ["/binder/entrypoint.sh"]
 CMD ["start-notebook.sh"]
+
