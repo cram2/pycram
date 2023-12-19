@@ -129,9 +129,7 @@ class BoxyClose(ProcessModule):
                                                               part_of_object.get_joint_limits(
                                                                   container_joint)[0])
 
-"""
-Keine Entsprechung im PR2-Modul? Wird dies benötigt? ----- -> Open/Close --> Done, noch nicht getestet
-"""
+
 class BoxyParkArms(ProcessModule):
     """
     This process module is for moving the arms in a parking position.
@@ -184,8 +182,7 @@ class BoxyMoveGripper(ProcessModule):
         robot = BulletWorld.robot
         gripper = desig.gripper
         motion = desig.motion
-        for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
-            robot.set_joint_state(joint, state)
+        robot.set_joint_states(robot_description.get_static_gripper_chain(gripper, motion))
 
 
 class BoxyDetecting(ProcessModule):
@@ -252,6 +249,7 @@ def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
 
     inv = request_ik(target, robot, joints, gripper)
     helper._apply_ik(robot, inv, joints)
+
 
 class BoxyManager(ProcessModuleManager):
 
