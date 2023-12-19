@@ -109,6 +109,7 @@ class DonbotMoveHead(ProcessModule):
 
         robot.set_joint_state("ur5_shoulder_pan_joint", new_pan + robot.get_joint_state("ur5_shoulder_pan_joint"))
 
+
 class DonbotMoveGripper(ProcessModule):
     """
     This process module controls the gripper of the robot. They can either be opened or closed.
@@ -119,8 +120,7 @@ class DonbotMoveGripper(ProcessModule):
         robot = BulletWorld.robot
         gripper = desig.gripper
         motion = desig.motion
-        for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
-            robot.set_joint_state(joint, state)
+        robot.set_joint_states(robot_description.get_static_gripper_chain(gripper, motion))
 
 
 class DonbotDetecting(ProcessModule):
