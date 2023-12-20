@@ -54,12 +54,13 @@ the relations are reflected in the database and fields of the object. An example
 seen in :meth:`pycram.task.TaskTreeNode.to_sql` and :meth:`pycram.task.TaskTreeNode.insert`.
 
 When using the ORM to record the experiments a MetaData instance is created. For a clean data management it is important
-to fill out the description. For this, check the documentation of :meth:`pycram.orm.base.MetaData`.
+to fill out the description. For this, check the documentation of :meth:`pycram.orm.base.ProcessMetaData`.
 
-Example
+Examples
 --------
 
 .. nbgallery::
 
     notebooks/orm_example
     notebooks/migrate_neems
+    notebooks/orm_querying_examples
