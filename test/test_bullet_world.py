@@ -30,7 +30,7 @@ class BulletWorldTest(unittest.TestCase):
 
     def test_object_movement(self):
         self.milk.set_position(Pose([0, 1, 1]))
-        self.assertEqual(self.milk.get_pose().position_as_list(), [0, 1, 1])
+        self.assertEqual(self.milk.get_position_as_list(), [0, 1, 1])
 
     def test_robot_orientation(self):
         self.robot.set_pose(Pose([0, 1, 1]))

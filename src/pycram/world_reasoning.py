@@ -100,14 +100,14 @@ def stable(object: Object,
     world, world_id = _world_and_id(world)
     shadow_obj = BulletWorld.current_world.get_prospection_object_from_object(object)
     with UseProspectionWorld():
-        coords_prev = shadow_obj.pose.position_as_list()
+        coords_prev = shadow_obj.get_position_as_list()
         state = p.saveState(physicsClientId=BulletWorld.current_world.client_id)
         p.setGravity(0, 0, -9.8, BulletWorld.current_world.client_id)
 
         # one Step is approximately 1/240 seconds
         BulletWorld.current_world.simulate(2)
         # coords_past = p.getBasePositionAndOrientation(object.id, physicsClientId=world_id)[0]
-        coords_past = shadow_obj.pose.position_as_list()
+        coords_past = shadow_obj.get_position_as_list()
 
         # p.restoreState(state, physicsClientId=BulletWorld.current_bullet_world.client_id)
         coords_prev = list(map(lambda n: round(n, 3), coords_prev))

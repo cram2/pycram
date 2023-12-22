@@ -195,15 +195,6 @@ class BulletWorld(World):
         """
         return p.getNumJoints(obj_id, self.client_id)
 
-    def get_object_link_id(self, obj_id: int, link_name: str) -> int:
-        """
-        Get the ID of a link in an articulated object.
-
-        :param obj: The object
-        :param link_name: The name of the link
-        """
-        return self.get_object_by_id(obj_id).link_name_to_id[link_name]
-
     def reset_object_joint_position(self, obj: Object, joint_name: str, joint_pose: float) -> None:
         """
         Reset the joint position instantly without physics simulation
@@ -242,7 +233,10 @@ class BulletWorld(World):
         """
         p.changeVisualShape(obj.id, link_id, rgbaColor=rgba_color, physicsClientId=self.client_id)
 
-    def get_object_colors(self, obj: Object) -> Dict[str, Color]:
+    def get_color_of_object_link(self, obj: Object, link_name: str) -> Color:
+        return self.get_colors_of_all_links_of_object(obj)[link_name]
+
+    def get_colors_of_all_links_of_object(self, obj: Object) -> Dict[str, Color]:
         """
         Get the RGBA colors of each link in the object as a dictionary from link name to color.
 
@@ -250,9 +244,9 @@ class BulletWorld(World):
         :return: A dictionary with link names as keys and 4 element list with the RGBA values for each link as value.
         """
         visual_data = p.getVisualShapeData(obj.id, physicsClientId=self.client_id)
-        swap = {v: k for k, v in obj.link_name_to_id.items()}
-        links = list(map(lambda x: swap[x[1]] if x[1] != -1 else "base", visual_data))
-        colors = Color.from_rgba(list(map(lambda x: x[7], visual_data)))
+        link_id_to_name = {v: k for k, v in obj.link_name_to_id.items()}
+        links = list(map(lambda x: link_id_to_name[x[1]] if x[1] != -1 else "base", visual_data))
+        colors = list(map(lambda x: Color.from_rgba(x[7]), visual_data))
         link_to_color = dict(zip(links, colors))
         return link_to_color
 
