@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import time
 from typing import Iterable, Optional, Callable, Dict, Any, List, Union
-from anytree import NodeMixin, Node, PreOrderIter
+from anytree import NodeMixin, Node, PreOrderIter, RenderTree
 
 from .enums import State
 import threading
@@ -228,14 +228,15 @@ class Repeat(Language):
         super().__init__(parent, children)
         self.repeat: int = repeat
 
-    def interrupt(self):
+    def interrupt(self) -> None:
         """
         Stops the execution of this language expression by setting the ``interrupted`` variable to True, adding this
         thread to the block_list in ProcessModule and interrupting the current giskard goal
         """
         self.interrupted = True
         self.block_list.append(threading.get_ident())
-        giskard.giskard_wrapper.interrupt()
+        if giskard.giskard_wrapper:
+            giskard.giskard_wrapper.interrupt()
 
 
 class Monitor(Language):
@@ -285,7 +286,7 @@ class Monitor(Language):
         t.join()
         return res
 
-    def interrupt(self):
+    def interrupt(self) -> None:
         """
         Calls interrupt for each child
         """
@@ -322,10 +323,11 @@ class Sequential(Language):
             return State.FAILED
         return State.SUCCEEDED
 
-    def interrupt(self):
+    def interrupt(self) -> None:
         self.interrupted = True
         self.block_list.append(threading.get_ident())
-        giskard.giskard_wrapper.interrupt()
+        if giskard.giskard_wrapper:
+            giskard.giskard_wrapper.interrupt()
 
 
 class TryInOrder(Language):
@@ -362,10 +364,11 @@ class TryInOrder(Language):
         else:
             return State.SUCCEEDED
 
-    def interrupt(self):
+    def interrupt(self) -> None:
         self.interrupted = True
         self.block_list.append(threading.get_ident())
-        giskard.giskard_wrapper.interrupt()
+        if giskard.giskard_wrapper:
+            giskard.giskard_wrapper.interrupt()
 
 
 class Parallel(Language):
@@ -417,10 +420,11 @@ class Parallel(Language):
             return State.FAILED
         return State.SUCCEEDED
 
-    def interrupt(self):
+    def interrupt(self) -> None:
         self.interrupted = True
         self.block_list += [t.ident for t in self.threads]
-        giskard.giskard_wrapper.interrupt()
+        if giskard.giskard_wrapper:
+            giskard.giskard_wrapper.interrupt()
 
 
 class TryAll(Language):
@@ -472,10 +476,11 @@ class TryAll(Language):
         else:
             return State.SUCCEEDED
 
-    def interrupt(self):
+    def interrupt(self) -> None:
         self.interrupted = True
         self.block_list += [t.ident for t in self.threads]
-        giskard.giskard_wrapper.interrupt()
+        if giskard.giskard_wrapper:
+            giskard.giskard_wrapper.interrupt()
 
 
 class Code(Language):
@@ -508,5 +513,8 @@ class Code(Language):
         :returns: Anything that the function associated with this object will return.
         """
         return self.function(**self.kwargs)
+
+    def interrupt(self) -> None:
+        ...
 
 
