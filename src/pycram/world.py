@@ -173,7 +173,7 @@ class World(ABC):
         """
         pass
 
-    def _set_attached_objects(self, parent, prev_object: List[Object]) -> None:
+    def _set_attached_objects_poses(self, parent, prev_object: List[Object]) -> None:
         """
         Updates the positions of all attached objects. This is done
         by calculating the new pose in world coordinate frame and setting the
@@ -198,7 +198,7 @@ class World(ABC):
                                             world_to_object.position_as_list(),
                                             world_to_object.orientation_as_list())
                 child._current_pose = world_to_object
-                self._set_attached_objects(child, prev_object + [parent])
+                self._set_attached_objects_poses(child, prev_object + [parent])
 
     def attach_objects(self,
                        parent_object: Object,
@@ -408,15 +408,6 @@ class World(ABC):
         """
         pass
 
-    def get_object_link_id(self, obj: Object, link_idx: int) -> str:
-        """
-        Get the name of a link in an articulated object.
-
-        :param obj: The object
-        :param link_idx: The index of the link (would indicate order).
-        """
-        pass
-
     @abstractmethod
     def get_object_number_of_joints(self, obj_id: int) -> int:
         """
@@ -492,12 +483,13 @@ class World(ABC):
         """
         pass
 
-    def get_object_color(self,
-                         obj: Object,
-                         link: Optional[str] = None) -> Union[Color, Dict[str, Color], None]:
+    @abstractmethod
+    def get_color_of_object_link(self, obj: Object, link_name: str) -> Color:
+        pass
+
+    def get_color_of_object(self, obj: Object) -> Union[Color, Dict[str, Color]]:
         """
-        This method returns the color of this object or a link of this object. If no link is given then the
-        return is either:
+        This method returns the color of this object. The return is either:
 
             1. A Color object with RGBA values, this is the case if the object only has one link (this
                 happens for example if the object is spawned from a .obj or .stl file)
@@ -505,24 +497,9 @@ class World(ABC):
                 Please keep in mind that not every link may have a color. This is dependent on the URDF from which the
                 object is spawned.
 
-        If a link is specified then the return is a list with RGBA values representing the color of this link.
-        It may be that this link has no color, in this case the return is None as well as an error message.
-
         :param obj: The object for which the color should be returned.
-        :param link: the link name for which the color should be returned.
-        :return: The color of the object or link, or a dictionary containing every colored link with its color
         """
-        link_to_color_dict = self.get_object_colors(obj)
-
-        if link:
-            if link in link_to_color_dict.keys():
-                return link_to_color_dict[link]
-            elif link not in obj.link_name_to_id.keys():
-                rospy.logerr(f"The link '{link}' is not part of this obejct")
-                return None
-            else:
-                rospy.logerr(f"The link '{link}' has no color")
-                return None
+        link_to_color_dict = self.get_colors_of_all_links_of_object(obj)
 
         if len(link_to_color_dict) == 1:
             return list(link_to_color_dict.values())[0]
@@ -530,7 +507,7 @@ class World(ABC):
             return link_to_color_dict
 
     @abstractmethod
-    def get_object_colors(self, obj: Object) -> Dict[str, Color]:
+    def get_colors_of_all_links_of_object(self, obj: Object) -> Dict[str, Color]:
         """
         Get the RGBA colors of each link in the object as a dictionary from link name to color.
 
@@ -982,7 +959,7 @@ class Link:
 
     @property
     def is_root(self) -> bool:
-        return self.object.urdf_object.get_root() == self.urdf_link.name
+        return self.object.get_root_link_id() == self.id
 
     def update_transform(self, transform_time: Optional[rospy.Time] = None):
         self.local_transformer.update_transforms([self.transform], transform_time)
@@ -1007,7 +984,7 @@ class Link:
         return self.world.get_object_link_aabb(self.object.id, self.id)
 
     @property
-    def position(self) -> Point:
+    def position(self) -> Pose.position:
         return self.pose.position
 
     @property
@@ -1029,7 +1006,8 @@ class Link:
         """
         if self.is_root:
             return self.object.get_pose()
-        return self.world.get_object_link_pose(self.object.id, self.id)
+        else:
+            return self.world.get_object_link_pose(self.object.id, self.id)
 
     @property
     def pose_as_list(self) -> List[List[float]]:
@@ -1052,6 +1030,14 @@ class Link:
     @property
     def collision(self) -> Collision:
         return self.urdf_link.collision
+
+    @property
+    def color(self) -> Color:
+        return self.world.get_color_of_object_link(self.object, self.name)
+
+    @color.setter
+    def color(self, color: Color) -> None:
+        self.world.set_object_link_color(self.object, self.id, color)
 
 
 class Object:
@@ -1188,6 +1174,8 @@ class Object:
         :param child_link: The link name of the other object.
         :param bidirectional: If the attachment should be a loose attachment.
         """
+        parent_link = self.urdf_object.get_root() if parent_link is None else parent_link
+        child_link = child_object.urdf_object.get_root() if child_link is None else child_link
         self.world.attach_objects(self,
                                   child_object,
                                   self.get_link_id(parent_link),
@@ -1229,6 +1217,22 @@ class Object:
         """
         return self.get_pose().orientation
 
+    def get_position_as_list(self) -> List[float]:
+        """
+        Returns the position of this Object as a list of xyz.
+
+        :return: The current position of this object
+        """
+        return self.get_pose().position_as_list()
+
+    def get_orientation_as_list(self) -> List[float]:
+        """
+        Returns the orientation of this object as a list of xyzw, representing a quaternion.
+
+        :return: A list of xyzw
+        """
+        return self.get_pose().orientation_as_list()
+
     def get_pose(self) -> Pose:
         """
         Returns the position of this object as a list of xyz. Alias for :func:`~Object.get_position`.
@@ -1250,25 +1254,7 @@ class Object:
             position = np.array(position) + self.base_origin_shift
         self.world.reset_object_base_pose(self, position, orientation)
         self._current_pose = pose_in_map
-        self.world._set_attached_objects(self, [self])
-
-    @property
-    def pose(self) -> Pose:
-        """
-        Property that returns the current position of this Object.
-
-        :return: The position as a list of xyz
-        """
-        return self.get_pose()
-
-    @pose.setter
-    def pose(self, value: Pose) -> None:
-        """
-        Sets the Pose of the Object to the given value. Function for attribute use.
-
-        :param value: New Pose of the Object
-        """
-        self.set_pose(value)
+        self._set_attached_objects_poses()
 
     def move_base_to_origin_pos(self) -> None:
         """
@@ -1277,7 +1263,7 @@ class Object:
         """
         self.set_pose(self.get_pose(), base=True)
 
-    def _set_attached_objects(self, prev_object: List[Object]) -> None:
+    def _set_attached_objects_poses(self) -> None:
         """
         Updates the positions of all attached objects. This is done
         by calculating the new pose in world coordinate frame and setting the
@@ -1287,7 +1273,7 @@ class Object:
 
         :param prev_object: A list of Objects that were already moved, these will be excluded to prevent loops in the update.
         """
-        self.world._set_attached_objects(self, prev_object)
+        self.world._set_attached_objects_poses(self, [self])
 
     def set_position(self, position: Union[Pose, Point], base=False) -> None:
         """
@@ -1352,16 +1338,15 @@ class Object:
         """
         return self.joint_name_to_id[name]
 
+    def get_root_link_id(self) -> int:
+        return self.get_link_id(self.urdf_object.get_root())
+
     def get_link_id(self, link_name: str) -> int:
         """
         Returns a unique id for a link name.
         """
-        if link_name is None:
-            return self.get_root_link_id()
+        assert link_name is not None
         return self.link_name_to_id[link_name]
-
-    def get_root_link_id(self) -> int:
-        return self.get_link_id(self.urdf_object.get_root())
 
     def get_link_by_id(self, link_id: int) -> Link:
         """
@@ -1397,7 +1382,7 @@ class Object:
         for joint_name, joint_position in joint_poses.items():
             self.world.reset_object_joint_position(self, joint_name, joint_position)
             self._current_joints_positions[joint_name] = joint_position
-        self.world._set_attached_objects(self, [self])
+        self._set_attached_objects_poses()
 
     def set_joint_position(self, joint_name: str, joint_position: float) -> None:
         """
@@ -1420,7 +1405,7 @@ class Object:
             # return
         self.world.reset_object_joint_position(self, joint_name, joint_position)
         self._current_joints_positions[joint_name] = joint_position
-        self.world._set_attached_objects(self, [self])
+        self._set_attached_objects_poses()
 
     def get_joint_position(self, joint_name: str) -> float:
         """
@@ -1498,7 +1483,7 @@ class Object:
         self.world.set_object_color(self, color, link)
 
     def get_color(self, link: Optional[str] = None) -> Union[Color, Dict[str, Color], None]:
-        return self.world.get_object_color(self, link)
+        return self.world.get_color_of_object(self, link)
 
     def get_aabb(self) -> AxisAlignedBoundingBox:
         return self.world.get_object_aabb(self)
