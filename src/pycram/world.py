@@ -188,8 +188,8 @@ class World(ABC):
             if child in prev_object:
                 continue
             if not parent.attachments[child].bidirectional:
-                parent.attachments[child].update_attachment()
-                child.attachments[parent].update_attachment()
+                parent.attachments[child].update_transform_and_constraint()
+                child.attachments[parent].update_transform_and_constraint()
             else:
                 link_to_object = parent.attachments[child].child_to_parent_transform
 
@@ -200,37 +200,7 @@ class World(ABC):
                 child._current_pose = world_to_object
                 self._set_attached_objects_poses(child, prev_object + [parent])
 
-    def attach_objects(self,
-                       parent_object: Object,
-                       child_object: Object,
-                       parent_link_id: Optional[int] = -1,
-                       child_link_id: Optional[int] = -1,
-                       bidirectional: Optional[bool] = True) -> None:
-        """
-        Attaches two objects together by saving the current transformation between the links coordinate frames.
-        Furthermore, a constraint will be created so the attachment also works while in simulation.
-
-        :param bidirectional: If the parent should also follow the child.
-        """
-
-        # Add the attachment to the attachment dictionary of both objects
-        attachment = Attachment(parent_object, child_object, parent_link_id, child_link_id, bidirectional)
-        self.update_objects_attachments_collection(parent_object, child_object, attachment)
-        self.attachment_event(parent_object, [parent_object, child_object])
-
-    def update_objects_attachments_collection(self,
-                                              parent_object: Object,
-                                              child_object: Object,
-                                              attachment: Attachment) -> None:
-        parent_object.attachments[child_object] = attachment
-        child_object.attachments[parent_object] = attachment.get_inverse()
-
-    def add_fixed_constraint(self,
-                             parent_object_id: int,
-                             child_object_id: int,
-                             child_to_parent_transform: Transform,
-                             parent_link_id: Optional[int] = -1,
-                             child_link_id: Optional[int] = -1) -> int:
+    def add_fixed_constraint(self, parent_link: Link, child_link: Link, child_to_parent_transform: Transform) -> int:
         """
         Creates a fixed joint constraint between the given parent and child links,
         the joint frame will be at the origin of the child link frame, and would have the same orientation
@@ -238,11 +208,11 @@ class World(ABC):
 
         returns the constraint id
         """
-        # -1 in link id means use the base link of the object
-        constraint = Constraint(parent_obj_id=parent_object_id,
-                                parent_link_id=parent_link_id,
-                                child_obj_id=child_object_id,
-                                child_link_id=child_link_id,
+
+        constraint = Constraint(parent_obj_id=parent_link.get_object_id(),
+                                parent_link_name=parent_link.name,
+                                child_obj_id=child_link.get_object_id(),
+                                child_link_name=child_link.name,
                                 joint_type=JointType.FIXED,
                                 joint_axis_in_child_link_frame=[0, 0, 0],
                                 joint_frame_position_wrt_parent_origin=child_to_parent_transform.translation_as_list(),
@@ -258,24 +228,6 @@ class World(ABC):
         Add a constraint between two objects so that they become attached
         """
         pass
-
-    @staticmethod
-    def detach_objects(obj1: Object, obj2: Object) -> None:
-        """
-        Detaches obj2 from obj1. This is done by
-        deleting the attachment from the attachments dictionary of both objects
-        and deleting the constraint of pybullet.
-        Afterward the detachment event of the corresponding BulletWorld will be fired.
-
-        :param obj1: The object from which an object should be detached.
-        :param obj2: The object which should be detached.
-        """
-        del obj1.attachments[obj2]
-        del obj2.attachments[obj1]
-        del obj1.cids[obj2]
-        del obj2.cids[obj1]
-
-        obj1.world.detachment_event(obj1, [obj1, obj2])
 
     @abstractmethod
     def remove_constraint(self, constraint_id):
@@ -954,8 +906,22 @@ class Link:
         self.urdf_link = urdf_link
         self.object = obj
         self.world = obj.world
-        self.tf_frame = f"{obj.tf_frame}/{urdf_link.name}" if not self.is_root else obj.tf_frame
         self.local_transformer = LocalTransformer()
+        self.constraint_ids: Dict[Link, int] = {}
+
+    def add_fixed_constraint_with_link(self, child_link: Link) -> None:
+        constraint_id = self.world.add_fixed_constraint(self,
+                                                        child_link,
+                                                        child_link.get_transform_from_link(self))
+        self.constraint_ids[child_link] = constraint_id
+        child_link.constraint_ids[self] = constraint_id
+
+    def get_object_id(self) -> int:
+        return self.object.id
+
+    @property
+    def tf_frame(self) -> str:
+        return f"{self.object.tf_frame}/{self.urdf_link.name}"
 
     @property
     def is_root(self) -> bool:
@@ -1004,10 +970,7 @@ class Link:
         """
         The pose of the link relative to the world frame.
         """
-        if self.is_root:
-            return self.object.get_pose()
-        else:
-            return self.world.get_object_link_pose(self.object.id, self.id)
+        return self.world.get_object_link_pose(self.object.id, self.id)
 
     @property
     def pose_as_list(self) -> List[List[float]]:
@@ -1038,6 +1001,25 @@ class Link:
     @color.setter
     def color(self, color: Color) -> None:
         self.world.set_object_link_color(self.object, self.id, color)
+
+    def remove_constraint_with(self, child_link: Link) -> None:
+        self.world.remove_constraint(self.constraint_ids[child_link])
+        del self.constraint_ids[child_link]
+        del child_link.constraint_ids[self]
+
+
+class RootLink(Link):
+
+    def __init__(self, obj: Object):
+        super().__init__(obj.get_root_link_id(), obj.get_root_urdf_link(), obj)
+
+    @property
+    def tf_frame(self) -> str:
+        return self.object.tf_frame
+
+    @property
+    def pose(self) -> Pose:
+        return self.object.get_pose()
 
 
 class Object:
@@ -1110,7 +1092,10 @@ class Object:
         for urdf_link in self.urdf_object.links:
             link_name = urdf_link.name
             link_id = self.link_name_to_id[link_name]
-            links[link_name] = Link(link_id, urdf_link, self)
+            if link_name == self.urdf_object.get_root():
+                links[link_name] = RootLink(self)
+            else:
+                links[link_name] = Link(link_id, urdf_link, self)
         return links
 
     def _init_current_positions_of_joint(self) -> None:
@@ -1154,6 +1139,9 @@ class Object:
         if World.robot == self:
             World.robot = None
 
+    def remove_constraint_with(self, obj: Object) -> None:
+        self.world.remove_constraint(self.cids[obj])
+
     def attach(self,
                child_object: Object,
                parent_link: Optional[str] = None,
@@ -1174,13 +1162,15 @@ class Object:
         :param child_link: The link name of the other object.
         :param bidirectional: If the attachment should be a loose attachment.
         """
-        parent_link = self.urdf_object.get_root() if parent_link is None else parent_link
-        child_link = child_object.urdf_object.get_root() if child_link is None else child_link
-        self.world.attach_objects(self,
-                                  child_object,
-                                  self.get_link_id(parent_link),
-                                  child_object.get_link_id(child_link),
-                                  bidirectional)
+        parent_link = self.links[parent_link] if parent_link else self.get_root_link()
+        child_link = child_object.links[child_link] if child_link else child_object.get_root_link()
+
+        attachment = Attachment(parent_link, child_link, bidirectional)
+
+        self.attachments[child_object] = attachment
+        child_object.attachments[self] = attachment.get_inverse()
+
+        self.world.attachment_event(self, [self, child_object])
 
     def detach(self, child_object: Object) -> None:
         """
@@ -1191,7 +1181,10 @@ class Object:
 
         :param child_object: The object which should be detached
         """
-        self.world.detach_objects(self, child_object)
+        del self.attachments[child_object]
+        del child_object.attachments[self]
+
+        self.world.detachment_event(self, [self, child_object])
 
     def detach_all(self) -> None:
         """
@@ -1199,7 +1192,7 @@ class Object:
         """
         attachments = self.attachments.copy()
         for att in attachments.keys():
-            self.world.detach_objects(self, att)
+            self.detach(att)
 
     def get_position(self) -> Pose.position:
         """
@@ -1337,6 +1330,21 @@ class Object:
         :return: The unique id
         """
         return self.joint_name_to_id[name]
+
+    def get_root_urdf_link(self) -> urdf_parser_py.urdf.Link:
+        """
+        Returns the root link of the URDF of this object.
+        """
+        link_name = self.urdf_object.get_root()
+        for link in self.urdf_object.links:
+            if link.name == link_name:
+                return link
+
+    def get_root_link(self) -> Link:
+        """
+        Returns the root link of this object.
+        """
+        return self.links[self.urdf_object.get_root()]
 
     def get_root_link_id(self) -> int:
         return self.get_link_id(self.urdf_object.get_root())
@@ -1608,20 +1616,18 @@ def _get_robot_name_from_urdf(urdf_string: str) -> str:
 
 class Attachment:
     def __init__(self,
-                 parent_object: Object,
-                 child_object: Object,
-                 parent_link_id: Optional[int] = -1,  # -1 means base link
-                 child_link_id: Optional[int] = -1,
+                 parent_link: Link,
+                 child_link: Link,
                  bidirectional: Optional[bool] = False,
                  child_to_parent_transform: Optional[Transform] = None,
                  constraint_id: Optional[int] = None):
         """
         Creates an attachment between the parent object and the child object.
         """
-        self.parent_object = parent_object
-        self.child_object = child_object
-        self.parent_link = parent_object.get_link_by_id(parent_link_id)
-        self.child_link = child_object.get_link_by_id(child_link_id)
+        self.parent_link = parent_link
+        self.child_link = child_link
+        self.parent_object = parent_link.object
+        self.child_object = child_link.object
         self.bidirectional = bidirectional
         self._loose = False and not bidirectional
 
@@ -1631,9 +1637,9 @@ class Attachment:
 
         self.constraint_id = constraint_id
         if self.constraint_id is None:
-            self.add_constraint_and_update_objects_constraints_collection()
+            self.add_fixed_constraint()
 
-    def update_attachment(self):
+    def update_transform_and_constraint(self):
         self.update_transform()
         self.update_constraint()
 
@@ -1642,35 +1648,21 @@ class Attachment:
 
     def update_constraint(self):
         self.remove_constraint_if_exists()
-        self.add_constraint_and_update_objects_constraints_collection()
+        self.add_fixed_constraint()
+
+    def add_fixed_constraint(self):
+        self.parent_link.add_fixed_constraint_with_link(self.child_link)
 
     def calculate_transform(self):
         return self.parent_link.get_transform_to_link(self.child_link)
 
     def remove_constraint_if_exists(self):
-        if self.constraint_id is not None:
-            self.parent_object.world.remove_constraint(self.constraint_id)
-
-    def add_constraint_and_update_objects_constraints_collection(self):
-        self.constraint_id = self.add_fixed_constraint()
-        self.update_objects_constraints_collection()
-
-    def add_fixed_constraint(self):
-        constraint_id = self.parent_object.world.add_fixed_constraint(self.parent_object.id,
-                                                                      self.child_object.id,
-                                                                      self.child_to_parent_transform,
-                                                                      self.parent_link.id,
-                                                                      self.child_link.id)
-        return constraint_id
-
-    def update_objects_constraints_collection(self):
-        self.parent_object.cids[self.child_object] = self.constraint_id
-        self.child_object.cids[self.parent_object] = self.constraint_id
+        if self.child_link in self.parent_link.constraint_ids:
+            self.parent_link.remove_constraint_with(self.child_link)
 
     def get_inverse(self):
-        attachment = Attachment(self.child_object, self.parent_object, self.child_link.id,
-                                self.parent_link.id, self.bidirectional, self.child_to_parent_transform.invert(),
-                                self.constraint_id)
+        attachment = Attachment(self.child_link, self.parent_link, self.bidirectional,
+                                constraint_id=self.constraint_id)
         attachment.loose = False if self.loose else True
         return attachment
 

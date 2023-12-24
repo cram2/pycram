@@ -37,9 +37,9 @@ class Constraint:
     Dataclass for storing a constraint between two objects.
     """
     parent_obj_id: int
-    parent_link_id: int
+    parent_link_name: str
     child_obj_id: int
-    child_link_id: int
+    child_link_name: str
     joint_type: JointType
     joint_axis_in_child_link_frame: List[int]
     joint_frame_position_wrt_parent_origin: List[float]
