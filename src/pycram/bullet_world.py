@@ -73,10 +73,16 @@ class BulletWorld(World):
         """
         Add a constraint between two objects so that attachment they become attached
         """
+
+        parent_obj = self.get_object_by_id(constraint.parent_obj_id)
+        parent_link_id = parent_obj.link_name_to_id[constraint.parent_link_name]
+        child_obj = self.get_object_by_id(constraint.child_obj_id)
+        child_link_id = child_obj.link_name_to_id[constraint.child_link_name]
+
         constraint_id = p.createConstraint(constraint.parent_obj_id,
-                                           constraint.parent_link_id,
+                                           parent_link_id,
                                            constraint.child_obj_id,
-                                           constraint.child_link_id,
+                                           child_link_id,
                                            constraint.joint_type.as_int(),
                                            constraint.joint_axis_in_child_link_frame,
                                            constraint.joint_frame_position_wrt_parent_origin,
