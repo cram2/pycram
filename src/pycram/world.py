@@ -82,31 +82,31 @@ class World(ABC):
        :param is_prospection_world: For internal usage, decides if this World should be used as a prospection world.
         """
 
-        self._init_current_world_and_simulation_time_step(simulation_time_step)
-        # init the current world and simulation time step which are class variables.
-
-        self.objects: List[Object] = []
-        self.client_id: int = -1
-        self.mode: str = mode
-
-        self._init_events()
-        self.coll_callbacks: Dict[Tuple[Object, Object], Tuple[Callable, Callable]] = {}
-        self.local_transformer = LocalTransformer()
+        if World.current_world is None:
+            World.current_world = self
+        World.simulation_time_step = simulation_time_step
 
         self.is_prospection_world: bool = is_prospection_world
-        if is_prospection_world:  # then no need to add another prospection world
-            self.prospection_world = None
-            self.world_sync = None
-        else:  # a normal world should have a synced prospection world
-            self._init_and_sync_prospection_world()
-            self._update_local_transformer_worlds()
+        self._init_and_sync_prospection_world()
+
+        self.local_transformer = LocalTransformer()
+        self._update_local_transformer_worlds()
+
+        self.objects: List[Object] = []
+        # List of all Objects in the World
+
+        self.client_id: int = -1
+        # This is used to connect to the physics server (allows multiple clients)
+
+        self.mode: str = mode
+        # The mode of the simulation, can be "GUI" or "DIRECT"
+
+        self.coll_callbacks: Dict[Tuple[Object, Object], Tuple[Callable, Callable]] = {}
+
+        self._init_events()
 
         self._saved_states: Dict[int, WorldState] = {}
         # Different states of the world indexed by int state id.
-
-    def _init_current_world_and_simulation_time_step(self, simulation_time_step):
-        World.current_world = self if World.current_world is None else World.current_world
-        World.simulation_time_step = simulation_time_step
 
     def _init_events(self):
         self.detachment_event: Event = Event()
@@ -121,13 +121,20 @@ class World(ABC):
         self.local_transformer.world = self
         self.local_transformer.prospection_world = self.prospection_world
 
-    @classmethod
-    def _init_prospection_world(cls):
-        cls.prospection_world: World = cls("DIRECT", True, cls.simulation_time_step)
+    def _init_prospection_world(self):
+        if self.is_prospection_world:  # then no need to add another prospection world
+            self.prospection_world = None
+        else:
+            self.prospection_world: World = self.__class__("DIRECT",
+                                                           True,
+                                                           World.simulation_time_step)
 
     def _sync_prospection_world(self):
-        self.world_sync: WorldSync = WorldSync(self, self.prospection_world)
-        self.world_sync.start()
+        if self.is_prospection_world:  # then no need to add another prospection world
+            self.world_sync = None
+        else:
+            self.world_sync: WorldSync = WorldSync(self, self.prospection_world)
+            self.world_sync.start()
 
     @property
     def simulation_frequency(self):
@@ -155,14 +162,14 @@ class World(ABC):
         """
         return list(filter(lambda obj: obj.obj_type == obj_type, self.objects))
 
-    def get_object_by_id(self, id: int) -> Object:
+    def get_object_by_id(self, obj_id: int) -> Object:
         """
         Returns the single Object that has the unique id.
 
-        :param id: The unique id for which the Object should be returned.
+        :param obj_id: The unique id for which the Object should be returned.
         :return: The Object with the id 'id'.
         """
-        return list(filter(lambda obj: obj.id == id, self.objects))[0]
+        return list(filter(lambda obj: obj.id == obj_id, self.objects))[0]
 
     @abstractmethod
     def remove_object(self, obj_id: int) -> None:
@@ -172,33 +179,6 @@ class World(ABC):
         :param obj_id: The unique id of the object to be removed.
         """
         pass
-
-    def _set_attached_objects_poses(self, parent, prev_object: List[Object]) -> None:
-        """
-        Updates the positions of all attached objects. This is done
-        by calculating the new pose in world coordinate frame and setting the
-        base pose of the attached objects to this new pose.
-        After this the _set_attached_objects method of all attached objects
-        will be called.
-
-        :param prev_object: A list of Objects that were already moved,
-         these will be excluded to prevent loops in the update.
-        """
-        for child in parent.attachments:
-            if child in prev_object:
-                continue
-            if not parent.attachments[child].bidirectional:
-                parent.attachments[child].update_transform_and_constraint()
-                child.attachments[parent].update_transform_and_constraint()
-            else:
-                link_to_object = parent.attachments[child].child_to_parent_transform
-
-                world_to_object = parent.local_transformer.transform_pose_to_target_frame(link_to_object.to_pose(), "map")
-                self.reset_object_base_pose(child,
-                                            world_to_object.position_as_list(),
-                                            world_to_object.orientation_as_list())
-                child._current_pose = world_to_object
-                self._set_attached_objects_poses(child, prev_object + [parent])
 
     def add_fixed_constraint(self, parent_link: Link, child_link: Link, child_to_parent_transform: Transform) -> int:
         """
@@ -697,7 +677,9 @@ class World(ABC):
                 o.set_joint_position(joint, obj.get_joint_position(joint))
         return world
 
-    def register_two_objects_collision_callbacks(self, object_a: Object, object_b: Object,
+    def register_two_objects_collision_callbacks(self,
+                                                 object_a: Object,
+                                                 object_b: Object,
                                                  on_collision_callback: Callable,
                                                  on_collision_removal_callback: Optional[Callable] = None) -> None:
         """
@@ -1194,6 +1176,9 @@ class Object:
         for att in attachments.keys():
             self.detach(att)
 
+    def update_attachment_with_object(self, child_object: Object):
+        self.attachments[child_object].update_transform_and_constraint()
+
     def get_position(self) -> Pose.position:
         """
         Returns the position of this Object as a list of xyz.
@@ -1234,12 +1219,13 @@ class Object:
         """
         return self._current_pose
 
-    def set_pose(self, pose: Pose, base: bool = False) -> None:
+    def set_pose(self, pose: Pose, base: Optional[bool] = False, set_attachments: Optional[bool] = True) -> None:
         """
         Sets the Pose of the object.
 
         :param pose: New Pose for the object
         :param base: If True places the object base instead of origin at the specified position and orientation
+        :param set_attachments: Whether to set the poses of the attached objects to this object or not.
         """
         pose_in_map = self.local_transformer.transform_pose_to_target_frame(pose, "map")
         position, orientation = pose_in_map.to_list()
@@ -1247,7 +1233,8 @@ class Object:
             position = np.array(position) + self.base_origin_shift
         self.world.reset_object_base_pose(self, position, orientation)
         self._current_pose = pose_in_map
-        self._set_attached_objects_poses()
+        if set_attachments:
+            self._set_attached_objects_poses()
 
     def move_base_to_origin_pos(self) -> None:
         """
@@ -1256,7 +1243,7 @@ class Object:
         """
         self.set_pose(self.get_pose(), base=True)
 
-    def _set_attached_objects_poses(self) -> None:
+    def _set_attached_objects_poses(self, already_moved_objects: Optional[List[Object]] = None) -> None:
         """
         Updates the positions of all attached objects. This is done
         by calculating the new pose in world coordinate frame and setting the
@@ -1264,9 +1251,26 @@ class Object:
         After this the _set_attached_objects method of all attached objects
         will be called.
 
-        :param prev_object: A list of Objects that were already moved, these will be excluded to prevent loops in the update.
+        :param already_moved_objects: A list of Objects that were already moved, these will be excluded to prevent loops in the update.
         """
-        self.world._set_attached_objects_poses(self, [self])
+
+        if already_moved_objects is None:
+            already_moved_objects = []
+
+        for child in self.attachments:
+
+            if child in already_moved_objects:
+                continue
+
+            attachment = self.attachments[child]
+            if not attachment.bidirectional:
+                self.update_attachment_with_object(child)
+                child.update_attachment_with_object(self)
+
+            else:
+                link_to_object = attachment.parent_to_child_transform
+                child.set_pose(link_to_object.to_pose(), set_attachments=False)
+                child._set_attached_objects_poses(already_moved_objects + [self])
 
     def set_position(self, position: Union[Pose, Point], base=False) -> None:
         """
@@ -1619,7 +1623,7 @@ class Attachment:
                  parent_link: Link,
                  child_link: Link,
                  bidirectional: Optional[bool] = False,
-                 child_to_parent_transform: Optional[Transform] = None,
+                 parent_to_child_transform: Optional[Transform] = None,
                  constraint_id: Optional[int] = None):
         """
         Creates an attachment between the parent object and the child object.
@@ -1631,8 +1635,8 @@ class Attachment:
         self.bidirectional = bidirectional
         self._loose = False and not bidirectional
 
-        self.child_to_parent_transform = child_to_parent_transform
-        if self.child_to_parent_transform is None:
+        self.parent_to_child_transform = parent_to_child_transform
+        if self.parent_to_child_transform is None:
             self.update_transform()
 
         self.constraint_id = constraint_id
@@ -1644,7 +1648,7 @@ class Attachment:
         self.update_constraint()
 
     def update_transform(self):
-        self.child_to_parent_transform = self.calculate_transform()
+        self.parent_to_child_transform = self.calculate_transform()
 
     def update_constraint(self):
         self.remove_constraint_if_exists()
