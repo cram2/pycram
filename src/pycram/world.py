@@ -39,8 +39,6 @@ from .world_dataclasses import Color, Constraint, AxisAlignedBoundingBox
 class WorldState:
     state_id: int
     attachments: Dict[Object, Dict[Object, Attachment]]
-    constraint_ids: Dict[Object, Dict[Object, int]]
-
 
 @dataclass
 class CollisionCallbacks:
@@ -596,9 +594,7 @@ class World(ABC):
         :return: A unique id of the state
         """
         state_id = self.save_physics_simulator_state()
-        self._saved_states[state_id] = WorldState(state_id,
-                                                  self.get_objects_attachments(),
-                                                  self.get_objects_constraint_ids())
+        self._saved_states[state_id] = WorldState(state_id, self.get_objects_attachments())
         return state_id
 
     def restore_state(self, state_id) -> None:
@@ -610,7 +606,7 @@ class World(ABC):
         :param state_id: The unique id representing the state, as returned by :func:`~save_state`
         """
         self.restore_physics_simulator_state(state_id)
-        self.restore_attachments_and_constraints_from_saved_world_state(state_id)
+        self.restore_attachments_from_saved_world_state(state_id)
 
     @abstractmethod
     def save_physics_simulator_state(self) -> int:
@@ -628,15 +624,6 @@ class World(ABC):
             attachments[o] = o.attachments.copy()
         return attachments
 
-    def get_objects_constraint_ids(self) -> Dict[Object, Dict[Object, int]]:
-        """
-        Get the constraint ids collection that is stored in each object.
-        """
-        constraint_ids = {}
-        for o in self.objects:
-            constraint_ids[o] = o.cids.copy()
-        return constraint_ids
-
     @abstractmethod
     def restore_physics_simulator_state(self, state_id):
         """
@@ -645,27 +632,11 @@ class World(ABC):
         """
         pass
 
-    def restore_attachments_and_constraints_from_saved_world_state(self, state_id: int):
-        """
-        Restores the attachments and constraints of the objects in the World. This is done by setting the attachments,
-        and the cids attributes of each object in the World to the given attachments and constraint_ids.
-        """
-        self.restore_attachments_from_saved_world_state(state_id)
-        self.restore_constraints_from_saved_world_state(state_id)
-
     def restore_attachments_from_saved_world_state(self, state_id: int):
         attachments = self._saved_states[state_id].attachments
         for obj in self.objects:
             try:
                 obj.attachments = attachments[obj]
-            except KeyError:
-                continue
-
-    def restore_constraints_from_saved_world_state(self, state_id: int):
-        constraint_ids = self._saved_states[state_id].constraint_ids
-        for obj in self.objects:
-            try:
-                obj.cids = constraint_ids[obj]
             except KeyError:
                 continue
 
@@ -1038,22 +1009,27 @@ class Object:
         :param color: The color with which the object should be spawned.
         :param ignore_cached_files: If true the file will be spawned while ignoring cached files.
         """
+
         if pose is None:
             pose = Pose()
+
         self.world: World = world if world is not None else World.current_world
-        self.local_transformer = LocalTransformer()
+
         self.name: str = name
         self.obj_type: Union[str, ObjectType] = obj_type
         self.color: Color = color
-        pose_in_map = self.local_transformer.transform_pose_to_target_frame(pose, "map")
-        position, orientation = pose_in_map.to_list()
+
+        self.local_transformer = LocalTransformer()
+        self.original_pose = self.local_transformer.transform_pose_to_target_frame(pose, "map")
+        position, orientation = self.original_pose.to_list()
         self.id, self.path = _load_object(name, path, position, orientation, self.world, color, ignore_cached_files)
+        self._current_pose = self.original_pose
+
         self.joint_name_to_id: Dict[str, int] = self._get_joint_name_to_id_map()
         self.link_name_to_id: Dict[str, int] = self._get_link_name_to_id_map()
         self.link_id_to_name: Dict[int, str] = dict(zip(self.link_name_to_id.values(), self.link_name_to_id.keys()))
+
         self.attachments: Dict[Object, Attachment] = {}
-        self.cids: Dict[Object, int] = {}
-        self.original_pose = pose_in_map
 
         self.tf_frame = ("prospection/" if self.world.is_prospection_world else "") + self.name + "_" + str(self.id)
 
@@ -1065,15 +1041,13 @@ class Object:
             self.urdf_object = URDF.from_xml_string(f.read())
             if self.urdf_object.name == robot_description.name:
                 self.world.set_robot_if_not_set(self)
-
         self.link_name_to_id[self.urdf_object.get_root()] = -1
         self.link_id_to_name[-1] = self.urdf_object.get_root()
         self.links = self._init_links()
+        self.update_link_transforms()
 
-        self._current_pose = pose_in_map
         self._current_joints_positions = {}
         self._init_current_positions_of_joint()
-        self.update_link_transforms()
 
         self.world.objects.append(self)
 
@@ -1103,7 +1077,7 @@ class Object:
         return np.array(self.get_pose().position_as_list()) - np.array(self.get_base_origin().position_as_list())
 
     def __repr__(self):
-        skip_attr = ["links", "joints", "urdf_object", "attachments", "cids"]
+        skip_attr = ["links", "joints", "urdf_object", "attachments"]
         return self.__class__.__qualname__ + f"(" + ', \n'.join(
             [f"{key}={value}" if key not in skip_attr else f"{key}: ..." for key, value in self.__dict__.items()]) + ")"
 
@@ -1128,9 +1102,6 @@ class Object:
 
         if World.robot == self:
             World.robot = None
-
-    def remove_constraint_with(self, obj: Object) -> None:
-        self.world.remove_constraint(self.cids[obj])
 
     def attach(self,
                child_object: Object,
