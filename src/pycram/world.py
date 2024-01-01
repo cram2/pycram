@@ -42,6 +42,14 @@ class WorldState:
     constraint_ids: Dict[Object, Dict[Object, int]]
 
 
+@dataclass
+class CollisionCallbacks:
+    obj_1: Object
+    obj_2: Object
+    on_collision_cb: Callable
+    no_collision_cb: Optional[Callable] = None
+
+
 class World(ABC):
     """
     The World Class represents the physics Simulation and belief state.
@@ -101,7 +109,7 @@ class World(ABC):
         self.mode: str = mode
         # The mode of the simulation, can be "GUI" or "DIRECT"
 
-        self.coll_callbacks: Dict[Tuple[Object, Object], Tuple[Callable, Callable]] = {}
+        self.coll_callbacks: Dict[Tuple[Object, Object], CollisionCallbacks] = {}
 
         self._init_events()
 
@@ -295,12 +303,12 @@ class World(ABC):
         """
         for i in range(0, int(seconds * self.simulation_frequency)):
             self.step()
-            for objects, callback in self.coll_callbacks.items():
+            for objects, callbacks in self.coll_callbacks.items():
                 contact_points = self.get_contact_points_between_two_objects(objects[0], objects[1])
                 if contact_points != ():
-                    callback[0]()
-                elif callback[1] is not None:  # Call no collision callback
-                    callback[1]()
+                    callbacks.on_collision_cb()
+                elif callbacks.no_collision_cb is not None:
+                    callbacks.no_collision_cb()
             if real_time:
                 # Simulation runs at 240 Hz
                 time.sleep(self.simulation_time_step)
