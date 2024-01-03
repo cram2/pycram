@@ -5,10 +5,10 @@ from pycram.robot_descriptions import robot_description
 from pycram.process_module import simulated_robot
 from pycram.pose import Pose
 import pycram.enums
-import test_bullet_world
+from bullet_world_testcase import BulletWorldTestCase
 
 
-class TestActionDesignatorGrounding(test_bullet_world.BulletWorldTest):
+class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_reachability(self):
         self.robot.set_joint_state(robot_description.torso_joint, 0.3)
