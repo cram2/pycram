@@ -5,14 +5,12 @@ defaults:
 on:
   push:
     branches:
-      - ci
       - dev
       - master
   pull_request:
     branches:
       - master
       - dev
-      - ci
 jobs:
   Build_and_run_Tests:
     runs-on: ubuntu-20.04
