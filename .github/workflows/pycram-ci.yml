@@ -1,0 +1,88 @@
+name: CI standalone
+defaults:
+  run:
+    shell: bash -ieo pipefail {0}
+on:
+  push:
+    branches:
+      - dev
+      - master
+  pull_request:
+    branches:
+      - master
+      - dev
+jobs:
+  Build_and_run_Tests:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout pycram
+        uses: actions/checkout@v3
+        with:
+          path: 'ros_ws/src/pycram'
+          repository: ${{github.repository}}
+          ref: ${{github.ref}}
+          submodules: recursive
+
+      - name: Checkout iai_maps
+        uses: actions/checkout@v3
+        with:
+          path: 'ros_ws/src/iai_maps'
+          repository: code-iai/iai_maps
+          ref: master
+      - name: Checkout iai_robots
+        uses: actions/checkout@v3
+        with:
+          path: 'ros_ws/src/iai_robots'
+          repository: code-iai/iai_robots
+          ref: master
+      - name: Checkout pr2_common
+        uses: actions/checkout@v3
+        with:
+          path: 'ros_ws/src/pr2_common'
+          repository: PR2/pr2_common
+          ref: master
+      - name: Checkout kdl_ik_service
+        uses: actions/checkout@v3
+        with:
+          path: 'ros_ws/src/kdl_ik_service'
+          repository: cram2/kdl_ik_service
+          ref: master
+      - name: Checkout pr2_kinematics
+        uses: actions/checkout@v3
+        with:
+          path: 'ros_ws/src/pr2_kinematics'
+          repository: PR2/pr2_kinematics
+          ref: kinetic-devel
+      - name: install ros and deps
+        uses: betwo/github-setup-catkin@master
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+        with:
+          # Version range or exact version of ROS version to use, using SemVer's version range syntax.
+          ros-version: noetic
+          build-tool: 'catkin_tools'
+          # Root directory of the catkin workspace
+          workspace: $GITHUB_WORKSPACE/ros_ws
+      - name: build and source workspace
+        run: |
+          cd ros_ws
+          catkin_make
+          echo 'export ROS_HOSTNAME=localhost' >> ~/.bashrc
+          echo 'source $GITHUB_WORKSPACE/ros_ws/devel/setup.bash' >> ~/.bashrc
+      - name: Install requirements
+        run: |
+          cd $GITHUB_WORKSPACE/ros_ws/src/pycram
+          sudo pip3 install -r requirements.txt
+      - name: upgrade numpy
+        run: |
+          sudo pip3 install --upgrade numpy
+      - name: install additional requirements
+        run: |
+          sudo pip3 install pytest pyjpt mlflow
+      - name: start roscore
+        run: |
+          roslaunch pycram ik_and_description.launch &
+      - name: Run Tests
+        run: |
+          roscd pycram
+          pytest -v test
