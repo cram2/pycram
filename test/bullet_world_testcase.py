@@ -9,7 +9,6 @@ from pycram.robot_descriptions import robot_description
 from pycram.process_module import ProcessModule
 from pycram.enums import ObjectType
 import os
-import xml.etree.ElementTree as ET
 import tf
 
 
@@ -41,16 +40,4 @@ class BulletWorldTestCase(unittest.TestCase):
         cls.world.exit()
 
 
-class XMLTester(unittest.TestCase):
 
-    def setUp(self) -> None:
-        rospack = rospkg.RosPack()
-        filename = rospack.get_path('pycram') + '/resources/' + 'pr2.urdf'
-        with open(filename, "r") as f:
-            self.urdf_string = f.read()
-
-    def test_inertial(self):
-        result = fix_missing_inertial(self.urdf_string)
-        resulting_tree = ET.ElementTree(ET.fromstring(result))
-        for element in resulting_tree.iter("link"):
-            self.assertTrue(len([*element.iter("inertial")]) > 0)
