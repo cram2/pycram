@@ -1,10 +1,10 @@
-from test_bullet_world import BulletWorldTest
+from bullet_world_testcase import BulletWorldTestCase
 from pycram.costmaps import OccupancyCostmap
 from pycram.pose import Pose
 import numpy as np
 
 
-class TestCostmaps(BulletWorldTest):
+class TestCostmapsCase(BulletWorldTestCase):
 
     def test_raytest_bug(self):
         for i in range(30):

@@ -408,7 +408,7 @@ class Use_shadow_world():
     def __exit__(self, *args):
         if not self.prev_world == None:
             BulletWorld.current_bullet_world = self.prev_world
-            BulletWorld.current_bullet_world.world_sync.pause_sync = False
+        BulletWorld.current_bullet_world.world_sync.pause_sync = False
 
 
 class WorldSync(threading.Thread):
