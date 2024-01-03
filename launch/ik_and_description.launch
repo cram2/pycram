@@ -29,7 +29,7 @@
   <!-- Donbot -->
   <group if="$(eval robot == 'donbot')">
     <param name="robot_description"
-              textfile="$(find pycram)/resources/donbot.urdf"/>
+              textfile="$(find pycram)/resources/iai_donbot.urdf"/>
   </group>
 
   <!-- HSR -->
