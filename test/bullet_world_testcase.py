@@ -29,7 +29,9 @@ class BulletWorldTestCase(unittest.TestCase):
     def setUp(self):
         self.world.reset_bullet_world()
 
-
+    # DO NOT WRITE TESTS HERE!!!
+    # Test related to the BulletWorld should be written in test_bullet_world.py
+    # Tests in here would not be properly executed in the CI
 
     def tearDown(self):
         self.world.reset_bullet_world()
