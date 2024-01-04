@@ -15,7 +15,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join("..", "src", "pycram")))
-
+sys.path.append(os.path.abspath("./_pygments"))
 
 # -- Project information -----------------------------------------------------
 
@@ -86,7 +86,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # pygments_style = "sphinx"
 # pygments_style = "monokai"
 
-pygments_style = "colorful"
+pygments_style = "style.BetterGruvboxLightStyle"
 
 
 # -- Options for HTML output -------------------------------------------------
