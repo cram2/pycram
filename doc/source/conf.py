@@ -16,6 +16,8 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join("..", "src", "pycram")))
 sys.path.append(os.path.abspath("./_pygments"))
+sys.path.append(os.path.abspath("./_ext"))
+
 
 # -- Project information -----------------------------------------------------
 
@@ -48,6 +50,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.autosummary",
     "nbsphinx",
+    "console_lexer",
 ]
 
 # auto api setup
