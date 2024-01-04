@@ -1,12 +1,3 @@
-from pygments.lexers import get_lexer_by_name  # refer LEXERS
-from pygments.lexers._mapping import LEXERS
-from pygments.lexers.python import PythonLexer
-from pygments.lexers.shell import BashLexer
-from pygments.token import Name, Keyword
-
-
-import re
-
 from pygments.lexer import Lexer, RegexLexer, do_insertions, bygroups, \
     include, default, this, using, words, line_re
 from pygments.token import Punctuation, Whitespace, \
@@ -15,11 +6,11 @@ from pygments.util import shebang_matches
 
 
 def setup(app):
-    # choose one, both ok
-    app.add_lexer('shell', BashLexerExt)
-    # app.add_lexer('my_lang', PythonLexer)
+    app.add_lexer('shell', BashLexerExtended)
+    app.add_lexer('console', BashLexerExtended)
 
-class BashLexerExt(RegexLexer):
+
+class BashLexerExtended(RegexLexer):
     """
     Lexer for (ba|k|z|)sh shell scripts.
     """
