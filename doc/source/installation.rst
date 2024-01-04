@@ -34,7 +34,7 @@ The dependencies you will need are:
 These are available via the Ubuntu apt-repos and can be installed via the terminal:
 
 
-.. code-block:: console
+.. code-block:: shell
 
     sudo apt-get install python3-pip python3-vcstool
 
@@ -44,7 +44,7 @@ PyCRAM on Ubuntu 20.04 (ROS Noetic)
 
 Before installing PyCRAM you need to setup a ROS workspace into which PyCRAM can be cloned.
 
-.. code-block:: console
+.. code-block:: shell
 
     mkdir -p ~/workspace/ros/src
     cd workspace/ros
@@ -54,14 +54,14 @@ Before installing PyCRAM you need to setup a ROS workspace into which PyCRAM can
 If ``catkin_make`` does not work this probably means that you did not source your ROS installation.
 Source it by invoking:
 
-.. code-block:: console
+.. code-block:: shell
 
     source /opt/ros/noetic/setup.bash
 
 
 Now you can install PyCRAM into your ROS workspace.
 
-.. code-block:: console
+.. code-block:: shell
 
     cd ~/workspace/ros/src
     vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/pycram.rosinstall --recursive
@@ -78,7 +78,7 @@ in your ROS workspace.
 Now the last thing that needs to be done is clone the submodules of the PyCRAM repo, this is done via the following
 commands.
 
-.. code-block:: console
+.. code-block:: shell
 
     cd src/pycram
     git submodule init
@@ -91,20 +91,20 @@ Python Dependencies
 
 To install the Python dependencies Pip is used. To install Pip type the following command into a terminal.
 
-.. code-block:: console
+.. code-block:: shell
 
     sudo apt-get install python3-pip
 
 Now the actual Python packages can be installed, these are summarized in the requirements.txt in the PyCRAM repo.
 For this first navigate to your PyCRAM repo.
 
-.. code-block:: console
+.. code-block:: shell
 
     cd ~/workspace/ros/src/pycram
 
 Then install the Python packages in the requirements.txt file
 
-.. code-block:: console
+.. code-block:: shell
 
     sudo pip3 install -r requirements.txt
     sudo pip3 install -r src/neem_interface_python/requirements.txt
@@ -121,7 +121,7 @@ If you have been following the tutorial steps until now you can skip this part.
 
 You can build your ROS workspace with the following commands:
 
-.. code-block:: console
+.. code-block:: shell
 
     cd ~/workspace/ros
     catkin_make
@@ -135,7 +135,7 @@ and is named "ik_and_description.launch".
 
 The launchfile can be started with the following command:
 
-.. code-block:: console
+.. code-block:: shell
 
     roslaunch pycram ik_and_description.launch
 
@@ -150,25 +150,25 @@ The documentation uses sphinx as engine.
 Building sphinx based documentations requires pandoc
 to be installed. Pandoc can be installed via the package manager of Ubuntu.
 
-.. code-block:: console
+.. code-block:: shell
 
     sudo apt install pandoc
 
 After installing pandoc, install sphinx on your device.
 
-.. code-block:: console
+.. code-block:: shell
 
     sudo apt install python3-sphinx
 
 Install the requirements in your python interpreter.
 
-.. code-block:: console
+.. code-block:: shell
 
     pip install -r requirements.txt
 
 Run pycram and build the docs.
 
-.. code-block:: console
+.. code-block:: shell
 
     roslaunch pycram ik_and_description.launch
     make html
@@ -192,7 +192,7 @@ Next, if you have virtual environments that you want to use, you need to make su
 If you create a new environment, make sure to include  `--system-site-packages` in your creation command.
 You can check by activating your environment and calling the import
 
-.. code-block:: console
+.. code-block:: shell
 
     workon your_env
     python -c "import rospy"
@@ -202,13 +202,13 @@ ros workspace including pycram and source it as described in install-pycram_.
 
 After that you have to start PyCharm from the terminal via
 
-.. code-block:: console
+.. code-block:: shell
 
     pycharm-professional
 
 or
 
-.. code-block:: console
+.. code-block:: shell
 
     ~/pycharm/bin/pycharm.sh
 
@@ -227,7 +227,7 @@ Using IPython as REPL
 If you want to use a REPl with PyCRAM you can use IPython for that. IPython can be installed via
 the Ubunutu package manager.
 
-.. code-block:: console
+.. code-block:: shell
 
     sudo apt install ipython3
 
@@ -241,13 +241,13 @@ The startup files are located in ``~/.ipython/profile_default/startup`` along wi
 of the startup files. In this directory create a file called ``00-autoreload.ipy`` and enter the following code to the file.
 
 
-.. code-block:: console
+.. code-block:: shell
 
     %load_ext autoreload
     %autoreload 2
 
 The first line loads the extension to iPython and the second line configures autoreload to reload all modules before the
-code in the console is executed.
+code in the shell is executed.
 
 
 Run scripts
@@ -257,7 +257,7 @@ IPython allows to run Python files and enabled the access to created variables. 
 if you want to create a setup script which initializes things like the BulletWorld, Objects and imports
 relevant modules.
 
-To execute a Python script simply run ``run filename.py`` in the IPython console.
+To execute a Python script simply run ``run filename.py`` in the IPython shell.
 
 Here is an example how a setup script can look like.
 
