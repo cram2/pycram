@@ -274,7 +274,9 @@ class BulletWorld:
         :param length: Optional parameter to configure the length of the axes
         """
 
-        position, orientation = pose.to_list()
+        pose_in_map = self.local_transformer.transform_pose(pose, "map")
+
+        position, orientation = pose_in_map.to_list()
 
         vis_x = p.createVisualShape(p.GEOM_BOX, halfExtents=[length, 0.01, 0.01],
                                     rgbaColor=[1, 0, 0, 0.8], visualFramePosition=[length, 0.01, 0.01])
@@ -408,7 +410,7 @@ class Use_shadow_world():
     def __exit__(self, *args):
         if not self.prev_world == None:
             BulletWorld.current_bullet_world = self.prev_world
-            BulletWorld.current_bullet_world.world_sync.pause_sync = False
+        BulletWorld.current_bullet_world.world_sync.pause_sync = False
 
 
 class WorldSync(threading.Thread):
