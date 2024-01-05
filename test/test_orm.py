@@ -11,7 +11,7 @@ import pycram.orm.object_designator
 import pycram.orm.task
 import pycram.task
 import pycram.task
-import test_bullet_world
+from bullet_world_testcase import BulletWorldTestCase
 import test_task_tree
 from pycram.bullet_world import Object
 from pycram.designators import action_designator, object_designator, motion_designator
@@ -171,7 +171,7 @@ class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
         self.assertEqual(metadata_result.description, "meta_data_alternation_test")
 
 
-class MixinTestCase(ORMTestSchema, test_bullet_world.BulletWorldTest):
+class MixinTestCase(ORMTestSchema, BulletWorldTestCase):
     @with_tree
     def plan(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
@@ -198,7 +198,7 @@ class MixinTestCase(ORMTestSchema, test_bullet_world.BulletWorldTest):
         self.assertTrue(all([r.pose is not None and r.pose_id == r.pose.id for r in result]))
 
 
-class ORMObjectDesignatorTestCase(test_bullet_world.BulletWorldTest):
+class ORMObjectDesignatorTestCase(BulletWorldTestCase):
     """Test ORM functionality with a plan including object designators. """
 
     engine: sqlalchemy.engine.Engine
@@ -247,7 +247,7 @@ class ORMObjectDesignatorTestCase(test_bullet_world.BulletWorldTest):
         self.assertEqual(len(tt) - 2, len(action_results) + len(motion_results))
 
 
-class ORMActionDesignatorTestCase(test_bullet_world.BulletWorldTest):
+class ORMActionDesignatorTestCase(BulletWorldTestCase):
 
     engine: sqlalchemy.engine.Engine
     session: sqlalchemy.orm.Session
