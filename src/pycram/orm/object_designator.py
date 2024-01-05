@@ -1,8 +1,10 @@
+from typing import Optional
 
-from pycram.orm.base import Base, MapperArgsMixin, PoseMixin
+from pycram.orm.base import Base, MapperArgsMixin, PoseMixin, Pose
 from sqlalchemy.orm import Mapped, mapped_column, declared_attr, relationship
 from sqlalchemy import ForeignKey
 from ..enums import ObjectType
+
 
 class ObjectMixin:
     """
@@ -26,7 +28,7 @@ class Object(PoseMixin, Base):
     """ORM class of pycram.designators.object_designator.ObjectDesignator"""
 
     dtype: Mapped[str] = mapped_column(init=False)
-    type: Mapped[ObjectType]
+    type: Mapped[Optional[ObjectType]]
     name: Mapped[str]
 
     __mapper_args__ = {
