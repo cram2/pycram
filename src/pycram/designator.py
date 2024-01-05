@@ -1,9 +1,8 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-import dataclasses
+from dataclasses import dataclass, field, fields
 from abc import ABC, abstractmethod
-from copy import copy
 from inspect import isgenerator, isgeneratorfunction
 
 from sqlalchemy.orm.session import Session
@@ -367,7 +366,7 @@ class MotionDesignatorDescription(DesignatorDescription):
     Parent class of motion designator descriptions.
     """
 
-    @dataclasses.dataclass
+    @dataclass
     class Motion:
         """
         Resolved motion designator which can be performed
@@ -465,21 +464,21 @@ class ActionDesignatorDescription(DesignatorDescription):
     Descriptions hold possible parameter ranges for action designators.
     """
 
-    @dataclasses.dataclass
+    @dataclass
     class Action:
         """
         The performable designator with a single element for each list of possible parameter.
         """
-        robot_position: Pose = dataclasses.field(init=False)
+        robot_position: Pose = field(init=False)
         """
         The position of the robot at the start of the action.
         """
-        robot_torso_height: float = dataclasses.field(init=False)
+        robot_torso_height: float = field(init=False)
         """
         The torso height of the robot at the start of the action.
         """
 
-        robot_type: str = dataclasses.field(init=False)
+        robot_type: str = field(init=False)
         """
         The type of the robot at the start of the action.
         """
@@ -546,7 +545,7 @@ class LocationDesignatorDescription(DesignatorDescription):
     Parent class of location designator descriptions.
     """
 
-    @dataclasses.dataclass
+    @dataclass
     class Location:
         """
         Resolved location that represents a specific point in the world which satisfies the constraints of the location
@@ -585,7 +584,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
     Descriptions hold possible parameter ranges for object designators.
     """
 
-    @dataclasses.dataclass
+    @dataclass
     class Object:
         """
         A single element that fits the description.
@@ -606,7 +605,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
         Reference to the BulletWorld object
         """
 
-        _pose: Optional[Callable] = dataclasses.field(init=False)
+        _pose: Optional[Callable] = field(init=False)
         """
         A callable returning the pose of this object. The _pose member is used overwritten for data copies
         which will not update when the original bullet_world_object is moved.
@@ -645,7 +644,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
             session.commit()
             return obj
 
-        def data_copy(self) -> 'ObjectDesignatorDescription.Object':
+        def frozen_copy(self) -> 'ObjectDesignatorDescription.Object':
             """
             :return: A copy containing only the fields of this class. The BulletWorldObject attached to this pycram
             object is not copied. The _pose gets set to a method that statically returns the pose of the object when
@@ -678,7 +677,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
         def __repr__(self):
             return self.__class__.__qualname__ + f"(" + ', '.join(
-                [f"{f.name}={self.__getattribute__(f.name)}" for f in dataclasses.fields(self)] + [
+                [f"{f.name}={self.__getattribute__(f.name)}" for f in fields(self)] + [
                     f"pose={self.pose}"]) + ')'
 
         def special_knowledge_adjustment_pose(self, grasp: str, pose: Pose) -> Pose:

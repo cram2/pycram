@@ -6,6 +6,8 @@ import pycram.plan_failures
 from pycram import task
 from pycram.bullet_world import BulletWorld, Object
 from pycram.designators import action_designator, object_designator
+from pycram.designators.actions.actions import MoveTorsoActionPerformable, PickUpActionPerformable, \
+    NavigateActionPerformable
 from pycram.orm.base import Base
 from pycram.process_module import ProcessModule
 from pycram.process_module import simulated_robot
@@ -68,9 +70,9 @@ class DatabaseResolverTestCase(unittest.TestCase,):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], ["left"])
         with simulated_robot:
-            action_designator.NavigateAction.Action(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
-            action_designator.MoveTorsoAction.Action(0.3).perform()
-            action_designator.PickUpAction.Action(object_description.resolve(), "left", "front").perform()
+            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            MoveTorsoActionPerformable(0.3).perform()
+            PickUpActionPerformable(object_description.resolve(), "left", "front").perform()
             description.resolve().perform()
 
     def test_costmap_no_obstacles(self):
@@ -85,7 +87,7 @@ class DatabaseResolverTestCase(unittest.TestCase,):
         with simulated_robot:
             # action_designator.NavigateAction.Action(sample.pose).perform()
             action_designator.MoveTorsoAction.Action(sample.torso_height).perform()
-            action_designator.PickUpAction.Action(
+            PickUpActionPerformable(
                 object_designator.ObjectDesignatorDescription(types=["milk"]).resolve(),
                 arm=sample.reachable_arm, grasp=sample.grasp).perform()
 
@@ -98,10 +100,10 @@ class DatabaseResolverTestCase(unittest.TestCase,):
         for i in range(20):
             sample = next(iter(cml))
             with simulated_robot:
-                action_designator.NavigateAction.Action(sample.pose).perform()
-                action_designator.MoveTorsoAction.Action(sample.torso_height).perform()
+                NavigateActionPerformable(sample.pose).perform()
+                MoveTorsoActionPerformable(sample.torso_height).perform()
                 try:
-                    action_designator.PickUpAction.Action(
+                    PickUpActionPerformable(
                         object_designator.ObjectDesignatorDescription(types=["milk"]).resolve(),
                         arm=sample.reachable_arm, grasp=sample.grasp).perform()
                 except pycram.plan_failures.PlanFailure:
