@@ -13,12 +13,12 @@ class TestObjectDesignator(BulletWorldTestCase):
         self.assertEqual(obj.name, "milk")
         self.assertEqual(obj.type, ObjectType.MILK)
 
-    def test_data_copy(self):
+    def test_frozen_copy(self):
         description = ObjectDesignatorDescription(["milk"], [ObjectType.MILK])
         obj = description.ground()
 
-        data_copy = obj.data_copy()
-        self.assertEqual(obj.pose, data_copy.pose)
+        frozen_copy = obj.frozen_copy()
+        self.assertEqual(obj.pose, frozen_copy.pose)
 
 
 if __name__ == '__main__':
