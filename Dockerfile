@@ -1,15 +1,22 @@
-FROM ros:noetic
 
+ARG FROM_IMAGE=ros:noetic
 ARG OVERLAY_WS=/opt/ros/overlay_ws
+
+FROM $FROM_IMAGE as cacher
 WORKDIR $OVERLAY_WS/src
 
-COPY . $OVERLAY_WS/src/pycram
+COPY requirements.txt ./
+COPY pycram-https.rosinstall ./
+COPY .gitmodules ./
 RUN sudo apt-get update && apt-get install python3-pip python3-vcstool git -y
-RUN ls
-RUN vcs import --input $OVERLAY_WS/src/pycram/pycram-https.rosinstall --recursive --skip-existing $OVERLAY_WS/src
+RUN cat .gitmodules
+RUN vcs import --input pycram-https.rosinstall --recursive --skip-existing $OVERLAY_WS/src
 RUN rosdep update && rosdep install --from-paths $OVERLAY_WS/src --ignore-src -r -y
 
-RUN sudo apt-get update && apt-get install python3-pip -y && pip3 install --no-cache-dir -r $OVERLAY_WS/src/pycram/requirements.txt
+RUN sudo apt-get update && apt-get install python3-pip -y && pip3 install --no-cache-dir -r requirements.txt
+
+FROM $FROM_IMAGE as builder
+COPY . $OVERLAY_WS/src/pycram
 RUN /bin/bash -c '. /opt/ros/noetic/setup.bash; cd $OVERLAY_WS; catkin_make'
 
 # launch ros package
