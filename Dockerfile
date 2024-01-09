@@ -24,5 +24,5 @@ COPY docker/entrypoint.sh /
 ENTRYPOINT ["bash", "/entrypoint.sh"]
 
 # launch ros package
-CMD ["roslaunch", "pycram", "ik_and_description.launch", "&"]
-CMD ["jupyter", "notebook", "--ip", "0.0.0.0", "--allow-root", "/opt/ros/overlay_ws/src/pycram/examples/"]
+#CMD ["roslaunch", "pycram", "ik_and_description.launch", "&"]
+#CMD ["jupyter", "notebook", "--ip", "0.0.0.0", "--allow-root", "/opt/ros/overlay_ws/src/pycram/examples/"]
