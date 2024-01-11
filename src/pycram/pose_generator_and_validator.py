@@ -155,7 +155,9 @@ def reachability_validator(pose: Pose,
         # resp = request_ik(base_link, end_effector, target_diff, robot, left_joints)
         resp = request_ik(target, robot, left_joints, left_gripper)
 
+        joint_state_before_ik=robot._current_joint_states
         _apply_ik(robot, resp, left_joints)
+        robot.set_joint_states(joint_state_before_ik)
 
         for obj in BulletWorld.current_bullet_world.objects:
             if obj.name == "floor":
