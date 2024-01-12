@@ -1,14 +1,11 @@
 import threading
 import unittest
-
-from anytree import RenderTree
-
 from pycram.designators.action_designator import *
 from pycram.enums import ObjectType, State
 from pycram.fluent import Fluent
 from pycram.plan_failures import PlanFailure
 from pycram.pose import Pose
-from pycram.language import Sequential, Language, Parallel, TryAll, TryInOrder, Monitor, Repeat, Code
+from pycram.language import Sequential, Language, Parallel, TryAll, TryInOrder, Monitor, Repeat, Code, RenderTree
 from pycram.process_module import simulated_robot
 import test_bullet_world
 
@@ -99,12 +96,21 @@ class LanguageTestCase(test_bullet_world.BulletWorldTest):
         act = ParkArmsAction([Arms.BOTH])
         act2 = MoveTorsoAction([0.3])
 
-        plan = act + act2 >> Monitor(lambda x: print())
+        def monitor_func():
+            time.sleep(1)
+            return True
+
+        plan = act + act2 >> Monitor(monitor_func)
         self.assertEqual(len(plan.children), 1)
         self.assertEqual(plan.height, 2)
 
     def test_monitor_construction_error(self):
-        self.assertRaises(AttributeError, lambda: Monitor(lambda x: print()) >> Monitor(lambda x: print()))
+
+        def monitor_func():
+            time.sleep(1)
+            return True
+
+        self.assertRaises(AttributeError, lambda: Monitor(monitor_func) >> Monitor(monitor_func))
 
     def test_repeat_construction(self):
         act = ParkArmsAction([Arms.BOTH])
