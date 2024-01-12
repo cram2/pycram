@@ -36,6 +36,7 @@ class Language(NodeMixin):
         self.executing_thread = {}
         self.threads: List[threading.Thread] = []
         self.interrupted = False
+        self.name = self.__class__.__name__
         if children:
             self.children: Language = children
 
