@@ -4,7 +4,7 @@ class DonbotDescription(RobotDescription):
 
     def __init__(self):
 
-        super().__init__("donbot", "base_footprint", "base_link", "ur5_base_link",
+        super().__init__("iai_donbot", "base_footprint", "base_link", "ur5_base_link",
                          "arm_base_mounting_joint", odom_frame="odom",
                          odom_joints=["odom_x_joint", "odom_y_joint", "odom_z_joint"])
         # Camera
@@ -14,7 +14,7 @@ class DonbotDescription(RobotDescription):
         rs_camera = CameraDescription("rs_camera_link",
                                       horizontal_angle=0.99483, vertical_angle=0.75049,
                                       minimal_height=0.5, maximal_height=1.2)
-        # not in the donbot.urdf, although used in cram
+        # not in the iai_donbot.urdf, although used in cram
         # realsense_camera = CameraDescription("rs_camera_depth_optical_frame",
         #                                     horizontal_angle=0.99483, vertical_angle=0.75049,
         #                                     minimal_height=0.5, maximal_height=1.2)
@@ -45,6 +45,7 @@ class DonbotDescription(RobotDescription):
         arm_manip = ManipulatorDescription(arm_inter, tool_frame="gripper_tool_frame",
                                            gripper_description=gripper)  # or ur5_tool0
         self.add_chain("left", arm_manip)
+        self.add_chain("right", arm_manip)
         # Neck
         neck_base_link = "ur5_base_link"
         neck = ChainDescription("neck", arm_joints, arm_links, base_link=neck_base_link)
@@ -71,6 +72,12 @@ class DonbotDescription(RobotDescription):
         park = [3.234022855758667, -1.5068710486041468, -0.7870314756976526, -2.337625328694479,
                 1.5699548721313477, -1.6504042784320276]
         self.add_static_joint_chain("left", "park", park)
+        front = [-1.5, -1.5, 0, 1.5, -1.5, 1.5]
+        arm_right = [-3, -1.5, 0, 1.5, -1.5, 1.5]
+        back = [-4.7, -1.5, 0, 1.5, -1.5, 1.5]
+        arm_left = [0, -1.5, 0, 1.5, -1.5, 1.5]
+        self.add_static_joint_chains("left", {"front": front, "arm_right": arm_right, "back": back,
+                                              "arm_left": arm_left})
 
     def get_camera_frame(self, name="rgb_camera"):
         # TODO: Hacky since only one optical camera frame from pr2 is used

@@ -7,10 +7,10 @@ from src.pycram.bullet_world import BulletWorld, Object
 from src.pycram.local_transformer import LocalTransformer
 from pycram.robot_descriptions import robot_description
 from pycram.pose import Pose, Transform
-import test_bullet_world
+import bullet_world_testcase
 
 
-class TestLocalTransformer(test_bullet_world.BulletWorldTest):
+class TestLocalTransformer(test_bullet_world.BulletWorldTestCase):
 
     def test_singelton(self):
         l1 = LocalTransformer()
