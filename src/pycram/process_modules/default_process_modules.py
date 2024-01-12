@@ -1,18 +1,13 @@
-from abc import ABC
 from threading import Lock
 
 import pycram.bullet_world_reasoning as btr
 import numpy as np
-import time
-import pybullet as p
 
-from ..plan_failures import EnvironmentManipulationImpossible
 from ..robot_descriptions import robot_description
 from ..process_module import ProcessModule, ProcessModuleManager
-from ..bullet_world import BulletWorld, Object
-from ..helper import transform
+from ..bullet_world import BulletWorld
 from ..external_interfaces.ik import request_ik, IKError
-from ..helper import _transform_to_torso, _apply_ik, calculate_wrist_tool_offset, inverseTimes
+from ..helper import _apply_ik
 from ..local_transformer import LocalTransformer
 from ..designators.motion_designator import *
 from ..enums import JointType
@@ -91,7 +86,7 @@ class DefaultMoveHead(ProcessModule):
         pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame(tilt_link))
 
         new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
-        new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2)
+        new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2) * -1
 
         current_pan = robot.get_joint_state(pan_joint)
         current_tilt = robot.get_joint_state(tilt_joint)
@@ -231,7 +226,7 @@ def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
 class DefaultManager(ProcessModuleManager):
 
     def __init__(self):
-        super().__init__("Default")
+        super().__init__("default")
         self._navigate_lock = Lock()
         self._pick_up_lock = Lock()
         self._place_lock = Lock()
