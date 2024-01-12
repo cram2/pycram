@@ -142,6 +142,7 @@ class Language(NodeMixin):
         the reversed operator of __mul__ which allows to write:
 
         .. code-block:: python
+        
             2 * ParkAction()
 
         :param other: An integer which states how often the Language expression should be repeated
