@@ -15,13 +15,13 @@ import pybullet as p
 from pytransform3d.rotations import quaternion_wxyz_from_xyzw, quaternion_xyzw_from_wxyz
 from pytransform3d.transformations import transform_from_pq, transform_from, pq_from_transform
 
-from macropy.core.quotes import ast_literal, q
 from .bullet_world import Object as BulletWorldObject
 from .local_transformer import LocalTransformer
 from .pose import Transform, Pose
 from .robot_descriptions import robot_description
 import os
 import math
+
 
 class bcolors:
     """
@@ -107,23 +107,6 @@ def transform(pose: List[float],
     return res.tolist()
 
 
-def _block(tree):
-    """Wrap multiple statements into a single block and return it.
-
-    If macros themselves are not a single statement, they can't always be nested (for example inside the par macro which executes each statement in an own thread).
-
-    Arguments:
-    tree -- the tree containing the statements.
-    """
-    with q as new_tree:
-        # Wrapping the tree into an if block which itself is a statement that contains one or more statements.
-        # The condition is just True and therefor makes sure that the wrapped statements get executed.
-        if True:
-            ast_literal[tree]
-
-    return new_tree
-
-
 class GeneratorList:
     """Implementation of generator list wrappers.
 
@@ -191,7 +174,7 @@ def axis_angle_to_quaternion(axis: List, angle: float) -> Tuple:
     return (x, y, z, w)
 
 
-def multiply_quaternions(q1, q2) -> List:
+def multiply_quaternions(q1: List, q2: List) -> List:
     """
     Multiply two quaternions using the robotics convention (x, y, z, w).
 
