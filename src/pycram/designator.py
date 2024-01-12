@@ -542,6 +542,14 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
         """Fill all missing parameters and chose plan to execute. """
         raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
 
+    def __iter__(self):
+        """
+        Iterate through all possible actions fitting this description
+
+        :yield: A resolved action designator
+        """
+        yield self.ground()
+
 
 class LocationDesignatorDescription(DesignatorDescription):
     """

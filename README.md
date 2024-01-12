@@ -35,11 +35,12 @@ from pycram.designators.motion_designator import *
 from pycram.designators.location_designator import *
 from pycram.designators.action_designator import *
 from pycram.designators.object_designator import *
+from pycram.enums import ObjectType
 
 world = BulletWorld()
-kitchen = Object("kitchen", "environment", "kitchen.urdf")
-robot = Object("pr2", "robot", "pr2.urdf")
-cereal = Object("cereal", "cereal", "breakfast_cereal.stl", position=[1.4, 1, 0.95])
+kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
+robot = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
+cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", position=[1.4, 1, 0.95])
 
 cereal_desig = ObjectDesignatorDescription(names=["cereal"])
 kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
