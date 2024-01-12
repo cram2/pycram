@@ -13,54 +13,10 @@ from __future__ import annotations
 
 import operator
 
-from pycram.helper import _block
 from enum import Enum
-from macropy.core.macros import Macros
-from macropy.core.hquotes import macros, hq
-from macropy.core.quotes import macros, ast_literal
 from threading import Condition, Lock
 from uuid import uuid4
-from typing import Any, Optional, List, Union, Tuple, Callable
-
-macros = Macros()
-"""Must be imported before macros defined in this module can be imported."""
-
-
-@macros.block
-def whenever(tree: List['_ast.Pass'], args: Tuple['_ast.Name, _ast.Constant'], **kw) -> None:
-    """Execute the body as long as the value of the fluent passed as argument is not None. If the value is None the
-    macro waits for it to become not None. A break statement is required to stop.
-
-    If the passed fluent was created by the pulsed method of a fluent, the body gets executed whenever the parent
-    gets pulsed.
-    Missed pulses which occur while the body is executing are handled depending on the behavior passed as argument
-    to the pulsed method.
-
-    :argument fluent: The fluent to watch the value of
-
-    .. code-block:: python
-
-        with whenever(fluent):
-            body
-    """
-    with hq as new_tree:
-        _fluent = ast_literal[args[0]]
-
-        while True:
-            _fluent.wait_for()
-            ast_literal[tree]
-
-            if _fluent._handle_missed == Behavior.NEVER:
-                with _fluent._mutex:
-                    _fluent._pulses = 0 # Ignore missed pulses
-            else:
-                with _fluent._mutex:
-                    _fluent._pulses -= 1
-
-                    if _fluent._pulses > 1 and _fluent._handle_missed == Behavior.ONCE:
-                        _fluent._pulses = 1 # Execute body only once more
-
-    return _block(new_tree)
+from typing import Any, Optional, List, Callable
 
 
 class Behavior(Enum):
@@ -106,6 +62,7 @@ class Fluent:
         self._children: List[Fluent] = []
         self._handle_missed = Behavior.NEVER
         self._value: Any = value
+        self._whenever_cbs = []
 
         if name is not None:
             self.name: str = name
@@ -137,9 +94,32 @@ class Fluent:
                 child._pulses += 1
 
             child.pulse()
-
+        for callback in self._whenever_cbs:
+            callback(self.get_value())
+            with self._mutex:
+                self._pulses -= 1
+            if self._handle_missed == Behavior.NEVER:
+                with self._mutex:
+                    self._pulses = 0
+            elif self._handle_missed == Behavior.ONCE:
+                callback(self.get_value())
+                with self._mutex:
+                    self._pulses = 0
+            elif self._handle_missed == Behavior.ALWAYS:
+                with self._mutex:
+                    for i in range(self._pulses):
+                        callback(self.get_value())
         with self._cv:
             self._cv.notify()
+
+    def whenever(self, callback: Callable) -> None:
+        """
+        Registers a callback which is called everytime this Fluent is pulsed. The callback should be a Callable. When
+        the callback is called it gets the current value of this Fluent as an argument. `1
+
+        :param callback: The callback which should be called when pulsed as a Callable.
+        """
+        self._whenever_cbs.append(callback)
 
     def add_child(self, child: Fluent) -> None:
         """Add a child to the fluent which gets pulsed whenever this fluent gets pulsed, too.
@@ -252,14 +232,14 @@ class Fluent:
         return self._compare(operator.is_not, other)
 
     def __gt__(self, other: Fluent) -> Fluent:
-        """Overload the > comparsion operator.
+        """Overload the > comparison operator.
 
         :param other: the other operand.
         """
         return self._compare(operator.gt, other)
 
     def __geq__(self, other: Fluent) -> Fluent:
-        """Overload the >= comparsion operator.
+        """Overload the >= comparison operator.
 
         :param other: the other operand.
         """
