@@ -245,11 +245,14 @@ class ProcessModuleManager(ABC):
         for pm_manager in ProcessModuleManager.available_pms:
             if pm_manager.robot_name == robot_description.name:
                 manager = pm_manager
+            if pm_manager.robot_name == "default":
+                default_manager = pm_manager
 
         if manager:
             return manager
         else:
-            rospy.logerr(f"No Process Module Manager found for robot: '{robot_description.name}'")
+            rospy.logwarn_once(f"No Process Module Manager found for robot: '{robot_description.name}', using default process modules")
+            return default_manager
 
     def navigate(self) -> Type[ProcessModule]:
         """
