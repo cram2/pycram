@@ -20,7 +20,8 @@ class Language(NodeMixin):
     """
     parallel_blocklist = ["PickUpAction", "PlaceAction", "OpenAction", "CloseAction", "TransportAction", "GraspingAction"]
     do_not_use_giskard = ["SetGripperAction", "MoveGripperMotion", "DetectAction", "DetectingMotion"]
-    block_list = []
+    block_list: List[int] = []
+    """List of thread ids which should be blocked from execution."""
 
     def __init__(self, parent: NodeMixin = None, children: Iterable[NodeMixin] = None):
         """
@@ -33,6 +34,7 @@ class Language(NodeMixin):
         self.exceptions = {}
         self.state = None
         self.executing_thread = {}
+        self.threads: List[threading.Thread] = []
         self.interrupted = False
         if children:
             self.children: Language = children
@@ -107,7 +109,7 @@ class Language(NodeMixin):
                 f"You can not execute the Designator {self if self.__class__.__name__ in self.parallel_blocklist else other} in a try all language expression.")
         return TryAll(parent=None, children=(self, other)).simplify()
 
-    def __rshift__(self, other):
+    def __rshift__(self, other: Language):
         """
         Operator for Monitors, this always makes the Monitor the parent of the other expression.
         
@@ -123,7 +125,7 @@ class Language(NodeMixin):
             other.children = [self]
             return other
 
-    def __mul__(self, other):
+    def __mul__(self, other: int):
         """
         Language expression for Repeated execution. The other attribute of this operator has to be an integer.
 
@@ -134,7 +136,7 @@ class Language(NodeMixin):
             raise AttributeError("Repeat can only be used in combination with integers")
         return Repeat(parent=None, children=[self], repeat=other)
 
-    def __rmul__(self, other):
+    def __rmul__(self, other: int):
         """
         Language expression for Repeated execution. The other attribute of this operator has to be an integer. This is
         the reversed operator of __mul__ which allows to write:
@@ -324,6 +326,10 @@ class Sequential(Language):
         return State.SUCCEEDED
 
     def interrupt(self) -> None:
+        """
+        Interrupts the execution of this language expression by setting the ``interrupted`` variable to True and calling
+        interrupt on the current giskard goal.
+        """
         self.interrupted = True
         self.block_list.append(threading.get_ident())
         if giskard.giskard_wrapper:
@@ -365,6 +371,10 @@ class TryInOrder(Language):
             return State.SUCCEEDED
 
     def interrupt(self) -> None:
+        """
+        Interrupts the execution of this language expression by setting the ``interrupted`` variable to True, adding
+        the current thread to the block_list in Language and interrupting the current giskard goal.
+        """
         self.interrupted = True
         self.block_list.append(threading.get_ident())
         if giskard.giskard_wrapper:
@@ -388,7 +398,6 @@ class Parallel(Language):
 
         :return: The state according to the behaviour described in :func:`Parallel`
         """
-        self.threads: List[threading.Thread] = []
 
         def lang_call(child_node):
             if ("DesignatorDescription" in [cls.__name__ for cls in child_node.__class__.__mro__]
@@ -421,6 +430,11 @@ class Parallel(Language):
         return State.SUCCEEDED
 
     def interrupt(self) -> None:
+        """
+        Interrupts the execution of this language expression by setting the ``interrupted`` variable to True, adding the
+        thread id of all parallel execution threads to the block_list in Language and interrupting the current giskard
+        goal.
+        """
         self.interrupted = True
         self.block_list += [t.ident for t in self.threads]
         if giskard.giskard_wrapper:
@@ -477,6 +491,10 @@ class TryAll(Language):
             return State.SUCCEEDED
 
     def interrupt(self) -> None:
+        """
+        Interrupts the execution of this language expression by setting the ``interrupted`` variable to True, adding the
+        thread id of all parallel execution threads to the block_list in Language and interrupting the current giskard
+        """
         self.interrupted = True
         self.block_list += [t.ident for t in self.threads]
         if giskard.giskard_wrapper:
@@ -515,6 +533,6 @@ class Code(Language):
         return self.function(**self.kwargs)
 
     def interrupt(self) -> None:
-        ...
+        raise NotImplementedError
 
 
