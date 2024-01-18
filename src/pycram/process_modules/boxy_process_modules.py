@@ -1,19 +1,14 @@
-import time
 from threading import Lock
-
 import numpy as np
-import pybullet as p
-
 import pycram.bullet_world_reasoning as btr
 import pycram.helper as helper
-from ..bullet_world import BulletWorld
+from ..bullet_world import BulletWorld, Object
 from ..designators.motion_designator import *
 from ..enums import JointType
 from ..external_interfaces.ik import request_ik
-from ..local_transformer import LocalTransformer as local_tf, LocalTransformer
+from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_descriptions import robot_description
-from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
 
 def _park_arms(arm):
@@ -37,7 +32,7 @@ class BoxyNavigation(ProcessModule):
     The process module to move the robot from one position to another.
     """
 
-    def _execute(self, desig: MoveMotion.Motion):
+    def _execute(self, desig: MoveMotion):
         robot = BulletWorld.robot
         robot.set_pose(desig.target)
 
@@ -48,7 +43,7 @@ class BoxyPickUp(ProcessModule):
     The object has to be reachable for this process module to succeed.
     """
 
-    def _execute(self, desig: PickUpMotion.Motion):
+    def _execute(self, desig: PickUpMotion):
         object = desig.object_desig.bullet_world_object
         robot = BulletWorld.robot
         grasp = robot_description.grasps.get_orientation_for_grasp(desig.grasp)
@@ -70,7 +65,7 @@ class BoxyPlace(ProcessModule):
     This process module places an object at the given position in world coordinate frame.
     """
 
-    def _execute(self, desig: PlaceMotion.Motion):
+    def _execute(self, desig: PlaceMotion):
         """
 
         :param desig: A PlaceMotion
@@ -96,7 +91,7 @@ class BoxyOpen(ProcessModule):
     Low-level implementation of opening a container in the simulation. Assumes the handle is already grasped.
     """
 
-    def _execute(self, desig: OpeningMotion.Motion):
+    def _execute(self, desig: OpeningMotion):
         part_of_object = desig.object_part.bullet_world_object
 
         container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
@@ -115,7 +110,7 @@ class BoxyClose(ProcessModule):
     """
     Low-level implementation that lets the robot close a grasped container, in simulation
     """
-    def _execute(self, desig: ClosingMotion.Motion):
+    def _execute(self, desig: ClosingMotion):
         part_of_object = desig.object_part.bullet_world_object
 
         container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
@@ -210,7 +205,7 @@ class BoxyMoveTCP(ProcessModule):
     This process moves the tool center point of either the right or the left arm.
     """
 
-    def _execute(self, desig: MoveTCPMotion.Motion):
+    def _execute(self, desig: MoveTCPMotion):
         target = desig.target
         robot = BulletWorld.robot
 
@@ -223,7 +218,7 @@ class BoxyMoveArmJoints(ProcessModule):
     list that should be applied or a pre-defined position can be used, such as "parking"
     """
 
-    def _execute(self, desig: MoveArmJointsMotion.Motion):
+    def _execute(self, desig: MoveArmJointsMotion):
 
         robot = BulletWorld.robot
         if desig.right_arm_poses:
@@ -237,7 +232,7 @@ class BoxyWorldStateDetecting(ProcessModule):
     This process module detectes an object even if it is not in the field of view of the robot.
     """
 
-    def _execute(self, desig: WorldStateDetectingMotion.Motion):
+    def _execute(self, desig: WorldStateDetectingMotion):
         obj_type = desig.object_type
         return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 

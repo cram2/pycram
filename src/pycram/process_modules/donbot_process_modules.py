@@ -161,7 +161,7 @@ class DonbotMoveJoints(ProcessModule):
     list that should be applied or a pre-defined position can be used, such as "parking"
     """
 
-    def _execute(self, desig: MoveArmJointsMotion.Motion):
+    def _execute(self, desig: MoveArmJointsMotion):
         robot = BulletWorld.robot
         if desig.left_arm_poses:
             robot.set_joint_states(desig.left_arm_poses)
@@ -172,7 +172,7 @@ class DonbotWorldStateDetecting(ProcessModule):
     This process module detectes an object even if it is not in the field of view of the robot.
     """
 
-    def _execute(self, desig: WorldStateDetectingMotion.Motion):
+    def _execute(self, desig: WorldStateDetectingMotion):
         obj_type = desig.object_type
         return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
