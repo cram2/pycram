@@ -33,21 +33,7 @@ from .pose import Pose, Transform
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from .world_dataclasses import Color, Constraint, AxisAlignedBoundingBox
-
-
-@dataclass
-class WorldState:
-    state_id: int
-    attachments: Dict[Object, Dict[Object, Attachment]]
-
-
-@dataclass
-class CollisionCallbacks:
-    obj_1: Object
-    obj_2: Object
-    on_collision_cb: Callable
-    no_collision_cb: Optional[Callable] = None
+from .world_dataclasses import Color, Constraint, AxisAlignedBoundingBox, CollisionCallbacks
 
 
 class World(ABC):
@@ -113,8 +99,7 @@ class World(ABC):
 
         self._init_events()
 
-        self._saved_states: Dict[int, WorldState] = {}
-        # Different states of the world indexed by int state id.
+        self.saved_states: List[int] = []
 
     def _init_events(self):
         self.detachment_event: Event = Event()
@@ -597,6 +582,7 @@ class World(ABC):
         """
         state_id = self.save_physics_simulator_state()
         self.save_objects_state(state_id)
+        self.saved_states.append(state_id)
         return state_id
 
     def save_objects_state(self, state_id: int):
@@ -618,6 +604,13 @@ class World(ABC):
     def save_physics_simulator_state(self) -> int:
         """
         Saves the state of the physics simulator and returns the unique id of the state.
+        """
+        pass
+
+    @abstractmethod
+    def remove_physics_simulator_state(self, state_id: int):
+        """
+        Removes the state of the physics simulator with the given id.
         """
         pass
 
@@ -663,7 +656,8 @@ class World(ABC):
         :param on_collision_callback: A function that should be called if the objects are in contact
         :param on_collision_removal_callback: A function that should be called if the objects are not in contact
         """
-        self.coll_callbacks[(object_a, object_b)] = (on_collision_callback, on_collision_removal_callback)
+        self.coll_callbacks[(object_a, object_b)] = CollisionCallbacks(on_collision_callback,
+                                                                       on_collision_removal_callback)
 
     @classmethod
     def add_resource_path(cls, path: str) -> None:
@@ -710,17 +704,24 @@ class World(ABC):
         except ValueError:
             raise ValueError("The given object is not in the shadow world.")
 
-    def reset_world(self) -> None:
+    def reset_world(self, remove_saved_states=True) -> None:
         """
         Resets the World to the state it was first spawned in.
         All attached objects will be detached, all joints will be set to the
         default position of 0 and all objects will be set to the position and
         orientation in which they were spawned.
         """
+
+        if remove_saved_states:
+            self.remove_saved_states()
+
         for obj in self.objects:
-            obj.detach_all()
-            obj.reset_all_joints_positions()
-            obj.set_pose(obj.original_pose)
+            obj.reset(remove_saved_states)
+
+    def remove_saved_states(self):
+        for state_id in self.saved_states:
+            self.remove_physics_simulator_state(state_id)
+        self.saved_states = []
 
     def update_transforms_for_objects_in_current_world(self) -> None:
         """
@@ -1066,7 +1067,7 @@ class Object:
                 self.world.set_robot_if_not_set(self)
         self.link_name_to_id[self.urdf_object.get_root()] = -1
         self.link_id_to_name[-1] = self.urdf_object.get_root()
-        self.links = self._init_links()
+        self.links: Dict[str, Link] = self._init_links()
         self.update_link_transforms()
 
         self._current_joints_positions = {}
@@ -1125,6 +1126,19 @@ class Object:
 
         if World.robot == self:
             World.robot = None
+
+    def reset(self, remove_saved_states=True) -> None:
+        """
+        Resets the Object to the state it was first spawned in.
+        All attached objects will be detached, all joints will be set to the
+        default position of 0 and the object will be set to the position and
+        orientation in which it was spawned.
+        """
+        self.detach_all()
+        self.reset_all_joints_positions()
+        self.set_pose(self.original_pose)
+        if remove_saved_states:
+            self.saved_states = {}
 
     def attach(self,
                child_object: Object,
@@ -1267,11 +1281,10 @@ class Object:
         for link in self.links.values():
             link.restore_state(state_id)
 
-    def set_object_state(self, obj_state:ObjectState):
-        self.set_attachments(obj_state.attachments)
-
-    def set_attachments(self, attachments: Dict[Object, Attachment]) -> None:
-        self.attachments = attachments
+    def remove_saved_states(self):
+        self.saved_states = {}
+        for link in self.links.values():
+            link.saved_states = {}
 
     def _set_attached_objects_poses(self, already_moved_objects: Optional[List[Object]] = None) -> None:
         """
@@ -1662,8 +1675,6 @@ class Attachment:
         """
         self.parent_link = parent_link
         self.child_link = child_link
-        self.parent_object = parent_link.object
-        self.child_object = child_link.object
         self.bidirectional = bidirectional
         self._loose = False and not bidirectional
 

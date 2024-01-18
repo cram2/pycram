@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Callable
 from .enums import JointType
 
 
@@ -62,6 +62,7 @@ class Point:
         :param point: The list of x, y, z values
         """
         return cls(point[0], point[1], point[2])
+
 
 @dataclass
 class AxisAlignedBoundingBox:
@@ -132,3 +133,9 @@ class AxisAlignedBoundingBox:
         :return: The maximum point of the axis-aligned bounding box
         """
         return [self.max_x, self.max_y, self.max_z]
+
+
+@dataclass
+class CollisionCallbacks:
+    on_collision_cb: Callable
+    no_collision_cb: Optional[Callable] = None
