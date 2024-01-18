@@ -5,19 +5,13 @@ ProcessModule -- implementation of process modules.
 """
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
-
 import inspect
 import time
 from abc import ABC
-from threading import Lock
-
 import rospy
-
-from .designator import MotionDesignatorDescription
-from .fluent import Fluent
 from typing import Callable, List, Type, Any, Union
 
-from .robot_descriptions import  robot_description
+from .robot_descriptions import robot_description
 
 
 class ProcessModule:
@@ -33,14 +27,14 @@ class ProcessModule:
         """Create a new process module."""
         self._lock = lock
 
-    def _execute(self, designator: MotionDesignatorDescription.Motion) -> Any:
+    def _execute(self, designator) -> Any:
         """
         Helper method for internal usage only.
         This method is to be overwritten instead of the execute method.
         """
         pass
 
-    def execute(self, designator: MotionDesignatorDescription.Motion) -> Any:
+    def execute(self, designator) -> Any:
         """
         Execute the given designator. If there is already another process module of the same kind the `self._lock` will
         lock this thread until the execution of that process module is finished. This implicitly queues the execution of

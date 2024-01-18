@@ -4,9 +4,10 @@ from pycram.designator import ActionDesignatorDescription
 from pycram.designators.motion_designator import *
 from pycram.enums import Arms
 from pycram.task import with_tree
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from ..location_designator import CostmapLocation
 from ..object_designator import BelieveObject
+from ...bullet_world import BulletWorld
 from ...helper import multiply_quaternions
 from ...local_transformer import LocalTransformer
 from ...orm.base import Base
@@ -53,15 +54,20 @@ class ParkArmsActionPerformable(ActionAbstract):
     def perform(self) -> None:
         # create the keyword arguments
         kwargs = dict()
+        left_poses = None
+        right_poses = None
 
         # add park left arm if wanted
         if self.arm in [Arms.LEFT, Arms.BOTH]:
             kwargs["left_arm_config"] = "park"
+            left_poses = robot_description.get_static_joint_chain("left", kwargs["left_arm_config"])
 
         # add park right arm if wanted
         if self.arm in [Arms.RIGHT, Arms.BOTH]:
             kwargs["right_arm_config"] = "park"
-        MoveArmJointsMotion(**kwargs).resolve().perform()
+            right_poses = robot_description.get_static_joint_chain("right", kwargs["right_arm_config"])
+
+        MoveArmJointsMotion(left_poses, right_poses).perform()
 
     def to_sql(self) -> ORMParkArmsAction:
         return ORMParkArmsAction(self.arm.name)
@@ -86,7 +92,7 @@ class MoveTorsoActionPerformable(ActionAbstract):
 
     @with_tree
     def perform(self) -> None:
-        MoveJointsMotion([robot_description.torso_joint], [self.position]).resolve().perform()
+        MoveJointsMotion([robot_description.torso_joint], [self.position]).perform()
 
     def to_sql(self) -> ORMMoveTorsoAction:
         return ORMMoveTorsoAction(self.position)
@@ -112,7 +118,7 @@ class SetGripperActionPerformable(ActionAbstract):
 
     @with_tree
     def perform(self) -> None:
-        MoveGripperMotion(gripper=self.gripper, motion=self.motion).resolve().perform()
+        MoveGripperMotion(gripper=self.gripper, motion=self.motion).perform()
 
     def to_sql(self) -> ORMSetGripperAction:
         return ORMSetGripperAction(self.gripper, self.motion)
@@ -177,7 +183,7 @@ class PickUpActionPerformable(ActionAbstract):
     The grasp that should be used. For example, 'left' or 'right'
     """
 
-    object_at_execution: Optional[ObjectDesignatorDescription.Object] = dataclasses.field(init=False)
+    object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False)
     """
     The object at the time this Action got created. It is used to be a static, information holding entity. It is
     not updated when the BulletWorld object is changed.
@@ -231,20 +237,20 @@ class PickUpActionPerformable(ActionAbstract):
 
         # Perform the motion with the prepose and open gripper
         BulletWorld.current_bullet_world.add_vis_axis(prepose)
-        MoveTCPMotion(prepose, self.arm).resolve().perform()
-        MoveGripperMotion(motion="open", gripper=self.arm).resolve().perform()
+        MoveTCPMotion(prepose, self.arm).perform()
+        MoveGripperMotion(motion="open", gripper=self.arm).perform()
 
         # Perform the motion with the adjusted pose -> actual grasp and close gripper
         BulletWorld.current_bullet_world.add_vis_axis(adjusted_oTm)
-        MoveTCPMotion(adjusted_oTm, self.arm).resolve().perform()
+        MoveTCPMotion(adjusted_oTm, self.arm).perform()
         adjusted_oTm.pose.position.z += 0.03
-        MoveGripperMotion(motion="close", gripper=self.arm).resolve().perform()
+        MoveGripperMotion(motion="close", gripper=self.arm).perform()
         tool_frame = robot_description.get_tool_frame(self.arm)
         robot.attach(object, tool_frame)
 
         # Lift object
         BulletWorld.current_bullet_world.add_vis_axis(adjusted_oTm)
-        MoveTCPMotion(adjusted_oTm, self.arm).resolve().perform()
+        MoveTCPMotion(adjusted_oTm, self.arm).perform()
 
         # Remove the vis axis from the world
         BulletWorld.current_bullet_world.remove_vis_axis()
@@ -292,12 +298,12 @@ class PlaceActionPerformable(ActionAbstract):
         target_diff = self.target_location.to_transform("target").inverse_times(
             tcp_to_object.to_transform("object")).to_pose()
 
-        MoveTCPMotion(target_diff, self.arm).resolve().perform()
-        MoveGripperMotion("open", self.arm).resolve().perform()
+        MoveTCPMotion(target_diff, self.arm).perform()
+        MoveGripperMotion("open", self.arm).perform()
         BulletWorld.robot.detach(self.object_designator.bullet_world_object)
         retract_pose = target_diff
         retract_pose.position.x -= 0.07
-        MoveTCPMotion(retract_pose, self.arm).resolve().perform()
+        MoveTCPMotion(retract_pose, self.arm).perform()
 
     def to_sql(self) -> ORMPlaceAction:
         return ORMPlaceAction(self.arm)
@@ -327,7 +333,7 @@ class NavigateActionPerformable(ActionAbstract):
 
     @with_tree
     def perform(self) -> None:
-        MoveMotion(self.target_location).resolve().perform()
+        MoveMotion(self.target_location).perform()
 
     def to_sql(self) -> ORMNavigateAction:
         return ORMNavigateAction()
@@ -419,7 +425,7 @@ class LookAtActionPerformable(ActionAbstract):
 
     @with_tree
     def perform(self) -> None:
-        LookingMotion(target=self.target).resolve().perform()
+        LookingMotion(target=self.target).perform()
 
     def to_sql(self) -> ORMLookAtAction:
         return ORMLookAtAction()
@@ -445,7 +451,7 @@ class DetectActionPerformable(ActionAbstract):
 
     @with_tree
     def perform(self) -> None:
-        return DetectingMotion(object_type=self.object_designator.type).resolve().perform()
+        return DetectingMotion(object_type=self.object_designator.type).perform()
 
     def to_sql(self) -> ORMDetectAction:
         return ORMDetectAction()
@@ -477,9 +483,9 @@ class OpenActionPerformable(ActionAbstract):
     @with_tree
     def perform(self) -> None:
         GraspingActionPerformable(self.arm, self.object_designator).perform()
-        OpeningMotion(self.object_designator, self.arm).resolve().perform()
+        OpeningMotion(self.object_designator, self.arm).perform()
 
-        MoveGripperMotion("open", self.arm, allow_gripper_collision=True).resolve().perform()
+        MoveGripperMotion("open", self.arm, allow_gripper_collision=True).perform()
 
     def to_sql(self) -> ORMOpenAction:
         return ORMOpenAction(self.arm)
@@ -511,9 +517,9 @@ class CloseActionPerformable(ActionAbstract):
     @with_tree
     def perform(self) -> None:
         GraspingActionPerformable(self.arm, self.object_designator).perform()
-        ClosingMotion(self.object_designator, self.arm).resolve().perform()
+        ClosingMotion(self.object_designator, self.arm).perform()
 
-        MoveGripperMotion("open", self.arm, allow_gripper_collision=True).resolve().perform()
+        MoveGripperMotion("open", self.arm, allow_gripper_collision=True).perform()
 
     def to_sql(self) -> ORMCloseAction:
         return ORMCloseAction(self.arm)
@@ -557,11 +563,11 @@ class GraspingActionPerformable(ActionAbstract):
         pre_grasp = object_pose_in_gripper.copy()
         pre_grasp.pose.position.x -= 0.1
 
-        MoveTCPMotion(pre_grasp, self.arm).resolve().perform()
-        MoveGripperMotion("open", self.arm).resolve().perform()
+        MoveTCPMotion(pre_grasp, self.arm).perform()
+        MoveGripperMotion("open", self.arm).perform()
 
-        MoveTCPMotion(object_pose, self.arm, allow_gripper_collision=True).resolve().perform()
-        MoveGripperMotion("close", self.arm, allow_gripper_collision=True).resolve().perform()
+        MoveTCPMotion(object_pose, self.arm, allow_gripper_collision=True).perform()
+        MoveGripperMotion("close", self.arm, allow_gripper_collision=True).perform()
 
     def to_sql(self) -> ORMGraspingAction:
         return ORMGraspingAction(self.arm)

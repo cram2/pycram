@@ -10,7 +10,7 @@ from pycram.pose import Pose, Transform
 import bullet_world_testcase
 
 
-class TestLocalTransformer(test_bullet_world.BulletWorldTestCase):
+class TestLocalTransformer(bullet_world_testcase.BulletWorldTestCase):
 
     def test_singelton(self):
         l1 = LocalTransformer()
