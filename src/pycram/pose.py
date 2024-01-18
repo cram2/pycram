@@ -9,7 +9,7 @@ from typing import List, Union, Optional
 import numpy as np
 import rospy
 import sqlalchemy.orm
-from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3
+from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3, Point
 from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
 from std_msgs.msg import Header
 from tf import transformations
@@ -87,7 +87,7 @@ class Pose(PoseStamped):
         self.header.frame_id = value
 
     @property
-    def position(self) -> GeoPose:
+    def position(self) -> Point:
         """
         Property that points to the position of this pose
         """
@@ -168,6 +168,8 @@ class Pose(PoseStamped):
 
         :return: A copy of this pose
         """
+        if isinstance(self.position, list):
+            print("Position is list")
         p = Pose(self.position_as_list(), self.orientation_as_list(), self.frame, self.header.stamp)
         p.header.frame_id = self.header.frame_id
         # p.header.stamp = self.header.stamp
@@ -179,7 +181,7 @@ class Pose(PoseStamped):
 
         :return: The position as a list
         """
-        return [self.pose.position.x, self.pose.position.y, self.pose.position.z]
+        return [self.position.x, self.position.y, self.position.z]
 
     def orientation_as_list(self) -> List[float]:
         """

@@ -13,6 +13,7 @@ import tf
 from tf.transformations import quaternion_from_euler
 from typing import List, Optional, Dict, Tuple, Callable
 from typing import Union
+from copy import deepcopy
 
 import numpy as np
 import rospkg
@@ -39,6 +40,7 @@ from .world_dataclasses import Color, Constraint, AxisAlignedBoundingBox
 class WorldState:
     state_id: int
     attachments: Dict[Object, Dict[Object, Attachment]]
+
 
 @dataclass
 class CollisionCallbacks:
@@ -594,8 +596,12 @@ class World(ABC):
         :return: A unique id of the state
         """
         state_id = self.save_physics_simulator_state()
-        self._saved_states[state_id] = WorldState(state_id, self.get_objects_attachments())
+        self.save_objects_state(state_id)
         return state_id
+
+    def save_objects_state(self, state_id: int):
+        for obj in self.objects:
+            obj.save_state(state_id)
 
     def restore_state(self, state_id) -> None:
         """
@@ -606,7 +612,7 @@ class World(ABC):
         :param state_id: The unique id representing the state, as returned by :func:`~save_state`
         """
         self.restore_physics_simulator_state(state_id)
-        self.restore_attachments_from_saved_world_state(state_id)
+        self.restore_objects_states(state_id)
 
     @abstractmethod
     def save_physics_simulator_state(self) -> int:
@@ -615,30 +621,17 @@ class World(ABC):
         """
         pass
 
-    def get_objects_attachments(self) -> Dict[Object, Dict[Object, Attachment]]:
-        """
-        Get The attachments collections that is stored in each object.
-        """
-        attachments = {}
-        for o in self.objects:
-            attachments[o] = o.attachments.copy()
-        return attachments
-
     @abstractmethod
-    def restore_physics_simulator_state(self, state_id):
+    def restore_physics_simulator_state(self, state_id: int):
         """
         Restores the objects and environment state in the physics simulator according to
          the given state using the unique state id.
         """
         pass
 
-    def restore_attachments_from_saved_world_state(self, state_id: int):
-        attachments = self._saved_states[state_id].attachments
+    def restore_objects_states(self, state_id: int):
         for obj in self.objects:
-            try:
-                obj.attachments = attachments[obj]
-            except KeyError:
-                continue
+            obj.restore_state(state_id)
 
     def _copy(self) -> World:
         """
@@ -857,6 +850,11 @@ class WorldSync(threading.Thread):
         self.equal_states = eql
 
 
+@dataclass
+class LinkState:
+    constraint_ids: Dict[Link, int]
+
+
 class Link:
 
     def __init__(self,
@@ -869,13 +867,35 @@ class Link:
         self.world = obj.world
         self.local_transformer = LocalTransformer()
         self.constraint_ids: Dict[Link, int] = {}
+        self.saved_states: Dict[int, LinkState] = {}
 
-    def add_fixed_constraint_with_link(self, child_link: Link) -> None:
+    def save_state(self, state_id: int) -> None:
+        """
+        Saves the state of this link, this includes the pose of the link.
+        """
+        self.saved_states[state_id] = self.get_current_state()
+
+    def restore_state(self, state_id: int) -> None:
+        """
+        Restores the state of this link, this includes the pose of the link.
+        """
+        self.constraint_ids = self.saved_states[state_id].constraint_ids
+
+    def get_current_state(self):
+        return LinkState(self.constraint_ids.copy())
+
+    def add_fixed_constraint_with_link(self, child_link: Link) -> int:
         constraint_id = self.world.add_fixed_constraint(self,
                                                         child_link,
                                                         child_link.get_transform_from_link(self))
         self.constraint_ids[child_link] = constraint_id
         child_link.constraint_ids[self] = constraint_id
+        return constraint_id
+
+    def remove_constraint_with_link(self, child_link: Link) -> None:
+        self.world.remove_constraint(self.constraint_ids[child_link])
+        del self.constraint_ids[child_link]
+        del child_link.constraint_ids[self]
 
     def get_object_id(self) -> int:
         return self.object.id
@@ -963,11 +983,6 @@ class Link:
     def color(self, color: Color) -> None:
         self.world.set_object_link_color(self.object, self.id, color)
 
-    def remove_constraint_with(self, child_link: Link) -> None:
-        self.world.remove_constraint(self.constraint_ids[child_link])
-        del self.constraint_ids[child_link]
-        del child_link.constraint_ids[self]
-
 
 class RootLink(Link):
 
@@ -981,6 +996,12 @@ class RootLink(Link):
     @property
     def pose(self) -> Pose:
         return self.object.get_pose()
+
+
+@dataclass
+class ObjectState:
+    state_id: int
+    attachments: Dict[Object, Attachment]
 
 
 class Object:
@@ -1030,6 +1051,8 @@ class Object:
         self.link_id_to_name: Dict[int, str] = dict(zip(self.link_name_to_id.values(), self.link_name_to_id.keys()))
 
         self.attachments: Dict[Object, Attachment] = {}
+        self.saved_states: Dict[int, ObjectState] = {}
+        # takes the state id as key and returns the attachments of the object at that state
 
         self.tf_frame = ("prospection/" if self.world.is_prospection_world else "") + self.name + "_" + str(self.id)
 
@@ -1158,7 +1181,7 @@ class Object:
     def update_attachment_with_object(self, child_object: Object):
         self.attachments[child_object].update_transform_and_constraint()
 
-    def get_position(self) -> Pose.position:
+    def get_position(self) -> Point:
         """
         Returns the position of this Object as a list of xyz.
 
@@ -1207,11 +1230,14 @@ class Object:
         :param set_attachments: Whether to set the poses of the attached objects to this object or not.
         """
         pose_in_map = self.local_transformer.transform_pose_to_target_frame(pose, "map")
+
         position, orientation = pose_in_map.to_list()
         if base:
             position = np.array(position) + self.base_origin_shift
+
         self.world.reset_object_base_pose(self, position, orientation)
         self._current_pose = pose_in_map
+
         if set_attachments:
             self._set_attached_objects_poses()
 
@@ -1221,6 +1247,31 @@ class Object:
         This is useful when placing objects on surfaces where you want the object base in contact with the surface.
         """
         self.set_pose(self.get_pose(), base=True)
+
+    def save_state(self, state_id):
+        self.save_links_states(state_id)
+        self.saved_states[state_id] = ObjectState(state_id, self.attachments.copy())
+
+    def save_links_states(self, state_id: int):
+        for link in self.links.values():
+            link.save_state(state_id)
+
+    def restore_state(self, state_id: int):
+        self.restore_links_states(state_id)
+        self.restore_attachments(state_id)
+
+    def restore_attachments(self, state_id):
+        self.attachments = self.saved_states[state_id].attachments
+
+    def restore_links_states(self, state_id):
+        for link in self.links.values():
+            link.restore_state(state_id)
+
+    def set_object_state(self, obj_state:ObjectState):
+        self.set_attachments(obj_state.attachments)
+
+    def set_attachments(self, attachments: Dict[Object, Attachment]) -> None:
+        self.attachments = attachments
 
     def _set_attached_objects_poses(self, already_moved_objects: Optional[List[Object]] = None) -> None:
         """
@@ -1264,8 +1315,10 @@ class Object:
         if isinstance(position, Pose):
             target_position = position.position
             pose.frame = position.frame
-        else:
+        elif isinstance(position, Point):
             target_position = position
+        else:
+            raise TypeError("The position has to be either a Pose or a Point")
 
         pose.pose.position = target_position
         pose.pose.orientation = self.get_orientation()
@@ -1634,14 +1687,15 @@ class Attachment:
         self.add_fixed_constraint()
 
     def add_fixed_constraint(self):
-        self.parent_link.add_fixed_constraint_with_link(self.child_link)
+        cid = self.parent_link.add_fixed_constraint_with_link(self.child_link)
+        self.constraint_id = cid
 
     def calculate_transform(self):
         return self.parent_link.get_transform_to_link(self.child_link)
 
     def remove_constraint_if_exists(self):
         if self.child_link in self.parent_link.constraint_ids:
-            self.parent_link.remove_constraint_with(self.child_link)
+            self.parent_link.remove_constraint_with_link(self.child_link)
 
     def get_inverse(self):
         attachment = Attachment(self.child_link, self.parent_link, self.bidirectional,
