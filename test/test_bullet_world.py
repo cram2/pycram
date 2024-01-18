@@ -39,6 +39,20 @@ class BulletWorldTest(unittest.TestCase):
         self.robot.set_orientation(Pose(orientation=[0, 0, 1, 1]))
         self.assertEqual(self.robot.links['head_pan_link'].position.z, head_position)
 
+    def test_save_and_restore_state(self):
+        self.robot.attach(self.milk)
+        state_id = self.world.save_state()
+        robot_link = self.robot.get_root_link()
+        milk_link = self.milk.get_root_link()
+        cid = robot_link.constraint_ids[milk_link]
+        self.assertTrue(cid == self.robot.attachments[self.milk].constraint_id)
+        self.world.remove_constraint(cid)
+        self.world.restore_state(state_id)
+        cid = robot_link.constraint_ids[milk_link]
+        self.assertTrue(milk_link in robot_link.constraint_ids)
+        self.assertTrue(self.milk in self.robot.attachments)
+        self.assertTrue(cid == self.robot.attachments[self.milk].constraint_id)
+
     def tearDown(self):
         self.world.reset_world()
 
