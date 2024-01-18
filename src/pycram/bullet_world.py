@@ -93,6 +93,7 @@ class BulletWorld(World):
         return constraint_id
 
     def remove_constraint(self, constraint_id):
+        print("Removing constraint with id: ", constraint_id)
         p.removeConstraint(constraint_id, physicsClientId=self.client_id)
 
     def get_object_joint_upper_limit(self, obj: Object, joint_name: str) -> float:
@@ -326,6 +327,12 @@ class BulletWorld(World):
          the given state using the unique state id.
         """
         p.restoreState(state_id, physicsClientId=self.client_id)
+
+    def remove_physics_simulator_state(self, state_id: int):
+        """
+        Removes the physics simulator state with the given unique state id.
+        """
+        p.removeState(state_id, physicsClientId=self.client_id)
 
     def add_vis_axis(self, pose: Pose,
                      length: Optional[float] = 0.2) -> None:

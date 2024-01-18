@@ -18,7 +18,7 @@ class TestObject(test_bullet_world.BulletWorldTest):
         self.assertEqual(self.milk.get_position_as_list(), [1, 2, 3])
 
     def test_save_state(self):
-        self.robot.attach(self.milk, parent_link="r_gripper_palm_link")
+        self.robot.attach(self.milk)
         self.robot.save_state(1)
         self.assertEqual(self.robot.saved_states[1].attachments, self.robot.attachments)
         self.assertTrue(self.milk in self.robot.saved_states[1].attachments)
