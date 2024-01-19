@@ -125,7 +125,6 @@ def request_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str
     end_effector = robot_description.get_child(joints[-1])
 
     target_torso = local_transformer.transform_pose_to_target_frame(target_pose, robot.links[base_link].tf_frame)
-    # target_torso = _transform_to_torso(pose, shadow_robot)
 
     diff = calculate_wrist_tool_offset(end_effector, gripper, robot)
     target_diff = target_torso.to_transform("target").inverse_times(diff).to_pose()

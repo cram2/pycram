@@ -13,7 +13,6 @@ import tf
 from tf.transformations import quaternion_from_euler
 from typing import List, Optional, Dict, Tuple, Callable
 from typing import Union
-from copy import deepcopy
 
 import numpy as np
 import rospkg
@@ -297,6 +296,13 @@ class World(ABC):
             if real_time:
                 # Simulation runs at 240 Hz
                 time.sleep(self.simulation_time_step)
+
+    @abstractmethod
+    def perform_collision_detection(self) -> None:
+        """
+        Checks for collisions between all objects in the World and updates the contact points.
+        """
+        pass
 
     @abstractmethod
     def get_object_contact_points(self, obj: Object) -> List:
@@ -625,6 +631,24 @@ class World(ABC):
     def restore_objects_states(self, state_id: int):
         for obj in self.objects:
             obj.restore_state(state_id)
+
+    def get_images_for_target(self,
+                              target_pose: Pose,
+                              cam_pose: Pose,
+                              size: Optional[int] = 256) -> List[np.ndarray]:
+        """
+        Calculates the view and projection Matrix and returns 3 images:
+
+        1. An RGB image
+        2. A depth image
+        3. A segmentation Mask, the segmentation mask indicates for every pixel the visible Object.
+
+        :param cam_pose: The pose of the camera
+        :param target_pose: The pose to which the camera should point to
+        :param size: The height and width of the images in pixel
+        :return: A list containing an RGB and depth image as well as a segmentation mask, in this order.
+        """
+        pass
 
     def _copy(self) -> World:
         """

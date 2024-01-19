@@ -1,15 +1,25 @@
 import time
 from threading import Lock
+from typing import Tuple, List
 
 import pybullet as p
 
 import pycram.world_reasoning as btr
 import pycram.helper as helper
-from ..bullet_world import BulletWorld
+from ..bullet_world import BulletWorld, Object as BulletWorldObject
 from ..external_interfaces.ik import request_ik
 from ..local_transformer import LocalTransformer as local_tf
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_descriptions import robot_description
+
+
+def _transform_to_torso(pose_and_rotation: Tuple[List[float], List[float]], robot: BulletWorldObject) -> Tuple[
+    List[float], List[float]]:
+    map_T_torso = robot.links[robot_description.torso_link].pose_as_list
+    torso_T_map = p.invertTransform(map_T_torso[0], map_T_torso[1])
+    map_T_target = pose_and_rotation
+    torso_T_target = p.multiplyTransforms(torso_T_map[0], torso_T_map[1], map_T_target[0], map_T_target[1])
+    return torso_T_target
 
 
 def _park_arms(arm):
@@ -60,7 +70,7 @@ class BoxyPickUp(ProcessModule):
             robot = BulletWorld.robot
             grasp = robot_description.grasps.get_orientation_for_grasp(solution['grasp'])
             target = [object.get_position(), grasp]
-            target = helper._transform_to_torso(target, robot)
+            target = _transform_to_torso(target, robot)
             arm = "left" if solution['gripper'] == robot_description.get_tool_frame("left") else "right"
             joints = robot_description._safely_access_chains(arm).joints
             #tip = "r_wrist_roll_link" if solution['gripper'] == "r_gripper_tool_frame" else "l_wrist_roll_link"
@@ -83,7 +93,7 @@ class BoxyPlace(ProcessModule):
             object = solution['object']
             robot = BulletWorld.robot
             target = object.get_position_and_orientation()
-            target = helper._transform_to_torso(target, robot)
+            target = _transform_to_torso(target, robot)
             arm = "left" if solution['gripper'] == robot_description.get_tool_frame("left") else "right"
             joints = robot_description._safely_access_chains(arm).joints
             #tip = "r_wrist_roll_link" if solution['gripper'] == "r_gripper_tool_frame" else "l_wrist_roll_link"
@@ -113,7 +123,7 @@ class BoxyAccessing(ProcessModule):
             robot.set_joint_position(robot_description.torso_joint, -0.1)
             arm = "left" if solution['gripper'] == robot_description.get_tool_frame("left") else "right"
             joints = robot_description._safely_access_chains(arm).joints
-            target = helper._transform_to_torso(kitchen.links[drawer_handle].pose, robot)
+            target = _transform_to_torso(kitchen.links[drawer_handle].pose, robot)
             inv = request_ik(robot_description.base_frame, gripper, target , robot, joints )
             helper._apply_ik(robot, inv, gripper)
             time.sleep(0.2)
@@ -121,7 +131,7 @@ class BoxyAccessing(ProcessModule):
             robot.set_position([cur_pose[0]-dis, cur_pose[1], cur_pose[2]])
             han_pose = kitchen.links[drawer_handle].position
             new_p = [[han_pose[0] - dis, han_pose[1], han_pose[2]], kitchen.links[drawer_handle].orientation]
-            new_p = helper._transform_to_torso(new_p, robot)
+            new_p = _transform_to_torso(new_p, robot)
             inv = request_ik(robot_description.base_frame, gripper, new_p, robot, joints)
             helper._apply_ik(robot, inv, gripper)
             kitchen.set_joint_position(drawer_joint, 0.3)

@@ -10,7 +10,6 @@ import psutil
 import time
 from .bullet_world import BulletWorld
 from pycram.world import UseProspectionWorld, Object, Link
-from .world_reasoning import _get_images_for_target
 from .world_dataclasses import AxisAlignedBoundingBox
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 from typing import Tuple, List, Union, Optional
@@ -500,22 +499,19 @@ class VisibilityCostmap(Costmap):
             origin_copy = self.origin.copy()
             origin_copy.position.y += 1
             images.append(
-                _get_images_for_target(origin_copy, camera_pose, BulletWorld.current_world, size=self.size)[1])
+                self.world.get_images_for_target(origin_copy, camera_pose, size=self.size)[1])
 
             origin_copy = self.origin.copy()
             origin_copy.position.x -= 1
-            images.append(
-                _get_images_for_target(origin_copy, camera_pose, BulletWorld.current_world, size=self.size)[1])
+            images.append(self.world.get_images_for_target(origin_copy, camera_pose, size=self.size)[1])
 
             origin_copy = self.origin.copy()
             origin_copy.position.y -= 1
-            images.append(
-                _get_images_for_target(origin_copy, camera_pose, BulletWorld.current_world, size=self.size)[1])
+            images.append(self.world.get_images_for_target(origin_copy, camera_pose, size=self.size)[1])
 
             origin_copy = self.origin.copy()
             origin_copy.position.x += 1
-            images.append(
-                _get_images_for_target(origin_copy, camera_pose, BulletWorld.current_world, size=self.size)[1])
+            images.append(self.world.get_images_for_target(origin_copy, camera_pose, size=self.size)[1])
 
         for i in range(0, 4):
             images[i] = self._depth_buffer_to_meter(images[i])

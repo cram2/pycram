@@ -152,6 +152,12 @@ class BulletWorld(World):
         """
         return Pose(*p.getLinkState(obj_id, link_id, physicsClientId=self.client_id)[4:6])
 
+    def perform_collision_detection(self) -> None:
+        """
+        Performs collision detection and updates the contact points.
+        """
+        p.performCollisionDetection(physicsClientId=self.client_id)
+
     def get_object_contact_points(self, obj: Object) -> List:
         """l.update_transforms_for_object(self.milk)
         Returns a list of contact points of this Object with other Objects. For a more detailed explanation of the returned
@@ -160,7 +166,7 @@ class BulletWorld(World):
         :param obj: The object.
         :return: A list of all contact points with other objects
         """
-        return p.getContactPoints(obj.id)
+        return p.getContactPoints(obj.id, physicsClientId=self.client_id)
 
     def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> List:
         """
@@ -170,7 +176,7 @@ class BulletWorld(World):
         :param obj2: The second object.
         :return: A list of all contact points between the two objects.
         """
-        return p.getContactPoints(obj1.id, obj2.id)
+        return p.getContactPoints(obj1.id, obj2.id, physicsClientId=self.client_id)
 
     def get_object_joint_names(self, obj_id: int) -> List[str]:
         """
@@ -200,7 +206,7 @@ class BulletWorld(World):
 
         :param obj_id: The object
         """
-        return p.getNumJoints(obj_id, self.client_id)
+        return p.getNumJoints(obj_id, physicsClientId=self.client_id)
 
     def reset_object_joint_position(self, obj: Object, joint_name: str, joint_pose: float) -> None:
         """
@@ -373,6 +379,36 @@ class BulletWorld(World):
         for id in self.vis_axis:
             p.removeBody(id)
         self.vis_axis = []
+
+    def get_images_for_target(self,
+                              target_pose: Pose,
+                              cam_pose: Pose,
+                              size: Optional[int] = 256) -> List[np.ndarray]:
+        """
+        Calculates the view and projection Matrix and returns 3 images:
+
+        1. An RGB image
+        2. A depth image
+        3. A segmentation Mask, the segmentation mask indicates for every pixel the visible Object.
+
+        From the given target_pose and cam_pose only the position is used.
+
+        :param cam_pose: The pose of the camera
+        :param target_pose: The pose to which the camera should point to
+        :param size: The height and width of the images in pixel
+        :return: A list containing an RGB and depth image as well as a segmentation mask, in this order.
+        """
+        # TODO: Might depend on robot cameras, if so please add these camera parameters to RobotDescription object
+        # TODO: of your robot with a CameraDescription object.
+        fov = 90
+        aspect = size / size
+        near = 0.2
+        far = 100
+
+        view_matrix = p.computeViewMatrix(cam_pose.position_as_list(), target_pose.position_as_list(), [0, 0, 1])
+        projection_matrix = p.computeProjectionMatrixFOV(fov, aspect, near, far)
+        return list(p.getCameraImage(size, size, view_matrix, projection_matrix,
+                                     physicsClientId=self.client_id))[2:5]
 
 
 class Gui(threading.Thread):
