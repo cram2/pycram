@@ -151,6 +151,7 @@ def reachability_validator(pose: Pose,
     if robot in allowed_collision.keys():
         allowed_robot_links = allowed_collision[robot]
 
+    joint_state_before_ik=robot._current_joint_states
     try:
         # resp = request_ik(base_link, end_effector, target_diff, robot, left_joints)
         resp = request_ik(target, robot, left_joints, left_gripper)
@@ -174,6 +175,8 @@ def reachability_validator(pose: Pose,
             res = True
     except IKError:
         pass
+    finally:
+        robot.set_joint_states(joint_state_before_ik)
 
     try:
         # resp = request_ik(base_link, end_effector, target_diff, robot, right_joints)
@@ -198,5 +201,7 @@ def reachability_validator(pose: Pose,
             res = True
     except IKError:
         pass
+    finally:
+        robot.set_joint_states(joint_state_before_ik)
 
     return res, arms

@@ -112,7 +112,7 @@ class TiagoDescription(RobotDescription):
         self.add_static_joint_chain("right", "park", r_arm_park)
         self.add_static_joint_chain("left", "park", l_arm_park)
         # Static Gripper Positions
-        gripper_confs = {"open": [0.548, 0.548], "close": [0.0, 0.0]}
+        gripper_confs = {"open": [0.048, 0.048], "close": [0.0, 0.0]}
         self.add_static_gripper_chains("left", gripper_confs)
         self.add_static_gripper_chains("right", gripper_confs)
 

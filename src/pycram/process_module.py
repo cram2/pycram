@@ -6,10 +6,12 @@ ProcessModule -- implementation of process modules.
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 import inspect
+import threading
 import time
 from abc import ABC
 import rospy
 from typing import Callable, List, Type, Any, Union
+from .language import Language
 
 from .robot_descriptions import robot_description
 
@@ -21,6 +23,11 @@ class ProcessModule:
     execution_delay = True
     """
     Adds a delay of 0.5 seconds after executing a process module, to make the execution in simulation more realistic
+    """
+    block_list = []
+    """
+    List of thread ids for which no Process Modules should be executed. This is used as an interrupt mechanism for 
+    Designators
     """
 
     def __init__(self, lock):
@@ -43,6 +50,8 @@ class ProcessModule:
         :param designator: The designator to execute.
         :return: Return of the Process Module if there is any
         """
+        if threading.get_ident() in Language.block_list:
+            return None
         with self._lock:
             ret = self._execute(designator)
             if ProcessModule.execution_delay:
@@ -230,11 +239,14 @@ class ProcessModuleManager(ABC):
         for pm_manager in ProcessModuleManager.available_pms:
             if pm_manager.robot_name == robot_description.name:
                 manager = pm_manager
+            if pm_manager.robot_name == "default":
+                default_manager = pm_manager
 
         if manager:
             return manager
         else:
-            rospy.logerr(f"No Process Module Manager found for robot: '{robot_description.name}'")
+            rospy.logwarn_once(f"No Process Module Manager found for robot: '{robot_description.name}', using default process modules")
+            return default_manager
 
     def navigate(self) -> Type[ProcessModule]:
         """
