@@ -28,6 +28,7 @@ Misc
     notebooks/minimal_task_tree
     notebooks/pose
     notebooks/custom_resolver
+    notebooks/language
 
 Interface Examples
 ==================
