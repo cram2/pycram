@@ -320,7 +320,7 @@ def blocking(pose_or_object: Union[Object, Pose],
             target_map.orientation.w = grasp_orientation[3]
 
         try:
-            inv = request_ik(target_map, robot, joints, gripper_name)
+            inv = request_ik(target_map, shadow_robot, joints, gripper_name)
         except IKError as e:
             rospy.logerr(f"Pose is not reachable: {e}")
             return None
