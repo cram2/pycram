@@ -1,6 +1,4 @@
 [submodule "src/neem_interface_python"]
 	path = src/neem_interface_python
 	url = https://github.com/Tigul/neem_interface_python
-[submodule "src/macropy"]
-	path = src/macropy
-	url = https://github.com/Tigul/macropy.git
+
