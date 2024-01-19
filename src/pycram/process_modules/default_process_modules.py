@@ -5,7 +5,7 @@ import numpy as np
 
 from ..robot_descriptions import robot_description
 from ..process_module import ProcessModule, ProcessModuleManager
-from ..bullet_world import BulletWorld
+from ..bullet_world import BulletWorld, Object
 from ..external_interfaces.ik import request_ik, IKError
 from ..helper import _apply_ik
 from ..local_transformer import LocalTransformer
@@ -18,7 +18,7 @@ class DefaultNavigation(ProcessModule):
     The process module to move the robot from one position to another.
     """
 
-    def _execute(self, desig: MoveMotion.Motion):
+    def _execute(self, desig: MoveMotion):
         robot = BulletWorld.robot
         robot.set_pose(desig.target)
 
@@ -29,7 +29,7 @@ class DefaultPickUp(ProcessModule):
     The object has to be reachable for this process module to succeed.
     """
 
-    def _execute(self, desig: PickUpMotion.Motion):
+    def _execute(self, desig: PickUpMotion):
         object = desig.object_desig.bullet_world_object
         robot = BulletWorld.robot
         grasp = robot_description.grasps.get_orientation_for_grasp(desig.grasp)
@@ -51,7 +51,7 @@ class DefaultPlace(ProcessModule):
     This process module places an object at the given position in world coordinate frame.
     """
 
-    def _execute(self, desig: PlaceMotion.Motion):
+    def _execute(self, desig: PlaceMotion):
         """
 
         :param desig: A PlaceMotion
@@ -71,7 +71,7 @@ class DefaultMoveHead(ProcessModule):
     This point can either be a position or an object.
     """
 
-    def _execute(self, desig: LookingMotion.Motion):
+    def _execute(self, desig: LookingMotion):
         target = desig.target
         robot = BulletWorld.robot
 
@@ -101,7 +101,7 @@ class DefaultMoveGripper(ProcessModule):
     Furthermore, it can only moved one gripper at a time.
     """
 
-    def _execute(self, desig: MoveGripperMotion.Motion):
+    def _execute(self, desig: MoveGripperMotion):
         robot = BulletWorld.robot
         gripper = desig.gripper
         motion = desig.motion
@@ -115,7 +115,7 @@ class DefaultDetecting(ProcessModule):
     the field of view of the robot.
     """
 
-    def _execute(self, desig: DetectingMotion.Motion):
+    def _execute(self, desig: DetectingMotion):
         robot = BulletWorld.robot
         object_type = desig.object_type
         # Should be "wide_stereo_optical_frame"
@@ -134,7 +134,7 @@ class DefaultMoveTCP(ProcessModule):
     This process moves the tool center point of either the right or the left arm.
     """
 
-    def _execute(self, desig: MoveTCPMotion.Motion):
+    def _execute(self, desig: MoveTCPMotion):
         target = desig.target
         robot = BulletWorld.robot
 
@@ -147,7 +147,7 @@ class DefaultMoveArmJoints(ProcessModule):
     list that should be applied or a pre-defined position can be used, such as "parking"
     """
 
-    def _execute(self, desig: MoveArmJointsMotion.Motion):
+    def _execute(self, desig: MoveArmJointsMotion):
 
         robot = BulletWorld.robot
         if desig.right_arm_poses:
@@ -159,7 +159,7 @@ class DefaultMoveArmJoints(ProcessModule):
 
 
 class DefaultMoveJoints(ProcessModule):
-    def _execute(self, desig: MoveJointsMotion.Motion):
+    def _execute(self, desig: MoveJointsMotion):
         robot = BulletWorld.robot
         for joint, pose in zip(desig.names, desig.positions):
             robot.set_joint_state(joint, pose)
@@ -170,7 +170,7 @@ class DefaultWorldStateDetecting(ProcessModule):
     This process module detectes an object even if it is not in the field of view of the robot.
     """
 
-    def _execute(self, desig: WorldStateDetectingMotion.Motion):
+    def _execute(self, desig: WorldStateDetectingMotion):
         obj_type = desig.object_type
         return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
@@ -180,7 +180,7 @@ class DefaultOpen(ProcessModule):
     Low-level implementation of opening a container in the simulation. Assumes the handle is already grasped.
     """
 
-    def _execute(self, desig: OpeningMotion.Motion):
+    def _execute(self, desig: OpeningMotion):
         part_of_object = desig.object_part.bullet_world_object
 
         container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
@@ -199,7 +199,7 @@ class DefaultClose(ProcessModule):
     """
     Low-level implementation that lets the robot close a grasped container, in simulation
     """
-    def _execute(self, desig: ClosingMotion.Motion):
+    def _execute(self, desig: ClosingMotion):
         part_of_object = desig.object_part.bullet_world_object
 
         container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)

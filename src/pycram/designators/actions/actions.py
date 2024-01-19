@@ -301,7 +301,8 @@ class PlaceActionPerformable(ActionAbstract):
         MoveTCPMotion(target_diff, self.arm).perform()
         MoveGripperMotion("open", self.arm).perform()
         BulletWorld.robot.detach(self.object_designator.bullet_world_object)
-        retract_pose = target_diff
+        retract_pose = local_tf.transform_pose(target_diff, BulletWorld.robot.get_link_tf_frame(
+            robot_description.get_tool_frame(self.arm)))
         retract_pose.position.x -= 0.07
         MoveTCPMotion(retract_pose, self.arm).perform()
 
