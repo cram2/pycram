@@ -1,6 +1,5 @@
 import unittest
 
-import numpy as np
 from pycram.bullet_world import BulletWorld
 from pycram.world import Object, fix_missing_inertial
 from pycram.pose import Pose
@@ -9,7 +8,6 @@ from pycram.process_module import ProcessModule
 from pycram.enums import ObjectType
 import os
 import xml.etree.ElementTree as ET
-import tf
 
 
 class BulletWorldTest(unittest.TestCase):

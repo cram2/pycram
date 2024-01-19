@@ -11,17 +11,14 @@ from typing import List
 from typing import Tuple, Callable
 
 import numpy as np
-import pybullet as p
 from pytransform3d.rotations import quaternion_wxyz_from_xyzw, quaternion_xyzw_from_wxyz
 from pytransform3d.transformations import transform_from_pq, transform_from, pq_from_transform
 
 from macropy.core.quotes import ast_literal, q
 from .world import Object as BulletWorldObject
-from .local_transformer import LocalTransformer
 from .pose import Transform, Pose
-from .robot_descriptions import robot_description
-import os
 import math
+
 
 class bcolors:
     """
@@ -59,26 +56,8 @@ def _apply_ik(robot: BulletWorldObject, joint_poses: List[float], joints: List[s
     #     robot.set_joint_state(joints[i], joint_poses[i])
 
 
-def _transform_to_torso(pose_and_rotation: Tuple[List[float], List[float]], robot: BulletWorldObject) -> Tuple[
-    List[float], List[float]]:
-    map_T_torso = robot.links[robot_description.torso_link].pose_as_list
-    torso_T_map = p.invertTransform(map_T_torso[0], map_T_torso[1])
-    map_T_target = pose_and_rotation
-    torso_T_target = p.multiplyTransforms(torso_T_map[0], torso_T_map[1], map_T_target[0], map_T_target[1])
-    return torso_T_target
-
-
 def calculate_wrist_tool_offset(wrist_frame: str, tool_frame: str, robot: BulletWorldObject) -> Transform:
     return robot.links[wrist_frame].get_transform_to_link(robot.links[tool_frame])
-
-
-def inverseTimes(transform1: Tuple[List[float], List[float]], transform2: Tuple[List[float], List[float]]) -> Tuple[
-    List[float], List[float]]:
-    """
-    Like a Minus for Transforms, this subtracts the second transform from the first.
-    """
-    inv = p.invertTransform(transform2[0], transform2[1])
-    return p.multiplyTransforms(transform1[0], transform1[1], inv[0], inv[1])
 
 
 def transform(pose: List[float],

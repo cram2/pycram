@@ -1,4 +1,3 @@
-from abc import ABC
 from threading import Lock
 from typing import Any
 
@@ -6,17 +5,12 @@ import actionlib
 
 import pycram.world_reasoning as btr
 import numpy as np
-import time
 import rospy
-import pybullet as p
 
-from ..plan_failures import EnvironmentManipulationImpossible
-from ..robot_descriptions import robot_description
-from ..process_module import ProcessModule, ProcessModuleManager
-from ..bullet_world import BulletWorld, Object
-from ..helper import transform
-from ..external_interfaces.ik import request_ik, IKError
-from ..helper import _transform_to_torso, _apply_ik, calculate_wrist_tool_offset, inverseTimes
+
+from ..process_module import ProcessModule
+from ..external_interfaces.ik import request_ik
+from ..helper import _apply_ik
 from ..local_transformer import LocalTransformer
 from ..designators.motion_designator import *
 from ..enums import JointType, ObjectType
