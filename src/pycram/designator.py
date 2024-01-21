@@ -712,7 +712,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
                     pose_in_object.pose.position.x += value[0]
                     pose_in_object.pose.position.y += value[1]
                     pose_in_object.pose.position.z += value[2]
-                    rospy.loginfo("Adjusted target pose based on special knowledge for grasp: ", grasp)
+                    rospy.loginfo("Adjusted target pose based on special knowledge for grasp: " + grasp)
                     return pose_in_object
             return pose
 

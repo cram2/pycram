@@ -8,6 +8,7 @@ from pycram.enums import ObjectType
 import pycram.enums
 from bullet_world_testcase import BulletWorldTestCase
 import numpy as np
+from plans.cutting import cutting_action_test
 
 
 class TestActionDesignatorGrounding(BulletWorldTestCase):
@@ -134,6 +135,9 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             np.array(self.robot.get_link_pose(robot_description.get_tool_frame("right")).position_as_list()) -
             np.array(self.milk.get_pose().position_as_list()))
         self.assertTrue(dist < 0.01)
+
+    def test_cutting(self):
+        cutting_action_test()
 
 
 if __name__ == '__main__':
