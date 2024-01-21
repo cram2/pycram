@@ -1,16 +1,11 @@
-import pybullet as p
 import itertools
 import numpy as np
-import rospy
 
-from .world import _world_and_id, Object, UseProspectionWorld
+from .world import Object, UseProspectionWorld
 from .world import World
-from .external_interfaces.ik import request_ik
-from .local_transformer import LocalTransformer
-from .plan_failures import IKError
 from .robot_descriptions import robot_description
-from .helper import _apply_ik
 from .pose import Pose, Transform
+from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
 from typing import List, Tuple, Optional, Union, Dict
 
 
@@ -22,67 +17,6 @@ class ReasoningError(Exception):
 class CollisionError(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
-
-
-def _get_joint_ranges(robot: Object) -> Tuple[List, List, List, List, List]:
-    """
-    Calculates the lower and upper limits, the joint ranges and the joint damping. For a given robot Object.
-    Fixed joints will be skipped because they don't have limits or ranges.
-
-    :param robot: The robot for whom the values should be calculated
-    :return: The lists for the upper and lower limits, joint ranges, rest poses and joint damping
-    """
-    ll, ul, jr, rp, jd = [], [], [], [], []
-
-    for i in range(0, p.getNumJoints(robot.id)):
-        info = p.getJointInfo(robot.id, i)
-        if info[3] > -1:
-            ll.append(info[8])
-            ul.append(info[9])
-            jr.append(info[9] - info[8])
-            rp.append(p.getJointState(robot.id, i)[0])
-            jd.append(info[6])
-
-    return ll, ul, jr, rp, jd
-
-
-def _try_to_reach_or_grasp(pose_or_object: Union[Pose, Object], prospection_robot: Object, gripper_name: str,
-                           grasp: Optional[str] = None) -> Union[Pose, None]:
-    """
-    Checks if the robot can reach a given position and optionally also grasp an object.
-    To determine this the inverse kinematics are calculated and applied.
-
-    :param pose_or_object: The position and rotation or Object for which reachability should be checked or an Object
-    :param prospection_robot: The robot that should reach for the position
-    :param gripper_name: The name of the end effector
-    :param grasp: The grasp type with which the object should be grasped
-    """
-    if isinstance(pose_or_object, Object):
-        input_pose = pose_or_object.get_pose()
-    else:
-        input_pose = pose_or_object
-
-    arm = "left" if gripper_name == robot_description.get_tool_frame("left") else "right"
-    joints = robot_description.chains[arm].joints
-    target_pose = input_pose
-    if grasp:
-        local_transformer = LocalTransformer()
-        target_map = local_transformer.transform_pose_to_target_frame(input_pose, "map")
-        grasp_orientation = robot_description.grasps.get_orientation_for_grasp(grasp)
-        target_map.orientation.x = grasp_orientation[0]
-        target_map.orientation.y = grasp_orientation[1]
-        target_map.orientation.z = grasp_orientation[2]
-        target_map.orientation.w = grasp_orientation[3]
-        target_pose = target_map
-
-    try:
-        inv = request_ik(target_pose, prospection_robot, joints, gripper_name)
-    except IKError as e:
-        rospy.logerr(f"Pose is not reachable: {e}")
-        return None
-    _apply_ik(prospection_robot, inv, joints)
-
-    return target_pose
 
 
 class WorldReasoning:
@@ -130,13 +64,14 @@ class WorldReasoning:
             prospection_obj1 = self.world.get_prospection_object_from_object(object1)
             prospection_obj2 = self.world.get_prospection_object_from_object(object2)
 
-            self.world.perform_collision_detection()
-            con_points = self.world.get_contact_points_between_two_objects(prospection_obj1, prospection_obj2)
+            World.current_world.perform_collision_detection()
+            con_points = World.current_world.get_contact_points_between_two_objects(prospection_obj1, prospection_obj2)
 
             if return_links:
                 contact_links = []
                 for point in con_points:
-                    contact_links.append((prospection_obj1.get_link_by_id(point[3]), prospection_obj2.get_link_by_id(point[4])))
+                    contact_links.append((prospection_obj1.get_link_by_id(point[3]),
+                                          prospection_obj2.get_link_by_id(point[4])))
                 return con_points != (), contact_links
 
             else:
@@ -153,7 +88,7 @@ class WorldReasoning:
                                  "point")
         target_point = (world_to_cam * cam_to_point).to_pose()
 
-        seg_mask = self.world.get_images_for_target(target_point, world_to_cam.to_pose())[2]
+        seg_mask = self.world.get_images_for_target(target_point, camera_pose)[2]
 
         return seg_mask, target_point
 
@@ -178,8 +113,8 @@ class WorldReasoning:
             if World.robot:
                 prospection_robot = self.world.get_prospection_object_from_object(World.robot)
 
-            state_id = self.world.save_state()
-            for obj in self.world.objects:
+            state_id = World.current_world.save_state()
+            for obj in World.current_world.objects:
                 if obj == prospection_obj or World.robot and obj == prospection_robot:
                     continue
                 else:
@@ -188,13 +123,13 @@ class WorldReasoning:
             seg_mask, target_point = self.get_visible_objects(camera_pose, front_facing_axis)
             flat_list = list(itertools.chain.from_iterable(seg_mask))
             max_pixel = sum(list(map(lambda x: 1 if x == prospection_obj.id else 0, flat_list)))
-            self.world.restore_state(state_id)
+            World.current_world.restore_state(state_id)
 
             if max_pixel == 0:
                 # Object is not visible
                 return False
 
-            seg_mask = self.world.get_images_for_target(target_point, camera_pose)[2]
+            seg_mask = World.current_world.get_images_for_target(target_point, camera_pose)[2]
             flat_list = list(itertools.chain.from_iterable(seg_mask))
             real_pixel = sum(list(map(lambda x: 1 if x == prospection_obj.id else 0, flat_list)))
 
@@ -224,7 +159,7 @@ class WorldReasoning:
                 elif obj.get_pose() == other_obj.get_pose():
                     obj = other_obj
                 else:
-                    obj.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
+                    other_obj.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
 
             seg_mask, target_point = self.get_visible_objects(camera_pose, front_facing_axis)
 
@@ -240,7 +175,7 @@ class WorldReasoning:
                 if not seg_mask[c[0]][c[1]] == obj.id:
                     occluding.append(seg_mask[c[0]][c[1]])
 
-            occ_objects = list(set(map(self.world.get_object_by_id, occluding)))
+            occ_objects = list(set(map(World.current_world.get_object_by_id, occluding)))
             occ_objects = list(map(self.world.get_object_from_prospection_object, occ_objects))
 
             return occ_objects
@@ -264,12 +199,13 @@ class WorldReasoning:
 
         prospection_robot = self.world.get_prospection_object_from_object(robot)
         with UseProspectionWorld():
-            target_pose = _try_to_reach_or_grasp(pose_or_object, robot, gripper_name)
+            target_pose = try_to_reach(pose_or_object, prospection_robot, gripper_name)
 
             if not target_pose:
                 return False
 
-            diff = target_pose.dist(prospection_robot.links[gripper_name].pose)
+            gripper_pose = prospection_robot.links[gripper_name].pose
+            diff = target_pose.dist(gripper_pose)
 
         return diff < threshold
 
@@ -291,12 +227,16 @@ class WorldReasoning:
         :return: A list of objects the robot is in collision with when reaching for the specified object or None if the pose
         or object is not reachable.
         """
+
         prospection_robot = self.world.get_prospection_object_from_object(robot)
         with UseProspectionWorld():
-            _try_to_reach_or_grasp(pose_or_object, robot, gripper_name, grasp)
+            if grasp:
+                try_to_reach_with_grasp(pose_or_object, prospection_robot, gripper_name, grasp)
+            else:
+                try_to_reach(pose_or_object, prospection_robot, gripper_name)
 
             block = []
-            for obj in self.world.objects:
+            for obj in World.current_world.objects:
                 if self.contact(prospection_robot, obj):
                     block.append(self.world.get_object_from_prospection_object(obj))
         return block
