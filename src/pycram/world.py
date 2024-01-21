@@ -325,6 +325,44 @@ class World(ABC):
         """
         pass
 
+    def get_joint_ranges(self) -> Tuple[List, List, List, List, List]:
+        """
+        Calculates the lower and upper limits, the joint ranges and the joint damping. For a given robot Object.
+        Fixed joints will be skipped because they don't have limits or ranges.
+
+        :return: The lists for the upper and lower limits, joint ranges, rest poses and joint damping
+        """
+        ll, ul, jr, rp, jd = [], [], [], [], []
+        joint_names = self.get_object_joint_names(self.robot.id)
+        for name in joint_names:
+            joint_type = self.get_object_joint_type(self.robot, name)
+            if joint_type != JointType.FIXED:
+                ll.append(self.get_object_joint_lower_limit(self.robot, name))
+                ul.append(self.get_object_joint_upper_limit(self.robot, name))
+                jr.append(ul[-1] - ll[-1])
+                rp.append(self.get_object_joint_rest_pose(self.robot, name))
+                jd.append(self.get_object_joint_damping(self.robot, name))
+
+        return ll, ul, jr, rp, jd
+
+    def get_object_joint_rest_pose(self, obj: Object, joint_name: str) -> float:
+        """
+        Get the rest pose of a joint of an articulated object
+
+        :param obj: The object
+        :param joint_name: The name of the joint
+        """
+        pass
+
+    def get_object_joint_damping(self, obj: Object, joint_name: str) -> float:
+        """
+        Get the damping of a joint of an articulated object
+
+        :param obj: The object
+        :param joint_name: The name of the joint
+        """
+        pass
+
     @abstractmethod
     def get_object_joint_names(self, obj_id: int) -> List[str]:
         """
@@ -716,7 +754,7 @@ class World(ABC):
     def get_object_from_prospection_object(self, prospection_object: Object) -> Object:
         """
         Returns the corresponding object from the main World for a given
-        object in the shadow world. If the  given object is not in the shadow
+        object in the prospection world. If the  given object is not in the prospection
         world an error will be raised.
 
         :param prospection_object: The object for which the corresponding object in the main World should be found.

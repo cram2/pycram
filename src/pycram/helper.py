@@ -15,7 +15,7 @@ from pytransform3d.rotations import quaternion_wxyz_from_xyzw, quaternion_xyzw_f
 from pytransform3d.transformations import transform_from_pq, transform_from, pq_from_transform
 
 from macropy.core.quotes import ast_literal, q
-from .world import Object as BulletWorldObject
+from .world import Object as WorldObject
 from .pose import Transform, Pose
 import math
 
@@ -39,7 +39,7 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
-def _apply_ik(robot: BulletWorldObject, joint_poses: List[float], joints: List[str]) -> None:
+def _apply_ik(robot: WorldObject, joint_poses: List[float], joints: List[str]) -> None:
     """
     Apllies a list of joint poses calculated by an inverse kinematics solver to a robot
 
@@ -56,7 +56,7 @@ def _apply_ik(robot: BulletWorldObject, joint_poses: List[float], joints: List[s
     #     robot.set_joint_state(joints[i], joint_poses[i])
 
 
-def calculate_wrist_tool_offset(wrist_frame: str, tool_frame: str, robot: BulletWorldObject) -> Transform:
+def calculate_wrist_tool_offset(wrist_frame: str, tool_frame: str, robot: WorldObject) -> Transform:
     return robot.links[wrist_frame].get_transform_to_link(robot.links[tool_frame])
 
 

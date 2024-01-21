@@ -96,6 +96,24 @@ class BulletWorld(World):
         print("Removing constraint with id: ", constraint_id)
         p.removeConstraint(constraint_id, physicsClientId=self.client_id)
 
+    def get_object_joint_rest_pose(self, obj: Object, joint_name: str) -> float:
+        """
+        Get the joint rest pose of an articulated object
+
+        :param obj: The object
+        :param joint_name: The name of the joint
+        """
+        return p.getJointState(obj.id, obj.joint_name_to_id[joint_name], physicsClientId=self.client_id)[0]
+
+    def get_object_joint_damping(self, obj: Object, joint_name: str) -> float:
+        """
+        Get the joint damping of an articulated object
+
+        :param obj: The object
+        :param joint_name: The name of the joint
+        """
+        return p.getJointInfo(obj.id, obj.joint_name_to_id[joint_name], physicsClientId=self.client_id)[6]
+
     def get_object_joint_upper_limit(self, obj: Object, joint_name: str) -> float:
         """
         Get the joint upper limit of an articulated object
@@ -124,7 +142,7 @@ class BulletWorld(World):
         :param joint_name: Name of the joint for which the axis should be returned.
         :return: The axis a vector of xyz
         """
-        return p.getJointInfo(obj.id, obj.joint_name_to_id[joint_name], self.client_id)[13]
+        return p.getJointInfo(obj.id, obj.joint_name_to_id[joint_name], physicsClientId=self.client_id)[13]
 
     def get_object_joint_type(self, obj: Object, joint_name: str) -> JointType:
         """
@@ -134,7 +152,7 @@ class BulletWorld(World):
         :param joint_name: Joint name for which the type should be returned
         :return: The type of  the joint
         """
-        joint_type = p.getJointInfo(obj.id, obj.joint_name_to_id[joint_name], self.client_id)[2]
+        joint_type = p.getJointInfo(obj.id, obj.joint_name_to_id[joint_name], physicsClientId=self.client_id)[2]
         return JointType(joint_type)
 
     def get_object_joint_position(self, obj: Object, joint_name: str) -> float:
@@ -183,14 +201,14 @@ class BulletWorld(World):
         Get the names of all joints of an articulated object.
         """
         num_joints = self.get_object_number_of_joints(obj_id)
-        return [p.getJointInfo(obj_id, i, self.client_id)[1].decode('utf-8') for i in range(num_joints)]
+        return [p.getJointInfo(obj_id, i, physicsClientId=self.client_id)[1].decode('utf-8') for i in range(num_joints)]
 
     def get_object_link_names(self, obj_id: int) -> List[str]:
         """
         Get the names of all joints of an articulated object.
         """
         num_links = self.get_object_number_of_links(obj_id)
-        return [p.getJointInfo(obj_id, i, self.client_id)[12].decode('utf-8') for i in range(num_links)]
+        return [p.getJointInfo(obj_id, i, physicsClientId=self.client_id)[12].decode('utf-8') for i in range(num_links)]
 
     def get_object_number_of_links(self, obj_id: int) -> int:
         """
@@ -227,13 +245,13 @@ class BulletWorld(World):
         :param position: The new position of the object as a vector of x,y,z
         :param orientation: The new orientation of the object as a quaternion of x,y,z,w
         """
-        p.resetBasePositionAndOrientation(obj.id, position, orientation, self.client_id)
+        p.resetBasePositionAndOrientation(obj.id, position, orientation, physicsClientId=self.client_id)
 
     def step(self):
         """
         Step the world simulation using forward dynamics
         """
-        p.stepSimulation(self.client_id)
+        p.stepSimulation(physicsClientId=self.client_id)
 
     def set_object_link_color(self, obj: Object, link_id: int, rgba_color: Color):
         """
@@ -278,7 +296,7 @@ class BulletWorld(World):
         Returns the axis aligned bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
-        return AxisAlignedBoundingBox.from_min_max(*p.getAABB(obj_id, link_id, self.client_id))
+        return AxisAlignedBoundingBox.from_min_max(*p.getAABB(obj_id, link_id, physicsClientId=self.client_id))
 
     def set_realtime(self, real_time: bool) -> None:
         """
@@ -287,7 +305,7 @@ class BulletWorld(World):
 
         :param real_time: Whether the World should simulate Physics in real time.
         """
-        p.setRealTimeSimulation(1 if real_time else 0, self.client_id)
+        p.setRealTimeSimulation(1 if real_time else 0, physicsClientId=self.client_id)
 
     def set_gravity(self, gravity_vector: List[float]) -> None:
         """
@@ -309,7 +327,7 @@ class BulletWorld(World):
         """
         Disconnects the world from the physics server.
         """
-        p.disconnect(self.client_id)
+        p.disconnect(physicsClientId=self.client_id)
 
     def join_threads(self):
         """
@@ -325,7 +343,7 @@ class BulletWorld(World):
         """
         Saves the state of the physics simulator and returns the unique id of the state.
         """
-        return p.saveState(self.client_id)
+        return p.saveState(physicsClientId=self.client_id)
 
     def restore_physics_simulator_state(self, state_id):
         """
@@ -353,11 +371,14 @@ class BulletWorld(World):
         position, orientation = pose.to_list()
 
         vis_x = p.createVisualShape(p.GEOM_BOX, halfExtents=[length, 0.01, 0.01],
-                                    rgbaColor=[1, 0, 0, 0.8], visualFramePosition=[length, 0.01, 0.01])
+                                    rgbaColor=[1, 0, 0, 0.8], visualFramePosition=[length, 0.01, 0.01],
+                                    physicsClientId=self.client_id)
         vis_y = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.01, length, 0.01],
-                                    rgbaColor=[0, 1, 0, 0.8], visualFramePosition=[0.01, length, 0.01])
+                                    rgbaColor=[0, 1, 0, 0.8], visualFramePosition=[0.01, length, 0.01],
+                                    physicsClientId=self.client_id)
         vis_z = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.01, 0.01, length],
-                                    rgbaColor=[0, 0, 1, 0.8], visualFramePosition=[0.01, 0.01, length])
+                                    rgbaColor=[0, 0, 1, 0.8], visualFramePosition=[0.01, 0.01, length],
+                                    physicsClientId=self.client_id)
 
         obj = p.createMultiBody(baseVisualShapeIndex=-1, linkVisualShapeIndices=[vis_x, vis_y, vis_z],
                                 basePosition=position, baseOrientation=orientation,
@@ -368,7 +389,8 @@ class BulletWorld(World):
                                 linkParentIndices=[0, 0, 0],
                                 linkJointTypes=[p.JOINT_FIXED, p.JOINT_FIXED, p.JOINT_FIXED],
                                 linkJointAxis=[[1, 0, 0], [0, 1, 0], [0, 0, 1]],
-                                linkCollisionShapeIndices=[-1, -1, -1])
+                                linkCollisionShapeIndices=[-1, -1, -1],
+                                physicsClientId=self.client_id)
 
         self.vis_axis.append(obj)
 
@@ -377,7 +399,7 @@ class BulletWorld(World):
         Removes all spawned vis axis objects that are currently in this BulletWorld.
         """
         for id in self.vis_axis:
-            p.removeBody(id)
+            p.removeBody(id, physicsClientId=self.client_id)
         self.vis_axis = []
 
     def get_images_for_target(self,
@@ -405,8 +427,9 @@ class BulletWorld(World):
         near = 0.2
         far = 100
 
-        view_matrix = p.computeViewMatrix(cam_pose.position_as_list(), target_pose.position_as_list(), [0, 0, 1])
-        projection_matrix = p.computeProjectionMatrixFOV(fov, aspect, near, far)
+        view_matrix = p.computeViewMatrix(cam_pose.position_as_list(), target_pose.position_as_list(), [0, 0, 1],
+                                          physicsClientId=self.client_id)
+        projection_matrix = p.computeProjectionMatrixFOV(fov, aspect, near, far, physicsClientId=self.client_id)
         return list(p.getCameraImage(size, size, view_matrix, projection_matrix,
                                      physicsClientId=self.client_id))[2:5]
 
@@ -434,21 +457,23 @@ class Gui(threading.Thread):
             self.world.client_id = p.connect(p.GUI)
 
             # Disable the side windows of the GUI
-            p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+            p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0, physicsClientId=self.world.client_id)
             # Change the init camera pose
             p.resetDebugVisualizerCamera(cameraDistance=1.5, cameraYaw=270.0, cameraPitch=-50,
-                                         cameraTargetPosition=[-2, 0, 1])
+                                         cameraTargetPosition=[-2, 0, 1], physicsClientId=self.world.client_id)
 
             # Get the initial camera target location
-            cameraTargetPosition = p.getDebugVisualizerCamera()[11]
+            cameraTargetPosition = p.getDebugVisualizerCamera(physicsClientId=self.world.client_id)[11]
 
-            sphereVisualId = p.createVisualShape(p.GEOM_SPHERE, radius=0.05, rgbaColor=[1, 0, 0, 1])
+            sphereVisualId = p.createVisualShape(p.GEOM_SPHERE, radius=0.05, rgbaColor=[1, 0, 0, 1],
+                                                 physicsClientId=self.world.client_id)
 
             # Create a sphere with a radius of 0.05 and a mass of 0
             sphereUid = p.createMultiBody(baseMass=0.0,
                                           baseInertialFramePosition=[0, 0, 0],
                                           baseVisualShapeIndex=sphereVisualId,
-                                          basePosition=cameraTargetPosition)
+                                          basePosition=cameraTargetPosition,
+                                          physicsClientId=self.world.client_id)
 
             # Define the maxSpeed, used in calculations
             maxSpeed = 16
@@ -467,17 +492,18 @@ class Gui(threading.Thread):
             # Loop to update the camera position based on keyboard events
             while p.isConnected(self.world.client_id):
                 # Monitor user input
-                keys = p.getKeyboardEvents()
-                mouse = p.getMouseEvents()
+                keys = p.getKeyboardEvents(physicalClientId=self.world.client_id)
+                mouse = p.getMouseEvents(physicalClientId=self.world.client_id)
 
                 # Get infos about the camera
-                width, height, dist = p.getDebugVisualizerCamera()[0], p.getDebugVisualizerCamera()[1], \
-                    p.getDebugVisualizerCamera()[10]
-                cameraTargetPosition = p.getDebugVisualizerCamera()[11]
+                width, height, dist = (p.getDebugVisualizerCamera(physicalClientId=self.world.client_id)[0],
+                                       p.getDebugVisualizerCamera(physicalClientId=self.world.client_id)[1],
+                                       p.getDebugVisualizerCamera(physicalClientId=self.world.client_id)[10])
+                cameraTargetPosition = p.getDebugVisualizerCamera(physicalClientId=self.world.client_id)[11]
 
                 # Get vectors used for movement on x,y,z Vector
-                xVec = [p.getDebugVisualizerCamera()[2][i] for i in [0, 4, 8]]
-                yVec = [p.getDebugVisualizerCamera()[2][i] for i in [2, 6, 10]]
+                xVec = [p.getDebugVisualizerCamera(physicalClientId=self.world.client_id)[2][i] for i in [0, 4, 8]]
+                yVec = [p.getDebugVisualizerCamera(physicalClientId=self.world.client_id)[2][i] for i in [2, 6, 10]]
                 zVec = (0, 0, 1)  # [p.getDebugVisualizerCamera()[2][i] for i in [1, 5, 9]]
 
                 # Check the mouse state
@@ -617,8 +643,10 @@ class Gui(threading.Thread):
                             dist += dist * 0.02 * speedMult
 
                 p.resetDebugVisualizerCamera(cameraDistance=dist, cameraYaw=cameraYaw, cameraPitch=cameraPitch,
-                                             cameraTargetPosition=cameraTargetPosition)
+                                             cameraTargetPosition=cameraTargetPosition,
+                                             physicsClientId=self.world.client_id)
                 if visible == 0:
                     cameraTargetPosition = (0.0, -50, 50)
-                p.resetBasePositionAndOrientation(sphereUid, cameraTargetPosition, [0, 0, 0, 1])
+                p.resetBasePositionAndOrientation(sphereUid, cameraTargetPosition, [0, 0, 0, 1],
+                                                  physicsClientId=self.world.client_id)
                 time.sleep(1. / 80.)
