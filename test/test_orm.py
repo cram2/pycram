@@ -190,14 +190,13 @@ class MixinTestCase(ORMTestSchema, BulletWorldTestCase):
         self.assertTrue(all([r.pose is not None and r.pose_id == r.pose.id for r in result]))
 
 
-class ORMObjectDesignatorTestCase(BulletWorldTestCase):
+class ORMObjectDesignatorTestCase(ORMTestSchema, BulletWorldTestCase):
     """Test ORM functionality with a plan including object designators. """
 
     engine: sqlalchemy.engine.Engine
     session: sqlalchemy.orm.Session
 
-    @with_tree
-    def plan(self):
+    def test_plan_serialization(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], ["left"])
         self.assertEqual(description.ground().object_designator.name, "milk")
@@ -206,37 +205,12 @@ class ORMObjectDesignatorTestCase(BulletWorldTestCase):
             MoveTorsoActionPerformable(0.3).perform()
             PickUpActionPerformable(object_description.resolve(), "left", "front").perform()
             description.resolve().perform()
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
-        cls.session = sqlalchemy.orm.Session(bind=cls.engine)
-
-    def setUp(self):
-        super().setUp()
-        pycram.orm.base.Base.metadata.create_all(self.engine)
-        self.session.commit()
-
-    def tearDown(self):
-        super().tearDown()
-        pycram.orm.base.Base.metadata.drop_all(self.engine)
-        pycram.task.reset_tree()
-
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
-        cls.session.commit()
-        cls.session.close()
-
-    def test_plan_serialization(self):
-        self.plan()
         pycram.orm.base.ProcessMetaData().description = "Unittest"
         tt = pycram.task.task_tree
         tt.insert(self.session)
         action_results = self.session.scalars(select(pycram.orm.action_designator.Action)).all()
         motion_results = self.session.scalars(select(pycram.orm.motion_designator.Motion)).all()
-        self.assertEqual(len(tt) - 2, len(action_results) + len(motion_results))
+        self.assertEqual(len(tt) - 1, len(action_results) + len(motion_results))
 
 
 class ORMActionDesignatorTestCase(BulletWorldTestCase):
