@@ -960,9 +960,9 @@ class CuttingAction(ActionDesignatorDescription):
         The technique used for cutting (default is None).
         """
 
-        slice_thickness: Optional[float] = None
+        slice_thickness: Optional[float] = 0.03
         """
-        The upper bound thickness of the slices (default is None).
+        The upper bound thickness of the slices (default is 0.03f).
         """
 
         object_to_be_cut_at_execution: Optional[ObjectDesignatorDescription.Object] = dataclasses.field(init=False)
@@ -984,7 +984,7 @@ class CuttingAction(ActionDesignatorDescription):
             grasp orientation, computing slice positions, and orchestrating the necessary robot motions
             for executing the cutting task.
             """
-            print(self.technique)
+
             # Store the object and tool at the time of execution
             self.object_to_be_cut_at_execution = self.object_to_be_cut.data_copy()
             self.tool_at_execution = self.tool.data_copy()
@@ -1003,9 +1003,6 @@ class CuttingAction(ActionDesignatorDescription):
             oTm = object.get_pose()
             object_pose = object.local_transformer.transform_to_object_frame(oTm, object)
 
-            # Set the slice thickness for the cutting operation, defaulting to 3 cm if not specified
-            slice_thickness = self.slice_thickness or 0.03  # Default slice thickness in meters
-
             # Derive the object's length, width, and height from its dimensions
             obj_length, obj_width, obj_height = dim
 
@@ -1015,11 +1012,11 @@ class CuttingAction(ActionDesignatorDescription):
                 num_slices = 1  # Only one slice for halving
             else:
                 # Calculate number of slices and initial offset for regular slicing
-                num_slices = int(obj_length // slice_thickness)
-                start_offset = (-obj_length / 2) + (slice_thickness / 2)
+                num_slices = int(obj_length // self.slice_thickness)
+                start_offset = (-obj_length / 2) + (self.slice_thickness / 2)
 
             # Generate coordinates for each slice along the object's length
-            slice_coordinates = [start_offset + i * slice_thickness for i in range(num_slices)]
+            slice_coordinates = [start_offset + i * self.slice_thickness for i in range(num_slices)]
 
             # Transform the coordinates of each slice to the map frame, maintaining orientation
             slice_poses = []
@@ -1044,8 +1041,7 @@ class CuttingAction(ActionDesignatorDescription):
 
                 # Apply the adjusted orientation to the slice pose
                 adjusted_slice_pose = slice_pose.copy()
-                adjusted_slice_pose.orientation.x, adjusted_slice_pose.orientation.y, \
-                    adjusted_slice_pose.orientation.z, adjusted_slice_pose.orientation.w = oriM
+                adjusted_slice_pose.orientation = oriM
 
                 # Adjust the position of the slice pose for lifting the tool
                 lift_pose = adjusted_slice_pose.copy()

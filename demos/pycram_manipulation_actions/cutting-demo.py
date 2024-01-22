@@ -61,5 +61,5 @@ with simulated_robot:
 
     detected_bread_desig = DetectAction(cocumber_BO).resolve().perform()
 
-    CuttingAction(cocumber_BO, bigknife_BO, ["left"], ["halving"]).resolve().perform()
+    CuttingAction(cocumber_BO, bigknife_BO, ["left"], "slicing").resolve().perform()
     rospy.loginfo("Cutting done")
