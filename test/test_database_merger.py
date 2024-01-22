@@ -92,19 +92,17 @@ class MergeDatabaseTest(unittest.TestCase):
         cls.source_engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
         cls.source_session_maker = sqlalchemy.orm.sessionmaker(bind=cls.source_engine)
         cls.destination_session_maker = sqlalchemy.orm.sessionmaker(bind=cls.destination_engine)
-        source_session = cls.source_session_maker()
         destination_session = cls.destination_session_maker()
-        pycram.orm.base.Base.metadata.create_all(cls.source_engine)
         pycram.orm.base.Base.metadata.create_all(cls.destination_engine)
-        source_session.commit()
         destination_session.commit()
-        source_session.close()
         destination_session.close()
         cls.numbers_of_example_runs = 3
 
     def setUp(self) -> None:
         super().setUp()
         source_session = self.source_session_maker()
+        # If there is no session (connection to the memory database) it resets thus we need to define this here
+        pycram.orm.base.Base.metadata.create_all(self.source_engine)
         example_plans = ExamplePlans()
         for i in range(self.numbers_of_example_runs):
             try:
@@ -151,7 +149,7 @@ class MergeDatabaseTest(unittest.TestCase):
             self.assertEqual(destination_content[key], destination_content[key].union(source_content[key]))
 
     def test_migrate_neems(self):
-        pycram.orm.utils.migrate_neems(self.source_session_maker,self.destination_session_maker)
+        pycram.orm.utils.migrate_neems(self.source_session_maker, self.destination_session_maker)
         destination_content = dict()
         source_content = dict()
         with self.destination_session_maker() as session:
