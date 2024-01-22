@@ -55,6 +55,7 @@ class ObjectType(Enum):
     GENERIC_OBJECT = auto()
     BIGKNIFE = auto()
     COCUMBER = auto()
+    BOARD = auto()
 
 
 
