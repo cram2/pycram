@@ -1110,8 +1110,7 @@ class CuttingAction(ActionDesignatorDescription):
         """
         Iterator for generating all possible action combinations based on the provided object, tool, and arms.
 
-        Yields:
-        Action: A possible cutting action with a specific combination of object, tool, and arm.
+        :yields:  A possible cutting action with a specific combination of object, tool, and arm.
         """
         for object_, tool_, arm, technique in itertools.product(iter(self.object_to_be_cut), iter(self.tool), self.arms,
                                                                 self.technique):
