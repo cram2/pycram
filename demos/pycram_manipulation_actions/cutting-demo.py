@@ -16,11 +16,13 @@ v = VizMarkerPublisher()
 world.set_gravity([0, 0, -9.8])
 robot = Object("pr2", "robot", "../../resources/" + robot_description.name + ".urdf")
 robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
-kitchen = Object("kitchen", "environment", "kitchen.urdf")
+#kitchen = Object("kitchen", "environment", "kitchen.urdf")
 robot.set_joint_state(robot_description.torso_joint, 0.24)
 kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
+# Define orientation for objects
+object_orientation = axis_angle_to_quaternion([0, 0, 1], 90)
 spawning_poses = {
-    'bigknife': Pose([0.9, 0.6, 0.8], [0, 0, 0, -1]),
+    'bigknife': Pose([0.9, 0.6, 0.8], object_orientation),
     'bread': Pose([-0.85, 0.9, 0.90], [0, 0, -1, -1]),
     'board': Pose([-0.85, 0.9, 0.85], [0, 0, -1, -1]),
     'cocumber': Pose([-0.85, 0.9, 0.87], [0, 0, -1, -1])

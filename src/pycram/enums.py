@@ -53,6 +53,9 @@ class ObjectType(Enum):
     ROBOT = auto()
     ENVIRONMENT = auto()
     GENERIC_OBJECT = auto()
+    BIGKNIFE = auto()
+    COCUMBER = auto()
+
 
 
 class State(Enum):

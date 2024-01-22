@@ -15,7 +15,7 @@ from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, Naviga
                                      Action as ORMAction, LookAtAction as ORMLookAtAction,
                                      DetectAction as ORMDetectAction, TransportAction as ORMTransportAction,
                                      OpenAction as ORMOpenAction, CloseAction as ORMCloseAction,
-                                     GraspingAction as ORMGraspingAction)
+                                     GraspingAction as ORMGraspingAction, CuttingAction as ORMCuttingAction)
 
 from ..orm.base import Quaternion, Position, Base, RobotState, ProcessMetaData
 from ..plan_failures import ObjectUnfetchable, ReachabilityFailure
@@ -325,19 +325,11 @@ class PickUpAction(ActionDesignatorDescription):
             adjusted_oTm.orientation.z = ori[2]
             adjusted_oTm.orientation.w = ori[3]
 
-            # prepose depending on the gripper (its annoying we have to put pr2_1 here tbh
-            # gripper_frame = "pr2_1/l_gripper_tool_frame" if self.arm == "left" else "pr2_1/r_gripper_tool_frame"
             gripper_frame = robot.get_link_tf_frame(robot_description.get_tool_frame(self.arm))
-            # First rotate the gripper, so the further calculations makes sense
             tmp_for_rotate_pose = object.local_transformer.transform_pose(adjusted_oTm, gripper_frame)
             tmp_for_rotate_pose.pose.position.x = 0
             tmp_for_rotate_pose.pose.position.y = 0
             tmp_for_rotate_pose.pose.position.z = -0.1
-            gripper_rotate_pose = object.local_transformer.transform_pose(tmp_for_rotate_pose, "map")
-
-            # Perform Gripper Rotate
-            # BulletWorld.current_bullet_world.add_vis_axis(gripper_rotate_pose)
-            # MoveTCPMotion(gripper_rotate_pose, self.arm).resolve().perform()
 
             oTg = object.local_transformer.transform_pose(adjusted_oTm, gripper_frame)
             oTg.pose.position.x -= 0.07  # in x since this is how the gripper is oriented
@@ -936,52 +928,60 @@ class GraspingAction(ActionDesignatorDescription):
 
 class CuttingAction(ActionDesignatorDescription):
     """
-    Designator to let the robot perform a cutting action.
+    A designator for robotic cutting actions. This class facilitates the specification and execution of
+    cutting tasks using a robot.
     """
 
     @dataclasses.dataclass
     class Action(ActionDesignatorDescription.Action):
         """
-        Action class for the Cutting action.
+        Represents a specific cutting action to be performed by the robot. This class encapsulates
+        all necessary details for executing the cutting task, including the object to be cut, the cutting tool,
+        the arm to use, and the cutting technique.
         """
 
         object_to_be_cut: ObjectDesignatorDescription.Object
         """
-        Object designator describing the object that should be cut.
+        object_to_be_cut (ObjectDesignatorDescription.Object): The object to be cut.
         """
-
         tool: ObjectDesignatorDescription.Object
         """
-        Object designator describing the object that is used for cutting.
+        tool (ObjectDesignatorDescription.Object): The tool used for cutting.
         """
-
         arm: str
         """
-        The arm that should be used for cutting.
+        arm (str): The robot arm designated for the cutting task.
         """
-
-        tool: str
-        """
-        The tool to cut with.
-        """
-
         technique: Optional[str] = None
         """
-        Technique used to cut the object.
+        technique (Optional[str]): The technique used for cutting (default is None).
         """
-
         slice_thickness: Optional[float] = None
         """
-        The upper bound thickness of the slices.
+        slice_thickness (Optional[float]): The upper bound thickness of the slices (default is None).
+        """
+        object_to_be_cut_at_execution: Optional[ObjectDesignatorDescription.Object] = dataclasses.field(init=False)
+        """
+        The object_to_be_cut at the time this Action got created. It is used to be a static, information holding entity. It is
+        not updated when the BulletWorld object is changed.
+        """
+        tool_at_execution: Optional[ObjectDesignatorDescription.Object] = dataclasses.field(init=False)
+        """
+        The object_tool at the time this Action got created. It is used to be a static, information holding entity. It is
+        not updated when the BulletWorld object is changed.
         """
 
         @with_tree
         def perform(self) -> None:
             """
-            Perform the cutting action using the specified object, arm, grasp, slice thickness, tool, and technique.
+            Executes the cutting action using the specified parameters. It involves determining the
+            grasp orientation, computing slice positions, and orchestrating the necessary robot motions
+            for executing the cutting task.
             """
-            if self.slice_thickness is None:
-                self.slice_thickness = 0.03
+
+            self.object_to_be_cut_at_execution = self.object_to_be_cut.data_copy()
+            self.tool_at_execution = self.tool.data_copy()
+
             # Get grasp orientation and target pose
             grasp = robot_description.grasps.get_orientation_for_grasp("top")
             # Retrieve object and robot from designators
@@ -1005,9 +1005,8 @@ class CuttingAction(ActionDesignatorDescription):
                 start_offset = 0
                 num_slices = 1
             else:
-                num_slices = 1
-                # int(obj_length // slice_thickness))
-                start_offset = 0  # -obj_length / 2 + slice_thickness / 2)
+                num_slices = int(obj_length // slice_thickness)
+                start_offset = (-obj_length / 2 + slice_thickness / 2)
 
             # Calculate slice coordinates
             slice_coordinates = [start_offset + i * slice_thickness for i in range(num_slices)]
@@ -1051,31 +1050,40 @@ class CuttingAction(ActionDesignatorDescription):
                 BulletWorld.current_bullet_world.add_vis_axis(lift_pose)
                 MoveTCPMotion(lift_pose, self.arm).resolve().perform()
 
-        # def to_sql(self) -> ORMCuttingAction:
-        #     """
-        #     Convert the action to a corresponding SQL representation for storage.
-        #     """
-        #     return ORMCuttingAction(self.arm, self.grasp)
+        def to_sql(self) -> ORMCuttingAction:
+            """
+            Convert the action to a corresponding SQL representation for storage.
+            """
+            return ORMCuttingAction(self.arm, self.technique, self.slice_thickness)
 
-        # def insert(self, session: sqlalchemy.orm.session.Session, **kwargs):
-        #     """
-        #     Insert the cutting action into the database session.
-        #     """
-        #     action = super().insert(session)
-        #     # Additional logic for inserting cutting action data goes here
-        #     session.add(action)
-        #     session.commit()
-        #
-        #     return action
+        def insert(self, session: sqlalchemy.orm.session.Session, **kwargs):
+            """
+            Insert the cutting action into the database session.
+            """
+            # insert related objects
+            object_to_be_cut = self.object_to_be_cut_at_execution.insert(session)
+            tool = self.tool_at_execution.insert(session)
+
+            action = super().insert(session)
+            action.object_to_be_cut_id = object_to_be_cut.id
+            action.tool_id = tool.id
+
+            # Additional logic for inserting cutting action data goes here
+            session.add(action)
+            session.commit()
+
+            return action
 
     def __init__(self, object_to_be_cut: ObjectDesignatorDescription,
                  tool: ObjectDesignatorDescription, arms: List[str], technique: Optional[str] = None):
         """
-        Initialize the CuttingAction with object designators, arms, and grasps.
+        Initializes a CuttingAction with specified object and tool designators, arms, and an optional cutting technique.
 
-        :param object_to_be_cut: Object designator for the object to be cut.
-        :param arms: List of possible arms that could be used.
-        :param grasps: List of possible grasps for the cutting action.
+        Args:
+            object_to_be_cut (ObjectDesignatorDescription): Designator for the object to be cut.
+            tool (ObjectDesignatorDescription): Designator for the cutting tool.
+            arms (List[str]): List of possible arms to be used for the cutting action.
+            technique (Optional[str]): Optional cutting technique to be used.
         """
         super(CuttingAction, self).__init__()
         self.object_to_be_cut: ObjectDesignatorDescription = object_to_be_cut
@@ -1084,6 +1092,12 @@ class CuttingAction(ActionDesignatorDescription):
         self.technique: Optional[str] = technique
 
     def __iter__(self):
+        """
+        Iterator for generating all possible action combinations based on the provided object, tool, and arms.
+
+        Yields:
+        Action: A possible cutting action with a specific combination of object, tool, and arm.
+        """
         for object_, tool_, arm in itertools.product(iter(self.object_to_be_cut),iter(self.tool), self.arms):
             yield self.Action(object_, tool_, arm)
 

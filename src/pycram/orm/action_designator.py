@@ -1,7 +1,7 @@
 from typing import Optional
 
 from .base import RobotState, Designator, MapperArgsMixin, PoseMixin
-from .object_designator import ObjectMixin
+from .object_designator import ObjectMixin, Object
 from ..enums import Arms
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey
@@ -117,4 +117,20 @@ class GraspingAction(ObjectMixin, Action):
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
     arm: Mapped[str]
+
+
+class CuttingAction(Action):
+    """ORM Class of pycram.designators.action_designator.GraspingAction."""
+
+    id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
+    arm: Mapped[str]
+    technique: Mapped[Optional[str]]
+    slice_thickness: Mapped[Optional[float]]
+
+    object_to_be_cut_id: Mapped[Optional[int]] = mapped_column(ForeignKey(f"{Object.__tablename__}.id"), init=False)
+    object_to_be_cut: Object = relationship(Object.__tablename__, init=False, foreign_keys=[object_to_be_cut_id])
+
+    tool_id: Mapped[Optional[int]] = mapped_column(ForeignKey(f"{Object.__tablename__}.id"), init=False)
+    tool: Object = relationship(Object.__tablename__, init=False, foreign_keys=[tool_id])
+
 

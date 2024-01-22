@@ -1,3 +1,4 @@
+import pycram.enums
 from pycram.process_module import simulated_robot
 from pycram.designators.action_designator import *
 from pycram.enums import Arms
@@ -10,18 +11,16 @@ def cutting_action_test():
     This function is a test for the cutting action.
     """
     world = BulletWorld("DIRECT")
-    robot = Object("pr2", "robot", "../../resources/" + robot_description.name + ".urdf")
+    robot = Object("pr2", pycram.enums.ObjectType.ROBOT, "../../resources/" + robot_description.name + ".urdf")
     robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
     robot.set_joint_state(robot_description.torso_joint, 0.24)
 
     spawning_poses = {
         'bigknife': Pose([0.9, 0.6, 0.8], [0, 0, 0, -1]),
-        'board': Pose([-0.85, 0.9, 0.85], [0, 0, -1, -1]),
         'cocumber': Pose([-0.85, 0.9, 0.87], [0, 0, -1, -1])
     }
-    bigknife = Object("bigknife", "bigknife", "big-knife.stl", spawning_poses["bigknife"])
-    cocumber = Object("cocumber", "cocumber", "cocumber.stl", spawning_poses["cocumber"])
-    board = Object("board", "board", "board.stl", spawning_poses["board"])
+    bigknife = Object("bigknife", pycram.enums.ObjectType.BIGKNIFE, "big-knife.stl", spawning_poses["bigknife"])
+    cocumber = Object("cocumber", pycram.enums.ObjectType.COCUMBER, "cocumber.stl", spawning_poses["cocumber"])
     bigknife_BO = BelieveObject(names=["bigknife"])
     cocumber_BO = BelieveObject(names=["cocumber"])
 
@@ -40,4 +39,4 @@ def cutting_action_test():
 
 
 if __name__ == "__main__":
-    cutting_action()
+    cutting_action_test()

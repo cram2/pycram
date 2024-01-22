@@ -3,6 +3,7 @@ import unittest
 
 import sqlalchemy
 import sqlalchemy.orm
+from sqlalchemy import select
 
 import pycram.orm.action_designator
 import pycram.orm.base
@@ -17,6 +18,7 @@ from pycram.designators import action_designator, object_designator
 from pycram.pose import Pose
 from pycram.process_module import simulated_robot
 from pycram.task import with_tree
+import plans.cutting
 
 
 class ORMTestSchema(unittest.TestCase):
@@ -304,6 +306,45 @@ class MotionDesigTest(BulletWorldTestCase):
         self.session.add(motion)
         self.session.commit()
         self.assertIsNotNone(motion.id)
+
+
+class CuttingTestCase(unittest.TestCase):
+    engine: sqlalchemy.engine.Engine
+    session: sqlalchemy.orm.Session
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
+
+    def setUp(self):
+        super().setUp()
+        pycram.orm.base.Base.metadata.create_all(self.engine)
+        self.session = sqlalchemy.orm.Session(bind=self.engine)
+        self.session.commit()
+
+    def tearDown(self):
+        super().tearDown()
+        pycram.task.reset_tree()
+        pycram.orm.base.ProcessMetaData.reset()
+        pycram.orm.base.Base.metadata.drop_all(self.engine)
+        self.session.close()
+
+    @classmethod
+    def TearDownClass(cls):
+        super().tearDownClass()
+        cls.session.commit()
+        cls.session.close()
+
+    def test_insert(self):
+        plans.cutting.cutting_action_test()
+        pycram.orm.base.ProcessMetaData().description = "ORM Cutting Unittest"
+        pycram.task.task_tree.insert(self.session)
+        self.session.commit()
+
+        query = select(pycram.orm.action_designator.CuttingAction)
+        actions = self.session.execute(query).all()
+        self.assertEqual(len(actions), 1)
 
 
 if __name__ == '__main__':
