@@ -982,6 +982,9 @@ class CuttingAction(ActionDesignatorDescription):
             self.object_to_be_cut_at_execution = self.object_to_be_cut.data_copy()
             self.tool_at_execution = self.tool.data_copy()
 
+            if self.slice_thickness is None:
+                self.slice_thickness = 0.03
+
             # Get grasp orientation and target pose
             grasp = robot_description.grasps.get_orientation_for_grasp("top")
             # Retrieve object and robot from designators

@@ -8,7 +8,7 @@ from pycram.enums import ObjectType
 import pycram.enums
 from bullet_world_testcase import BulletWorldTestCase
 import numpy as np
-from plans.cutting import cutting_action_test
+import plans.cutting
 
 
 class TestActionDesignatorGrounding(BulletWorldTestCase):
@@ -137,7 +137,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.assertTrue(dist < 0.01)
 
     def test_cutting(self):
-        cutting_action_test()
+        plans.cutting.cutting_action_test()
 
 
 if __name__ == '__main__':
