@@ -319,6 +319,7 @@ class CuttingTestCase(BulletWorldTestCase):
 
     def setUp(self):
         super().setUp()
+        pycram.task.reset_tree()
         pycram.orm.base.Base.metadata.create_all(self.engine)
         self.session = sqlalchemy.orm.Session(bind=self.engine)
         self.session.commit()

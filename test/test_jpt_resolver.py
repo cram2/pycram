@@ -13,7 +13,7 @@ from pycram.robot_descriptions import robot_description
 from pycram.pose import Pose
 
 # check if jpt is installed
-jpt_installed = True
+jpt_installed = False
 try:
     import jpt
     from pycram.resolver.location.jpt_location import JPTCostmapLocation

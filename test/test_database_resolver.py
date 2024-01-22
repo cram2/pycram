@@ -15,7 +15,7 @@ from pycram.task import with_tree
 from pycram.enums import ObjectType
 
 # check if jpt is installed
-jpt_installed = True
+jpt_installed = False
 try:
     import jpt
     from pycram.resolver.location.database_location import DatabaseCostmapLocation
