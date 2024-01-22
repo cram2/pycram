@@ -8,7 +8,6 @@ from pycram.enums import ObjectType
 import pycram.enums
 from bullet_world_testcase import BulletWorldTestCase
 import numpy as np
-import plans.cutting
 
 
 class TestActionDesignatorGrounding(BulletWorldTestCase):
@@ -137,7 +136,32 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.assertTrue(dist < 0.01)
 
     def test_cutting(self):
-        plans.cutting.cutting_action_test()
+        self.robot.set_joint_state(robot_description.torso_joint, 0.24)
+
+        spawning_poses = {
+            'bigknife': Pose([0.9, 0.6, 0.8], [0, 0, 0, -1]),
+            'cocumber': Pose([-0.85, 0.9, 0.87], [0, 0, -1, -1])
+        }
+
+        self.bigknife.set_pose(spawning_poses["bigknife"])
+        self.cocumber.set_pose(spawning_poses["cocumber"])
+        bigknife_BO = object_designator.BelieveObject(names=["bigknife"])
+        cocumber_BO = object_designator.BelieveObject(names=["cocumber"])
+
+        with simulated_robot:
+            pickup_knife_pose = Pose([0.76, -0.08, 0],
+                                     [0, 0, 0.6318018199283353, 0.7751299635127281])
+            cutting_pose = Pose([-0.3, 0.9, 0.0],
+                                [0, 0, 1, 6.123233995736766e-17])
+            action_designator.ParkArmsAction([pycram.enums.Arms.BOTH]).resolve().perform()
+            action_designator.MoveTorsoAction([0.33]).resolve().perform()
+            action_designator.NavigateAction(target_locations=[pickup_knife_pose]).resolve().perform()
+            action_designator.PickUpAction(object_designator_description=bigknife_BO,
+                         arms=["left"],
+                         grasps=["top"]).resolve().perform()
+            action_designator.ParkArmsAction([pycram.enums.Arms.BOTH]).resolve().perform()
+            action_designator.NavigateAction(target_locations=[cutting_pose]).resolve().perform()
+            action_designator.CuttingAction(cocumber_BO, bigknife_BO, ["left"], ["slicing"]).resolve().perform()
 
 
 if __name__ == '__main__':

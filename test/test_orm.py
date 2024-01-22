@@ -18,7 +18,7 @@ from pycram.designators import action_designator, object_designator
 from pycram.pose import Pose
 from pycram.process_module import simulated_robot
 from pycram.task import with_tree
-import plans.cutting
+from test_action_designator import TestActionDesignatorGrounding
 
 
 class ORMTestSchema(unittest.TestCase):
@@ -308,7 +308,7 @@ class MotionDesigTest(BulletWorldTestCase):
         self.assertIsNotNone(motion.id)
 
 
-class CuttingTestCase(unittest.TestCase):
+class CuttingTestCase(BulletWorldTestCase):
     engine: sqlalchemy.engine.Engine
     session: sqlalchemy.orm.Session
 
@@ -337,7 +337,7 @@ class CuttingTestCase(unittest.TestCase):
         cls.session.close()
 
     def test_insert(self):
-        plans.cutting.cutting_action_test()
+        TestActionDesignatorGrounding.test_cutting(self)
         pycram.orm.base.ProcessMetaData().description = "ORM Cutting Unittest"
         pycram.task.task_tree.insert(self.session)
         self.session.commit()

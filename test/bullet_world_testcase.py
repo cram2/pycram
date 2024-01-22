@@ -13,7 +13,6 @@ import tf
 
 
 class BulletWorldTestCase(unittest.TestCase):
-
     world: BulletWorld
 
     @classmethod
@@ -23,6 +22,10 @@ class BulletWorldTestCase(unittest.TestCase):
         cls.kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
         cls.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
         cls.cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", pose=Pose([1.3, 0.7, 0.95]))
+        cls.bigknife = Object("bigknife", ObjectType.BIGKNIFE, "big-knife.stl",
+                              pose=Pose([0.9, 0.6, 0.8], [0, 0, 0, -1]))
+        cls.cocumber = Object("cocumber", ObjectType.COCUMBER, "cocumber.stl",
+                              pose=Pose([-0.85, 0.9, 0.87], [0, 0, -1, -1]))
         ProcessModule.execution_delay = False
 
     def setUp(self):
@@ -38,6 +41,3 @@ class BulletWorldTestCase(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.world.exit()
-
-
-
