@@ -40,7 +40,7 @@ class ExamplePlans:
     @with_tree
     def pick_and_place_plan(self):
         with simulated_robot:
-            ParkArmsAction.Action(Arms.BOTH).perform()
+            ParkArmsActionPerformable(Arms.BOTH).perform()
             MoveTorsoAction([0.3]).resolve().perform()
             pickup_pose = CostmapLocation(target=self.cereal_desig.resolve(), reachable_for=self.robot_desig).resolve()
             pickup_arm = pickup_pose.reachable_arms[0]
@@ -59,7 +59,7 @@ class ExamplePlans:
 
             PlaceAction(self.cereal_desig, target_locations=[place_island.pose], arms=[pickup_arm]).resolve().perform()
 
-            ParkArmsAction.Action(Arms.BOTH).perform()
+            ParkArmsActionPerformable(Arms.BOTH).perform()
 
 
 class MergerTestCaseBase(unittest.TestCase):

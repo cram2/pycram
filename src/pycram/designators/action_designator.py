@@ -1,6 +1,5 @@
 import itertools
-from typing import Union
-from .motion_designator import *
+from typing_extensions import List, Union, Callable
 from .object_designator import ObjectDesignatorDescription, ObjectPart
 from ..enums import Arms
 from ..designator import ActionDesignatorDescription

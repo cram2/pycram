@@ -5,10 +5,11 @@ import sqlalchemy.orm
 import pycram.plan_failures
 from pycram import task
 from pycram.bullet_world import BulletWorld, Object
-from pycram.designators import action_designator, object_designator
+from pycram.designators import action_designator
 from pycram.designators.actions.actions import MoveTorsoActionPerformable, PickUpActionPerformable, \
     NavigateActionPerformable
 from pycram.orm.base import Base
+from pycram.designators.object_designator import ObjectDesignatorDescription
 from pycram.process_module import ProcessModule
 from pycram.process_module import simulated_robot
 from pycram.pose import Pose
@@ -48,26 +49,28 @@ class DatabaseResolverTestCase(unittest.TestCase,):
         cls.robot = Object(robot_description.name, ObjectType.ROBOT, robot_description.name + ".urdf")
         ProcessModule.execution_delay = False
         cls.engine = sqlalchemy.create_engine(pycrorm_uri)
-        cls.session = sqlalchemy.orm.Session(bind=cls.engine)
 
     def setUp(self) -> None:
         self.world.reset_bullet_world()
         pycram.orm.base.Base.metadata.create_all(self.engine)
+        self.session = sqlalchemy.orm.Session(bind=self.engine)
         self.session.commit()
 
     def tearDown(self) -> None:
         self.world.reset_bullet_world()
         pycram.task.reset_tree()
+        pycram.orm.base.ProcessMetaData.reset()
+        self.session.rollback()
+        pycram.orm.base.Base.metadata.drop_all(self.engine)
+        self.session.close()
 
     @classmethod
     def tearDownClass(cls) -> None:
         cls.world.exit()
-        cls.session.commit()
-        cls.session.close()
 
     @with_tree
     def plan(self):
-        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        object_description = ObjectDesignatorDescription(names=["milk"])
         description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], ["left"])
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
@@ -86,10 +89,9 @@ class DatabaseResolverTestCase(unittest.TestCase,):
 
         with simulated_robot:
             # action_designator.NavigateAction.Action(sample.pose).perform()
-            action_designator.MoveTorsoAction.Action(sample.torso_height).perform()
-            PickUpActionPerformable(
-                object_designator.ObjectDesignatorDescription(types=["milk"]).resolve(),
-                arm=sample.reachable_arm, grasp=sample.grasp).perform()
+            MoveTorsoActionPerformable(sample.torso_height).perform()
+            PickUpActionPerformable(ObjectDesignatorDescription(types=["milk"]).resolve(), arm=sample.reachable_arm,
+                                    grasp=sample.grasp).perform()
 
     @unittest.skip
     def test_costmap_with_obstacles(self):
@@ -104,11 +106,12 @@ class DatabaseResolverTestCase(unittest.TestCase,):
                 MoveTorsoActionPerformable(sample.torso_height).perform()
                 try:
                     PickUpActionPerformable(
-                        object_designator.ObjectDesignatorDescription(types=["milk"]).resolve(),
+                        ObjectDesignatorDescription(types=["milk"]).resolve(),
                         arm=sample.reachable_arm, grasp=sample.grasp).perform()
                 except pycram.plan_failures.PlanFailure:
                     continue
                 return
+        kitchen.remove()
         raise pycram.plan_failures.PlanFailure()
 
 
