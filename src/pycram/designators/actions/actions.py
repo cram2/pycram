@@ -1,5 +1,5 @@
 import abc
-from typing import Union
+from typing_extensions import Union
 from pycram.designator import ActionDesignatorDescription
 from pycram.designators.motion_designator import *
 from pycram.enums import Arms
@@ -27,23 +27,136 @@ class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC):
 
     @abc.abstractmethod
     def perform(self) -> None:
-        """Perform the action."""
+        """
+        Perform the action. Will be overwritten by each action.
+        """
         pass
 
     @abc.abstractmethod
     def to_sql(self) -> Action:
-        """Convert this action to its ORM equivalent."""
+        """
+        Convert this action to its ORM equivalent. Will be overwritten by each action.
+        """
         pass
 
     @abc.abstractmethod
     def insert(self, session: Session, **kwargs) -> Action:
-        """Insert this action into the database."""
+        """
+        Insert this action into the database.
+
+        :param session: Session with a database that is used to add and commit the objects
+        :param kwargs: Possible extra keyword arguments
+        :return: The completely instanced ORM object
+        """
+
         action = super().insert(session)
         return action
 
 
 @dataclass
+class MoveTorsoActionPerformable(ActionAbstract):
+    """
+    Move the torso of the robot up and down.
+    """
+
+    position: float
+    """
+    Target position of the torso joint
+    """
+
+    @with_tree
+    def perform(self) -> None:
+        MoveJointsMotion([robot_description.torso_joint], [self.position]).perform()
+
+    def to_sql(self) -> ORMMoveTorsoAction:
+        return ORMMoveTorsoAction(self.position)
+
+    def insert(self, session: Session, **kwargs) -> ORMMoveTorsoAction:
+        action = super().insert(session)
+        session.add(action)
+        session.commit()
+        return action
+
+
+@dataclass
+class SetGripperActionPerformable(ActionAbstract):
+    """
+    Set the gripper state of the robot.
+    """
+
+    gripper: str
+    """
+    The gripper that should be set 
+    """
+    motion: str
+    """
+    The motion that should be set on the gripper
+    """
+
+    @with_tree
+    def perform(self) -> None:
+        MoveGripperMotion(gripper=self.gripper, motion=self.motion).perform()
+
+    def to_sql(self) -> ORMSetGripperAction:
+        return ORMSetGripperAction(self.gripper, self.motion)
+
+    def insert(self, session: Session, *args, **kwargs) -> ORMSetGripperAction:
+        action = super().insert(session)
+        session.add(action)
+        session.commit()
+        return action
+
+
+@dataclass
+class ReleaseActionPerformable(ActionAbstract):
+    """
+    Releases an Object from the robot.
+
+    Note: This action can not ve used yet.
+    """
+
+    gripper: str
+
+    object_designator: ObjectDesignatorDescription.Object
+
+    def perform(self) -> None:
+        raise NotImplementedError
+
+    def to_sql(self) -> ORMParkArmsAction:
+        raise NotImplementedError
+
+    def insert(self, session: Session, **kwargs) -> ORMParkArmsAction:
+        raise NotImplementedError
+
+
+@dataclass
+class GripActionPerformable(ActionAbstract):
+    """
+    Grip an object with the robot.
+
+    Note: This action can not be used yet.
+    """
+
+    gripper: str
+    object_designator: ObjectDesignatorDescription.Object
+    effort: float
+
+    @with_tree
+    def perform(self) -> None:
+        raise NotImplementedError()
+
+    def to_sql(self) -> Base:
+        raise NotImplementedError()
+
+    def insert(self, session: Session, *args, **kwargs) -> Base:
+        raise NotImplementedError()
+
+
+@dataclass
 class ParkArmsActionPerformable(ActionAbstract):
+    """
+    Park the arms of the robot.
+    """
 
     arm: Arms
     """
@@ -80,93 +193,10 @@ class ParkArmsActionPerformable(ActionAbstract):
 
 
 @dataclass
-class MoveTorsoActionPerformable(ActionAbstract):
-    """
-    Performable Move Torso Action designator.
-    """
-
-    position: float
-    """
-    Target position of the torso joint
-    """
-
-    @with_tree
-    def perform(self) -> None:
-        MoveJointsMotion([robot_description.torso_joint], [self.position]).perform()
-
-    def to_sql(self) -> ORMMoveTorsoAction:
-        return ORMMoveTorsoAction(self.position)
-
-    def insert(self, session: Session, **kwargs) -> ORMMoveTorsoAction:
-        action = super().insert(session)
-        session.add(action)
-        session.commit()
-        return action
-
-
-@dataclass
-class SetGripperActionPerformable(ActionAbstract):
-
-    gripper: str
-    """
-    The gripper that should be set 
-    """
-    motion: str
-    """
-    The motion that should be set on the gripper
-    """
-
-    @with_tree
-    def perform(self) -> None:
-        MoveGripperMotion(gripper=self.gripper, motion=self.motion).perform()
-
-    def to_sql(self) -> ORMSetGripperAction:
-        return ORMSetGripperAction(self.gripper, self.motion)
-
-    def insert(self, session: Session, *args, **kwargs) -> ORMSetGripperAction:
-        action = super().insert(session)
-        session.add(action)
-        session.commit()
-        return action
-
-
-@dataclass
-class ReleaseActionPerformable(ActionAbstract):
-
-    gripper: str
-
-    object_designator: ObjectDesignatorDescription.Object
-
-    def perform(self) -> None:
-        raise NotImplementedError
-
-    def to_sql(self) -> ORMParkArmsAction:
-        raise NotImplementedError
-
-    def insert(self, session: Session, **kwargs) -> ORMParkArmsAction:
-        raise NotImplementedError
-
-
-@dataclass
-class GripActionPerformable(ActionAbstract):
-
-    gripper: str
-    object_designator: ObjectDesignatorDescription.Object
-    effort: float
-
-    @with_tree
-    def perform(self) -> None:
-        raise NotImplementedError()
-
-    def to_sql(self) -> Base:
-        raise NotImplementedError()
-
-    def insert(self, session: Session, *args, **kwargs) -> Base:
-        raise NotImplementedError()
-
-
-@dataclass
 class PickUpActionPerformable(ActionAbstract):
+    """
+    Let the robot pick up an object.
+    """
 
     object_designator: ObjectDesignatorDescription.Object
     """
@@ -272,6 +302,9 @@ class PickUpActionPerformable(ActionAbstract):
 
 @dataclass
 class PlaceActionPerformable(ActionAbstract):
+    """
+    Places an Object at a position using an arm.
+    """
 
     object_designator: ObjectDesignatorDescription.Object
     """
@@ -326,6 +359,9 @@ class PlaceActionPerformable(ActionAbstract):
 
 @dataclass
 class NavigateActionPerformable(ActionAbstract):
+    """
+    Navigates the Robot to a position.
+    """
 
     target_location: Pose
     """
@@ -353,6 +389,9 @@ class NavigateActionPerformable(ActionAbstract):
 
 @dataclass
 class TransportActionPerformable(ActionAbstract):
+    """
+    Transports an object to a position using an arm
+    """
 
     object_designator: ObjectDesignatorDescription.Object
     """
@@ -418,6 +457,9 @@ class TransportActionPerformable(ActionAbstract):
 
 @dataclass
 class LookAtActionPerformable(ActionAbstract):
+    """
+    Lets the robot look at a position.
+    """
 
     target: Pose
     """
@@ -444,6 +486,9 @@ class LookAtActionPerformable(ActionAbstract):
 
 @dataclass
 class DetectActionPerformable(ActionAbstract):
+    """
+    Detects an object that fits the object description and returns an object designator describing the object.
+    """
 
     object_designator: ObjectDesignatorDescription.Object
     """
@@ -471,6 +516,9 @@ class DetectActionPerformable(ActionAbstract):
 
 @dataclass
 class OpenActionPerformable(ActionAbstract):
+    """
+    Opens a container like object
+    """
 
     object_designator: ObjectPart.Object
     """
@@ -505,6 +553,9 @@ class OpenActionPerformable(ActionAbstract):
 
 @dataclass
 class CloseActionPerformable(ActionAbstract):
+    """
+    Closes a container like object.
+    """
 
     object_designator: ObjectPart.Object
     """
@@ -539,6 +590,9 @@ class CloseActionPerformable(ActionAbstract):
 
 @dataclass
 class GraspingActionPerformable(ActionAbstract):
+    """
+    Grasps an object described by the given Object Designator description
+    """
 
     arm: str
     """

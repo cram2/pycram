@@ -1,6 +1,7 @@
 import numpy as np
 import sqlalchemy.orm
 import sqlalchemy.sql
+from sqlalchemy import select, Select
 from tf import transformations
 import pycram.designators.location_designator
 import pycram.task
@@ -34,25 +35,24 @@ class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLoca
         super().__init__(target, reachable_for, None, reachable_arm, resolver)
         self.session = session
 
-    def create_query_from_occupancy_costmap(self) -> sqlalchemy.orm.Query:
+    def create_query_from_occupancy_costmap(self) -> Select:
         """
         Create a query that queries all relative robot positions from an object that are not occluded using an
         OccupancyCostmap.
         """
 
         robot_pos = sqlalchemy.orm.aliased(Position)
-        object_pos = sqlalchemy.orm.aliased(Position)
 
         # query all relative robot positions in regard to an objects position
         # make sure to order the joins() correctly
-        query = (self.session.query(PickUpAction.arm, PickUpAction.grasp, RobotState.torso_height, Position.x,
-                                    Position.y).join(TaskTreeNode.code)
-                                               .join(Code.designator.of_type(PickUpAction))
-                                               .join(PickUpAction.robot_state)
-                                               .join(RobotState.pose)
-                                               .join(orm.base.Pose.position)
-                                               .join(PickUpAction.object).filter(Object.type == self.target.type)
-                                                                         .filter(TaskTreeNode.status == "SUCCEEDED"))
+        query = (select(PickUpAction.arm, PickUpAction.grasp, RobotState.torso_height, Position.x, Position.y)
+                 .join(TaskTreeNode.code)
+                 .join(Code.designator.of_type(PickUpAction))
+                 .join(PickUpAction.robot_state)
+                 .join(RobotState.pose)
+                 .join(orm.base.Pose.position)
+                 .join(PickUpAction.object).where(Object.type == self.target.type)
+                                           .where(TaskTreeNode.status == "SUCCEEDED"))
 
         # create Occupancy costmap for the target object
         position, orientation = self.target.pose.to_list()
@@ -94,7 +94,7 @@ class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLoca
                                                    robot_pos.y >= rectangle[1][0], robot_pos.y < rectangle[1][1]))
                     # query = self.model.bind({"x": list(rectangle[0]), "y": list(rectangle[1])})
 
-        return query.filter(sqlalchemy.or_(*filters))
+        return query.where(sqlalchemy.or_(*filters))
 
     def sample_to_location(self, sample: sqlalchemy.engine.row.Row) -> JPTCostmapLocation.Location:
         """
@@ -112,7 +112,7 @@ class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLoca
         return result
 
     def __iter__(self) -> JPTCostmapLocation.Location:
-        query = self.create_query_from_occupancy_costmap().limit(200)
-        samples = query.all()
+        statement = self.create_query_from_occupancy_costmap().limit(200)
+        samples = self.session.execute(statement).all()
         for sample in samples:
             yield self.sample_to_location(sample)

@@ -1,5 +1,3 @@
-import abc
-import typing
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
@@ -17,7 +15,7 @@ from ..orm.motion_designator import (MoveMotion as ORMMoveMotion, AccessingMotio
                                      OpeningMotion as ORMOpeningMotion, ClosingMotion as ORMClosingMotion,
                                      Motion as ORMMotionDesignator)
 
-from typing import List, Dict, Callable, Optional, get_type_hints, Union, Any
+from typing_extensions import Dict, Optional, get_type_hints, get_args, get_origin
 from ..pose import Pose
 from ..task import with_tree
 
@@ -28,9 +26,7 @@ class BaseMotion(ABC):
     @abstractmethod
     def perform(self):
         """
-        Passes this designator to the process module for execution.
-
-        :return: The return value of the process module if there is any.
+        Passes this designator to the process module for execution. Will be overwritten by each motion.
         """
         pass
         # return ProcessModule.perform(self)
@@ -38,7 +34,7 @@ class BaseMotion(ABC):
     @abstractmethod
     def to_sql(self) -> ORMMotionDesignator:
         """
-        Create an ORM object that corresponds to this description.
+        Create an ORM object that corresponds to this description. Will be overwritten by each motion.
 
         :return: The created ORM object.
         """
@@ -51,6 +47,8 @@ class BaseMotion(ABC):
         Auto-Incrementing primary keys and foreign keys have to be filled by this method.
 
         :param session: Session with a database that is used to add and commit the objects
+        :param args: Possible extra arguments
+        :param kwargs: Possible extra keyword arguments
         :return: The completely instanced ORM motion.
         """
         metadata = ProcessMetaData().insert(session)
@@ -61,6 +59,9 @@ class BaseMotion(ABC):
         return motion
 
     def __post_init__(self):
+        """
+        Checks if types are missing or wrong
+        """
         right_types = get_type_hints(self)
         attributes = self.__dict__.copy()
 
@@ -72,13 +73,13 @@ class BaseMotion(ABC):
             attribute = attributes[k]
             attribute_type = type(attributes[k])
             right_type = right_types[k]
-            types = typing.get_args(right_type)
+            types = get_args(right_type)
             if attribute is None:
-                if not any([x is type(None) for x in typing.get_args(right_type)]):
+                if not any([x is type(None) for x in get_args(right_type)]):
                     missing.append(k)
             elif attribute_type is not right_type:
                 if attribute_type not in types:
-                    if attribute_type not in [typing.get_origin(x) for x in types if x is not type(None)]:
+                    if attribute_type not in [get_origin(x) for x in types if x is not type(None)]:
                         wrong_type[k] = right_types[k]
                         current_type[k] = attribute_type
         if missing != [] or wrong_type != {}:

@@ -1,9 +1,7 @@
 import os
 import unittest
-
-import sqlalchemy
+from sqlalchemy import select
 import sqlalchemy.orm
-
 import pycram.orm.action_designator
 import pycram.orm.base
 import pycram.orm.motion_designator
@@ -26,7 +24,7 @@ from pycram.task import with_tree
 
 
 class ORMTestSchema(unittest.TestCase):
-    engine: sqlalchemy.engine.Engine
+    engine: sqlalchemy.engine
     session: sqlalchemy.orm.Session
 
     @classmethod
@@ -99,51 +97,45 @@ class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
         pycram.orm.base.Base.metadata.drop_all(self.engine)
         self.session.close()
 
-    @classmethod
-    def TearDownClass(cls):
-        super().tearDownClass()
-        cls.session.commit()
-        cls.session.close()
-
     def test_node(self):
         """Test if the objects in the database is equal with the objects that got serialized."""
         self.plan()
         pycram.orm.base.ProcessMetaData().description = "Unittest"
         pycram.task.task_tree.root.insert(self.session, )
 
-        node_results = self.session.query(pycram.orm.task.TaskTreeNode).all()
+        node_results = self.session.scalars(select(pycram.orm.task.TaskTreeNode)).all()
         self.assertEqual(len(node_results), len(pycram.task.task_tree.root))
 
-        code_results = self.session.query(pycram.orm.task.Code).all()
+        code_results = self.session.scalars(select(pycram.orm.task.Code)).all()
         self.assertEqual(len(code_results), len(pycram.task.task_tree.root))
 
-        position_results = self.session.query(pycram.orm.base.Position).all()
+        position_results = self.session.scalars(select(pycram.orm.base.Position)).all()
         self.assertEqual(14, len(position_results))
 
-        quaternion_results = self.session.query(pycram.orm.base.Quaternion).all()
+        quaternion_results = self.session.scalars(select(pycram.orm.base.Quaternion)).all()
         self.assertEqual(14, len(quaternion_results))
 
-        park_arms_results = self.session.query(pycram.orm.action_designator.ParkArmsAction).all()
+        park_arms_results = self.session.scalars(select(pycram.orm.action_designator.ParkArmsAction)).all()
         self.assertEqual(0, len(park_arms_results))
 
-        navigate_results = self.session.query(pycram.orm.action_designator.NavigateAction).all()
+        navigate_results = self.session.scalars(select(pycram.orm.action_designator.NavigateAction)).all()
         self.assertEqual(1, len(navigate_results))
 
-        action_results = self.session.query(pycram.orm.action_designator.Action).all()
+        action_results = self.session.scalars(select(pycram.orm.action_designator.Action)).all()
         self.assertEqual(4, len(action_results))
 
     def test_metadata_existence(self):
         pycram.orm.base.ProcessMetaData().description = "metadata_existence_test"
         self.plan()
         pycram.task.task_tree.root.insert(self.session)
-        result = self.session.query(pycram.orm.base.Pose).all()
+        result = self.session.scalars(select(pycram.orm.base.Pose)).all()
         self.assertTrue(all([r.process_metadata is not None for r in result]))
 
     def test_task_tree_node_parents(self):
         self.plan()
         pycram.orm.base.ProcessMetaData().description = "task_tree_node_parents_test"
         pycram.task.task_tree.root.insert(self.session)
-        result = self.session.query(pycram.orm.task.TaskTreeNode).all()
+        result = self.session.scalars(select(pycram.orm.task.TaskTreeNode)).all()
         self.assertTrue([result[i].parent == result[result[i].parent_id - 1] for i in range(len(result))
                          if result[i].parent_id is not None])
 
@@ -151,23 +143,23 @@ class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
         self.plan()
         pycram.orm.base.ProcessMetaData().description = "Unittest"
         pycram.task.task_tree.root.insert(self.session, )
-        metadata_results = self.session.query(pycram.orm.base.ProcessMetaData).all()
+        metadata_results = self.session.scalars(select(pycram.orm.base.ProcessMetaData)).all()
         self.assertEqual(1, len(metadata_results))
 
-        action_results = self.session.query(pycram.orm.action_designator.Action).all()
+        action_results = self.session.scalars(select(pycram.orm.action_designator.Action)).all()
         self.assertTrue(all([a.process_metadata_id for a in action_results]))
 
-        park_arms_results = self.session.query(pycram.orm.action_designator.ParkArmsAction).all()
+        park_arms_results = self.session.scalars(select(pycram.orm.action_designator.ParkArmsAction)).all()
         self.assertTrue(all([a.process_metadata_id for a in park_arms_results]))
 
-        object_results = self.session.query(pycram.orm.object_designator.Object).all()
+        object_results = self.session.scalars(select(pycram.orm.object_designator.Object)).all()
         self.assertTrue(all([o.process_metadata_id for o in object_results]))
 
     def test_meta_data_alternation(self):
         self.plan()
         pycram.orm.base.ProcessMetaData().description = "meta_data_alternation_test"
         pycram.task.task_tree.root.insert(self.session, )
-        metadata_result = self.session.query(pycram.orm.base.ProcessMetaData).first()
+        metadata_result = self.session.scalars(select(pycram.orm.base.ProcessMetaData)).first()
         self.assertEqual(metadata_result.description, "meta_data_alternation_test")
 
 
@@ -187,14 +179,14 @@ class MixinTestCase(ORMTestSchema, BulletWorldTestCase):
         self.plan()
         pycram.orm.base.ProcessMetaData().description = "pose_test"
         pycram.task.task_tree.root.insert(self.session)
-        result = self.session.query(pycram.orm.base.Pose).all()
+        result = self.session.scalars(select(pycram.orm.base.Pose)).all()
         self.assertTrue(all([r.position is not None and r.orientation is not None for r in result]))
 
     def test_pose_mixin(self):
         self.plan()
         pycram.orm.base.ProcessMetaData().description = "pose_mixin_test"
         pycram.task.task_tree.root.insert(self.session)
-        result = self.session.query(pycram.orm.base.RobotState).all()
+        result = self.session.scalars(select(pycram.orm.base.RobotState)).all()
         self.assertTrue(all([r.pose is not None and r.pose_id == r.pose.id for r in result]))
 
 
@@ -242,8 +234,8 @@ class ORMObjectDesignatorTestCase(BulletWorldTestCase):
         pycram.orm.base.ProcessMetaData().description = "Unittest"
         tt = pycram.task.task_tree
         tt.insert(self.session)
-        action_results = self.session.query(pycram.orm.action_designator.Action).all()
-        motion_results = self.session.query(pycram.orm.motion_designator.Motion).all()
+        action_results = self.session.scalars(select(pycram.orm.action_designator.Action)).all()
+        motion_results = self.session.scalars(select(pycram.orm.motion_designator.Motion)).all()
         self.assertEqual(len(tt) - 2, len(action_results) + len(motion_results))
 
 
@@ -270,19 +262,13 @@ class ORMActionDesignatorTestCase(BulletWorldTestCase):
         pycram.orm.base.Base.metadata.drop_all(self.engine)
         self.session.close()
 
-    @classmethod
-    def TearDownClass(cls):
-        super().tearDownClass()
-        cls.session.commit()
-        cls.session.close()
-
     def test_code_designator_type(self):
         action = NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]))
         with simulated_robot:
             action.perform()
         pycram.orm.base.ProcessMetaData().description = "code_designator_type_test"
         pycram.task.task_tree.root.insert(self.session)
-        result = self.session.query(pycram.orm.task.Code).filter(pycram.orm.task.Code.function == "perform").all()
+        result = self.session.scalars(select(pycram.orm.task.Code).where(pycram.orm.task.Code.function == "perform")).all()
         self.assertEqual(result[0].designator.dtype, action_designator.NavigateAction.__name__)
         self.assertEqual(result[1].designator.dtype, motion_designator.MoveMotion.__name__)
 
@@ -292,7 +278,7 @@ class ORMActionDesignatorTestCase(BulletWorldTestCase):
             action.perform()
         pycram.orm.base.ProcessMetaData().description = "parkArmsAction_test"
         pycram.task.task_tree.root.insert(self.session)
-        result = self.session.query(pycram.orm.action_designator.ParkArmsAction).all()
+        result = self.session.scalars(select(pycram.orm.action_designator.ParkArmsAction)).all()
         self.assertTrue(all([result[i+1].dtype is not pycram.orm.action_designator.Action.dtype
                              if result[i].dtype is pycram.orm.action_designator.ParkArmsAction.dtype else None
                              for i in range(len(result)-1)]))
@@ -305,8 +291,8 @@ class ORMActionDesignatorTestCase(BulletWorldTestCase):
             action.perform()
         pycram.orm.base.ProcessMetaData().description = "transportAction_test"
         pycram.task.task_tree.root.insert(self.session)
-        result = self.session.query(pycram.orm.action_designator.TransportAction).all()
-        milk_object = self.session.query(pycram.orm.object_designator.Object).first()
+        result = self.session.scalars(select(pycram.orm.action_designator.TransportAction)).all()
+        milk_object = self.session.scalars(select(pycram.orm.object_designator.Object)).first()
         self.assertEqual(milk_object.pose, result[0].object.pose)
 
     def test_lookAt_and_detectAction(self):
@@ -319,7 +305,7 @@ class ORMActionDesignatorTestCase(BulletWorldTestCase):
             action.perform()
         pycram.orm.base.ProcessMetaData().description = "detectAction_test"
         pycram.task.task_tree.root.insert(self.session)
-        result = self.session.query(pycram.orm.action_designator.DetectAction).all()
+        result = self.session.scalars(select(pycram.orm.action_designator.DetectAction)).all()
         self.assertEqual(result[0].object.name, "milk")
 
     def test_setGripperAction(self):
@@ -328,7 +314,7 @@ class ORMActionDesignatorTestCase(BulletWorldTestCase):
             action.perform()
         pycram.orm.base.ProcessMetaData().description = "setGripperAction_test"
         pycram.task.task_tree.root.insert(self.session)
-        result = self.session.query(pycram.orm.action_designator.SetGripperAction).all()
+        result = self.session.scalars(select(pycram.orm.action_designator.SetGripperAction)).all()
         self.assertEqual(result[0].gripper, "left")
         self.assertEqual(result[0].motion, "open")
 
@@ -348,8 +334,8 @@ class ORMActionDesignatorTestCase(BulletWorldTestCase):
 
         pycram.orm.base.ProcessMetaData().description = "open_and_closeAction_test"
         pycram.task.task_tree.root.insert(self.session)
-        open_result = self.session.query(pycram.orm.action_designator.OpenAction).all()
-        close_result = self.session.query(pycram.orm.action_designator.CloseAction).all()
+        open_result = self.session.scalars(select(pycram.orm.action_designator.OpenAction)).all()
+        close_result = self.session.scalars(select(pycram.orm.action_designator.CloseAction)).all()
         self.assertTrue(open_result is not None)
         self.assertEqual(open_result[0].object.name, "handle_cab10_t")
         self.assertTrue(close_result is not None)
