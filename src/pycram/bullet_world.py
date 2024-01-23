@@ -7,13 +7,13 @@ from typing import List, Optional, Dict, Tuple
 
 import numpy as np
 import pybullet as p
-import rospy
 import rosgraph
+import rospy
 
 from .enums import JointType, ObjectType
 from .pose import Pose
 from .world import World, Object
-from .world_dataclasses import Color, Constraint, AxisAlignedBoundingBox
+from .world_dataclasses import Color, Constraint, AxisAlignedBoundingBox, MultiBody
 
 
 class BulletWorld(World):
@@ -401,6 +401,19 @@ class BulletWorld(World):
         for id in self.vis_axis:
             p.removeBody(id, physicsClientId=self.client_id)
         self.vis_axis = []
+
+    def create_multi_body(self, multi_body: MultiBody) -> int:
+        return p.createMultiBody(baseVisualShapeIndex=-MultiBody.base_visual_shape_index,
+                                 linkVisualShapeIndices=MultiBody.link_visual_shape_indices,
+                                 basePosition=MultiBody.base_position, baseOrientation=MultiBody.base_orientation,
+                                 linkPositions=MultiBody.link_positions, linkMasses=MultiBody.link_masses,
+                                 linkOrientations=MultiBody.link_orientations,
+                                 linkInertialFramePositions=MultiBody.link_inertial_frame_positions,
+                                 linkInertialFrameOrientations=MultiBody.link_inertial_frame_orientations,
+                                 linkParentIndices=MultiBody.link_parent_indices,
+                                 linkJointTypes=MultiBody.link_joint_types,
+                                 linkJointAxis=MultiBody.link_joint_axis,
+                                 linkCollisionShapeIndices=MultiBody.link_collision_shape_indices)
 
     def get_images_for_target(self,
                               target_pose: Pose,

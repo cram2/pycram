@@ -1,43 +1,48 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+from typing import Tuple, List, Optional
+
+import matplotlib.pyplot as plt
 import numpy as np
+import psutil
 import pybullet as p
 import rospy
-import matplotlib.pyplot as plt
 from matplotlib import colors
-import psutil
-import time
-from .bullet_world import BulletWorld
-from pycram.world import UseProspectionWorld, Object, Link
-from .world_dataclasses import AxisAlignedBoundingBox
 from nav_msgs.msg import OccupancyGrid, MapMetaData
-from typing import Tuple, List, Union, Optional
 
+from pycram.world import UseProspectionWorld, Object, Link
 from .local_transformer import LocalTransformer
 from .pose import Pose
+from .world import World
+from .world_dataclasses import AxisAlignedBoundingBox, BoxVisualShape, BoxShapeData, MultiBody, Color
 
 
 class Costmap:
     """
     The base class of all Costmaps which implements the visualization of costmaps
-    in the BulletWorld.
+    in the World.
     """
 
     def __init__(self, resolution: float,
                  height: int,
                  width: int,
                  origin: Pose,
-                 map: np.ndarray):
+                 map: np.ndarray,
+                 world: Optional[World] = None):
         """
         The constructor of the base class of all Costmaps.
 
-        :param resolution: The distance in metre in the real world which is represented by a single entry in the costmap.
+        :param resolution: The distance in metre in the real-world which is
+         represented by a single entry in the costmap.
         :param height: The height of the costmap.
         :param width: The width of the costmap.
-        :param origin: The origin of the costmap, in world coordinate frame. The origin of the costmap is located in the centre of the costmap
+        :param origin: The origin of the costmap, in world coordinate frame. The origin of the costmap is located in the
+         centre of the costmap.
         :param map: The costmap represents as a 2D numpy array.
+        :param world: The World for which the costmap should be created.
         """
+        self.world = world if world else World.current_world
         self.resolution: float = resolution
         self.size: int = height
         self.height: int = height
@@ -49,18 +54,15 @@ class Costmap:
 
     def visualize(self) -> None:
         """
-        Visualizes a costmap in the BulletWorld, the visualisation works by
+        Visualizes a costmap in the World, the visualisation works by
         subdividing the costmap in rectangles which are then visualized as pybullet
         visual shapes.
         """
-        if self.vis_ids != []:
+        if self.vis_ids:
             return
 
         # working on a copy of the costmap, since found rectangles are deleted
         map = np.copy(self.map)
-        curr_width = 0
-        curr_height = 0
-        curr_pose = []
         boxes = []
         # Finding all rectangles in the costmap
         for i in range(0, map.shape[0]):
@@ -76,13 +78,13 @@ class Costmap:
         # Creation of the visual shapes, for documentation of the visual shapes
         # please look here: https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#heading=h.q1gn7v6o58bf
         for box in boxes:
-            visual = p.createVisualShape(p.GEOM_BOX,
-                                         halfExtents=[(box[1] * self.resolution) / 2, (box[2] * self.resolution) / 2,
-                                                      0.001],
-                                         rgbaColor=[1, 0, 0, 0.6],
-                                         visualFramePosition=[(box[0][0] + box[1] / 2) * self.resolution,
-                                                              (box[0][1] + box[2] / 2) * self.resolution, 0.])
+            box_shape_data = BoxShapeData([(box[1] * self.resolution) / 2, (box[2] * self.resolution) / 2, 0.001])
+            visual_frame_position = [(box[0][0] + box[1] / 2) * self.resolution,
+                                     (box[0][1] + box[2] / 2) * self.resolution, 0.]
+            visual_shape = BoxVisualShape(Color(1, 0, 0, 0.6), visual_frame_position, box_shape_data)
+            visual = self.world.create_box_visual_shape(visual_shape)
             cells.append(visual)
+
         # Set to 127 for since this is the maximal amount of links in a multibody
         for cell_parts in self._chunks(cells, 127):
             # Dummy paramater since these are needed to spawn visual shapes as a
@@ -94,24 +96,21 @@ class Costmap:
             link_joints = [p.JOINT_FIXED for c in cell_parts]
             link_collision = [-1 for c in cell_parts]
             link_joint_axis = [[1, 0, 0] for c in cell_parts]
-            # The position at which the multibody will be spawned. Offset such that
-            # the origin referes to the centre of the costmap.
-            # origin_pose = self.origin.position_as_list()
-            # base_pose = [origin_pose[0] - self.height / 2 * self.resolution,
-            #              origin_pose[1] - self.width / 2 * self.resolution, origin_pose[2]]
 
             offset = [[-self.height / 2 * self.resolution, -self.width / 2 * self.resolution, 0.05], [0, 0, 0, 1]]
             new_pose = p.multiplyTransforms(self.origin.position_as_list(), self.origin.orientation_as_list(),
                                             offset[0], offset[1])
 
-            map_obj = p.createMultiBody(baseVisualShapeIndex=-1, linkVisualShapeIndices=cell_parts,
-                                        basePosition=new_pose[0], baseOrientation=new_pose[1], linkPositions=link_poses,
-                                        # [0, 0, 1, 0]
-                                        linkMasses=link_masses, linkOrientations=link_orientations,
-                                        linkInertialFramePositions=link_poses,
-                                        linkInertialFrameOrientations=link_orientations, linkParentIndices=link_parent,
-                                        linkJointTypes=link_joints, linkJointAxis=link_joint_axis,
-                                        linkCollisionShapeIndices=link_collision)
+            multi_body = MultiBody(base_visual_shape_index=-1, base_position=new_pose[0], base_orientation=new_pose[1],
+                                   link_visual_shape_indices=cell_parts, link_positions=link_poses,
+                                   link_orientations=link_orientations, link_masses=link_masses,
+                                   link_inertial_frame_positions=link_poses,
+                                   link_inertial_frame_orientations=link_orientations,
+                                   link_parent_indices=link_parent, link_joint_types=link_joints,
+                                   link_joint_axis=link_joint_axis,
+                                   link_collision_shape_indices=link_collision)
+
+            map_obj = self.world.create_multi_body(multi_body)
             self.vis_ids.append(map_obj)
 
     def _chunks(self, lst: List, n: int) -> List:
@@ -127,7 +126,7 @@ class Costmap:
 
     def close_visualization(self) -> None:
         """
-        Removes the visualization from the BulletWorld.
+        Removes the visualization from the World.
         """
         for id in self.vis_ids:
             p.removeBody(id)
@@ -151,7 +150,7 @@ class Costmap:
                 return lenght
         return lenght
 
-    def _find_max_box_height(self, start: Tuple[int, int], lenght: int, map: np.ndarray) -> int:
+    def _find_max_box_height(self, start: Tuple[int, int], length: int, map: np.ndarray) -> int:
         """
         Finds the maximal height for a rectangle with a given width in a costmap.
         The method traverses one row at a time and checks if all entries for the
@@ -166,7 +165,7 @@ class Costmap:
         height, width = map.shape
         curr_height = 1
         for i in range(start[0], height):
-            for j in range(start[1], start[1] + lenght):
+            for j in range(start[1], start[1] + length):
                 if map[i][j] <= 0:
                     return curr_height
             curr_height += 1
@@ -235,9 +234,9 @@ class OccupancyCostmap(Costmap):
             inflated. Meaning that obstacles in the costmap are growing bigger by this
             distance.
         :param from_ros: This determines if the Occupancy map should be created
-            from the map provided by the ROS map_server or from the BulletWorld.
+            from the map provided by the ROS map_server or from the World.
             If True then the map from the ROS map_server will be used otherwise
-            the Occupancy map will be created from the BulletWorld.
+            the Occupancy map will be created from the World.
         :param size: The length of the side of the costmap. The costmap will be created
             as a square. This will only be used if from_ros is False.
         :param resolution: The resolution of this costmap. This determines how much
@@ -281,7 +280,7 @@ class OccupancyCostmap(Costmap):
         """
         actual_origin = [int(height / 2) * self.resolution, int(width / 2) * self.resolution, 0]
         origin = np.array(self.meta_origin) + np.array(actual_origin)
-        return Pose(origin)
+        return Pose(origin.tolist())
 
     @staticmethod
     def _get_map() -> np.ndarray:
@@ -361,7 +360,7 @@ class OccupancyCostmap(Costmap):
 
     def _create_from_bullet(self, size: int, resolution: float) -> np.ndarray:
         """
-        Creates an Occupancy Costmap for the specified BulletWorld.
+        Creates an Occupancy Costmap for the specified World.
         This map marks every position as valid that has no object above it. After
         creating the costmap the distance to obstacle parameter is applied.
 
@@ -388,15 +387,16 @@ class OccupancyCostmap(Costmap):
         for n in self._chunks(np.array(rays), 16380):
             with UseProspectionWorld():
                 r_t = p.rayTestBatch(n[:, 0], n[:, 1], numThreads=0,
-                                     physicsClientId=BulletWorld.current_world.client_id)
+                                     physicsClientId=World.current_world.client_id)
                 while r_t is None:
                     r_t = p.rayTestBatch(n[:, 0], n[:, 1], numThreads=0,
-                                         physicsClientId=BulletWorld.current_world.client_id)
+                                         physicsClientId=World.current_world.client_id)
                 j += len(n)
-                if BulletWorld.robot:
-                    shadow_robot = BulletWorld.current_world.get_prospection_object_from_object(BulletWorld.robot)
-                    attached_objs = BulletWorld.robot.attachments.keys()
-                    attached_objs_shadow_id = [BulletWorld.current_world.get_prospection_object_from_object(x).id for x in
+                if World.robot:
+                    shadow_robot = World.current_world.get_prospection_object_from_object(World.robot)
+                    attached_objs = World.robot.attachments.keys()
+                    attached_objs_shadow_id = [World.current_world.get_prospection_object_from_object(x).id for x
+                                               in
                                                attached_objs]
                     res[i:j] = [
                         1 if ray[0] == -1 or ray[0] == shadow_robot.id or ray[0] in attached_objs_shadow_id else 0 for
@@ -450,7 +450,7 @@ class VisibilityCostmap(Costmap):
                  size: Optional[int] = 100,
                  resolution: Optional[float] = 0.02,
                  origin: Optional[Pose] = None,
-                 world: Optional[BulletWorld] = None):
+                 world: Optional[World] = None):
         """
         Visibility Costmaps show for every position around the origin pose if the origin can be seen from this pose.
         The costmap is able to deal with height differences of the camera while in a single position, for example, if
@@ -466,12 +466,11 @@ class VisibilityCostmap(Costmap):
             costmap represents.
         :param origin: The pose in world coordinate frame around which the
             costmap should be created.
-        :param world: The BulletWorld for which the costmap should be created.
+        :param world: The World for which the costmap should be created.
         """
         if (11 * size ** 2 + size ** 3) * 2 > psutil.virtual_memory().available:
             raise OSError("Not enough free RAM to calculate a costmap of this size")
 
-        self.world = world if world else BulletWorld.current_world
         self.map = np.zeros((size, size))
         self.size = size
         self.resolution = resolution
@@ -584,7 +583,7 @@ class VisibilityCostmap(Costmap):
         depth_indices[int(self.size / 2), int(self.size / 2), 1] = 1
 
         # Calculate columns for the respective position in the costmap
-        columns = np.around(((depth_indices[:, :, :1] / depth_indices[:, :, 1:2]) \
+        columns = np.around(((depth_indices[:, :, :1] / depth_indices[:, :, 1:2])
                              * (self.size / 2)) + self.size / 2).reshape((self.size, self.size)).astype('int16')
 
         # An array with size * size that contains the euclidean distance to the
@@ -691,9 +690,9 @@ class SemanticCostmap(Costmap):
         :param object: The object of which the link is a part
         :param urdf_link_name: The link name, as stated in the URDF
         :param resolution: Resolution of the final costmap
-        :param world: The BulletWorld from which the costmap should be created
+        :param world: The World from which the costmap should be created
         """
-        self.world: BulletWorld = world if world else BulletWorld.current_world
+        self.world: World = world if world else World.current_world
         self.object: Object = object
         self.link: Link = object.links[urdf_link_name]
         self.resolution: float = resolution
@@ -723,7 +722,7 @@ class SemanticCostmap(Costmap):
 
         :return: Two points in world coordinate space, which span a rectangle
         """
-        prospection_object = BulletWorld.current_world.get_prospection_object_from_object(self.object)
+        prospection_object = World.current_world.get_prospection_object_from_object(self.object)
         with UseProspectionWorld():
             prospection_object.set_orientation(Pose(orientation=[0, 0, 0, 1]))
             link_pose_trans = self.link.transform

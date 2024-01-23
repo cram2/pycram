@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Callable
-from .enums import JointType
+from .enums import JointType, Shape
 
 
 @dataclass
@@ -139,3 +139,101 @@ class AxisAlignedBoundingBox:
 class CollisionCallbacks:
     on_collision_cb: Callable
     no_collision_cb: Optional[Callable] = None
+
+
+@dataclass
+class MultiBody:
+    base_visual_shape_index: int
+    base_position: List[float]
+    base_orientation: List[float]
+    link_visual_shape_indices: List[int]
+    link_positions: List[List[float]]
+    link_orientations: List[List[float]]
+    link_masses: List[float]
+    link_inertial_frame_positions: List[List[float]]
+    link_inertial_frame_orientations: List[List[float]]
+    link_parent_indices: List[int]
+    link_joint_types: List[JointType]
+    link_joint_axis: List[List[float]]
+    link_collision_shape_indices: List[int]
+
+
+@dataclass
+class ShapeData:
+    pass
+
+
+@dataclass
+class BoxShapeData(ShapeData):
+    half_extents: List[float]
+
+
+@dataclass
+class SphereShapeData(ShapeData):
+    radius: float
+
+
+@dataclass
+class CapsuleShapeData(ShapeData):
+    radius: float
+    length: float
+
+
+@dataclass
+class CylinderShapeData(ShapeData):
+    radius: float
+    length: float
+
+
+@dataclass
+class MeshShapeData(ShapeData):
+    mesh_scale: List[float]
+    mesh_file_name: str
+
+
+@dataclass
+class PlaneShapeData(ShapeData):
+    normal: List[float]
+
+
+@dataclass
+class VisualShape:
+    rgba_color: Color
+    visual_frame_position: List[float]
+    shape_data: ShapeData
+
+
+@dataclass
+class BoxVisualShape(VisualShape):
+    shape_data: BoxShapeData
+    visual_geometry_type = Shape.BOX
+
+
+@dataclass
+class SphereVisualShape(VisualShape):
+    shape_data: SphereShapeData
+    visual_geometry_type = Shape.SPHERE
+
+
+@dataclass
+class CapsuleVisualShape(VisualShape):
+    shape_data: CapsuleShapeData
+    visual_geometry_type = Shape.CAPSULE
+
+
+@dataclass
+class CylinderVisualShape(VisualShape):
+    shape_data: CylinderShapeData
+    visual_geometry_type = Shape.CYLINDER
+
+
+@dataclass
+class MeshVisualShape(VisualShape):
+    visual_geometry_type = Shape.MESH
+    shape_data: MeshShapeData
+
+
+@dataclass
+class PlaneVisualShape(VisualShape):
+    shape_data: PlaneShapeData
+    visual_geometry_type = Shape.PLANE

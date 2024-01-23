@@ -2,6 +2,8 @@
 
 from enum import Enum, auto
 
+import pybullet
+
 
 class Arms(Enum):
     """Enum for Arms."""
@@ -57,3 +59,14 @@ class ObjectType(Enum):
     ENVIRONMENT = auto()
     GENERIC_OBJECT = auto()
 
+
+class Shape(Enum):
+    """
+    Enum for visual shapes of objects
+    """
+    SPHERE = 2
+    BOX = 3
+    CYLINDER = 4
+    MESH = 5
+    PLANE = 6
+    CAPSULE = 7
