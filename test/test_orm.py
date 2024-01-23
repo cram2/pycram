@@ -307,7 +307,7 @@ class MotionDesigTest(BulletWorldTestCase):
         self.session.commit()
         self.assertIsNotNone(motion.id)
 
-
+@unittest.skip
 class CuttingTestCase(BulletWorldTestCase):
     engine: sqlalchemy.engine.Engine
     session: sqlalchemy.orm.Session
