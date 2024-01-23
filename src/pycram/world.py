@@ -32,7 +32,9 @@ from .pose import Pose, Transform
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from .world_dataclasses import Color, Constraint, AxisAlignedBoundingBox, CollisionCallbacks
+from .world_dataclasses import (Color, Constraint, AxisAlignedBoundingBox, CollisionCallbacks,
+                                MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape, SphereVisualShape,
+                                CapsuleVisualShape, PlaneVisualShape, MeshVisualShape)
 
 
 class World(ABC):
@@ -698,7 +700,8 @@ class World(ABC):
         """
         world = World("DIRECT", False, World.simulation_time_step)
         for obj in self.objects:
-            o = Object(obj.name, obj.obj_type, obj.path, Pose(obj.get_position(), obj.get_orientation()), world,
+            obj_pose = Pose(obj.get_position_as_list(), obj.get_orientation_as_list())
+            o = Object(obj.name, obj.obj_type, obj.path, obj_pose, world,
                        obj.color)
             for joint in obj.joint_name_to_id:
                 o.set_joint_position(joint, obj.get_joint_position(joint))
@@ -792,6 +795,30 @@ class World(ABC):
         curr_time = rospy.Time.now()
         for obj in list(self.current_world.objects):
             obj.update_link_transforms(curr_time)
+
+    def create_visual_shape(self, visual_shape: VisualShape) -> int:
+        raise NotImplementedError
+
+    def create_multi_body(self, multi_body: MultiBody) -> int:
+        raise NotImplementedError
+
+    def create_box_visual_shape(self, shape_data: BoxVisualShape) -> int:
+        raise NotImplementedError
+
+    def create_cylinder_visual_shape(self, shape_data: CylinderVisualShape) -> int:
+        raise NotImplementedError
+
+    def create_sphere_visual_shape(self, shape_data: SphereVisualShape) -> int:
+        raise NotImplementedError
+
+    def create_capsule_visual_shape(self, shape_data: CapsuleVisualShape) -> int:
+        raise NotImplementedError
+
+    def create_plane_visual_shape(self, shape_data: PlaneVisualShape) -> int:
+        raise NotImplementedError
+
+    def create_mesh_visual_shape(self, shape_data: MeshVisualShape) -> int:
+        raise NotImplementedError
 
 
 class UseProspectionWorld:
@@ -1602,7 +1629,10 @@ class Object:
         self.world.set_object_color(self, color, link)
 
     def get_color(self, link: Optional[str] = None) -> Union[Color, Dict[str, Color], None]:
-        return self.world.get_color_of_object(self, link)
+        if link is None:
+            return self.world.get_color_of_object(self)
+        else:
+            return self.world.get_color_of_object_link(self, link)
 
     def get_aabb(self) -> AxisAlignedBoundingBox:
         return self.world.get_object_aabb(self)
