@@ -9,8 +9,7 @@
     <include file="$(find pr2_arm_kinematics)/launch/pr2_ik_larm_node.launch"/>
     <include file="$(find pr2_arm_kinematics)/launch/pr2_ik_rarm_node.launch"/>
     <param name="robot_description"
-           command="$(find xacro)/xacro
-                    '$(find pr2_description)/robots/pr2.urdf.xacro'"/>
+           textfile="$(find pycram)/resources/pr2.urdf"/>
   </group>
   <!-- Boxy -->
   <group if="$(eval robot == 'boxy')">
@@ -30,7 +29,7 @@
   <!-- Donbot -->
   <group if="$(eval robot == 'donbot')">
     <param name="robot_description"
-              textfile="$(find pycram)/resources/donbot.urdf"/>
+              textfile="$(find pycram)/resources/iai_donbot.urdf"/>
   </group>
 
   <!-- HSR -->

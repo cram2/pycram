@@ -340,9 +340,9 @@ class PickUpAction(ActionDesignatorDescription):
             # BulletWorld.current_bullet_world.add_vis_axis(gripper_rotate_pose)
             # MoveTCPMotion(gripper_rotate_pose, self.arm).resolve().perform()
 
-            oTg = object.local_transformer.transform_pose_to_target_frame(adjusted_oTm, gripper_frame)
-            oTg.pose.position.x -= 0.1 # in x since this is how the gripper is oriented
-            prepose = object.local_transformer.transform_pose_to_target_frame(oTg, "map")
+            oTg = object.local_transformer.transform_pose(adjusted_oTm, gripper_frame)
+            oTg.pose.position.x -= 0.07 # in x since this is how the gripper is oriented
+            prepose = object.local_transformer.transform_pose(oTg, "map")
 
             # Perform the motion with the prepose and open gripper
             BulletWorld.current_world.add_vis_axis(prepose)
@@ -445,7 +445,8 @@ class PlaceAction(ActionDesignatorDescription):
             MoveTCPMotion(target_diff, self.arm).resolve().perform()
             MoveGripperMotion("open", self.arm).resolve().perform()
             BulletWorld.robot.detach(self.object_designator.bullet_world_object)
-            retract_pose = target_diff
+            retract_pose = local_tf.transform_pose(target_diff,BulletWorld.robot.get_link_tf_frame(
+                                                        robot_description.get_tool_frame(self.arm)))
             retract_pose.position.x -= 0.07
             MoveTCPMotion(retract_pose, self.arm).resolve().perform()
 

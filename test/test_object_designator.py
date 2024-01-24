@@ -1,10 +1,10 @@
 import unittest
-import test_bullet_world
+from bullet_world_testcase import BulletWorldTestCase
 from pycram.designators.object_designator import *
 from pycram.enums import ObjectType
 
 
-class TestObjectDesignator(test_bullet_world.BulletWorldTest):
+class TestObjectDesignator(BulletWorldTestCase):
 
     def test_object_grounding(self):
         description = ObjectDesignatorDescription(["milk"], [ObjectType.MILK])

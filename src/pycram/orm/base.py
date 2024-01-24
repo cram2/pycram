@@ -1,5 +1,6 @@
 """Implementation of base classes for orm modelling."""
 import datetime
+import getpass
 import os
 from typing import Optional
 
@@ -61,7 +62,7 @@ class Base(_Base, MappedAsDataclass):
 class MapperArgsMixin:
     """
     MapperArgsMixin stores __mapper_args__ information for certain subclass-tables.
-    For information about Mixins, see https://docs.sqlalchemy.org/en/13/orm/extensions/declarative/mixins.html
+    For information about Mixins, see https://docs.sqlalchemy.org/en/20/orm/declarative_mixins.html
     """
 
     __abstract__ = True
@@ -74,7 +75,7 @@ class MapperArgsMixin:
 class PositionMixin:
     """
     PositionMixin holds a foreign key column and its relationship to the referenced table.
-    For information about Mixins, see https://docs.sqlalchemy.org/en/13/orm/extensions/declarative/mixins.html
+    For information about Mixins, see https://docs.sqlalchemy.org/en/20/orm/declarative_mixins.html
     """
 
     __abstract__ = True
@@ -92,7 +93,7 @@ class PositionMixin:
 class QuaternionMixin:
     """
     QuaternionMixin holds a foreign key column and its relationship to the referenced table.
-    For information about Mixins, see https://docs.sqlalchemy.org/en/13/orm/extensions/declarative/mixins.html
+    For information about Mixins, see https://docs.sqlalchemy.org/en/20/orm/declarative_mixins.html
     """
 
     __abstract__ = True
@@ -110,7 +111,7 @@ class QuaternionMixin:
 class PoseMixin:
     """
     PoseMixin holds a foreign key column and its relationship to the referenced table.
-    For information about Mixins, see https://docs.sqlalchemy.org/en/13/orm/extensions/declarative/mixins.html
+    For information about Mixins, see https://docs.sqlalchemy.org/en/20/orm/declarative_mixins.html
     """
 
     __abstract__ = True
@@ -136,7 +137,7 @@ class ProcessMetaData(MappedAsDataclass, _Base):
                                                           init=False)
     """The timestamp where this row got created. This is an aid for versioning."""
 
-    created_by: Mapped[str] = mapped_column(default=os.getlogin(), init=False)
+    created_by: Mapped[str] = mapped_column(default=getpass.getuser(), init=False)
     """The user that created the experiment."""
 
     description: Mapped[str] = mapped_column(init=False)
