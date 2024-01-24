@@ -1015,7 +1015,7 @@ class Link:
         return self.get_pose_wrt_link(link).to_transform(self.tf_frame)
 
     def get_pose_wrt_link(self, link: Link) -> Pose:
-        return self.local_transformer.transform_pose_to_target_frame(self.pose, link.tf_frame)
+        return self.local_transformer.transform_pose(self.pose, link.tf_frame)
 
     def get_aabb(self) -> AxisAlignedBoundingBox:
         return self.world.get_object_link_aabb(self.object.id, self.id)
@@ -1131,7 +1131,7 @@ class Object:
         self.color: Color = color
 
         self.local_transformer = LocalTransformer()
-        self.original_pose = self.local_transformer.transform_pose_to_target_frame(pose, "map")
+        self.original_pose = self.local_transformer.transform_pose(pose, "map")
         position, orientation = self.original_pose.to_list()
         self.id, self.path = _load_object(name, path, position, orientation, self.world, color, ignore_cached_files)
         self._current_pose = self.original_pose
@@ -1332,7 +1332,7 @@ class Object:
         :param base: If True places the object base instead of origin at the specified position and orientation
         :param set_attachments: Whether to set the poses of the attached objects to this object or not.
         """
-        pose_in_map = self.local_transformer.transform_pose_to_target_frame(pose, "map")
+        pose_in_map = self.local_transformer.transform_pose(pose, "map")
 
         position, orientation = pose_in_map.to_list()
         if base:

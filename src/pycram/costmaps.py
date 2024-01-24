@@ -48,7 +48,7 @@ class Costmap:
         self.height: int = height
         self.width: int = width
         local_transformer = LocalTransformer()
-        self.origin: Pose = local_transformer.transform_pose_to_target_frame(origin, 'map')
+        self.origin: Pose = local_transformer.transform_pose(origin, 'map')
         self.map: np.ndarray = map
         self.vis_ids: List[int] = []
 
@@ -471,6 +471,7 @@ class VisibilityCostmap(Costmap):
         if (11 * size ** 2 + size ** 3) * 2 > psutil.virtual_memory().available:
             raise OSError("Not enough free RAM to calculate a costmap of this size")
 
+        self.world = world if world else World.current_world
         self.map = np.zeros((size, size))
         self.size = size
         self.resolution = resolution

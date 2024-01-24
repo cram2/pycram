@@ -91,7 +91,7 @@ class Pr2Place(ProcessModule):
         object_pose = object.get_pose()
         local_tf = LocalTransformer()
         tool_name = robot_description.get_tool_frame(arm)
-        tcp_to_object = local_tf.transform_pose_to_target_frame(object_pose, robot.links[tool_name].tf_frame)
+        tcp_to_object = local_tf.transform_pose(object_pose, robot.links[tool_name].tf_frame)
         target_diff = desig.target.to_transform("target").inverse_times(tcp_to_object.to_transform("object")).to_pose()
 
         _move_arm_tcp(target_diff, robot, arm)
@@ -109,8 +109,8 @@ class Pr2MoveHead(ProcessModule):
         robot = BulletWorld.robot
 
         local_transformer = LocalTransformer()
-        pose_in_pan = local_transformer.transform_pose_to_target_frame(target, robot.links["head_pan_link"].tf_frame)
-        pose_in_tilt = local_transformer.transform_pose_to_target_frame(target, robot.links["head_tilt_link"].tf_frame)
+        pose_in_pan = local_transformer.transform_pose(target, robot.links["head_pan_link"].tf_frame)
+        pose_in_tilt = local_transformer.transform_pose(target, robot.links["head_tilt_link"].tf_frame)
 
         new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
         new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2) * -1
@@ -289,8 +289,8 @@ class Pr2MoveHeadReal(ProcessModule):
         robot = BulletWorld.robot
 
         local_transformer = LocalTransformer()
-        pose_in_pan = local_transformer.transform_pose_to_target_frame(target, robot.links["head_pan_link"].tf_frame)
-        pose_in_tilt = local_transformer.transform_pose_to_target_frame(target, robot.links["head_tilt_link"].tf_frame)
+        pose_in_pan = local_transformer.transform_pose(target, robot.links["head_pan_link"].tf_frame)
+        pose_in_tilt = local_transformer.transform_pose(target, robot.links["head_tilt_link"].tf_frame)
 
         new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
         new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2) * -1
@@ -315,7 +315,7 @@ class Pr2DetectingReal(ProcessModule):
         obj_pose = query_result["ClusterPoseBBAnnotator"]
 
         lt = LocalTransformer()
-        obj_pose = lt.transform_pose_to_target_frame(obj_pose, BulletWorld.robot.links["torso_lift_link"].tf_frame)
+        obj_pose = lt.transform_pose(obj_pose, BulletWorld.robot.links["torso_lift_link"].tf_frame)
         obj_pose.orientation = [0, 0, 0, 1]
         obj_pose.position.x += 0.05
 
@@ -344,7 +344,7 @@ class Pr2MoveTCPReal(ProcessModule):
 
     def _execute(self, designator: MoveTCPMotion.Motion) -> Any:
         lt = LocalTransformer()
-        pose_in_map = lt.transform_pose_to_target_frame(designator.target, "map")
+        pose_in_map = lt.transform_pose(designator.target, "map")
 
         if designator.allow_gripper_collision:
             giskard.allow_gripper_collision(designator.arm)

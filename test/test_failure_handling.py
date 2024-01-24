@@ -34,7 +34,7 @@ class FailureHandlingTest(unittest.TestCase):
         ProcessModule.execution_delay = True
 
     def setUp(self):
-        self.world.reset_bullet_world()
+        self.world.reset_world()
 
     def test_retry_with_success(self):
         with simulated_robot:
@@ -46,7 +46,7 @@ class FailureHandlingTest(unittest.TestCase):
                 Retry(DummyActionDesignator(), max_tries=5).perform()
 
     def tearDown(self):
-        self.world.reset_bullet_world()
+        self.world.reset_world()
 
     @classmethod
     def tearDownClass(cls):
