@@ -1,8 +1,10 @@
 from threading import Lock
 
+from typing import Optional
 from ..robot_descriptions import robot_description
 from ..process_module import ProcessModule, ProcessModuleManager
-from ..bullet_world import BulletWorld
+from ..world import World
+from ..pose import Pose, Point
 from ..helper import _apply_ik
 import pycram.world_reasoning as btr
 import pybullet as p
@@ -10,14 +12,26 @@ import logging
 import time
 
 
+def calculate_and_apply_ik(robot, gripper: str, target_position: Point, max_iterations: Optional[int] = None):
+    """
+    Calculates the inverse kinematics for the given target pose and applies it to the robot.
+    """
+    inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), target_position,
+                                       maxNumIterations=max_iterations)
+    # TODO: Check if this is correct (getting the arm and using its joints), previously joints was not provided.
+    arm = "right" if gripper == robot_description.get_tool_frame("right") else "left"
+    joints = robot_description.chains[arm].joints
+    _apply_ik(robot, inv, joints)
+
+
 def _park_arms(arm):
     """
     Defines the joint poses for the parking positions of the arm of HSR and applies them to the
-    in the BulletWorld defined robot.
+    in the World defined robot.
     :return: None
     """
 
-    robot = BulletWorld.robot
+    robot = World.robot
     if arm == "left":
         for joint, pose in robot_description.get_static_joint_chain("left", "park").items():
             robot.set_joint_position(joint, pose)
@@ -31,8 +45,8 @@ class HSRNavigation(ProcessModule):
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == 'navigate':
-            robot = BulletWorld.robot
-            robot.set_position_and_orientation(solution['target'], solution['orientation'])
+            robot = World.robot
+            robot.set_pose(Pose(solution['target'], solution['orientation']))
 
 
 class HSRPickUp(ProcessModule):
@@ -44,13 +58,13 @@ class HSRPickUp(ProcessModule):
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == 'pick':
-            object = solution['object']
-            robot = BulletWorld.robot
-            target = object.get_position()
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), target,
-                                               maxNumIterations=100)
-            _apply_ik(robot, inv)
-            robot.attach(object, solution['gripper'])
+            obj = solution['object']
+            robot = World.robot
+            target = obj.get_position()
+
+            calculate_and_apply_ik(robot, solution['gripper'], target, 100)
+
+            robot.attach(obj, solution['gripper'])
             time.sleep(0.5)
 
 
@@ -62,12 +76,10 @@ class HSRPlace(ProcessModule):
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == 'place':
-            object = solution['object']
-            robot = BulletWorld.robot
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(solution['gripper']), solution['target'],
-                                               maxNumIterations=100)
-            _apply_ik(robot, inv)
-            robot.detach(object)
+            obj = solution['object']
+            robot = World.robot
+            calculate_and_apply_ik(robot, solution['gripper'], solution['target'], 100)
+            robot.detach(obj)
             time.sleep(0.5)
 
 
@@ -83,19 +95,16 @@ class HSRAccessing(ProcessModule):
         solution = desig.reference()
         if solution['cmd'] == 'access':
             kitchen = solution['part_of']
-            robot = BulletWorld.robot
+            robot = World.robot
             gripper = solution['gripper']
             drawer_handle = solution['drawer_handle']
             drawer_joint = solution['drawer_joint']
             dis = solution['distance']
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper),
-                                               kitchen.links[drawer_handle].position)
-            _apply_ik(robot, inv)
+            calculate_and_apply_ik(robot, gripper, kitchen.links[drawer_handle].position)
             time.sleep(0.2)
             han_pose = kitchen.links[drawer_handle].position
-            new_p = [han_pose[0] - dis, han_pose[1], han_pose[2]]
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), new_p)
-            _apply_ik(robot, inv)
+            new_p = Point(han_pose[0] - dis, han_pose[1], han_pose[2])
+            calculate_and_apply_ik(robot, gripper, new_p)
             kitchen.set_joint_position(drawer_joint, 0.3)
             time.sleep(0.5)
 
@@ -123,7 +132,7 @@ class HSRMoveHead(ProcessModule):
         if solutions['cmd'] == 'looking':
             target = solutions['target']
             if target == 'forward' or target == 'down':
-                robot = BulletWorld.robot
+                robot = World.robot
                 for joint, state in robot_description.get_static_joint_chain("neck", target).items():
                     robot.set_joint_position(joint, state)
             else:
@@ -139,7 +148,7 @@ class HSRMoveGripper(ProcessModule):
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == "move-gripper":
-            robot = BulletWorld.robot
+            robot = World.robot
             gripper = solution['gripper']
             motion = solution['motion']
             for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
@@ -156,12 +165,12 @@ class HSRDetecting(ProcessModule):
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == "detecting":
-            robot = BulletWorld.robot
+            robot = World.robot
             object_type = solution['object_type']
             cam_frame_name = solution['cam_frame']
             front_facing_axis = solution['front_facing_axis']
 
-            objects = BulletWorld.current_world.get_objects_by_type(object_type)
+            objects = World.current_world.get_objects_by_type(object_type)
             for obj in objects:
                 if btr.visible(obj, robot.links[cam_frame_name].pose, front_facing_axis, 0.5):
                     return obj
@@ -177,9 +186,8 @@ class HSRMoveTCP(ProcessModule):
         if solution['cmd'] == "move-tcp":
             target = solution['target']
             gripper = solution['gripper']
-            robot = BulletWorld.robot
-            inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), target)
-            _apply_ik(robot, inv)
+            robot = World.robot
+            calculate_and_apply_ik(robot, gripper, target)
             time.sleep(0.5)
 
 
@@ -192,7 +200,7 @@ class HSRMoveJoints(ProcessModule):
     def _execute(self, desig):
         solution = desig.reference()
         if solution['cmd'] == "move-arm-joints":
-            robot = BulletWorld.robot
+            robot = World.robot
             left_arm_poses = solution['left_arm_poses']
 
             if type(left_arm_poses) == dict:
@@ -213,7 +221,7 @@ class HSRWorldStateDetecting(ProcessModule):
         solution = desig.reference()
         if solution['cmd'] == "world-state-detecting":
             obj_type = solution['object_type']
-            return list(filter(lambda obj: obj.obj_type == obj_type, BulletWorld.current_world.objects))[0]
+            return list(filter(lambda obj: obj.obj_type == obj_type, World.current_world.objects))[0]
 
 
 class HSRManager(ProcessModuleManager):

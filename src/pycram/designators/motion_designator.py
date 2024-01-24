@@ -291,7 +291,7 @@ class LookingMotion(MotionDesignatorDescription):
         super().__init__(resolver)
         self.cmd: str = 'looking'
         self.target: Optional[Pose] = target
-        self.object: Object = object.bullet_world_object if object else object
+        self.object: Object = object.world_object if object else object
 
     def ground(self) -> Motion:
         """

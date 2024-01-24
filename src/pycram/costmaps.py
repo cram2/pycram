@@ -6,16 +6,15 @@ from typing import Tuple, List, Optional
 import matplotlib.pyplot as plt
 import numpy as np
 import psutil
-import pybullet as p
 import rospy
 from matplotlib import colors
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 
 from pycram.world import UseProspectionWorld, Object, Link
 from .local_transformer import LocalTransformer
-from .pose import Pose
+from .pose import Pose, Transform
 from .world import World
-from .world_dataclasses import AxisAlignedBoundingBox, BoxVisualShape, BoxShapeData, MultiBody, Color
+from .world_dataclasses import AxisAlignedBoundingBox, BoxVisualShape, BoxShapeData, MultiBody, Color, JointType
 
 
 class Costmap:
@@ -82,7 +81,7 @@ class Costmap:
             visual_frame_position = [(box[0][0] + box[1] / 2) * self.resolution,
                                      (box[0][1] + box[2] / 2) * self.resolution, 0.]
             visual_shape = BoxVisualShape(Color(1, 0, 0, 0.6), visual_frame_position, box_shape_data)
-            visual = self.world.create_box_visual_shape(visual_shape)
+            visual = self.world.create_visual_shape(visual_shape)
             cells.append(visual)
 
         # Set to 127 for since this is the maximal amount of links in a multibody
@@ -93,13 +92,15 @@ class Costmap:
             link_orientations = [[0, 0, 0, 1] for c in cell_parts]
             link_masses = [1.0 for c in cell_parts]
             link_parent = [0 for c in cell_parts]
-            link_joints = [p.JOINT_FIXED for c in cell_parts]
+            link_joints = [JointType.FIXED for c in cell_parts]
             link_collision = [-1 for c in cell_parts]
             link_joint_axis = [[1, 0, 0] for c in cell_parts]
 
-            offset = [[-self.height / 2 * self.resolution, -self.width / 2 * self.resolution, 0.05], [0, 0, 0, 1]]
-            new_pose = p.multiplyTransforms(self.origin.position_as_list(), self.origin.orientation_as_list(),
-                                            offset[0], offset[1])
+            offset = Transform([-self.height / 2 * self.resolution, -self.width / 2 * self.resolution, 0.05],
+                               [0, 0, 0, 1])
+            origin = Transform(self.origin.position_as_list(), self.origin.orientation_as_list())
+            new_transform = origin * offset
+            new_pose = new_transform.to_pose().to_list()
 
             multi_body = MultiBody(base_visual_shape_index=-1, base_position=new_pose[0], base_orientation=new_pose[1],
                                    link_visual_shape_indices=cell_parts, link_positions=link_poses,
@@ -128,8 +129,8 @@ class Costmap:
         """
         Removes the visualization from the World.
         """
-        for id in self.vis_ids:
-            p.removeBody(id)
+        for v_id in self.vis_ids:
+            self.world.remove_object(v_id)
         self.vis_ids = []
 
     def _find_consectuive_line(self, start: Tuple[int, int], map: np.ndarray) -> int:
@@ -224,7 +225,8 @@ class OccupancyCostmap(Costmap):
                  from_ros: Optional[bool] = False,
                  size: Optional[int] = 100,
                  resolution: Optional[float] = 0.02,
-                 origin: Optional[Pose] = None):
+                 origin: Optional[Pose] = None,
+                 world: Optional[World] = None):
         """
         Constructor for the Occupancy costmap, the actual costmap is received
         from the ROS map_server and wrapped by this class. Meta-data about the
@@ -246,6 +248,7 @@ class OccupancyCostmap(Costmap):
             be in the middle of the costmap. This parameter is only used if from_ros
             is False.
         """
+        self.world = world if world else World.current_world
         if from_ros:
             meta = self._get_map_metadata()
             self.original_map = np.reshape(self._get_map(), (meta.height, meta.width))
@@ -386,11 +389,9 @@ class OccupancyCostmap(Costmap):
         j = 0
         for n in self._chunks(np.array(rays), 16380):
             with UseProspectionWorld():
-                r_t = p.rayTestBatch(n[:, 0], n[:, 1], numThreads=0,
-                                     physicsClientId=World.current_world.client_id)
+                r_t = self.world.ray_test_batch(n[:, 0], n[:, 1], num_threads=0)
                 while r_t is None:
-                    r_t = p.rayTestBatch(n[:, 0], n[:, 1], numThreads=0,
-                                         physicsClientId=World.current_world.client_id)
+                    r_t = self.world.ray_test_batch(n[:, 0], n[:, 1], num_threads=0)
                 j += len(n)
                 if World.robot:
                     shadow_robot = World.current_world.get_prospection_object_from_object(World.robot)

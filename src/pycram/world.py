@@ -45,8 +45,8 @@ class World(ABC):
     current_world: World = None
     """
         Global reference to the currently used World, usually this is the
-        graphical one. However, if you are inside a Use_shadow_world() environment the current_world points to the
-        shadow world. In this way you can comfortably use the current_world, which should point towards the World
+        graphical one. However, if you are inside a UseProspectionWorld() environment the current_world points to the
+        prospection world. In this way you can comfortably use the current_world, which should point towards the World
         used at the moment.
     """
 
@@ -533,7 +533,7 @@ class World(ABC):
     @abstractmethod
     def set_realtime(self, real_time: bool) -> None:
         """
-        Enables the real time simulation of Physic in the BulletWorld. By default, this is disabled and Physics is only
+        Enables the real time simulation of Physics in the World. By default, this is disabled and Physics is only
         simulated to reason about it.
 
         :param real_time: Whether the World should simulate Physics in real time.
@@ -579,7 +579,7 @@ class World(ABC):
 
     def exit(self, wait_time_before_exit_in_secs: Optional[float] = None) -> None:
         """
-        Closes the World as well as the shadow world, also collects any other thread that is running.
+        Closes the World as well as the prospection world, also collects any other thread that is running.
         """
         if wait_time_before_exit_in_secs is not None:
             time.sleep(wait_time_before_exit_in_secs)
@@ -727,7 +727,7 @@ class World(ABC):
     @classmethod
     def add_resource_path(cls, path: str) -> None:
         """
-        Adds a resource path in which the BulletWorld will search for files. This resource directory is searched if an
+        Adds a resource path in which the World will search for files. This resource directory is searched if an
         Object is spawned only with a filename.
 
         :param path: A path in the filesystem in which to search for files.
@@ -767,7 +767,7 @@ class World(ABC):
         try:
             return list(object_map.keys())[list(object_map.values()).index(prospection_object)]
         except ValueError:
-            raise ValueError("The given object is not in the shadow world.")
+            raise ValueError("The given object is not in the prospection world.")
 
     def reset_world(self, remove_saved_states=True) -> None:
         """
@@ -795,6 +795,30 @@ class World(ABC):
         curr_time = rospy.Time.now()
         for obj in list(self.current_world.objects):
             obj.update_link_transforms(curr_time)
+
+    @abstractmethod
+    def ray_test(self, from_position: List[float], to_position: List[float]) -> int:
+        """ Cast a ray and return the first object hit, if any.
+
+        param from_position: The starting position of the ray in Cartesian world coordinates.
+        param to_position: The ending position of the ray in Cartesian world coordinates.
+        return: The object id of the first object hit, or -1 if no object was hit.
+        """
+        pass
+
+    @abstractmethod
+    def ray_test_batch(self, from_positions: List[List[float]], to_positions: List[List[float]],
+                       num_threads: int = 1) -> List[int]:
+        """ Cast a batch of rays and return the result for each of the rays (first object hit, if any. or -1)
+         Takes optional argument num_threads to specify the number of threads to use
+           to compute the ray intersections for the batch. Specify 0 to let simulator decide, 1 (default) for single
+            core execution, 2 or more to select the number of threads to use.
+
+        param from_positions: The starting positions of the rays in Cartesian world coordinates.
+        param to_positions: The ending positions of the rays in Cartesian world coordinates.
+        param num_threads: The number of threads to use to compute the ray intersections for the batch.
+        """
+        pass
 
     def create_visual_shape(self, visual_shape: VisualShape) -> int:
         raise NotImplementedError
@@ -871,7 +895,7 @@ class WorldSync(threading.Thread):
         self.add_obj_queue: Queue = Queue()
         self.remove_obj_queue: Queue = Queue()
         self.pause_sync: bool = False
-        # Maps bullet to prospection world objects
+        # Maps world to prospection world objects
         self.object_mapping: Dict[Object, Object] = {}
         self.equal_states = False
 
@@ -1239,7 +1263,7 @@ class Object:
         saving the transformation between the given link, if there is one, and
         the base pose of the other object. Additionally, the name of the link, to
         which the object is attached, will be saved.
-        Furthermore, a constraint of pybullet will be created so the attachment
+        Furthermore, a simulator constraint will be created so the attachment
         also works while simulation.
         Loose attachments means that the attachment will only be one-directional. For example, if this object moves the
         other, attached, object will also move but not the other way around.
@@ -1263,7 +1287,7 @@ class Object:
         """
         Detaches another object from this object. This is done by
         deleting the attachment from the attachments dictionary of both objects
-        and deleting the constraint of pybullet.
+        and deleting the constraint of the simulator.
         Afterward the detachment event of the corresponding World will be fired.
 
         :param child_object: The object which should be detached
@@ -1462,7 +1486,7 @@ class Object:
 
     def get_joint_id(self, name: str) -> int:
         """
-        Returns the unique id for a joint name. As used by PyBullet.
+        Returns the unique id for a joint name. As used by the world/simulator.
 
         :param name: The joint name
         :return: The unique id
@@ -1502,9 +1526,9 @@ class Object:
 
     def get_joint_by_id(self, joint_id: int) -> str:
         """
-        Returns the joint name for a unique PyBullet id
+        Returns the joint name for a unique world id
 
-        :param joint_id: The Pybullet id of for joint
+        :param joint_id: The world id of for joint
         :return: The joint name
         """
         return dict(zip(self.joint_name_to_id.values(), self.joint_name_to_id.keys()))[joint_id]
@@ -1564,8 +1588,7 @@ class Object:
 
     def contact_points(self) -> List:
         """
-        Returns a list of contact points of this Object with other Objects. For a more detailed explanation of the returned
-        list please look at `PyBullet Doc <https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#>`_
+        Returns a list of contact points of this Object with other Objects.
 
         :return: A list of all contact points with other objects
         """
@@ -1574,8 +1597,6 @@ class Object:
     def contact_points_simulated(self) -> List:
         """
         Returns a list of all contact points between this Object and other Objects after stepping the simulation once.
-        For a more detailed explanation of the returned
-        list please look at `PyBullet Doc <https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#>`_
 
         :return: A list of contact points between this Object and other Objects
         """
@@ -1935,8 +1956,8 @@ def _is_cached(path: str, name: str, cach_dir: str) -> bool:
 
 def _correct_urdf_string(urdf_string: str) -> str:
     """
-    Changes paths for files in the URDF from ROS paths to paths in the file system. Since PyBullet can't deal with ROS
-    package paths.
+    Changes paths for files in the URDF from ROS paths to paths in the file system. Since World (PyBullet legac)
+     can't deal with ROS package paths.
 
     :param urdf_string: The name of the URDf on the parameter server
     :return: The URDF string with paths in the filesystem instead of ROS packages
@@ -1957,7 +1978,7 @@ def _correct_urdf_string(urdf_string: str) -> str:
 def fix_missing_inertial(urdf_string: str) -> str:
     """
     Insert inertial tags for every URDF link that has no inertia.
-    This is used to prevent PyBullet from dumping warnings in the terminal
+    This is used to prevent Legacy(PyBullet) from dumping warnings in the terminal
 
     :param urdf_string: The URDF description as string
     :returns: The new, corrected URDF description as string.

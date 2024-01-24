@@ -3,14 +3,12 @@ from __future__ import annotations
 
 import dataclasses
 from abc import ABC, abstractmethod
-from copy import copy
 from inspect import isgenerator, isgeneratorfunction
 
 from sqlalchemy.orm.session import Session
 import rospy
 
-from .world import Object as BulletWorldObject
-from pycram.bullet_world import BulletWorld
+from .world import World, Object as WorldObject
 from .helper import GeneratorList, bcolors
 from threading import Lock
 from time import time
@@ -487,9 +485,9 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
         """
 
         def __post_init__(self):
-            self.robot_position = BulletWorld.robot.get_pose()
-            self.robot_torso_height = BulletWorld.robot.get_joint_position(robot_description.torso_joint)
-            self.robot_type = BulletWorld.robot.obj_type
+            self.robot_position = World.robot.get_pose()
+            self.robot_torso_height = World.robot.get_joint_position(robot_description.torso_joint)
+            self.robot_type = World.robot.obj_type
 
         @with_tree
         def perform(self) -> Any:
@@ -612,20 +610,20 @@ class ObjectDesignatorDescription(DesignatorDescription):
         Type of the object
         """
 
-        bullet_world_object: Optional[BulletWorldObject]
+        world_object: Optional[WorldObject]
         """
-        Reference to the BulletWorld object
+        Reference to the World object
         """
 
         _pose: Optional[Callable] = dataclasses.field(init=False)
         """
         A callable returning the pose of this object. The _pose member is used overwritten for data copies
-        which will not update when the original bullet_world_object is moved.
+        which will not update when the original world_object is moved.
         """
 
         def __post_init__(self):
-            if self.bullet_world_object:
-                self._pose = self.bullet_world_object.get_pose
+            if self.world_object:
+                self._pose = self.world_object.get_pose
 
         def to_sql(self) -> ORMObjectDesignator:
             """
@@ -658,7 +656,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
         def data_copy(self) -> 'ObjectDesignatorDescription.Object':
             """
-            :return: A copy containing only the fields of this class. The BulletWorldObject attached to this pycram
+            :return: A copy containing only the fields of this class. The WorldObject attached to this pycram
             object is not copied. The _pose gets set to a method that statically returns the pose of the object when
             this method was called.
             """
@@ -701,7 +699,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
             :return: The adjusted grasp pose
             """
             lt = LocalTransformer()
-            pose_in_object = lt.transform_pose(pose, self.bullet_world_object.tf_frame)
+            pose_in_object = lt.transform_pose(pose, self.world_object.tf_frame)
 
             special_knowledge = []  # Initialize as an empty list
             if self.obj_type in SPECIAL_KNOWLEDGE:
@@ -751,7 +749,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
     def ground(self) -> Union[Object, bool]:
         """
-        Return the first object from the bullet world that fits the description.
+        Return the first object from the world that fits the description.
 
         :return: A resolved object designator
         """
@@ -763,8 +761,8 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
         :yield: A resolved object designator
         """
-        # for every bullet world object
-        for obj in BulletWorld.current_world.objects:
+        # for every world object
+        for obj in World.current_world.objects:
 
             # skip if name does not match specification
             if self.names and obj.name not in self.names:

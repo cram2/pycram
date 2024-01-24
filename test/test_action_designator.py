@@ -64,7 +64,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             action_designator.NavigateAction.Action(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
             action_designator.MoveTorsoAction.Action(0.3).perform()
             description.resolve().perform()
-        self.assertTrue(object_description.resolve().bullet_world_object in self.robot.attachments.keys())
+        self.assertTrue(object_description.resolve().world_object in self.robot.attachments.keys())
 
     def test_place(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
@@ -75,7 +75,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             action_designator.MoveTorsoAction.Action(0.3).perform()
             action_designator.PickUpAction.Action(object_description.resolve(), "left", "front").perform()
             description.resolve().perform()
-        self.assertFalse(object_description.resolve().bullet_world_object in self.robot.attachments.keys())
+        self.assertFalse(object_description.resolve().world_object in self.robot.attachments.keys())
 
     def test_look_at(self):
         description = action_designator.LookAtAction([Pose([1, 0, 1])])
@@ -94,7 +94,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             detected_object = description.resolve().perform()
         self.assertEqual(detected_object.name, "milk")
         self.assertEqual(detected_object.obj_type, ObjectType.MILK)
-        self.assertEqual(detected_object.bullet_world_object, self.milk)
+        self.assertEqual(detected_object.world_object, self.milk)
 
     # Skipped since open and close work only in the apartment at the moment
     @unittest.skip
