@@ -13,7 +13,10 @@ import rospy
 from .enums import JointType, ObjectType
 from .pose import Pose
 from .world import World, Object
-from .world_dataclasses import Color, Constraint, AxisAlignedBoundingBox, MultiBody
+from .world_dataclasses import (Color, Constraint, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape,
+                                CylinderVisualShape, SphereVisualShape, CapsuleVisualShape, PlaneVisualShape,
+                                MeshVisualShape)
+from dataclasses import asdict
 
 
 class BulletWorld(World):
@@ -403,6 +406,20 @@ class BulletWorld(World):
         for id in self.vis_axis:
             p.removeBody(id, physicsClientId=self.client_id)
         self.vis_axis = []
+
+    def ray_test(self, from_position: List[float], to_position: List[float]) -> int:
+        res = p.rayTest(from_position, to_position, physicsClientId=self.client_id)
+        return res[0][0]
+
+    def ray_test_batch(self, from_positions: List[List[float]], to_positions: List[List[float]],
+                       num_threads: int = 1) -> List[int]:
+        return p.rayTestBatch(from_positions, to_positions, numThreads=num_threads,
+                              physicsClientId=self.client_id)
+
+    def create_visual_shape(self, visual_shape: VisualShape) -> int:
+        return p.createVisualShape(visual_shape.visual_geometry_type, rgbaColor=visual_shape.rgba_color,
+                                   visualFramePosition=visual_shape.visual_frame_position,
+                                   physicsClientId=self.client_id, **asdict(visual_shape.shape_data))
 
     def create_multi_body(self, multi_body: MultiBody) -> int:
         return p.createMultiBody(baseVisualShapeIndex=-MultiBody.base_visual_shape_index,

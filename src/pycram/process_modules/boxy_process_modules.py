@@ -59,7 +59,7 @@ class BoxyPickUp(ProcessModule):
     """
 
     def _execute(self, desig: PickUpMotion.Motion):
-        object = desig.object_desig.bullet_world_object
+        object = desig.object_desig.world_object
         robot = BulletWorld.robot
         grasp = robot_description.grasps.get_orientation_for_grasp(desig.grasp)
         target = object.get_pose()
@@ -86,7 +86,7 @@ class BoxyPlace(ProcessModule):
         :param desig: A PlaceMotion
         :return:
         """
-        object = desig.object.bullet_world_object
+        object = desig.object.world_object
         robot = BulletWorld.robot
         arm = desig.arm
 
@@ -107,7 +107,7 @@ class BoxyOpen(ProcessModule):
     """
 
     def _execute(self, desig: OpeningMotion.Motion):
-        part_of_object = desig.object_part.bullet_world_object
+        part_of_object = desig.object_part.world_object
 
         container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
 
@@ -116,8 +116,8 @@ class BoxyOpen(ProcessModule):
 
         _move_arm_tcp(goal_pose, BulletWorld.robot, desig.arm)
 
-        desig.object_part.bullet_world_object.set_joint_state(container_joint,
-                                                              part_of_object.get_joint_limits(
+        desig.object_part.world_object.set_joint_state(container_joint,
+                                                       part_of_object.get_joint_limits(
                                                                   container_joint)[1])
 
 
@@ -126,7 +126,7 @@ class BoxyClose(ProcessModule):
     Low-level implementation that lets the robot close a grasped container, in simulation
     """
     def _execute(self, desig: ClosingMotion.Motion):
-        part_of_object = desig.object_part.bullet_world_object
+        part_of_object = desig.object_part.world_object
 
         container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
 
@@ -135,8 +135,8 @@ class BoxyClose(ProcessModule):
 
         _move_arm_tcp(goal_pose, BulletWorld.robot, desig.arm)
 
-        desig.object_part.bullet_world_object.set_joint_state(container_joint,
-                                                              part_of_object.get_joint_limits(
+        desig.object_part.world_object.set_joint_state(container_joint,
+                                                       part_of_object.get_joint_limits(
                                                                   container_joint)[0])
 
 

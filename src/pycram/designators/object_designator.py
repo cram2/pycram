@@ -1,9 +1,8 @@
 import dataclasses
-from typing import List, Union, Optional, Callable, Tuple, Iterable
+from typing import List, Optional, Callable
 import sqlalchemy.orm
-from ..bullet_world import BulletWorld
-from pycram.world import Object as BulletWorldObject
-from ..designator import DesignatorDescription, ObjectDesignatorDescription
+from pycram.world import World, Object as WorldObject
+from ..designator import ObjectDesignatorDescription
 from ..orm.base import ProcessMetaData
 from ..orm.object_designator import (BelieveObject as ORMBelieveObject, ObjectPart as ORMObjectPart)
 from ..pose import Pose
@@ -95,9 +94,9 @@ class ObjectPart(ObjectDesignatorDescription):
         :yield: A resolved Object designator
         """
         for name in self.names:
-            if name in self.part_of.bullet_world_object.link_name_to_id.keys():
-                yield self.Object(name, self.type, self.part_of.bullet_world_object,
-                                  self.part_of.bullet_world_object.links[name].pose)
+            if name in self.part_of.world_object.link_name_to_id.keys():
+                yield self.Object(name, self.type, self.part_of.world_object,
+                                  self.part_of.world_object.links[name].pose)
 
 
 class LocatedObject(ObjectDesignatorDescription):
@@ -137,7 +136,7 @@ class RealObject(ObjectDesignatorDescription):
     """
     Object designator representing an object in the real world, when resolving this object designator description ]
     RoboKudo is queried to perceive an object fitting the given criteria. Afterward the resolver tries to match
-    the found object to an Object in the BulletWorld.
+    the found object to an Object in the World.
     """
 
     @dataclasses.dataclass
@@ -148,28 +147,28 @@ class RealObject(ObjectDesignatorDescription):
         """
 
     def __init__(self, names: Optional[List[str]] = None, types: Optional[List[str]] = None,
-                 bullet_world_object: BulletWorldObject = None, resolver: Optional[Callable] = None):
+                 world_object: WorldObject = None, resolver: Optional[Callable] = None):
         """
         
         :param names: 
         :param types: 
-        :param bullet_world_object: 
+        :param world_object:
         :param resolver: 
         """
         super().__init__(resolver)
         self.types: Optional[List[str]] = types
         self.names: Optional[List[str]] = names
-        self.bullet_world_object: BulletWorldObject = bullet_world_object
+        self.world_object: WorldObject = world_object
 
     def __iter__(self):
         """
-        Queries RoboKudo for objects that fit the description and then iterates over all BulletWorld objects that have
-        the same type to match a BulletWorld object to the real object.
+        Queries RoboKudo for objects that fit the description and then iterates over all World objects that have
+        the same type to match a World object to the real object.
 
-        :yield: A resolved object designator with reference bullet world object
+        :yield: A resolved object designator with reference world object
         """
         object_candidates = query(self)
         for obj_desig in object_candidates:
-            for bullet_obj in BulletWorld.get_objects_by_type(obj_desig.obj_type):
-                obj_desig.bullet_world_object = bullet_obj
+            for world_obj in World.get_objects_by_type(obj_desig.obj_type):
+                obj_desig.world_object = world_obj
                 yield obj_desig

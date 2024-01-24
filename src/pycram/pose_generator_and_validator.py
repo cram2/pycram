@@ -1,10 +1,8 @@
 import tf
 import numpy as np
-import rospy
-import pybullet as p
 
 from .world import Object
-from .bullet_world import BulletWorld
+from .bullet_world import World
 from .world_reasoning import contact
 from .costmaps import Costmap
 from .pose import Pose, Transform
@@ -12,7 +10,7 @@ from .robot_descriptions import robot_description
 from .external_interfaces.ik import request_ik
 from .plan_failures import IKError
 from .helper import _apply_ik
-from typing import Type, Tuple, List, Union, Dict, Iterable
+from typing import Tuple, List, Union, Dict, Iterable
 
 
 def pose_generator(costmap: Costmap, number_of_samples=100, orientation_generator=None) -> Iterable:
@@ -79,11 +77,11 @@ def generate_orientation(position: List[float], origin: Pose) -> List[float]:
 def visibility_validator(pose: Pose,
                          robot: Object,
                          object_or_pose: Union[Object, Pose],
-                         world: BulletWorld) -> bool:
+                         world: World) -> bool:
     """
     This method validates if the robot can see the target position from a given
     pose candidate. The target position can either be a position, in world coordinate
-    system, or an object in the BulletWorld. The validation is done by shooting a
+    system, or an object in the World. The validation is done by shooting a
     ray from the camera to the target position and checking that it does not collide
     with anything else.
 
@@ -91,23 +89,23 @@ def visibility_validator(pose: Pose,
     :param robot: The robot object for which this should be validated
     :param object_or_pose: The target position or object for which the pose
         candidate should be validated.
-    :param world: The BulletWorld instance in which this should be validated.
+    :param world: The World instance in which this should be validated.
     :return: True if the target is visible for the robot, None in any other case.
     """
     robot_pose = robot.get_pose()
-    if type(object_or_pose) == Object:
+    if isinstance(object_or_pose, Object):
         robot.set_pose(pose)
         camera_pose = robot.links[robot_description.get_camera_frame()].pose
         robot.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
-        ray = p.rayTest(camera_pose.position_as_list(), object_or_pose.get_pose().position_as_list(),
-                        physicsClientId=world.client_id)
-        res = ray[0][0] == object_or_pose.id
+        ray = world.ray_test(camera_pose.position_as_list(), object_or_pose.get_position_as_list())
+        res = ray == object_or_pose.id
     else:
         robot.set_pose(pose)
         camera_pose = robot.links[robot_description.get_camera_frame()].pose
         robot.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
-        ray = p.rayTest(camera_pose.position_as_list(), object_or_pose, physicsClientId=world.client_id)
-        res = ray[0][0] == -1
+        # TODO: Check if this is correct
+        ray = world.ray_test(camera_pose.position_as_list(), object_or_pose)
+        res = ray == -1
     robot.set_pose(robot_pose)
     return res
 
@@ -123,7 +121,7 @@ def reachability_validator(pose: Pose,
     the validator returns True and False in any other case.
 
     :param pose: The pose candidate for which the reachability should be validated
-    :param robot: The robot object in the BulletWorld for which the reachability
+    :param robot: The robot object in the World for which the reachability
         should be validated.
     :param target: The target position or object instance which should be the
         target for reachability.
@@ -158,7 +156,7 @@ def reachability_validator(pose: Pose,
         resp = request_ik(target, robot, left_joints, left_gripper)
         _apply_ik(robot, resp, left_joints)
 
-        for obj in BulletWorld.current_world.objects:
+        for obj in World.current_world.objects:
             if obj.name == "floor":
                 continue
             in_contact, contact_links = contact(robot, obj, return_links=True)
@@ -182,7 +180,7 @@ def reachability_validator(pose: Pose,
         resp = request_ik(target, robot, right_joints, right_gripper)
         _apply_ik(robot, resp, right_joints)
 
-        for obj in BulletWorld.current_world.objects:
+        for obj in World.current_world.objects:
             if obj.name == "floor":
                 continue
             in_contact, contact_links = contact(robot, obj, return_links=True)

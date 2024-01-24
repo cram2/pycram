@@ -45,7 +45,7 @@ class DonbotPickUp(ProcessModule):
     """
 
     def _execute(self, desig):
-        object = desig.object_desig.bullet_world_object
+        object = desig.object_desig.world_object
         robot = BulletWorld.robot
         grasp = robot_description.grasps.get_orientation_for_grasp(desig.grasp)
         target = object.get_pose()
@@ -65,7 +65,7 @@ class DonbotPlace(ProcessModule):
     """
 
     def _execute(self, desig):
-        object = desig.object.bullet_world_object
+        object = desig.object.world_object
         robot = BulletWorld.robot
 
         # Transformations such that the target position is the position of the object and not the tcp

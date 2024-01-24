@@ -174,15 +174,13 @@ class SphereShapeData(ShapeData):
 
 
 @dataclass
-class CapsuleShapeData(ShapeData):
-    radius: float
+class CapsuleShapeData(SphereShapeData):
     length: float
 
 
 @dataclass
-class CylinderShapeData(ShapeData):
-    radius: float
-    length: float
+class CylinderShapeData(CapsuleShapeData):
+    pass
 
 
 @dataclass
@@ -201,6 +199,7 @@ class VisualShape:
     rgba_color: Color
     visual_frame_position: List[float]
     shape_data: ShapeData
+    visual_geometry_type: Shape
 
 
 @dataclass
@@ -216,14 +215,13 @@ class SphereVisualShape(VisualShape):
 
 
 @dataclass
-class CapsuleVisualShape(VisualShape):
+class CapsuleVisualShape(SphereVisualShape):
     shape_data: CapsuleShapeData
     visual_geometry_type = Shape.CAPSULE
 
 
 @dataclass
-class CylinderVisualShape(VisualShape):
-    shape_data: CylinderShapeData
+class CylinderVisualShape(CapsuleVisualShape):
     visual_geometry_type = Shape.CYLINDER
 
 
