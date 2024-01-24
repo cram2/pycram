@@ -11,7 +11,7 @@ import pycram.orm.object_designator
 import pycram.orm.task
 import pycram.task
 import pycram.task
-import test_bullet_world
+from bullet_world_testcase import BulletWorldTestCase
 import test_task_tree
 from pycram.designators import action_designator, object_designator
 from pycram.pose import Pose
@@ -148,7 +148,7 @@ class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
         self.assertEqual(metadata_result.description, "Test")
 
 
-class ORMObjectDesignatorTestCase(test_bullet_world.BulletWorldTest):
+class ORMObjectDesignatorTestCase(BulletWorldTestCase):
     """Test ORM functionality with a plan including object designators. """
 
     engine: sqlalchemy.engine.Engine
@@ -251,7 +251,7 @@ class RelationshipTestCase(test_task_tree.TaskTreeTestCase):
         self.assertTrue([r[i].parent == r[r[i].parent_id - 1] for i in range(len(r)) if r[i].parent_id is not None])
 
 
-class MotionDesigTest(test_bullet_world.BulletWorldTest):
+class MotionDesigTest(BulletWorldTestCase):
     engine: sqlalchemy.engine.Engine
     session: sqlalchemy.orm.Session
 

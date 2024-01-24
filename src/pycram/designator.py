@@ -17,6 +17,7 @@ from time import time
 from typing import List, Dict, Any, Type, Optional, Union, get_type_hints, Callable, Tuple, Iterable
 
 from .local_transformer import LocalTransformer
+from .language import Language
 from .pose import Pose
 from .robot_descriptions import robot_description
 
@@ -363,7 +364,7 @@ class DesignatorDescription(ABC):
         return self
 
 
-class MotionDesignatorDescription(DesignatorDescription):
+class MotionDesignatorDescription(DesignatorDescription, Language):
     """
     Parent class of motion designator descriptions.
     """
@@ -460,7 +461,7 @@ class MotionDesignatorDescription(DesignatorDescription):
             raise ResolutionError(missing, wrong_type, current_type, desig)
 
 
-class ActionDesignatorDescription(DesignatorDescription):
+class ActionDesignatorDescription(DesignatorDescription, Language):
     """
     Abstract class for action designator descriptions.
     Descriptions hold possible parameter ranges for action designators.
@@ -535,11 +536,20 @@ class ActionDesignatorDescription(DesignatorDescription):
             return action
 
     def __init__(self, resolver=None):
-        super(ActionDesignatorDescription, self).__init__(resolver)
+        super().__init__(resolver)
+        Language.__init__(self)
 
     def ground(self) -> Action:
         """Fill all missing parameters and chose plan to execute. """
         raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
+
+    def __iter__(self):
+        """
+        Iterate through all possible actions fitting this description
+
+        :yield: A resolved action designator
+        """
+        yield self.ground()
 
 
 class LocationDesignatorDescription(DesignatorDescription):

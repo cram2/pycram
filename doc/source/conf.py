@@ -15,6 +15,8 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join("..", "src", "pycram")))
+sys.path.append(os.path.abspath("./_pygments"))
+sys.path.append(os.path.abspath("./_ext"))
 
 
 # -- Project information -----------------------------------------------------
@@ -48,6 +50,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.autosummary",
     "nbsphinx",
+    "console_lexer",
 ]
 
 # auto api setup
@@ -83,10 +86,7 @@ language = "en"
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # The name of the Pygments (syntax highlighting) style to use.
-# pygments_style = "sphinx"
-# pygments_style = "monokai"
-
-pygments_style = "colorful"
+pygments_style = "style.BetterGruvboxLightStyle"
 
 
 # -- Options for HTML output -------------------------------------------------

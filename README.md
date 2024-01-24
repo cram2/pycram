@@ -92,12 +92,3 @@ how to do that take a look at the respective `README` file.
 If you encounter some error please first take a look at the 
 [troubleshooting](https://pycram.readthedocs.io/en/latest/troubleshooting.html) section and see if the error is mentioned 
 there. 
-
-## Authors
-
-* **Jonas Dech** <jdech@uni-bremen.de>
-* **Andy Augsten** <a.augsten@uni-bremen.de>
-* **Dustin Augsten** <augsten@uni-bremen.de>
-* **Christopher Pollok** <cpollok@uni-bremen.de>
-* **Thomas Lipps** <tlipps@uni-bremen.de>
-* **Benjamin Alt** <benjamin.alt@uni-bremen.de>

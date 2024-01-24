@@ -12,6 +12,8 @@ from .object_designator import Object, ObjectMixin
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey
 
+from ..enums import ObjectType
+
 
 class Motion(MapperArgsMixin, Designator):
     """
@@ -22,7 +24,7 @@ class Motion(MapperArgsMixin, Designator):
     """
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Designator.__tablename__}.id'), primary_key=True, init=False)
-    dtype: Mapped[str] = mapped_column(init=False)
+    dtype: Mapped[str] = mapped_column("motion_dtype", init=False)
 
 
 class MoveMotion(PoseMixin, Motion):
@@ -90,7 +92,7 @@ class DetectingMotion(Motion):
     """
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Motion.__tablename__}.id'), primary_key=True, init=False)
-    object_type: Mapped[str]
+    object_type: Mapped[ObjectType]
 
 
 class WorldStateDetectingMotion(Motion):

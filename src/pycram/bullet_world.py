@@ -368,7 +368,9 @@ class BulletWorld(World):
         :param length: Optional parameter to configure the length of the axes
         """
 
-        position, orientation = pose.to_list()
+        pose_in_map = self.local_transformer.transform_pose(pose, "map")
+
+        position, orientation = pose_in_map.to_list()
 
         vis_x = p.createVisualShape(p.GEOM_BOX, halfExtents=[length, 0.01, 0.01],
                                     rgbaColor=[1, 0, 0, 0.8], visualFramePosition=[length, 0.01, 0.01],

@@ -4,12 +4,12 @@ import pycram.task
 from pycram.task import with_tree
 import unittest
 import anytree
-import test_bullet_world
+from  bullet_world_testcase import BulletWorldTestCase
 import pycram.plan_failures
 from pycram.designators import object_designator, action_designator
 
 
-class TaskTreeTestCase(test_bullet_world.BulletWorldTest):
+class TaskTreeTestCase(BulletWorldTestCase):
 
     @with_tree
     def plan(self):

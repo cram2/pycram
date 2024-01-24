@@ -6,11 +6,11 @@ from pycram.process_module import simulated_robot
 from pycram.pose import Pose
 from pycram.enums import ObjectType
 import pycram.enums
-import test_bullet_world
+from bullet_world_testcase import BulletWorldTestCase
 import numpy as np
 
 
-class TestActionDesignatorGrounding(test_bullet_world.BulletWorldTest):
+class TestActionDesignatorGrounding(BulletWorldTestCase):
     """Testcase for the grounding methods of action designators."""
 
     def test_move_torso(self):
