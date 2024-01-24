@@ -5,6 +5,7 @@ import sqlalchemy.orm
 import pycram.plan_failures
 from pycram.world import Object
 from pycram import task
+from pycram.world import World
 from pycram.designators import action_designator, object_designator
 from pycram.orm.base import Base
 from pycram.process_module import ProcessModule
@@ -32,7 +33,7 @@ if pycrorm_uri:
 @unittest.skipIf(not jpt_installed, "jpt is not installed but needed for the definition of DatabaseCostmapLocations. "
                                     "Install via 'pip install pyjpt'")
 class DatabaseResolverTestCase(unittest.TestCase,):
-    world: BulletWorld
+    world: World
     milk: Object
     robot: Object
     engine: sqlalchemy.engine.Engine
@@ -41,7 +42,7 @@ class DatabaseResolverTestCase(unittest.TestCase,):
     @classmethod
     def setUpClass(cls) -> None:
         global pycrorm_uri
-        cls.world = BulletWorld("DIRECT")
+        cls.world = World("DIRECT")
         cls.milk = Object("milk", "milk", "milk.stl", pose=Pose([1.3, 1, 0.9]))
         cls.robot = Object(robot_description.name, ObjectType.ROBOT, robot_description.name + ".urdf")
         ProcessModule.execution_delay = False
@@ -49,12 +50,12 @@ class DatabaseResolverTestCase(unittest.TestCase,):
         cls.session = sqlalchemy.orm.Session(bind=cls.engine)
 
     def setUp(self) -> None:
-        self.world.reset_bullet_world()
+        self.world.reset_world()
         pycram.orm.base.Base.metadata.create_all(self.engine)
         self.session.commit()
 
     def tearDown(self) -> None:
-        self.world.reset_bullet_world()
+        self.world.reset_world()
         pycram.task.reset_tree()
 
     @classmethod
