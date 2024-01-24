@@ -701,7 +701,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
             :return: The adjusted grasp pose
             """
             lt = LocalTransformer()
-            pose_in_object = lt.transform_pose_to_target_frame(pose, self.bullet_world_object.tf_frame)
+            pose_in_object = lt.transform_pose(pose, self.bullet_world_object.tf_frame)
 
             special_knowledge = []  # Initialize as an empty list
             if self.obj_type in SPECIAL_KNOWLEDGE:

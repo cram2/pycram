@@ -55,7 +55,7 @@ class LocalTransformer(TransformerROS):
         # If the singelton was already initialized
         self._initialized = True
 
-    def transform_pose_to_target_frame(self, pose: Pose, target_frame: str) -> Union[Pose, None]:
+    def transform_pose(self, pose: Pose, target_frame: str) -> Union[Pose, None]:
         """
         Transforms a given pose to the target frame after updating the transforms for all objects in the current world.
 
@@ -115,5 +115,5 @@ class LocalTransformer(TransformerROS):
         Alias for :func:`~LocalTransformer.transform_pose_to_target_frame` to avoid confusion since a similar method
          exists in the super class.
         """
-        return self.transform_pose_to_target_frame(ps, target_frame)
+        return self.transform_pose(ps, target_frame)
 

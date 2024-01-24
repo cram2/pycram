@@ -45,7 +45,7 @@ def _make_request_msg(root_link: str, tip_link: str, target_pose: Pose, robot_ob
     :return: A moveit_msgs/PositionIKRequest message containing all the information from the parameter
     """
     local_transformer = LocalTransformer()
-    target_pose = local_transformer.transform_pose_to_target_frame(target_pose, robot_object.links[root_link].tf_frame)
+    target_pose = local_transformer.transform_pose(target_pose, robot_object.links[root_link].tf_frame)
 
     robot_state = RobotState()
     joint_state = JointState()
@@ -135,7 +135,7 @@ def apply_grasp_orientation_to_pose(grasp: str, pose: Pose) -> Pose:
     :param pose: The pose to which the grasp orientation should be applied
     """
     local_transformer = LocalTransformer()
-    target_map = local_transformer.transform_pose_to_target_frame(pose, "map")
+    target_map = local_transformer.transform_pose(pose, "map")
     grasp_orientation = robot_description.grasps.get_orientation_for_grasp(grasp)
     target_map.orientation.x = grasp_orientation[0]
     target_map.orientation.y = grasp_orientation[1]
@@ -180,7 +180,7 @@ def request_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str
     # Get link after last joint in chain
     end_effector = robot_description.get_child(joints[-1])
 
-    target_torso = local_transformer.transform_pose_to_target_frame(target_pose, robot.links[base_link].tf_frame)
+    target_torso = local_transformer.transform_pose(target_pose, robot.links[base_link].tf_frame)
 
     diff = calculate_wrist_tool_offset(end_effector, gripper, robot)
     target_diff = target_torso.to_transform("target").inverse_times(diff).to_pose()

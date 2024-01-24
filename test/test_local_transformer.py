@@ -22,7 +22,7 @@ class TestLocalTransformer(BulletWorldTestCase):
         l.setTransform(Transform([1, 1, 1], [0, 0, 0, 1], "map", "test_frame"))
 
         p = Pose()
-        transformed_pose = l.transform_pose_to_target_frame(p, "test_frame")
+        transformed_pose = l.transform_pose(p, "test_frame")
 
         self.assertTrue(transformed_pose.position_as_list() == [-1, -1, -1])
         self.assertTrue(transformed_pose.orientation_as_list() == [0, 0, 0, 1])
@@ -33,7 +33,7 @@ class TestLocalTransformer(BulletWorldTestCase):
         l.setTransform(Transform([1, 1, 1], [0, 0, 0, 1], "map", "test_frame"))
 
         p = Pose()
-        transformed_pose = l.transform_pose_to_target_frame(p, "test_frame")
+        transformed_pose = l.transform_pose(p, "test_frame")
 
         self.assertTrue(transformed_pose.position == transformed_pose.pose.position)
 
