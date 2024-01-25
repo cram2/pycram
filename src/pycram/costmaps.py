@@ -747,7 +747,7 @@ def plot_grid(data: np.ndarray) -> None:
     fig, ax = plt.subplots()
     ax.imshow(data, cmap=cmap)
     # draw gridlines
-    # ax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=1)
+    # ax.grid(which='major', axis='both', linestyle='-', rgba_color='k', linewidth=1)
     ax.set_xticks(np.arange(0.5, rows, 1));
     ax.set_yticks(np.arange(0.5, cols, 1));
     plt.tick_params(axis='both', labelsize=0, length=0)

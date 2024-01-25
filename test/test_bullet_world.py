@@ -4,11 +4,8 @@ import rospkg
 
 from bullet_world_testcase import BulletWorldTestCase
 from pycram.pose import Pose
-import numpy as np
 from pycram.world import fix_missing_inertial
 import xml.etree.ElementTree as ET
-import tf
-
 
 
 class BulletWorldTest(BulletWorldTestCase):
@@ -51,4 +48,3 @@ class XMLTester(unittest.TestCase):
         resulting_tree = ET.ElementTree(ET.fromstring(result))
         for element in resulting_tree.iter("link"):
             self.assertTrue(len([*element.iter("inertial")]) > 0)
-

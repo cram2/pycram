@@ -12,6 +12,7 @@ from pycram.process_module import ProcessModule
 from pycram.process_module import simulated_robot
 from pycram.robot_descriptions import robot_description
 from pycram.pose import Pose
+from pycram.enums import WorldMode
 
 # check if jpt is installed
 jpt_installed = True
@@ -53,7 +54,7 @@ class JPTResolverTestCase(unittest.TestCase):
         cls.model = mlflow.pyfunc.load_model(
             model_uri="mlflow-artifacts:/0/9150dd1fb353494d807261928cea6e8c/artifacts/grasping").unwrap_python_model() \
             .model
-        cls.world = BulletWorld("DIRECT")
+        cls.world = BulletWorld(WorldMode.DIRECT)
         cls.milk = Object("milk", "milk", "milk.stl", pose=Pose([3, 3, 0.75]))
         cls.robot = Object(robot_description.name, "pr2", robot_description.name + ".urdf")
         ProcessModule.execution_delay = False

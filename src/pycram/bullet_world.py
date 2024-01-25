@@ -10,12 +10,10 @@ import pybullet as p
 import rosgraph
 import rospy
 
-from .enums import JointType, ObjectType
+from .enums import JointType, ObjectType, WorldMode
 from .pose import Pose
-from .world import World, Object
-from .world_dataclasses import (Color, Constraint, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape,
-                                CylinderVisualShape, SphereVisualShape, CapsuleVisualShape, PlaneVisualShape,
-                                MeshVisualShape)
+from .world import World, Object, Link
+from .world_dataclasses import Color, Constraint, AxisAlignedBoundingBox, MultiBody, VisualShape
 from dataclasses import asdict
 
 
@@ -30,16 +28,16 @@ class BulletWorld(World):
     if rosgraph.is_master_online():  # and "/pycram" not in rosnode.get_node_names():
         rospy.init_node('pycram')
 
-    def __init__(self, mode: str = "GUI", is_prospection_world: bool = False, sim_time_step=0.004167):  # 240 Hz
+    def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection_world: bool = False, sim_frequency=240):
         """
         Creates a new simulation, the type decides of the simulation should be a rendered window or just run in the
         background. There can only be one rendered simulation.
         The BulletWorld object also initializes the Events for attachment, detachment and for manipulating the world.
 
-        :param mode: Can either be "GUI" for rendered window or "DIRECT" for non-rendered. The default parameter is "GUI"
+        :param mode: Can either be "GUI" for rendered window or "DIRECT" for non-rendered. The default is "GUI"
         :param is_prospection_world: For internal usage, decides if this BulletWorld should be used as a shadow world.
         """
-        super().__init__(mode=mode, is_prospection_world=is_prospection_world, simulation_time_step=sim_time_step)
+        super().__init__(mode=mode, is_prospection_world=is_prospection_world, simulation_frequency=sim_frequency)
 
         self._gui_thread: Gui = Gui(self, mode)
         self._gui_thread.start()
@@ -58,19 +56,13 @@ class BulletWorld(World):
         if not is_prospection_world:
             plane = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf", world=self)
 
-    def load_urdf_at_pose_and_get_object_id(self, path: str, pose: Pose) -> int:
+    def load_urdf_and_get_object_id(self, path: str, pose: Pose) -> int:
         return p.loadURDF(path,
                           basePosition=pose.position_as_list(),
                           baseOrientation=pose.orientation_as_list(), physicsClientId=self.client_id)
 
-    def remove_object(self, obj_id: int) -> None:
-        """
-        Remove an object by its ID.
-
-        :param obj_id: The unique id of the object to be removed.
-        """
-
-        p.removeBody(obj_id, self.client_id)
+    def remove_object(self, obj: Object) -> None:
+        p.removeBody(obj.id, self.client_id)
 
     def add_constraint(self, constraint: Constraint) -> int:
         """
@@ -99,7 +91,7 @@ class BulletWorld(World):
         print("Removing constraint with id: ", constraint_id)
         p.removeConstraint(constraint_id, physicsClientId=self.client_id)
 
-    def get_object_joint_rest_pose(self, obj: Object, joint_name: str) -> float:
+    def get_joint_rest_pose(self, obj: Object, joint_name: str) -> float:
         """
         Get the joint rest pose of an articulated object
 
@@ -108,7 +100,7 @@ class BulletWorld(World):
         """
         return p.getJointState(obj.id, obj.joint_name_to_id[joint_name], physicsClientId=self.client_id)[0]
 
-    def get_object_joint_damping(self, obj: Object, joint_name: str) -> float:
+    def get_joint_damping(self, obj: Object, joint_name: str) -> float:
         """
         Get the joint damping of an articulated object
 
@@ -167,11 +159,11 @@ class BulletWorld(World):
         """
         return p.getJointState(obj.id, obj.joint_name_to_id[joint_name], physicsClientId=self.client_id)[0]
 
-    def get_object_link_pose(self, obj_id: int, link_id: int) -> Pose:
+    def get_link_pose(self, link: Link) -> Pose:
         """
         Get the pose of a link of an articulated object with respect to the world frame.
         """
-        return Pose(*p.getLinkState(obj_id, link_id, physicsClientId=self.client_id)[4:6])
+        return Pose(*p.getLinkState(link.get_object_id(), link.id, physicsClientId=self.client_id)[4:6])
 
     def perform_collision_detection(self) -> None:
         """
@@ -180,13 +172,15 @@ class BulletWorld(World):
         p.performCollisionDetection(physicsClientId=self.client_id)
 
     def get_object_contact_points(self, obj: Object) -> List:
-        """l.update_transforms_for_object(self.milk)
-        Returns a list of contact points of this Object with other Objects. For a more detailed explanation of the returned
-        list please look at `PyBullet Doc <https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#>`_
+        """
+        Returns a list of contact points of this Object with other Objects. For a more detailed explanation of the
+         returned list please look at:
+         `PyBullet Doc <https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#>`_
 
         :param obj: The object.
         :return: A list of all contact points with other objects
         """
+        self.perform_collision_detection()
         return p.getContactPoints(obj.id, physicsClientId=self.client_id)
 
     def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> List:
@@ -197,39 +191,40 @@ class BulletWorld(World):
         :param obj2: The second object.
         :return: A list of all contact points between the two objects.
         """
+        self.perform_collision_detection()
         return p.getContactPoints(obj1.id, obj2.id, physicsClientId=self.client_id)
 
-    def get_object_joint_names(self, obj_id: int) -> List[str]:
+    def get_joint_names(self, obj: Object) -> List[str]:
         """
         Get the names of all joints of an articulated object.
         """
-        num_joints = self.get_object_number_of_joints(obj_id)
-        return [p.getJointInfo(obj_id, i, physicsClientId=self.client_id)[1].decode('utf-8') for i in range(num_joints)]
+        num_joints = self.get_number_of_joints(obj)
+        return [p.getJointInfo(obj.id, i, physicsClientId=self.client_id)[1].decode('utf-8') for i in range(num_joints)]
 
-    def get_object_link_names(self, obj_id: int) -> List[str]:
+    def get_link_names(self, obj: Object) -> List[str]:
         """
         Get the names of all joints of an articulated object.
         """
-        num_links = self.get_object_number_of_links(obj_id)
-        return [p.getJointInfo(obj_id, i, physicsClientId=self.client_id)[12].decode('utf-8') for i in range(num_links)]
+        num_links = self.get_number_of_links(obj)
+        return [p.getJointInfo(obj.id, i, physicsClientId=self.client_id)[12].decode('utf-8') for i in range(num_links)]
 
-    def get_object_number_of_links(self, obj_id: int) -> int:
+    def get_number_of_links(self, obj: Object) -> int:
         """
         Get the number of links of an articulated object
 
-        :param obj_id: The object
+        :param obj: The object
         """
-        return self.get_object_number_of_joints(obj_id)
+        return self.get_number_of_joints(obj)
 
-    def get_object_number_of_joints(self, obj_id: int) -> int:
+    def get_number_of_joints(self, obj: Object) -> int:
         """
         Get the number of joints of an articulated object
 
-        :param obj_id: The object
+        :param obj: The object
         """
-        return p.getNumJoints(obj_id, physicsClientId=self.client_id)
+        return p.getNumJoints(obj, physicsClientId=self.client_id)
 
-    def reset_object_joint_position(self, obj: Object, joint_name: str, joint_pose: float) -> None:
+    def reset_joint_position(self, obj: Object, joint_name: str, joint_pose: float) -> None:
         """
         Reset the joint position instantly without physics simulation
 
@@ -256,23 +251,22 @@ class BulletWorld(World):
         """
         p.stepSimulation(physicsClientId=self.client_id)
 
-    def set_object_link_color(self, obj: Object, link_id: int, rgba_color: Color):
+    def set_link_color(self, link: Link, rgba_color: Color):
         """
-        Changes the color of a link of this object, the color has to be given as a 4 element list
+        Changes the rgba_color of a link of this object, the rgba_color has to be given as a 4 element list
         of RGBA values.
 
-        :param obj: The object which should be colored
-        :param link_id: The link id of the link which should be colored
-        :param rgba_color: The color as RGBA values between 0 and 1
+        :param link: The link which should be colored.
+        :param rgba_color: The rgba_color as RGBA values between 0 and 1
         """
-        p.changeVisualShape(obj.id, link_id, rgbaColor=rgba_color, physicsClientId=self.client_id)
+        p.changeVisualShape(link.get_object_id(), link.id, rgbaColor=rgba_color, physicsClientId=self.client_id)
 
-    def get_color_of_object_link(self, obj: Object, link_name: str) -> Color:
-        return self.get_colors_of_all_links_of_object(obj)[link_name]
+    def get_link_color(self, link: Link) -> Color:
+        return self.get_colors_of_all_links_of_object(link.object)[link.name]
 
     def get_colors_of_all_links_of_object(self, obj: Object) -> Dict[str, Color]:
         """
-        Get the RGBA colors of each link in the object as a dictionary from link name to color.
+        Get the RGBA colors of each link in the object as a dictionary from link name to rgba_color.
 
         :param obj: The object
         :return: A dictionary with link names as keys and 4 element list with the RGBA values for each link as value.
@@ -403,8 +397,8 @@ class BulletWorld(World):
         """
         Removes all spawned vis axis objects that are currently in this BulletWorld.
         """
-        for id in self.vis_axis:
-            p.removeBody(id, physicsClientId=self.client_id)
+        for vis_id in self.vis_axis:
+            p.removeBody(vis_id, physicsClientId=self.client_id)
         self.vis_axis = []
 
     def ray_test(self, from_position: List[float], to_position: List[float]) -> int:
@@ -468,14 +462,15 @@ class BulletWorld(World):
 
 class Gui(threading.Thread):
     """
-    For internal use only. Creates a new thread for the physics simulation that is active until closed by :func:`~World.exit`
+    For internal use only. Creates a new thread for the physics simulation that is active until closed by
+     :func:`~World.exit`
     Also contains the code for controlling the camera.
     """
 
-    def __init__(self, world: World, mode: str):
+    def __init__(self, world: World, mode: WorldMode):
         threading.Thread.__init__(self)
         self.world = world
-        self.mode: str = mode
+        self.mode: WorldMode = mode
 
     def run(self):
         """
@@ -483,7 +478,7 @@ class Gui(threading.Thread):
         if it is still active. If it is the thread will be suspended for 1/80 seconds, if it is not the method and
         thus the thread terminates. The loop also checks for mouse and keyboard inputs to control the camera.
         """
-        if self.mode != "GUI":
+        if self.mode == WorldMode.DIRECT:
             self.world.client_id = p.connect(p.DIRECT)
         else:
             self.world.client_id = p.connect(p.GUI)

@@ -13,7 +13,7 @@ from pycram.process_module import simulated_robot
 from pycram.pose import Pose
 from pycram.robot_descriptions import robot_description
 from pycram.task import with_tree
-from pycram.enums import ObjectType
+from pycram.enums import ObjectType, WorldMode
 
 # check if jpt is installed
 jpt_installed = True
@@ -42,7 +42,7 @@ class DatabaseResolverTestCase(unittest.TestCase,):
     @classmethod
     def setUpClass(cls) -> None:
         global pycrorm_uri
-        cls.world = World("DIRECT")
+        cls.world = World(WorldMode.DIRECT)
         cls.milk = Object("milk", "milk", "milk.stl", pose=Pose([1.3, 1, 0.9]))
         cls.robot = Object(robot_description.name, ObjectType.ROBOT, robot_description.name + ".urdf")
         ProcessModule.execution_delay = False
