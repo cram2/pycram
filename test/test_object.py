@@ -17,6 +17,10 @@ class TestObject(test_bullet_world.BulletWorldTest):
         self.milk.set_position(Pose([1, 2, 3]))
         self.assertEqual(self.milk.get_position_as_list(), [1, 2, 3])
 
+    def test_set_position_as_list(self):
+        self.milk.set_position([1, 2, 3])
+        self.assertEqual(self.milk.get_position_as_list(), [1, 2, 3])
+
     def test_save_state(self):
         self.robot.attach(self.milk)
         self.robot.save_state(1)

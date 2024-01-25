@@ -1443,11 +1443,13 @@ class Object:
             pose.frame = position.frame
         elif isinstance(position, Point):
             target_position = position
+        elif isinstance(position, list):
+            target_position = position
         else:
-            raise TypeError("The position has to be either a Pose or a Point")
+            raise TypeError("The given position has to be a Pose, Point or a list of xyz.")
 
-        pose.pose.position = target_position
-        pose.pose.orientation = self.get_orientation()
+        pose.position = target_position
+        pose.orientation = self.get_orientation()
         self.set_pose(pose, base=base)
 
     def set_orientation(self, orientation: Union[Pose, Quaternion]) -> None:
