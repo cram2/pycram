@@ -6,14 +6,40 @@ defaults:
 
 on:
   workflow_call:
-    inputs:
-        ros:
-          description: build ros
-          type: boolean
-          default: true
-          required: false
+
 
 jobs:
-  a:
+  build_and_cache_ros:
+
+    
     runs-on: ubuntu-20.04
+    steps:
+      - name: load-ros
+        id: load_ros
+        uses: actions/cache@v3
+        with:
+          path: ~/ros
+          key: ros
+        
+          
+      - if: ${{steps.load_ros.outputs.cache-hit != 'true'}}
+        name: install ros
+        uses: betwo/github-setup-catkin@master
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+        with:
+          # Version range or exact version of ROS version to use, using SemVer's version range syntax.
+          ros-version: noetic
+          build-tool: 'catkin_tools'
+
+          # Root directory of the catkin workspace
+          workspace: $GITHUB_WORKSPACE/ros_ws
+
+      - if: ${{steps.load_ros.outputs.cache-hit != 'true'}}
+        name: cache-ros
+        id: cache_ros
+        uses: actions/cache/save@v3
+        with: 
+          path: ~/ros
+          key: ros
         
