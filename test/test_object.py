@@ -6,11 +6,7 @@ from geometry_msgs.msg import Point
 class TestObject(test_bullet_world.BulletWorldTest):
 
     def test_set_position_as_point(self):
-        p = Point()
-        p.x = 1
-        p.y = 2
-        p.z = 3
-        self.milk.set_position(p)
+        self.milk.set_position(Point(1, 2, 3))
         self.assertEqual(self.milk.get_position_as_list(), [1, 2, 3])
 
     def test_set_position_as_pose(self):

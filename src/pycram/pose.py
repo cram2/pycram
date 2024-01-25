@@ -100,7 +100,8 @@ class Pose(PoseStamped):
 
         :param value: List or geometry_msgs/Pose message for the position
         """
-        if not type(value) == list and not type(value) == tuple and not type(value) == GeoPose:
+        if (not type(value) == list and not type(value) == tuple and not type(value) == GeoPose
+                and not type(value) == Point):
             print(type(value))
             rospy.logwarn("Position can only be a list or geometry_msgs/Pose")
             return
