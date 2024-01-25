@@ -26,7 +26,7 @@ jobs:
         id: load_ros
         uses: actions/cache@v2
         with:
-          path: $GITHUB_WORKSPACE/.cache/ros
+          path: ~/.ros/rosdep
           key: ros
         
           
@@ -48,6 +48,6 @@ jobs:
         id: cache_ros
         uses: actions/cache/save@v3
         with: 
-          path: $GITHUB_WORKSPACE/.cache/ros
+          path: ~/.ros/rosdep
           key: ros
         

@@ -24,7 +24,7 @@ jobs:
       - name: load ros and deps
         uses: actions/cache/restore@v3
         with:
-            path: $GITHUB_WORKSPACE/.cache/ros
+            path: ~/.ros/rosdep
             key: ros
 
         # --- Checkout Repos ---
