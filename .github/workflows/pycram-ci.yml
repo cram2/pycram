@@ -53,6 +53,7 @@ jobs:
           path: 'ros_ws/src/pr2_kinematics'
           repository: PR2/pr2_kinematics
           ref: kinetic-devel
+
       - name: install ros and deps
         uses: betwo/github-setup-catkin@master
         env:
@@ -69,6 +70,7 @@ jobs:
           catkin_make
           echo 'export ROS_HOSTNAME=localhost' >> ~/.bashrc
           echo 'source $GITHUB_WORKSPACE/ros_ws/devel/setup.bash' >> ~/.bashrc
+          
       - name: Upgrade pip
         run: |
           sudo pip3 install --upgrade pip

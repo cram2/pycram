@@ -14,6 +14,14 @@ jobs:
     
     runs-on: ubuntu-20.04
     steps:
+      - name: Checkout pycram
+        uses: actions/checkout@v3
+        with:
+          path: 'ros_ws/src/pycram'
+          repository: ${{github.repository}}
+          ref: ${{github.ref}}
+          submodules: recursive
+          
       - name: load-ros
         id: load_ros
         uses: actions/cache@v3
