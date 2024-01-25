@@ -70,16 +70,13 @@ jobs:
         
         
         # --- Install Requirements ---
-      - name: Upgrade pip
-        run: |
-          sudo pip3 install --upgrade pip
-      - name: Install requirements
-        run: |
-          cd $GITHUB_WORKSPACE/ros_ws/src/pycram
-          sudo pip3 install -r requirements.txt
-      - name: install additional requirements
-        run: |
-          sudo pip3 install --ignore-installed pytest pyjpt mlflow
+      - name: load pip
+        uses: actions/cache/restore@v3
+        with:
+            path: ~/.cache/pip
+            key: pip
+
+
         # --- Start Ros Core
       - name: start roscore
         run: |

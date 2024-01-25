@@ -59,4 +59,35 @@ jobs:
         with: 
           path: ~/.ros
           key: ros
+  
+  cache_pip:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: load pip cache
+        id: load-pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: pip
+
+      - if: ${{ steps.load-pip.outputs.cache-hit != 'true' }}
+        name: install pip requirements
+        run: |
+          cd $GITHUB_WORKSPACE/ros_ws/src/pycram
+          sudo pip3 install -r requirements.txt
+          
+      - if: ${{ steps.load-pip.outputs.cache-hit != 'true' }}
+        name: install extra
+        run: |
+          sudo pip3 install --ignore-installed pytest pyjpt mlflow
+
+      - if: ${{ steps.load-pip.outputs.cache-hit != 'true' }}
+        name: cache pip
+        id: cache-pip
+        uses: actions/cache/save@v3
+        with:
+          path: ~/.cache/pip
+          key: pip
+        
         
