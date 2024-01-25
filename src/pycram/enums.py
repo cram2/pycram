@@ -78,3 +78,11 @@ class Shape(Enum):
     MESH = 5
     PLANE = 6
     CAPSULE = 7
+
+
+class WorldMode(Enum):
+    """
+    Enum for the different modes of the world.
+    """
+    GUI = "GUI"
+    DIRECT = "DIRECT"

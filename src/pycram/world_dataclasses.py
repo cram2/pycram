@@ -6,7 +6,7 @@ from .enums import JointType, Shape
 @dataclass
 class Color:
     """
-    Dataclass for storing color as an RGBA value.
+    Dataclass for storing rgba_color as an RGBA value.
     """
     R: float = 1
     G: float = 1
@@ -16,7 +16,7 @@ class Color:
     @classmethod
     def from_rgba(cls, rgba: List[float]):
         """
-        Sets the color from a list of RGBA values.
+        Sets the rgba_color from a list of RGBA values.
 
         :param rgba: The list of RGBA values
         """
@@ -24,9 +24,9 @@ class Color:
 
     def get_rgba(self) -> List[float]:
         """
-        Returns the color as a list of RGBA values.
+        Returns the rgba_color as a list of RGBA values.
 
-        :return: The color as a list of RGBA values
+        :return: The rgba_color as a list of RGBA values
         """
         return [self.R, self.G, self.B, self.A]
 

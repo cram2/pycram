@@ -77,7 +77,7 @@ class VizMarkerPublisher:
                 link_pose_with_origin = link_pose * link_origin
                 msg.pose = link_pose_with_origin.to_pose().pose
 
-                color = [1, 1, 1, 1] if obj.link_name_to_id[link] == -1 else obj.get_color(link)
+                color = [1, 1, 1, 1] if obj.link_name_to_id[link] == -1 else obj.get_color()
 
                 msg.color = ColorRGBA(*color)
                 msg.lifetime = rospy.Duration(1)

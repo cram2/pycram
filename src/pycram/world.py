@@ -11,8 +11,8 @@ import xml.etree.ElementTree
 from queue import Queue
 import tf
 from tf.transformations import quaternion_from_euler
-from typing import List, Optional, Dict, Tuple, Callable
-from typing import Union
+from typing_extensions import List, Optional, Dict, Tuple, Callable
+from typing_extensions import Union
 
 import numpy as np
 import rospkg
@@ -24,7 +24,7 @@ from urdf_parser_py.urdf import URDF, Collision, GeometricType
 
 from .event import Event
 from .robot_descriptions import robot_description
-from .enums import JointType, ObjectType
+from .enums import JointType, ObjectType, WorldMode
 from .local_transformer import LocalTransformer
 from sensor_msgs.msg import JointState
 
@@ -39,10 +39,17 @@ from .world_dataclasses import (Color, Constraint, AxisAlignedBoundingBox, Colli
 
 class World(ABC):
     """
-    The World Class represents the physics Simulation and belief state.
+    The World Class represents the physics Simulation and belief state, it is the main interface for reasoning about
+    the World. This is implemented as a singleton, the current World can be accessed via the static variable
+     current_world which is managed by the World class itself.
     """
 
-    current_world: World = None
+    simulation_frequency: float
+    """
+    Global reference for the simulation frequency (Hz), used in calculating the equivalent real time in the simulation.
+    """
+
+    current_world: Optional[World] = None
     """
         Global reference to the currently used World, usually this is the
         graphical one. However, if you are inside a UseProspectionWorld() environment the current_world points to the
@@ -50,24 +57,18 @@ class World(ABC):
         used at the moment.
     """
 
-    robot: Object = None
+    robot: Optional[Object] = None
     """
     Global reference to the spawned Object that represents the robot. The robot is identified by checking the name in the 
     URDF with the name of the URDF on the parameter server. 
     """
 
-    data_directory: List[str] = [os.path.dirname(__file__) + "/../../resources"]
+    data_directory: List[str] = [os.path.join(os.path.dirname(__file__), '..', '..', 'resources')]
     """
     Global reference for the data directories, this is used to search for the URDF files of the robot and the objects.
     """
 
-    simulation_time_step: float = None
-    """
-    Global reference for the simulation time step, this is used to calculate the frequency of the simulation,
-    and also for calculating the equivalent real time for the simulation.
-    """
-
-    def __init__(self, mode: str, is_prospection_world: bool, simulation_time_step: float):
+    def __init__(self, mode: WorldMode, is_prospection_world: bool, simulation_frequency: float):
         """
        Creates a new simulation, the mode decides if the simulation should be a rendered window or just run in the
        background. There can only be one rendered simulation.
@@ -79,7 +80,7 @@ class World(ABC):
 
         if World.current_world is None:
             World.current_world = self
-        World.simulation_time_step = simulation_time_step
+        World.simulation_frequency = simulation_frequency
 
         self.is_prospection_world: bool = is_prospection_world
         self._init_and_sync_prospection_world()
@@ -93,7 +94,7 @@ class World(ABC):
         self.client_id: int = -1
         # This is used to connect to the physics server (allows multiple clients)
 
-        self.mode: str = mode
+        self.mode: WorldMode = mode
         # The mode of the simulation, can be "GUI" or "DIRECT"
 
         self.coll_callbacks: Dict[Tuple[Object, Object], CollisionCallbacks] = {}
@@ -103,27 +104,44 @@ class World(ABC):
         self.saved_states: List[int] = []
 
     def _init_events(self):
+        """
+        Initializes dynamic events that can be used to react to changes in the World.
+        """
         self.detachment_event: Event = Event()
         self.attachment_event: Event = Event()
         self.manipulation_event: Event = Event()
 
     def _init_and_sync_prospection_world(self):
+        """
+        Initializes the prospection world and the synchronization between the main and the prospection world.
+        """
         self._init_prospection_world()
         self._sync_prospection_world()
 
     def _update_local_transformer_worlds(self):
+        """
+        Updates the local transformer worlds with the current world and prospection world.
+        """
         self.local_transformer.world = self
         self.local_transformer.prospection_world = self.prospection_world
 
     def _init_prospection_world(self):
+        """
+        Initializes the prospection world, if this is a prospection world itself it will not create another prospection,
+        world, but instead set the prospection world to None, else it will create a prospection world.
+        """
         if self.is_prospection_world:  # then no need to add another prospection world
             self.prospection_world = None
         else:
-            self.prospection_world: World = self.__class__("DIRECT",
+            self.prospection_world: World = self.__class__(WorldMode.DIRECT,
                                                            True,
-                                                           World.simulation_time_step)
+                                                           World.simulation_frequency)
 
     def _sync_prospection_world(self):
+        """
+        Synchronizes the prospection world with the main world, this means that every object in the main world will be
+        added to the prospection world and vice versa.
+        """
         if self.is_prospection_world:  # then no need to add another prospection world
             self.world_sync = None
         else:
@@ -131,11 +149,21 @@ class World(ABC):
             self.world_sync.start()
 
     @property
-    def simulation_frequency(self):
-        return int(1/World.simulation_time_step)
+    def simulation_time_step(self):
+        """
+        The time step of the simulation in seconds.
+        """
+        return 1/World.simulation_frequency
 
     @abstractmethod
-    def load_urdf_at_pose_and_get_object_id(self, path: str, pose: Pose) -> int:
+    def load_urdf_and_get_object_id(self, path: str, pose: Pose) -> int:
+        """
+        Loads a URDF file at the given pose and returns the id of the loaded object.
+
+        :param path: The path to the URDF file.
+        :param pose: The pose at which the object should be loaded.
+        :return: The id of the loaded object.
+        """
         pass
 
     def get_objects_by_name(self, name: str) -> List[Object]:
@@ -166,11 +194,11 @@ class World(ABC):
         return list(filter(lambda obj: obj.id == obj_id, self.objects))[0]
 
     @abstractmethod
-    def remove_object(self, obj_id: int) -> None:
+    def remove_object(self, obj: Object) -> None:
         """
-        Remove an object by its ID.
+        Remove an object from the world.
 
-        :param obj_id: The unique id of the object to be removed.
+        :param obj: The object to be removed.
         """
         pass
 
@@ -178,9 +206,12 @@ class World(ABC):
         """
         Creates a fixed joint constraint between the given parent and child links,
         the joint frame will be at the origin of the child link frame, and would have the same orientation
-        as the child link frame. if no link is given, the base link will be used (id = -1).
+        as the child link frame.
 
-        returns the constraint id
+        :param parent_link: The constrained link of the parent object.
+        :param child_link: The constrained link of the child object.
+        :param child_to_parent_transform: The transform from the child link frame to the parent link frame.
+        :return: The unique id of the created constraint.
         """
 
         constraint = Constraint(parent_obj_id=parent_link.get_object_id(),
@@ -199,12 +230,19 @@ class World(ABC):
     @abstractmethod
     def add_constraint(self, constraint: Constraint) -> int:
         """
-        Add a constraint between two objects so that they become attached
+        Add a constraint between two objects links so that they become attached for example.
+
+        :param constraint: The constraint data used to create the constraint.
         """
         pass
 
     @abstractmethod
-    def remove_constraint(self, constraint_id):
+    def remove_constraint(self, constraint_id) -> None:
+        """
+        Remove a constraint by its ID.
+
+        :param constraint_id: The unique id of the constraint to be removed.
+        """
         pass
 
     def get_object_joint_limits(self, obj: Object, joint_name: str) -> Tuple[float, float]:
@@ -213,7 +251,7 @@ class World(ABC):
 
         :param obj: The object.
         :param joint_name: The name of the joint.
-        :return: A tuple containing the upper and the lower limits of the joint.
+        :return: A tuple containing the upper and the lower limits of the joint respectively.
         """
         return self.get_object_joint_upper_limit(obj, joint_name), self.get_object_joint_lower_limit(obj, joint_name)
 
@@ -242,11 +280,11 @@ class World(ABC):
     @abstractmethod
     def get_object_joint_axis(self, obj: Object, joint_name: str) -> Tuple[float]:
         """
-        Returns the axis along which a joint is moving. The given joint_name has to be part of this object.
+        Returns the axis along/around which a joint is moving. The given joint_name has to be part of this object.
 
-        :param obj: The object
+        :param obj: The object.
         :param joint_name: Name of the joint for which the axis should be returned.
-        :return: The axis a vector of xyz
+        :return: The axis which is a 3D vector of xyz values.
         """
         pass
 
@@ -255,26 +293,30 @@ class World(ABC):
         """
         Returns the type of the joint as element of the Enum :mod:`~pycram.enums.JointType`.
 
-        :param obj: The object
-        :param joint_name: Joint name for which the type should be returned
-        :return: The type of  the joint
+        :param obj: The object.
+        :param joint_name: Joint name for which the type should be returned.
+        :return: The type of  the joint as element of the Enum :mod:`~pycram.enums.JointType`.
         """
         pass
 
     @abstractmethod
     def get_object_joint_position(self, obj: Object, joint_name: str) -> float:
         """
-        Get the state of a joint of an articulated object
+        Get the position of a joint of an articulated object
 
-        :param obj: The object
-        :param joint_name: The name of the joint
+        :param obj: The object.
+        :param joint_name: The name of the joint.
+        :return: The joint position as a float.
         """
         pass
 
     @abstractmethod
-    def get_object_link_pose(self, obj_id: int, link_id: int) -> Pose:
+    def get_link_pose(self, link: Link) -> Pose:
         """
         Get the pose of a link of an articulated object with respect to the world frame.
+
+        :param link: The link as a Link object.
+        :return: The pose of the link as a Pose object.
         """
         pass
 
@@ -296,7 +338,6 @@ class World(ABC):
                 elif callbacks.no_collision_cb is not None:
                     callbacks.no_collision_cb()
             if real_time:
-                # Simulation runs at 240 Hz
                 time.sleep(self.simulation_time_step)
 
     @abstractmethod
@@ -309,7 +350,7 @@ class World(ABC):
     @abstractmethod
     def get_object_contact_points(self, obj: Object) -> List:
         """
-        Returns a list of contact points of this Object with other Objects.
+        Returns a list of contact points of this Object with all other Objects.
 
         :param obj: The object.
         :return: A list of all contact points with other objects
@@ -335,65 +376,75 @@ class World(ABC):
         :return: The lists for the upper and lower limits, joint ranges, rest poses and joint damping
         """
         ll, ul, jr, rp, jd = [], [], [], [], []
-        joint_names = self.get_object_joint_names(self.robot.id)
+        joint_names = self.get_joint_names(self.robot)
         for name in joint_names:
             joint_type = self.get_object_joint_type(self.robot, name)
             if joint_type != JointType.FIXED:
                 ll.append(self.get_object_joint_lower_limit(self.robot, name))
                 ul.append(self.get_object_joint_upper_limit(self.robot, name))
                 jr.append(ul[-1] - ll[-1])
-                rp.append(self.get_object_joint_rest_pose(self.robot, name))
-                jd.append(self.get_object_joint_damping(self.robot, name))
+                rp.append(self.get_joint_rest_pose(self.robot, name))
+                jd.append(self.get_joint_damping(self.robot, name))
 
         return ll, ul, jr, rp, jd
 
-    def get_object_joint_rest_pose(self, obj: Object, joint_name: str) -> float:
+    def get_joint_rest_pose(self, obj: Object, joint_name: str) -> float:
         """
         Get the rest pose of a joint of an articulated object
 
-        :param obj: The object
-        :param joint_name: The name of the joint
+        :param obj: The object.
+        :param joint_name: The name of the joint.
+        :return: The rest pose of the joint.
         """
         pass
 
-    def get_object_joint_damping(self, obj: Object, joint_name: str) -> float:
+    def get_joint_damping(self, obj: Object, joint_name: str) -> float:
         """
         Get the damping of a joint of an articulated object
 
-        :param obj: The object
-        :param joint_name: The name of the joint
+        :param obj: The object.
+        :param joint_name: The name of the joint.
+        :return: The damping of the joint.
         """
         pass
 
     @abstractmethod
-    def get_object_joint_names(self, obj_id: int) -> List[str]:
+    def get_joint_names(self, obj: Object) -> List[str]:
         """
         Get the names of all joints of an articulated object.
+        :param obj: The object.
+        :return: A list of all joint names of the object.
         """
         pass
 
     @abstractmethod
-    def get_object_link_names(self, obj_id: int) -> List[str]:
+    def get_link_names(self, obj: Object) -> List[str]:
         """
         Get the names of all links of an articulated object.
+        :param obj: The object.
+        :return: A list of all link names of the object.
         """
         pass
 
     @abstractmethod
-    def get_object_number_of_joints(self, obj_id: int) -> int:
+    def get_number_of_joints(self, obj: Object) -> int:
         """
         Get the number of joints of an articulated object
+        :param obj: The object.
+        :return: The number of joints of the object.
         """
         pass
 
-    def get_object_number_of_links(self, obj_id: int) -> int:
+    def get_number_of_links(self, obj: Object) -> int:
         """
         Get the number of links of an articulated object
+        :param obj: The object.
+        :return: The number of links of the object.
         """
         pass
 
     @abstractmethod
-    def reset_object_joint_position(self, obj: Object, joint_name: str, joint_pose: float) -> None:
+    def reset_joint_position(self, obj: Object, joint_name: str, joint_pose: float) -> None:
         """
         Reset the joint position instantly without physics simulation
 
@@ -422,53 +473,52 @@ class World(ABC):
         """
         pass
 
-    def set_object_color(self, obj: Object, color: Color, link: Optional[str] = ""):
+    def set_object_color(self, obj: Object, rgba_color: Color):
         """
         Changes the color of this object, the color has to be given as a list
-        of RGBA values. Optionally a link name can can be provided, if no link
-        name is provided all links of this object will be colored.
+        of RGBA values.
 
         :param obj: The object which should be colored
-        :param color: The color as Color object with RGBA values between 0 and 1
-        :param link: The link name of the link which should be colored
+        :param rgba_color: The color as Color object with RGBA values between 0 and 1
         """
-        if link == "":
-            # Check if there is only one link, this is the case for primitive
-            # forms or if loaded from an .stl or .obj file
-            if obj.link_name_to_id != {}:
-                for link_id in obj.link_name_to_id.values():
-                    self.set_object_link_color(obj, link_id, color)
-            else:
-                self.set_object_link_color(obj, -1, color)
+        # Check if there is only one link, this is the case for primitive
+        # forms or if loaded from an .stl or .obj file
+        if obj.links != {}:
+            for link in obj.links.values():
+                self.set_link_color(link, rgba_color)
         else:
-            self.set_object_link_color(obj, obj.link_name_to_id[link], color)
+            self.set_link_color(obj.get_root_link(), rgba_color)
 
     @abstractmethod
-    def set_object_link_color(self, obj: Object, link_id: int, rgba_color: Color):
+    def set_link_color(self, link: Link, rgba_color: Color):
         """
-        Changes the color of a link of this object, the color has to be given as Color object.
+        Changes the rgba_color of a link of this object, the rgba_color has to be given as Color object.
 
-        :param obj: The object which should be colored
-        :param link_id: The link id of the link which should be colored
-        :param rgba_color: The color as Color object with RGBA values between 0 and 1
+        :param link: The link which should be colored.
+        :param rgba_color: The rgba_color as Color object with RGBA values between 0 and 1.
         """
         pass
 
     @abstractmethod
-    def get_color_of_object_link(self, obj: Object, link_name: str) -> Color:
+    def get_link_color(self, link: Link) -> Color:
+        """
+        This method returns the rgba_color of this link.
+        :param link: The link for which the rgba_color should be returned.
+        :return: The rgba_color as Color object with RGBA values between 0 and 1.
+        """
         pass
 
     def get_color_of_object(self, obj: Object) -> Union[Color, Dict[str, Color]]:
         """
-        This method returns the color of this object. The return is either:
+        This method returns the rgba_color of this object. The return is either:
 
             1. A Color object with RGBA values, this is the case if the object only has one link (this
                 happens for example if the object is spawned from a .obj or .stl file)
-            2. A dict with the link name as key and the color as value. The color is given as a Color Object.
-                Please keep in mind that not every link may have a color. This is dependent on the URDF from which the
+            2. A dict with the link name as key and the rgba_color as value. The rgba_color is given as a Color Object.
+                Please keep in mind that not every link may have a rgba_color. This is dependent on the URDF from which the
                 object is spawned.
 
-        :param obj: The object for which the color should be returned.
+        :param obj: The object for which the rgba_color should be returned.
         """
         link_to_color_dict = self.get_colors_of_all_links_of_object(obj)
 
@@ -480,7 +530,7 @@ class World(ABC):
     @abstractmethod
     def get_colors_of_all_links_of_object(self, obj: Object) -> Dict[str, Color]:
         """
-        Get the RGBA colors of each link in the object as a dictionary from link name to color.
+        Get the RGBA colors of each link in the object as a dictionary from link name to rgba_color.
 
         :param obj: The object
         :return: A dictionary with link names as keys and a Color object for each link as value.
@@ -698,7 +748,7 @@ class World(ABC):
 
         :return: The reference to the new World
         """
-        world = World("DIRECT", False, World.simulation_time_step)
+        world = World(WorldMode.DIRECT, False, World.simulation_frequency)
         for obj in self.objects:
             obj_pose = Pose(obj.get_position_as_list(), obj.get_orientation_as_list())
             o = Object(obj.name, obj.obj_type, obj.path, obj_pose, world,
@@ -856,11 +906,11 @@ class UseProspectionWorld:
     """
 
     def __init__(self):
-        self.prev_world: World = None
+        self.prev_world: Optional[World] = None
 
     def __enter__(self):
         if not World.current_world.is_prospection_world:
-            time.sleep(20 * World.simulation_time_step)
+            time.sleep(20 * World.current_world.simulation_time_step)
             # blocks until the adding queue is ready
             World.current_world.world_sync.add_obj_queue.join()
 
@@ -913,7 +963,7 @@ class WorldSync(threading.Thread):
             # self.equal_states = False
             for i in range(self.add_obj_queue.qsize()):
                 obj = self.add_obj_queue.get()
-                # [name, type, path, position, orientation, self.world.prospection_world, color, world object]
+                # [name, type, path, position, orientation, self.world.prospection_world, rgba_color, world object]
                 o = Object(obj[0], obj[1], obj[2], Pose(obj[3], obj[4]), obj[5], obj[6])
                 # Maps the World object to the prospection world object
                 self.object_mapping[obj[7]] = o
@@ -1065,7 +1115,7 @@ class Link:
         """
         The pose of the link relative to the world frame.
         """
-        return self.world.get_object_link_pose(self.object.id, self.id)
+        return self.world.get_link_pose(self)
 
     @property
     def pose_as_list(self) -> List[List[float]]:
@@ -1091,11 +1141,11 @@ class Link:
 
     @property
     def color(self) -> Color:
-        return self.world.get_color_of_object_link(self.object, self.name)
+        return self.world.get_link_color(self)
 
     @color.setter
-    def color(self, color: Color) -> None:
-        self.world.set_object_link_color(self.object, self.id, color)
+    def color(self, color: List[float]) -> None:
+        self.world.set_link_color(self, Color.from_rgba(color))
 
 
 class RootLink(Link):
@@ -1131,7 +1181,7 @@ class Object:
         """
         The constructor loads the urdf file into the given World, if no World is specified the
         :py:attr:`~World.current_world` will be used. It is also possible to load .obj and .stl file into the World.
-        The color parameter is only used when loading .stl or .obj files,
+        The rgba_color parameter is only used when loading .stl or .obj files,
          for URDFs :func:`~Object.set_color` can be used.
 
         :param name: The name of the object
@@ -1141,7 +1191,7 @@ class Object:
         :param pose: The pose at which the Object should be spawned
         :param world: The World in which the object should be spawned,
          if no world is specified the :py:attr:`~World.current_world` will be used.
-        :param color: The color with which the object should be spawned.
+        :param color: The rgba_color with which the object should be spawned.
         :param ignore_cached_files: If true the file will be spawned while ignoring cached files.
         """
 
@@ -1235,7 +1285,7 @@ class Object:
             self.world.world_sync.remove_obj_queue.put(self)
             self.world.world_sync.remove_obj_queue.join()
 
-        self.world.remove_object(self.id)
+        self.world.remove_object(self)
 
         if World.robot == self:
             World.robot = None
@@ -1474,7 +1524,7 @@ class Object:
         """
         Creates a dictionary which maps the joint names to their unique ids.
         """
-        joint_names = self.world.get_object_joint_names(self.id)
+        joint_names = self.world.get_joint_names(self)
         n_joints = len(joint_names)
         return dict(zip(joint_names, range(n_joints)))
 
@@ -1482,7 +1532,7 @@ class Object:
         """
         Creates a dictionary which maps the link names to their unique ids.
         """
-        link_names = self.world.get_object_link_names(self.id)
+        link_names = self.world.get_link_names(self)
         n_links = len(link_names)
         return dict(zip(link_names, range(n_links)))
 
@@ -1552,7 +1602,7 @@ class Object:
         :return:
         """
         for joint_name, joint_position in joint_poses.items():
-            self.world.reset_object_joint_position(self, joint_name, joint_position)
+            self.world.reset_joint_position(self, joint_name, joint_position)
             self._current_joints_positions[joint_name] = joint_position
         self._set_attached_objects_poses()
 
@@ -1575,7 +1625,7 @@ class Object:
             logging.error(f"The given joint position was: {joint_position}")
             # Temporarily disabled because kdl outputs values exciting joint limits
             # return
-        self.world.reset_object_joint_position(self, joint_name, joint_position)
+        self.world.reset_joint_position(self, joint_name, joint_position)
         self._current_joints_positions[joint_name] = joint_position
         self._set_attached_objects_poses()
 
@@ -1640,22 +1690,17 @@ class Object:
                     position[0][2]]
         self.set_position(Pose(position, orientation))
 
-    def set_color(self, color: Color, link: Optional[str] = "") -> None:
+    def set_color(self, color: Color) -> None:
         """
-        Changes the color of this object, the color has to be given as a list
-        of RGBA values. Optionally a link name can can be provided, if no link
-        name is provided all links of this object will be colored.
+        Changes the rgba_color of this object, the rgba_color has to be given as a list
+        of RGBA values. All links of this object will be colored.
 
-        :param color: The color as RGBA values between 0 and 1
-        :param link: The link name of the link which should be colored
+        :param color: The rgba_color as RGBA values between 0 and 1
         """
-        self.world.set_object_color(self, color, link)
+        self.world.set_object_color(self, color)
 
-    def get_color(self, link: Optional[str] = None) -> Union[Color, Dict[str, Color], None]:
-        if link is None:
-            return self.world.get_color_of_object(self)
-        else:
-            return self.world.get_color_of_object_link(self, link)
+    def get_color(self) -> Union[Color, Dict[str, Color]]:
+        return self.world.get_color_of_object(self)
 
     def get_aabb(self) -> AxisAlignedBoundingBox:
         return self.world.get_object_aabb(self)
@@ -1707,7 +1752,7 @@ class Object:
 
     def find_joint_above(self, link_name: str, joint_type: JointType) -> str:
         """
-        Traverses the chain from 'link_name' to the URDF origin and returns the first joint that is of type 'joint_type'.
+        Traverses the chain from 'link' to the URDF origin and returns the first joint that is of type 'joint_type'.
 
         :param link_name: Link name above which the joint should be found
         :param joint_type: Joint type that should be searched for
@@ -1859,7 +1904,7 @@ def _load_object(name: str,
                  color: Color,
                  ignore_cached_files: bool) -> Tuple[int, str]:
     """
-    Loads an object to the given World with the given position and orientation. The color will only be
+    Loads an object to the given World with the given position and orientation. The rgba_color will only be
     used when an .obj or .stl file is given.
     If a .obj or .stl file is given, before spawning, an urdf file with the .obj or .stl as mesh will be created
     and this URDf file will be loaded instead.
@@ -1872,7 +1917,7 @@ def _load_object(name: str,
     :param position: The position in which the object should be spawned
     :param orientation: The orientation in which the object should be spawned
     :param world: The World to which the Object should be spawned
-    :param color: The color of the object, only used when .obj or .stl file is given
+    :param color: The rgba_color of the object, only used when .obj or .stl file is given
     :param ignore_cached_files: Whether to ignore files in the cache directory.
     :return: The unique id of the object and the path to the file used for spawning
     """
@@ -1924,7 +1969,7 @@ def _load_object(name: str,
         path = cach_dir + name + ".urdf"
 
     try:
-        obj = world.load_urdf_at_pose_and_get_object_id(path, Pose(position, orientation))
+        obj = world.load_urdf_and_get_object_id(path, Pose(position, orientation))
         return obj, path
     except Exception as e:
         logging.error(
@@ -2043,13 +2088,13 @@ def fix_link_attributes(urdf_string: str) -> str:
 
 def _generate_urdf_file(name: str, path: str, color: Color, cach_dir: str) -> str:
     """
-    Generates an URDf file with the given .obj or .stl file as mesh. In addition, the given color will be
+    Generates an URDf file with the given .obj or .stl file as mesh. In addition, the given rgba_color will be
     used to crate a material tag in the URDF. The resulting file will then be saved in the cach_dir path with the name
     as filename.
 
     :param name: The name of the object
     :param path: The path to the .obj or .stl file
-    :param color: The color which should be used for the material tag
+    :param color: The rgba_color which should be used for the material tag
     :param cach_dir The absolute file path to the cach directory in the pycram package
     :return: The absolute path of the created file
     """
@@ -2061,7 +2106,7 @@ def _generate_urdf_file(name: str, path: str, color: Color, cach_dir: str) -> st
                                 <mesh filename="~b" scale="1 1 1"/> \n \
                             </geometry>\n \
                             <material name="white">\n \
-                                <color rgba="~c"/>\n \
+                                <rgba_color rgba="~c"/>\n \
                             </material>\n \
                       </visual> \n \
                     <collision> \n \
