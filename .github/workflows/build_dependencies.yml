@@ -1,0 +1,19 @@
+name: build_dependencies
+
+defaults:
+  run:
+    shell: bash -ieo pipefail {0}
+
+on:
+  workflow_call:
+    inputs:
+        ros:
+          description: build ros
+          type: boolean
+          default: true
+          required: false
+
+jobs:
+  a:
+    runs-on: ubuntu-20.04
+        
