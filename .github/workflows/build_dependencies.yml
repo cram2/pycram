@@ -24,7 +24,7 @@ jobs:
           
       - name: load-ros
         id: load_ros
-        uses: actions/cache@v3
+        uses: actions/cache@v2
         with:
           path: ~/.cache/ros
           key: ros
