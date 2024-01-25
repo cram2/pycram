@@ -11,6 +11,8 @@ on:
     branches:
       - master
       - dev
+  workflow_dispatch
+  
 jobs:
   Build_deps:
     uses: ./.github/workflows/build_dependencies.yml
@@ -24,7 +26,7 @@ jobs:
       - name: load ros and deps
         uses: actions/cache/restore@v3
         with:
-            path: ~/.ros/rosdep
+            path: ~/.ros
             key: ros
 
         # --- Checkout Repos ---
