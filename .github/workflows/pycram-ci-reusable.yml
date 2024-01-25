@@ -66,13 +66,6 @@ jobs:
 
         
         
-        # --- Build Workspace ---
-      - name: build and source workspace
-        run: |
-          cd ros_ws
-          catkin_make
-          echo 'export ROS_HOSTNAME=localhost' >> ~/.bashrc
-          echo 'source $GITHUB_WORKSPACE/ros_ws/devel/setup.bash' >> ~/.bashrc
         
         # --- Install Requirements ---
       - name: Upgrade pip
