@@ -61,10 +61,15 @@ jobs:
           key: ros
   
   cache_pip:
-    needs: build_and_cache_ros
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout pycram
+        uses: actions/checkout@v3
+        with:
+          path: 'ros_ws/src/pycram'
+          repository: ${{github.repository}}
+          ref: ${{github.ref}}
+          submodules: recursive
       - name: load pip cache
         id: load-pip
         uses: actions/cache@v3
