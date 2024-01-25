@@ -70,6 +70,7 @@ jobs:
           repository: ${{github.repository}}
           ref: ${{github.ref}}
           submodules: recursive
+
       - name: load pip cache
         id: load-pip
         uses: actions/cache@v3
@@ -80,6 +81,7 @@ jobs:
       - if: ${{ steps.load-pip.outputs.cache-hit != 'true' }}
         name: install pip requirements
         run: |
+          sudo pip3 install --upgrade pip
           cd $GITHUB_WORKSPACE/ros_ws/src/pycram
           sudo pip3 install -r requirements.txt
 
