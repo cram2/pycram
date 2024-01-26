@@ -31,10 +31,9 @@ from sensor_msgs.msg import JointState
 from .pose import Pose, Transform
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from .world_dataclasses import (Color, Constraint, AxisAlignedBoundingBox, CollisionCallbacks,
                                 MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape, SphereVisualShape,
-                                CapsuleVisualShape, PlaneVisualShape, MeshVisualShape)
+                                CapsuleVisualShape, PlaneVisualShape, MeshVisualShape, LinkState, ObjectState)
 
 
 class World(ABC):
@@ -194,13 +193,36 @@ class World(ABC):
         return list(filter(lambda obj: obj.id == obj_id, self.objects))[0]
 
     @abstractmethod
-    def remove_object(self, obj: Object) -> None:
+    def remove_object_from_simulator(self, obj: Object) -> None:
         """
-        Remove an object from the world.
-
+        Removes an object from the physics simulator.
         :param obj: The object to be removed.
         """
         pass
+
+    def remove_object(self, obj: Object) -> None:
+        """
+        Removes this object from the current world.
+        For the object to be removed it has to be detached from all objects it
+        is currently attached to. After this is done a call to world remove object is done
+        to remove this Object from the simulation/world.
+
+        :param obj: The object to be removed.
+        """
+        obj.detach_all()
+
+        self.objects.remove(obj)
+
+        # This means the current world of the object is not the prospection world, since it
+        # has a reference to the prospection world
+        if self.prospection_world is not None:
+            self.world_sync.remove_obj_queue.put(self)
+            self.world_sync.remove_obj_queue.join()
+
+        self.remove_object_from_simulator(obj)
+
+        if World.robot == self:
+            World.robot = None
 
     def add_fixed_constraint(self, parent_link: Link, child_link: Link, child_to_parent_transform: Transform) -> int:
         """
@@ -508,19 +530,21 @@ class World(ABC):
         """
         pass
 
-    def get_color_of_object(self, obj: Object) -> Union[Color, Dict[str, Color]]:
+    def get_object_color(self, obj: Object) -> Union[Color, Dict[str, Color]]:
         """
         This method returns the rgba_color of this object. The return is either:
 
             1. A Color object with RGBA values, this is the case if the object only has one link (this
                 happens for example if the object is spawned from a .obj or .stl file)
             2. A dict with the link name as key and the rgba_color as value. The rgba_color is given as a Color Object.
-                Please keep in mind that not every link may have a rgba_color. This is dependent on the URDF from which the
-                object is spawned.
+                Please keep in mind that not every link may have a rgba_color. This is dependent on the URDF from which
+                 the object is spawned.
 
         :param obj: The object for which the rgba_color should be returned.
+        :return: The rgba_color as Color object with RGBA values between 0 and 1 or a dict with the link name as key and
+            the rgba_color as value.
         """
-        link_to_color_dict = self.get_colors_of_all_links_of_object(obj)
+        link_to_color_dict = self.get_colors_of_object_links(obj)
 
         if len(link_to_color_dict) == 1:
             return list(link_to_color_dict.values())[0]
@@ -528,7 +552,7 @@ class World(ABC):
             return link_to_color_dict
 
     @abstractmethod
-    def get_colors_of_all_links_of_object(self, obj: Object) -> Dict[str, Color]:
+    def get_colors_of_object_links(self, obj: Object) -> Dict[str, Color]:
         """
         Get the RGBA colors of each link in the object as a dictionary from link name to rgba_color.
 
@@ -538,7 +562,7 @@ class World(ABC):
         pass
 
     @abstractmethod
-    def get_object_aabb(self, obj: Object) -> AxisAlignedBoundingBox:
+    def get_object_axis_aligned_bounding_box(self, obj: Object) -> AxisAlignedBoundingBox:
         """
         Returns the axis aligned bounding box of this object. The return of this method are two points in
         world coordinate frame which define a bounding box.
@@ -549,7 +573,7 @@ class World(ABC):
         pass
 
     @abstractmethod
-    def get_object_link_aabb(self, obj_id: int, link_id: int) -> AxisAlignedBoundingBox:
+    def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
         """
         Returns the axis aligned bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
@@ -630,6 +654,7 @@ class World(ABC):
     def exit(self, wait_time_before_exit_in_secs: Optional[float] = None) -> None:
         """
         Closes the World as well as the prospection world, also collects any other thread that is running.
+        :param wait_time_before_exit_in_secs: The time to wait before exiting the world in seconds.
         """
         if wait_time_before_exit_in_secs is not None:
             time.sleep(wait_time_before_exit_in_secs)
@@ -640,6 +665,9 @@ class World(ABC):
         self.join_threads()
 
     def exit_prospection_world_if_exists(self):
+        """
+        Exits the prospection world if it exists.
+        """
         if self.prospection_world:
             self.terminate_world_sync()
             self.prospection_world.exit()
@@ -652,10 +680,16 @@ class World(ABC):
         pass
 
     def reset_current_world(self):
+        """
+        Resets the current world to None if this is the current world.
+        """
         if World.current_world == self:
             World.current_world = None
 
     def reset_robot(self):
+        """
+        Sets the robot class variable to None.
+        """
         self.set_robot(None)
 
     @abstractmethod
@@ -666,13 +700,16 @@ class World(ABC):
         pass
 
     def terminate_world_sync(self):
+        """
+        Terminates the world sync thread.
+        """
         self.world_sync.terminate = True
         self.world_sync.join()
 
     def save_state(self) -> int:
         """
-        Returns the id of the saved state of the World. The saved state contains the position, orientation and joint
-        position of every Object in the World, the objects attachments and the constraint ids.
+        Returns the id of the saved state of the World. The saved state contains the states of all the objects and
+        the state of the physics simulator.
 
         :return: A unique id of the state
         """
@@ -682,16 +719,21 @@ class World(ABC):
         return state_id
 
     def save_objects_state(self, state_id: int):
+        """
+        Saves the state of all objects in the World according to the given state using the unique state id.
+        :param state_id: The unique id representing the state.
+        """
         for obj in self.objects:
             obj.save_state(state_id)
 
     def restore_state(self, state_id) -> None:
         """
-        Restores the state of the World according to the given state using the unique state id. This includes position,
-         orientation, and joint states. However, restore can not respawn objects if there are objects that were deleted
-          between creation of the state and restoring, they will be skipped.
+        Restores the state of the World according to the given state using the unique state id. This includes the state
+        of the physics simulator and the state of all objects.
+        However, restore can not respawn objects if there are objects that were deleted between creation of the state
+        and restoring, they will be skipped.
 
-        :param state_id: The unique id representing the state, as returned by :func:`~save_state`
+        :param state_id: The unique id representing the state.
         """
         self.restore_physics_simulator_state(state_id)
         self.restore_objects_states(state_id)
@@ -700,6 +742,7 @@ class World(ABC):
     def save_physics_simulator_state(self) -> int:
         """
         Saves the state of the physics simulator and returns the unique id of the state.
+        :return: The unique id representing the state.
         """
         pass
 
@@ -707,6 +750,7 @@ class World(ABC):
     def remove_physics_simulator_state(self, state_id: int):
         """
         Removes the state of the physics simulator with the given id.
+        :param state_id: The unique id representing the state.
         """
         pass
 
@@ -715,10 +759,15 @@ class World(ABC):
         """
         Restores the objects and environment state in the physics simulator according to
          the given state using the unique state id.
+        :param state_id: The unique id representing the state.
         """
         pass
 
     def restore_objects_states(self, state_id: int):
+        """
+        Restores the state of all objects in the World according to the given state using the unique state id.
+        :param state_id: The unique id representing the state.
+        """
         for obj in self.objects:
             obj.restore_state(state_id)
 
@@ -733,29 +782,12 @@ class World(ABC):
         2. A depth image
         3. A segmentation Mask, the segmentation mask indicates for every pixel the visible Object.
 
-        :param cam_pose: The pose of the camera
-        :param target_pose: The pose to which the camera should point to
-        :param size: The height and width of the images in pixel
+        :param target_pose: The pose to which the camera should point.
+        :param cam_pose: The pose of the camera.
+        :param size: The height and width of the images in pixels.
         :return: A list containing an RGB and depth image as well as a segmentation mask, in this order.
         """
         pass
-
-    def _copy(self) -> World:
-        """
-        Copies this World into another and returns it. The other World
-        will be in Direct mode. The prospection world should always be preferred instead of creating a new World.
-        This method should only be used if necessary since there can be unforeseen problems.
-
-        :return: The reference to the new World
-        """
-        world = World(WorldMode.DIRECT, False, World.simulation_frequency)
-        for obj in self.objects:
-            obj_pose = Pose(obj.get_position_as_list(), obj.get_orientation_as_list())
-            o = Object(obj.name, obj.obj_type, obj.path, obj_pose, world,
-                       obj.color)
-            for joint in obj.joint_name_to_id:
-                o.set_joint_position(joint, obj.get_joint_position(joint))
-        return world
 
     def register_two_objects_collision_callbacks(self,
                                                  object_a: Object,
@@ -784,7 +816,7 @@ class World(ABC):
         """
         cls.data_directory.append(path)
 
-    def get_prospection_object_from_object(self, obj: Object) -> Object:
+    def get_prospection_object_for_object(self, obj: Object) -> Object:
         """
         Returns the corresponding object from the prospection world for a given object in the main world.
          If the given Object is already in the prospection world, it is returned.
@@ -804,7 +836,7 @@ class World(ABC):
                     f" the object isn't anymore in the main (graphical) World"
                     f" or if the given object is already a prospection object. ")
 
-    def get_object_from_prospection_object(self, prospection_object: Object) -> Object:
+    def get_object_for_prospection_object(self, prospection_object: Object) -> Object:
         """
         Returns the corresponding object from the main World for a given
         object in the prospection world. If the  given object is not in the prospection
@@ -825,6 +857,7 @@ class World(ABC):
         All attached objects will be detached, all joints will be set to the
         default position of 0 and all objects will be set to the position and
         orientation in which they were spawned.
+        :param remove_saved_states: If the saved states should be removed.
         """
 
         if remove_saved_states:
@@ -834,6 +867,9 @@ class World(ABC):
             obj.reset(remove_saved_states)
 
     def remove_saved_states(self):
+        """
+        Removes all saved states of the World.
+        """
         for state_id in self.saved_states:
             self.remove_physics_simulator_state(state_id)
         self.saved_states = []
@@ -850,9 +886,9 @@ class World(ABC):
     def ray_test(self, from_position: List[float], to_position: List[float]) -> int:
         """ Cast a ray and return the first object hit, if any.
 
-        param from_position: The starting position of the ray in Cartesian world coordinates.
-        param to_position: The ending position of the ray in Cartesian world coordinates.
-        return: The object id of the first object hit, or -1 if no object was hit.
+        :param from_position: The starting position of the ray in Cartesian world coordinates.
+        :param to_position: The ending position of the ray in Cartesian world coordinates.
+        :return: The object id of the first object hit, or -1 if no object was hit.
         """
         pass
 
@@ -864,34 +900,81 @@ class World(ABC):
            to compute the ray intersections for the batch. Specify 0 to let simulator decide, 1 (default) for single
             core execution, 2 or more to select the number of threads to use.
 
-        param from_positions: The starting positions of the rays in Cartesian world coordinates.
-        param to_positions: The ending positions of the rays in Cartesian world coordinates.
-        param num_threads: The number of threads to use to compute the ray intersections for the batch.
+        :param from_positions: The starting positions of the rays in Cartesian world coordinates.
+        :param to_positions: The ending positions of the rays in Cartesian world coordinates.
+        :param num_threads: The number of threads to use to compute the ray intersections for the batch.
         """
         pass
 
     def create_visual_shape(self, visual_shape: VisualShape) -> int:
+        """
+        Creates a visual shape in the physics simulator and returns the unique id of the created shape.
+        :param visual_shape: The visual shape to be created, uses the VisualShape dataclass defined in world_dataclasses
+        :return: The unique id of the created shape.
+        """
         raise NotImplementedError
 
     def create_multi_body(self, multi_body: MultiBody) -> int:
+        """
+        Creates a multi body in the physics simulator and returns the unique id of the created multi body. The multibody
+        is created by joining multiple links/shapes together with joints.
+        :param multi_body: The multi body to be created, uses the MultiBody dataclass defined in world_dataclasses.
+        :return: The unique id of the created multi body.
+        """
         raise NotImplementedError
 
     def create_box_visual_shape(self, shape_data: BoxVisualShape) -> int:
+        """
+        Creates a box visual shape in the physics simulator and returns the unique id of the created shape.
+        :param shape_data: The parameters that define the box visual shape to be created,
+         uses the BoxVisualShape dataclass defined in world_dataclasses.
+        :return: The unique id of the created shape.
+        """
         raise NotImplementedError
 
     def create_cylinder_visual_shape(self, shape_data: CylinderVisualShape) -> int:
+        """
+        Creates a cylinder visual shape in the physics simulator and returns the unique id of the created shape.
+        :param shape_data: The parameters that define the cylinder visual shape to be created,
+         uses the CylinderVisualShape dataclass defined in world_dataclasses.
+        :return: The unique id of the created shape.
+        """
         raise NotImplementedError
 
     def create_sphere_visual_shape(self, shape_data: SphereVisualShape) -> int:
+        """
+        Creates a sphere visual shape in the physics simulator and returns the unique id of the created shape.
+        :param shape_data: The parameters that define the sphere visual shape to be created,
+         uses the SphereVisualShape dataclass defined in world_dataclasses.
+        :return: The unique id of the created shape.
+        """
         raise NotImplementedError
 
     def create_capsule_visual_shape(self, shape_data: CapsuleVisualShape) -> int:
+        """
+        Creates a capsule visual shape in the physics simulator and returns the unique id of the created shape.
+        :param shape_data: The parameters that define the capsule visual shape to be created,
+         uses the CapsuleVisualShape dataclass defined in world_dataclasses.
+        :return: The unique id of the created shape.
+        """
         raise NotImplementedError
 
     def create_plane_visual_shape(self, shape_data: PlaneVisualShape) -> int:
+        """
+        Creates a plane visual shape in the physics simulator and returns the unique id of the created shape.
+        :param shape_data: The parameters that define the plane visual shape to be created,
+         uses the PlaneVisualShape dataclass defined in world_dataclasses.
+        :return: The unique id of the created shape.
+        """
         raise NotImplementedError
 
     def create_mesh_visual_shape(self, shape_data: MeshVisualShape) -> int:
+        """
+        Creates a mesh visual shape in the physics simulator and returns the unique id of the created shape.
+        :param shape_data: The parameters that define the mesh visual shape to be created,
+         uses the MeshVisualShape dataclass defined in world_dataclasses.
+        :return: The unique id of the created shape.
+        """
         raise NotImplementedError
 
 
@@ -907,8 +990,12 @@ class UseProspectionWorld:
 
     def __init__(self):
         self.prev_world: Optional[World] = None
+        # The previous world is saved to restore it after the with block is exited.
 
     def __enter__(self):
+        """
+        This method is called when entering the with block, it will set the current world to the prospection world
+        """
         if not World.current_world.is_prospection_world:
             time.sleep(20 * World.current_world.simulation_time_step)
             # blocks until the adding queue is ready
@@ -919,6 +1006,9 @@ class UseProspectionWorld:
             World.current_world = World.current_world.prospection_world
 
     def __exit__(self, *args):
+        """
+        This method is called when exiting the with block, it will restore the previous world to be the current world.
+        """
         if self.prev_world is not None:
             World.current_world = self.prev_world
             World.current_world.world_sync.pause_sync = False
@@ -1014,41 +1104,48 @@ class WorldSync(threading.Thread):
         self.equal_states = eql
 
 
-@dataclass
-class LinkState:
-    constraint_ids: Dict[Link, int]
-
-
 class Link:
-
+    """
+    Represents a link of an Object in the World.
+    """
     def __init__(self,
                  _id: int,
                  urdf_link: urdf_parser_py.urdf.Link,
                  obj: Object):
-        self.id = _id
-        self.urdf_link = urdf_link
-        self.object = obj
-        self.world = obj.world
-        self.local_transformer = LocalTransformer()
+        self.id: int = _id
+        self.urdf_link: urdf_parser_py.urdf.Link = urdf_link
+        self.object: Object = obj
+        self.world: World = obj.world
+        self.local_transformer: LocalTransformer = LocalTransformer()
         self.constraint_ids: Dict[Link, int] = {}
         self.saved_states: Dict[int, LinkState] = {}
 
     def save_state(self, state_id: int) -> None:
         """
-        Saves the state of this link, this includes the pose of the link.
+        Saves the state of this link.
+        :param state_id: The unique id of the state.
         """
         self.saved_states[state_id] = self.get_current_state()
 
     def restore_state(self, state_id: int) -> None:
         """
-        Restores the state of this link, this includes the pose of the link.
+        Restores the state of this link.
+        :param state_id: The unique id of the state.
         """
         self.constraint_ids = self.saved_states[state_id].constraint_ids
 
     def get_current_state(self):
+        """
+        :return: The current state of this link as a LinkState object.
+        """
         return LinkState(self.constraint_ids.copy())
 
     def add_fixed_constraint_with_link(self, child_link: Link) -> int:
+        """
+        Adds a fixed constraint between this link and the given link, used to create attachments for example.
+        :param child_link: The child link to which a fixed constraint should be added.
+        :return: The unique id of the constraint.
+        """
         constraint_id = self.world.add_fixed_constraint(self,
                                                         child_link,
                                                         child_link.get_transform_from_link(self))
@@ -1057,115 +1154,207 @@ class Link:
         return constraint_id
 
     def remove_constraint_with_link(self, child_link: Link) -> None:
+        """
+        Removes the constraint between this link and the given link.
+        :param child_link: The child link of the constraint that should be removed.
+        """
         self.world.remove_constraint(self.constraint_ids[child_link])
         del self.constraint_ids[child_link]
         del child_link.constraint_ids[self]
 
     def get_object_id(self) -> int:
+        """
+        Returns the id of the object to which this link belongs.
+        :return: The integer id of the object to which this link belongs.
+        """
         return self.object.id
 
     @property
     def tf_frame(self) -> str:
+        """
+        Returns the tf frame of this link.
+        :return: The tf frame of this link as a string.
+        """
         return f"{self.object.tf_frame}/{self.urdf_link.name}"
 
     @property
     def is_root(self) -> bool:
+        """
+        Returns whether this link is the root link of the object.
+        :return: True if this link is the root link, False otherwise.
+        """
         return self.object.get_root_link_id() == self.id
 
     def update_transform(self, transform_time: Optional[rospy.Time] = None):
+        """
+        Updates the transformation of this link at the given time.
+        :param transform_time: The time at which the transformation should be updated.
+        """
         self.local_transformer.update_transforms([self.transform], transform_time)
 
     @property
     def transform(self) -> Transform:
         """
         The transformation from the world frame to this link frame.
+        :return: A Transform object with the transformation from the world frame to this link frame.
         """
         return self.pose.to_transform(self.tf_frame)
 
-    def get_transform_to_link(self, link: Link):
+    def get_transform_to_link(self, link: Link) -> Transform:
+        """
+        Returns the transformation from this link to the given link.
+        :param link: The link to which the transformation should be returned.
+        :return: A Transform object with the transformation from this link to the given link.
+        """
         return link.get_transform_from_link(self)
 
     def get_transform_from_link(self, link: Link) -> Transform:
+        """
+        Returns the transformation from the given link to this link.
+        :param link: The link from which the transformation should be returned.
+        :return: A Transform object with the transformation from the given link to this link.
+        """
         return self.get_pose_wrt_link(link).to_transform(self.tf_frame)
 
     def get_pose_wrt_link(self, link: Link) -> Pose:
+        """
+        Returns the pose of this link with respect to the given link.
+        :param link: The link with respect to which the pose should be returned.
+        :return: A Pose object with the pose of this link with respect to the given link.
+        """
         return self.local_transformer.transform_pose(self.pose, link.tf_frame)
 
-    def get_aabb(self) -> AxisAlignedBoundingBox:
-        return self.world.get_object_link_aabb(self.object.id, self.id)
+    def get_axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
+        """
+        Returns the axis aligned bounding box of this link.
+        :return: An AxisAlignedBoundingBox object with the axis aligned bounding box of this link.
+        """
+        return self.world.get_link_axis_aligned_bounding_box(self)
 
     @property
-    def position(self) -> Pose.position:
+    def position(self) -> Point:
+        """
+        The getter for the position of the link relative to the world frame.
+        :return: A Point object containing the position of the link relative to the world frame.
+        """
         return self.pose.position
 
     @property
     def position_as_list(self) -> List[float]:
+        """
+        The getter for the position of the link relative to the world frame as a list.
+        :return: A list containing the position of the link relative to the world frame.
+        """
         return self.pose.position_as_list()
 
     @property
     def orientation(self) -> Quaternion:
+        """
+        The getter for the orientation of the link relative to the world frame.
+        :return: A Quaternion object containing the orientation of the link relative to the world frame.
+        """
         return self.pose.orientation
 
     @property
     def orientation_as_list(self) -> List[float]:
+        """
+        The getter for the orientation of the link relative to the world frame as a list.
+        :return: A list containing the orientation of the link relative to the world frame.
+        """
         return self.pose.orientation_as_list()
 
     @property
     def pose(self) -> Pose:
         """
         The pose of the link relative to the world frame.
+        :return: A Pose object containing the pose of the link relative to the world frame.
         """
         return self.world.get_link_pose(self)
 
     @property
     def pose_as_list(self) -> List[List[float]]:
+        """
+        The pose of the link relative to the world frame as a list.
+        :return: A list containing the position and orientation of the link relative to the world frame.
+        """
         return self.pose.to_list()
 
     @property
     def name(self) -> str:
+        """
+        The name of the link as defined in the URDF.
+        :return: The name of the link as a string.
+        """
         return self.urdf_link.name
 
     def get_geometry(self) -> GeometricType:
+        """
+        Returns the geometry type of the URDF collision element of this link.
+        """
         return None if not self.collision else self.collision.geometry
 
-    def get_origin_transform(self):
+    def get_origin_transform(self) -> Transform:
+        """
+        Returns the transformation between the link frame and the origin frame of this link.
+        """
         return Transform(self.origin.xyz, list(quaternion_from_euler(*self.origin.rpy)))
 
     @property
-    def origin(self):
+    def origin(self) -> urdf_parser_py.urdf.Pose:
+        """
+        The URDF origin pose of this link.
+        :return: A '~urdf_parser_py.urdf.Pose' object containing the origin pose of this link.
+        """
         return self.collision.origin
 
     @property
     def collision(self) -> Collision:
+        """
+        The URDF collision element of this link which has a geometry, and origin.
+        :return: A '~urdf_parser_py.urdf.Collision' object containing the collision element of this link.
+        """
         return self.urdf_link.collision
 
     @property
     def color(self) -> Color:
+        """
+        The getter for the rgba_color of this link.
+        :return: A Color object containing the rgba_color of this link.
+        """
         return self.world.get_link_color(self)
 
     @color.setter
     def color(self, color: List[float]) -> None:
-        self.world.set_link_color(self, Color.from_rgba(color))
+        """
+        The setter for the color of this link, could be rgb or rgba.
+        :param color: The color as a list of floats, either rgb or rgba.
+        """
+        self.world.set_link_color(self, Color.from_list(color))
 
 
 class RootLink(Link):
-
+    """
+    Represents the root link of an Object in the World.
+    It differs from the normal Link class in that the pose ande the tf_frame is the same as that of the object.
+    """
     def __init__(self, obj: Object):
         super().__init__(obj.get_root_link_id(), obj.get_root_urdf_link(), obj)
 
     @property
     def tf_frame(self) -> str:
+        """
+        Returns the tf frame of the root link, which is the same as the tf frame of the object.
+        :return: A string containing the tf frame of the root link.
+        """
         return self.object.tf_frame
 
     @property
     def pose(self) -> Pose:
+        """
+        Returns the pose of the root link, which is the same as the pose of the object.
+        :return: A Pose object containing the pose of the root link.
+        """
         return self.object.get_pose()
-
-
-@dataclass
-class ObjectState:
-    state_id: int
-    attachments: Dict[Object, Attachment]
 
 
 class Object:
@@ -1173,9 +1362,9 @@ class Object:
     Represents a spawned Object in the World.
     """
 
-    def __init__(self, name: str, obj_type: Union[str, ObjectType], path: str,
-                 pose: Pose = None,
-                 world: World = None,
+    def __init__(self, name: str, obj_type: ObjectType, path: str,
+                 pose: Optional[Pose] = None,
+                 world: Optional[World] = None,
                  color: Optional[Color] = Color(),
                  ignore_cached_files: Optional[bool] = False):
         """
@@ -1185,7 +1374,7 @@ class Object:
          for URDFs :func:`~Object.set_color` can be used.
 
         :param name: The name of the object
-        :param obj_type: The type of the object
+        :param obj_type: The type of the object as an ObjectType enum.
         :param path: The path to the source file, if only a filename is provided then the resourcer directories will be
          searched
         :param pose: The pose at which the Object should be spawned
@@ -1201,44 +1390,143 @@ class Object:
         self.world: World = world if world is not None else World.current_world
 
         self.name: str = name
-        self.obj_type: Union[str, ObjectType] = obj_type
+        self.obj_type: ObjectType = obj_type
         self.color: Color = color
 
         self.local_transformer = LocalTransformer()
         self.original_pose = self.local_transformer.transform_pose(pose, "map")
-        position, orientation = self.original_pose.to_list()
-        self.id, self.path = _load_object(name, path, position, orientation, self.world, color, ignore_cached_files)
         self._current_pose = self.original_pose
 
-        self.joint_name_to_id: Dict[str, int] = self._get_joint_name_to_id_map()
-        self.link_name_to_id: Dict[str, int] = self._get_link_name_to_id_map()
-        self.link_id_to_name: Dict[int, str] = dict(zip(self.link_name_to_id.values(), self.link_name_to_id.keys()))
+        self.id, self.path = self._load_object(path, ignore_cached_files)
+
+        self.tf_frame = ("prospection/" if self.world.is_prospection_world else "") + self.name + "_" + str(self.id)
+
+        self._init_urdf_object()
+        if self.urdf_object.name == robot_description.name:
+            self.world.set_robot_if_not_set(self)
+
+        self._init_joint_name_and_id_map()
+
+        self._init_link_name_and_id_map()
+
+        self._init_links()
+        self.update_link_transforms()
 
         self.attachments: Dict[Object, Attachment] = {}
         self.saved_states: Dict[int, ObjectState] = {}
         # takes the state id as key and returns the attachments of the object at that state
 
-        self.tf_frame = ("prospection/" if self.world.is_prospection_world else "") + self.name + "_" + str(self.id)
-
         if not self.world.is_prospection_world:
-            self.world.world_sync.add_obj_queue.put(
-                [name, obj_type, path, position, orientation, self.world.prospection_world, color, self])
+            self._add_to_world_sync_obj_queue(path)
 
-        with open(self.path) as f:
-            self.urdf_object = URDF.from_xml_string(f.read())
-            if self.urdf_object.name == robot_description.name:
-                self.world.set_robot_if_not_set(self)
-        self.link_name_to_id[self.urdf_object.get_root()] = -1
-        self.link_id_to_name[-1] = self.urdf_object.get_root()
-        self.links: Dict[str, Link] = self._init_links()
-        self.update_link_transforms()
-
-        self._current_joints_positions = {}
         self._init_current_positions_of_joint()
 
         self.world.objects.append(self)
 
+    def _load_object(self, path: str, ignore_cached_files: bool) -> Tuple[int, str]:
+        """
+        Loads an object to the given World with the given position and orientation. The rgba_color will only be
+        used when an .obj or .stl file is given.
+        If a .obj or .stl file is given, before spawning, an urdf file with the .obj or .stl as mesh will be created
+        and this URDf file will be loaded instead.
+        When spawning a URDf file a new file will be created in the cache directory, if there exists none.
+        This new file will have resolved mesh file paths, meaning there will be no references
+        to ROS packges instead there will be absolute file paths.
+
+        :param path: The path to the source file or the name on the ROS parameter server
+        :param ignore_cached_files: Whether to ignore files in the cache directory.
+        :return: The unique id of the object and the path to the file used for spawning
+        """
+        pa = pathlib.Path(path)
+        extension = pa.suffix
+        if re.match("[a-zA-Z_0-9].[a-zA-Z0-9]", path):
+            for data_dir in World.data_directory:
+                path = get_path_from_data_dir(path, data_dir)
+                if path:
+                    break
+
+        if not path:
+            raise FileNotFoundError(
+                f"File {pa.name} could not be found in the resource directory {World.data_directory}")
+        # rospack = rospkg.RosPack()
+        # cach_dir = rospack.get_path('pycram') + '/resources/cached/'
+        cach_dir = World.data_directory[0] + '/cached/'
+        if not pathlib.Path(cach_dir).exists():
+            os.mkdir(cach_dir)
+
+        # if file is not yet cached corrcet the urdf and save if in the cache directory
+        if not _is_cached(path, self.name, cach_dir) or ignore_cached_files:
+            if extension == ".obj" or extension == ".stl":
+                path = _generate_urdf_file(self.name, path, self.color, cach_dir)
+            elif extension == ".urdf":
+                with open(path, mode="r") as f:
+                    urdf_string = fix_missing_inertial(f.read())
+                    urdf_string = remove_error_tags(urdf_string)
+                    urdf_string = fix_link_attributes(urdf_string)
+                    try:
+                        urdf_string = _correct_urdf_string(urdf_string)
+                    except rospkg.ResourceNotFound as e:
+                        rospy.logerr(f"Could not find resource package linked in this URDF")
+                        raise e
+                path = cach_dir + pa.name
+                with open(path, mode="w") as f:
+                    f.write(urdf_string)
+            else:  # Using the urdf from the parameter server
+                urdf_string = rospy.get_param(path)
+                path = cach_dir + self.name + ".urdf"
+                with open(path, mode="w") as f:
+                    f.write(_correct_urdf_string(urdf_string))
+        # save correct path in case the file is already in the cache directory
+        elif extension == ".obj" or extension == ".stl":
+            path = cach_dir + pa.stem + ".urdf"
+        elif extension == ".urdf":
+            path = cach_dir + pa.name
+        else:
+            path = cach_dir + self.name + ".urdf"
+
+        try:
+            obj_id = self.world.load_urdf_and_get_object_id(path, Pose(self.get_position_as_list(),
+                                                                       self.get_orientation_as_list()))
+            return obj_id, path
+        except Exception as e:
+            logging.error(
+                "The File could not be loaded. Please note that the path has to be either a URDF, stl or obj file or"
+                " the name of an URDF string on the parameter server.")
+            os.remove(path)
+            raise (e)
+
+    def _init_urdf_object(self):
+        """
+        Initializes the URDF object from the URDF file.
+        """
+        with open(self.path) as f:
+            self.urdf_object = URDF.from_xml_string(f.read())
+
+    def _init_joint_name_and_id_map(self) -> None:
+        """
+        Creates a dictionary which maps the joint names to their unique ids and vice versa.
+        """
+        joint_names = self.world.get_joint_names(self)
+        n_joints = len(joint_names)
+        self.joint_name_to_id = dict(zip(joint_names, range(n_joints)))
+        self.joint_id_to_name = dict(zip(self.joint_name_to_id.values(), self.joint_name_to_id.keys()))
+
+    def _init_link_name_and_id_map(self) -> None:
+        """
+        Creates a dictionary which maps the link names to their unique ids and vice versa.
+        """
+        link_names = self.world.get_link_names(self)
+        n_links = len(link_names)
+        self.link_name_to_id: Dict[str, int] = dict(zip(link_names, range(n_links)))
+        self.link_id_to_name: Dict[int, str] = dict(zip(self.link_name_to_id.values(), self.link_name_to_id.keys()))
+        self.link_name_to_id[self.urdf_object.get_root()] = -1
+        self.link_id_to_name[-1] = self.urdf_object.get_root()
+
     def _init_links(self):
+        """
+        Initializes the link objects from the URDF file and creates a dictionary which maps the link names to the
+        corresponding link objects.
+        """
         links = {}
         for urdf_link in self.urdf_object.links:
             link_name = urdf_link.name
@@ -1247,12 +1535,21 @@ class Object:
                 links[link_name] = RootLink(self)
             else:
                 links[link_name] = Link(link_id, urdf_link, self)
-        return links
+        self.links = links
+
+    def _add_to_world_sync_obj_queue(self, path: str):
+        """
+        Adds this object to the objects queue of the WorldSync object of the World.
+        """
+        self.world.world_sync.add_obj_queue.put(
+            [self.name, self.obj_type, path, self.get_position_as_list(), self.get_orientation_as_list(),
+             self.world.prospection_world, self.color, self])
 
     def _init_current_positions_of_joint(self) -> None:
         """
         Initialize the cached joint position for each joint.
         """
+        self._current_joints_positions = {}
         for joint_name in self.joint_name_to_id.keys():
             self._current_joints_positions[joint_name] = self.world.get_object_joint_position(self, joint_name)
 
@@ -1260,6 +1557,7 @@ class Object:
     def base_origin_shift(self) -> np.ndarray:
         """
         The shift between the base of the object and the origin of the object.
+        :return: A numpy array with the shift between the base of the object and the origin of the object.
         """
         return np.array(self.get_pose().position_as_list()) - np.array(self.get_base_origin().position_as_list())
 
@@ -1275,20 +1573,7 @@ class Object:
         is currently attached to. After this is done a call to world remove object is done
         to remove this Object from the simulation/world.
         """
-        self.detach_all()
-
-        self.world.objects.remove(self)
-
-        # This means the current world of the object is not the prospection world, since it
-        # has a reference to the prospection world
-        if self.world.prospection_world is not None:
-            self.world.world_sync.remove_obj_queue.put(self)
-            self.world.world_sync.remove_obj_queue.join()
-
         self.world.remove_object(self)
-
-        if World.robot == self:
-            World.robot = None
 
     def reset(self, remove_saved_states=True) -> None:
         """
@@ -1520,22 +1805,6 @@ class Object:
         pose.pose.orientation = target_orientation
         self.set_pose(pose)
 
-    def _get_joint_name_to_id_map(self) -> Dict[str, int]:
-        """
-        Creates a dictionary which maps the joint names to their unique ids.
-        """
-        joint_names = self.world.get_joint_names(self)
-        n_joints = len(joint_names)
-        return dict(zip(joint_names, range(n_joints)))
-
-    def _get_link_name_to_id_map(self) -> Dict[str, int]:
-        """
-        Creates a dictionary which maps the link names to their unique ids.
-        """
-        link_names = self.world.get_link_names(self)
-        n_links = len(link_names)
-        return dict(zip(link_names, range(n_links)))
-
     def get_joint_id(self, name: str) -> int:
         """
         Returns the unique id for a joint name. As used by the world/simulator.
@@ -1700,10 +1969,10 @@ class Object:
         self.world.set_object_color(self, color)
 
     def get_color(self) -> Union[Color, Dict[str, Color]]:
-        return self.world.get_color_of_object(self)
+        return self.world.get_object_color(self)
 
     def get_aabb(self) -> AxisAlignedBoundingBox:
-        return self.world.get_object_aabb(self)
+        return self.world.get_object_axis_aligned_bounding_box(self)
 
     def get_base_origin(self) -> Pose:
         """
@@ -1711,7 +1980,7 @@ class Object:
 
         :return: The position of the bottom of this Object
         """
-        aabb = self.get_link_by_id(-1).get_aabb()
+        aabb = self.get_link_by_id(-1).get_axis_aligned_bounding_box()
         base_width = np.absolute(aabb.min_x - aabb.max_x)
         base_length = np.absolute(aabb.min_y - aabb.max_y)
         return Pose([aabb.min_x + base_width / 2, aabb.min_y + base_length / 2, aabb.min_z],
@@ -1894,88 +2163,6 @@ class Attachment:
 
     def __del__(self):
         self.remove_constraint_if_exists()
-
-
-def _load_object(name: str,
-                 path: str,
-                 position: List[float],
-                 orientation: List[float],
-                 world: World,
-                 color: Color,
-                 ignore_cached_files: bool) -> Tuple[int, str]:
-    """
-    Loads an object to the given World with the given position and orientation. The rgba_color will only be
-    used when an .obj or .stl file is given.
-    If a .obj or .stl file is given, before spawning, an urdf file with the .obj or .stl as mesh will be created
-    and this URDf file will be loaded instead.
-    When spawning a URDf file a new file will be created in the cache directory, if there exists none.
-    This new file will have resolved mesh file paths, meaning there will be no references
-    to ROS packges instead there will be absolute file paths.
-
-    :param name: The name of the object which should be spawned
-    :param path: The path to the source file or the name on the ROS parameter server
-    :param position: The position in which the object should be spawned
-    :param orientation: The orientation in which the object should be spawned
-    :param world: The World to which the Object should be spawned
-    :param color: The rgba_color of the object, only used when .obj or .stl file is given
-    :param ignore_cached_files: Whether to ignore files in the cache directory.
-    :return: The unique id of the object and the path to the file used for spawning
-    """
-    pa = pathlib.Path(path)
-    extension = pa.suffix
-    world, world_id = _world_and_id(world)
-    if re.match("[a-zA-Z_0-9].[a-zA-Z0-9]", path):
-        for dir in world.data_directory:
-            path = get_path_from_data_dir(path, dir)
-            if path: break
-
-    if not path:
-        raise FileNotFoundError(
-            f"File {pa.name} could not be found in the resource directory {world.data_directory}")
-    # rospack = rospkg.RosPack()
-    # cach_dir = rospack.get_path('pycram') + '/resources/cached/'
-    cach_dir = world.data_directory[0] + '/cached/'
-    if not pathlib.Path(cach_dir).exists():
-        os.mkdir(cach_dir)
-
-    # if file is not yet cached corrcet the urdf and save if in the cache directory
-    if not _is_cached(path, name, cach_dir) or ignore_cached_files:
-        if extension == ".obj" or extension == ".stl":
-            path = _generate_urdf_file(name, path, color, cach_dir)
-        elif extension == ".urdf":
-            with open(path, mode="r") as f:
-                urdf_string = fix_missing_inertial(f.read())
-                urdf_string = remove_error_tags(urdf_string)
-                urdf_string = fix_link_attributes(urdf_string)
-                try:
-                    urdf_string = _correct_urdf_string(urdf_string)
-                except rospkg.ResourceNotFound as e:
-                    rospy.logerr(f"Could not find resource package linked in this URDF")
-                    raise e
-            path = cach_dir + pa.name
-            with open(path, mode="w") as f:
-                f.write(urdf_string)
-        else:  # Using the urdf from the parameter server
-            urdf_string = rospy.get_param(path)
-            path = cach_dir + name + ".urdf"
-            with open(path, mode="w") as f:
-                f.write(_correct_urdf_string(urdf_string))
-    # save correct path in case the file is already in the cache directory
-    elif extension == ".obj" or extension == ".stl":
-        path = cach_dir + pa.stem + ".urdf"
-    elif extension == ".urdf":
-        path = cach_dir + pa.name
-    else:
-        path = cach_dir + name + ".urdf"
-
-    try:
-        obj = world.load_urdf_and_get_object_id(path, Pose(position, orientation))
-        return obj, path
-    except Exception as e:
-        logging.error(
-            "The File could not be loaded. Plese note that the path has to be either a URDF, stl or obj file or the name of an URDF string on the parameter server.")
-        os.remove(path)
-        raise (e)
 
 
 def _is_cached(path: str, name: str, cach_dir: str) -> bool:

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional, Tuple, Callable
+from typing_extensions import List, Optional, Tuple, Callable, Dict
 from .enums import JointType, Shape
 
 
@@ -7,11 +7,36 @@ from .enums import JointType, Shape
 class Color:
     """
     Dataclass for storing rgba_color as an RGBA value.
+    The values are stored as floats between 0 and 1.
+    The default rgba_color is white. 'A' stands for the opacity.
     """
     R: float = 1
     G: float = 1
     B: float = 1
     A: float = 1
+
+    @classmethod
+    def from_list(cls, color: List[float]):
+        """
+        Sets the rgba_color from a list of RGBA values.
+
+        :param color: The list of RGBA values
+        """
+        if len(color) == 3:
+            return cls.from_rgb(color)
+        elif len(color) == 4:
+            return cls.from_rgba(color)
+        else:
+            raise ValueError("Color list must have 3 or 4 elements")
+
+    @classmethod
+    def from_rgb(cls, rgb: List[float]):
+        """
+        Sets the rgba_color from a list of RGB values.
+
+        :param rgb: The list of RGB values
+        """
+        return cls(rgb[0], rgb[1], rgb[2], 1)
 
     @classmethod
     def from_rgba(cls, rgba: List[float]):
@@ -235,3 +260,14 @@ class MeshVisualShape(VisualShape):
 class PlaneVisualShape(VisualShape):
     shape_data: PlaneShapeData
     visual_geometry_type = Shape.PLANE
+
+
+@dataclass
+class LinkState:
+    constraint_ids: Dict['Link', int]
+
+
+@dataclass
+class ObjectState:
+    state_id: int
+    attachments: Dict['Object', 'Attachment']

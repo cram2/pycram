@@ -61,7 +61,7 @@ class BulletWorld(World):
                           basePosition=pose.position_as_list(),
                           baseOrientation=pose.orientation_as_list(), physicsClientId=self.client_id)
 
-    def remove_object(self, obj: Object) -> None:
+    def remove_object_from_simulator(self, obj: Object) -> None:
         p.removeBody(obj.id, self.client_id)
 
     def add_constraint(self, constraint: Constraint) -> int:
@@ -78,7 +78,7 @@ class BulletWorld(World):
                                            parent_link_id,
                                            constraint.child_obj_id,
                                            child_link_id,
-                                           constraint.joint_type.as_int(),
+                                           constraint.joint_type.value,
                                            constraint.joint_axis_in_child_link_frame,
                                            constraint.joint_frame_position_wrt_parent_origin,
                                            constraint.joint_frame_position_wrt_child_origin,
@@ -222,7 +222,7 @@ class BulletWorld(World):
 
         :param obj: The object
         """
-        return p.getNumJoints(obj, physicsClientId=self.client_id)
+        return p.getNumJoints(obj.id, physicsClientId=self.client_id)
 
     def reset_joint_position(self, obj: Object, joint_name: str, joint_pose: float) -> None:
         """
@@ -262,9 +262,9 @@ class BulletWorld(World):
         p.changeVisualShape(link.get_object_id(), link.id, rgbaColor=rgba_color, physicsClientId=self.client_id)
 
     def get_link_color(self, link: Link) -> Color:
-        return self.get_colors_of_all_links_of_object(link.object)[link.name]
+        return self.get_colors_of_object_links(link.object)[link.name]
 
-    def get_colors_of_all_links_of_object(self, obj: Object) -> Dict[str, Color]:
+    def get_colors_of_object_links(self, obj: Object) -> Dict[str, Color]:
         """
         Get the RGBA colors of each link in the object as a dictionary from link name to rgba_color.
 
@@ -278,7 +278,7 @@ class BulletWorld(World):
         link_to_color = dict(zip(links, colors))
         return link_to_color
 
-    def get_object_aabb(self, obj: Object) -> AxisAlignedBoundingBox:
+    def get_object_axis_aligned_bounding_box(self, obj: Object) -> AxisAlignedBoundingBox:
         """
         Returns the axis aligned bounding box of this object. The return of this method are two points in
         world coordinate frame which define a bounding box.
@@ -288,12 +288,12 @@ class BulletWorld(World):
         """
         return AxisAlignedBoundingBox.from_min_max(*p.getAABB(obj.id, physicsClientId=self.client_id))
 
-    def get_object_link_aabb(self, obj_id: int, link_id: int) -> AxisAlignedBoundingBox:
+    def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
         """
         Returns the axis aligned bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
-        return AxisAlignedBoundingBox.from_min_max(*p.getAABB(obj_id, link_id, physicsClientId=self.client_id))
+        return AxisAlignedBoundingBox.from_min_max(*p.getAABB(link.get_object_id(), link.id, physicsClientId=self.client_id))
 
     def set_realtime(self, real_time: bool) -> None:
         """

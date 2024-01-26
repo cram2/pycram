@@ -394,9 +394,9 @@ class OccupancyCostmap(Costmap):
                     r_t = self.world.ray_test_batch(n[:, 0], n[:, 1], num_threads=0)
                 j += len(n)
                 if World.robot:
-                    shadow_robot = World.current_world.get_prospection_object_from_object(World.robot)
+                    shadow_robot = World.current_world.get_prospection_object_for_object(World.robot)
                     attached_objs = World.robot.attachments.keys()
-                    attached_objs_shadow_id = [World.current_world.get_prospection_object_from_object(x).id for x
+                    attached_objs_shadow_id = [World.current_world.get_prospection_object_for_object(x).id for x
                                                in
                                                attached_objs]
                     res[i:j] = [
@@ -724,13 +724,13 @@ class SemanticCostmap(Costmap):
 
         :return: Two points in world coordinate space, which span a rectangle
         """
-        prospection_object = World.current_world.get_prospection_object_from_object(self.object)
+        prospection_object = World.current_world.get_prospection_object_for_object(self.object)
         with UseProspectionWorld():
             prospection_object.set_orientation(Pose(orientation=[0, 0, 0, 1]))
             link_pose_trans = self.link.transform
             inverse_trans = link_pose_trans.invert()
             prospection_object.set_orientation(inverse_trans.to_pose())
-            return self.link.get_aabb()
+            return self.link.get_axis_aligned_bounding_box()
 
 
 cmap = colors.ListedColormap(['white', 'black', 'green', 'red', 'blue'])
