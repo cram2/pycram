@@ -23,7 +23,7 @@ from pycram.process_module import simulated_robot
 from pycram.task import with_tree
 
 
-class ORMTestSchema(unittest.TestCase):
+class DatabaseTestCaseMixin(BulletWorldTestCase):
     engine: sqlalchemy.engine
     session: sqlalchemy.orm.Session
 
@@ -45,12 +45,8 @@ class ORMTestSchema(unittest.TestCase):
         pycram.orm.base.Base.metadata.drop_all(self.engine)
         self.session.close()
 
-    @classmethod
-    def TearDownClass(cls):
-        super().tearDownClass()
-        cls.session.commit()
-        cls.session.close()
 
+class ORMTestSchemaTestCase(DatabaseTestCaseMixin, unittest.TestCase):
     def test_schema_creation(self):
         pycram.orm.base.Base.metadata.create_all(self.engine)
         self.session.commit()
@@ -75,27 +71,18 @@ class ORMTestSchema(unittest.TestCase):
         self.assertTrue("CloseAction" in tables)
 
 
-class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
-    engine: sqlalchemy.engine.Engine
-    session: sqlalchemy.orm.Session
+class ORMTaskTreeTestCase(DatabaseTestCaseMixin):
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
-
-    def setUp(self):
-        super().setUp()
-        pycram.orm.base.Base.metadata.create_all(self.engine)
-        self.session = sqlalchemy.orm.Session(bind=self.engine)
-        self.session.commit()
-
-    def tearDown(self):
-        super().tearDown()
-        pycram.task.reset_tree()
-        pycram.orm.base.ProcessMetaData.reset()
-        pycram.orm.base.Base.metadata.drop_all(self.engine)
-        self.session.close()
+    @with_tree
+    def plan(self):
+        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], ["left"])
+        self.assertEqual(description.ground().object_designator.name, "milk")
+        with simulated_robot:
+            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            MoveTorsoActionPerformable(0.3).perform()
+            PickUpActionPerformable(object_description.resolve(), "left", "front").perform()
+            description.resolve().perform()
 
     def test_node(self):
         """Test if the objects in the database is equal with the objects that got serialized."""
@@ -163,7 +150,7 @@ class ORMTaskTreeTestCase(test_task_tree.TaskTreeTestCase):
         self.assertEqual(metadata_result.description, "meta_data_alternation_test")
 
 
-class MixinTestCase(ORMTestSchema, BulletWorldTestCase):
+class MixinTestCase(DatabaseTestCaseMixin):
     @with_tree
     def plan(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
@@ -190,11 +177,8 @@ class MixinTestCase(ORMTestSchema, BulletWorldTestCase):
         self.assertTrue(all([r.pose is not None and r.pose_id == r.pose.id for r in result]))
 
 
-class ORMObjectDesignatorTestCase(ORMTestSchema, BulletWorldTestCase):
+class ORMObjectDesignatorTestCase(DatabaseTestCaseMixin):
     """Test ORM functionality with a plan including object designators. """
-
-    engine: sqlalchemy.engine.Engine
-    session: sqlalchemy.orm.Session
 
     def test_plan_serialization(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
@@ -213,28 +197,7 @@ class ORMObjectDesignatorTestCase(ORMTestSchema, BulletWorldTestCase):
         self.assertEqual(len(tt) - 1, len(action_results) + len(motion_results))
 
 
-class ORMActionDesignatorTestCase(BulletWorldTestCase):
-
-    engine: sqlalchemy.engine.Engine
-    session: sqlalchemy.orm.Session
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
-
-    def setUp(self):
-        super().setUp()
-        pycram.orm.base.Base.metadata.create_all(self.engine)
-        self.session = sqlalchemy.orm.Session(bind=self.engine)
-        self.session.commit()
-
-    def tearDown(self):
-        super().tearDown()
-        pycram.task.reset_tree()
-        pycram.orm.base.ProcessMetaData.reset()
-        pycram.orm.base.Base.metadata.drop_all(self.engine)
-        self.session.close()
+class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
 
     def test_code_designator_type(self):
         action = NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1]))
