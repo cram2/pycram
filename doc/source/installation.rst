@@ -161,11 +161,6 @@ After installing pandoc, install sphinx on your device.
 
     sudo apt install python3-sphinx
 
-Install IPython
-
-.. code-block:: shell
-
-    sudo pip3 install ipython
 
 Install the requirements in your python interpreter.
 
