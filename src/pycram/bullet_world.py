@@ -480,7 +480,7 @@ class WorldSync(threading.Thread):
 
             self.check_for_pause()
             # self.check_for_equal()
-            time.sleep(1 / 240)
+            time.sleep(1 / 360)
 
         self.add_obj_queue.join()
         self.remove_obj_queue.join()
