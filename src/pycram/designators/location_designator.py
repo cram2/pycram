@@ -178,7 +178,7 @@ class CostmapLocation(LocationDesignatorDescription):
 
         if self.visible_for or self.reachable_for:
             robot_object = self.visible_for.world_object if self.visible_for else self.reachable_for.world_object
-            test_robot = World.current_world.get_prospection_object_from_object(robot_object)
+            test_robot = World.current_world.get_prospection_object_for_object(robot_object)
 
         with UseProspectionWorld():
 
@@ -254,7 +254,7 @@ class AccessingLocation(LocationDesignatorDescription):
 
         final_map = occupancy + gaussian
 
-        test_robot = World.current_world.get_prospection_object_from_object(self.robot)
+        test_robot = World.current_world.get_prospection_object_for_object(self.robot)
 
         # Find a Joint of type prismatic which is above the handle in the URDF tree
         container_joint = self.handle.world_object.find_joint_above(self.handle.name, JointType.PRISMATIC)

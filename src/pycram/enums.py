@@ -30,9 +30,6 @@ class JointType(Enum):
     PLANAR = 3
     FIXED = 4
 
-    def as_int(self):
-        return self.value
-
 
 class Grasp(Enum):
     """

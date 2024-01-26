@@ -307,7 +307,8 @@ class Transform(TransformStamped):
 
     @classmethod
     def from_pose_and_child_frame(cls, pose: Pose, child_frame_name: str) -> Transform:
-        return cls(pose.position_as_list(), pose.orientation_as_list(), pose.frame, child_frame_name)
+        return cls(pose.position_as_list(), pose.orientation_as_list(), pose.frame, child_frame_name,
+                   time=pose.header.stamp)
 
     @staticmethod
     def from_transform_stamped(transform_stamped: TransformStamped) -> Transform:

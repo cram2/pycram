@@ -29,7 +29,7 @@ def stable(obj: Object) -> bool:
     :param obj: The object which should be checked
     :return: True if the given object is stable in the world False else
     """
-    prospection_obj = World.current_world.get_prospection_object_from_object(obj)
+    prospection_obj = World.current_world.get_prospection_object_for_object(obj)
     with UseProspectionWorld():
         coords_prev = prospection_obj.get_position_as_list()
         World.current_world.set_gravity([0, 0, -9.8])
@@ -58,8 +58,8 @@ def contact(
     """
 
     with UseProspectionWorld():
-        prospection_obj1 = World.current_world.get_prospection_object_from_object(object1)
-        prospection_obj2 = World.current_world.get_prospection_object_from_object(object2)
+        prospection_obj1 = World.current_world.get_prospection_object_for_object(object1)
+        prospection_obj2 = World.current_world.get_prospection_object_for_object(object2)
 
         World.current_world.perform_collision_detection()
         con_points = World.current_world.get_contact_points_between_two_objects(prospection_obj1, prospection_obj2)
@@ -108,9 +108,9 @@ def visible(
     :return: True if the object is visible from the camera_position False if not
     """
     with UseProspectionWorld():
-        prospection_obj = World.current_world.get_prospection_object_from_object(obj)
+        prospection_obj = World.current_world.get_prospection_object_for_object(obj)
         if World.robot:
-            prospection_robot = World.current_world.get_prospection_object_from_object(World.robot)
+            prospection_robot = World.current_world.get_prospection_object_for_object(World.robot)
 
         state_id = World.current_world.save_state()
         for obj in World.current_world.objects:
@@ -176,7 +176,7 @@ def occluding(
                 occluding_obj_ids.append(seg_mask[c[0]][c[1]])
 
         occ_objects = list(set(map(World.current_world.get_object_by_id, occluding_obj_ids)))
-        occ_objects = list(map(World.current_world.get_object_from_prospection_object, occ_objects))
+        occ_objects = list(map(World.current_world.get_object_for_prospection_object, occ_objects))
 
         return occ_objects
 
@@ -198,7 +198,7 @@ def reachable(
     :return: True if the end effector is closer than the threshold to the target position, False in every other case
     """
 
-    prospection_robot = World.current_world.get_prospection_object_from_object(robot)
+    prospection_robot = World.current_world.get_prospection_object_for_object(robot)
     with UseProspectionWorld():
         target_pose = try_to_reach(pose_or_object, prospection_robot, gripper_name)
 
@@ -230,7 +230,7 @@ def blocking(
     or object is not reachable.
     """
 
-    prospection_robot = World.current_world.get_prospection_object_from_object(robot)
+    prospection_robot = World.current_world.get_prospection_object_for_object(robot)
     with UseProspectionWorld():
         if grasp:
             try_to_reach_with_grasp(pose_or_object, prospection_robot, gripper_name, grasp)
@@ -240,7 +240,7 @@ def blocking(
         block = []
         for obj in World.current_world.objects:
             if contact(prospection_robot, obj):
-                block.append(World.current_world.get_object_from_prospection_object(obj))
+                block.append(World.current_world.get_object_for_prospection_object(obj))
     return block
 
 
@@ -272,7 +272,7 @@ def link_pose_for_joint_config(
     :param link_name: Name of the link for which the pose should be returned
     :return: The pose of the link after applying the joint configuration
     """
-    prospection_object = World.current_world.get_prospection_object_from_object(obj)
+    prospection_object = World.current_world.get_prospection_object_for_object(obj)
     with UseProspectionWorld():
         for joint, pose in joint_config.items():
             prospection_object.set_joint_position(joint, pose)
