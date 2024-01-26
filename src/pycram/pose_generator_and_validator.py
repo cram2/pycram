@@ -136,38 +136,42 @@ def reachability_validator(pose: Pose,
         target = target.get_pose()
 
     robot.set_pose(pose)
+    res = False
+    arms = []
     for name, chain in robot_description.chains.items():
         if isinstance(chain, ManipulatorDescription):
-            retract_traget_pose = LocalTransformer().transform_pose(target,robot.get_link_tf_frame(chain.tool_frame))
-            #BulletWorld.robot.get_link_tf_frame(robot_description.get_tool_frame(chain.tool_frame)))
-            retract_traget_pose.position.x -= 0.07  # Care hard coded value copied from PlaceAction class
+            retract_target_pose = LocalTransformer().transform_pose(target, robot.get_link_tf_frame(chain.tool_frame))
+            retract_target_pose.position.x -= 0.07  # Care hard coded value copied from PlaceAction class
 
-            joints = robot_description.chains[chain.name].joints
+            # retract_pose needs to be in world frame?
+            retract_target_pose = LocalTransformer().transform_pose(retract_target_pose, "map")
+
+            joints = robot_description.chains[name].joints
+            tool_frame = robot_description.get_tool_frame(name)
+
             # TODO Make orientation adhere to grasping orientation
-            res = False
-            arms = []
             in_contact = False
 
             joint_state_before_ik = robot._current_joint_states
             try:
                 # test the possible solution and apply it to the robot
-                resp = request_ik(target, robot, chain.joints, chain.tool_frame)
+                resp = request_ik(target, robot, joints, tool_frame)
                 _apply_ik(robot, resp, joints)
 
                 in_contact = collision_check(robot, allowed_collision)
                 if not in_contact:  # only check for retract pose if pose worked
-                    resp = request_ik(retract_traget_pose, robot, chain.joints, chain.tool_frame)
+                    resp = request_ik(retract_target_pose, robot, joints, tool_frame)
                     _apply_ik(robot, resp, joints)
                     in_contact = collision_check(robot, allowed_collision)
                 if not in_contact:
-                    arms.append(chain.name)
-                    res = True
+                    arms.append(name)
             except IKError:
                 pass
             finally:
                 robot.set_joint_states(joint_state_before_ik)
-
-            return res, arms
+    if arms:
+        res = True
+    return res, arms
 
 
 def collision_check(robot, allowed_collision):
