@@ -119,68 +119,6 @@ class MoveMotion(BaseMotion):
 
 
 @dataclass
-class PickUpMotion(BaseMotion):
-    """
-    Lets the robot pick up a specific object
-    """
-
-    object_desig: ObjectDesignatorDescription.Object
-    """
-    Object designator describing the object to be picked up
-    """
-    arm: str
-    """
-    Arm that should be used for picking up the object
-    """
-    grasp: str
-    """
-    From which direction the object should be grasped, e.g. 'left', 'front', etc.
-    """
-
-    @with_tree
-    def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
-        return pm_manager.pick_up().execute(self)
-
-    def to_sql(self) -> ORMMotionDesignator:
-        pass
-
-    def insert(self, session: Session, *args, **kwargs) -> ORMMotionDesignator:
-        pass
-
-
-@dataclass
-class PlaceMotion(BaseMotion):
-    """
-    Lets the robot place an object that was picked up
-    """
-
-    object: ObjectDesignatorDescription.Object
-    """
-    Object designator of the object to be placed
-    """
-    target: Pose
-    """
-    Pose at which the object should be placed
-    """
-    arm: str
-    """
-    Arm that is currently holding the object
-    """
-
-    @with_tree
-    def perform(self):
-        pm_manager = ProcessModuleManager.get_manager()
-        return pm_manager.place().execute(self)
-
-    def to_sql(self) -> ORMMotionDesignator:
-        pass
-
-    def insert(self, session: Session, *args, **kwargs) -> ORMMotionDesignator:
-        pass
-
-
-@dataclass
 class MoveTCPMotion(BaseMotion):
     """
     Moves the Tool center point (TCP) of the robot

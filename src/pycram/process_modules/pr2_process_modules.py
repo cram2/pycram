@@ -55,54 +55,6 @@ class Pr2Navigation(ProcessModule):
         robot.set_pose(desig.target)
 
 
-class Pr2PickUp(ProcessModule):
-    """
-    This process module is for picking up a given object.
-    The object has to be reachable for this process module to succeed.
-    """
-
-    def _execute(self, desig: PickUpMotion):
-        object = desig.object_desig.bullet_world_object
-        robot = BulletWorld.robot
-        grasp = robot_description.grasps.get_orientation_for_grasp(desig.grasp)
-        target = object.get_pose()
-        target.orientation.x = grasp[0]
-        target.orientation.y = grasp[1]
-        target.orientation.z = grasp[2]
-        target.orientation.w = grasp[3]
-
-        arm = desig.arm
-
-        _move_arm_tcp(target, robot, arm)
-        tool_frame = robot_description.get_tool_frame(arm)
-        robot.attach(object, tool_frame)
-
-
-class Pr2Place(ProcessModule):
-    """
-    This process module places an object at the given position in world coordinate frame.
-    """
-
-    def _execute(self, desig: PlaceMotion):
-        """
-
-        :param desig: A PlaceMotion
-        :return:
-        """
-        object = desig.object.bullet_world_object
-        robot = BulletWorld.robot
-        arm = desig.arm
-
-        # Transformations such that the target position is the position of the object and not the tcp
-        object_pose = object.get_pose()
-        local_tf = LocalTransformer()
-        tcp_to_object = local_tf.transform_pose(object_pose, robot.get_link_tf_frame(robot_description.get_tool_frame(arm)))
-        target_diff = desig.target.to_transform("target").inverse_times(tcp_to_object.to_transform("object")).to_pose()
-
-        _move_arm_tcp(target_diff, robot, arm)
-        robot.detach(object)
-
-
 class Pr2MoveHead(ProcessModule):
     """
     This process module moves the head to look at a specific point in the world coordinate frame.
@@ -271,18 +223,6 @@ class Pr2NavigationReal(ProcessModule):
         giskard.achieve_cartesian_goal(designator.target, robot_description.base_link, "map")
 
 
-class Pr2PickUpReal(ProcessModule):
-
-    def _execute(self, designator: PickUpMotion) -> Any:
-        pass
-
-
-class Pr2PlaceReal(ProcessModule):
-
-    def _execute(self, designator: BaseMotion) -> Any:
-        pass
-
-
 class Pr2MoveHeadReal(ProcessModule):
     """
     Process module for the real robot to move that such that it looks at the given position. Uses the same calculation
@@ -337,9 +277,6 @@ class Pr2DetectingReal(ProcessModule):
 
 
         return bullet_obj[0]
-
-
-
 
 
 class Pr2MoveTCPReal(ProcessModule):
@@ -434,8 +371,6 @@ class Pr2Manager(ProcessModuleManager):
     def __init__(self):
         super().__init__("pr2")
         self._navigate_lock = Lock()
-        self._pick_up_lock = Lock()
-        self._place_lock = Lock()
         self._looking_lock = Lock()
         self._detecting_lock = Lock()
         self._move_tcp_lock = Lock()
@@ -451,18 +386,6 @@ class Pr2Manager(ProcessModuleManager):
             return Pr2Navigation(self._navigate_lock)
         elif ProcessModuleManager.execution_type == "real":
             return Pr2NavigationReal(self._navigate_lock)
-
-    def pick_up(self):
-        if ProcessModuleManager.execution_type == "simulated":
-            return Pr2PickUp(self._pick_up_lock)
-        elif ProcessModuleManager.execution_type == "real":
-            return Pr2PickUpReal(self._pick_up_lock)
-
-    def place(self):
-        if ProcessModuleManager.execution_type == "simulated":
-            return Pr2Place(self._place_lock)
-        elif ProcessModuleManager.execution_type == "real":
-            return Pr2PlaceReal(self._place_lock)
 
     def looking(self):
         if ProcessModuleManager.execution_type == "simulated":
