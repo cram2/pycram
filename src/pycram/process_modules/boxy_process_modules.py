@@ -37,55 +37,6 @@ class BoxyNavigation(ProcessModule):
         robot.set_pose(desig.target)
 
 
-class BoxyPickUp(ProcessModule):
-    """
-    This process module is for picking up a given object.
-    The object has to be reachable for this process module to succeed.
-    """
-
-    def _execute(self, desig: PickUpMotion):
-        object = desig.object_desig.bullet_world_object
-        robot = BulletWorld.robot
-        grasp = robot_description.grasps.get_orientation_for_grasp(desig.grasp)
-        target = object.get_pose()
-        target.orientation.x = grasp[0]
-        target.orientation.y = grasp[1]
-        target.orientation.z = grasp[2]
-        target.orientation.w = grasp[3]
-
-        arm = desig.arm
-
-        _move_arm_tcp(target, robot, arm)
-        tool_frame = robot_description.get_tool_frame(arm)
-        robot.attach(object, tool_frame)
-
-
-class BoxyPlace(ProcessModule):
-    """
-    This process module places an object at the given position in world coordinate frame.
-    """
-
-    def _execute(self, desig: PlaceMotion):
-        """
-
-        :param desig: A PlaceMotion
-        :return:
-        """
-        object = desig.object.bullet_world_object
-        robot = BulletWorld.robot
-        arm = desig.arm
-
-        # Transformations such that the target position is the position of the object and not the tcp
-        object_pose = object.get_pose()
-        local_tf = LocalTransformer()
-        tcp_to_object = local_tf.transform_pose(object_pose,
-                                                robot.get_link_tf_frame(robot_description.get_tool_frame(arm)))
-        target_diff = desig.target.to_transform("target").inverse_times(tcp_to_object.to_transform("object")).to_pose()
-
-        _move_arm_tcp(target_diff, robot, arm)
-        robot.detach(object)
-
-
 class BoxyOpen(ProcessModule):
     """
     Low-level implementation of opening a container in the simulation. Assumes the handle is already grasped.
@@ -251,8 +202,6 @@ class BoxyManager(ProcessModuleManager):
     def __init__(self):
         super().__init__("boxy")
         self._navigate_lock = Lock()
-        self._pick_up_lock = Lock()
-        self._place_lock = Lock()
         self._looking_lock = Lock()
         self._detecting_lock = Lock()
         self._move_tcp_lock = Lock()
@@ -266,14 +215,6 @@ class BoxyManager(ProcessModuleManager):
     def navigate(self):
         if ProcessModuleManager.execution_type == "simulated":
             return BoxyNavigation(self._navigate_lock)
-
-    def pick_up(self):
-        if ProcessModuleManager.execution_type == "simulated":
-            return BoxyPickUp(self._pick_up_lock)
-
-    def place(self):
-        if ProcessModuleManager.execution_type == "simulated":
-            return BoxyPlace(self._place_lock)
 
     def looking(self):
         if ProcessModuleManager.execution_type == "simulated":

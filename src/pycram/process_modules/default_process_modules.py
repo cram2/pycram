@@ -23,48 +23,6 @@ class DefaultNavigation(ProcessModule):
         robot.set_pose(desig.target)
 
 
-class DefaultPickUp(ProcessModule):
-    """
-    This process module is for picking up a given object.
-    The object has to be reachable for this process module to succeed.
-    """
-
-    def _execute(self, desig: PickUpMotion):
-        object = desig.object_desig.bullet_world_object
-        robot = BulletWorld.robot
-        grasp = robot_description.grasps.get_orientation_for_grasp(desig.grasp)
-        target = object.get_pose()
-        target.orientation.x = grasp[0]
-        target.orientation.y = grasp[1]
-        target.orientation.z = grasp[2]
-        target.orientation.w = grasp[3]
-
-        arm = desig.arm
-
-        _move_arm_tcp(target, robot, arm)
-        tool_frame = robot_description.get_tool_frame(arm)
-        robot.attach(object, tool_frame)
-
-
-class DefaultPlace(ProcessModule):
-    """
-    This process module places an object at the given position in world coordinate frame.
-    """
-
-    def _execute(self, desig: PlaceMotion):
-        """
-
-        :param desig: A PlaceMotion
-        :return:
-        """
-        object = desig.object.bullet_world_object
-        robot = BulletWorld.robot
-        arm = desig.arm
-
-        _move_arm_tcp(desig.target, robot, arm)
-        robot.detach(object)
-
-
 class DefaultMoveHead(ProcessModule):
     """
     This process module moves the head to look at a specific point in the world coordinate frame.
@@ -228,8 +186,6 @@ class DefaultManager(ProcessModuleManager):
     def __init__(self):
         super().__init__("default")
         self._navigate_lock = Lock()
-        self._pick_up_lock = Lock()
-        self._place_lock = Lock()
         self._looking_lock = Lock()
         self._detecting_lock = Lock()
         self._move_tcp_lock = Lock()
@@ -243,14 +199,6 @@ class DefaultManager(ProcessModuleManager):
     def navigate(self):
         if ProcessModuleManager.execution_type == "simulated":
             return DefaultNavigation(self._navigate_lock)
-
-    def pick_up(self):
-        if ProcessModuleManager.execution_type == "simulated":
-            return DefaultPickUp(self._pick_up_lock)
-
-    def place(self):
-        if ProcessModuleManager.execution_type == "simulated":
-            return DefaultPlace(self._place_lock)
 
     def looking(self):
         if ProcessModuleManager.execution_type == "simulated":
