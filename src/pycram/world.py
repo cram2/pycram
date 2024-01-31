@@ -1378,7 +1378,9 @@ class Object:
         self.obj_type: ObjectType = obj_type
         self.color: Color = color
 
-        self._init_local_transformer_and_pose(pose)
+        self.local_transformer = LocalTransformer()
+        self.original_pose = self.local_transformer.transform_pose(pose, "map")
+        self._current_pose = self.original_pose
 
         self._load_object_and_set_id_and_path(path, ignore_cached_files)
 
@@ -1407,14 +1409,6 @@ class Object:
 
         self.world.objects.append(self)
 
-    def _init_local_transformer_and_pose(self, pose: Pose) -> None:
-        """
-        Initializes the local transformer and the pose of this object at the given pose and transforms it to the map
-        frame.
-        """
-        self.local_transformer = LocalTransformer()
-        self.original_pose = self.local_transformer.transform_pose(pose, "map")
-        self._current_pose = self.original_pose
 
     def _load_object_and_set_id_and_path(self, path, ignore_cached_files: bool) -> None:
         """
@@ -1561,9 +1555,10 @@ class Object:
                 links[link_name] = Link(link_id, urdf_link, self)
         self.links = links
 
-    def _add_to_world_sync_obj_queue(self, path: str):
+    def _add_to_world_sync_obj_queue(self, path: str) -> None:
         """
         Adds this object to the objects queue of the WorldSync object of the World.
+        :param path: The path of the URDF file of this object.
         """
         self.world.world_sync.add_obj_queue.put(
             [self.name, self.obj_type, path, self.get_position_as_list(), self.get_orientation_as_list(),
@@ -1605,6 +1600,7 @@ class Object:
         All attached objects will be detached, all joints will be set to the
         default position of 0 and the object will be set to the position and
         orientation in which it was spawned.
+        :param remove_saved_states: If True the saved states will be removed.
         """
         self.detach_all()
         self.reset_all_joints_positions()
@@ -1734,26 +1730,49 @@ class Object:
         """
         self.set_pose(self.get_pose(), base=True)
 
-    def save_state(self, state_id):
+    def save_state(self, state_id) -> None:
+        """
+        Saves the state of this object by saving the state of all links and attachments.
+        :param state_id: The unique id of the state.
+        """
         self.save_links_states(state_id)
         self.saved_states[state_id] = ObjectState(state_id, self.attachments.copy())
 
-    def save_links_states(self, state_id: int):
+    def save_links_states(self, state_id: int) -> None:
+        """
+        Saves the state of all links of this object.
+        :param state_id: The unique id of the state.
+        """
         for link in self.links.values():
             link.save_state(state_id)
 
-    def restore_state(self, state_id: int):
+    def restore_state(self, state_id: int) -> None:
+        """
+        Restores the state of this object by restoring the state of all links and attachments.
+        :param state_id: The unique id of the state.
+        """
         self.restore_links_states(state_id)
         self.restore_attachments(state_id)
 
-    def restore_attachments(self, state_id):
+    def restore_attachments(self, state_id) -> None:
+        """
+        Restores the attachments of this object from a saved state using the given state id.
+        :param state_id: The unique id of the state.
+        """
         self.attachments = self.saved_states[state_id].attachments
 
-    def restore_links_states(self, state_id):
+    def restore_links_states(self, state_id) -> None:
+        """
+        Restores the states of all links of this object from a saved state using the given state id.
+        :param state_id: The unique id of the state.
+        """
         for link in self.links.values():
             link.restore_state(state_id)
 
-    def remove_saved_states(self):
+    def remove_saved_states(self) -> None:
+        """
+        Removes all saved states of this object.
+        """
         self.saved_states = {}
         for link in self.links.values():
             link.saved_states = {}
@@ -1766,7 +1785,8 @@ class Object:
         After this the _set_attached_objects method of all attached objects
         will be called.
 
-        :param already_moved_objects: A list of Objects that were already moved, these will be excluded to prevent loops in the update.
+        :param already_moved_objects: A list of Objects that were already moved, these will be excluded to prevent
+         loops in the update.
         """
 
         if already_moved_objects is None:
@@ -1841,6 +1861,7 @@ class Object:
     def get_root_urdf_link(self) -> urdf_parser_py.urdf.Link:
         """
         Returns the root link of the URDF of this object.
+        :return: The root link as defined in the URDF of this object.
         """
         link_name = self.urdf_object.get_root()
         for link in self.urdf_object.links:
@@ -1850,15 +1871,22 @@ class Object:
     def get_root_link(self) -> Link:
         """
         Returns the root link of this object.
+        :return: The root link of this object.
         """
         return self.links[self.urdf_object.get_root()]
 
     def get_root_link_id(self) -> int:
+        """
+        Returns the unique id of the root link of this object.
+        :return: The unique id of the root link of this object.
+        """
         return self.get_link_id(self.urdf_object.get_root())
 
     def get_link_id(self, link_name: str) -> int:
         """
         Returns a unique id for a link name.
+        :param link_name: The name of the link.
+        :return: The unique id of the link.
         """
         assert link_name is not None
         return self.link_name_to_id[link_name]
@@ -1866,6 +1894,8 @@ class Object:
     def get_link_by_id(self, link_id: int) -> Link:
         """
         Returns the link for a given unique link id
+        :param link_id: The unique id of the link.
+        :return: The link object.
         """
         return self.links[self.link_id_to_name[link_id]]
 
@@ -1892,7 +1922,6 @@ class Object:
          multiple joints at once instead of running :func:`~Object.set_joint_position` in a loop.
 
         :param joint_poses:
-        :return:
         """
         for joint_name, joint_position in joint_poses.items():
             self.world.reset_joint_position(self, joint_name, joint_position)
@@ -1993,16 +2022,20 @@ class Object:
         self.world.set_object_color(self, color)
 
     def get_color(self) -> Union[Color, Dict[str, Color]]:
+        """
+        :return: The rgba_color of this object or a dictionary of link names and their colors.
+        """
         return self.world.get_object_color(self)
 
-    def get_aabb(self) -> AxisAlignedBoundingBox:
+    def get_axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
+        """
+        :return: The axis aligned bounding box of this object.
+        """
         return self.world.get_object_axis_aligned_bounding_box(self)
 
     def get_base_origin(self) -> Pose:
         """
-        Returns the origin of the base/bottom of an object
-
-        :return: The position of the bottom of this Object
+        :return: the origin of the base/bottom of this object.
         """
         aabb = self.get_link_by_id(-1).get_axis_aligned_bounding_box()
         base_width = np.absolute(aabb.min_x - aabb.max_x)
@@ -2070,7 +2103,10 @@ class Object:
         """
         return self._current_joints_positions
 
-    def update_link_transforms(self, transform_time: Optional[rospy.Time] = None):
+    def update_link_transforms(self, transform_time: Optional[rospy.Time] = None) -> None:
+        """
+        Updates the transforms of all links of this object using time 'transform_time' or the current ros time.
+        """
         for link in self.links.values():
             link.update_transform(transform_time)
 
@@ -2124,44 +2160,71 @@ class Attachment:
                  parent_to_child_transform: Optional[Transform] = None,
                  constraint_id: Optional[int] = None):
         """
-        Creates an attachment between the parent object and the child object.
+        Creates an attachment between the parent object link and the child object link.
+        This could be a bidirectional attachment, meaning that both objects will move when one moves.
+        :param parent_link: The parent object link.
+        :param child_link: The child object link.
+        :param bidirectional: If true, both objects will move when one moves.
+        :param parent_to_child_transform: The transform from the parent link to the child object link.
+        :param constraint_id: The id of the constraint in the simulator.
         """
-        self.parent_link = parent_link
-        self.child_link = child_link
-        self.bidirectional = bidirectional
-        self._loose = False and not bidirectional
+        self.parent_link: Link = parent_link
+        self.child_link: Link = child_link
+        self.bidirectional: bool = bidirectional
+        self._loose: bool = False and not bidirectional
 
-        self.parent_to_child_transform = parent_to_child_transform
+        self.parent_to_child_transform: Transform = parent_to_child_transform
         if self.parent_to_child_transform is None:
             self.update_transform()
 
-        self.constraint_id = constraint_id
+        self.constraint_id: int = constraint_id
         if self.constraint_id is None:
             self.add_fixed_constraint()
 
-    def update_transform_and_constraint(self):
+    def update_transform_and_constraint(self) -> None:
+        """
+        Updates the transform and constraint of this attachment.
+        """
         self.update_transform()
         self.update_constraint()
 
-    def update_transform(self):
+    def update_transform(self) -> None:
+        """
+        Updates the transform of this attachment by calculating the transform from the parent link to the child link.
+        """
         self.parent_to_child_transform = self.calculate_transform()
 
-    def update_constraint(self):
+    def update_constraint(self) -> None:
+        """
+        Updates the constraint of this attachment by removing the old constraint if one exists and adding a new one.
+        """
         self.remove_constraint_if_exists()
         self.add_fixed_constraint()
 
-    def add_fixed_constraint(self):
+    def add_fixed_constraint(self) -> None:
+        """
+        Adds a fixed constraint between the parent link and the child link.
+        """
         cid = self.parent_link.add_fixed_constraint_with_link(self.child_link)
         self.constraint_id = cid
 
-    def calculate_transform(self):
+    def calculate_transform(self) -> Transform:
+        """
+        Calculates the transform from the parent link to the child link.
+        """
         return self.parent_link.get_transform_to_link(self.child_link)
 
-    def remove_constraint_if_exists(self):
+    def remove_constraint_if_exists(self) -> None:
+        """
+        Removes the constraint between the parent and the child links if one exists.
+        """
         if self.child_link in self.parent_link.constraint_ids:
             self.parent_link.remove_constraint_with_link(self.child_link)
 
-    def get_inverse(self):
+    def get_inverse(self) -> Attachment:
+        """
+        :return: A new Attachment object with the parent and child links swapped.
+        """
         attachment = Attachment(self.child_link, self.parent_link, self.bidirectional,
                                 constraint_id=self.constraint_id)
         attachment.loose = False if self.loose else True
@@ -2175,17 +2238,24 @@ class Attachment:
         return self._loose
 
     @loose.setter
-    def loose(self, loose: bool):
+    def loose(self, loose: bool) -> None:
+        """
+        Sets the loose property of this attachment.
+        :param loose: If true, then the child object will not move when parent moves.
+        """
         self._loose = loose and not self.bidirectional
 
     @property
     def is_reversed(self) -> bool:
         """
-        If true means that when child moves, parent moves not the other way around.
+        :return: True if the parent and child links are swapped.
         """
         return self.loose
 
-    def __del__(self):
+    def __del__(self) -> None:
+        """
+        Removes the constraint between the parent and the child links if one exists when the attachment is deleted.
+        """
         self.remove_constraint_if_exists()
 
 

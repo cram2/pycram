@@ -336,7 +336,7 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
         sem_costmap = SemanticCostmap(self.part_of.world_object, self.urdf_link_name)
         height_offset = 0
         if self.for_object:
-            min_p, max_p = self.for_object.world_object.get_aabb().get_min_max_points()
+            min_p, max_p = self.for_object.world_object.get_axis_aligned_bounding_box().get_min_max_points()
             height_offset = (max_p.z - min_p.z) / 2
         for maybe_pose in pose_generator(sem_costmap):
             maybe_pose.position.z += height_offset
