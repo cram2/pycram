@@ -10,7 +10,7 @@ from rospy import Duration
 
 from geometry_msgs.msg import TransformStamped
 from .pose import Pose, Transform
-from typing import List, Optional, Union, Iterable
+from typing_extensions import List, Optional, Union, Iterable
 
 
 class LocalTransformer(TransformerROS):
@@ -22,7 +22,7 @@ class LocalTransformer(TransformerROS):
 
     This class uses the robots (currently only one! supported) URDF file to
     initialize the tfs for the robot. Moreover, the function update_local_transformer_from_btr
-    updates these tfs by copying the tfs state from the pybullet world.
+    updates these tfs by copying the tfs state from the world.
 
     This class extends the TransformerRos, you can find documentation for TransformerROS here:
     `TFDoc <http://wiki.ros.org/tf/TfUsingPython>`_
@@ -47,7 +47,7 @@ class LocalTransformer(TransformerROS):
         self.tf_stampeds: List[TransformStamped] = []
         self.static_tf_stampeds: List[TransformStamped] = []
 
-        # Since this file can't import world.py this holds the reference to the current_bullet_world
+        # Since this file can't import world.py this holds the reference to the current_world
         self.world = None
         # TODO: Ask Jonas if this is still needed
         self.prospection_world = None

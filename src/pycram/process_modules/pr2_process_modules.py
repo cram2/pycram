@@ -1,18 +1,25 @@
 from threading import Lock
-from typing import Any
+from typing_extensions import Any, Optional, Tuple
+from abc import abstractmethod
 
 import actionlib
 
-import pycram.world_reasoning as btr
+from .. import world_reasoning as btr
 import numpy as np
 import rospy
 
 
-from ..process_module import ProcessModule
+from ..process_module import ProcessModule, ProcessModuleManager
 from ..external_interfaces.ik import request_ik
 from ..helper import _apply_ik
 from ..local_transformer import LocalTransformer
-from ..designators.motion_designator import *
+from ..designators.object_designator import ObjectDesignatorDescription
+from ..designators.motion_designator import MoveMotion, PickUpMotion, PlaceMotion, LookingMotion, \
+    DetectingMotion, MoveTCPMotion, MoveArmJointsMotion, WorldStateDetectingMotion, MoveJointsMotion, \
+    MoveGripperMotion, OpeningMotion, ClosingMotion, MotionDesignatorDescription
+from ..robot_descriptions import robot_description
+from ..world import World, Object
+from ..pose import Pose
 from ..enums import JointType, ObjectType
 from ..external_interfaces import giskard
 from ..external_interfaces.robokudo import query
@@ -26,11 +33,11 @@ except ImportError:
 def _park_arms(arm):
     """
     Defines the joint poses for the parking positions of the arms of PR2 and applies them to the
-    in the BulletWorld defined robot.
+    in the World defined robot.
     :return: None
     """
 
-    robot = BulletWorld.robot
+    robot = World.robot
     if arm == "right":
         for joint, pose in robot_description.get_static_joint_chain("right", "park").items():
             robot.set_joint_position(joint, pose)
@@ -45,7 +52,7 @@ class Pr2Navigation(ProcessModule):
     """
 
     def _execute(self, desig: MoveMotion.Motion):
-        robot = BulletWorld.robot
+        robot = World.robot
         robot.set_pose(desig.target)
 
 
@@ -55,21 +62,21 @@ class Pr2PickUp(ProcessModule):
     The object has to be reachable for this process module to succeed.
     """
 
-    def _execute(self, desig: PickUpMotion.Motion):
-        object = desig.object_desig.world_object
-        robot = BulletWorld.robot
+    def _execute(self, desig: PickUpMotion.Motion, used_arm: Optional[str] = None):
+        obj = desig.object_desig.world_object
+        robot = World.robot
         grasp = robot_description.grasps.get_orientation_for_grasp(desig.grasp)
-        target = object.get_pose()
+        target = obj.get_pose()
         target.orientation.x = grasp[0]
         target.orientation.y = grasp[1]
         target.orientation.z = grasp[2]
         target.orientation.w = grasp[3]
 
-        arm = desig.arm
+        arm = desig.arm if used_arm is None else used_arm
 
         _move_arm_tcp(target, robot, arm)
         tool_frame = robot_description.get_tool_frame(arm)
-        robot.attach(object, tool_frame)
+        robot.attach(obj, tool_frame)
 
 
 class Pr2Place(ProcessModule):
@@ -83,43 +90,69 @@ class Pr2Place(ProcessModule):
         :param desig: A PlaceMotion
         :return:
         """
-        object = desig.object.world_object
-        robot = BulletWorld.robot
+        obj = desig.object.world_object
+        robot = World.robot
         arm = desig.arm
 
         # Transformations such that the target position is the position of the object and not the tcp
-        object_pose = object.get_pose()
+        object_pose = obj.get_pose()
         local_tf = LocalTransformer()
         tool_name = robot_description.get_tool_frame(arm)
         tcp_to_object = local_tf.transform_pose(object_pose, robot.links[tool_name].tf_frame)
         target_diff = desig.target.to_transform("target").inverse_times(tcp_to_object.to_transform("object")).to_pose()
 
         _move_arm_tcp(target_diff, robot, arm)
-        robot.detach(object)
+        robot.detach(obj)
 
 
-class Pr2MoveHead(ProcessModule):
+class _Pr2MoveHead(ProcessModule):
+    """
+        This process module moves the head to look at a specific point in the world coordinate frame.
+        This point can either be a position or an object.
+        """
+    def __init__(self, lock: Lock):
+        super().__init__(lock)
+        self.robot: Object = World.robot
+
+    def get_pan_and_tilt_goals(self, desig: LookingMotion.Motion) -> Tuple[float, float]:
+        """
+        Calculates the pan and tilt angles to achieve the desired looking motion.
+        :param desig: The looking motion designator
+        :return: The pan and tilt angles
+        """
+        target = desig.target
+
+        local_transformer = LocalTransformer()
+        pose_in_pan = local_transformer.transform_pose(target, self.robot.links["head_pan_link"].tf_frame)
+        pose_in_tilt = local_transformer.transform_pose(target, self.robot.links["head_tilt_link"].tf_frame)
+
+        new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
+        new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2) * -1
+
+        current_pan = self.robot.get_joint_position("head_pan_joint")
+        current_tilt = self.robot.get_joint_position("head_tilt_joint")
+
+        return new_pan + current_pan, new_tilt + current_tilt
+
+    @abstractmethod
+    def _execute(self, designator: LookingMotion.Motion) -> None:
+        pass
+
+
+class Pr2MoveHead(_Pr2MoveHead):
     """
     This process module moves the head to look at a specific point in the world coordinate frame.
     This point can either be a position or an object.
     """
 
     def _execute(self, desig: LookingMotion.Motion):
-        target = desig.target
-        robot = BulletWorld.robot
-
-        local_transformer = LocalTransformer()
-        pose_in_pan = local_transformer.transform_pose(target, robot.links["head_pan_link"].tf_frame)
-        pose_in_tilt = local_transformer.transform_pose(target, robot.links["head_tilt_link"].tf_frame)
-
-        new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
-        new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2) * -1
-
-        current_pan = robot.get_joint_position("head_pan_joint")
-        current_tilt = robot.get_joint_position("head_tilt_joint")
-
-        robot.set_joint_position("head_pan_joint", new_pan + current_pan)
-        robot.set_joint_position("head_tilt_joint", new_tilt + current_tilt)
+        """
+        Moves the head to look at the given position.
+        :param desig: The looking motion designator
+        """
+        pan_goal, tilt_goal = self.get_pan_and_tilt_goals(desig)
+        self.robot.set_joint_position("head_pan_joint", pan_goal)
+        self.robot.set_joint_position("head_tilt_joint", tilt_goal)
 
 
 class Pr2MoveGripper(ProcessModule):
@@ -129,7 +162,7 @@ class Pr2MoveGripper(ProcessModule):
     """
 
     def _execute(self, desig: MoveGripperMotion.Motion):
-        robot = BulletWorld.robot
+        robot = World.robot
         gripper = desig.gripper
         motion = desig.motion
         for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
@@ -143,14 +176,14 @@ class Pr2Detecting(ProcessModule):
     """
 
     def _execute(self, desig: DetectingMotion.Motion):
-        robot = BulletWorld.robot
+        robot = World.robot
         object_type = desig.object_type
         # Should be "wide_stereo_optical_frame"
         cam_frame_name = robot_description.get_camera_frame()
         # should be [0, 0, 1]
         front_facing_axis = robot_description.front_facing_axis
 
-        objects = BulletWorld.current_world.get_objects_by_type(object_type)
+        objects = World.current_world.get_objects_by_type(object_type)
         for obj in objects:
             if btr.visible(obj, robot.links[cam_frame_name].pose, front_facing_axis):
                 return obj
@@ -163,7 +196,7 @@ class Pr2MoveTCP(ProcessModule):
 
     def _execute(self, desig: MoveTCPMotion.Motion):
         target = desig.target
-        robot = BulletWorld.robot
+        robot = World.robot
 
         _move_arm_tcp(target, robot, desig.arm)
 
@@ -176,7 +209,7 @@ class Pr2MoveArmJoints(ProcessModule):
 
     def _execute(self, desig: MoveArmJointsMotion.Motion):
 
-        robot = BulletWorld.robot
+        robot = World.robot
         if desig.right_arm_poses:
             robot.set_positions_of_all_joints(desig.right_arm_poses)
         if desig.left_arm_poses:
@@ -188,7 +221,7 @@ class PR2MoveJoints(ProcessModule):
     Process Module for generic joint movements, is not confined to the arms but can move any joint of the robot
     """
     def _execute(self, desig: MoveJointsMotion.Motion):
-        robot = BulletWorld.robot
+        robot = World.robot
         robot.set_positions_of_all_joints(dict(zip(desig.names, desig.positions)))
 
 
@@ -199,7 +232,7 @@ class Pr2WorldStateDetecting(ProcessModule):
 
     def _execute(self, desig: WorldStateDetectingMotion.Motion):
         obj_type = desig.object_type
-        return list(filter(lambda obj: obj.obj_type == obj_type, BulletWorld.current_world.objects))[0]
+        return list(filter(lambda obj: obj.obj_type == obj_type, World.current_world.objects))[0]
 
 
 class Pr2Open(ProcessModule):
@@ -215,7 +248,7 @@ class Pr2Open(ProcessModule):
         goal_pose = btr.link_pose_for_joint_config(part_of_object, {
             container_joint: part_of_object.get_joint_limits(container_joint)[1] - 0.05}, desig.object_part.name)
 
-        _move_arm_tcp(goal_pose, BulletWorld.robot, desig.arm)
+        _move_arm_tcp(goal_pose, World.robot, desig.arm)
 
         desig.object_part.world_object.set_joint_position(container_joint,
                                                           part_of_object.get_joint_limits(
@@ -235,7 +268,7 @@ class Pr2Close(ProcessModule):
         goal_pose = btr.link_pose_for_joint_config(part_of_object, {
             container_joint: part_of_object.get_joint_limits(container_joint)[0]}, desig.object_part.name)
 
-        _move_arm_tcp(goal_pose, BulletWorld.robot, desig.arm)
+        _move_arm_tcp(goal_pose, World.robot, desig.arm)
 
         desig.object_part.world_object.set_joint_position(container_joint,
                                                           part_of_object.get_joint_limits(
@@ -278,29 +311,22 @@ class Pr2PlaceReal(ProcessModule):
         pass
 
 
-class Pr2MoveHeadReal(ProcessModule):
+class Pr2MoveHeadReal(_Pr2MoveHead):
     """
     Process module for the real robot to move that such that it looks at the given position. Uses the same calculation
     as the simulated one
     """
 
     def _execute(self, desig: LookingMotion.Motion):
-        target = desig.target
-        robot = BulletWorld.robot
-
-        local_transformer = LocalTransformer()
-        pose_in_pan = local_transformer.transform_pose(target, robot.links["head_pan_link"].tf_frame)
-        pose_in_tilt = local_transformer.transform_pose(target, robot.links["head_tilt_link"].tf_frame)
-
-        new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
-        new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2) * -1
-
-        current_pan = robot.get_joint_position("head_pan_joint")
-        current_tilt = robot.get_joint_position("head_tilt_joint")
+        """
+        Moves the head to look at the given position.
+        :param desig: The looking motion designator
+        """
+        pan_goal, tilt_goal = self.get_pan_and_tilt_goals(desig)
 
         giskard.avoid_all_collisions()
-        giskard.achieve_joint_goal({"head_pan_joint": new_pan + current_pan,
-                                    "head_tilt_joint": new_tilt + current_tilt})
+        giskard.achieve_joint_goal({"head_pan_joint": pan_goal,
+                                    "head_tilt_joint": tilt_goal})
 
 
 class Pr2DetectingReal(ProcessModule):
@@ -315,14 +341,14 @@ class Pr2DetectingReal(ProcessModule):
         obj_pose = query_result["ClusterPoseBBAnnotator"]
 
         lt = LocalTransformer()
-        obj_pose = lt.transform_pose(obj_pose, BulletWorld.robot.links["torso_lift_link"].tf_frame)
+        obj_pose = lt.transform_pose(obj_pose, World.robot.links["torso_lift_link"].tf_frame)
         obj_pose.orientation = [0, 0, 0, 1]
         obj_pose.position.x += 0.05
 
-        bullet_obj = BulletWorld.current_world.get_objects_by_type(designator.object_type)
-        if bullet_obj:
-            bullet_obj[0].set_pose(obj_pose)
-            return bullet_obj[0]
+        world_obj = World.current_world.get_objects_by_type(designator.object_type)
+        if world_obj:
+            world_obj[0].set_pose(obj_pose)
+            return world_obj[0]
         elif designator.object_type == ObjectType.JEROEN_CUP:
             cup = Object("cup", ObjectType.JEROEN_CUP, "jeroen_cup.stl", pose=obj_pose)
             return cup
@@ -330,11 +356,7 @@ class Pr2DetectingReal(ProcessModule):
             bowl = Object("bowl", ObjectType.BOWL, "bowl.stl", pose=obj_pose)
             return bowl
 
-
-        return bullet_obj[0]
-
-
-
+        return world_obj[0]
 
 
 class Pr2MoveTCPReal(ProcessModule):
@@ -396,7 +418,10 @@ class Pr2MoveGripperReal(ProcessModule):
         goal = Pr2GripperCommandGoal()
         goal.command.position = 0.0 if designator.motion == "close" else 0.1
         goal.command.max_effort = 50.0
-        controller_topic = "r_gripper_controller/gripper_action" if designator.gripper == "right" else "l_gripper_controller/gripper_action"
+        if designator.gripper == "right":
+            controller_topic = "r_gripper_controller/gripper_action"
+        else:
+            controller_topic = "l_gripper_controller/gripper_action"
         client = actionlib.SimpleActionClient(controller_topic, Pr2GripperCommandAction)
         rospy.loginfo("Waiting for action server")
         client.wait_for_server()

@@ -1,17 +1,15 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-import copy
 import math
 import datetime
-from typing import List, Union, Optional
+from typing_extensions import List, Union, Optional
 
 import numpy as np
 import rospy
 import sqlalchemy.orm
 from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3, Point
 from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
-from std_msgs.msg import Header
 from tf import transformations
 from .orm.base import Pose as ORMPose, Position, Quaternion, ProcessMetaData
 

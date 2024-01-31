@@ -58,8 +58,8 @@ class World(ABC):
 
     robot: Optional[Object] = None
     """
-    Global reference to the spawned Object that represents the robot. The robot is identified by checking the name in the 
-    URDF with the name of the URDF on the parameter server. 
+    Global reference to the spawned Object that represents the robot. The robot is identified by checking the name in
+     the URDF with the name of the URDF on the parameter server. 
     """
 
     data_directory: List[str] = [os.path.join(os.path.dirname(__file__), '..', '..', 'resources')]
@@ -170,6 +170,7 @@ class World(ABC):
         """
         pass
 
+    # TODO: This is not used anywhere, should it be removed?
     def get_objects_by_name(self, name: str) -> List[Object]:
         """
         Returns a list of all Objects in this World with the same name as the given one.
@@ -179,7 +180,7 @@ class World(ABC):
         """
         return list(filter(lambda obj: obj.name == name, self.objects))
 
-    def get_objects_by_type(self, obj_type: str) -> List[Object]:
+    def get_objects_by_type(self, obj_type: ObjectType) -> List[Object]:
         """
         Returns a list of all Objects which have the type 'obj_type'.
 
@@ -357,6 +358,7 @@ class World(ABC):
         :param real_time: If the simulation should happen in real time or faster.
         """
         for i in range(0, int(seconds * self.simulation_frequency)):
+            curr_time = rospy.Time.now()
             self.step()
             for objects, callbacks in self.coll_callbacks.items():
                 contact_points = self.get_contact_points_between_two_objects(objects[0], objects[1])
@@ -365,7 +367,8 @@ class World(ABC):
                 elif callbacks.no_collision_cb is not None:
                     callbacks.no_collision_cb()
             if real_time:
-                time.sleep(self.simulation_time_step)
+                loop_time = rospy.Time.now() - curr_time
+                time.sleep(max(0, self.simulation_time_step - loop_time.to_sec()))
 
     @abstractmethod
     def perform_collision_detection(self) -> None:
@@ -433,7 +436,6 @@ class World(ABC):
         """
         pass
 
-    @abstractmethod
     def get_number_of_joints(self, obj: Object) -> int:
         """
         Get the number of joints of an articulated object
@@ -899,6 +901,36 @@ class World(ABC):
         """
         raise NotImplementedError
 
+    def create_multi_body_from_visual_shapes(self, visual_shape_ids: List[int], pose: Pose) -> int:
+        """
+        Creates a multi body from visual shapes in the physics simulator and returns the unique id of the created
+        multi body.
+        :param visual_shape_ids: The ids of the visual shapes that should be used to create the multi body.
+        :param pose: The pose of the origin of the multi body relative to the world frame.
+        :return: The unique id of the created multi body.
+        """
+        # Dummy paramater since these are needed to spawn visual shapes as a
+        # multibody.
+        num_of_shapes = len(visual_shape_ids)
+        link_poses = [[0, 0, 0] for _ in range(num_of_shapes)]
+        link_orientations = [[0, 0, 0, 1] for _ in range(num_of_shapes)]
+        link_masses = [1.0 for _ in range(num_of_shapes)]
+        link_parent = [0 for _ in range(num_of_shapes)]
+        link_joints = [JointType.FIXED for _ in range(num_of_shapes)]
+        link_collision = [-1 for _ in range(num_of_shapes)]
+        link_joint_axis = [[1, 0, 0] for _ in range(num_of_shapes)]
+
+        multi_body = MultiBody(base_visual_shape_index=-1, base_position=pose.position_as_list(),
+                               base_orientation=pose.orientation_as_list(),
+                               link_visual_shape_indices=visual_shape_ids, link_positions=link_poses,
+                               link_orientations=link_orientations, link_masses=link_masses,
+                               link_inertial_frame_positions=link_poses,
+                               link_inertial_frame_orientations=link_orientations,
+                               link_parent_indices=link_parent, link_joint_types=link_joints,
+                               link_joint_axis=link_joint_axis,
+                               link_collision_shape_indices=link_collision)
+        return self.create_multi_body(multi_body)
+
     def create_multi_body(self, multi_body: MultiBody) -> int:
         """
         Creates a multi body in the physics simulator and returns the unique id of the created multi body. The multibody
@@ -959,6 +991,69 @@ class World(ABC):
         :param shape_data: The parameters that define the mesh visual shape to be created,
          uses the MeshVisualShape dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
+        """
+        raise NotImplementedError
+
+    def add_text(self, text: str, position: List[float], orientation: Optional[List[float]] = None, size: float = 0.1,
+                 color: Optional[Color] = Color(), life_time: Optional[float] = 0,
+                 parent_object_id: Optional[int] = None) -> None:
+        """
+        Adds text to the world.
+        :param text: The text to be added.
+        :param position: The position of the text in the world.
+        :param orientation: By default, debug text will always face the camera,
+        automatically rotation. By specifying a text orientation (quaternion), the orientation will be fixed in
+        world space or local space (when parent is specified).
+        :param size: The size of the text.
+        :param color: The color of the text.
+        :param life_time: The lifetime in seconds of the text to remain in the world, if 0 the text will remain
+         in the world until it is removed manually.
+        :param parent_object_id: The id of the object to which the text should be attached.
+        """
+        raise NotImplementedError
+
+    def remove_text(self, text_id: Optional[int] = None) -> None:
+        """
+        Removes text from the world using the given id. if no id is given all text will be removed.
+        :param text_id: The id of the text to be removed.
+        """
+        raise NotImplementedError
+
+    def enable_joint_force_torque_sensor(self, obj: Object, fts_joint_idx: int) -> None:
+        """
+        You can enable a joint force/torque sensor in each joint. Once enabled, if you perform
+        a simulation step, the get_joint_force_torque will report the joint reaction forces in the fixed degrees of
+        freedom: a fixed joint will measure all 6DOF joint forces/torques. A revolute/hinge joint
+        force/torque sensor will measure 5DOF reaction forces along all axis except the hinge axis. The
+        applied force by a joint motor is available through get_applied_joint_motor_torque.
+        :param obj: The object in which the joint is located.
+        :param fts_joint_idx: The index of the joint for which the force torque sensor should be enabled.
+        """
+        raise NotImplementedError
+
+    def disable_joint_force_torque_sensor(self, obj: Object, joint_id: int) -> None:
+        """
+        Disables the force torque sensor of a joint.
+        :param obj: The object in which the joint is located.
+        :param joint_id: The id of the joint for which the force torque sensor should be disabled.
+        """
+        raise NotImplementedError
+
+    def get_joint_force_torque(self, obj: Object, joint_id: int) -> List[float]:
+        """
+        Returns the joint reaction forces and torques of the specified joint.
+        :param obj: The object in which the joint is located.
+        :param joint_id: The id of the joint for which the force torque should be returned.
+        :return: The joint reaction forces and torques of the specified joint.
+        """
+        raise NotImplementedError
+
+    def get_applied_joint_motor_torque(self, obj: Object, joint_id: int) -> float:
+        """
+        Returns the applied torque by a joint motor.
+        :param obj: The object in which the joint is located.
+        :param joint_id: The id of the joint for which the applied motor torque should be returned.
+        :return: The applied torque by a joint motor.
         """
         raise NotImplementedError
 
@@ -1030,8 +1125,8 @@ class WorldSync(threading.Thread):
         terminate flag is set.
         While this loop runs it continuously checks the cartesian and joint position of
         every object in the World and updates the corresponding object in the
-        prospection world. When there are entries in the adding or removing queue the corresponding objects will be added
-        or removed in the same iteration.
+        prospection world. When there are entries in the adding or removing queue the corresponding objects will
+         be added or removed in the same iteration.
         """
         while not self.terminate:
             self.check_for_pause()
@@ -1382,7 +1477,7 @@ class Object:
         self.original_pose = self.local_transformer.transform_pose(pose, "map")
         self._current_pose = self.original_pose
 
-        self._load_object_and_set_id_and_path(path, ignore_cached_files)
+        self.id, self.path = self._load_object_and_get_id(path, ignore_cached_files)
 
         self.tf_frame = ("prospection/" if self.world.is_prospection_world else "") + self.name + "_" + str(self.id)
 
@@ -1409,8 +1504,7 @@ class Object:
 
         self.world.objects.append(self)
 
-
-    def _load_object_and_set_id_and_path(self, path, ignore_cached_files: bool) -> None:
+    def _load_object_and_get_id(self, path, ignore_cached_files: bool) -> Tuple[int, str]:
         """
         Loads an object to the given World with the given position and orientation. The rgba_color will only be
         used when an .obj or .stl file is given.
@@ -1421,6 +1515,7 @@ class Object:
         to ROS packges instead there will be absolute file paths.
 
         :param ignore_cached_files: Whether to ignore files in the cache directory.
+        :return: The unique id of the object and the path of the file that was loaded.
         """
         pa = pathlib.Path(path)
         extension = pa.suffix
@@ -1469,8 +1564,7 @@ class Object:
         try:
             obj_id = self.world.load_urdf_and_get_object_id(path, Pose(self.get_position_as_list(),
                                                                        self.get_orientation_as_list()))
-            self.id = obj_id
-            self.path = path
+            return obj_id, path
         except Exception as e:
             logging.error(
                 "The File could not be loaded. Please note that the path has to be either a URDF, stl or obj file or"
@@ -1983,7 +2077,8 @@ class Object:
     def update_joints_from_topic(self, topic_name: str) -> None:
         """
         Updates the joints of this object with positions obtained from a topic with the message type JointState.
-        Joint names on the topic have to correspond to the joints of this object otherwise an error message will be logged.
+        Joint names on the topic have to correspond to the joints of this object otherwise an error message will be
+         logged.
 
         :param topic_name: Name of the topic with the joint states
         """

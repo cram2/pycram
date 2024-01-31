@@ -184,82 +184,46 @@ class MultiBody:
 
 
 @dataclass
-class ShapeData:
-    pass
-
-
-@dataclass
-class BoxShapeData(ShapeData):
-    half_extents: List[float]
-
-
-@dataclass
-class SphereShapeData(ShapeData):
-    radius: float
-
-
-@dataclass
-class CapsuleShapeData(SphereShapeData):
-    length: float
-
-
-@dataclass
-class CylinderShapeData(CapsuleShapeData):
-    pass
-
-
-@dataclass
-class MeshShapeData(ShapeData):
-    mesh_scale: List[float]
-    mesh_file_name: str
-
-
-@dataclass
-class PlaneShapeData(ShapeData):
-    normal: List[float]
-
-
-@dataclass
 class VisualShape:
     rgba_color: Color
     visual_frame_position: List[float]
-    shape_data: ShapeData
-    visual_geometry_type: Shape
 
 
 @dataclass
 class BoxVisualShape(VisualShape):
-    shape_data: BoxShapeData
-    visual_geometry_type = Shape.BOX
+    half_extents: List[float]
+    visual_geometry_type: Optional[Shape] = Shape.BOX
 
 
 @dataclass
 class SphereVisualShape(VisualShape):
-    shape_data: SphereShapeData
-    visual_geometry_type = Shape.SPHERE
+    radius: float
+    visual_geometry_type: Optional[Shape] = Shape.SPHERE
 
 
 @dataclass
-class CapsuleVisualShape(SphereVisualShape):
-    shape_data: CapsuleShapeData
-    visual_geometry_type = Shape.CAPSULE
+class CapsuleVisualShape(VisualShape):
+    radius: float
+    length: float
+    visual_geometry_type: Optional[Shape] = Shape.CAPSULE
 
 
 @dataclass
 class CylinderVisualShape(CapsuleVisualShape):
-    visual_geometry_type = Shape.CYLINDER
+    visual_geometry_type: Optional[Shape] = Shape.CYLINDER
 
 
 @dataclass
 class MeshVisualShape(VisualShape):
-    visual_geometry_type = Shape.MESH
-    shape_data: MeshShapeData
+    mesh_scale: List[float]
+    mesh_file_name: str
+    visual_geometry_type: Optional[Shape] = Shape.MESH
 
 
 @dataclass
 class PlaneVisualShape(VisualShape):
-    shape_data: PlaneShapeData
-    visual_geometry_type = Shape.PLANE
+    normal: List[float]
+    visual_geometry_type: Optional[Shape] = Shape.PLANE
 
 
 @dataclass

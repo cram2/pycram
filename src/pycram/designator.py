@@ -12,12 +12,13 @@ from .world import World, Object as WorldObject
 from .helper import GeneratorList, bcolors
 from threading import Lock
 from time import time
-from typing import List, Dict, Any, Type, Optional, Union, get_type_hints, Callable, Tuple, Iterable
+from typing_extensions import List, Dict, Any, Optional, Union, get_type_hints, Callable, Iterable
 
 from .local_transformer import LocalTransformer
 from .language import Language
 from .pose import Pose
 from .robot_descriptions import robot_description
+from .enums import ObjectType
 
 import logging
 
@@ -25,7 +26,7 @@ from .orm.action_designator import (Action as ORMAction)
 from .orm.object_designator import (Object as ORMObjectDesignator)
 from .orm.motion_designator import (Motion as ORMMotionDesignator)
 
-from .orm.base import Quaternion, Position, Base, RobotState, ProcessMetaData
+from .orm.base import RobotState, ProcessMetaData
 from .task import with_tree
 
 
@@ -72,11 +73,11 @@ class Designator(ABC):
     argument and return a list of solutions. A solution can also be a generator. 
     """
 
-    def __init__(self, description: Type[DesignatorDescription], parent: Optional[Designator] = None):
+    def __init__(self, description: DesignatorDescription, parent: Optional[Designator] = None):
         """Create a new desginator.
 
         Arguments:
-        :param properties: A list of tuples (key-value pairs) describing this designator.
+        :param description: A list of tuples (key-value pairs) describing this designator.
         :param parent: The parent to equate with (default is None).
         """
         self._mutex: Lock = Lock()
@@ -87,7 +88,7 @@ class Designator(ABC):
         self._solutions = None
         self._index: int = 0
         self.timestamp = None
-        self._description: Type[DesignatorDescription] = description
+        self._description: DesignatorDescription = description
 
         if parent is not None:
             self.equate(parent)
@@ -358,7 +359,7 @@ class DesignatorDescription(ABC):
         """
         return list(self.__dict__.keys())
 
-    def copy(self) -> Type[DesignatorDescription]:
+    def copy(self) -> DesignatorDescription:
         return self
 
 
@@ -432,7 +433,8 @@ class MotionDesignatorDescription(DesignatorDescription, Language):
         """
         return list(self.__dict__.keys()).remove('cmd')
 
-    def _check_properties(self, desig: str, exclude: List[str] = []) -> None:
+    # TODO: Not used anymore, remove?
+    def _check_properties(self, desig: str, exclude: List[str] = None) -> None:
         """
         Checks the properties of this description. It will be checked if any attribute is
         None and if any attribute has to wrong type according to the type hints in
@@ -443,6 +445,7 @@ class MotionDesignatorDescription(DesignatorDescription, Language):
                         Exception as output.
         :param exclude: A list of properties which should not be checked.
         """
+        exclude = exclude if exclude else []
         right_types = get_type_hints(self.Motion)
         attributes = self.__dict__.copy()
         del attributes["resolve"]
@@ -479,7 +482,7 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
         The torso height of the robot at the start of the action.
         """
 
-        robot_type: str = dataclasses.field(init=False)
+        robot_type: ObjectType = dataclasses.field(init=False)
         """
         The type of the robot at the start of the action.
         """
@@ -605,7 +608,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
         Name of the object
         """
 
-        obj_type: str
+        obj_type: ObjectType
         """
         Type of the object
         """
@@ -715,26 +718,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
                     return pose_in_object
             return pose
 
-        # def special_knowledge(self, grasp, pose):
-        #     """
-        #     Returns t special knowledge for "grasp front".
-        #     """
-        #
-        #     special_knowledge = []  # Initialize as an empty list
-        #     if self.type in SPECIAL_KNOWLEDGE:
-        #         special_knowledge = SPECIAL_KNOWLEDGE[self.type]
-        #
-        #     for key, value in special_knowledge:
-        #         if key == grasp:
-        #             # Adjust target pose based on special knowledge
-        #             pose.pose.position.x += value[0]
-        #             pose.pose.position.y += value[1]
-        #             pose.pose.position.z += value[2]
-        #             print("Adjusted target pose based on special knowledge for grasp: ", grasp)
-        #             return pose
-        #     return pose
-
-    def __init__(self, names: Optional[List[str]] = None, types: Optional[List[str]] = None,
+    def __init__(self, names: Optional[List[str]] = None, types: Optional[List[ObjectType]] = None,
                  resolver: Optional[Callable] = None):
         """
         Base of all object designator descriptions. Every object designator has the name and type of the object.
@@ -744,7 +728,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
         :param resolver: An alternative resolver that returns an object designator for the list of names and types
         """
         super().__init__(resolver)
-        self.types: Optional[List[str]] = types
+        self.types: Optional[List[ObjectType]] = types
         self.names: Optional[List[str]] = names
 
     def ground(self) -> Union[Object, bool]:

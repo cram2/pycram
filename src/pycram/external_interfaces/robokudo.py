@@ -1,5 +1,5 @@
 import sys
-from typing import Callable
+from typing_extensions import Callable
 
 import rosnode
 import rospy
@@ -9,7 +9,7 @@ import rosnode
 from ..designator import ObjectDesignatorDescription
 from ..pose import Pose
 from ..local_transformer import LocalTransformer
-from ..bullet_world import BulletWorld
+from ..world import World
 from ..enums import ObjectType
 
 try:
@@ -99,7 +99,7 @@ def make_query_goal_msg(obj_desc: ObjectDesignatorDescription) -> 'QueryGoal':
     """
     goal_msg = QueryGoal()
     goal_msg.obj.uid = str(id(obj_desc))
-    goal_msg.obj.obj_type = str(obj_desc.types[0].name) # For testing purposes
+    goal_msg.obj.obj_type = str(obj_desc.types[0].name)  # For testing purposes
     if ObjectType.JEROEN_CUP == obj_desc.types[0]:
         goal_msg.obj.color.append("blue")
     elif ObjectType.BOWL == obj_desc.types[0]:
@@ -125,7 +125,7 @@ def query(object_desc: ObjectDesignatorDescription) -> ObjectDesignatorDescripti
 
     for i in range(0, len(query_result.res[0].pose)):
         pose = Pose.from_pose_stamped(query_result.res[0].pose[i])
-        pose.frame = BulletWorld.current_world.robot.links[pose.frame].tf_frame  # TODO: pose.frame is a link name?
+        pose.frame = World.current_world.robot.links[pose.frame].tf_frame  # TODO: pose.frame is a link name?
         source = query_result.res[0].poseSource[i]
 
         lt = LocalTransformer()

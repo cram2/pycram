@@ -1,7 +1,7 @@
 import dataclasses
-from typing import List, Optional, Callable
+from typing_extensions import List, Optional, Callable
 import sqlalchemy.orm
-from pycram.world import World, Object as WorldObject
+from ..world import World, Object as WorldObject
 from ..designator import ObjectDesignatorDescription
 from ..orm.base import ProcessMetaData
 from ..orm.object_designator import (BelieveObject as ORMBelieveObject, ObjectPart as ORMObjectPart)

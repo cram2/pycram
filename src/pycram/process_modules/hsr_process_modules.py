@@ -1,13 +1,13 @@
 from threading import Lock
 
-from typing import Optional
+from typing_extensions import Optional
 from ..robot_descriptions import robot_description
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..world import World
 from ..pose import Pose, Point
 from ..helper import _apply_ik
+from ..external_interfaces.ik import request_ik
 import pycram.world_reasoning as btr
-import pybullet as p
 import logging
 import time
 
@@ -16,10 +16,11 @@ def calculate_and_apply_ik(robot, gripper: str, target_position: Point, max_iter
     """
     Calculates the inverse kinematics for the given target pose and applies it to the robot.
     """
-    inv = p.calculateInverseKinematics(robot.id, robot.get_link_id(gripper), target_position,
-                                       maxNumIterations=max_iterations)
+    target_position_l  = [target_position.x, target_position.y, target_position.z]
     # TODO: Check if this is correct (getting the arm and using its joints), previously joints was not provided.
     arm = "right" if gripper == robot_description.get_tool_frame("right") else "left"
+    inv = request_ik(Pose(target_position_l, [0, 0, 0, 1]),
+                     robot, robot_description.chains[arm].joints, gripper)
     joints = robot_description.chains[arm].joints
     _apply_ik(robot, inv, joints)
 

@@ -4,13 +4,13 @@ import threading
 import atexit
 
 from ..pose import Pose
-from ..bullet_world import BulletWorld
+from ..world import World
 from tf2_msgs.msg import TFMessage
 
 
 class TFBroadcaster:
     """
-    Broadcaster that publishes TF frames for every object in the BulletWorld.
+    Broadcaster that publishes TF frames for every object in the World.
     """
     def __init__(self, projection_namespace="simulated", odom_frame="odom", interval=0.1):
         """
@@ -21,7 +21,7 @@ class TFBroadcaster:
         :param odom_frame: Name of the statically published odom frame
         :param interval: Interval at which the TFs should be published, in seconds
         """
-        self.world = BulletWorld.current_world
+        self.world = World.current_world
 
         self.tf_static_publisher = rospy.Publisher("/tf_static", TFMessage, queue_size=10)
         self.tf_publisher = rospy.Publisher("/tf", TFMessage, queue_size=10)
@@ -39,7 +39,7 @@ class TFBroadcaster:
 
     def update(self):
         """
-        Updates the TFs for the static odom frame and all objects currently in the BulletWorld.
+        Updates the TFs for the static odom frame and all objects currently in the World.
         """
         # Update static odom
         self._update_static_odom()
@@ -48,7 +48,7 @@ class TFBroadcaster:
 
     def _update_objects(self) -> None:
         """
-        Publishes the current pose of all objects in the BulletWorld. As well as the poses of all links of these objects.
+        Publishes the current pose of all objects in the World. As well as the poses of all links of these objects.
         """
         for obj in self.world.objects:
             pose = obj.get_pose()
@@ -89,7 +89,7 @@ class TFBroadcaster:
 
     def _publish(self) -> None:
         """
-        Constantly publishes the positions of all objects in the BulletWorld.
+        Constantly publishes the positions of all objects in the World.
         """
         while not self.kill_event.is_set():
             self.update()

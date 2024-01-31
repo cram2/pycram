@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import List, Optional, Dict, Tuple
+from typing_extensions import List, Optional, Dict, Tuple
 
 import numpy as np
 import pybullet as p

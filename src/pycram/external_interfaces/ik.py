@@ -1,6 +1,5 @@
-from typing import List, Union
+from typing_extensions import List, Union
 
-import pybullet as p
 import rospy
 from moveit_msgs.msg import PositionIKRequest
 from moveit_msgs.msg import RobotState
@@ -10,24 +9,9 @@ from sensor_msgs.msg import JointState
 from ..world import Object
 from ..helper import calculate_wrist_tool_offset, _apply_ik
 from ..local_transformer import LocalTransformer
-from ..pose import Pose, Transform
+from ..pose import Pose
 from ..robot_descriptions import robot_description
 from ..plan_failures import IKError
-
-
-def _get_position_for_joints(robot, joints):
-    """
-    Returns a list with all joint positions for the joint names specified in
-    the joints parameter
-
-    :param robot: The robot the joint states should be taken from
-    :param joints: The list of joint names that should be in the output
-    :return: A list of joint states according and in the same order as the joint
-    names in the joints parameter
-    """
-    return list(
-        map(lambda x: p.getJointState(robot.id, robot.get_joint_id(x), physicsClientId=robot.world.client_id)[0],
-            joints))
 
 
 def _make_request_msg(root_link: str, tip_link: str, target_pose: Pose, robot_object: Object,
@@ -50,7 +34,7 @@ def _make_request_msg(root_link: str, tip_link: str, target_pose: Pose, robot_ob
     robot_state = RobotState()
     joint_state = JointState()
     joint_state.name = joints
-    joint_state.position = _get_position_for_joints(robot_object, joints)
+    joint_state.position = [robot_object.get_joint_position(joint) for joint in joints]
     # joint_state.velocity = [0.0 for x in range(len(joints))]
     # joint_state.effort = [0.0 for x in range(len(joints))]
     robot_state.joint_state = joint_state
