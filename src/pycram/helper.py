@@ -7,15 +7,13 @@ Classes:
 GeneratorList -- implementation of generator list wrappers.
 """
 from inspect import isgeneratorfunction
-from typing import List
-from typing import Tuple, Callable
+from typing_extensions import List, Tuple, Callable
 
 import numpy as np
 from pytransform3d.rotations import quaternion_wxyz_from_xyzw, quaternion_xyzw_from_wxyz
 from pytransform3d.transformations import transform_from_pq, transform_from, pq_from_transform
 
 from .world import Object as WorldObject
-from .local_transformer import LocalTransformer
 from .pose import Transform, Pose
 import math
 

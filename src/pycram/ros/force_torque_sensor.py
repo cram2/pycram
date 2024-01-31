@@ -3,11 +3,10 @@ import time
 import threading
 
 import rospy
-import pybullet as pb
 
 from geometry_msgs.msg import WrenchStamped
 from std_msgs.msg import Header
-from..bullet_world import BulletWorld
+from ..world import World
 
 
 class ForceTorqueSensor:
@@ -18,21 +17,22 @@ class ForceTorqueSensor:
     """
     def __init__(self, joint_name, fts_topic="/pycram/fts", interval=0.1):
         """
-        The given joint_name has to be part of :py:attr:`~pycram.world.BulletWorld.robot` otherwise a
+        The given joint_name has to be part of :py:attr:`~pycram.world.World.robot` otherwise a
         RuntimeError will be raised.
 
         :param joint_name: Name of the joint for which force-torque should be simulated
         :param fts_topic: Name of the ROS topic to which should be published
         :param interval: Interval at which the messages should be published, in seconds
         """
-        self.world = BulletWorld.current_world
+        self.world = World.current_world
         self.fts_joint_idx = None
         self.joint_name = joint_name
         if joint_name in self.world.robot.joint_name_to_id.keys():
             self.fts_joint_idx = self.world.robot.joint_name_to_id[joint_name]
         else:
-            raise RuntimeError(f"Could not register ForceTorqueSensor: Joint {joint_name} does not exist in robot object")
-        pb.enableJointForceTorqueSensor(self.world.robot.id, self.fts_joint_idx, enableSensor=1)
+            raise RuntimeError(f"Could not register ForceTorqueSensor: Joint {joint_name}"
+                               f" does not exist in robot object")
+        self.world.enable_joint_force_torque_sensor(self.world.robot, self.fts_joint_idx)
 
         self.fts_pub = rospy.Publisher(fts_topic, WrenchStamped, queue_size=10)
         self.interval = interval
@@ -50,8 +50,7 @@ class ForceTorqueSensor:
         """
         seq = 0
         while not self.kill_event.is_set():
-            current_joint_state = pb.getJointState(self.world.robot.id, self.fts_joint_idx)
-            joint_ft = current_joint_state[2]
+            joint_ft = self.world.get_joint_force_torque(self.world.robot, self.fts_joint_idx)
             h = Header()
             h.seq = seq
             h.stamp = rospy.Time.now()

@@ -1,22 +1,18 @@
 import dataclasses
-import time
-from typing import Optional, List, Tuple
+from typing_extensions import Optional, List
 
 import jpt
 import numpy as np
-import pybullet
 import tf
 
-import pycram.designators.location_designator
-import pycram.task
-from ...costmaps import OccupancyCostmap, plot_grid
-from ...plan_failures import PlanFailure
+from ...designators import location_designator
+from ...costmaps import OccupancyCostmap
 from ...pose import Pose
-from pycram.bullet_world import BulletWorld
-from pycram.world import Object
+from ...world import Object, World
+from ...world_dataclasses import BoxVisualShape, Color
 
 
-class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation):
+class JPTCostmapLocation(location_designator.CostmapLocation):
     """Costmap Locations using Joint Probability Trees (JPTs).
     JPT costmaps are trained to model the dependency with a robot position relative to the object, the robots type,
     the objects type, the robot torso height, and the grasp parameters.
@@ -24,7 +20,7 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
     """
 
     @dataclasses.dataclass
-    class Location(pycram.designators.location_designator.LocationDesignatorDescription.Location):
+    class Location(location_designator.LocationDesignatorDescription.Location):
         pose: Pose
         reachable_arm: str
         torso_height: float
@@ -187,7 +183,7 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
 
     def visualize(self):
         """
-        Plot the possible areas to stand in the BulletWorld. The opacity is the probability of success.
+        Plot the possible areas to stand in the World. The opacity is the probability of success.
 
         """
 
@@ -210,23 +206,14 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
 
             center = np.array([sum(x_range) / 2, sum(y_range) / 2])
 
-            visual = pybullet.createVisualShape(pybullet.GEOM_BOX,
-                                                halfExtents=[(x_range[1] - x_range[0]) / 2,
-                                                             (y_range[1] - y_range[0]) / 2, 0.001],
-                                                rgbaColor=[1, 0, 0, success],
-                                                visualFramePosition=[*center, 0])
+            box_visual_shape = BoxVisualShape(Color(1, 0, 0, success), [*center, 0],
+                                              half_extents=[(x_range[1] - x_range[0]) / 2,
+                                                            (y_range[1] - y_range[0]) / 2, 0.001])
+            visual = World.current_world.create_visual_shape(box_visual_shape)
 
             self.visual_ids.append(visual)
 
         for id_list in np.array_split(np.array(self.visual_ids), np.ceil(len(self.visual_ids) / 127)):
-            # Dummy paramater since these are needed to spawn visual shapes as a multibody.
-            link_poses = [[0, 0, 0] for c in id_list]
-            link_orientations = [[0, 0, 0, 1] for c in id_list]
-            link_masses = [1.0 for c in id_list]
-            link_parent = [0 for c in id_list]
-            link_joints = [pybullet.JOINT_FIXED for c in id_list]
-            link_collision = [-1 for c in id_list]
-            link_joint_axis = [[1, 0, 0] for c in id_list]
 
             # The position at which the multibody will be spawned. Offset such that
             # the origin referes to the centre of the costmap.
@@ -234,15 +221,8 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
             base_position = list(origin_pose[0])
             base_position[2] = 0
 
-            map_obj = pybullet.createMultiBody(baseVisualShapeIndex=-1, linkVisualShapeIndices=id_list,
-                                               basePosition=base_position, baseOrientation=origin_pose[1],
-                                               linkPositions=link_poses,
-                                               linkMasses=link_masses, linkOrientations=link_orientations,
-                                               linkInertialFramePositions=link_poses,
-                                               linkInertialFrameOrientations=link_orientations,
-                                               linkParentIndices=link_parent,
-                                               linkJointTypes=link_joints, linkJointAxis=link_joint_axis,
-                                               linkCollisionShapeIndices=link_collision)
+            map_obj = World.current_world.create_multi_body_from_visual_shapes(id_list.tolist(), Pose(base_position,
+                                                                                                      origin_pose[1]))
             self.visual_ids.append(map_obj)
 
     def close_visualization(self) -> None:
@@ -250,6 +230,6 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
         Close all plotted objects.
 
         """
-        for id in self.visual_ids:
-            pybullet.removeBody(id)
+        for _id in self.visual_ids:
+            World.current_world.remove_object(World.current_world.get_object_by_id(_id))
         self.visual_ids = []

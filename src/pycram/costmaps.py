@@ -1,7 +1,7 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-from typing import Tuple, List, Optional
+from typing_extensions import Tuple, List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,7 +14,7 @@ from pycram.world import UseProspectionWorld, Object, Link
 from .local_transformer import LocalTransformer
 from .pose import Pose, Transform
 from .world import World
-from .world_dataclasses import AxisAlignedBoundingBox, BoxVisualShape, BoxShapeData, MultiBody, Color, JointType
+from .world_dataclasses import AxisAlignedBoundingBox, BoxVisualShape, Color
 
 
 class Costmap:
@@ -54,8 +54,7 @@ class Costmap:
     def visualize(self) -> None:
         """
         Visualizes a costmap in the World, the visualisation works by
-        subdividing the costmap in rectangles which are then visualized as pybullet
-        visual shapes.
+        subdividing the costmap in rectangles which are then visualized as world visual shapes.
         """
         if self.vis_ids:
             return
@@ -75,43 +74,26 @@ class Costmap:
                     map[i:i + curr_height, j:j + curr_width] = 0
         cells = []
         # Creation of the visual shapes, for documentation of the visual shapes
-        # please look here: https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#heading=h.q1gn7v6o58bf
+        # please look here:
+        # https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#heading=h.q1gn7v6o58bf
         for box in boxes:
-            box_shape_data = BoxShapeData([(box[1] * self.resolution) / 2, (box[2] * self.resolution) / 2, 0.001])
-            visual_frame_position = [(box[0][0] + box[1] / 2) * self.resolution,
-                                     (box[0][1] + box[2] / 2) * self.resolution, 0.]
-            visual_shape = BoxVisualShape(Color(1, 0, 0, 0.6), visual_frame_position, box_shape_data)
+            visual_shape = BoxVisualShape(Color(1, 0, 0, 0.6),
+                                          visual_frame_position=[(box[0][0] + box[1] / 2) * self.resolution,
+                                                                 (box[0][1] + box[2] / 2) * self.resolution, 0.],
+                                          half_extents=[(box[1] * self.resolution) / 2,
+                                                        (box[2] * self.resolution) / 2, 0.001])
             visual = self.world.create_visual_shape(visual_shape)
             cells.append(visual)
 
         # Set to 127 for since this is the maximal amount of links in a multibody
         for cell_parts in self._chunks(cells, 127):
-            # Dummy paramater since these are needed to spawn visual shapes as a
-            # multibody.
-            link_poses = [[0, 0, 0] for c in cell_parts]
-            link_orientations = [[0, 0, 0, 1] for c in cell_parts]
-            link_masses = [1.0 for c in cell_parts]
-            link_parent = [0 for c in cell_parts]
-            link_joints = [JointType.FIXED for c in cell_parts]
-            link_collision = [-1 for c in cell_parts]
-            link_joint_axis = [[1, 0, 0] for c in cell_parts]
-
             offset = Transform([-self.height / 2 * self.resolution, -self.width / 2 * self.resolution, 0.05],
                                [0, 0, 0, 1])
             origin = Transform(self.origin.position_as_list(), self.origin.orientation_as_list())
             new_transform = origin * offset
             new_pose = new_transform.to_pose().to_list()
 
-            multi_body = MultiBody(base_visual_shape_index=-1, base_position=new_pose[0], base_orientation=new_pose[1],
-                                   link_visual_shape_indices=cell_parts, link_positions=link_poses,
-                                   link_orientations=link_orientations, link_masses=link_masses,
-                                   link_inertial_frame_positions=link_poses,
-                                   link_inertial_frame_orientations=link_orientations,
-                                   link_parent_indices=link_parent, link_joint_types=link_joints,
-                                   link_joint_axis=link_joint_axis,
-                                   link_collision_shape_indices=link_collision)
-
-            map_obj = self.world.create_multi_body(multi_body)
+            map_obj = self.world.create_multi_body_from_visual_shapes(cell_parts, Pose(*new_pose))
             self.vis_ids.append(map_obj)
 
     def _chunks(self, lst: List, n: int) -> List:
@@ -130,7 +112,7 @@ class Costmap:
         Removes the visualization from the World.
         """
         for v_id in self.vis_ids:
-            self.world.remove_object(v_id)
+            self.world.remove_object(self.world.get_object_by_id(v_id))
         self.vis_ids = []
 
     def _find_consectuive_line(self, start: Tuple[int, int], map: np.ndarray) -> int:
@@ -266,7 +248,7 @@ class OccupancyCostmap(Costmap):
             self.origin = Pose() if not origin else origin
             self.resolution = resolution
             self.distance_obstacle = max(int(distance_to_obstacle / self.resolution), 1)
-            self.map = self._create_from_bullet(size, resolution)
+            self.map = self._create_from_world(size, resolution)
             Costmap.__init__(self, resolution, size, size, self.origin, self.map)
 
     def _calculate_diff_origin(self, height: int, width: int) -> Pose:
@@ -361,7 +343,7 @@ class OccupancyCostmap(Costmap):
         sub_map = np.rot90(np.flip(self._convert_map(sub_map), 0))
         return Costmap(self.resolution, size, size, Pose(list(sub_origin * -1)), sub_map)
 
-    def _create_from_bullet(self, size: int, resolution: float) -> np.ndarray:
+    def _create_from_world(self, size: int, resolution: float) -> np.ndarray:
         """
         Creates an Occupancy Costmap for the specified World.
         This map marks every position as valid that has no object above it. After
@@ -382,7 +364,7 @@ class OccupancyCostmap(Costmap):
         rays = np.dstack(np.dstack((indices_0, indices_10))).T
 
         res = np.zeros(len(rays))
-        # Using the PyBullet rayTest to check if there is an object above the position
+        # Using the World rayTest to check if there is an object above the position
         # if there is no object the position is marked as valid
         # 16383 is the maximal number of rays that can be processed in a batch
         i = 0
@@ -520,7 +502,7 @@ class VisibilityCostmap(Costmap):
 
     def _depth_buffer_to_meter(self, buffer: np.ndarray) -> np.ndarray:
         """
-        Converts the depth images generated by PyBullet to represent
+        Converts the depth images generated by the World to represent
         each position in metre.
 
         :return: The depth image in metre

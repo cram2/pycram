@@ -1,5 +1,5 @@
 import itertools
-from typing import List, Tuple, Optional, Union, Dict
+from typing_extensions import List, Tuple, Optional, Union, Dict
 
 import numpy as np
 
@@ -23,7 +23,7 @@ class CollisionError(Exception):
 def stable(obj: Object) -> bool:
     """
     Checks if an object is stable in the world. Stable meaning that it's position will not change after simulating
-    physics in the BulletWorld. This will be done by simulating the world for 10 seconds and compare
+    physics in the World. This will be done by simulating the world for 10 seconds and compare
     the previous coordinates with the coordinates after the simulation.
 
     :param obj: The object which should be checked
@@ -78,6 +78,13 @@ def contact(
 def get_visible_objects(
         camera_pose: Pose,
         front_facing_axis: Optional[List[float]] = None) -> Tuple[np.ndarray, Pose]:
+    """
+    Returns a segmentation mask of the objects that are visible from the given camera pose and the front facing axis.
+    :param camera_pose: The pose of the camera in world coordinate frame.
+    :param front_facing_axis: The axis, of the camera frame, which faces to the front of the robot. Given as list of xyz
+    :return: A segmentation mask of the objects that are visible and the pose of the point at exactly 2 meters in front
+    of the camera in the direction of the front facing axis with respect to the world coordinate frame.
+    """
     front_facing_axis = robot_description.front_facing_axis if not front_facing_axis else front_facing_axis
 
     world_to_cam = camera_pose.to_transform("camera")

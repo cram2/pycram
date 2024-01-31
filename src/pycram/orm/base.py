@@ -1,8 +1,7 @@
 """Implementation of base classes for orm modelling."""
 import datetime
 import getpass
-import os
-from typing import Optional
+from typing_extensions import Optional
 
 import git
 import rospkg

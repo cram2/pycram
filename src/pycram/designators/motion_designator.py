@@ -2,20 +2,19 @@ import dataclasses
 
 from sqlalchemy.orm import Session
 from .object_designator import ObjectDesignatorDescription, ObjectPart, RealObject
-from ..world import Object
-from pycram.bullet_world import BulletWorld
+from ..world import Object, World
 from ..designator import DesignatorError
 from ..plan_failures import PerceptionObjectNotFound
 from ..process_module import ProcessModuleManager
 from ..robot_descriptions import robot_description
 from ..designator import MotionDesignatorDescription
-from ..orm.motion_designator import (MoveMotion as ORMMoveMotion, AccessingMotion as ORMAccessingMotion,
+from ..orm.motion_designator import (MoveMotion as ORMMoveMotion,
                                      MoveTCPMotion as ORMMoveTCPMotion, LookingMotion as ORMLookingMotion,
                                      MoveGripperMotion as ORMMoveGripperMotion, DetectingMotion as ORMDetectingMotion,
-                                     WorldStateDetectingMotion as ORMWorldStateDetectingMotion,
                                      OpeningMotion as ORMOpeningMotion, ClosingMotion as ORMClosingMotion)
+from ..enums import ObjectType
 
-from typing import List, Dict, Callable, Optional
+from typing_extensions import List, Dict, Callable, Optional
 from ..pose import Pose
 from ..task import with_tree
 
@@ -231,7 +230,8 @@ class MoveTCPMotion(MotionDesignatorDescription):
         :param target: Target pose for the TCP
         :param arm: Arm that should be moved
         :param resolver: Alternative resolver which returns a resolved motion designator
-        :param allow_gripper_collision: If the gripper should be allowed to collide with something, only used on the real robot
+        :param allow_gripper_collision: If the gripper should be allowed to collide with something,
+         only used on the real robot
         """
         super().__init__(resolver)
         self.cmd: str = 'move-tcp'
@@ -278,25 +278,25 @@ class LookingMotion(MotionDesignatorDescription):
 
             return motion
 
-    def __init__(self, target: Optional[Pose] = None, object: Optional[ObjectDesignatorDescription.Object] = None,
+    def __init__(self, target: Optional[Pose] = None, obj: Optional[ObjectDesignatorDescription.Object] = None,
                  resolver: Optional[Callable] = None):
         """
         Moves the head of the robot such that the camera points towards the given location. If ``target`` and ``object``
         are given ``target`` will be preferred.
 
         :param target: Position and orientation of the target
-        :param object: An Object in the BulletWorld
+        :param obj: An Object in the World
         :param resolver: Alternative resolver that returns a resolved motion designator for parameter
         """
         super().__init__(resolver)
         self.cmd: str = 'looking'
         self.target: Optional[Pose] = target
-        self.object: Object = object.world_object if object else object
+        self.object: Object = obj.world_object if obj else obj
 
     def ground(self) -> Motion:
         """
-        Default resolver for looking, chooses which pose to take if ``target`` and ``object`` are given. If both are given
-        ``target`` will be preferred.
+        Default resolver for looking, chooses which pose to take if ``target`` and ``object`` are given.
+         If both are given ``target`` will be preferred.
 
         :return: A resolved motion designator
         """
@@ -373,7 +373,7 @@ class DetectingMotion(MotionDesignatorDescription):
     @dataclasses.dataclass
     class Motion(MotionDesignatorDescription.Motion):
         # cmd: str
-        object_type: str
+        object_type: ObjectType
         """
         Type of the object that should be detected
         """
@@ -381,16 +381,16 @@ class DetectingMotion(MotionDesignatorDescription):
         @with_tree
         def perform(self):
             pm_manager = ProcessModuleManager.get_manager()
-            bullet_world_object = pm_manager.detecting().execute(self)
-            if not bullet_world_object:
+            world_object = pm_manager.detecting().execute(self)
+            if not world_object:
                 raise PerceptionObjectNotFound(
                     f"Could not find an object with the type {self.object_type} in the FOV of the robot")
             if ProcessModuleManager.execution_type == "real":
-                return RealObject.Object(bullet_world_object.name, bullet_world_object.obj_type,
-                                         bullet_world_object, bullet_world_object.get_pose())
+                return RealObject.Object(world_object.name, world_object.obj_type,
+                                         world_object, world_object.get_pose())
 
-            return ObjectDesignatorDescription.Object(bullet_world_object.name, bullet_world_object.obj_type,
-                                                      bullet_world_object)
+            return ObjectDesignatorDescription.Object(world_object.name, world_object.obj_type,
+                                                      world_object)
 
         def to_sql(self) -> ORMDetectingMotion:
             return ORMDetectingMotion(self.object_type)
@@ -401,7 +401,7 @@ class DetectingMotion(MotionDesignatorDescription):
             session.commit()
             return motion
 
-    def __init__(self, object_type: str, resolver: Optional[Callable] = None):
+    def __init__(self, object_type: ObjectType, resolver: Optional[Callable] = None):
         """
         Checks for every object in the FOV of the robot if it fits the given object type. If the types match an object
         designator describing the object will be returned.
@@ -411,7 +411,7 @@ class DetectingMotion(MotionDesignatorDescription):
         """
         super().__init__(resolver)
         self.cmd: str = 'detecting'
-        self.object_type: str = object_type
+        self.object_type: ObjectType = object_type
 
     def ground(self) -> Motion:
         """
@@ -504,7 +504,7 @@ class WorldStateDetectingMotion(MotionDesignatorDescription):
 
     def __init__(self, object_type: str, resolver: Optional[Callable] = None):
         """
-        Tries to find an object using the belief state (BulletWorld), if there is an object in the belief state matching
+        Tries to find an object using the belief state (World), if there is an object in the belief state matching
         the given object type an object designator will be returned.
 
         :param object_type: The object type which should be detected
@@ -568,10 +568,11 @@ class MoveJointsMotion(MotionDesignatorDescription):
         if len(self.names) != len(self.positions):
             raise DesignatorError("[Motion Designator][Move Joints] The length of names and positions does not match")
         for i in range(len(self.names)):
-            lower, upper = BulletWorld.robot.get_joint_limits(self.names[i])
+            lower, upper = World.robot.get_joint_limits(self.names[i])
             if self.positions[i] < lower or self.positions[i] > upper:
                 raise DesignatorError(
-                    f"[Motion Designator][Move Joints] The given configuration for the Joint {self.names[i]} violates its limits")
+                    f"[Motion Designator][Move Joints] The given configuration for the Joint {self.names[i]}"
+                    f" violates its limits")
         return self.Motion(self.cmd, self.names, self.positions)
 
 
@@ -672,7 +673,8 @@ class ClosingMotion(MotionDesignatorDescription):
 
     def __init__(self, object_part: ObjectPart.Object, arm: str, resolver: Optional[Callable] = None):
         """
-        Lets the robot close a container specified by the given parameter. This assumes that the handle is already grasped
+        Lets the robot close a container specified by the given parameter. This assumes that the handle is already
+         grasped.
 
         :param object_part: Object designator describing the handle of the drawer
         :param arm: Arm that should be used

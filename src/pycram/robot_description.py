@@ -3,7 +3,7 @@ import rospy
 import rospkg
 from copy import deepcopy
 from numbers import Number
-from typing import List, Optional, Dict, Union, Type
+from typing_extensions import List, Optional, Dict, Union, Type
 from urdf_parser_py.urdf import URDF
 from . import utils
 

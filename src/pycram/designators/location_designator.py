@@ -1,5 +1,5 @@
 import dataclasses
-from typing import List, Union, Iterable, Optional, Callable
+from typing_extensions import List, Union, Iterable, Optional, Callable
 
 from .object_designator import ObjectDesignatorDescription, ObjectPart
 from ..world import World, UseProspectionWorld

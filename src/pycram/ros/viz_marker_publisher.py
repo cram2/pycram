@@ -5,22 +5,21 @@ import time
 from geometry_msgs.msg import Vector3
 from std_msgs.msg import ColorRGBA
 
-from pycram.bullet_world import BulletWorld
+from ..world import World
 from visualization_msgs.msg import MarkerArray, Marker
 import rospy
 import urdf_parser_py
-from tf.transformations import quaternion_from_euler
 
 from pycram.pose import Transform
 
 
 class VizMarkerPublisher:
     """
-    Publishes an Array of visualization marker which represent the situation in the Bullet World
+    Publishes an Array of visualization marker which represent the situation in the World
     """
     def __init__(self, topic_name="/pycram/viz_marker", interval=0.1):
         """
-        The Publisher creates an Array of Visualization marker with a Marker for each link of each Object in the Bullet
+        The Publisher creates an Array of Visualization marker with a Marker for each link of each Object in the
         World. This Array is published with a rate of interval.
 
         :param topic_name: The name of the topic to which the Visualization Marker should be published.
@@ -56,7 +55,7 @@ class VizMarkerPublisher:
         :return: An Array of Visualization Marker
         """
         marker_array = MarkerArray()
-        for obj in BulletWorld.current_world.objects:
+        for obj in World.current_world.objects:
             if obj.name == "floor":
                 continue
             for link in obj.link_name_to_id.keys():
