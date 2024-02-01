@@ -2,6 +2,7 @@
 import datetime
 import getpass
 import os
+from dataclasses import field
 from typing import Optional
 
 import git
@@ -27,7 +28,7 @@ def get_pycram_version_from_git() -> Optional[str]:
     return repo.head.object.hexsha
 
 
-class _Base(DeclarativeBase):
+class _Base(DeclarativeBase, MappedAsDataclass):
     """Dummy class"""
     type_annotation_map = {
         str: String(255)
@@ -41,7 +42,7 @@ class _Base(DeclarativeBase):
         return self.__name__
 
 
-class Base(_Base, MappedAsDataclass):
+class Base(_Base):
     """
     Base class to add orm functionality to all pycram mappings
     """
@@ -59,7 +60,7 @@ class Base(_Base, MappedAsDataclass):
     tables"""
 
 
-class MapperArgsMixin:
+class MapperArgsMixin(MappedAsDataclass):
     """
     MapperArgsMixin stores __mapper_args__ information for certain subclass-tables.
     For information about Mixins, see https://docs.sqlalchemy.org/en/20/orm/declarative_mixins.html
@@ -72,14 +73,14 @@ class MapperArgsMixin:
         return {"polymorphic_identity": self.__tablename__}
 
 
-class PositionMixin:
+class PositionMixin(MappedAsDataclass):
     """
     PositionMixin holds a foreign key column and its relationship to the referenced table.
     For information about Mixins, see https://docs.sqlalchemy.org/en/20/orm/declarative_mixins.html
     """
 
     __abstract__ = True
-    position_to_init: bool = False
+    position_to_init: bool = field(default=False, init=False)
 
     @declared_attr
     def position_id(self) -> Mapped[int]:
@@ -90,14 +91,14 @@ class PositionMixin:
         return relationship(Position.__tablename__, init=False)
 
 
-class QuaternionMixin:
+class QuaternionMixin(MappedAsDataclass):
     """
     QuaternionMixin holds a foreign key column and its relationship to the referenced table.
     For information about Mixins, see https://docs.sqlalchemy.org/en/20/orm/declarative_mixins.html
     """
 
     __abstract__ = True
-    orientation_to_init: bool = False
+    orientation_to_init: bool = field(default=False, init=False)
 
     @declared_attr
     def orientation_id(self) -> Mapped[int]:
@@ -108,14 +109,14 @@ class QuaternionMixin:
         return relationship(Quaternion.__tablename__, init=False)
 
 
-class PoseMixin:
+class PoseMixin(MappedAsDataclass):
     """
     PoseMixin holds a foreign key column and its relationship to the referenced table.
     For information about Mixins, see https://docs.sqlalchemy.org/en/20/orm/declarative_mixins.html
     """
 
     __abstract__ = True
-    pose_to_init: bool = False
+    pose_to_init: bool = field(default=False, init=False)
 
     @declared_attr
     def pose_id(self) -> Mapped[int]:
@@ -126,7 +127,7 @@ class PoseMixin:
         return relationship(Pose.__tablename__, init=False)
 
 
-class ProcessMetaData(MappedAsDataclass, _Base):
+class ProcessMetaData(_Base):
     """
     ProcessMetaData stores information about the context of this experiment.
 
