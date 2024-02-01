@@ -13,7 +13,7 @@ import rospy
 from .enums import JointType, ObjectType, WorldMode
 from .pose import Pose
 from .world import World, Object, Link
-from .world_dataclasses import Color, Constraint, AxisAlignedBoundingBox, MultiBody, VisualShape
+from .world_dataclasses import Color, Constraint, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape
 from dataclasses import asdict
 
 
@@ -65,212 +65,100 @@ class BulletWorld(World):
         p.removeBody(obj.id, self.client_id)
 
     def add_constraint(self, constraint: Constraint) -> int:
-        """
-        Add a constraint between two objects so that attachment they become attached
-        """
+        joint_axis_in_child_link_frame = [constraint.joint_axis_in_child_link_frame.x,
+                                          constraint.joint_axis_in_child_link_frame.y,
+                                          constraint.joint_axis_in_child_link_frame.z]
 
-        parent_obj = self.get_object_by_id(constraint.parent_obj_id)
-        parent_link_id = parent_obj.link_name_to_id[constraint.parent_link_name]
-        child_obj = self.get_object_by_id(constraint.child_obj_id)
-        child_link_id = child_obj.link_name_to_id[constraint.child_link_name]
-
-        constraint_id = p.createConstraint(constraint.parent_obj_id,
-                                           parent_link_id,
-                                           constraint.child_obj_id,
-                                           child_link_id,
+        constraint_id = p.createConstraint(constraint.parent_link.get_object_id(),
+                                           constraint.parent_link.id,
+                                           constraint.child_link.get_object_id(),
+                                           constraint.child_link.id,
                                            constraint.joint_type.value,
-                                           constraint.joint_axis_in_child_link_frame,
-                                           constraint.joint_frame_position_wrt_parent_origin,
-                                           constraint.joint_frame_position_wrt_child_origin,
-                                           constraint.joint_frame_orientation_wrt_parent_origin,
-                                           constraint.joint_frame_orientation_wrt_child_origin,
+                                           joint_axis_in_child_link_frame,
+                                           constraint.joint_frame_pose_wrt_parent_origin.position_as_list(),
+                                           constraint.joint_frame_pose_wrt_child_origin.position_as_list(),
+                                           constraint.joint_frame_pose_wrt_parent_origin.orientation_as_list(),
+                                           constraint.joint_frame_pose_wrt_child_origin.orientation_as_list(),
                                            physicsClientId=self.client_id)
         return constraint_id
 
     def remove_constraint(self, constraint_id):
-        print("Removing constraint with id: ", constraint_id)
         p.removeConstraint(constraint_id, physicsClientId=self.client_id)
 
-    def get_joint_rest_pose(self, obj: Object, joint_name: str) -> float:
-        """
-        Get the joint rest pose of an articulated object
-
-        :param obj: The object
-        :param joint_name: The name of the joint
-        """
+    def get_joint_rest_position(self, obj: Object, joint_name: str) -> float:
         return p.getJointState(obj.id, obj.joint_name_to_id[joint_name], physicsClientId=self.client_id)[0]
 
     def get_joint_damping(self, obj: Object, joint_name: str) -> float:
-        """
-        Get the joint damping of an articulated object
-
-        :param obj: The object
-        :param joint_name: The name of the joint
-        """
         return p.getJointInfo(obj.id, obj.joint_name_to_id[joint_name], physicsClientId=self.client_id)[6]
 
-    def get_object_joint_upper_limit(self, obj: Object, joint_name: str) -> float:
-        """
-        Get the joint upper limit of an articulated object
-
-        :param obj: The object.
-        :param joint_name: The name of the joint.
-        :return: The joint upper limit as a float.
-        """
+    def get_joint_upper_limit(self, obj: Object, joint_name: str) -> float:
         return p.getJointInfo(obj.id, obj.joint_name_to_id[joint_name], physicsClientId=self.client_id)[8]
 
-    def get_object_joint_lower_limit(self, obj: Object, joint_name: str) -> float:
-        """
-        Get the joint lower limit of an articulated object
-
-        :param obj: The object.
-        :param joint_name: The name of the joint.
-        :return: The joint lower limit as a float.
-        """
+    def get_joint_lower_limit(self, obj: Object, joint_name: str) -> float:
         return p.getJointInfo(obj.id, obj.joint_name_to_id[joint_name], physicsClientId=self.client_id)[9]
 
-    def get_object_joint_axis(self, obj: Object, joint_name: str) -> Tuple[float]:
-        """
-        Returns the axis along which a joint is moving. The given joint_name has to be part of this object.
-
-        :param obj: The object
-        :param joint_name: Name of the joint for which the axis should be returned.
-        :return: The axis a vector of xyz
-        """
+    def get_joint_axis(self, obj: Object, joint_name: str) -> Tuple[float]:
         return p.getJointInfo(obj.id, obj.joint_name_to_id[joint_name], physicsClientId=self.client_id)[13]
 
-    def get_object_joint_type(self, obj: Object, joint_name: str) -> JointType:
-        """
-        Returns the type of the joint as element of the Enum :mod:`~pycram.enums.JointType`.
-
-        :param obj: The object
-        :param joint_name: Joint name for which the type should be returned
-        :return: The type of  the joint
-        """
+    def get_joint_type(self, obj: Object, joint_name: str) -> JointType:
         joint_type = p.getJointInfo(obj.id, obj.joint_name_to_id[joint_name], physicsClientId=self.client_id)[2]
         return JointType(joint_type)
 
-    def get_object_joint_position(self, obj: Object, joint_name: str) -> float:
-        """
-        Get the state of a joint of an articulated object
-
-        :param obj: The object
-        :param joint_name: The name of the joint
-        """
+    def get_joint_position(self, obj: Object, joint_name: str) -> float:
         return p.getJointState(obj.id, obj.joint_name_to_id[joint_name], physicsClientId=self.client_id)[0]
 
     def get_link_pose(self, link: Link) -> Pose:
-        """
-        Get the pose of a link of an articulated object with respect to the world frame.
-        """
         return Pose(*p.getLinkState(link.get_object_id(), link.id, physicsClientId=self.client_id)[4:6])
 
     def perform_collision_detection(self) -> None:
-        """
-        Performs collision detection and updates the contact points.
-        """
         p.performCollisionDetection(physicsClientId=self.client_id)
 
     def get_object_contact_points(self, obj: Object) -> List:
         """
-        Returns a list of contact points of this Object with other Objects. For a more detailed explanation of the
+        For a more detailed explanation of the
          returned list please look at:
          `PyBullet Doc <https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#>`_
-
-        :param obj: The object.
-        :return: A list of all contact points with other objects
         """
         self.perform_collision_detection()
         return p.getContactPoints(obj.id, physicsClientId=self.client_id)
 
     def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> List:
-        """
-        Returns a list of contact points between obj1 and obj2.
-
-        :param obj1: The first object.
-        :param obj2: The second object.
-        :return: A list of all contact points between the two objects.
-        """
         self.perform_collision_detection()
         return p.getContactPoints(obj1.id, obj2.id, physicsClientId=self.client_id)
 
     def get_joint_names(self, obj: Object) -> List[str]:
-        """
-        Get the names of all joints of an articulated object.
-        """
         num_joints = self.get_number_of_joints(obj)
         return [p.getJointInfo(obj.id, i, physicsClientId=self.client_id)[1].decode('utf-8') for i in range(num_joints)]
 
     def get_link_names(self, obj: Object) -> List[str]:
-        """
-        Get the names of all joints of an articulated object.
-        """
         num_links = self.get_number_of_links(obj)
         return [p.getJointInfo(obj.id, i, physicsClientId=self.client_id)[12].decode('utf-8') for i in range(num_links)]
 
     def get_number_of_links(self, obj: Object) -> int:
-        """
-        Get the number of links of an articulated object
-
-        :param obj: The object
-        """
         return self.get_number_of_joints(obj)
 
     def get_number_of_joints(self, obj: Object) -> int:
-        """
-        Get the number of joints of an articulated object
-
-        :param obj: The object
-        """
         return p.getNumJoints(obj.id, physicsClientId=self.client_id)
 
     def reset_joint_position(self, obj: Object, joint_name: str, joint_pose: float) -> None:
-        """
-        Reset the joint position instantly without physics simulation
-
-        :param obj: The object
-        :param joint_name: The name of the joint
-        :param joint_pose: The new joint pose
-        """
         p.resetJointState(obj.id, obj.joint_name_to_id[joint_name], joint_pose, physicsClientId=self.client_id)
 
     def reset_object_base_pose(self, obj: Object, position: List[float], orientation: List[float]):
-        """
-        Reset the world position and orientation of the base of the object instantaneously,
-        not through physics simulation. (x,y,z) position vector and (x,y,z,w) quaternion orientation.
-
-        :param obj: The object
-        :param position: The new position of the object as a vector of x,y,z
-        :param orientation: The new orientation of the object as a quaternion of x,y,z,w
-        """
         p.resetBasePositionAndOrientation(obj.id, position, orientation, physicsClientId=self.client_id)
 
     def step(self):
-        """
-        Step the world simulation using forward dynamics
-        """
         p.stepSimulation(physicsClientId=self.client_id)
 
-    def set_link_color(self, link: Link, rgba_color: Color):
-        """
-        Changes the rgba_color of a link of this object, the rgba_color has to be given as a 4 element list
-        of RGBA values.
+    def update_obj_pose(self, obj: Object) -> None:
+        obj.set_pose(Pose(*p.getBasePositionAndOrientation(obj.id, physicsClientId=self.client_id)))
 
-        :param link: The link which should be colored.
-        :param rgba_color: The rgba_color as RGBA values between 0 and 1
-        """
+    def set_link_color(self, link: Link, rgba_color: Color):
         p.changeVisualShape(link.get_object_id(), link.id, rgbaColor=rgba_color, physicsClientId=self.client_id)
 
     def get_link_color(self, link: Link) -> Color:
         return self.get_colors_of_object_links(link.object)[link.name]
 
     def get_colors_of_object_links(self, obj: Object) -> Dict[str, Color]:
-        """
-        Get the RGBA colors of each link in the object as a dictionary from link name to rgba_color.
-
-        :param obj: The object
-        :return: A dictionary with link names as keys and 4 element list with the RGBA values for each link as value.
-        """
         visual_data = p.getVisualShapeData(obj.id, physicsClientId=self.client_id)
         link_id_to_name = {v: k for k, v in obj.link_name_to_id.items()}
         links = list(map(lambda x: link_id_to_name[x[1]] if x[1] != -1 else "base", visual_data))
@@ -279,56 +167,23 @@ class BulletWorld(World):
         return link_to_color
 
     def get_object_axis_aligned_bounding_box(self, obj: Object) -> AxisAlignedBoundingBox:
-        """
-        Returns the axis aligned bounding box of this object. The return of this method are two points in
-        world coordinate frame which define a bounding box.
-
-        :param obj: The object for which the bounding box should be returned.
-        :return: AxisAlignedBoundingBox object with min and max box points.
-        """
         return AxisAlignedBoundingBox.from_min_max(*p.getAABB(obj.id, physicsClientId=self.client_id))
 
     def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
-        """
-        Returns the axis aligned bounding box of the link. The return of this method are two points in
-        world coordinate frame which define a bounding box.
-        """
         return AxisAlignedBoundingBox.from_min_max(*p.getAABB(link.get_object_id(), link.id, physicsClientId=self.client_id))
 
     def set_realtime(self, real_time: bool) -> None:
-        """
-        Enables the real time simulation of Physic in the BulletWorld. By default, this is disabled and Physics is only
-        simulated to reason about it.
-
-        :param real_time: Whether the World should simulate Physics in real time.
-        """
         p.setRealTimeSimulation(1 if real_time else 0, physicsClientId=self.client_id)
 
     def set_gravity(self, gravity_vector: List[float]) -> None:
-        """
-        Sets the gravity that is used in the World. By default, it is set to the gravity on earth ([0, 0, -9.8]).
-         Gravity is given as a vector in x,y,z. Gravity is only applied while simulating Physic.
-
-        :param gravity_vector: The gravity vector that should be used in the World.
-        """
         p.setGravity(gravity_vector[0], gravity_vector[1], gravity_vector[2], physicsClientId=self.client_id)
 
-    def exit(self, wait_time_before_exit_in_secs: Optional[float] = 0.1) -> None:
-        """
-        Closes the BulletWorld as well as the shadow world, also collects any other thread that is running. This is the
-        preferred method to close the BulletWorld.
-        """
-        super().exit(wait_time_before_exit_in_secs)
-
     def disconnect_from_physics_server(self):
-        """
-        Disconnects the world from the physics server.
-        """
         p.disconnect(physicsClientId=self.client_id)
 
     def join_threads(self):
         """
-        Join any running threads. Useful for example when exiting the world.
+        Joins the GUI thread if it exists.
         """
         self.join_gui_thread_if_exists()
 
@@ -337,22 +192,12 @@ class BulletWorld(World):
             self._gui_thread.join()
 
     def save_physics_simulator_state(self) -> int:
-        """
-        Saves the state of the physics simulator and returns the unique id of the state.
-        """
         return p.saveState(physicsClientId=self.client_id)
 
     def restore_physics_simulator_state(self, state_id):
-        """
-        Restores the objects and environment state in the physics simulator according to
-         the given state using the unique state id.
-        """
         p.restoreState(state_id, physicsClientId=self.client_id)
 
     def remove_physics_simulator_state(self, state_id: int):
-        """
-        Removes the physics simulator state with the given unique state id.
-        """
         p.removeState(state_id, physicsClientId=self.client_id)
 
     def add_vis_axis(self, pose: Pose,
@@ -369,15 +214,14 @@ class BulletWorld(World):
 
         position, orientation = pose_in_map.to_list()
 
-        vis_x = p.createVisualShape(p.GEOM_BOX, halfExtents=[length, 0.01, 0.01],
-                                    rgbaColor=[1, 0, 0, 0.8], visualFramePosition=[length, 0.01, 0.01],
-                                    physicsClientId=self.client_id)
-        vis_y = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.01, length, 0.01],
-                                    rgbaColor=[0, 1, 0, 0.8], visualFramePosition=[0.01, length, 0.01],
-                                    physicsClientId=self.client_id)
-        vis_z = p.createVisualShape(p.GEOM_BOX, halfExtents=[0.01, 0.01, length],
-                                    rgbaColor=[0, 0, 1, 0.8], visualFramePosition=[0.01, 0.01, length],
-                                    physicsClientId=self.client_id)
+        box_vis_shape = BoxVisualShape(Color(1, 0, 0, 0.8), [length, 0.01, 0.01], [length, 0.01, 0.01])
+        vis_x = self.create_visual_shape(box_vis_shape)
+
+        box_vis_shape = BoxVisualShape(Color(0, 1, 0, 0.8), [0.01, length, 0.01], [0.01, length, 0.01])
+        vis_y = self.create_visual_shape(box_vis_shape)
+
+        box_vis_shape = BoxVisualShape(Color(0, 0, 1, 0.8), [0.01, 0.01, length], [0.01, 0.01, length])
+        vis_z = self.create_visual_shape(box_vis_shape)
 
         obj = p.createMultiBody(baseVisualShapeIndex=-1, linkVisualShapeIndices=[vis_x, vis_y, vis_z],
                                 basePosition=position, baseOrientation=orientation,
@@ -411,41 +255,31 @@ class BulletWorld(World):
                               physicsClientId=self.client_id)
 
     def create_visual_shape(self, visual_shape: VisualShape) -> int:
-        return p.createVisualShape(visual_shape.visual_geometry_type, rgbaColor=visual_shape.rgba_color,
+        return p.createVisualShape(visual_shape.visual_geometry_type.value, rgbaColor=visual_shape.rgba_color,
                                    visualFramePosition=visual_shape.visual_frame_position,
-                                   physicsClientId=self.client_id, **asdict(visual_shape.shape_data))
+                                   physicsClientId=self.client_id, **visual_shape.shape_data())
 
     def create_multi_body(self, multi_body: MultiBody) -> int:
         return p.createMultiBody(baseVisualShapeIndex=-MultiBody.base_visual_shape_index,
                                  linkVisualShapeIndices=MultiBody.link_visual_shape_indices,
-                                 basePosition=MultiBody.base_position, baseOrientation=MultiBody.base_orientation,
-                                 linkPositions=MultiBody.link_positions, linkMasses=MultiBody.link_masses,
-                                 linkOrientations=MultiBody.link_orientations,
-                                 linkInertialFramePositions=MultiBody.link_inertial_frame_positions,
-                                 linkInertialFrameOrientations=MultiBody.link_inertial_frame_orientations,
+                                 basePosition=MultiBody.base_pose.position_as_list(),
+                                 baseOrientation=MultiBody.base_pose.orientation_as_list(),
+                                 linkPositions=[pose.position_as_list() for pose in MultiBody.link_poses],
+                                 linkMasses=MultiBody.link_masses,
+                                 linkOrientations=[pose.orientation_as_list() for pose in MultiBody.link_poses],
+                                 linkInertialFramePositions=[pose.position_as_list()
+                                                             for pose in MultiBody.link_inertial_frame_poses],
+                                 linkInertialFrameOrientations=[pose.orientation_as_list()
+                                                                for pose in MultiBody.link_inertial_frame_poses],
                                  linkParentIndices=MultiBody.link_parent_indices,
                                  linkJointTypes=MultiBody.link_joint_types,
-                                 linkJointAxis=MultiBody.link_joint_axis,
+                                 linkJointAxis=[[point.x, point.y, point.z] for point in MultiBody.link_joint_axis],
                                  linkCollisionShapeIndices=MultiBody.link_collision_shape_indices)
 
     def get_images_for_target(self,
                               target_pose: Pose,
                               cam_pose: Pose,
                               size: Optional[int] = 256) -> List[np.ndarray]:
-        """
-        Calculates the view and projection Matrix and returns 3 images:
-
-        1. An RGB image
-        2. A depth image
-        3. A segmentation Mask, the segmentation mask indicates for every pixel the visible Object.
-
-        From the given target_pose and cam_pose only the position is used.
-
-        :param cam_pose: The pose of the camera
-        :param target_pose: The pose to which the camera should point to
-        :param size: The height and width of the images in pixel
-        :return: A list containing an RGB and depth image as well as a segmentation mask, in this order.
-        """
         # TODO: Might depend on robot cameras, if so please add these camera parameters to RobotDescription object
         # TODO: of your robot with a CameraDescription object.
         fov = 90
@@ -458,6 +292,40 @@ class BulletWorld(World):
         projection_matrix = p.computeProjectionMatrixFOV(fov, aspect, near, far, physicsClientId=self.client_id)
         return list(p.getCameraImage(size, size, view_matrix, projection_matrix,
                                      physicsClientId=self.client_id))[2:5]
+
+    def add_text(self, text: str, position: List[float], orientation: Optional[List[float]] = None,
+                 size: Optional[float] = None, color: Optional[Color] = Color(), life_time: Optional[float] = 0,
+                 parent_object_id: Optional[int] = None, parent_link_id: Optional[int] = None) -> int:
+        args = {}
+        if orientation:
+            args["textOrientation"] = orientation
+        if size:
+            args["textSize"] = size
+        if life_time:
+            args["lifeTime"] = life_time
+        if parent_object_id:
+            args["parentObjectUniqueId"] = parent_object_id
+        if parent_link_id:
+            args["parentLinkIndex"] = parent_link_id
+        return p.addUserDebugText(text, position, color.get_rgb(), physicsClientId=self.client_id, **args)
+
+    def remove_text(self, text_id: Optional[int] = None) -> None:
+        if text_id:
+            p.removeUserDebugItem(text_id, physicsClientId=self.client_id)
+        else:
+            p.removeAllUserDebugItems(physicsClientId=self.client_id)
+
+    def enable_joint_force_torque_sensor(self, obj: Object, fts_joint_idx: int) -> None:
+        p.enableJointForceTorqueSensor(obj.id, fts_joint_idx, enableSensor=1, physicsClientId=self.client_id)
+
+    def disable_joint_force_torque_sensor(self, obj: Object, joint_id: int) -> None:
+        p.enableJointForceTorqueSensor(obj.id, joint_id, enableSensor=0, physicsClientId=self.client_id)
+
+    def get_joint_reaction_force_torque(self, obj: Object, joint_id: int) -> List[float]:
+        return p.getJointState(obj.id, joint_id, physicsClientId=self.client_id)[2]
+
+    def get_applied_joint_motor_torque(self, obj: Object, joint_id: int) -> float:
+        return p.getJointState(obj.id, joint_id, physicsClientId=self.client_id)[3]
 
 
 class Gui(threading.Thread):
@@ -519,18 +387,18 @@ class Gui(threading.Thread):
             # Loop to update the camera position based on keyboard events
             while p.isConnected(self.world.client_id):
                 # Monitor user input
-                keys = p.getKeyboardEvents(physicalClientId=self.world.client_id)
-                mouse = p.getMouseEvents(physicalClientId=self.world.client_id)
+                keys = p.getKeyboardEvents()
+                mouse = p.getMouseEvents()
 
                 # Get infos about the camera
-                width, height, dist = (p.getDebugVisualizerCamera(physicalClientId=self.world.client_id)[0],
-                                       p.getDebugVisualizerCamera(physicalClientId=self.world.client_id)[1],
-                                       p.getDebugVisualizerCamera(physicalClientId=self.world.client_id)[10])
-                cameraTargetPosition = p.getDebugVisualizerCamera(physicalClientId=self.world.client_id)[11]
+                width, height, dist = (p.getDebugVisualizerCamera()[0],
+                                       p.getDebugVisualizerCamera()[1],
+                                       p.getDebugVisualizerCamera()[10])
+                cameraTargetPosition = p.getDebugVisualizerCamera()[11]
 
                 # Get vectors used for movement on x,y,z Vector
-                xVec = [p.getDebugVisualizerCamera(physicalClientId=self.world.client_id)[2][i] for i in [0, 4, 8]]
-                yVec = [p.getDebugVisualizerCamera(physicalClientId=self.world.client_id)[2][i] for i in [2, 6, 10]]
+                xVec = [p.getDebugVisualizerCamera()[2][i] for i in [0, 4, 8]]
+                yVec = [p.getDebugVisualizerCamera()[2][i] for i in [2, 6, 10]]
                 zVec = (0, 0, 1)  # [p.getDebugVisualizerCamera()[2][i] for i in [1, 5, 9]]
 
                 # Check the mouse state
@@ -670,10 +538,8 @@ class Gui(threading.Thread):
                             dist += dist * 0.02 * speedMult
 
                 p.resetDebugVisualizerCamera(cameraDistance=dist, cameraYaw=cameraYaw, cameraPitch=cameraPitch,
-                                             cameraTargetPosition=cameraTargetPosition,
-                                             physicsClientId=self.world.client_id)
+                                             cameraTargetPosition=cameraTargetPosition)
                 if visible == 0:
                     cameraTargetPosition = (0.0, -50, 50)
-                p.resetBasePositionAndOrientation(sphereUid, cameraTargetPosition, [0, 0, 0, 1],
-                                                  physicsClientId=self.world.client_id)
+                p.resetBasePositionAndOrientation(sphereUid, cameraTargetPosition, [0, 0, 0, 1])
                 time.sleep(1. / 80.)

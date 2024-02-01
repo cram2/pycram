@@ -1,11 +1,13 @@
+import time
 import unittest
 
 import rospkg
 
 from bullet_world_testcase import BulletWorldTestCase
 from pycram.pose import Pose
-from pycram.world import fix_missing_inertial
+from pycram.world import fix_missing_inertial, Object, ObjectType
 import xml.etree.ElementTree as ET
+from pycram.enums import JointType
 
 
 class BulletWorldTest(BulletWorldTestCase):
@@ -33,6 +35,47 @@ class BulletWorldTest(BulletWorldTestCase):
         self.assertTrue(milk_link in robot_link.constraint_ids)
         self.assertTrue(self.milk in self.robot.attachments)
         self.assertTrue(cid == self.robot.attachments[self.milk].constraint_id)
+
+    def test_remove_object(self):
+        time.sleep(2)
+        milk_id = self.milk.id
+        self.assertTrue(milk_id in [obj.id for obj in self.world.objects])
+        self.world.remove_object(self.milk)
+        self.assertTrue(milk_id not in [obj.id for obj in self.world.objects])
+        BulletWorldTest.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+
+    def test_get_joint_rest_pose(self):
+        self.assertEqual(self.robot.get_joint_rest_position("head_pan_joint"), 0.0)
+
+    def test_get_joint_damping(self):
+        self.assertEqual(self.robot.get_joint_damping("head_pan_joint"), 0.5)
+
+    def test_get_joint_upper_limit(self):
+        self.assertEqual(self.robot.get_joint_upper_limit("head_pan_joint"), -3.007)
+
+    def test_get_joint_lower_limit(self):
+        self.assertEqual(self.robot.get_joint_lower_limit("head_pan_joint"), 3.007)
+
+    def test_get_joint_axis(self):
+        self.assertEqual(self.robot.get_joint_axis("head_pan_joint"), (0.0, 0.0, 1.0))
+
+    def test_get_joint_type(self):
+        self.assertEqual(self.robot.get_joint_type("head_pan_joint"), JointType.REVOLUTE)
+
+    def test_get_joint_position(self):
+        self.assertEqual(self.robot.get_joint_position("head_pan_joint"), 0.0)
+
+    def test_get_object_contact_points(self):
+        self.assertEqual(len(self.robot.contact_points()), 0)
+        self.milk.set_position(self.robot.get_position())
+        self.assertTrue(len(self.robot.contact_points()) > 0)
+
+    def test_step_simulation(self):
+        # TODO: kitchen explodes when stepping simulation, fix this
+        self.world.remove_object(self.kitchen)
+        self.milk.set_position(Pose([0, 0, 2]))
+        self.world.simulate(1)
+        self.assertTrue(self.milk.get_position().z < 2)
 
 
 class XMLTester(unittest.TestCase):

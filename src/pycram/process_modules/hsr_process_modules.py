@@ -7,7 +7,7 @@ from ..world import World
 from ..pose import Pose, Point
 from ..helper import _apply_ik
 from ..external_interfaces.ik import request_ik
-import pycram.world_reasoning as btr
+from .. import world_reasoning as btr
 import logging
 import time
 

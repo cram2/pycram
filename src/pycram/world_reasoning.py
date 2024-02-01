@@ -10,16 +10,6 @@ from .world import Object, UseProspectionWorld
 from .world import World
 
 
-class ReasoningError(Exception):
-    def __init__(*args, **kwargs):
-        Exception.__init__(*args, **kwargs)
-
-
-class CollisionError(Exception):
-    def __init__(*args, **kwargs):
-        Exception.__init__(*args, **kwargs)
-
-
 def stable(obj: Object) -> bool:
     """
     Checks if an object is stable in the world. Stable meaning that it's position will not change after simulating

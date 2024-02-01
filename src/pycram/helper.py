@@ -49,7 +49,7 @@ def _apply_ik(robot: WorldObject, joint_poses: List[float], joints: List[str]) -
     # arm ="left" if gripper == robot_description.get_tool_frame("left") else "right"
     # ik_joints = [robot_description.torso_joint] + robot_description._safely_access_chains(arm).joints
     # ik_joints = robot_description._safely_access_chains(arm).joints
-    robot.set_positions_of_all_joints(dict(zip(joints, joint_poses)))
+    robot.set_joint_positions(dict(zip(joints, joint_poses)))
     # for i in range(0, len(joints)):
     #     robot.set_joint_state(joints[i], joint_poses[i])
 
