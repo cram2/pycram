@@ -1,19 +1,20 @@
+from dataclasses import field
 from typing import Optional
 
 from pycram.orm.base import Base, MapperArgsMixin, PoseMixin, Pose
-from sqlalchemy.orm import Mapped, mapped_column, declared_attr, relationship
+from sqlalchemy.orm import Mapped, mapped_column, declared_attr, relationship, MappedAsDataclass
 from sqlalchemy import ForeignKey
 from ..enums import ObjectType
 
 
-class ObjectMixin:
+class ObjectMixin(MappedAsDataclass):
     """
     ObjectMixin holds a foreign key column and its relationship to the referenced table.
     For information about Mixins, see https://docs.sqlalchemy.org/en/13/orm/extensions/declarative/mixins.html
     """
 
     __abstract__ = True
-    object_to_init: bool = False
+    object_to_init: bool = field(default=False, init=False)
 
     @declared_attr
     def object_id(self) -> Mapped[int]:
