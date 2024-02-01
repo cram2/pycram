@@ -67,13 +67,13 @@ class BoxyMoveHead(ProcessModule):
         pose_in_shoulder = local_transformer.transform_pose(target, robot.links["neck_shoulder_link"].tf_frame)
 
         if pose_in_shoulder.position.x >= 0 and pose_in_shoulder.position.x >= abs(pose_in_shoulder.position.y):
-            robot.set_positions_of_all_joints(robot_description.get_static_joint_chain("neck", "front"))
+            robot.set_joint_positions(robot_description.get_static_joint_chain("neck", "front"))
         if pose_in_shoulder.position.y >= 0 and pose_in_shoulder.position.y >= abs(pose_in_shoulder.position.x):
-            robot.set_positions_of_all_joints(robot_description.get_static_joint_chain("neck", "neck_right"))
+            robot.set_joint_positions(robot_description.get_static_joint_chain("neck", "neck_right"))
         if pose_in_shoulder.position.x <= 0 and abs(pose_in_shoulder.position.x) > abs(pose_in_shoulder.position.y):
-            robot.set_positions_of_all_joints(robot_description.get_static_joint_chain("neck", "back"))
+            robot.set_joint_positions(robot_description.get_static_joint_chain("neck", "back"))
         if pose_in_shoulder.position.y <= 0 and abs(pose_in_shoulder.position.y) > abs(pose_in_shoulder.position.x):
-            robot.set_positions_of_all_joints(robot_description.get_static_joint_chain("neck", "neck_left"))
+            robot.set_joint_positions(robot_description.get_static_joint_chain("neck", "neck_left"))
 
         pose_in_shoulder = local_transformer.transform_pose(target, robot.links["neck_shoulder_link"].tf_frame)
 
@@ -93,7 +93,7 @@ class BoxyMoveGripper(ProcessModule):
         robot = World.robot
         gripper = desig.gripper
         motion = desig.motion
-        robot.set_positions_of_all_joints(robot_description.get_static_gripper_chain(gripper, motion))
+        robot.set_joint_positions(robot_description.get_static_gripper_chain(gripper, motion))
 
 
 class BoxyManager(ProcessModuleManager):

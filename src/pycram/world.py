@@ -26,7 +26,6 @@ from .event import Event
 from .robot_descriptions import robot_description
 from .enums import JointType, ObjectType, WorldMode
 from .local_transformer import LocalTransformer
-from sensor_msgs.msg import JointState
 
 from .pose import Pose, Transform
 
@@ -222,7 +221,7 @@ class World(ABC):
         # This means the current world of the object is not the prospection world, since it
         # has a reference to the prospection world
         if self.prospection_world is not None:
-            self.world_sync.remove_obj_queue.put(self)
+            self.world_sync.remove_obj_queue.put(obj)
             self.world_sync.remove_obj_queue.join()
 
         self.remove_object_from_simulator(obj)
@@ -242,15 +241,12 @@ class World(ABC):
         :return: The unique id of the created constraint.
         """
 
-        constraint = Constraint(parent_obj_id=parent_link.get_object_id(),
-                                parent_link_name=parent_link.name,
-                                child_obj_id=child_link.get_object_id(),
-                                child_link_name=child_link.name,
+        constraint = Constraint(parent_link=parent_link,
+                                child_link=child_link,
                                 joint_type=JointType.FIXED,
-                                joint_axis_in_child_link_frame=[0, 0, 0],
-                                joint_frame_position_wrt_parent_origin=child_to_parent_transform.translation_as_list(),
-                                joint_frame_position_wrt_child_origin=[0, 0, 0],
-                                joint_frame_orientation_wrt_parent_origin=child_to_parent_transform.rotation_as_list(),
+                                joint_axis_in_child_link_frame=Point(0, 0, 0),
+                                joint_frame_pose_wrt_parent_origin=child_to_parent_transform.to_pose(),
+                                joint_frame_pose_wrt_child_origin=Pose()
                                 )
         constraint_id = self.add_constraint(constraint)
         return constraint_id
@@ -273,7 +269,7 @@ class World(ABC):
         """
         pass
 
-    def get_object_joint_limits(self, obj: Object, joint_name: str) -> Tuple[float, float]:
+    def get_joint_limits(self, obj: Object, joint_name: str) -> Tuple[float, float]:
         """
         Get the joint limits of an articulated object
 
@@ -281,10 +277,10 @@ class World(ABC):
         :param joint_name: The name of the joint.
         :return: A tuple containing the upper and the lower limits of the joint respectively.
         """
-        return self.get_object_joint_upper_limit(obj, joint_name), self.get_object_joint_lower_limit(obj, joint_name)
+        return self.get_joint_upper_limit(obj, joint_name), self.get_joint_lower_limit(obj, joint_name)
 
     @abstractmethod
-    def get_object_joint_upper_limit(self, obj: Object, joint_name: str) -> float:
+    def get_joint_upper_limit(self, obj: Object, joint_name: str) -> float:
         """
         Get the joint upper limit of an articulated object
 
@@ -295,7 +291,7 @@ class World(ABC):
         pass
 
     @abstractmethod
-    def get_object_joint_lower_limit(self, obj: Object, joint_name: str) -> float:
+    def get_joint_lower_limit(self, obj: Object, joint_name: str) -> float:
         """
         Get the joint lower limit of an articulated object
 
@@ -306,7 +302,7 @@ class World(ABC):
         pass
 
     @abstractmethod
-    def get_object_joint_axis(self, obj: Object, joint_name: str) -> Tuple[float]:
+    def get_joint_axis(self, obj: Object, joint_name: str) -> Tuple[float]:
         """
         Returns the axis along/around which a joint is moving. The given joint_name has to be part of this object.
 
@@ -317,7 +313,7 @@ class World(ABC):
         pass
 
     @abstractmethod
-    def get_object_joint_type(self, obj: Object, joint_name: str) -> JointType:
+    def get_joint_type(self, obj: Object, joint_name: str) -> JointType:
         """
         Returns the type of the joint as element of the Enum :mod:`~pycram.enums.JointType`.
 
@@ -328,7 +324,7 @@ class World(ABC):
         pass
 
     @abstractmethod
-    def get_object_joint_position(self, obj: Object, joint_name: str) -> float:
+    def get_joint_position(self, obj: Object, joint_name: str) -> float:
         """
         Get the position of a joint of an articulated object
 
@@ -369,6 +365,22 @@ class World(ABC):
             if real_time:
                 loop_time = rospy.Time.now() - curr_time
                 time.sleep(max(0, self.simulation_time_step - loop_time.to_sec()))
+        self.update_all_objects_poses()
+
+    def update_all_objects_poses(self) -> None:
+        """
+        Updates the positions of all objects in the world.
+        """
+        for obj in self.objects:
+            self.update_obj_pose(obj)
+
+    @abstractmethod
+    def update_obj_pose(self, obj: Object) -> None:
+        """
+        Updates the position of the given object in the world, by retrieving the position from the physics simulator.
+        :param obj: The object for which the position should be updated.
+        """
+        pass
 
     @abstractmethod
     def perform_collision_detection(self) -> None:
@@ -398,7 +410,7 @@ class World(ABC):
         """
         pass
 
-    def get_joint_rest_pose(self, obj: Object, joint_name: str) -> float:
+    def get_joint_rest_position(self, obj: Object, joint_name: str) -> float:
         """
         Get the rest pose of a joint of an articulated object
 
@@ -638,13 +650,10 @@ class World(ABC):
         """
         return World.robot is not None
 
-    def exit(self, wait_time_before_exit_in_secs: Optional[float] = None) -> None:
+    def exit(self) -> None:
         """
         Closes the World as well as the prospection world, also collects any other thread that is running.
-        :param wait_time_before_exit_in_secs: The time to wait before exiting the world in seconds.
         """
-        if wait_time_before_exit_in_secs is not None:
-            time.sleep(wait_time_before_exit_in_secs)
         self.exit_prospection_world_if_exists()
         self.disconnect_from_physics_server()
         self.reset_current_world()
@@ -909,23 +918,20 @@ class World(ABC):
         :param pose: The pose of the origin of the multi body relative to the world frame.
         :return: The unique id of the created multi body.
         """
-        # Dummy paramater since these are needed to spawn visual shapes as a
+        # Dummy parameter since these are needed to spawn visual shapes as a
         # multibody.
         num_of_shapes = len(visual_shape_ids)
-        link_poses = [[0, 0, 0] for _ in range(num_of_shapes)]
-        link_orientations = [[0, 0, 0, 1] for _ in range(num_of_shapes)]
+        link_poses = [Pose() for _ in range(num_of_shapes)]
         link_masses = [1.0 for _ in range(num_of_shapes)]
         link_parent = [0 for _ in range(num_of_shapes)]
         link_joints = [JointType.FIXED for _ in range(num_of_shapes)]
         link_collision = [-1 for _ in range(num_of_shapes)]
-        link_joint_axis = [[1, 0, 0] for _ in range(num_of_shapes)]
+        link_joint_axis = [Point(1, 0, 0) for _ in range(num_of_shapes)]
 
-        multi_body = MultiBody(base_visual_shape_index=-1, base_position=pose.position_as_list(),
-                               base_orientation=pose.orientation_as_list(),
-                               link_visual_shape_indices=visual_shape_ids, link_positions=link_poses,
-                               link_orientations=link_orientations, link_masses=link_masses,
-                               link_inertial_frame_positions=link_poses,
-                               link_inertial_frame_orientations=link_orientations,
+        multi_body = MultiBody(base_visual_shape_index=-1, base_pose=pose,
+                               link_visual_shape_indices=visual_shape_ids, link_poses=link_poses,
+                               link_masses=link_masses,
+                               link_inertial_frame_poses=link_poses,
                                link_parent_indices=link_parent, link_joint_types=link_joints,
                                link_joint_axis=link_joint_axis,
                                link_collision_shape_indices=link_collision)
@@ -996,7 +1002,7 @@ class World(ABC):
 
     def add_text(self, text: str, position: List[float], orientation: Optional[List[float]] = None, size: float = 0.1,
                  color: Optional[Color] = Color(), life_time: Optional[float] = 0,
-                 parent_object_id: Optional[int] = None) -> None:
+                 parent_object_id: Optional[int] = None, parent_link_id: Optional[int] = None) -> int:
         """
         Adds text to the world.
         :param text: The text to be added.
@@ -1009,6 +1015,8 @@ class World(ABC):
         :param life_time: The lifetime in seconds of the text to remain in the world, if 0 the text will remain
          in the world until it is removed manually.
         :param parent_object_id: The id of the object to which the text should be attached.
+        :param parent_link_id: The id of the link to which the text should be attached.
+        :return: The id of the added text.
         """
         raise NotImplementedError
 
@@ -1022,10 +1030,10 @@ class World(ABC):
     def enable_joint_force_torque_sensor(self, obj: Object, fts_joint_idx: int) -> None:
         """
         You can enable a joint force/torque sensor in each joint. Once enabled, if you perform
-        a simulation step, the get_joint_force_torque will report the joint reaction forces in the fixed degrees of
-        freedom: a fixed joint will measure all 6DOF joint forces/torques. A revolute/hinge joint
-        force/torque sensor will measure 5DOF reaction forces along all axis except the hinge axis. The
-        applied force by a joint motor is available through get_applied_joint_motor_torque.
+        a simulation step, the get_joint_reaction_force_torque will report the joint reaction forces in
+        the fixed degrees of freedom: a fixed joint will measure all 6DOF joint forces/torques.
+        A revolute/hinge joint force/torque sensor will measure 5DOF reaction forces along all axis except
+        the hinge axis. The applied force by a joint motor is available through get_applied_joint_motor_torque.
         :param obj: The object in which the joint is located.
         :param fts_joint_idx: The index of the joint for which the force torque sensor should be enabled.
         """
@@ -1039,7 +1047,7 @@ class World(ABC):
         """
         raise NotImplementedError
 
-    def get_joint_force_torque(self, obj: Object, joint_id: int) -> List[float]:
+    def get_joint_reaction_force_torque(self, obj: Object, joint_id: int) -> List[float]:
         """
         Returns the joint reaction forces and torques of the specified joint.
         :param obj: The object in which the joint is located.
@@ -1119,7 +1127,7 @@ class WorldSync(threading.Thread):
         self.object_mapping: Dict[Object, Object] = {}
         self.equal_states = False
 
-    def run(self):
+    def run(self, wait_time_as_n_simulation_steps: Optional[int] = 1):
         """
         Main method of the synchronization, this thread runs in a loop until the
         terminate flag is set.
@@ -1127,6 +1135,8 @@ class WorldSync(threading.Thread):
         every object in the World and updates the corresponding object in the
         prospection world. When there are entries in the adding or removing queue the corresponding objects will
          be added or removed in the same iteration.
+        :param wait_time_as_n_simulation_steps: The time in simulation steps to wait between each iteration of the
+         syncing loop.
         """
         while not self.terminate:
             self.check_for_pause()
@@ -1156,12 +1166,12 @@ class WorldSync(threading.Thread):
                 if len(world_obj.joint_name_to_id) > 2:
                     for joint_name in world_obj.joint_name_to_id.keys():
                         if prospection_obj.get_joint_position(joint_name) != world_obj.get_joint_position(joint_name):
-                            prospection_obj.set_positions_of_all_joints(world_obj.get_positions_of_all_joints())
+                            prospection_obj.set_joint_positions(world_obj.get_positions_of_all_joints())
                             break
 
             self.check_for_pause()
             # self.check_for_equal()
-            time.sleep(1 / 240)
+            time.sleep(wait_time_as_n_simulation_steps * self.world.simulation_time_step)
 
         self.add_obj_queue.join()
         self.remove_obj_queue.join()
@@ -1498,7 +1508,7 @@ class Object:
         # takes the state id as key and returns the attachments of the object at that state
 
         if not self.world.is_prospection_world:
-            self._add_to_world_sync_obj_queue(path)
+            self._add_to_world_sync_obj_queue(self.path)
 
         self._init_current_positions_of_joint()
 
@@ -1664,7 +1674,7 @@ class Object:
         """
         self._current_joints_positions = {}
         for joint_name in self.joint_name_to_id.keys():
-            self._current_joints_positions[joint_name] = self.world.get_object_joint_position(self, joint_name)
+            self._current_joints_positions[joint_name] = self.world.get_joint_position(self, joint_name)
 
     @property
     def base_origin_shift(self) -> np.ndarray:
@@ -2008,9 +2018,9 @@ class Object:
         """
         joint_names = list(self.joint_name_to_id.keys())
         joint_positions = [0] * len(joint_names)
-        self.set_positions_of_all_joints(dict(zip(joint_names, joint_positions)))
+        self.set_joint_positions(dict(zip(joint_names, joint_positions)))
 
-    def set_positions_of_all_joints(self, joint_poses: dict) -> None:
+    def set_joint_positions(self, joint_poses: dict) -> None:
         """
         Sets the current position of multiple joints at once, this method should be preferred when setting
          multiple joints at once instead of running :func:`~Object.set_joint_position` in a loop.
@@ -2031,7 +2041,7 @@ class Object:
         :param joint_position: The target pose for this joint
         """
         # TODO Limits for rotational (infinitie) joints are 0 and 1, they should be considered seperatly
-        up_lim, low_lim = self.world.get_object_joint_limits(self, joint_name)
+        up_lim, low_lim = self.world.get_joint_limits(self, joint_name)
         if low_lim > up_lim:
             low_lim, up_lim = up_lim, low_lim
         if not low_lim <= joint_position <= up_lim:
@@ -2054,89 +2064,23 @@ class Object:
         """
         return self._current_joints_positions[joint_name]
 
-    def contact_points(self) -> List:
-        """
-        Returns a list of contact points of this Object with other Objects.
+    def get_joint_rest_position(self, joint_name: str) -> float:
+        return self.world.get_joint_rest_position(self, joint_name)
 
-        :return: A list of all contact points with other objects
-        """
-        return self.world.get_object_contact_points(self)
+    def get_joint_damping(self, joint_name: str) -> float:
+        return self.world.get_joint_damping(self, joint_name)
 
-    def contact_points_simulated(self) -> List:
-        """
-        Returns a list of all contact points between this Object and other Objects after stepping the simulation once.
+    def get_joint_upper_limit(self, joint_name: str) -> float:
+        return self.world.get_joint_upper_limit(self, joint_name)
 
-        :return: A list of contact points between this Object and other Objects
-        """
-        state_id = self.world.save_state()
-        self.world.step()
-        contact_points = self.contact_points()
-        self.world.restore_state(state_id)
-        return contact_points
+    def get_joint_lower_limit(self, joint_name: str) -> float:
+        return self.world.get_joint_lower_limit(self, joint_name)
 
-    def update_joints_from_topic(self, topic_name: str) -> None:
-        """
-        Updates the joints of this object with positions obtained from a topic with the message type JointState.
-        Joint names on the topic have to correspond to the joints of this object otherwise an error message will be
-         logged.
+    def get_joint_axis(self, joint_name: str) -> Tuple[float]:
+        return self.world.get_joint_axis(self, joint_name)
 
-        :param topic_name: Name of the topic with the joint states
-        """
-        msg = rospy.wait_for_message(topic_name, JointState)
-        joint_names = msg.name
-        joint_positions = msg.position
-        if set(joint_names).issubset(self.joint_name_to_id.keys()):
-            for i in range(len(joint_names)):
-                self.set_joint_position(joint_names[i], joint_positions[i])
-        else:
-            add_joints = set(joint_names) - set(self.joint_name_to_id.keys())
-            rospy.logerr(f"There are joints in the published joint state which are not in this model: /n \
-                    The following joint{'s' if len(add_joints) != 1 else ''}: {add_joints}")
-
-    def update_pose_from_tf(self, frame: str) -> None:
-        """
-        Updates the pose of this object from a TF message.
-
-        :param frame: Name of the TF frame from which the position should be taken
-        """
-        tf_listener = tf.TransformListener()
-        time.sleep(0.5)
-        position, orientation = tf_listener.lookupTransform(frame, "map", rospy.Time(0))
-        position = [position[0][0] * -1,
-                    position[0][1] * -1,
-                    position[0][2]]
-        self.set_position(Pose(position, orientation))
-
-    def set_color(self, color: Color) -> None:
-        """
-        Changes the rgba_color of this object, the rgba_color has to be given as a list
-        of RGBA values. All links of this object will be colored.
-
-        :param color: The rgba_color as RGBA values between 0 and 1
-        """
-        self.world.set_object_color(self, color)
-
-    def get_color(self) -> Union[Color, Dict[str, Color]]:
-        """
-        :return: The rgba_color of this object or a dictionary of link names and their colors.
-        """
-        return self.world.get_object_color(self)
-
-    def get_axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
-        """
-        :return: The axis aligned bounding box of this object.
-        """
-        return self.world.get_object_axis_aligned_bounding_box(self)
-
-    def get_base_origin(self) -> Pose:
-        """
-        :return: the origin of the base/bottom of this object.
-        """
-        aabb = self.get_link_by_id(-1).get_axis_aligned_bounding_box()
-        base_width = np.absolute(aabb.min_x - aabb.max_x)
-        base_length = np.absolute(aabb.min_y - aabb.max_y)
-        return Pose([aabb.min_x + base_width / 2, aabb.min_y + base_length / 2, aabb.min_z],
-                    self.get_pose().orientation_as_list())
+    def get_joint_type(self, joint_name: str) -> JointType:
+        return self.world.get_joint_type(self, joint_name)
 
     def get_joint_limits(self, joint: str) -> Tuple[float, float]:
         """
@@ -2148,28 +2092,10 @@ class Object:
         """
         if joint not in self.joint_name_to_id.keys():
             raise KeyError(f"The given Joint: {joint} is not part of this object")
-        lower, upper = self.world.get_object_joint_limits(self, joint)
+        lower, upper = self.world.get_joint_limits(self, joint)
         if lower > upper:
             lower, upper = upper, lower
         return lower, upper
-
-    def get_joint_axis(self, joint_name: str) -> Tuple[float]:
-        """
-        Returns the axis along which a joint is moving. The given joint_name has to be part of this object.
-
-        :param joint_name: Name of the joint for which the axis should be returned.
-        :return: The axis a vector of xyz
-        """
-        return self.world.get_object_joint_axis(self, joint_name)
-
-    def get_joint_type(self, joint_name: str) -> JointType:
-        """
-        Returns the type of the joint as element of the Enum :mod:`~pycram.enums.JointType`.
-
-        :param joint_name: Joint name for which the type should be returned
-        :return: The type of  the joint
-        """
-        return self.world.get_object_joint_type(self, joint_name)
 
     def find_joint_above(self, link_name: str, joint_type: JointType) -> str:
         """
@@ -2205,6 +2131,57 @@ class Object:
         for link in self.links.values():
             link.update_transform(transform_time)
 
+    def contact_points(self) -> List:
+        """
+        Returns a list of contact points of this Object with other Objects.
+
+        :return: A list of all contact points with other objects
+        """
+        return self.world.get_object_contact_points(self)
+
+    def contact_points_simulated(self) -> List:
+        """
+        Returns a list of all contact points between this Object and other Objects after stepping the simulation once.
+
+        :return: A list of contact points between this Object and other Objects
+        """
+        state_id = self.world.save_state()
+        self.world.step()
+        contact_points = self.contact_points()
+        self.world.restore_state(state_id)
+        return contact_points
+
+    def set_color(self, color: Color) -> None:
+        """
+        Changes the rgba_color of this object, the rgba_color has to be given as a list
+        of RGBA values. All links of this object will be colored.
+
+        :param color: The rgba_color as RGBA values between 0 and 1
+        """
+        self.world.set_object_color(self, color)
+
+    def get_color(self) -> Union[Color, Dict[str, Color]]:
+        """
+        :return: The rgba_color of this object or a dictionary of link names and their colors.
+        """
+        return self.world.get_object_color(self)
+
+    def get_axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
+        """
+        :return: The axis aligned bounding box of this object.
+        """
+        return self.world.get_object_axis_aligned_bounding_box(self)
+
+    def get_base_origin(self) -> Pose:
+        """
+        :return: the origin of the base/bottom of this object.
+        """
+        aabb = self.get_link_by_id(-1).get_axis_aligned_bounding_box()
+        base_width = np.absolute(aabb.min_x - aabb.max_x)
+        base_length = np.absolute(aabb.min_y - aabb.max_y)
+        return Pose([aabb.min_x + base_width / 2, aabb.min_y + base_length / 2, aabb.min_z],
+                    self.get_pose().orientation_as_list())
+
 
 def filter_contact_points(contact_points, exclude_ids) -> List:
     """
@@ -2231,22 +2208,6 @@ def get_path_from_data_dir(file_name: str, data_directory: str) -> str:
             return data_directory + f"/{file_name}"
 
 
-def _get_robot_name_from_urdf(urdf_string: str) -> str:
-    """
-    Extracts the robot name from the 'robot_name' tag of a URDF.
-
-    :param urdf_string: The URDF as string.
-    :return: The name of the robot described by the URDF.
-    """
-    res = re.findall(r"robot\ *name\ *=\ *\"\ *[a-zA-Z_0-9]*\ *\"", urdf_string)
-    if len(res) == 1:
-        begin = res[0].find("\"")
-        end = res[0][begin + 1:].find("\"")
-        robot = res[0][begin + 1:begin + 1 + end].lower()
-        return robot
-    raise Exception("Robot Name not Found")
-
-
 class Attachment:
     def __init__(self,
                  parent_link: Link,
@@ -2266,7 +2227,7 @@ class Attachment:
         self.parent_link: Link = parent_link
         self.child_link: Link = child_link
         self.bidirectional: bool = bidirectional
-        self._loose: bool = False and not bidirectional
+        self._loose: bool = False
 
         self.parent_to_child_transform: Transform = parent_to_child_transform
         if self.parent_to_child_transform is None:
@@ -2322,7 +2283,7 @@ class Attachment:
         """
         attachment = Attachment(self.child_link, self.parent_link, self.bidirectional,
                                 constraint_id=self.constraint_id)
-        attachment.loose = False if self.loose else True
+        attachment.loose = not self._loose
         return attachment
 
     @property
@@ -2457,15 +2418,3 @@ def _is_cached(path) -> bool:
     if full_path.exists():
         return True
     return False
-
-
-def _world_and_id(world: World) -> Tuple[World, int]:
-    """
-    Selects the world to be used. If the given world is None the 'current_world' is used.
-
-    :param world: The world which should be used or None if 'current_world' should be used
-    :return: The World object and the id of this World
-    """
-    world = world if world is not None else World.current_world
-    client_id = world.client_id if world is not None else World.current_world.client_id
-    return world, client_id

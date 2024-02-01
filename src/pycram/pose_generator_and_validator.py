@@ -188,7 +188,7 @@ def reachability_validator(pose: Pose,
     except IKError:
         pass
     finally:
-        robot.set_positions_of_all_joints(joint_state_before_ik)
+        robot.set_joint_positions(joint_state_before_ik)
 
     try:
         # resp = request_ik(base_link, end_effector, target_diff, robot, right_joints)
@@ -206,6 +206,6 @@ def reachability_validator(pose: Pose,
     except IKError:
         pass
     finally:
-        robot.set_positions_of_all_joints(joint_state_before_ik)
+        robot.set_joint_positions(joint_state_before_ik)
 
     return res, arms

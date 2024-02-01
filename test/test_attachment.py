@@ -1,7 +1,7 @@
-import test_bullet_world
+from bullet_world_testcase import BulletWorldTestCase
 
 
-class TestAttachment(test_bullet_world.BulletWorldTest):
+class TestAttachment(BulletWorldTestCase):
 
     def test_attach(self):
         self.milk.attach(self.robot)

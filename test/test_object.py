@@ -1,9 +1,9 @@
-import test_bullet_world
+from bullet_world_testcase import BulletWorldTestCase
 from pycram.pose import Pose
 from geometry_msgs.msg import Point
 
 
-class TestObject(test_bullet_world.BulletWorldTest):
+class TestObject(BulletWorldTestCase):
 
     def test_set_position_as_point(self):
         self.milk.set_position(Point(1, 2, 3))

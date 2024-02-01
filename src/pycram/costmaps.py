@@ -10,7 +10,7 @@ import rospy
 from matplotlib import colors
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 
-from pycram.world import UseProspectionWorld, Object, Link
+from .world import UseProspectionWorld, Object, Link
 from .local_transformer import LocalTransformer
 from .pose import Pose, Transform
 from .world import World

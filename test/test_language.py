@@ -7,10 +7,10 @@ from pycram.plan_failures import PlanFailure
 from pycram.pose import Pose
 from pycram.language import Sequential, Language, Parallel, TryAll, TryInOrder, Monitor, Repeat, Code, RenderTree
 from pycram.process_module import simulated_robot
-import test_bullet_world
+from bullet_world_testcase import BulletWorldTestCase
 
 
-class LanguageTestCase(test_bullet_world.BulletWorldTest):
+class LanguageTestCase(BulletWorldTestCase):
 
     def test_inheritance(self):
         act = NavigateAction([Pose()])

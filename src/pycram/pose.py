@@ -100,7 +100,6 @@ class Pose(PoseStamped):
         """
         if (not type(value) == list and not type(value) == tuple and not type(value) == GeoPose
                 and not type(value) == Point):
-            print(type(value))
             rospy.logwarn("Position can only be a list or geometry_msgs/Pose")
             return
         if type(value) == list or type(value) == tuple and len(value) == 3:
@@ -159,7 +158,8 @@ class Pose(PoseStamped):
         :param child_frame: Child frame id to which the Transform points
         :return: A new Transform
         """
-        return Transform(self.position_as_list(), self.orientation_as_list(), self.frame, child_frame, self.header.stamp)
+        return Transform(self.position_as_list(), self.orientation_as_list(), self.frame, child_frame,
+                         self.header.stamp)
 
     def copy(self) -> Pose:
         """
@@ -167,11 +167,8 @@ class Pose(PoseStamped):
 
         :return: A copy of this pose
         """
-        if isinstance(self.position, list):
-            print("Position is list")
         p = Pose(self.position_as_list(), self.orientation_as_list(), self.frame, self.header.stamp)
         p.header.frame_id = self.header.frame_id
-        # p.header.stamp = self.header.stamp
         return p
 
     def position_as_list(self) -> List[float]:

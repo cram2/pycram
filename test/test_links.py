@@ -1,7 +1,7 @@
-import test_bullet_world
+from bullet_world_testcase import BulletWorldTestCase
 
 
-class TestLinks(test_bullet_world.BulletWorldTest):
+class TestLinks(BulletWorldTestCase):
 
     def test_add_constraint(self):
         milk_link = self.milk.get_root_link()

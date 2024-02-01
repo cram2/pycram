@@ -1,6 +1,8 @@
 from dataclasses import dataclass
-from typing_extensions import List, Optional, Tuple, Callable, Dict
+from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union
 from .enums import JointType, Shape
+from .pose import Pose, Point
+from abc import ABC, abstractmethod
 
 
 @dataclass
@@ -55,38 +57,26 @@ class Color:
         """
         return [self.R, self.G, self.B, self.A]
 
+    def get_rgb(self) -> List[float]:
+        """
+        Returns the rgba_color as a list of RGB values.
+
+        :return: The rgba_color as a list of RGB values
+        """
+        return [self.R, self.G, self.B]
+
 
 @dataclass
 class Constraint:
     """
     Dataclass for storing a constraint between two objects.
     """
-    parent_obj_id: int
-    parent_link_name: str
-    child_obj_id: int
-    child_link_name: str
+    parent_link: 'Link'
+    child_link: 'Link'
     joint_type: JointType
-    joint_axis_in_child_link_frame: List[int]
-    joint_frame_position_wrt_parent_origin: List[float]
-    joint_frame_position_wrt_child_origin: List[float]
-    joint_frame_orientation_wrt_parent_origin: Optional[List[float]] = None
-    joint_frame_orientation_wrt_child_origin: Optional[List[float]] = None
-
-
-@dataclass
-class Point:
-    x: float
-    y: float
-    z: float
-
-    @classmethod
-    def from_list(cls, point: List[float]):
-        """
-        Sets the point from a list of x, y, z values.
-
-        :param point: The list of x, y, z values
-        """
-        return cls(point[0], point[1], point[2])
+    joint_axis_in_child_link_frame: Point
+    joint_frame_pose_wrt_parent_origin: Pose
+    joint_frame_pose_wrt_child_origin: Pose
 
 
 @dataclass
@@ -169,61 +159,106 @@ class CollisionCallbacks:
 @dataclass
 class MultiBody:
     base_visual_shape_index: int
-    base_position: List[float]
-    base_orientation: List[float]
+    base_pose: Pose
     link_visual_shape_indices: List[int]
-    link_positions: List[List[float]]
-    link_orientations: List[List[float]]
+    link_poses: List[Pose]
     link_masses: List[float]
-    link_inertial_frame_positions: List[List[float]]
-    link_inertial_frame_orientations: List[List[float]]
+    link_inertial_frame_poses: List[Pose]
     link_parent_indices: List[int]
     link_joint_types: List[JointType]
-    link_joint_axis: List[List[float]]
+    link_joint_axis: List[Point]
     link_collision_shape_indices: List[int]
 
 
 @dataclass
-class VisualShape:
+class VisualShape(ABC):
     rgba_color: Color
     visual_frame_position: List[float]
+
+    @abstractmethod
+    def shape_data(self) -> Dict[str, Any]:
+        """
+        Returns the shape data of the visual shape (e.g. half extents for a box, radius for a sphere).
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def visual_geometry_type(self) -> Shape:
+        """
+        Returns the visual geometry type of the visual shape (e.g. box, sphere).
+        """
+        pass
 
 
 @dataclass
 class BoxVisualShape(VisualShape):
     half_extents: List[float]
-    visual_geometry_type: Optional[Shape] = Shape.BOX
+
+    def shape_data(self) -> Dict[str, List[float]]:
+        return {"halfExtents": self.half_extents}
+
+    @property
+    def visual_geometry_type(self) -> Shape:
+        return Shape.BOX
 
 
 @dataclass
 class SphereVisualShape(VisualShape):
     radius: float
-    visual_geometry_type: Optional[Shape] = Shape.SPHERE
+
+    def shape_data(self) -> Dict[str, float]:
+        return {"radius": self.radius}
+
+    @property
+    def visual_geometry_type(self) -> Shape:
+        return Shape.SPHERE
 
 
 @dataclass
 class CapsuleVisualShape(VisualShape):
     radius: float
     length: float
-    visual_geometry_type: Optional[Shape] = Shape.CAPSULE
+
+    def shape_data(self) -> Dict[str, float]:
+        return {"radius": self.radius, "length": self.length}
+
+    @property
+    def visual_geometry_type(self) -> Shape:
+        return Shape.CAPSULE
 
 
 @dataclass
 class CylinderVisualShape(CapsuleVisualShape):
-    visual_geometry_type: Optional[Shape] = Shape.CYLINDER
+
+    @property
+    def visual_geometry_type(self) -> Shape:
+        return Shape.CYLINDER
 
 
 @dataclass
 class MeshVisualShape(VisualShape):
     mesh_scale: List[float]
     mesh_file_name: str
-    visual_geometry_type: Optional[Shape] = Shape.MESH
+
+    def shape_data(self) -> Dict[str, Union[List[float], str]]:
+        return {"meshScale": self.mesh_scale, "meshFileName": self.mesh_file_name}
+
+    @property
+    def visual_geometry_type(self) -> Shape:
+        return Shape.MESH
 
 
 @dataclass
 class PlaneVisualShape(VisualShape):
     normal: List[float]
-    visual_geometry_type: Optional[Shape] = Shape.PLANE
+
+    def shape_data(self) -> Dict[str, List[float]]:
+        return {"normal": self.normal}
+
+    @property
+    def visual_geometry_type(self) -> Shape:
+        return Shape.PLANE
 
 
 @dataclass

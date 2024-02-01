@@ -211,9 +211,9 @@ class Pr2MoveArmJoints(ProcessModule):
 
         robot = World.robot
         if desig.right_arm_poses:
-            robot.set_positions_of_all_joints(desig.right_arm_poses)
+            robot.set_joint_positions(desig.right_arm_poses)
         if desig.left_arm_poses:
-            robot.set_positions_of_all_joints(desig.left_arm_poses)
+            robot.set_joint_positions(desig.left_arm_poses)
 
 
 class PR2MoveJoints(ProcessModule):
@@ -222,7 +222,7 @@ class PR2MoveJoints(ProcessModule):
     """
     def _execute(self, desig: MoveJointsMotion.Motion):
         robot = World.robot
-        robot.set_positions_of_all_joints(dict(zip(desig.names, desig.positions)))
+        robot.set_joint_positions(dict(zip(desig.names, desig.positions)))
 
 
 class Pr2WorldStateDetecting(ProcessModule):

@@ -78,13 +78,13 @@ class DonbotMoveHead(ProcessModule):
         pose_in_shoulder = local_transformer.transform_pose(target, robot.links["ur5_shoulder_link"].tf_frame)
 
         if pose_in_shoulder.position.x >= 0 and pose_in_shoulder.position.x >= abs(pose_in_shoulder.position.y):
-            robot.set_positions_of_all_joints(robot_description.get_static_joint_chain("left", "front"))
+            robot.set_joint_positions(robot_description.get_static_joint_chain("left", "front"))
         if pose_in_shoulder.position.y >= 0 and pose_in_shoulder.position.y >= abs(pose_in_shoulder.position.x):
-            robot.set_positions_of_all_joints(robot_description.get_static_joint_chain("left", "arm_right"))
+            robot.set_joint_positions(robot_description.get_static_joint_chain("left", "arm_right"))
         if pose_in_shoulder.position.x <= 0 and abs(pose_in_shoulder.position.x) > abs(pose_in_shoulder.position.y):
-            robot.set_positions_of_all_joints(robot_description.get_static_joint_chain("left", "back"))
+            robot.set_joint_positions(robot_description.get_static_joint_chain("left", "back"))
         if pose_in_shoulder.position.y <= 0 and abs(pose_in_shoulder.position.y) > abs(pose_in_shoulder.position.x):
-            robot.set_positions_of_all_joints(robot_description.get_static_joint_chain("left", "arm_left"))
+            robot.set_joint_positions(robot_description.get_static_joint_chain("left", "arm_left"))
 
         pose_in_shoulder = local_transformer.transform_pose(target, robot.links["ur5_shoulder_link"].tf_frame)
 
@@ -103,7 +103,7 @@ class DonbotMoveGripper(ProcessModule):
         robot = World.robot
         gripper = desig.gripper
         motion = desig.motion
-        robot.set_positions_of_all_joints(robot_description.get_static_gripper_chain(gripper, motion))
+        robot.set_joint_positions(robot_description.get_static_gripper_chain(gripper, motion))
 
 
 class DonbotMoveTCP(ProcessModule):
@@ -127,7 +127,7 @@ class DonbotMoveJoints(ProcessModule):
     def _execute(self, desig: MoveArmJointsMotion.Motion):
         robot = World.robot
         if desig.left_arm_poses:
-            robot.set_positions_of_all_joints(desig.left_arm_poses)
+            robot.set_joint_positions(desig.left_arm_poses)
 
 
 class DonbotWorldStateDetecting(ProcessModule):
