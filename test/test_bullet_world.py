@@ -2,6 +2,7 @@ import time
 import unittest
 
 import rospkg
+from geometry_msgs.msg import Point
 
 from bullet_world_testcase import BulletWorldTestCase
 from pycram.pose import Pose
@@ -51,13 +52,13 @@ class BulletWorldTest(BulletWorldTestCase):
         self.assertEqual(self.robot.get_joint_damping("head_pan_joint"), 0.5)
 
     def test_get_joint_upper_limit(self):
-        self.assertEqual(self.robot.get_joint_upper_limit("head_pan_joint"), -3.007)
+        self.assertEqual(self.robot.get_joint_upper_limit("head_pan_joint"), 3.007)
 
     def test_get_joint_lower_limit(self):
-        self.assertEqual(self.robot.get_joint_lower_limit("head_pan_joint"), 3.007)
+        self.assertEqual(self.robot.get_joint_lower_limit("head_pan_joint"), -3.007)
 
     def test_get_joint_axis(self):
-        self.assertEqual(self.robot.get_joint_axis("head_pan_joint"), (0.0, 0.0, 1.0))
+        self.assertEqual(self.robot.get_joint_axis("head_pan_joint"), Point(0.0, 0.0, 1.0))
 
     def test_get_joint_type(self):
         self.assertEqual(self.robot.get_joint_type("head_pan_joint"), JointType.REVOLUTE)

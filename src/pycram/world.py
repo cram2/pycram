@@ -8,31 +8,28 @@ import re
 import threading
 import time
 import xml.etree.ElementTree
+from abc import ABC, abstractmethod
 from queue import Queue
-import tf
-from tf.transformations import quaternion_from_euler
-from typing_extensions import List, Optional, Dict, Tuple, Callable
-from typing_extensions import Union
 
 import numpy as np
 import rospkg
 import rospy
-
 import urdf_parser_py.urdf
 from geometry_msgs.msg import Quaternion, Point
+from tf.transformations import quaternion_from_euler
+from typing_extensions import List, Optional, Dict, Tuple, Callable
+from typing_extensions import Union
 from urdf_parser_py.urdf import URDF, Collision, GeometricType
 
-from .event import Event
-from .robot_descriptions import robot_description
 from .enums import JointType, ObjectType, WorldMode
+from .event import Event
 from .local_transformer import LocalTransformer
-
 from .pose import Pose, Transform
-
-from abc import ABC, abstractmethod
+from .robot_descriptions import robot_description
 from .world_dataclasses import (Color, Constraint, AxisAlignedBoundingBox, CollisionCallbacks,
                                 MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape, SphereVisualShape,
-                                CapsuleVisualShape, PlaneVisualShape, MeshVisualShape, LinkState, ObjectState)
+                                CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
+                                LinkState, ObjectState, JointState)
 
 
 class World(ABC):
@@ -156,7 +153,7 @@ class World(ABC):
         """
         The time step of the simulation in seconds.
         """
-        return 1/World.simulation_frequency
+        return 1 / World.simulation_frequency
 
     @abstractmethod
     def load_urdf_and_get_object_id(self, path: str, pose: Pose) -> int:
@@ -279,7 +276,6 @@ class World(ABC):
         """
         return self.get_joint_upper_limit(obj, joint_name), self.get_joint_lower_limit(obj, joint_name)
 
-    @abstractmethod
     def get_joint_upper_limit(self, obj: Object, joint_name: str) -> float:
         """
         Get the joint upper limit of an articulated object
@@ -288,9 +284,8 @@ class World(ABC):
         :param joint_name: The name of the joint.
         :return: The joint upper limit as a float.
         """
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     def get_joint_lower_limit(self, obj: Object, joint_name: str) -> float:
         """
         Get the joint lower limit of an articulated object
@@ -299,9 +294,8 @@ class World(ABC):
         :param joint_name: The name of the joint.
         :return: The joint lower limit as a float.
         """
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     def get_joint_axis(self, obj: Object, joint_name: str) -> Tuple[float]:
         """
         Returns the axis along/around which a joint is moving. The given joint_name has to be part of this object.
@@ -310,9 +304,8 @@ class World(ABC):
         :param joint_name: Name of the joint for which the axis should be returned.
         :return: The axis which is a 3D vector of xyz values.
         """
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     def get_joint_type(self, obj: Object, joint_name: str) -> JointType:
         """
         Returns the type of the joint as element of the Enum :mod:`~pycram.enums.JointType`.
@@ -321,7 +314,7 @@ class World(ABC):
         :param joint_name: Joint name for which the type should be returned.
         :return: The type of  the joint as element of the Enum :mod:`~pycram.enums.JointType`.
         """
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def get_joint_position(self, obj: Object, joint_name: str) -> float:
@@ -372,13 +365,12 @@ class World(ABC):
         Updates the positions of all objects in the world.
         """
         for obj in self.objects:
-            self.update_obj_pose(obj)
+            obj.update_pose()
 
     @abstractmethod
-    def update_obj_pose(self, obj: Object) -> None:
+    def get_object_pose(self, obj: Object) -> Pose:
         """
-        Updates the position of the given object in the world, by retrieving the position from the physics simulator.
-        :param obj: The object for which the position should be updated.
+        Get the pose of an object in the world frame from the current object pose in the simulator.
         """
         pass
 
@@ -430,23 +422,21 @@ class World(ABC):
         """
         pass
 
-    @abstractmethod
     def get_joint_names(self, obj: Object) -> List[str]:
         """
         Get the names of all joints of an articulated object.
         :param obj: The object.
         :return: A list of all joint names of the object.
         """
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     def get_link_names(self, obj: Object) -> List[str]:
         """
         Get the names of all links of an articulated object.
         :param obj: The object.
         :return: A list of all link names of the object.
         """
-        pass
+        raise NotImplementedError
 
     def get_number_of_joints(self, obj: Object) -> int:
         """
@@ -454,7 +444,7 @@ class World(ABC):
         :param obj: The object.
         :return: The number of joints of the object.
         """
-        pass
+        raise NotImplementedError
 
     def get_number_of_links(self, obj: Object) -> int:
         """
@@ -462,7 +452,7 @@ class World(ABC):
         :param obj: The object.
         :return: The number of links of the object.
         """
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def reset_joint_position(self, obj: Object, joint_name: str, joint_pose: float) -> None:
@@ -476,14 +466,13 @@ class World(ABC):
         pass
 
     @abstractmethod
-    def reset_object_base_pose(self, obj: Object, position: List[float], orientation: List[float]):
+    def reset_object_base_pose(self, obj: Object, pose: Pose):
         """
         Reset the world position and orientation of the base of the object instantaneously,
         not through physics simulation. (x,y,z) position vector and (x,y,z,w) quaternion orientation.
 
-        :param obj: The object
-        :param position: The new position of the object as a vector of x,y,z
-        :param orientation: The new orientation of the object as a quaternion of x,y,z,w
+        :param obj: The object.
+        :param pose: The new pose as a Pose object.
         """
         pass
 
@@ -1194,10 +1183,192 @@ class WorldSync(threading.Thread):
         self.equal_states = eql
 
 
+class Joint:
+    """
+    Represents a joint of an Object in the World.
+    """
+    urdf_joint_types_mapping = {'unknown': JointType.UNKNOWN,
+                                'revolute': JointType.REVOLUTE,
+                                'continuous': JointType.CONTINUOUS,
+                                'prismatic': JointType.PRISMATIC,
+                                'floating': JointType.FLOATING,
+                                'planar': JointType.PLANAR,
+                                'fixed': JointType.FIXED}
+
+    def __init__(self, _id: int,
+                 urdf_joint: urdf_parser_py.urdf.Joint,
+                 obj: Object):
+        self.id: int = _id
+        self.urdf_joint: urdf_parser_py.urdf.Joint = urdf_joint
+        self.object: Object = obj
+        self.world: World = obj.world
+        self.saved_states: Dict[int, JointState] = {}
+        self._update_position()
+
+    def _update_position(self) -> None:
+        """
+        Updates the current position of the joint from the physics simulator.
+        """
+        self._current_position = self.world.get_joint_position(self.object, self.name)
+
+    @property
+    def parent_link(self) -> Link:
+        """
+        Returns the parent link of this joint.
+        :return: The parent link as a Link object.
+        """
+        return self.object.links[self.urdf_joint.parent.name]
+
+    @property
+    def child_link(self) -> Link:
+        """
+        Returns the child link of this joint.
+        :return: The child link as a Link object.
+        """
+        return self.object.links[self.urdf_joint.child.name]
+
+    @property
+    def has_limits(self) -> bool:
+        """
+        Checks if this joint has limits.
+        :return: True if the joint has limits, False otherwise.
+        """
+        return bool(self.urdf_joint.limit)
+
+    @property
+    def limits(self) -> Tuple[float, float]:
+        """
+        Returns the lower and upper limit of a joint, if the lower limit is higher
+        than the upper they are swapped to ensure the lower limit is always the smaller one.
+        :return: A tuple with the lower and upper joint limits.
+        """
+        lower, upper = self.lower_limit, self.upper_limit
+        if lower > upper:
+            lower, upper = upper, lower
+        return lower, upper
+
+    @property
+    def upper_limit(self) -> float:
+        """
+        Returns the upper joint limit of this joint.
+        :return: The upper joint limit as a float.
+        """
+        return self.urdf_joint.limit.upper
+
+    @property
+    def lower_limit(self) -> float:
+        """
+        Returns the lower joint limit of this joint.
+        :return: The lower joint limit as a float.
+        """
+        return self.urdf_joint.limit.lower
+
+    @property
+    def axis(self) -> Point:
+        """
+        Returns the joint axis of this joint.
+        :return: The joint axis as a Point object.
+        """
+        return Point(*self.urdf_joint.axis)
+
+    @property
+    def type(self) -> JointType:
+        """
+        Returns the joint type of this joint.
+        :return: The joint type as a JointType object.
+        """
+        return self.urdf_joint_types_mapping[self.urdf_joint.type]
+
+    @property
+    def position(self) -> float:
+        return self._current_position
+
+    @property
+    def rest_position(self) -> float:
+        return self.world.get_joint_rest_position(self.object, self.name)
+
+    @property
+    def damping(self) -> float:
+        """
+        Returns the damping of this joint.
+        :return: The damping as a float.
+        """
+        return self.urdf_joint.dynamics.damping
+
+    @property
+    def name(self) -> str:
+        """
+        Returns the name of this joint.
+        :return: The name of this joint as a string.
+        """
+        return self.urdf_joint.name
+
+    def reset_position(self, position: float) -> None:
+        self.world.reset_joint_position(self.object, self.name, position)
+        self._update_position()
+
+    def get_object_id(self) -> int:
+        """
+        Returns the id of the object to which this joint belongs.
+        :return: The integer id of the object to which this joint belongs.
+        """
+        return self.object.id
+
+    @position.setter
+    def position(self, joint_position: float) -> None:
+        """
+        Sets the position of the given joint to the given joint pose. If the pose is outside the joint limits, as stated
+        in the URDF, an error will be printed. However, the joint will be set either way.
+
+        :param joint_position: The target pose for this joint
+        """
+        # TODO Limits for rotational (infinitie) joints are 0 and 1, they should be considered seperatly
+        if self.has_limits:
+            low_lim, up_lim = self.limits
+            if not low_lim <= joint_position <= up_lim:
+                logging.error(
+                    f"The joint position has to be within the limits of the joint. The joint limits for {self.name}"
+                    f" are {low_lim} and {up_lim}")
+                logging.error(f"The given joint position was: {joint_position}")
+                # Temporarily disabled because kdl outputs values exciting joint limits
+                # return
+        self.reset_position(joint_position)
+
+    def enable_force_torque_sensor(self) -> None:
+        self.world.enable_joint_force_torque_sensor(self.object, self.id)
+
+    def disable_force_torque_sensor(self) -> None:
+        self.world.disable_joint_force_torque_sensor(self.object, self.id)
+
+    def get_reaction_force_torque(self) -> List[float]:
+        return self.world.get_joint_reaction_force_torque(self.object, self.id)
+
+    def get_applied_motor_torque(self) -> float:
+        return self.world.get_applied_joint_motor_torque(self.object, self.id)
+
+    def save_state(self, state_id: int) -> None:
+        self.saved_states[state_id] = self.state
+
+    def restore_state(self, state_id: int) -> None:
+        self.state = self.saved_states[state_id]
+
+    def remove_saved_states(self) -> None:
+        self.saved_states = {}
+
+    @property
+    def state(self) -> JointState:
+        return JointState(self.position)
+
+    @state.setter
+    def state(self, joint_state: JointState) -> None:
+        self.position = joint_state.position
+
+
 class Link:
     """
     Represents a link of an Object in the World.
     """
+
     def __init__(self,
                  _id: int,
                  urdf_link: urdf_parser_py.urdf.Link,
@@ -1209,6 +1380,7 @@ class Link:
         self.local_transformer: LocalTransformer = LocalTransformer()
         self.constraint_ids: Dict[Link, int] = {}
         self.saved_states: Dict[int, LinkState] = {}
+        self._update_pose()
 
     def save_state(self, state_id: int) -> None:
         """
@@ -1223,6 +1395,12 @@ class Link:
         :param state_id: The unique id of the state.
         """
         self.constraint_ids = self.saved_states[state_id].constraint_ids
+
+    def remove_saved_states(self) -> None:
+        """
+        Removes all saved states of this link.
+        """
+        self.saved_states = {}
 
     def get_current_state(self) -> LinkState:
         """
@@ -1353,13 +1531,19 @@ class Link:
         """
         return self.pose.orientation_as_list()
 
+    def _update_pose(self) -> None:
+        """
+        Updates the current pose of this link from the world.
+        """
+        self._current_pose = self.world.get_link_pose(self)
+
     @property
     def pose(self) -> Pose:
         """
         The pose of the link relative to the world frame.
         :return: A Pose object containing the pose of the link relative to the world frame.
         """
-        return self.world.get_link_pose(self)
+        return self._current_pose
 
     @property
     def pose_as_list(self) -> List[List[float]]:
@@ -1427,6 +1611,7 @@ class RootLink(Link):
     Represents the root link of an Object in the World.
     It differs from the normal Link class in that the pose ande the tf_frame is the same as that of the object.
     """
+
     def __init__(self, obj: Object):
         super().__init__(obj.get_root_link_id(), obj.get_root_urdf_link(), obj)
 
@@ -1438,13 +1623,8 @@ class RootLink(Link):
         """
         return self.object.tf_frame
 
-    @property
-    def pose(self) -> Pose:
-        """
-        Returns the pose of the root link, which is the same as the pose of the object.
-        :return: A Pose object containing the pose of the root link.
-        """
-        return self.object.get_pose()
+    def _update_pose(self) -> None:
+        self._current_pose = self.object.get_pose()
 
 
 class Object:
@@ -1497,20 +1677,16 @@ class Object:
             self.world.set_robot_if_not_set(self)
 
         self._init_joint_name_and_id_map()
-
         self._init_link_name_and_id_map()
 
-        self._init_links()
-        self.update_link_transforms()
+        self._init_links_and_update_transforms()
+        self._init_joints()
 
         self.attachments: Dict[Object, Attachment] = {}
         self.saved_states: Dict[int, ObjectState] = {}
-        # takes the state id as key and returns the attachments of the object at that state
 
         if not self.world.is_prospection_world:
             self._add_to_world_sync_obj_queue(self.path)
-
-        self._init_current_positions_of_joint()
 
         self.world.objects.append(self)
 
@@ -1640,24 +1816,36 @@ class Object:
         link_names = self.world.get_link_names(self)
         n_links = len(link_names)
         self.link_name_to_id: Dict[str, int] = dict(zip(link_names, range(n_links)))
-        self.link_id_to_name: Dict[int, str] = dict(zip(self.link_name_to_id.values(), self.link_name_to_id.keys()))
         self.link_name_to_id[self.urdf_object.get_root()] = -1
-        self.link_id_to_name[-1] = self.urdf_object.get_root()
+        self.link_id_to_name: Dict[int, str] = dict(zip(self.link_name_to_id.values(), self.link_name_to_id.keys()))
 
-    def _init_links(self) -> None:
+    def _init_links_and_update_transforms(self) -> None:
         """
         Initializes the link objects from the URDF file and creates a dictionary which maps the link names to the
         corresponding link objects.
         """
-        links = {}
+        self.links = {}
         for urdf_link in self.urdf_object.links:
             link_name = urdf_link.name
             link_id = self.link_name_to_id[link_name]
             if link_name == self.urdf_object.get_root():
-                links[link_name] = RootLink(self)
+                self.links[link_name] = RootLink(self)
             else:
-                links[link_name] = Link(link_id, urdf_link, self)
-        self.links = links
+                self.links[link_name] = Link(link_id, urdf_link, self)
+
+
+        self.update_link_transforms()
+
+    def _init_joints(self):
+        """
+        Initialize the joint objects from the URDF file and creates a dictionary which mas the joint names to the
+        corresponding joint objects
+        """
+        self.joints = {}
+        for urdf_joint in self.urdf_object.joints:
+            joint_name = urdf_joint.name
+            joint_id = self.joint_name_to_id[joint_name]
+            self.joints[joint_name] = Joint(joint_id, urdf_joint, self)
 
     def _add_to_world_sync_obj_queue(self, path: str) -> None:
         """
@@ -1667,14 +1855,6 @@ class Object:
         self.world.world_sync.add_obj_queue.put(
             [self.name, self.obj_type, path, self.get_position_as_list(), self.get_orientation_as_list(),
              self.world.prospection_world, self.color, self])
-
-    def _init_current_positions_of_joint(self) -> None:
-        """
-        Initialize the cached joint position for each joint.
-        """
-        self._current_joints_positions = {}
-        for joint_name in self.joint_name_to_id.keys():
-            self._current_joints_positions[joint_name] = self.world.get_joint_position(self, joint_name)
 
     @property
     def base_origin_shift(self) -> np.ndarray:
@@ -1816,16 +1996,40 @@ class Object:
         :param set_attachments: Whether to set the poses of the attached objects to this object or not.
         """
         pose_in_map = self.local_transformer.transform_pose(pose, "map")
-
-        position, orientation = pose_in_map.to_list()
         if base:
-            position = np.array(position) + self.base_origin_shift
+            pose_in_map.position = np.array(pose_in_map.position) + self.base_origin_shift
 
-        self.world.reset_object_base_pose(self, position, orientation)
-        self._current_pose = pose_in_map
+        self.reset_base_pose(pose_in_map)
 
         if set_attachments:
             self._set_attached_objects_poses()
+
+    def reset_base_pose(self, pose: Pose):
+        self.world.reset_object_base_pose(self, pose)
+        self.update_pose()
+
+    def update_pose(self):
+        """
+        Updates the current pose of this object from the world.
+        """
+        self._current_pose = self.world.get_object_pose(self)
+        self._update_all_joints_positions()
+        self._update_all_links_poses()
+        self.update_link_transforms()
+
+    def _update_all_joints_positions(self):
+        """
+        Updates the posisitons of all joints by getting them from the simulator.
+        """
+        for joint in self.joints.values():
+            joint._update_position()
+
+    def _update_all_links_poses(self):
+        """
+        Updates the poses of all links by getting them from the simulator.
+        """
+        for link in self.links.values():
+            link._update_pose()
 
     def move_base_to_origin_pos(self) -> None:
         """
@@ -1840,6 +2044,7 @@ class Object:
         :param state_id: The unique id of the state.
         """
         self.save_links_states(state_id)
+        self.save_joints_states(state_id)
         self.saved_states[state_id] = ObjectState(state_id, self.attachments.copy())
 
     def save_links_states(self, state_id: int) -> None:
@@ -1850,22 +2055,31 @@ class Object:
         for link in self.links.values():
             link.save_state(state_id)
 
+    def save_joints_states(self, state_id: int) -> None:
+        """
+        Saves the state of all joints of this object.
+        :param state_id: The unique id of the state.
+        """
+        for joint in self.joints.values():
+            joint.save_state(state_id)
+
     def restore_state(self, state_id: int) -> None:
         """
         Restores the state of this object by restoring the state of all links and attachments.
         :param state_id: The unique id of the state.
         """
-        self.restore_links_states(state_id)
         self.restore_attachments(state_id)
+        self.restore_links_states(state_id)
+        self.restore_joints_states(state_id)
 
-    def restore_attachments(self, state_id) -> None:
+    def restore_attachments(self, state_id: int) -> None:
         """
         Restores the attachments of this object from a saved state using the given state id.
         :param state_id: The unique id of the state.
         """
         self.attachments = self.saved_states[state_id].attachments
 
-    def restore_links_states(self, state_id) -> None:
+    def restore_links_states(self, state_id: int) -> None:
         """
         Restores the states of all links of this object from a saved state using the given state id.
         :param state_id: The unique id of the state.
@@ -1873,13 +2087,35 @@ class Object:
         for link in self.links.values():
             link.restore_state(state_id)
 
+    def restore_joints_states(self, state_id: int) -> None:
+        """
+        Restores the states of all joints of this object from a saved state using the given state id.
+        :param state_id: The unique id of the state.
+        """
+        for joint in self.joints.values():
+            joint.restore_state(state_id)
+
     def remove_saved_states(self) -> None:
         """
         Removes all saved states of this object.
         """
         self.saved_states = {}
+        self.remove_links_saved_states()
+        self.remove_joints_saved_states()
+
+    def remove_links_saved_states(self) -> None:
+        """
+        Removes all saved states of the links of this object.
+        """
         for link in self.links.values():
-            link.saved_states = {}
+            link.remove_saved_states()
+
+    def remove_joints_saved_states(self) -> None:
+        """
+        Removes all saved states of the joints of this object.
+        """
+        for joint in self.joints.values():
+            joint.remove_saved_states()
 
     def _set_attached_objects_poses(self, already_moved_objects: Optional[List[Object]] = None) -> None:
         """
@@ -2028,74 +2264,45 @@ class Object:
         :param joint_poses:
         """
         for joint_name, joint_position in joint_poses.items():
-            self.world.reset_joint_position(self, joint_name, joint_position)
-            self._current_joints_positions[joint_name] = joint_position
+            self.joints[joint_name].position = joint_position
+        self.update_pose()
         self._set_attached_objects_poses()
 
     def set_joint_position(self, joint_name: str, joint_position: float) -> None:
         """
-        Sets the position of the given joint to the given joint pose. If the pose is outside the joint limits, as stated
-        in the URDF, an error will be printed. However, the joint will be set either way.
+        Sets the position of the given joint to the given joint pose and updates the poses of all attached objects.
 
         :param joint_name: The name of the joint
         :param joint_position: The target pose for this joint
         """
-        # TODO Limits for rotational (infinitie) joints are 0 and 1, they should be considered seperatly
-        up_lim, low_lim = self.world.get_joint_limits(self, joint_name)
-        if low_lim > up_lim:
-            low_lim, up_lim = up_lim, low_lim
-        if not low_lim <= joint_position <= up_lim:
-            logging.error(
-                f"The joint position has to be within the limits of the joint. The joint limits for {joint_name}"
-                f" are {low_lim} and {up_lim}")
-            logging.error(f"The given joint position was: {joint_position}")
-            # Temporarily disabled because kdl outputs values exciting joint limits
-            # return
-        self.world.reset_joint_position(self, joint_name, joint_position)
-        self._current_joints_positions[joint_name] = joint_position
+        self.joints[joint_name].position = joint_position
+        self._update_all_links_poses()
+        self.update_link_transforms()
         self._set_attached_objects_poses()
 
     def get_joint_position(self, joint_name: str) -> float:
-        """
-        Returns the joint position for the given joint name.
-
-        :param joint_name: The name of the joint
-        :return: The current pose of the joint
-        """
-        return self._current_joints_positions[joint_name]
+        return self.joints[joint_name].position
 
     def get_joint_rest_position(self, joint_name: str) -> float:
-        return self.world.get_joint_rest_position(self, joint_name)
+        return self.joints[joint_name].rest_position
 
     def get_joint_damping(self, joint_name: str) -> float:
-        return self.world.get_joint_damping(self, joint_name)
+        return self.joints[joint_name].damping
 
     def get_joint_upper_limit(self, joint_name: str) -> float:
-        return self.world.get_joint_upper_limit(self, joint_name)
+        return self.joints[joint_name].upper_limit
 
     def get_joint_lower_limit(self, joint_name: str) -> float:
-        return self.world.get_joint_lower_limit(self, joint_name)
+        return self.joints[joint_name].lower_limit
 
-    def get_joint_axis(self, joint_name: str) -> Tuple[float]:
-        return self.world.get_joint_axis(self, joint_name)
+    def get_joint_axis(self, joint_name: str) -> Point:
+        return self.joints[joint_name].axis
 
     def get_joint_type(self, joint_name: str) -> JointType:
-        return self.world.get_joint_type(self, joint_name)
+        return self.joints[joint_name].type
 
-    def get_joint_limits(self, joint: str) -> Tuple[float, float]:
-        """
-        Returns the lower and upper limit of a joint, if the lower limit is higher
-        than the upper they are swapped to ensure the lower limit is always the smaller one.
-
-        :param joint: The name of the joint for which the limits should be found.
-        :return: The lower and upper limit of the joint.
-        """
-        if joint not in self.joint_name_to_id.keys():
-            raise KeyError(f"The given Joint: {joint} is not part of this object")
-        lower, upper = self.world.get_joint_limits(self, joint)
-        if lower > upper:
-            lower, upper = upper, lower
-        return lower, upper
+    def get_joint_limits(self, joint_name: str) -> Tuple[float, float]:
+        return self.joints[joint_name].limits
 
     def find_joint_above(self, link_name: str, joint_type: JointType) -> str:
         """
@@ -2122,7 +2329,7 @@ class Object:
 
         :return: A dictionary with all joints positions'.
         """
-        return self._current_joints_positions
+        return {j.name: j.position for j in self.joints.values()}
 
     def update_link_transforms(self, transform_time: Optional[rospy.Time] = None) -> None:
         """

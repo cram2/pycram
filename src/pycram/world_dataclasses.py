@@ -262,11 +262,16 @@ class PlaneVisualShape(VisualShape):
 
 
 @dataclass
+class ObjectState:
+    state_id: int
+    attachments: Dict['Object', 'Attachment']
+
+
+@dataclass
 class LinkState:
     constraint_ids: Dict['Link', int]
 
 
 @dataclass
-class ObjectState:
-    state_id: int
-    attachments: Dict['Object', 'Attachment']
+class JointState:
+    position: float

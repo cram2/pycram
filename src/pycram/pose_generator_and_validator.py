@@ -171,7 +171,7 @@ def reachability_validator(pose: Pose,
     if robot in allowed_collision.keys():
         allowed_robot_links = allowed_collision[robot]
 
-    joint_state_before_ik = robot._current_joints_positions
+    joint_state_before_ik = robot.get_positions_of_all_joints()
     try:
         # resp = request_ik(base_link, end_effector, target_diff, robot, left_joints)
         resp = request_ik(target, robot, left_joints, left_gripper)

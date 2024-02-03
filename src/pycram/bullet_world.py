@@ -143,14 +143,15 @@ class BulletWorld(World):
     def reset_joint_position(self, obj: Object, joint_name: str, joint_pose: float) -> None:
         p.resetJointState(obj.id, obj.joint_name_to_id[joint_name], joint_pose, physicsClientId=self.client_id)
 
-    def reset_object_base_pose(self, obj: Object, position: List[float], orientation: List[float]):
-        p.resetBasePositionAndOrientation(obj.id, position, orientation, physicsClientId=self.client_id)
+    def reset_object_base_pose(self, obj: Object, pose: Pose) -> None:
+        p.resetBasePositionAndOrientation(obj.id, pose.position_as_list(), pose.orientation_as_list(),
+                                          physicsClientId=self.client_id)
 
     def step(self):
         p.stepSimulation(physicsClientId=self.client_id)
 
-    def update_obj_pose(self, obj: Object) -> None:
-        obj.set_pose(Pose(*p.getBasePositionAndOrientation(obj.id, physicsClientId=self.client_id)))
+    def get_object_pose(self, obj: Object) -> Pose:
+        return Pose(*p.getBasePositionAndOrientation(obj.id, physicsClientId=self.client_id))
 
     def set_link_color(self, link: Link, rgba_color: Color):
         p.changeVisualShape(link.get_object_id(), link.id, rgbaColor=rgba_color, physicsClientId=self.client_id)
