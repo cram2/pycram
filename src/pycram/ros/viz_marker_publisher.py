@@ -5,22 +5,21 @@ import time
 from geometry_msgs.msg import Vector3
 from std_msgs.msg import ColorRGBA
 
-from pycram.bullet_world import BulletWorld, Object
+from ..world import World
 from visualization_msgs.msg import MarkerArray, Marker
 import rospy
 import urdf_parser_py
-from tf.transformations import quaternion_from_euler
 
 from pycram.pose import Transform
 
 
 class VizMarkerPublisher:
     """
-    Publishes an Array of visualization marker which represent the situation in the Bullet World
+    Publishes an Array of visualization marker which represent the situation in the World
     """
     def __init__(self, topic_name="/pycram/viz_marker", interval=0.1):
         """
-        The Publisher creates an Array of Visualization marker with a Marker for each link of each Object in the Bullet
+        The Publisher creates an Array of Visualization marker with a Marker for each link of each Object in the
         World. This Array is published with a rate of interval.
 
         :param topic_name: The name of the topic to which the Visualization Marker should be published.
@@ -56,29 +55,28 @@ class VizMarkerPublisher:
         :return: An Array of Visualization Marker
         """
         marker_array = MarkerArray()
-        for obj in BulletWorld.current_bullet_world.objects:
+        for obj in World.current_world.objects:
             if obj.name == "floor":
                 continue
-            for link in obj.links.keys():
-                geom = obj.link_to_geometry[link]
+            for link in obj.link_name_to_id.keys():
+                geom = obj.links[link].get_geometry()
                 if not geom:
                     continue
                 msg = Marker()
                 msg.header.frame_id = "map"
                 msg.ns = obj.name
-                msg.id = obj.links[link]
+                msg.id = obj.link_name_to_id[link]
                 msg.type = Marker.MESH_RESOURCE
                 msg.action = Marker.ADD
-                link_pose = obj.get_link_pose(link).to_transform(link)
-                if obj.urdf_object.link_map[link].collision.origin:
-                    link_origin = Transform(obj.urdf_object.link_map[link].collision.origin.xyz,
-                                            list(quaternion_from_euler(*obj.urdf_object.link_map[link].collision.origin.rpy)))
+                link_pose = obj.links[link].transform
+                if obj.links[link].origin:
+                    link_origin = obj.links[link].get_origin_transform()
                 else:
                     link_origin = Transform()
                 link_pose_with_origin = link_pose * link_origin
                 msg.pose = link_pose_with_origin.to_pose().pose
 
-                color = [1, 1, 1, 1] if obj.links[link] == -1 else obj.get_color(link)
+                color = [1, 1, 1, 1] if obj.link_name_to_id[link] == -1 else obj.get_color()
 
                 msg.color = ColorRGBA(*color)
                 msg.lifetime = rospy.Duration(1)

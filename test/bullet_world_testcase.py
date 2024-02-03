@@ -1,15 +1,10 @@
 import unittest
 
-import numpy as np
-import rospkg
-
-from pycram.bullet_world import BulletWorld, Object, fix_missing_inertial
+from pycram.bullet_world import BulletWorld, Object
 from pycram.pose import Pose
 from pycram.robot_descriptions import robot_description
 from pycram.process_module import ProcessModule
-from pycram.enums import ObjectType
-import os
-import tf
+from pycram.enums import ObjectType, WorldMode
 
 
 class BulletWorldTestCase(unittest.TestCase):
@@ -18,7 +13,7 @@ class BulletWorldTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.world = BulletWorld("DIRECT")
+        cls.world = BulletWorld(WorldMode.DIRECT)
         cls.robot = Object(robot_description.name, ObjectType.ROBOT, robot_description.name + ".urdf")
         cls.kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
         cls.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
@@ -26,14 +21,14 @@ class BulletWorldTestCase(unittest.TestCase):
         ProcessModule.execution_delay = False
 
     def setUp(self):
-        self.world.reset_bullet_world()
+        self.world.reset_world()
 
     # DO NOT WRITE TESTS HERE!!!
     # Test related to the BulletWorld should be written in test_bullet_world.py
     # Tests in here would not be properly executed in the CI
 
     def tearDown(self):
-        self.world.reset_bullet_world()
+        self.world.reset_world()
 
     @classmethod
     def tearDownClass(cls):

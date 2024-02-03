@@ -8,7 +8,7 @@ import pycram.orm.utils
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
-from pycram.enums import Arms, ObjectType
+from pycram.enums import Arms, ObjectType, WorldMode
 from pycram.task import with_tree
 import pycram.task
 from pycram.bullet_world import Object
@@ -27,7 +27,7 @@ class Configuration:
 
 class ExamplePlans:
     def __init__(self):
-        self.world = BulletWorld("DIRECT")
+        self.world = BulletWorld(WorldMode.DIRECT)
         self.pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
         self.kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
         self.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))

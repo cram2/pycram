@@ -10,21 +10,19 @@ import inspect
 import threading
 import time
 from abc import ABC
-from threading import Lock
+from typing_extensions import Callable, Type, Any, Union
 
 import rospy
 
 from .designator import MotionDesignatorDescription
-from .fluent import Fluent
-from typing import Callable, List, Type, Any, Union
 from .language import Language
-
 from .robot_descriptions import robot_description
 
 
 class ProcessModule:
     """
-    Implementation of process modules. Process modules are the part that communicate with the outer world to execute designators.
+    Implementation of process modules. Process modules are the part that communicate with the outer world to execute
+     designators.
     """
     execution_delay = True
     """
@@ -78,6 +76,7 @@ class RealRobot:
         with real_robot:
             some designators
     """
+
     def __init__(self):
         self.pre: str = ""
 
@@ -89,7 +88,7 @@ class RealRobot:
         self.pre = ProcessModuleManager.execution_type
         ProcessModuleManager.execution_type = "real"
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, _type, value, traceback):
         """
         Exit method for the 'with' scope, sets the :py:attr:`~ProcessModuleManager.execution_type` to the previously
         used one.
@@ -102,8 +101,8 @@ class RealRobot:
 
 class SimulatedRobot:
     """
-    Management class for executing designators on the simulated robot. This is intended to be used in a with environment.
-    When importing this class an instance is imported instead.
+    Management class for executing designators on the simulated robot. This is intended to be used in
+    a with environment. When importing this class an instance is imported instead.
 
     Example:
 
@@ -112,6 +111,7 @@ class SimulatedRobot:
         with simulated_robot:
             some designators
     """
+
     def __init__(self):
         self.pre: str = ""
 
@@ -123,7 +123,7 @@ class SimulatedRobot:
         self.pre = ProcessModuleManager.execution_type
         ProcessModuleManager.execution_type = "simulated"
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, _type, value, traceback):
         """
         Exit method for the 'with' scope, sets the :py:attr:`~ProcessModuleManager.execution_type` to the previously
         used one.
@@ -149,6 +149,7 @@ def with_real_robot(func: Callable) -> Callable:
     :param func: Function this decorator is annotating
     :return: The decorated function wrapped into the decorator
     """
+
     def wrapper(*args, **kwargs):
         pre = ProcessModuleManager.execution_type
         ProcessModuleManager.execution_type = "real"
@@ -174,6 +175,7 @@ def with_simulated_robot(func: Callable) -> Callable:
     :param func: Function this decorator is annotating
     :return: The decorated function wrapped into the decorator
     """
+
     def wrapper(*args, **kwargs):
         pre = ProcessModuleManager.execution_type
         ProcessModuleManager.execution_type = "simulated"
@@ -237,6 +239,7 @@ class ProcessModuleManager(ABC):
         :return: ProcessModuleManager instance of the current robot
         """
         manager = None
+        _default_manager = None
         if not ProcessModuleManager.execution_type:
             rospy.logerr(
                 f"No execution_type is set, did you use the with_simulated_robot or with_real_robot decorator?")
@@ -246,17 +249,23 @@ class ProcessModuleManager(ABC):
             if pm_manager.robot_name == robot_description.name:
                 manager = pm_manager
             if pm_manager.robot_name == "default":
-                default_manager = pm_manager
+                _default_manager = pm_manager
 
         if manager:
             return manager
+        elif _default_manager:
+            rospy.logwarn_once(f"No Process Module Manager found for robot: '{robot_description.name}'"
+                               f", using default process modules")
+            return _default_manager
         else:
-            rospy.logwarn_once(f"No Process Module Manager found for robot: '{robot_description.name}', using default process modules")
-            return default_manager
+            rospy.logerr(f"No Process Module Manager found for robot: '{robot_description.name}'"
+                         f", and no default process modules available")
+            return None
 
     def navigate(self) -> Type[ProcessModule]:
         """
-        Returns the Process Module for navigating the robot with respect to the :py:attr:`~ProcessModuleManager.execution_type`
+        Returns the Process Module for navigating the robot with respect to
+         the :py:attr:`~ProcessModuleManager.execution_type`
 
         :return: The Process Module for navigating
         """
@@ -283,7 +292,8 @@ class ProcessModuleManager(ABC):
 
     def looking(self) -> Type[ProcessModule]:
         """
-        Returns the Process Module for looking at a point with respect to the :py:attr:`~ProcessModuleManager.execution_type`
+        Returns the Process Module for looking at a point with respect to
+         the :py:attr:`~ProcessModuleManager.execution_type`
 
         :return: The Process Module for looking at a specific point
         """
@@ -292,7 +302,8 @@ class ProcessModuleManager(ABC):
 
     def detecting(self) -> Type[ProcessModule]:
         """
-        Returns the Process Module for detecting an object with respect to the :py:attr:`~ProcessModuleManager.execution_type`
+        Returns the Process Module for detecting an object with respect to
+         the :py:attr:`~ProcessModuleManager.execution_type`
 
         :return: The Process Module for detecting an object
         """
@@ -301,7 +312,8 @@ class ProcessModuleManager(ABC):
 
     def move_tcp(self) -> Type[ProcessModule]:
         """
-        Returns the Process Module for moving the Tool Center Point with respect to the :py:attr:`~ProcessModuleManager.execution_type`
+        Returns the Process Module for moving the Tool Center Point with respect to
+         the :py:attr:`~ProcessModuleManager.execution_type`
 
         :return: The Process Module for moving the TCP
         """
@@ -340,7 +352,8 @@ class ProcessModuleManager(ABC):
 
     def move_gripper(self) -> Type[ProcessModule]:
         """
-        Returns the Process Module for moving the gripper with respect to the :py:attr:`~ProcessModuleManager.execution_type`
+        Returns the Process Module for moving the gripper with respect to
+         the :py:attr:`~ProcessModuleManager.execution_type`
 
         :return: The Process Module for moving the gripper
         """
@@ -349,7 +362,8 @@ class ProcessModuleManager(ABC):
 
     def open(self) -> Type[ProcessModule]:
         """
-        Returns the Process Module for opening drawers with respect to the :py:attr:`~ProcessModuleManager.execution_type`
+        Returns the Process Module for opening drawers with respect to
+         the :py:attr:`~ProcessModuleManager.execution_type`
 
         :return: The Process Module for opening drawers
         """
@@ -358,7 +372,8 @@ class ProcessModuleManager(ABC):
 
     def close(self) -> Type[ProcessModule]:
         """
-        Returns the Process Module for closing drawers with respect to the :py:attr:`~ProcessModuleManager.execution_type`
+        Returns the Process Module for closing drawers with respect to
+         the :py:attr:`~ProcessModuleManager.execution_type`
 
         :return: The Process Module for closing drawers
         """

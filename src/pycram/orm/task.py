@@ -1,5 +1,5 @@
 """Implementation of ORM classes associated with pycram.task."""
-from typing import Optional
+from typing_extensions import Optional
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import MappedAsDataclass, Mapped, mapped_column, relationship
 from .action_designator import Action

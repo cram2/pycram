@@ -3,22 +3,22 @@ from __future__ import annotations
 
 import dataclasses
 from abc import ABC, abstractmethod
-from copy import copy
 from inspect import isgenerator, isgeneratorfunction
 
 from sqlalchemy.orm.session import Session
 import rospy
 
-from .bullet_world import (Object as BulletWorldObject, BulletWorld)
+from .world import World, Object as WorldObject
 from .helper import GeneratorList, bcolors
 from threading import Lock
 from time import time
-from typing import List, Dict, Any, Type, Optional, Union, get_type_hints, Callable, Tuple, Iterable
+from typing_extensions import List, Dict, Any, Optional, Union, get_type_hints, Callable, Iterable
 
 from .local_transformer import LocalTransformer
 from .language import Language
 from .pose import Pose
 from .robot_descriptions import robot_description
+from .enums import ObjectType
 
 import logging
 
@@ -26,7 +26,7 @@ from .orm.action_designator import (Action as ORMAction)
 from .orm.object_designator import (Object as ORMObjectDesignator)
 from .orm.motion_designator import (Motion as ORMMotionDesignator)
 
-from .orm.base import Quaternion, Position, Base, RobotState, ProcessMetaData
+from .orm.base import RobotState, ProcessMetaData
 from .task import with_tree
 
 
@@ -73,11 +73,11 @@ class Designator(ABC):
     argument and return a list of solutions. A solution can also be a generator. 
     """
 
-    def __init__(self, description: Type[DesignatorDescription], parent: Optional[Designator] = None):
+    def __init__(self, description: DesignatorDescription, parent: Optional[Designator] = None):
         """Create a new desginator.
 
         Arguments:
-        :param properties: A list of tuples (key-value pairs) describing this designator.
+        :param description: A list of tuples (key-value pairs) describing this designator.
         :param parent: The parent to equate with (default is None).
         """
         self._mutex: Lock = Lock()
@@ -88,7 +88,7 @@ class Designator(ABC):
         self._solutions = None
         self._index: int = 0
         self.timestamp = None
-        self._description: Type[DesignatorDescription] = description
+        self._description: DesignatorDescription = description
 
         if parent is not None:
             self.equate(parent)
@@ -359,7 +359,7 @@ class DesignatorDescription(ABC):
         """
         return list(self.__dict__.keys())
 
-    def copy(self) -> Type[DesignatorDescription]:
+    def copy(self) -> DesignatorDescription:
         return self
 
 
@@ -433,7 +433,8 @@ class MotionDesignatorDescription(DesignatorDescription, Language):
         """
         return list(self.__dict__.keys()).remove('cmd')
 
-    def _check_properties(self, desig: str, exclude: List[str] = []) -> None:
+    # TODO: Not used anymore, remove?
+    def _check_properties(self, desig: str, exclude: List[str] = None) -> None:
         """
         Checks the properties of this description. It will be checked if any attribute is
         None and if any attribute has to wrong type according to the type hints in
@@ -444,6 +445,7 @@ class MotionDesignatorDescription(DesignatorDescription, Language):
                         Exception as output.
         :param exclude: A list of properties which should not be checked.
         """
+        exclude = exclude if exclude else []
         right_types = get_type_hints(self.Motion)
         attributes = self.__dict__.copy()
         del attributes["resolve"]
@@ -480,15 +482,15 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
         The torso height of the robot at the start of the action.
         """
 
-        robot_type: str = dataclasses.field(init=False)
+        robot_type: ObjectType = dataclasses.field(init=False)
         """
         The type of the robot at the start of the action.
         """
 
         def __post_init__(self):
-            self.robot_position = BulletWorld.robot.get_pose()
-            self.robot_torso_height = BulletWorld.robot.get_joint_state(robot_description.torso_joint)
-            self.robot_type = BulletWorld.robot.type
+            self.robot_position = World.robot.get_pose()
+            self.robot_torso_height = World.robot.get_joint_position(robot_description.torso_joint)
+            self.robot_type = World.robot.obj_type
 
         @with_tree
         def perform(self) -> Any:
@@ -606,25 +608,25 @@ class ObjectDesignatorDescription(DesignatorDescription):
         Name of the object
         """
 
-        type: str
+        obj_type: ObjectType
         """
         Type of the object
         """
 
-        bullet_world_object: Optional[BulletWorldObject]
+        world_object: Optional[WorldObject]
         """
-        Reference to the BulletWorld object
+        Reference to the World object
         """
 
         _pose: Optional[Callable] = dataclasses.field(init=False)
         """
         A callable returning the pose of this object. The _pose member is used overwritten for data copies
-        which will not update when the original bullet_world_object is moved.
+        which will not update when the original world_object is moved.
         """
 
         def __post_init__(self):
-            if self.bullet_world_object:
-                self._pose = self.bullet_world_object.get_pose
+            if self.world_object:
+                self._pose = self.world_object.get_pose
 
         def to_sql(self) -> ORMObjectDesignator:
             """
@@ -632,7 +634,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
             :return: The created ORM object.
             """
-            return ORMObjectDesignator(self.type, self.name)
+            return ORMObjectDesignator(self.obj_type, self.name)
 
         def insert(self, session: Session) -> ORMObjectDesignator:
             """
@@ -657,11 +659,11 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
         def data_copy(self) -> 'ObjectDesignatorDescription.Object':
             """
-            :return: A copy containing only the fields of this class. The BulletWorldObject attached to this pycram
+            :return: A copy containing only the fields of this class. The WorldObject attached to this pycram
             object is not copied. The _pose gets set to a method that statically returns the pose of the object when
             this method was called.
             """
-            result = ObjectDesignatorDescription.Object(self.name, self.type, None)
+            result = ObjectDesignatorDescription.Object(self.name, self.obj_type, None)
             # get current object pose and set resulting pose to always be that
             pose = self.pose
             result.pose = lambda: pose
@@ -700,11 +702,11 @@ class ObjectDesignatorDescription(DesignatorDescription):
             :return: The adjusted grasp pose
             """
             lt = LocalTransformer()
-            pose_in_object = lt.transform_to_object_frame(pose, self.bullet_world_object)
+            pose_in_object = lt.transform_pose(pose, self.world_object.tf_frame)
 
             special_knowledge = []  # Initialize as an empty list
-            if self.type in SPECIAL_KNOWLEDGE:
-                special_knowledge = SPECIAL_KNOWLEDGE[self.type]
+            if self.obj_type in SPECIAL_KNOWLEDGE:
+                special_knowledge = SPECIAL_KNOWLEDGE[self.obj_type]
 
             for key, value in special_knowledge:
                 if key == grasp:
@@ -716,26 +718,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
                     return pose_in_object
             return pose
 
-        # def special_knowledge(self, grasp, pose):
-        #     """
-        #     Returns t special knowledge for "grasp front".
-        #     """
-        #
-        #     special_knowledge = []  # Initialize as an empty list
-        #     if self.type in SPECIAL_KNOWLEDGE:
-        #         special_knowledge = SPECIAL_KNOWLEDGE[self.type]
-        #
-        #     for key, value in special_knowledge:
-        #         if key == grasp:
-        #             # Adjust target pose based on special knowledge
-        #             pose.pose.position.x += value[0]
-        #             pose.pose.position.y += value[1]
-        #             pose.pose.position.z += value[2]
-        #             print("Adjusted target pose based on special knowledge for grasp: ", grasp)
-        #             return pose
-        #     return pose
-
-    def __init__(self, names: Optional[List[str]] = None, types: Optional[List[str]] = None,
+    def __init__(self, names: Optional[List[str]] = None, types: Optional[List[ObjectType]] = None,
                  resolver: Optional[Callable] = None):
         """
         Base of all object designator descriptions. Every object designator has the name and type of the object.
@@ -745,12 +728,12 @@ class ObjectDesignatorDescription(DesignatorDescription):
         :param resolver: An alternative resolver that returns an object designator for the list of names and types
         """
         super().__init__(resolver)
-        self.types: Optional[List[str]] = types
+        self.types: Optional[List[ObjectType]] = types
         self.names: Optional[List[str]] = names
 
     def ground(self) -> Union[Object, bool]:
         """
-        Return the first object from the bullet world that fits the description.
+        Return the first object from the world that fits the description.
 
         :return: A resolved object designator
         """
@@ -762,15 +745,15 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
         :yield: A resolved object designator
         """
-        # for every bullet world object
-        for obj in BulletWorld.current_bullet_world.objects:
+        # for every world object
+        for obj in World.current_world.objects:
 
             # skip if name does not match specification
             if self.names and obj.name not in self.names:
                 continue
 
             # skip if type does not match specification
-            if self.types and obj.type not in self.types:
+            if self.types and obj.obj_type not in self.types:
                 continue
 
-            yield self.Object(obj.name, obj.type, obj)
+            yield self.Object(obj.name, obj.obj_type, obj)

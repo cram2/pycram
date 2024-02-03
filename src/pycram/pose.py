@@ -1,17 +1,15 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-import copy
 import math
 import datetime
-from typing import List, Union, Optional
+from typing_extensions import List, Union, Optional
 
 import numpy as np
 import rospy
 import sqlalchemy.orm
-from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3
+from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3, Point
 from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
-from std_msgs.msg import Header
 from tf import transformations
 from .orm.base import Pose as ORMPose, Position, Quaternion, ProcessMetaData
 
@@ -87,7 +85,7 @@ class Pose(PoseStamped):
         self.header.frame_id = value
 
     @property
-    def position(self) -> GeoPose:
+    def position(self) -> Point:
         """
         Property that points to the position of this pose
         """
@@ -100,8 +98,8 @@ class Pose(PoseStamped):
 
         :param value: List or geometry_msgs/Pose message for the position
         """
-        if not type(value) == list and not type(value) == tuple and not type(value) == GeoPose:
-            print(type(value))
+        if (not type(value) == list and not type(value) == tuple and not type(value) == GeoPose
+                and not type(value) == Point):
             rospy.logwarn("Position can only be a list or geometry_msgs/Pose")
             return
         if type(value) == list or type(value) == tuple and len(value) == 3:
@@ -109,6 +107,7 @@ class Pose(PoseStamped):
             self.pose.position.y = value[1]
             self.pose.position.z = value[2]
         else:
+            # TODO: Check if this is correct or if it should be handled as an error
             self.pose.position = value
 
     @property
@@ -159,7 +158,8 @@ class Pose(PoseStamped):
         :param child_frame: Child frame id to which the Transform points
         :return: A new Transform
         """
-        return Transform(self.position_as_list(), self.orientation_as_list(), self.frame, child_frame, self.header.stamp)
+        return Transform(self.position_as_list(), self.orientation_as_list(), self.frame, child_frame,
+                         self.header.stamp)
 
     def copy(self) -> Pose:
         """
@@ -169,7 +169,6 @@ class Pose(PoseStamped):
         """
         p = Pose(self.position_as_list(), self.orientation_as_list(), self.frame, self.header.stamp)
         p.header.frame_id = self.header.frame_id
-        # p.header.stamp = self.header.stamp
         return p
 
     def position_as_list(self) -> List[float]:
@@ -178,7 +177,7 @@ class Pose(PoseStamped):
 
         :return: The position as a list
         """
-        return [self.pose.position.x, self.pose.position.y, self.pose.position.z]
+        return [self.position.x, self.position.y, self.position.z]
 
     def orientation_as_list(self) -> List[float]:
         """
@@ -300,6 +299,11 @@ class Transform(TransformStamped):
         self.header.stamp = time if time else rospy.Time.now()
 
         self.frame = frame
+
+    @classmethod
+    def from_pose_and_child_frame(cls, pose: Pose, child_frame_name: str) -> Transform:
+        return cls(pose.position_as_list(), pose.orientation_as_list(), pose.frame, child_frame_name,
+                   time=pose.header.stamp)
 
     @staticmethod
     def from_transform_stamped(transform_stamped: TransformStamped) -> Transform:

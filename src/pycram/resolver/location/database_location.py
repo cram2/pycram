@@ -51,7 +51,7 @@ class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLoca
                                                .join(PickUpAction.robot_state)
                                                .join(RobotState.pose)
                                                .join(orm.base.Pose.position)
-                                               .join(PickUpAction.object).filter(Object.type == self.target.type)
+                                               .join(PickUpAction.object).filter(Object.obj_type == self.target.obj_type)
                                                                          .filter(TaskTreeNode.status == "SUCCEEDED"))
 
         # create Occupancy costmap for the target object

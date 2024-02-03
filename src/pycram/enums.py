@@ -19,7 +19,6 @@ class TaskStatus(Enum):
     SUCCEEDED = 2
     FAILED = 3
 
-
 class JointType(Enum):
     """
     Enum for readable joint types.
@@ -29,6 +28,9 @@ class JointType(Enum):
     SPHERICAL = 2
     PLANAR = 3
     FIXED = 4
+    UNKNOWN = 5
+    CONTINUOUS = 6
+    FLOATING = 7
 
 
 class Grasp(Enum):
@@ -64,3 +66,22 @@ class State(Enum):
     RUNNING = 2
     INTERRUPTED = 3
 
+
+class Shape(Enum):
+    """
+    Enum for visual shapes of objects
+    """
+    SPHERE = 2
+    BOX = 3
+    CYLINDER = 4
+    MESH = 5
+    PLANE = 6
+    CAPSULE = 7
+
+
+class WorldMode(Enum):
+    """
+    Enum for the different modes of the world.
+    """
+    GUI = "GUI"
+    DIRECT = "DIRECT"

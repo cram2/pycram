@@ -1,7 +1,7 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-from typing import Callable, List, Optional, Any
+from typing_extensions import Callable, List, Optional, Any
 
 
 class Event:

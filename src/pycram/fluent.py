@@ -16,7 +16,7 @@ import operator
 from enum import Enum
 from threading import Condition, Lock
 from uuid import uuid4
-from typing import Any, Optional, List, Callable
+from typing_extensions import Any, Optional, List, Callable
 
 
 class Behavior(Enum):

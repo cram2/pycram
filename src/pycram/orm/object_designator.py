@@ -26,7 +26,7 @@ class Object(PoseMixin, Base):
     """ORM class of pycram.designators.object_designator.ObjectDesignator"""
 
     dtype: Mapped[str] = mapped_column(init=False)
-    type: Mapped[ObjectType]
+    obj_type: Mapped[ObjectType]
     name: Mapped[str]
 
     __mapper_args__ = {

@@ -1,5 +1,5 @@
 import sys
-from typing import Callable
+from typing_extensions import Callable
 
 import rosnode
 import rospy
@@ -9,7 +9,7 @@ import rosnode
 from ..designator import ObjectDesignatorDescription
 from ..pose import Pose
 from ..local_transformer import LocalTransformer
-from ..bullet_world import BulletWorld
+from ..world import World
 from ..enums import ObjectType
 
 try:
@@ -85,7 +85,7 @@ def msg_from_obj_desig(obj_desc: ObjectDesignatorDescription) -> 'robokudo_Objet
     """
     obj_msg = robokudo_ObjetDesignator()
     obj_msg.uid = str(id(obj_desc))
-    obj_msg.type = obj_desc.types[0] # For testing purposes
+    obj_msg.obj_type = obj_desc.types[0] # For testing purposes
 
     return obj_msg
 
@@ -99,7 +99,7 @@ def make_query_goal_msg(obj_desc: ObjectDesignatorDescription) -> 'QueryGoal':
     """
     goal_msg = QueryGoal()
     goal_msg.obj.uid = str(id(obj_desc))
-    goal_msg.obj.type = str(obj_desc.types[0].name) # For testing purposes
+    goal_msg.obj.obj_type = str(obj_desc.types[0].name)  # For testing purposes
     if ObjectType.JEROEN_CUP == obj_desc.types[0]:
         goal_msg.obj.color.append("blue")
     elif ObjectType.BOWL == obj_desc.types[0]:
@@ -125,7 +125,7 @@ def query(object_desc: ObjectDesignatorDescription) -> ObjectDesignatorDescripti
 
     for i in range(0, len(query_result.res[0].pose)):
         pose = Pose.from_pose_stamped(query_result.res[0].pose[i])
-        pose.frame = BulletWorld.current_bullet_world.robot.get_link_tf_frame(pose.frame)
+        pose.frame = World.current_world.robot.links[pose.frame].tf_frame  # TODO: pose.frame is a link name?
         source = query_result.res[0].poseSource[i]
 
         lt = LocalTransformer()

@@ -1,16 +1,14 @@
 import dataclasses
-import time
-from typing import List, Tuple, Union, Iterable, Optional, Callable
+from typing_extensions import List, Union, Iterable, Optional, Callable
 
 from .object_designator import ObjectDesignatorDescription, ObjectPart
-from ..bullet_world import Object, BulletWorld, Use_shadow_world
-from ..bullet_world_reasoning import link_pose_for_joint_config
-from ..designator import Designator, DesignatorError, LocationDesignatorDescription
+from ..world import World, UseProspectionWorld
+from ..world_reasoning import link_pose_for_joint_config
+from ..designator import DesignatorError, LocationDesignatorDescription
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
 from ..robot_descriptions import robot_description
 from ..enums import JointType
 from ..helper import transform
-from ..plan_failures import EnvironmentManipulationImpossible
 from ..pose_generator_and_validator import pose_generator, visibility_validator, reachability_validator, \
     generate_orientation
 from ..robot_description import ManipulatorDescription
@@ -160,7 +158,7 @@ class CostmapLocation(LocationDesignatorDescription):
         max_height = list(robot_description.cameras.values())[0].max_height
         # This ensures that the costmaps always get a position as their origin.
         if isinstance(self.target, ObjectDesignatorDescription.Object):
-            target_pose = self.target.bullet_world_object.get_pose()
+            target_pose = self.target.world_object.get_pose()
         else:
             target_pose = self.target.copy()
 
@@ -179,17 +177,17 @@ class CostmapLocation(LocationDesignatorDescription):
             final_map += visible
 
         if self.visible_for or self.reachable_for:
-            robot_object = self.visible_for.bullet_world_object if self.visible_for else self.reachable_for.bullet_world_object
-            test_robot = BulletWorld.current_bullet_world.get_shadow_object(robot_object)
+            robot_object = self.visible_for.world_object if self.visible_for else self.reachable_for.world_object
+            test_robot = World.current_world.get_prospection_object_for_object(robot_object)
 
-        with Use_shadow_world():
+        with UseProspectionWorld():
 
             for maybe_pose in pose_generator(final_map, number_of_samples=600):
                 res = True
                 arms = None
                 if self.visible_for:
                     res = res and visibility_validator(maybe_pose, test_robot, target_pose,
-                                                       BulletWorld.current_bullet_world)
+                                                       World.current_world)
                 if self.reachable_for:
                     hand_links = []
                     for name, chain in robot_description.chains.items():
@@ -229,7 +227,7 @@ class AccessingLocation(LocationDesignatorDescription):
         """
         super().__init__(resolver)
         self.handle: ObjectPart.Object = handle_desig
-        self.robot: ObjectDesignatorDescription.Object = robot_desig.bullet_world_object
+        self.robot: ObjectDesignatorDescription.Object = robot_desig.world_object
 
     def ground(self) -> Location:
         """
@@ -256,26 +254,26 @@ class AccessingLocation(LocationDesignatorDescription):
 
         final_map = occupancy + gaussian
 
-        test_robot = BulletWorld.current_bullet_world.get_shadow_object(self.robot)
+        test_robot = World.current_world.get_prospection_object_for_object(self.robot)
 
         # Find a Joint of type prismatic which is above the handle in the URDF tree
-        container_joint = self.handle.bullet_world_object.find_joint_above(self.handle.name, JointType.PRISMATIC)
+        container_joint = self.handle.world_object.find_joint_above(self.handle.name, JointType.PRISMATIC)
 
-        init_pose = link_pose_for_joint_config(self.handle.bullet_world_object, {
-            container_joint: self.handle.bullet_world_object.get_joint_limits(container_joint)[0]},
+        init_pose = link_pose_for_joint_config(self.handle.world_object, {
+            container_joint: self.handle.world_object.get_joint_limits(container_joint)[0]},
                                                self.handle.name)
 
         # Calculate the pose the handle would be in if the drawer was to be fully opened
-        goal_pose = link_pose_for_joint_config(self.handle.bullet_world_object, {
-            container_joint: self.handle.bullet_world_object.get_joint_limits(container_joint)[1] - 0.05},
+        goal_pose = link_pose_for_joint_config(self.handle.world_object, {
+            container_joint: self.handle.world_object.get_joint_limits(container_joint)[1] - 0.05},
                                                self.handle.name)
 
         # Handle position for calculating rotation of the final pose
-        half_pose = link_pose_for_joint_config(self.handle.bullet_world_object, {
-            container_joint: self.handle.bullet_world_object.get_joint_limits(container_joint)[1] / 1.5},
+        half_pose = link_pose_for_joint_config(self.handle.world_object, {
+            container_joint: self.handle.world_object.get_joint_limits(container_joint)[1] / 1.5},
                                                self.handle.name)
 
-        with Use_shadow_world():
+        with UseProspectionWorld():
             for maybe_pose in pose_generator(final_map, number_of_samples=600,
                                              orientation_generator=lambda p, o: generate_orientation(p, half_pose)):
 
@@ -335,11 +333,11 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
 
         :yield: An instance of SemanticCostmapLocation.Location with the found valid position of the Costmap.
         """
-        sem_costmap = SemanticCostmap(self.part_of.bullet_world_object, self.urdf_link_name)
+        sem_costmap = SemanticCostmap(self.part_of.world_object, self.urdf_link_name)
         height_offset = 0
         if self.for_object:
-            min, max = self.for_object.bullet_world_object.get_AABB()
-            height_offset = (max[2] - min[2]) / 2
+            min_p, max_p = self.for_object.world_object.get_axis_aligned_bounding_box().get_min_max_points()
+            height_offset = (max_p.z - min_p.z) / 2
         for maybe_pose in pose_generator(sem_costmap):
             maybe_pose.position.z += height_offset
             yield self.Location(maybe_pose)

@@ -18,7 +18,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.assertEqual(description.ground().position, 0.3)
         with simulated_robot:
             description.resolve().perform()
-        self.assertEqual(self.world.robot.get_joint_state(robot_description.torso_joint), 0.3)
+        self.assertEqual(self.world.robot.get_joint_position(robot_description.torso_joint), 0.3)
 
     def test_set_gripper(self):
         description = action_designator.SetGripperAction(["left"], ["open", "close"])
@@ -28,7 +28,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         with simulated_robot:
             description.resolve().perform()
         for joint, state in robot_description.get_static_gripper_chain("left", "open").items():
-            self.assertEqual(self.world.robot.get_joint_state(joint), state)
+            self.assertEqual(self.world.robot.get_joint_position(joint), state)
 
     def test_release(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
@@ -48,9 +48,9 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         with simulated_robot:
             description.resolve().perform()
         for joint, pose in robot_description.get_static_joint_chain("right", "park").items():
-            self.assertEqual(self.world.robot.get_joint_state(joint), pose)
+            self.assertEqual(self.world.robot.get_joint_position(joint), pose)
         for joint, pose in robot_description.get_static_joint_chain("left", "park").items():
-            self.assertEqual(self.world.robot.get_joint_state(joint), pose)
+            self.assertEqual(self.world.robot.get_joint_position(joint), pose)
 
     def test_navigate(self):
         description = action_designator.NavigateAction([Pose([0, 0, 0], [0, 0, 0, 1])])
@@ -64,7 +64,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             action_designator.NavigateAction.Action(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
             action_designator.MoveTorsoAction.Action(0.3).perform()
             description.resolve().perform()
-        self.assertTrue(object_description.resolve().bullet_world_object in self.robot.attachments.keys())
+        self.assertTrue(object_description.resolve().world_object in self.robot.attachments.keys())
 
     def test_place(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
@@ -75,7 +75,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             action_designator.MoveTorsoAction.Action(0.3).perform()
             action_designator.PickUpAction.Action(object_description.resolve(), "left", "front").perform()
             description.resolve().perform()
-        self.assertFalse(object_description.resolve().bullet_world_object in self.robot.attachments.keys())
+        self.assertFalse(object_description.resolve().world_object in self.robot.attachments.keys())
 
     def test_look_at(self):
         description = action_designator.LookAtAction([Pose([1, 0, 1])])
@@ -87,15 +87,14 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
     def test_detect(self):
         self.kitchen.set_pose(Pose([10, 10, 0]))
         self.milk.set_pose(Pose([1.5, 0, 1.2]))
-        # time.sleep(1)
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.DetectAction(object_description)
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
             detected_object = description.resolve().perform()
         self.assertEqual(detected_object.name, "milk")
-        self.assertEqual(detected_object.type, ObjectType.MILK)
-        self.assertEqual(detected_object.bullet_world_object, self.milk)
+        self.assertEqual(detected_object.obj_type, ObjectType.MILK)
+        self.assertEqual(detected_object.world_object, self.milk)
 
     # Skipped since open and close work only in the apartment at the moment
     @unittest.skip
@@ -131,7 +130,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         with simulated_robot:
             description.resolve().perform()
         dist = np.linalg.norm(
-            np.array(self.robot.get_link_pose(robot_description.get_tool_frame("right")).position_as_list()) -
+            np.array(self.robot.links[robot_description.get_tool_frame("right")].position_as_list) -
             np.array(self.milk.get_pose().position_as_list()))
         self.assertTrue(dist < 0.01)
 
