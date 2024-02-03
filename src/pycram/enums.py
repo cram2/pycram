@@ -19,7 +19,6 @@ class TaskStatus(Enum):
     SUCCEEDED = 2
     FAILED = 3
 
-
 class JointType(Enum):
     """
     Enum for readable joint types.
@@ -29,6 +28,9 @@ class JointType(Enum):
     SPHERICAL = 2
     PLANAR = 3
     FIXED = 4
+    UNKNOWN = 5
+    CONTINUOUS = 6
+    FLOATING = 7
 
 
 class Grasp(Enum):
