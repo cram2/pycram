@@ -1,15 +1,15 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-import dataclasses
+from dataclasses import dataclass, field, fields
 from abc import ABC, abstractmethod
-from copy import copy
 from inspect import isgenerator, isgeneratorfunction
 
 from sqlalchemy.orm.session import Session
 import rospy
 
 from .bullet_world import (Object as BulletWorldObject, BulletWorld)
+from .enums import ObjectType
 from .helper import GeneratorList, bcolors
 from threading import Lock
 from time import time
@@ -24,7 +24,6 @@ import logging
 
 from .orm.action_designator import (Action as ORMAction)
 from .orm.object_designator import (Object as ORMObjectDesignator)
-from .orm.motion_designator import (Motion as ORMMotionDesignator)
 
 from .orm.base import Quaternion, Position, Base, RobotState, ProcessMetaData
 from .task import with_tree
@@ -363,124 +362,27 @@ class DesignatorDescription(ABC):
         return self
 
 
-class MotionDesignatorDescription(DesignatorDescription, Language):
-    """
-    Parent class of motion designator descriptions.
-    """
-
-    @dataclasses.dataclass
-    class Motion:
-        """
-        Resolved motion designator which can be performed
-        """
-        cmd: str
-        """
-        Command of this motion designator, is used to match process modules to motion designator. Cmd is inherited by 
-        every motion designator.
-        """
-
-        @with_tree
-        def perform(self):
-            """
-            Passes this designator to the process module for execution.
-
-            :return: The return value of the process module if there is any.
-            """
-            raise NotImplementedError()
-            # return ProcessModule.perform(self)
-
-        def to_sql(self) -> ORMMotionDesignator:
-            """
-            Create an ORM object that corresponds to this description.
-
-            :return: The created ORM object.
-            """
-            return ORMMotionDesignator()
-
-        def insert(self, session: Session, *args, **kwargs) -> ORMMotionDesignator:
-            """
-            Add and commit this and all related objects to the session.
-            Auto-Incrementing primary keys and foreign keys have to be filled by this method.
-
-            :param session: Session with a database that is used to add and commit the objects
-            :return: The completely instanced ORM motion.
-            """
-            metadata = ProcessMetaData().insert(session)
-
-            motion = self.to_sql()
-            motion.process_metadata_id = metadata.id
-
-            return motion
-
-    def ground(self) -> Motion:
-        """Fill all missing parameters and pass the designator to the process module. """
-        raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
-
-    def __init__(self, resolver=None):
-        """
-        Creates a new motion designator description
-
-        :param resolver: An alternative resolver which overrides self.resolve()
-        """
-        super().__init__(resolver)
-
-    def get_slots(self):
-        """
-        Returns a list of all slots of this description. Can be used for inspecting
-        different descriptions and debugging.
-
-        :return: A list of all slots.
-        """
-        return list(self.__dict__.keys()).remove('cmd')
-
-    def _check_properties(self, desig: str, exclude: List[str] = []) -> None:
-        """
-        Checks the properties of this description. It will be checked if any attribute is
-        None and if any attribute has to wrong type according to the type hints in
-        the description class.
-        It is possible to provide a list of attributes which should not be checked.
-
-        :param desig: The current type of designator, will be used when raising an
-                        Exception as output.
-        :param exclude: A list of properties which should not be checked.
-        """
-        right_types = get_type_hints(self.Motion)
-        attributes = self.__dict__.copy()
-        del attributes["resolve"]
-        missing = []
-        wrong_type = {}
-        current_type = {}
-        for k in attributes.keys():
-            if attributes[k] == None and not attributes[k] in exclude:
-                missing.append(k)
-            elif type(attributes[k]) != right_types[k] and not attributes[k] in exclude:
-                wrong_type[k] = right_types[k]
-                current_type[k] = type(attributes[k])
-        if missing != [] or wrong_type != {}:
-            raise ResolutionError(missing, wrong_type, current_type, desig)
-
-
 class ActionDesignatorDescription(DesignatorDescription, Language):
     """
     Abstract class for action designator descriptions.
     Descriptions hold possible parameter ranges for action designators.
     """
 
-    @dataclasses.dataclass
+    @dataclass
     class Action:
         """
         The performable designator with a single element for each list of possible parameter.
         """
-        robot_position: Pose = dataclasses.field(init=False)
+        robot_position: Pose = field(init=False)
         """
         The position of the robot at the start of the action.
         """
-        robot_torso_height: float = dataclasses.field(init=False)
+        robot_torso_height: float = field(init=False)
         """
         The torso height of the robot at the start of the action.
         """
 
-        robot_type: str = dataclasses.field(init=False)
+        robot_type: str = field(init=False)
         """
         The type of the robot at the start of the action.
         """
@@ -556,7 +458,7 @@ class LocationDesignatorDescription(DesignatorDescription):
     Parent class of location designator descriptions.
     """
 
-    @dataclasses.dataclass
+    @dataclass
     class Location:
         """
         Resolved location that represents a specific point in the world which satisfies the constraints of the location
@@ -595,7 +497,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
     Descriptions hold possible parameter ranges for object designators.
     """
 
-    @dataclasses.dataclass
+    @dataclass
     class Object:
         """
         A single element that fits the description.
@@ -616,7 +518,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
         Reference to the BulletWorld object
         """
 
-        _pose: Optional[Callable] = dataclasses.field(init=False)
+        _pose: Optional[Callable] = field(init=False)
         """
         A callable returning the pose of this object. The _pose member is used overwritten for data copies
         which will not update when the original bullet_world_object is moved.
@@ -655,7 +557,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
             session.commit()
             return obj
 
-        def data_copy(self) -> 'ObjectDesignatorDescription.Object':
+        def frozen_copy(self) -> 'ObjectDesignatorDescription.Object':
             """
             :return: A copy containing only the fields of this class. The BulletWorldObject attached to this pycram
             object is not copied. The _pose gets set to a method that statically returns the pose of the object when
@@ -688,7 +590,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
         def __repr__(self):
             return self.__class__.__qualname__ + f"(" + ', '.join(
-                [f"{f.name}={self.__getattribute__(f.name)}" for f in dataclasses.fields(self)] + [
+                [f"{f.name}={self.__getattribute__(f.name)}" for f in fields(self)] + [
                     f"pose={self.pose}"]) + ')'
 
         def special_knowledge_adjustment_pose(self, grasp: str, pose: Pose) -> Pose:

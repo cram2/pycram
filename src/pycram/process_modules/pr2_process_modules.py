@@ -50,57 +50,9 @@ class Pr2Navigation(ProcessModule):
     The process module to move the robot from one position to another.
     """
 
-    def _execute(self, desig: MoveMotion.Motion):
+    def _execute(self, desig: MoveMotion):
         robot = BulletWorld.robot
         robot.set_pose(desig.target)
-
-
-class Pr2PickUp(ProcessModule):
-    """
-    This process module is for picking up a given object.
-    The object has to be reachable for this process module to succeed.
-    """
-
-    def _execute(self, desig: PickUpMotion.Motion):
-        object = desig.object_desig.bullet_world_object
-        robot = BulletWorld.robot
-        grasp = robot_description.grasps.get_orientation_for_grasp(desig.grasp)
-        target = object.get_pose()
-        target.orientation.x = grasp[0]
-        target.orientation.y = grasp[1]
-        target.orientation.z = grasp[2]
-        target.orientation.w = grasp[3]
-
-        arm = desig.arm
-
-        _move_arm_tcp(target, robot, arm)
-        tool_frame = robot_description.get_tool_frame(arm)
-        robot.attach(object, tool_frame)
-
-
-class Pr2Place(ProcessModule):
-    """
-    This process module places an object at the given position in world coordinate frame.
-    """
-
-    def _execute(self, desig: PlaceMotion.Motion):
-        """
-
-        :param desig: A PlaceMotion
-        :return:
-        """
-        object = desig.object.bullet_world_object
-        robot = BulletWorld.robot
-        arm = desig.arm
-
-        # Transformations such that the target position is the position of the object and not the tcp
-        object_pose = object.get_pose()
-        local_tf = LocalTransformer()
-        tcp_to_object = local_tf.transform_pose(object_pose, robot.get_link_tf_frame(robot_description.get_tool_frame(arm)))
-        target_diff = desig.target.to_transform("target").inverse_times(tcp_to_object.to_transform("object")).to_pose()
-
-        _move_arm_tcp(target_diff, robot, arm)
-        robot.detach(object)
 
 
 class Pr2MoveHead(ProcessModule):
@@ -109,7 +61,7 @@ class Pr2MoveHead(ProcessModule):
     This point can either be a position or an object.
     """
 
-    def _execute(self, desig: LookingMotion.Motion):
+    def _execute(self, desig: LookingMotion):
         target = desig.target
         robot = BulletWorld.robot
 
@@ -133,7 +85,7 @@ class Pr2MoveGripper(ProcessModule):
     Furthermore, it can only moved one gripper at a time.
     """
 
-    def _execute(self, desig: MoveGripperMotion.Motion):
+    def _execute(self, desig: MoveGripperMotion):
         robot = BulletWorld.robot
         gripper = desig.gripper
         motion = desig.motion
@@ -147,7 +99,7 @@ class Pr2Detecting(ProcessModule):
     the field of view of the robot.
     """
 
-    def _execute(self, desig: DetectingMotion.Motion):
+    def _execute(self, desig: DetectingMotion):
         robot = BulletWorld.robot
         object_type = desig.object_type
         # Should be "wide_stereo_optical_frame"
@@ -166,7 +118,7 @@ class Pr2MoveTCP(ProcessModule):
     This process moves the tool center point of either the right or the left arm.
     """
 
-    def _execute(self, desig: MoveTCPMotion.Motion):
+    def _execute(self, desig: MoveTCPMotion):
         target = desig.target
         robot = BulletWorld.robot
 
@@ -179,7 +131,7 @@ class Pr2MoveArmJoints(ProcessModule):
     list that should be applied or a pre-defined position can be used, such as "parking"
     """
 
-    def _execute(self, desig: MoveArmJointsMotion.Motion):
+    def _execute(self, desig: MoveArmJointsMotion):
 
         robot = BulletWorld.robot
         if desig.right_arm_poses:
@@ -192,7 +144,7 @@ class PR2MoveJoints(ProcessModule):
     """
     Process Module for generic joint movements, is not confined to the arms but can move any joint of the robot
     """
-    def _execute(self, desig: MoveJointsMotion.Motion):
+    def _execute(self, desig: MoveJointsMotion):
         robot = BulletWorld.robot
         robot.set_joint_states(dict(zip(desig.names, desig.positions)))
 
@@ -202,7 +154,7 @@ class Pr2WorldStateDetecting(ProcessModule):
     This process module detectes an object even if it is not in the field of view of the robot.
     """
 
-    def _execute(self, desig: WorldStateDetectingMotion.Motion):
+    def _execute(self, desig: WorldStateDetectingMotion):
         obj_type = desig.object_type
         return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
 
@@ -212,7 +164,7 @@ class Pr2Open(ProcessModule):
     Low-level implementation of opening a container in the simulation. Assumes the handle is already grasped.
     """
 
-    def _execute(self, desig: OpeningMotion.Motion):
+    def _execute(self, desig: OpeningMotion):
         part_of_object = desig.object_part.bullet_world_object
 
         container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
@@ -232,7 +184,7 @@ class Pr2Close(ProcessModule):
     Low-level implementation that lets the robot close a grasped container, in simulation
     """
 
-    def _execute(self, desig: ClosingMotion.Motion):
+    def _execute(self, desig: ClosingMotion):
         part_of_object = desig.object_part.bullet_world_object
 
         container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
@@ -266,21 +218,9 @@ class Pr2NavigationReal(ProcessModule):
     Process module for the real PR2 that sends a cartesian goal to giskard to move the robot base
     """
 
-    def _execute(self, designator: MoveMotion.Motion) -> Any:
+    def _execute(self, designator: MoveMotion) -> Any:
         rospy.logdebug(f"Sending goal to giskard to Move the robot")
         giskard.achieve_cartesian_goal(designator.target, robot_description.base_link, "map")
-
-
-class Pr2PickUpReal(ProcessModule):
-
-    def _execute(self, designator: PickUpMotion.Motion) -> Any:
-        pass
-
-
-class Pr2PlaceReal(ProcessModule):
-
-    def _execute(self, designator: MotionDesignatorDescription.Motion) -> Any:
-        pass
 
 
 class Pr2MoveHeadReal(ProcessModule):
@@ -289,7 +229,7 @@ class Pr2MoveHeadReal(ProcessModule):
     as the simulated one
     """
 
-    def _execute(self, desig: LookingMotion.Motion):
+    def _execute(self, desig: LookingMotion):
         target = desig.target
         robot = BulletWorld.robot
 
@@ -314,7 +254,7 @@ class Pr2DetectingReal(ProcessModule):
     for perception of the environment.
     """
 
-    def _execute(self, designator: DetectingMotion.Motion) -> Any:
+    def _execute(self, designator: DetectingMotion) -> Any:
         query_result = query(ObjectDesignatorDescription(types=[designator.object_type]))
         # print(query_result)
         obj_pose = query_result["ClusterPoseBBAnnotator"]
@@ -339,15 +279,12 @@ class Pr2DetectingReal(ProcessModule):
         return bullet_obj[0]
 
 
-
-
-
 class Pr2MoveTCPReal(ProcessModule):
     """
     Moves the tool center point of the real PR2 while avoiding all collisions
     """
 
-    def _execute(self, designator: MoveTCPMotion.Motion) -> Any:
+    def _execute(self, designator: MoveTCPMotion) -> Any:
         lt = LocalTransformer()
         pose_in_map = lt.transform_pose(designator.target, "map")
 
@@ -362,7 +299,7 @@ class Pr2MoveArmJointsReal(ProcessModule):
     Moves the arm joints of the real PR2 to the given configuration while avoiding all collisions
     """
 
-    def _execute(self, designator: MoveArmJointsMotion.Motion) -> Any:
+    def _execute(self, designator: MoveArmJointsMotion) -> Any:
         joint_goals = {}
         if designator.left_arm_poses:
             joint_goals.update(designator.left_arm_poses)
@@ -377,7 +314,7 @@ class Pr2MoveJointsReal(ProcessModule):
     Moves any joint using giskard, avoids all collisions while doint this.
     """
 
-    def _execute(self, designator: MoveJointsMotion.Motion) -> Any:
+    def _execute(self, designator: MoveJointsMotion) -> Any:
         name_to_position = dict(zip(designator.names, designator.positions))
         giskard.avoid_all_collisions()
         giskard.achieve_joint_goal(name_to_position)
@@ -388,7 +325,7 @@ class Pr2MoveGripperReal(ProcessModule):
     Opens or closes the gripper of the real PR2, gripper uses an action server for this instead of giskard 
     """
 
-    def _execute(self, designator: MoveGripperMotion.Motion) -> Any:
+    def _execute(self, designator: MoveGripperMotion) -> Any:
         def activate_callback():
             rospy.loginfo("Started gripper Movement")
 
@@ -414,7 +351,7 @@ class Pr2OpenReal(ProcessModule):
     Tries to open an already grasped container
     """
 
-    def _execute(self, designator: OpeningMotion.Motion) -> Any:
+    def _execute(self, designator: OpeningMotion) -> Any:
         giskard.achieve_open_container_goal(robot_description.get_tool_frame(designator.arm),
                                             designator.object_part.name)
 
@@ -424,7 +361,7 @@ class Pr2CloseReal(ProcessModule):
     Tries to close an already grasped container
     """
 
-    def _execute(self, designator: ClosingMotion.Motion) -> Any:
+    def _execute(self, designator: ClosingMotion) -> Any:
         giskard.achieve_close_container_goal(robot_description.get_tool_frame(designator.arm),
                                              designator.object_part.name)
 
@@ -434,8 +371,6 @@ class Pr2Manager(ProcessModuleManager):
     def __init__(self):
         super().__init__("pr2")
         self._navigate_lock = Lock()
-        self._pick_up_lock = Lock()
-        self._place_lock = Lock()
         self._looking_lock = Lock()
         self._detecting_lock = Lock()
         self._move_tcp_lock = Lock()
@@ -451,18 +386,6 @@ class Pr2Manager(ProcessModuleManager):
             return Pr2Navigation(self._navigate_lock)
         elif ProcessModuleManager.execution_type == "real":
             return Pr2NavigationReal(self._navigate_lock)
-
-    def pick_up(self):
-        if ProcessModuleManager.execution_type == "simulated":
-            return Pr2PickUp(self._pick_up_lock)
-        elif ProcessModuleManager.execution_type == "real":
-            return Pr2PickUpReal(self._pick_up_lock)
-
-    def place(self):
-        if ProcessModuleManager.execution_type == "simulated":
-            return Pr2Place(self._place_lock)
-        elif ProcessModuleManager.execution_type == "real":
-            return Pr2PlaceReal(self._place_lock)
 
     def looking(self):
         if ProcessModuleManager.execution_type == "simulated":

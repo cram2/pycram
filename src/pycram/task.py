@@ -24,9 +24,13 @@ from .enums import TaskStatus
 
 class TaskCode(Code):
     def __str__(self) -> str:
-        return "%s(%s)" % (
-            self.function.__name__, ", ".join(["%s, " % (str(value.__class__).split(".")[-2]) for value in
-                                               self.kwargs.values()]))
+        if "self" in self.kwargs:
+            class_name = self.kwargs["self"].__class__.__name__
+        else:
+            class_name = ""
+        function_name = self.function.__name__
+
+        return f"{function_name}({class_name})"
 
     def __eq__(self, other):
         return isinstance(other, Code) and other.function.__name__ == self.function.__name__ \

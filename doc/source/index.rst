@@ -52,30 +52,48 @@ The code for this plan can be seen below.
 
 .. code-block:: python
 
-       @with_simulated_robot
-       def plan():
-          MotionDesignator(MoveArmJointsMotionDescription(left_arm_config='park',
-                      right_arm_config='park')).perform()
+    from pycram.bullet_world import BulletWorld, Object
+    from pycram.process_module import simulated_robot
+    from pycram.designators.motion_designator import *
+    from pycram.designators.location_designator import *
+    from pycram.designators.action_designator import *
+    from pycram.designators.object_designator import *
+    from pycram.enums import ObjectType
 
-          MotionDesignator(MoveMotionDescription(target=moving_targets[robot_name]["sink"][0],
-                        orientation=moving_targets[robot_name]["sink"][1])).perform()
+    world = BulletWorld()
+    kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
+    robot = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
+    cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", position=[1.4, 1, 0.95])
 
-          det_obj = MotionDesignator(DetectingMotionDescription(object_type="milk")).perform()
+    cereal_desig = ObjectDesignatorDescription(names=["cereal"])
+    kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
+    robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
 
-          MotionDesignator(PickUpMotionDescription(object=milk, arm="left", grasp="front")).perform()
+    with simulated_robot:
+        ParkArmsAction([Arms.BOTH]).resolve().perform()
 
+        MoveTorsoAction([0.3]).resolve().perform()
 
-          MotionDesignator(MoveMotionDescription(target=moving_targets[robot_name]["island"][0],
-                          orientation=moving_targets[robot_name]["island"][1])).perform()
+        pickup_pose = CostmapLocation(target=cereal_desig.resolve(), reachable_for=robot_desig).resolve()
+        pickup_arm = pickup_pose.reachable_arms[0]
 
-          MotionDesignator(PlaceMotionDescription(object=milk, target=[-0.9, 1, 0.93], arm="left")).perform()
+        NavigateAction(target_locations=[pickup_pose.pose]).resolve().perform()
 
-          MotionDesignator(MoveArmJointsMotionDescription(left_arm_config='park',
-                              right_arm_config='park')).perform()
+        PickUpAction(object_designator_description=cereal_desig, arms=[pickup_arm], grasps=["front"]).resolve().perform()
 
-          MotionDesignator(MoveMotionDescription(target=[0.0, 0.0, 0],
-                                                  orientation=[0, 0, 0, 1])).perform()
+        ParkArmsAction([Arms.BOTH]).resolve().perform()
 
+        place_island = SemanticCostmapLocation("kitchen_island_surface", kitchen_desig.resolve(), cereal_desig.resolve()).resolve()
+
+        place_stand = CostmapLocation(place_island.pose, reachable_for=robot_desig, reachable_arm=pickup_arm).resolve()
+
+        NavigateAction(target_locations=[place_stand.pose]).resolve().perform()
+
+        PlaceAction(cereal_desig, target_locations=[place_island.pose], arms=[pickup_arm]).resolve().perform()
+
+        ParkArmsAction([Arms.BOTH]).resolve().perform()
+
+    world.exit()
 
 Tutorials
 ---------
