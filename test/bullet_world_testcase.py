@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 import rospkg
 
+import pycram.task
 from pycram.bullet_world import BulletWorld, Object, fix_missing_inertial
 from pycram.pose import Pose
 from pycram.robot_descriptions import robot_description
@@ -34,6 +35,7 @@ class BulletWorldTestCase(unittest.TestCase):
 
     def tearDown(self):
         self.world.reset_bullet_world()
+        pycram.task.reset_tree()
 
     @classmethod
     def tearDownClass(cls):

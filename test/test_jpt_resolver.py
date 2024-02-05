@@ -7,6 +7,8 @@ import requests
 import pycram.plan_failures
 from pycram.bullet_world import BulletWorld, Object
 from pycram.designators import action_designator, object_designator
+from pycram.designators.actions.actions import MoveTorsoActionPerformable, PickUpActionPerformable, \
+    NavigateActionPerformable
 from pycram.process_module import ProcessModule
 from pycram.process_module import simulated_robot
 from pycram.robot_descriptions import robot_description
@@ -63,9 +65,9 @@ class JPTResolverTestCase(unittest.TestCase):
         sample = next(iter(cml))
 
         with simulated_robot:
-            action_designator.NavigateAction.Action(sample.pose).perform()
-            action_designator.MoveTorsoAction.Action(sample.torso_height).perform()
-            action_designator.PickUpAction.Action(
+            NavigateActionPerformable(sample.pose).perform()
+            MoveTorsoActionPerformable(sample.torso_height).perform()
+            PickUpActionPerformable(
                 object_designator.ObjectDesignatorDescription(types=["milk"]).resolve(),
                 arm=sample.reachable_arm, grasp=sample.grasp).perform()
 
@@ -77,10 +79,10 @@ class JPTResolverTestCase(unittest.TestCase):
         for i in range(20):
             sample = next(iter(cml))
             with simulated_robot:
-                action_designator.NavigateAction.Action(sample.pose).perform()
-                action_designator.MoveTorsoAction.Action(sample.torso_height).perform()
+                NavigateActionPerformable(sample.pose).perform()
+                MoveTorsoActionPerformable(sample.torso_height).perform()
                 try:
-                    action_designator.PickUpAction.Action(
+                    PickUpActionPerformable(
                         object_designator.ObjectDesignatorDescription(types=["milk"]).resolve(),
                         arm=sample.reachable_arm, grasp=sample.grasp).perform()
                 except pycram.plan_failures.PlanFailure:

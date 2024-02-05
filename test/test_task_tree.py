@@ -1,3 +1,5 @@
+from pycram.designators.actions.actions import MoveTorsoActionPerformable, PickUpActionPerformable, \
+    NavigateActionPerformable
 from pycram.pose import Pose
 from pycram.process_module import simulated_robot
 import pycram.task
@@ -17,9 +19,9 @@ class TaskTreeTestCase(BulletWorldTestCase):
         description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], ["left"])
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
-            action_designator.NavigateAction.Action(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
-            action_designator.MoveTorsoAction.Action(0.3).perform()
-            action_designator.PickUpAction.Action(object_description.resolve(), "left", "front").perform()
+            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            MoveTorsoActionPerformable(0.3).perform()
+            PickUpActionPerformable(object_description.resolve(), "left", "front").perform()
             description.resolve().perform()
 
     def setUp(self):
