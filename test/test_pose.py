@@ -73,5 +73,5 @@ class TestPose(unittest.TestCase):
         t = Transform([1, 1, 1], [0, 0, 0, 1], "map", "test_frame")
 
         t_copy = t.copy()
-        self.assertEquals(t, t_copy)
+        self.assertEqual(t, t_copy)
         self.assertFalse(t is t_copy)
