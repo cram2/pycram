@@ -14,6 +14,10 @@ from typing import Callable, List, Type, Any, Union
 from .language import Language
 
 from .robot_descriptions import robot_description
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .designators.motion_designator import BaseMotion
 
 
 class ProcessModule:
@@ -34,14 +38,14 @@ class ProcessModule:
         """Create a new process module."""
         self._lock = lock
 
-    def _execute(self, designator) -> Any:
+    def _execute(self, designator: BaseMotion) -> Any:
         """
         Helper method for internal usage only.
         This method is to be overwritten instead of the execute method.
         """
         pass
 
-    def execute(self, designator) -> Any:
+    def execute(self, designator: BaseMotion) -> Any:
         """
         Execute the given designator. If there is already another process module of the same kind the `self._lock` will
         lock this thread until the execution of that process module is finished. This implicitly queues the execution of
