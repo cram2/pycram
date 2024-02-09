@@ -326,13 +326,15 @@ class State(ABC):
 
 @dataclass
 class WorldState(State):
-    state_id: int
+    simulator_state_id: int
+    object_states: Dict[int, 'ObjectState']
 
 
 @dataclass
 class ObjectState(State):
-    state_id: int
     attachments: Dict['Object', 'Attachment']
+    link_states: Dict[int, 'LinkState']
+    joint_states: Dict[int, 'JointState']
 
 
 @dataclass
