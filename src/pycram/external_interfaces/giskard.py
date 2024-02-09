@@ -159,7 +159,7 @@ def spawn_object(object: Object) -> None:
     :param object: World object that should be spawned
     """
     if len(object.link_name_to_id) == 1:
-        geometry = object.urdf_object.link_map[object.urdf_object.get_root()].collision.geometry
+        geometry = object.object_description.link_map[object.object_description.get_root()].collision.geometry
         if isinstance(geometry, urdf_parser_py.urdf.Mesh):
             filename = geometry.filename
             spawn_mesh(object.name + "_" + str(object.id), filename, object.get_pose())
@@ -239,8 +239,8 @@ def _manage_par_motion_goals(goal_func, *args) -> Optional['MoveResult']:
                     if "tip_link" in par_value_pair.keys() and "root_link" in par_value_pair.keys():
                         if par_value_pair["tip_link"] == robot_description.base_link:
                             continue
-                        chain = World.robot.urdf_object.get_chain(par_value_pair["root_link"],
-                                                                        par_value_pair["tip_link"])
+                        chain = World.robot.object_description.get_chain(par_value_pair["root_link"],
+                                                                         par_value_pair["tip_link"])
                         if set(chain).intersection(used_joints) != set():
                             giskard_wrapper.cmd_seq = tmp
                             raise AttributeError(f"The joint(s) {set(chain).intersection(used_joints)} is used by multiple Designators")
