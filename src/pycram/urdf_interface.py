@@ -1,13 +1,11 @@
-import os
 import pathlib
-import re
 from xml.etree import ElementTree
 
 import rospkg
 import rospy
 from geometry_msgs.msg import Point
 from tf.transformations import quaternion_from_euler
-from typing_extensions import Union, List
+from typing_extensions import Union, List, Optional
 from urdf_parser_py import urdf
 from urdf_parser_py.urdf import (URDF, Collision, Box as URDF_Box, Cylinder as URDF_Cylinder,
                                  Sphere as URDF_Sphere, Mesh as URDF_Mesh)
@@ -15,7 +13,8 @@ from urdf_parser_py.urdf import (URDF, Collision, Box as URDF_Box, Cylinder as U
 from pycram.enums import JointType, Shape
 from pycram.pose import Pose
 from pycram.world import JointDescription as AbstractJointDescription, Joint as AbstractJoint, \
-    LinkDescription as AbstractLinkDescription, ObjectDescription as AbstractObjectDescription, World, _is_cached
+    LinkDescription as AbstractLinkDescription, ObjectDescription as AbstractObjectDescription
+from pycram.world_dataclasses import Color
 
 
 class LinkDescription(AbstractLinkDescription):
@@ -149,64 +148,18 @@ class ObjectDescription(AbstractObjectDescription):
     """
     A class that represents an object description of an object.
     """
-    def from_description_file(self, path) -> URDF:
-        """
-        Create an object description from a description file.
 
-        :param path: The path to the description file.
-        """
+    def load_description(self, path) -> URDF:
         with open(path, 'r') as file:
             return URDF.from_xml_string(file.read())
 
-    def preprocess_file(self, path: str, ignore_cached_files: bool) -> str:
-        """
-        Preprocesses the file, if it is a .obj or .stl file it will be converted to an URDF file.
-        """
-        path_object = pathlib.Path(path)
-        extension = path_object.suffix
-
-        path = _look_for_file_in_data_dir(path, path_object)
-
-        _create_cache_dir_if_not_exists()
-
-        # if file is not yet cached correct the urdf and save if in the cache directory
-        if not _is_cached(path) or ignore_cached_files:
-            if extension == ".obj" or extension == ".stl":
-                path = self._generate_urdf_file(path)
-            elif extension == ".urdf":
-                with open(path, mode="r") as f:
-                    urdf_string = fix_missing_inertial(f.read())
-                    urdf_string = remove_error_tags(urdf_string)
-                    urdf_string = fix_link_attributes(urdf_string)
-                    try:
-                        urdf_string = _correct_urdf_string(urdf_string)
-                    except rospkg.ResourceNotFound as e:
-                        rospy.logerr(f"Could not find resource package linked in this URDF")
-                        raise e
-                path = World.cache_dir + path_object.name
-                with open(path, mode="w") as f:
-                    f.write(urdf_string)
-            else:  # Using the urdf from the parameter server
-                urdf_string = rospy.get_param(path)
-                path = World.cache_dir + self.name + ".urdf"
-                with open(path, mode="w") as f:
-                    f.write(_correct_urdf_string(urdf_string))
-        # save correct path in case the file is already in the cache directory
-        elif extension == ".obj" or extension == ".stl":
-            path = World.cache_dir + path_object.stem + ".urdf"
-        elif extension == ".urdf":
-            path = World.cache_dir + path_object.name
-        else:
-            path = World.cache_dir + self.name + ".urdf"
-
-        return path
-
-    def _generate_urdf_file(self, path) -> str:
+    def generate_from_mesh_file(self, path, color: Optional[Color] = Color()) -> str:
         """
         Generates an URDf file with the given .obj or .stl file as mesh. In addition, the given rgba_color will be
-        used to crate a material tag in the URDF. The resulting file will then be saved in the cach_dir path with
-         the name as filename.
+        used to create a material tag in the URDF.
 
+        :param path: The path to the mesh file.
+        :param color: The color of the object.
         :return: The absolute path of the created file
         """
         urdf_template = '<?xml version="0.0" ?> \n \
@@ -227,14 +180,28 @@ class ObjectDescription(AbstractObjectDescription):
                         </collision>\n \
                         </link> \n \
                         </robot>'
-        urdf_template = fix_missing_inertial(urdf_template)
-        rgb = " ".join(list(map(str, self.color.get_rgba())))
+        urdf_template = self.fix_missing_inertial(urdf_template)
+        rgb = " ".join(list(map(str, color.get_rgba())))
         pathlib_obj = pathlib.Path(path)
         path = str(pathlib_obj.resolve())
         content = urdf_template.replace("~a", self.name).replace("~b", path).replace("~c", rgb)
-        with open(World.cache_dir + pathlib_obj.stem + ".urdf", "w", encoding="utf-8") as file:
-            file.write(content)
-        return World.cache_dir + pathlib_obj.stem + ".urdf"
+        return content
+
+    def generate_from_description_file(self, path: str) -> str:
+        with open(path, mode="r") as f:
+            urdf_string = self.fix_missing_inertial(f.read())
+            urdf_string = self.remove_error_tags(urdf_string)
+            urdf_string = self.fix_link_attributes(urdf_string)
+            try:
+                urdf_string = self.correct_urdf_string(urdf_string)
+            except rospkg.ResourceNotFound as e:
+                rospy.logerr(f"Could not find resource package linked in this URDF")
+                raise e
+        return urdf_string
+
+    def generate_from_parameter_server(self, name: str) -> str:
+        urdf_string = rospy.get_param(name)
+        return self.correct_urdf_string(urdf_string)
 
     @property
     def links(self) -> List[LinkDescription]:
@@ -262,87 +229,102 @@ class ObjectDescription(AbstractObjectDescription):
         """
         return self.parsed_description.get_chain(start_link_name, end_link_name)
 
+    def correct_urdf_string(self, urdf_string: str) -> str:
+        """
+        Changes paths for files in the URDF from ROS paths to paths in the file system. Since World (PyBullet legacy)
+         can't deal with ROS package paths.
 
-def _correct_urdf_string(urdf_string: str) -> str:
-    """
-    Changes paths for files in the URDF from ROS paths to paths in the file system. Since World (PyBullet legac)
-     can't deal with ROS package paths.
+        :param urdf_string: The name of the URDf on the parameter server
+        :return: The URDF string with paths in the filesystem instead of ROS packages
+        """
+        r = rospkg.RosPack()
+        new_urdf_string = ""
+        for line in urdf_string.split('\n'):
+            if "package://" in line:
+                s = line.split('//')
+                s1 = s[1].split('/')
+                path = r.get_path(s1[0])
+                line = line.replace("package://" + s1[0], path)
+            new_urdf_string += line + '\n'
 
-    :param urdf_string: The name of the URDf on the parameter server
-    :return: The URDF string with paths in the filesystem instead of ROS packages
-    """
-    r = rospkg.RosPack()
-    new_urdf_string = ""
-    for line in urdf_string.split('\n'):
-        if "package://" in line:
-            s = line.split('//')
-            s1 = s[1].split('/')
-            path = r.get_path(s1[0])
-            line = line.replace("package://" + s1[0], path)
-        new_urdf_string += line + '\n'
+        return self.fix_missing_inertial(new_urdf_string)
 
-    return fix_missing_inertial(new_urdf_string)
+    @staticmethod
+    def fix_missing_inertial(urdf_string: str) -> str:
+        """
+        Insert inertial tags for every URDF link that has no inertia.
+        This is used to prevent Legacy(PyBullet) from dumping warnings in the terminal
 
+        :param urdf_string: The URDF description as string
+        :returns: The new, corrected URDF description as string.
+        """
 
-def fix_missing_inertial(urdf_string: str) -> str:
-    """
-    Insert inertial tags for every URDF link that has no inertia.
-    This is used to prevent Legacy(PyBullet) from dumping warnings in the terminal
+        inertia_tree = ElementTree.ElementTree(ElementTree.Element("inertial"))
+        inertia_tree.getroot().append(ElementTree.Element("mass", {"value": "0.1"}))
+        inertia_tree.getroot().append(ElementTree.Element("origin", {"rpy": "0 0 0", "xyz": "0 0 0"}))
+        inertia_tree.getroot().append(ElementTree.Element("inertia", {"ixx": "0.01",
+                                                                      "ixy": "0",
+                                                                      "ixz": "0",
+                                                                      "iyy": "0.01",
+                                                                      "iyz": "0",
+                                                                      "izz": "0.01"}))
 
-    :param urdf_string: The URDF description as string
-    :returns: The new, corrected URDF description as string.
-    """
+        # create tree from string
+        tree = ElementTree.ElementTree(ElementTree.fromstring(urdf_string))
 
-    inertia_tree = ElementTree.ElementTree(ElementTree.Element("inertial"))
-    inertia_tree.getroot().append(ElementTree.Element("mass", {"value": "0.1"}))
-    inertia_tree.getroot().append(ElementTree.Element("origin", {"rpy": "0 0 0", "xyz": "0 0 0"}))
-    inertia_tree.getroot().append(ElementTree.Element("inertia", {"ixx": "0.01",
-                                                                  "ixy": "0",
-                                                                  "ixz": "0",
-                                                                  "iyy": "0.01",
-                                                                  "iyz": "0",
-                                                                  "izz": "0.01"}))
+        for link_element in tree.iter("link"):
+            inertial = [*link_element.iter("inertial")]
+            if len(inertial) == 0:
+                link_element.append(inertia_tree.getroot())
 
-    # create tree from string
-    tree = ElementTree.ElementTree(ElementTree.fromstring(urdf_string))
+        return ElementTree.tostring(tree.getroot(), encoding='unicode')
 
-    for link_element in tree.iter("link"):
-        inertial = [*link_element.iter("inertial")]
-        if len(inertial) == 0:
-            link_element.append(inertia_tree.getroot())
+    @staticmethod
+    def remove_error_tags(urdf_string: str) -> str:
+        """
+        Removes all tags in the removing_tags list from the URDF since these tags are known to cause errors with the
+        URDF_parser
 
-    return ElementTree.tostring(tree.getroot(), encoding='unicode')
+        :param urdf_string: String of the URDF from which the tags should be removed
+        :return: The URDF string with the tags removed
+        """
+        tree = ElementTree.ElementTree(ElementTree.fromstring(urdf_string))
+        removing_tags = ["gazebo", "transmission"]
+        for tag_name in removing_tags:
+            all_tags = tree.findall(tag_name)
+            for tag in all_tags:
+                tree.getroot().remove(tag)
 
+        return ElementTree.tostring(tree.getroot(), encoding='unicode')
 
-def remove_error_tags(urdf_string: str) -> str:
-    """
-    Removes all tags in the removing_tags list from the URDF since these tags are known to cause errors with the
-    URDF_parser
+    @staticmethod
+    def fix_link_attributes(urdf_string: str) -> str:
+        """
+        Removes the attribute 'type' from links since this is not parsable by the URDF parser.
 
-    :param urdf_string: String of the URDF from which the tags should be removed
-    :return: The URDF string with the tags removed
-    """
-    tree = ElementTree.ElementTree(ElementTree.fromstring(urdf_string))
-    removing_tags = ["gazebo", "transmission"]
-    for tag_name in removing_tags:
-        all_tags = tree.findall(tag_name)
-        for tag in all_tags:
-            tree.getroot().remove(tag)
+        :param urdf_string: The string of the URDF from which the attributes should be removed
+        :return: The URDF string with the attributes removed
+        """
+        tree = ElementTree.ElementTree(ElementTree.fromstring(urdf_string))
 
-    return ElementTree.tostring(tree.getroot(), encoding='unicode')
+        for link in tree.iter("link"):
+            if "type" in link.attrib.keys():
+                del link.attrib["type"]
 
+        return ElementTree.tostring(tree.getroot(), encoding='unicode')
 
-def fix_link_attributes(urdf_string: str) -> str:
-    """
-    Removes the attribute 'type' from links since this is not parsable by the URDF parser.
+    @property
+    def file_extension(self) -> str:
+        """
+        :return: The file extension of the URDF file.
+        """
+        return '.urdf'
 
-    :param urdf_string: The string of the URDF from which the attributes should be removed
-    :return: The URDF string with the attributes removed
-    """
-    tree = ElementTree.ElementTree(ElementTree.fromstring(urdf_string))
+    @property
+    def origin(self) -> Pose:
+        return Pose(self.parsed_description.origin.xyz,
+                    quaternion_from_euler(*self.parsed_description.origin.rpy))
 
-    for link in tree.iter("link"):
-        if "type" in link.attrib.keys():
-            del link.attrib["type"]
-
-    return ElementTree.tostring(tree.getroot(), encoding='unicode')
+    @property
+    def name(self) -> str:
+        return self.parsed_description.name
