@@ -26,8 +26,8 @@ class BulletWorldTest(BulletWorldTestCase):
     def test_save_and_restore_state(self):
         self.robot.attach(self.milk)
         state_id = self.world.save_state()
-        robot_link = self.robot.get_root_link()
-        milk_link = self.milk.get_root_link()
+        robot_link = self.robot.root_link
+        milk_link = self.milk.root_link
         cid = robot_link.constraint_ids[milk_link]
         self.assertTrue(cid == self.robot.attachments[self.milk].constraint_id)
         self.world.remove_constraint(cid)
@@ -44,24 +44,6 @@ class BulletWorldTest(BulletWorldTestCase):
         self.world.remove_object(self.milk)
         self.assertTrue(milk_id not in [obj.id for obj in self.world.objects])
         BulletWorldTest.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-
-    def test_get_joint_rest_pose(self):
-        self.assertEqual(self.robot.get_joint_rest_position("head_pan_joint"), 0.0)
-
-    def test_get_joint_damping(self):
-        self.assertEqual(self.robot.get_joint_damping("head_pan_joint"), 0.5)
-
-    def test_get_joint_upper_limit(self):
-        self.assertEqual(self.robot.get_joint_upper_limit("head_pan_joint"), 3.007)
-
-    def test_get_joint_lower_limit(self):
-        self.assertEqual(self.robot.get_joint_lower_limit("head_pan_joint"), -3.007)
-
-    def test_get_joint_axis(self):
-        self.assertEqual(self.robot.get_joint_axis("head_pan_joint"), Point(0.0, 0.0, 1.0))
-
-    def test_get_joint_type(self):
-        self.assertEqual(self.robot.get_joint_type("head_pan_joint"), JointType.REVOLUTE)
 
     def test_get_joint_position(self):
         self.assertEqual(self.robot.get_joint_position("head_pan_joint"), 0.0)

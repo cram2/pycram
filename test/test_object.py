@@ -1,4 +1,5 @@
 from bullet_world_testcase import BulletWorldTestCase
+from pycram.enums import JointType
 from pycram.pose import Pose
 from geometry_msgs.msg import Point
 
@@ -16,6 +17,21 @@ class TestObject(BulletWorldTestCase):
     def test_set_position_as_list(self):
         self.milk.set_position([1, 2, 3])
         self.assertEqual(self.milk.get_position_as_list(), [1, 2, 3])
+
+    def test_get_joint_axis(self):
+        self.assertEqual(self.robot.get_joint_axis("head_pan_joint"), Point(0.0, 0.0, 1.0))
+
+    def test_get_joint_type(self):
+        self.assertEqual(self.robot.get_joint_type("head_pan_joint"), JointType.REVOLUTE)
+
+    def test_get_joint_lower_limit(self):
+        self.assertEqual(self.robot.get_joint_lower_limit("head_pan_joint"), -3.007)
+
+    def test_get_joint_upper_limit(self):
+        self.assertEqual(self.robot.get_joint_upper_limit("head_pan_joint"), 3.007)
+
+    def test_get_joint_damping(self):
+        self.assertEqual(self.robot.get_joint_damping("head_pan_joint"), 0.5)
 
     def test_save_state(self):
         self.robot.attach(self.milk)

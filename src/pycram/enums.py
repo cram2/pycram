@@ -32,6 +32,9 @@ class JointType(Enum):
     CONTINUOUS = 6
     FLOATING = 7
 
+    # override enum method to return an int
+
+
 
 class Grasp(Enum):
     """
