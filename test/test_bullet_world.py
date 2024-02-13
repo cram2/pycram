@@ -2,13 +2,14 @@ import time
 import unittest
 
 import rospkg
-from geometry_msgs.msg import Point
 
 from bullet_world_testcase import BulletWorldTestCase
 from pycram.pose import Pose
-from pycram.world import fix_missing_inertial, Object, ObjectType
+from pycram.world import Object, ObjectType
 import xml.etree.ElementTree as ET
-from pycram.enums import JointType
+from pycram.urdf_interface import ObjectDescription
+
+fix_missing_inertial = ObjectDescription.fix_missing_inertial
 
 
 class BulletWorldTest(BulletWorldTestCase):
@@ -29,13 +30,13 @@ class BulletWorldTest(BulletWorldTestCase):
         robot_link = self.robot.root_link
         milk_link = self.milk.root_link
         cid = robot_link.constraint_ids[milk_link]
-        self.assertTrue(cid == self.robot.attachments[self.milk].constraint_id)
+        self.assertTrue(cid == self.robot.attachments[self.milk].id)
         self.world.remove_constraint(cid)
         self.world.restore_state(state_id)
         cid = robot_link.constraint_ids[milk_link]
         self.assertTrue(milk_link in robot_link.constraint_ids)
         self.assertTrue(self.milk in self.robot.attachments)
-        self.assertTrue(cid == self.robot.attachments[self.milk].constraint_id)
+        self.assertTrue(cid == self.robot.attachments[self.milk].id)
 
     def test_remove_object(self):
         time.sleep(2)
@@ -43,7 +44,7 @@ class BulletWorldTest(BulletWorldTestCase):
         self.assertTrue(milk_id in [obj.id for obj in self.world.objects])
         self.world.remove_object(self.milk)
         self.assertTrue(milk_id not in [obj.id for obj in self.world.objects])
-        BulletWorldTest.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+        BulletWorldTest.milk = Object("milk", ObjectType.MILK, "milk.stl", ObjectDescription, pose=Pose([1.3, 1, 0.9]))
 
     def test_get_joint_position(self):
         self.assertEqual(self.robot.get_joint_position("head_pan_joint"), 0.0)
