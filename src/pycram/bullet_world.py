@@ -10,10 +10,15 @@ import pybullet as p
 import rosgraph
 import rospy
 
-from .enums import JointType, ObjectType, WorldMode
+from .enums import ObjectType, WorldMode
 from .pose import Pose
-from .world import World, Object, Link, Constraint
+from .world import World, Object, Constraint
 from .world_dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape
+from .urdf_interface import ObjectDescription
+
+Link = ObjectDescription.Link
+RootLink = ObjectDescription.RootLink
+Joint = ObjectDescription.Joint
 
 
 class BulletWorld(World):
@@ -22,6 +27,8 @@ class BulletWorld(World):
     class is the main interface to the Bullet Physics Engine and should be used to spawn Objects, simulate Physic and
     manipulate the Bullet World.
     """
+
+    extension: str = ObjectDescription.get_file_extension()
 
     # Check is for sphinx autoAPI to be able to work in a CI workflow
     if rosgraph.is_master_online():  # and "/pycram" not in rosnode.get_node_names():
@@ -53,7 +60,8 @@ class BulletWorld(World):
         self.set_gravity([0, 0, -9.8])
 
         if not is_prospection_world:
-            plane = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf", world=self)
+            plane = Object("floor", ObjectType.ENVIRONMENT, "plane" + self.extension, ObjectDescription,
+                           world=self)
 
     def load_description_and_get_object_id(self, path: str, pose: Pose) -> int:
         return p.loadURDF(path,
@@ -71,10 +79,10 @@ class BulletWorld(World):
                                            constraint.child_link_id,
                                            constraint.type.value,
                                            constraint.axis_as_list,
-                                           constraint.position_wrt_parent_as_list(),
-                                           constraint.position_wrt_child_as_list(),
-                                           constraint.orientation_wrt_parent_as_list(),
-                                           constraint.orientation_wrt_child_as_list(),
+                                           constraint.position_wrt_parent_as_list,
+                                           constraint.position_wrt_child_as_list,
+                                           constraint.orientation_wrt_parent_as_list,
+                                           constraint.orientation_wrt_child_as_list,
                                            physicsClientId=self.id)
         return constraint_id
 
@@ -85,7 +93,8 @@ class BulletWorld(World):
         return p.getJointState(obj.id, obj.joint_name_to_id[joint_name], physicsClientId=self.id)[0]
 
     def get_link_pose(self, link: Link) -> Pose:
-        return Pose(*p.getLinkState(link.object_id, link.id, physicsClientId=self.id)[4:6])
+        bullet_link_state = p.getLinkState(link.object_id, link.id, physicsClientId=self.id)[4:6]
+        return Pose(*bullet_link_state)
 
     def perform_collision_detection(self) -> None:
         p.performCollisionDetection(physicsClientId=self.id)

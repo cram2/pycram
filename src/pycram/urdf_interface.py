@@ -12,7 +12,7 @@ from urdf_parser_py.urdf import (URDF, Collision, Box as URDF_Box, Cylinder as U
 
 from pycram.enums import JointType, Shape
 from pycram.pose import Pose
-from pycram.world import JointDescription as AbstractJointDescription, Joint as AbstractJoint, \
+from pycram.world import JointDescription as AbstractJointDescription, \
     LinkDescription as AbstractLinkDescription, ObjectDescription as AbstractObjectDescription
 from pycram.world_dataclasses import Color
 
@@ -140,14 +140,19 @@ class JointDescription(AbstractJointDescription):
         return self.parsed_description.dynamics.friction
 
 
-class Joint(AbstractJoint, JointDescription):
-    ...
-
-
 class ObjectDescription(AbstractObjectDescription):
     """
     A class that represents an object description of an object.
     """
+
+    class Link(AbstractObjectDescription.Link, LinkDescription):
+        ...
+
+    class RootLink(AbstractObjectDescription.RootLink, Link):
+        ...
+
+    class Joint(AbstractObjectDescription.Joint, JointDescription):
+        ...
 
     def load_description(self, path) -> URDF:
         with open(path, 'r') as file:
@@ -313,8 +318,8 @@ class ObjectDescription(AbstractObjectDescription):
 
         return ElementTree.tostring(tree.getroot(), encoding='unicode')
 
-    @property
-    def file_extension(self) -> str:
+    @staticmethod
+    def get_file_extension() -> str:
         """
         :return: The file extension of the URDF file.
         """

@@ -43,6 +43,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.assertEqual(description.ground().object_designator.name, "milk")
 
     def test_park_arms(self):
+        time.sleep(5)
         description = action_designator.ParkArmsAction([pycram.enums.Arms.BOTH])
         self.assertEqual(description.ground().arm, pycram.enums.Arms.BOTH)
         with simulated_robot:
@@ -119,7 +120,8 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             action_designator.MoveTorsoAction([0.2]).resolve().perform()
             description.resolve().perform()
         self.assertEqual(description.ground().object_designator.name, "milk")
-        dist = np.linalg.norm(np.array(self.milk.get_pose().position_as_list()) - np.array([-1.35, 0.78, 0.95]))
+        milk_position = np.array(self.milk.get_pose().position_as_list())
+        dist = np.linalg.norm(milk_position - np.array([-1.35, 0.78, 0.95]))
         self.assertTrue(dist < 0.01)
 
     def test_grasping(self):

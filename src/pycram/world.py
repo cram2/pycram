@@ -214,7 +214,7 @@ class World(StateEntity, ABC):
         :param ignore_cached_files: If the cached files should be ignored.
         :param obj: The object to be added to the cache directory.
         """
-        return self.cache_manager.update_cache_dir_with_object(path, ignore_cached_files, obj.description)
+        return self.cache_manager.update_cache_dir_with_object(path, ignore_cached_files, obj.description, obj.name)
 
     @property
     def simulation_time_step(self):
@@ -350,7 +350,7 @@ class World(StateEntity, ABC):
         """
         Get the pose of a link of an articulated object with respect to the world frame.
 
-        :param link: The link as a Link object.
+        :param link: The link as a AbstractLink object.
         :return: The pose of the link as a Pose object.
         """
         pass
@@ -1166,7 +1166,7 @@ class Object(WorldEntity):
                  color: Optional[Color] = Color(),
                  ignore_cached_files: Optional[bool] = False):
         """
-        The constructor loads the urdf file into the given World, if no World is specified the
+        The constructor loads the description file into the given World, if no World is specified the
         :py:attr:`~World.current_world` will be used. It is also possible to load .obj and .stl file into the World.
         The rgba_color parameter is only used when loading .stl or .obj files,
          for URDFs :func:`~Object.set_color` can be used.
@@ -1183,22 +1183,24 @@ class Object(WorldEntity):
         :param ignore_cached_files: If true the file will be spawned while ignoring cached files.
         """
 
+        super().__init__(-1, world)
+
         if pose is None:
             pose = Pose()
 
         self.name: str = name
         self.obj_type: ObjectType = obj_type
         self.color: Color = color
+        self.description = description()
+        self.cache_manager = self.world.cache_manager
 
         self.local_transformer = LocalTransformer()
         self.original_pose = self.local_transformer.transform_pose(pose, "map")
         self._current_pose = self.original_pose
 
-        _id, self.path = self._load_object_and_get_id(path, ignore_cached_files)
+        self.id, self.path = self._load_object_and_get_id(path, ignore_cached_files)
 
-        self.description = description(self.path)
-
-        super().__init__(_id, world)
+        self.description.update_description_from_file(self.path)
 
         self.tf_frame = ((self.prospection_world_prefix if self.world.is_prospection_world else "")
                          + f"{self.name}_{self.id}")
@@ -1267,8 +1269,8 @@ class Object(WorldEntity):
         """
         Creates a dictionary which maps the link names to their unique ids and vice versa.
         """
-        n_links = len(self.link_names)
-        self.link_name_to_id: Dict[str, int] = dict(zip(self.link_names, range(n_links)))
+        n_links = len(self.link_names_without_root)
+        self.link_name_to_id: Dict[str, int] = dict(zip(self.link_names_without_root, range(n_links)))
         self.link_name_to_id[self.description.get_root()] = -1
         self.link_id_to_name: Dict[int, str] = dict(zip(self.link_name_to_id.values(), self.link_name_to_id.keys()))
 
@@ -1282,9 +1284,9 @@ class Object(WorldEntity):
             link_name = link_description.name
             link_id = self.link_name_to_id[link_name]
             if link_name == self.description.get_root():
-                self.links[link_name] = RootLink(self)
+                self.links[link_name] = self.description.RootLink(self)
             else:
-                self.links[link_name] = Link(link_id, link_description, self)
+                self.links[link_name] = self.description.Link(link_id, link_description, self)
 
         self.update_link_transforms()
 
@@ -1297,7 +1299,7 @@ class Object(WorldEntity):
         for joint_description in self.description.joints:
             joint_name = joint_description.name
             joint_id = self.joint_name_to_id[joint_name]
-            self.joints[joint_name] = Joint(joint_id, joint_description, self)
+            self.joints[joint_name] = self.description.Joint(joint_id, joint_description, self)
 
     def _add_to_world_sync_obj_queue(self, path: str) -> None:
         """
@@ -1310,6 +1312,13 @@ class Object(WorldEntity):
              self.world.prospection_world, self.color, self])
 
     @property
+    def link_names_without_root(self):
+        """
+        :return: The name of each link except the root link as a list.
+        """
+        return list(filter(lambda x: x != self.root_link_name, self.link_names))
+
+    @property
     def link_names(self) -> List[str]:
         """
         :return: The name of each link as a list.
@@ -1317,11 +1326,25 @@ class Object(WorldEntity):
         return [link.name for link in self.description.links]
 
     @property
+    def number_of_links(self) -> int:
+        """
+        :return: The number of links of this object.
+        """
+        return len(self.description.links)
+
+    @property
     def joint_names(self) -> List[str]:
         """
         :return: The name of each joint as a list.
         """
         return [joint.name for joint in self.description.joints]
+
+    @property
+    def number_of_joints(self) -> int:
+        """
+        :return: The number of joints of this object.
+        """
+        return len(self.description.joints)
 
     @property
     def base_origin_shift(self) -> np.ndarray:
@@ -1727,6 +1750,14 @@ class Object(WorldEntity):
         """
         return self.links[self.description.get_root()]
 
+    @property
+    def root_link_name(self) -> str:
+        """
+        Returns the name of the root link of this object.
+        :return: The name of the root link of this object.
+        """
+        return self.description.get_root()
+
     def get_root_link_id(self) -> int:
         """
         Returns the unique id of the root link of this object.
@@ -1817,7 +1848,7 @@ class Object(WorldEntity):
         """
         Traverses the chain from 'link' to the URDF origin and returns the first joint that is of type 'joint_type'.
 
-        :param link_name: Link name above which the joint should be found
+        :param link_name: AbstractLink name above which the joint should be found
         :param joint_type: Joint type that should be searched for
         :return: Name of the first joint which has the given type
         """
@@ -1952,148 +1983,6 @@ class EntityDescription(ABC):
     def name(self) -> str:
         """
         Returns the name of this entity.
-        """
-        pass
-
-
-class ObjectDescription(EntityDescription):
-    MESH_EXTENSIONS: Tuple[str] = (".obj", ".stl")
-
-    def __init__(self, path: Optional[str] = None):
-        if path:
-            self.update_description_from_file(path)
-        else:
-            self._parsed_description = None
-
-    def update_description_from_file(self, path: str) -> None:
-        """
-        Updates the description of this object from the file at the given path.
-        :param path: The path of the file to update from.
-        """
-        self._parsed_description = self.load_description(path)
-
-    @property
-    def parsed_description(self) -> Any:
-        """
-        Return the object parsed from the description file.
-        """
-        return self._parsed_description
-
-    @parsed_description.setter
-    def parsed_description(self, parsed_description: Any):
-        """
-        Return the object parsed from the description file.
-        :param parsed_description: The parsed description object.
-        """
-        self._parsed_description = parsed_description
-
-    @abstractmethod
-    def load_description(self, path: str) -> Any:
-        """
-        Loads the description from the file at the given path.
-        :param path: The path to the source file, if only a filename is provided then the resources directories will be
-         searched.
-        """
-        pass
-
-    def generate_description_from_file(self, path: str, extension: str) -> str:
-        """
-        Generates and preprocesses the description from the file at the given path and returns the preprocessed
-        description as a string.
-        :param path: The path of the file to preprocess.
-        :param extension: The file extension of the file to preprocess.
-        :return: The processed description string.
-        """
-
-        if extension in self.MESH_EXTENSIONS:
-            description_string = self.generate_from_mesh_file(path)
-        elif extension == self.file_extension:
-            description_string = self.generate_from_description_file(path)
-        else:
-            # Using the description from the parameter server
-            description_string = self.generate_from_parameter_server(path)
-
-        return description_string
-
-    def get_file_name(self, path_object: pathlib.Path, extension: str) -> str:
-        """
-        Returns the file name of the description file.
-        """
-        if extension in self.MESH_EXTENSIONS:
-            file_name = path_object.stem + self.file_extension
-        elif extension == self.file_extension:
-            file_name = path_object.name
-        else:
-            file_name = self.name + self.file_extension
-
-        return file_name
-
-    @classmethod
-    @abstractmethod
-    def generate_from_mesh_file(cls, path: str) -> str:
-        """
-        Generates a description file from one of the mesh types defined in the MESH_EXTENSIONS and
-        returns the path of the generated file.
-        :param path: The path to the .obj file.
-        :return: The path of the generated description file.
-        """
-        pass
-
-    @classmethod
-    @abstractmethod
-    def generate_from_description_file(cls, path: str) -> str:
-        """
-        Preprocesses the given file and returns the preprocessed description string.
-        :param path: The path of the file to preprocess.
-        :return: The preprocessed description string.
-        """
-        pass
-
-    @classmethod
-    @abstractmethod
-    def generate_from_parameter_server(cls, name: str) -> str:
-        """
-        Preprocesses the description from the ROS parameter server and returns the preprocessed description string.
-        :param name: The name of the description on the parameter server.
-        :return: The preprocessed description string.
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def links(self) -> List[LinkDescription]:
-        """
-        :return: A list of links descriptions of this object.
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def joints(self) -> List[JointDescription]:
-        """
-        :return: A list of joints descriptions of this object.
-        """
-        pass
-
-    @abstractmethod
-    def get_root(self) -> str:
-        """
-        :return: the name of the root link of this object.
-        """
-        pass
-
-    @abstractmethod
-    def get_chain(self, start_link_name: str, end_link_name: str) -> List[str]:
-        """
-        :return: the chain of links from 'start_link_name' to 'end_link_name'.
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def file_extension(self) -> str:
-        """
-        :return: The file extension of the description file.
         """
         pass
 
@@ -2404,7 +2293,7 @@ class Constraint(AbstractConstraint):
         return [self.axis.x, self.axis.y, self.axis.z]
 
 
-class Joint(AbstractConstraint, ObjectEntity, JointDescription, ABC):
+class Joint(ObjectEntity, JointDescription, ABC):
     """
     Represents a joint of an Object in the World.
     """
@@ -2412,13 +2301,8 @@ class Joint(AbstractConstraint, ObjectEntity, JointDescription, ABC):
     def __init__(self, _id: int,
                  joint_description: JointDescription,
                  obj: Object):
-        AbstractConstraint.__init__(self,
-                                    self.parent_link,
-                                    self.child_link,
-                                    joint_description.type,
-                                    self.parent_link.get_transform_to_link(self.child_link),
-                                    Transform(frame=self.child_link.tf_frame))
         ObjectEntity.__init__(self, _id, obj)
+        JointDescription.__init__(self, joint_description.parsed_description)
         self._update_position()
 
     @property
@@ -2447,7 +2331,7 @@ class Joint(AbstractConstraint, ObjectEntity, JointDescription, ABC):
     def parent_link(self) -> Link:
         """
         Returns the parent link of this joint.
-        :return: The parent link as a Link object.
+        :return: The parent link as a AbstractLink object.
         """
         return self.object.links[self.parent_link_name]
 
@@ -2455,7 +2339,7 @@ class Joint(AbstractConstraint, ObjectEntity, JointDescription, ABC):
     def child_link(self) -> Link:
         """
         Returns the child link of this joint.
-        :return: The child link as a Link object.
+        :return: The child link as a AbstractLink object.
         """
         return self.object.links[self.child_link_name]
 
@@ -2523,9 +2407,9 @@ class Link(ObjectEntity, LinkDescription, ABC):
     Represents a link of an Object in the World.
     """
 
-    def __init__(self, _id: int, parsed_link_description: Any, obj: Object):
+    def __init__(self, _id: int, link_description: LinkDescription, obj: Object):
         ObjectEntity.__init__(self, _id, obj)
-        LinkDescription.__init__(self, parsed_link_description)
+        LinkDescription.__init__(self, link_description.parsed_description)
         self.local_transformer: LocalTransformer = LocalTransformer()
         self.constraint_ids: Dict[Link, int] = {}
         self._update_pose()
@@ -2700,7 +2584,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
 class RootLink(Link, ABC):
     """
     Represents the root link of an Object in the World.
-    It differs from the normal Link class in that the pose ande the tf_frame is the same as that of the object.
+    It differs from the normal AbstractLink class in that the pose ande the tf_frame is the same as that of the object.
     """
 
     def __init__(self, obj: Object):
@@ -2715,6 +2599,161 @@ class RootLink(Link, ABC):
 
     def _update_pose(self) -> None:
         self._current_pose = self.object.get_pose()
+
+
+class ObjectDescription(EntityDescription):
+    MESH_EXTENSIONS: Tuple[str] = (".obj", ".stl")
+
+    class Link(Link, ABC):
+        ...
+
+    class RootLink(RootLink, ABC):
+        ...
+
+    class Joint(Joint, ABC):
+        ...
+
+    def __init__(self, path: Optional[str] = None):
+        if path:
+            self.update_description_from_file(path)
+        else:
+            self._parsed_description = None
+
+    def update_description_from_file(self, path: str) -> None:
+        """
+        Updates the description of this object from the file at the given path.
+        :param path: The path of the file to update from.
+        """
+        self._parsed_description = self.load_description(path)
+
+    @property
+    def parsed_description(self) -> Any:
+        """
+        Return the object parsed from the description file.
+        """
+        return self._parsed_description
+
+    @parsed_description.setter
+    def parsed_description(self, parsed_description: Any):
+        """
+        Return the object parsed from the description file.
+        :param parsed_description: The parsed description object.
+        """
+        self._parsed_description = parsed_description
+
+    @abstractmethod
+    def load_description(self, path: str) -> Any:
+        """
+        Loads the description from the file at the given path.
+        :param path: The path to the source file, if only a filename is provided then the resources directories will be
+         searched.
+        """
+        pass
+
+    def generate_description_from_file(self, path: str, extension: str) -> str:
+        """
+        Generates and preprocesses the description from the file at the given path and returns the preprocessed
+        description as a string.
+        :param path: The path of the file to preprocess.
+        :param extension: The file extension of the file to preprocess.
+        :return: The processed description string.
+        """
+
+        if extension in self.MESH_EXTENSIONS:
+            description_string = self.generate_from_mesh_file(path)
+        elif extension == self.get_file_extension():
+            description_string = self.generate_from_description_file(path)
+        else:
+            # Using the description from the parameter server
+            description_string = self.generate_from_parameter_server(path)
+
+        return description_string
+
+    def get_file_name(self, path_object: pathlib.Path, extension: str, object_name: str) -> str:
+        """
+        Returns the file name of the description file.
+        :param path_object: The path object of the description file or the mesh file.
+        :param extension: The file extension of the description file or the mesh file.
+        :param object_name: The name of the object.
+        :return: The file name of the description file.
+        """
+        if extension in self.MESH_EXTENSIONS:
+            file_name = path_object.stem + self.get_file_extension()
+        elif extension == self.get_file_extension():
+            file_name = path_object.name
+        else:
+            file_name = object_name + self.get_file_extension()
+
+        return file_name
+
+    @classmethod
+    @abstractmethod
+    def generate_from_mesh_file(cls, path: str) -> str:
+        """
+        Generates a description file from one of the mesh types defined in the MESH_EXTENSIONS and
+        returns the path of the generated file.
+        :param path: The path to the .obj file.
+        :return: The path of the generated description file.
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def generate_from_description_file(cls, path: str) -> str:
+        """
+        Preprocesses the given file and returns the preprocessed description string.
+        :param path: The path of the file to preprocess.
+        :return: The preprocessed description string.
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def generate_from_parameter_server(cls, name: str) -> str:
+        """
+        Preprocesses the description from the ROS parameter server and returns the preprocessed description string.
+        :param name: The name of the description on the parameter server.
+        :return: The preprocessed description string.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def links(self) -> List[LinkDescription]:
+        """
+        :return: A list of links descriptions of this object.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def joints(self) -> List[JointDescription]:
+        """
+        :return: A list of joints descriptions of this object.
+        """
+        pass
+
+    @abstractmethod
+    def get_root(self) -> str:
+        """
+        :return: the name of the root link of this object.
+        """
+        pass
+
+    @abstractmethod
+    def get_chain(self, start_link_name: str, end_link_name: str) -> List[str]:
+        """
+        :return: the chain of links from 'start_link_name' to 'end_link_name'.
+        """
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def get_file_extension() -> str:
+        """
+        :return: The file extension of the description file.
+        """
+        pass
 
 
 class Attachment(AbstractConstraint):
@@ -2834,7 +2873,7 @@ class CacheManager:
     """
 
     def update_cache_dir_with_object(self, path: str, ignore_cached_files: bool,
-                                     object_description: ObjectDescription) -> str:
+                                     object_description: ObjectDescription, object_name: str) -> str:
         """
         Checks if the file is already in the cache directory, if not it will be preprocessed and saved in the cache.
         """
@@ -2846,7 +2885,7 @@ class CacheManager:
         self.create_cache_dir_if_not_exists()
 
         # save correct path in case the file is already in the cache directory
-        cache_path = self.cache_dir + object_description.get_file_name(path_object, extension)
+        cache_path = self.cache_dir + object_description.get_file_name(path_object, extension, object_name)
 
         # if file is not yet cached preprocess the description file and save it in the cache directory.
         if not self.is_cached(path, object_description) or ignore_cached_files:
@@ -2934,5 +2973,5 @@ class CacheManager:
         :param object_description: The object description of the file.
         """
         file_stem = pathlib.Path(path).stem
-        full_path = pathlib.Path(self.cache_dir + file_stem + object_description.file_extension)
+        full_path = pathlib.Path(self.cache_dir + file_stem + object_description.get_file_extension())
         return full_path.exists()
