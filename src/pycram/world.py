@@ -2351,18 +2351,7 @@ class Joint(ObjectEntity, JointDescription, ABC):
 
     def reset_position(self, position: float) -> None:
         self.world.reset_joint_position(self.object, self.name, position)
-        self._current_position = position
         self._update_position()
-        # if self.name == "r_upper_arm_roll_joint":
-        #     if position == -1.463:
-        #         print("here")
-        #     print(self.object.name)
-        #     print(self.object.world.id)
-        #     print(self.name)
-        #     print("required", position)
-        #     print("actual", self._current_position)
-        #     print(position == self._current_position)
-        #     print("===================================")
 
     def get_object_id(self) -> int:
         """
