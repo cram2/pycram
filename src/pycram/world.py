@@ -629,11 +629,12 @@ class World(StateEntity, ABC):
         """
         state_id = self.save_physics_simulator_state()
         self.save_objects_state(state_id)
+        self._current_state = WorldState(state_id, self.object_states)
         return super().save_state(state_id)
 
     @property
     def current_state(self) -> WorldState:
-        return WorldState(self.save_physics_simulator_state(), self.object_states)
+        return self._current_state
 
     @current_state.setter
     def current_state(self, state: WorldState) -> None:
@@ -1500,10 +1501,9 @@ class Object(WorldEntity):
 
     def update_pose(self):
         """
-        Updates the current pose of this object from the world.
+        Updates the current pose of this object from the world, and updates the poses of all links.
         """
         self._current_pose = self.world.get_object_pose(self)
-        self._update_all_joints_positions()
         self._update_all_links_poses()
         self.update_link_transforms()
 
@@ -1808,7 +1808,9 @@ class Object(WorldEntity):
         """
         for joint_name, joint_position in joint_poses.items():
             self.joints[joint_name].position = joint_position
-        self.update_pose()
+        # self.update_pose()
+        self._update_all_links_poses()
+        self.update_link_transforms()
         self._set_attached_objects_poses()
 
     def set_joint_position(self, joint_name: str, joint_position: float) -> None:
@@ -2349,7 +2351,18 @@ class Joint(ObjectEntity, JointDescription, ABC):
 
     def reset_position(self, position: float) -> None:
         self.world.reset_joint_position(self.object, self.name, position)
+        self._current_position = position
         self._update_position()
+        # if self.name == "r_upper_arm_roll_joint":
+        #     if position == -1.463:
+        #         print("here")
+        #     print(self.object.name)
+        #     print(self.object.world.id)
+        #     print(self.name)
+        #     print("required", position)
+        #     print("actual", self._current_position)
+        #     print(position == self._current_position)
+        #     print("===================================")
 
     def get_object_id(self) -> int:
         """

@@ -43,19 +43,19 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.assertEqual(description.ground().object_designator.name, "milk")
 
     def test_park_arms(self):
-        time.sleep(5)
         description = action_designator.ParkArmsAction([pycram.enums.Arms.BOTH])
         self.assertEqual(description.ground().arm, pycram.enums.Arms.BOTH)
         with simulated_robot:
             description.resolve().perform()
         for joint, pose in robot_description.get_static_joint_chain("right", "park").items():
-            self.assertEqual(self.world.robot.get_joint_position(joint), pose)
+            joint_position = self.world.robot.get_joint_position(joint)
+            self.assertEqual(joint_position, pose)
         for joint, pose in robot_description.get_static_joint_chain("left", "park").items():
             self.assertEqual(self.world.robot.get_joint_position(joint), pose)
 
     def test_navigate(self):
-        description = action_designator.NavigateAction([Pose([0, 0, 0], [0, 0, 0, 1])])
-        self.assertEqual(description.ground().target_location, Pose([0, 0, 0], [0, 0, 0, 1]))
+        description = action_designator.NavigateAction([Pose([1, 0, 0], [0, 0, 0, 1])])
+        self.assertEqual(description.ground().target_location, Pose([1, 0, 0], [0, 0, 0, 1]))
 
     def test_pick_up(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
