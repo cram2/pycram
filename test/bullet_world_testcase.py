@@ -15,7 +15,7 @@ class BulletWorldTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.world = BulletWorld(WorldMode.GUI)
+        cls.world = BulletWorld(WorldMode.DIRECT)
         cls.milk = Object("milk", ObjectType.MILK, "milk.stl", ObjectDescription, pose=Pose([1.3, 1, 0.9]))
         cls.robot = Object(robot_description.name, ObjectType.ROBOT,
                            robot_description.name + cls.extension, ObjectDescription)

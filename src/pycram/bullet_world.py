@@ -260,9 +260,8 @@ class BulletWorld(World):
         near = 0.2
         far = 100
 
-        view_matrix = p.computeViewMatrix(cam_pose.position_as_list(), target_pose.position_as_list(), [0, 0, 1],
-                                          physicsClientId=self.id)
-        projection_matrix = p.computeProjectionMatrixFOV(fov, aspect, near, far, physicsClientId=self.id)
+        view_matrix = p.computeViewMatrix(cam_pose.position_as_list(), target_pose.position_as_list(), [0, 0, 1])
+        projection_matrix = p.computeProjectionMatrixFOV(fov, aspect, near, far)
         return list(p.getCameraImage(size, size, view_matrix, projection_matrix,
                                      physicsClientId=self.id))[2:5]
 
