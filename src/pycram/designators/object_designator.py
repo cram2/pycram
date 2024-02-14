@@ -1,7 +1,8 @@
 import dataclasses
 from typing_extensions import List, Optional, Callable
 import sqlalchemy.orm
-from ..world import World, Object as WorldObject
+from ..world import World
+from ..world_object import Object as WorldObject
 from ..designator import ObjectDesignatorDescription
 from ..orm.base import ProcessMetaData
 from ..orm.object_designator import (BelieveObject as ORMBelieveObject, ObjectPart as ORMObjectPart)

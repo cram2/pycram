@@ -6,7 +6,7 @@ import requests
 
 import pycram.plan_failures
 from pycram.bullet_world import BulletWorld
-from pycram.world import Object
+from pycram.world_object import Object
 from pycram.designators import action_designator, object_designator
 from pycram.process_module import ProcessModule
 from pycram.process_module import simulated_robot

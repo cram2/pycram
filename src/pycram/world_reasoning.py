@@ -6,8 +6,8 @@ import numpy as np
 from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
 from .pose import Pose, Transform
 from .robot_descriptions import robot_description
-from .world import Object, UseProspectionWorld
-from .world import World
+from .world_object import Object
+from .world import World, UseProspectionWorld
 
 
 def stable(obj: Object) -> bool:

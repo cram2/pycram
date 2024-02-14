@@ -12,7 +12,9 @@ import rospy
 
 from .enums import ObjectType, WorldMode
 from .pose import Pose
-from .world import World, Object, Constraint
+from .world import World
+from .world_object import Object
+from .world_constraints import Constraint
 from .world_dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape
 from .urdf_interface import ObjectDescription
 
@@ -140,7 +142,7 @@ class BulletWorld(World):
         return Pose(*p.getBasePositionAndOrientation(obj.id, physicsClientId=self.id))
 
     def set_link_color(self, link: Link, rgba_color: Color):
-        p.changeVisualShape(link.object_id, link.id, rgbaColor=rgba_color, physicsClientId=self.id)
+        p.changeVisualShape(link.object_id, link.id, rgbaColor=rgba_color.get_rgba(), physicsClientId=self.id)
 
     def get_link_color(self, link: Link) -> Color:
         return self.get_colors_of_object_links(link.object)[link.name]
@@ -148,7 +150,7 @@ class BulletWorld(World):
     def get_colors_of_object_links(self, obj: Object) -> Dict[str, Color]:
         visual_data = p.getVisualShapeData(obj.id, physicsClientId=self.id)
         link_id_to_name = {v: k for k, v in obj.link_name_to_id.items()}
-        links = list(map(lambda x: link_id_to_name[x[1]] if x[1] != -1 else "base", visual_data))
+        links = list(map(lambda x: link_id_to_name[x[1]], visual_data))
         colors = list(map(lambda x: Color.from_rgba(x[7]), visual_data))
         link_to_color = dict(zip(links, colors))
         return link_to_color

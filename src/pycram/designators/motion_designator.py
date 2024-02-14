@@ -2,7 +2,8 @@ import dataclasses
 
 from sqlalchemy.orm import Session
 from .object_designator import ObjectDesignatorDescription, ObjectPart, RealObject
-from ..world import Object, World
+from ..world import World
+from ..world_object import Object
 from ..designator import DesignatorError
 from ..plan_failures import PerceptionObjectNotFound
 from ..process_module import ProcessModuleManager

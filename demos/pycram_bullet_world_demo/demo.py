@@ -1,22 +1,28 @@
+from pycram.bullet_world import BulletWorld
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.designators.object_designator import *
+from pycram.enums import ObjectType
 from pycram.pose import Pose
-from pycram.bullet_world import BulletWorld
+from pycram.process_module import simulated_robot, with_simulated_robot
+from pycram.urdf_interface import ObjectDescription
 from pycram.world import Object
 from pycram.world_dataclasses import Color
-from pycram.process_module import simulated_robot, with_simulated_robot
-from pycram.enums import ObjectType
+
+extension = ObjectDescription.get_file_extension()
 
 world = BulletWorld()
-robot = Object("pr2", ObjectType.ROBOT, "pr2.urdf", pose=Pose([1, 2, 0]))
-apartment = Object("apartment", ObjectType.ENVIRONMENT, "apartment.urdf")
+robot = Object("pr2", ObjectType.ROBOT, f"pr2{extension}", ObjectDescription, pose=Pose([1, 2, 0]))
+apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}", ObjectDescription)
 
-milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([2.5, 2, 1.02]), color=Color(1, 0, 0, 1))
-cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", pose=Pose([2.5, 2.3, 1.05]),
-                color=[0, 1, 0, 1])
-spoon = Object("spoon", ObjectType.SPOON, "spoon.stl", pose=Pose([2.4, 2.2, 0.85]), color=Color(0, 0, 1, 1))
-bowl = Object("bowl", ObjectType.BOWL, "bowl.stl", pose=Pose([2.5, 2.2, 1.02]), color=Color(1, 1, 0, 1))
+milk = Object("milk", ObjectType.MILK, "milk.stl", ObjectDescription, pose=Pose([2.5, 2, 1.02]),
+              color=Color(1, 0, 0, 1))
+cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", ObjectDescription,
+                pose=Pose([2.5, 2.3, 1.05]), color=Color(0, 1, 0, 1))
+spoon = Object("spoon", ObjectType.SPOON, "spoon.stl", ObjectDescription, pose=Pose([2.4, 2.2, 0.85]),
+               color=Color(0, 0, 1, 1))
+bowl = Object("bowl", ObjectType.BOWL, "bowl.stl", ObjectDescription, pose=Pose([2.5, 2.2, 1.02]),
+              color=Color(1, 1, 0, 1))
 apartment.attach(spoon, 'cabinet10_drawer_top')
 
 pick_pose = Pose([2.7, 2.15, 1])
@@ -55,7 +61,8 @@ with simulated_robot:
 
     # Finding and navigating to the drawer holding the spoon
     handle_desig = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig.resolve())
-    drawer_open_loc = AccessingLocation(handle_desig=handle_desig.resolve(), robot_desig=robot_desig.resolve()).resolve()
+    drawer_open_loc = AccessingLocation(handle_desig=handle_desig.resolve(),
+                                        robot_desig=robot_desig.resolve()).resolve()
 
     NavigateAction([drawer_open_loc.pose]).resolve().perform()
 
@@ -91,4 +98,3 @@ with simulated_robot:
     PlaceAction(spoon_desig, [spoon_target_pose], [pickup_arm]).resolve().perform()
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
-

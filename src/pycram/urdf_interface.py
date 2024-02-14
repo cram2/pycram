@@ -12,7 +12,7 @@ from urdf_parser_py.urdf import (URDF, Collision, Box as URDF_Box, Cylinder as U
 
 from pycram.enums import JointType, Shape
 from pycram.pose import Pose
-from pycram.world import JointDescription as AbstractJointDescription, \
+from pycram.description import JointDescription as AbstractJointDescription, \
     LinkDescription as AbstractLinkDescription, ObjectDescription as AbstractObjectDescription
 from pycram.world_dataclasses import Color
 

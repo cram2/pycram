@@ -11,7 +11,8 @@ import traceback
 
 from ..pose import Pose
 from ..robot_descriptions import robot_description
-from ..world import World, Object
+from ..world import World
+from ..world_object import Object
 from ..robot_description import ManipulatorDescription
 
 from typing_extensions import List, Tuple, Dict, Callable, Optional
