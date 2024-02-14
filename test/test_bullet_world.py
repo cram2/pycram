@@ -5,7 +5,9 @@ import rospkg
 
 from bullet_world_testcase import BulletWorldTestCase
 from pycram.pose import Pose
-from pycram.world import Object, ObjectType
+from pycram.robot_descriptions import robot_description
+from pycram.enums import ObjectType
+from pycram.world_object import Object
 import xml.etree.ElementTree as ET
 from pycram.urdf_interface import ObjectDescription
 
@@ -56,10 +58,25 @@ class BulletWorldTest(BulletWorldTestCase):
 
     def test_step_simulation(self):
         # TODO: kitchen explodes when stepping simulation, fix this
+        time.sleep(2)
         self.world.remove_object(self.kitchen)
         self.milk.set_position(Pose([0, 0, 2]))
         self.world.simulate(1)
         self.assertTrue(self.milk.get_position().z < 2)
+
+    def test_set_real_time_simulation(self):
+        # self.world.remove_object(self.kitchen)
+        self.milk.set_position(Pose([100, 0, 2]))
+        curr_time = time.time()
+        self.world.simulate(0.5, real_time=True)
+        time_elapsed = time.time() - curr_time
+        self.assertAlmostEqual(time_elapsed, 0.5, delta=0.1)
+
+    def test_create_vis_axis(self):
+        self.world.add_vis_axis(self.robot.links[robot_description.get_camera_frame()].pose, 1)
+        self.assertTrue(len(self.world.vis_axis) == 1)
+        self.world.remove_vis_axis()
+        self.assertTrue(len(self.world.vis_axis) == 0)
 
 
 class XMLTester(unittest.TestCase):

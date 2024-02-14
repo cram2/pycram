@@ -1,4 +1,7 @@
+import time
+
 from bullet_world_testcase import BulletWorldTestCase
+from pycram.world_dataclasses import Color
 
 
 class TestLinks(BulletWorldTestCase):
@@ -24,4 +27,10 @@ class TestLinks(BulletWorldTestCase):
         milk_to_robot = milk_link.get_transform_to_link(robot_link)
         robot_to_milk = robot_link.get_transform_to_link(milk_link)
         self.assertAlmostEqual(robot_to_milk, milk_to_robot.invert())
+
+    def test_set_color(self):
+        link = self.robot.links['base_link']
+        link.color = Color(1, 0, 0, 1)
+        self.assertEqual(link.color.get_rgba(), [1, 0, 0, 1])
+
 

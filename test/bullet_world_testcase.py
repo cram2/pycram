@@ -1,6 +1,7 @@
 import unittest
 
-from pycram.bullet_world import BulletWorld, Object
+from pycram.bullet_world import BulletWorld
+from pycram.world_object import Object
 from pycram.pose import Pose
 from pycram.robot_descriptions import robot_description
 from pycram.process_module import ProcessModule

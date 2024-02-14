@@ -1,7 +1,8 @@
 import tf
 import numpy as np
 
-from .world import Object, World
+from .world import World
+from .world_object import Object
 from .world_reasoning import contact
 from .costmaps import Costmap
 from .pose import Pose, Transform

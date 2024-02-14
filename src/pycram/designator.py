@@ -8,7 +8,8 @@ from inspect import isgenerator, isgeneratorfunction
 from sqlalchemy.orm.session import Session
 import rospy
 
-from .world import World, Object as WorldObject
+from .world import World
+from .world_object import Object as WorldObject
 from .helper import GeneratorList, bcolors
 from threading import Lock
 from time import time

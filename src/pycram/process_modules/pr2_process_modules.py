@@ -18,7 +18,8 @@ from ..designators.motion_designator import MoveMotion, PickUpMotion, PlaceMotio
     DetectingMotion, MoveTCPMotion, MoveArmJointsMotion, WorldStateDetectingMotion, MoveJointsMotion, \
     MoveGripperMotion, OpeningMotion, ClosingMotion, MotionDesignatorDescription
 from ..robot_descriptions import robot_description
-from ..world import World, Object
+from ..world import World
+from ..world_object import Object
 from ..pose import Pose
 from ..enums import JointType, ObjectType
 from ..external_interfaces import giskard

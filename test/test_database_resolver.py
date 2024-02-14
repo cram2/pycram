@@ -3,7 +3,7 @@ import unittest
 import sqlalchemy
 import sqlalchemy.orm
 import pycram.plan_failures
-from pycram.world import Object
+from pycram.world_object import Object
 from pycram import task
 from pycram.world import World
 from pycram.designators import action_designator, object_designator

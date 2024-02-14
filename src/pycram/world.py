@@ -1,30 +1,29 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-import logging
 import os
-import pathlib
-import re
 import threading
 import time
 from abc import ABC, abstractmethod
+from copy import copy
 from queue import Queue
 
 import numpy as np
 import rospy
-from geometry_msgs.msg import Quaternion, Point
-from typing_extensions import List, Optional, Dict, Tuple, Callable, Any, Type
+from geometry_msgs.msg import Point
+from typing_extensions import List, Optional, Dict, Tuple, Callable
 from typing_extensions import Union
 
-from .enums import JointType, ObjectType, WorldMode, Shape
+from .cache_manager import CacheManager
+from .enums import JointType, ObjectType, WorldMode
 from .event import Event
 from .local_transformer import LocalTransformer
 from .pose import Pose, Transform
-from .robot_descriptions import robot_description
+from .world_constraints import Constraint
 from .world_dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
                                 MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape, SphereVisualShape,
                                 CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
-                                LinkState, ObjectState, JointState, State, WorldState)
+                                ObjectState, State, WorldState)
 
 
 class StateEntity:
@@ -87,6 +86,17 @@ class StateEntity:
         self._saved_states = {}
 
 
+class WorldEntity(StateEntity, ABC):
+    """
+    A data class that represents an entity of the world, such as an object or a link.
+    """
+
+    def __init__(self, _id: int, world: Optional[World] = None):
+        StateEntity.__init__(self)
+        self.id = _id
+        self.world: World = world if world is not None else World.current_world
+
+
 class World(StateEntity, ABC):
     """
     The World Class represents the physics Simulation and belief state, it is the main interface for reasoning about
@@ -107,9 +117,9 @@ class World(StateEntity, ABC):
         used at the moment.
     """
 
-    robot: Optional[Object] = None
+    robot: Optional['Object'] = None
     """
-    Global reference to the spawned Object that represents the robot. The robot is identified by checking the name in
+    Global reference to the spawned 'Object'that represents the robot. The robot is identified by checking the name in
      the URDF with the name of the URDF on the parameter server. 
     """
 
@@ -139,7 +149,7 @@ class World(StateEntity, ABC):
             World.current_world = self
         World.simulation_frequency = simulation_frequency
 
-        self.cache_manager = CacheManager()
+        self.cache_manager = CacheManager(self.cache_dir, self.data_directory)
 
         self.is_prospection_world: bool = is_prospection_world
         self._init_and_sync_prospection_world()
@@ -147,7 +157,7 @@ class World(StateEntity, ABC):
         self.local_transformer = LocalTransformer()
         self._update_local_transformer_worlds()
 
-        self.objects: List[Object] = []
+        self.objects: List['Object'] = []
         # List of all Objects in the World
 
         self.id: int = -1
@@ -156,7 +166,7 @@ class World(StateEntity, ABC):
         self.mode: WorldMode = mode
         # The mode of the simulation, can be "GUI" or "DIRECT"
 
-        self.coll_callbacks: Dict[Tuple[Object, Object], CollisionCallbacks] = {}
+        self.coll_callbacks: Dict[Tuple['Object', 'Object'], CollisionCallbacks] = {}
 
         self._init_events()
 
@@ -206,7 +216,7 @@ class World(StateEntity, ABC):
             self.world_sync.start()
 
     def update_cache_dir_with_object(self, path: str, ignore_cached_files: bool,
-                                     obj: Object) -> str:
+                                     obj: 'Object') -> str:
         """
         Updates the cache directory with the given object.
 
@@ -235,7 +245,7 @@ class World(StateEntity, ABC):
         pass
 
     # TODO: This is not used anywhere, should it be removed?
-    def get_objects_by_name(self, name: str) -> List[Object]:
+    def get_objects_by_name(self, name: str) -> List['Object']:
         """
         Returns a list of all Objects in this World with the same name as the given one.
 
@@ -244,7 +254,7 @@ class World(StateEntity, ABC):
         """
         return list(filter(lambda obj: obj.name == name, self.objects))
 
-    def get_objects_by_type(self, obj_type: ObjectType) -> List[Object]:
+    def get_objects_by_type(self, obj_type: ObjectType) -> List['Object']:
         """
         Returns a list of all Objects which have the type 'obj_type'.
 
@@ -253,29 +263,29 @@ class World(StateEntity, ABC):
         """
         return list(filter(lambda obj: obj.obj_type == obj_type, self.objects))
 
-    def get_object_by_id(self, obj_id: int) -> Object:
+    def get_object_by_id(self, obj_id: int) -> 'Object':
         """
-        Returns the single Object that has the unique id.
+        Returns the single 'Object'that has the unique id.
 
-        :param obj_id: The unique id for which the Object should be returned.
-        :return: The Object with the id 'id'.
+        :param obj_id: The unique id for which the 'Object'should be returned.
+        :return: The 'Object'with the id 'id'.
         """
         return list(filter(lambda obj: obj.id == obj_id, self.objects))[0]
 
     @abstractmethod
-    def remove_object_from_simulator(self, obj: Object) -> None:
+    def remove_object_from_simulator(self, obj: 'Object') -> None:
         """
         Removes an object from the physics simulator.
         :param obj: The object to be removed.
         """
         pass
 
-    def remove_object(self, obj: Object) -> None:
+    def remove_object(self, obj: 'Object') -> None:
         """
         Removes this object from the current world.
         For the object to be removed it has to be detached from all objects it
         is currently attached to. After this is done a call to world remove object is done
-        to remove this Object from the simulation/world.
+        to remove this 'Object'from the simulation/world.
 
         :param obj: The object to be removed.
         """
@@ -294,7 +304,8 @@ class World(StateEntity, ABC):
         if World.robot == self:
             World.robot = None
 
-    def add_fixed_constraint(self, parent_link: Link, child_link: Link, child_to_parent_transform: Transform) -> int:
+    def add_fixed_constraint(self, parent_link: 'Link', child_link: 'Link',
+                             child_to_parent_transform: Transform) -> int:
         """
         Creates a fixed joint constraint between the given parent and child links,
         the joint frame will be at the origin of the child link frame, and would have the same orientation
@@ -335,7 +346,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_joint_position(self, obj: Object, joint_name: str) -> float:
+    def get_joint_position(self, obj: 'Object', joint_name: str) -> float:
         """
         Get the position of a joint of an articulated object
 
@@ -346,7 +357,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_object_joint_names(self, obj: Object) -> List[str]:
+    def get_object_joint_names(self, obj: 'Object') -> List[str]:
         """
         Returns the names of all joints of this object.
 
@@ -356,7 +367,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_link_pose(self, link: Link) -> Pose:
+    def get_link_pose(self, link: 'Link') -> Pose:
         """
         Get the pose of a link of an articulated object with respect to the world frame.
 
@@ -366,7 +377,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_object_link_names(self, obj: Object) -> List[str]:
+    def get_object_link_names(self, obj: 'Object') -> List[str]:
         """
         Returns the names of all links of this object.
         :param obj: The object.
@@ -374,7 +385,7 @@ class World(StateEntity, ABC):
         """
         pass
 
-    def simulate(self, seconds: float, real_time: Optional[float] = False) -> None:
+    def simulate(self, seconds: float, real_time: Optional[bool] = False) -> None:
         """
         Simulates Physics in the World for a given amount of seconds. Usually this simulation is faster than real
         time. By setting the 'real_time' parameter this simulation is slowed down such that the simulated time is equal
@@ -383,6 +394,7 @@ class World(StateEntity, ABC):
         :param seconds: The amount of seconds that should be simulated.
         :param real_time: If the simulation should happen in real time or faster.
         """
+        self.set_realtime(real_time)
         for i in range(0, int(seconds * self.simulation_frequency)):
             curr_time = rospy.Time.now()
             self.step()
@@ -394,7 +406,8 @@ class World(StateEntity, ABC):
                     callbacks.no_collision_cb()
             if real_time:
                 loop_time = rospy.Time.now() - curr_time
-                time.sleep(max(0, self.simulation_time_step - loop_time.to_sec()))
+                time_diff = self.simulation_time_step - loop_time.to_sec()
+                time.sleep(max(0, time_diff))
         self.update_all_objects_poses()
 
     def update_all_objects_poses(self) -> None:
@@ -405,7 +418,7 @@ class World(StateEntity, ABC):
             obj.update_pose()
 
     @abstractmethod
-    def get_object_pose(self, obj: Object) -> Pose:
+    def get_object_pose(self, obj: 'Object') -> Pose:
         """
         Get the pose of an object in the world frame from the current object pose in the simulator.
         """
@@ -419,9 +432,9 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_object_contact_points(self, obj: Object) -> List:
+    def get_object_contact_points(self, obj: 'Object') -> List:
         """
-        Returns a list of contact points of this Object with all other Objects.
+        Returns a list of contact points of this 'Object'with all other Objects.
 
         :param obj: The object.
         :return: A list of all contact points with other objects
@@ -429,7 +442,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> List:
+    def get_contact_points_between_two_objects(self, obj1: 'Object', obj2: 'Object') -> List:
         """
         Returns a list of contact points between obj1 and obj2.
 
@@ -440,7 +453,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def reset_joint_position(self, obj: Object, joint_name: str, joint_pose: float) -> None:
+    def reset_joint_position(self, obj: 'Object', joint_name: str, joint_pose: float) -> None:
         """
         Reset the joint position instantly without physics simulation
 
@@ -451,7 +464,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def reset_object_base_pose(self, obj: Object, pose: Pose):
+    def reset_object_base_pose(self, obj: 'Object', pose: Pose):
         """
         Reset the world position and orientation of the base of the object instantaneously,
         not through physics simulation. (x,y,z) position vector and (x,y,z,w) quaternion orientation.
@@ -469,7 +482,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def set_link_color(self, link: Link, rgba_color: Color):
+    def set_link_color(self, link: 'Link', rgba_color: Color):
         """
         Changes the rgba_color of a link of this object, the rgba_color has to be given as Color object.
 
@@ -479,7 +492,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_link_color(self, link: Link) -> Color:
+    def get_link_color(self, link: 'Link') -> Color:
         """
         This method returns the rgba_color of this link.
         :param link: The link for which the rgba_color should be returned.
@@ -488,7 +501,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_colors_of_object_links(self, obj: Object) -> Dict[str, Color]:
+    def get_colors_of_object_links(self, obj: 'Object') -> Dict[str, Color]:
         """
         Get the RGBA colors of each link in the object as a dictionary from link name to rgba_color.
 
@@ -498,7 +511,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_object_axis_aligned_bounding_box(self, obj: Object) -> AxisAlignedBoundingBox:
+    def get_object_axis_aligned_bounding_box(self, obj: 'Object') -> AxisAlignedBoundingBox:
         """
         Returns the axis aligned bounding box of this object. The return of this method are two points in
         world coordinate frame which define a bounding box.
@@ -509,7 +522,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
+    def get_link_axis_aligned_bounding_box(self, link: 'Link') -> AxisAlignedBoundingBox:
         """
         Returns the axis aligned bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
@@ -560,21 +573,21 @@ class World(StateEntity, ABC):
         """
         pass
 
-    def set_robot_if_not_set(self, robot: Object) -> None:
+    def set_robot_if_not_set(self, robot: 'Object') -> None:
         """
         Sets the robot if it is not set yet.
 
-        :param robot: The Object reference to the Object representing the robot.
+        :param robot: The 'Object'reference to the 'Object'representing the robot.
         """
         if not self.robot_is_set():
             self.set_robot(robot)
 
     @staticmethod
-    def set_robot(robot: Union[Object, None]) -> None:
+    def set_robot(robot: Union['Object', None]) -> None:
         """
-        Sets the global variable for the robot Object. This should be set on spawning the robot.
+        Sets the global variable for the robot 'Object' This should be set on spawning the robot.
 
-        :param robot: The Object reference to the Object representing the robot.
+        :param robot: The 'Object'reference to the 'Object'representing the robot.
         """
         World.robot = robot
 
@@ -738,7 +751,7 @@ class World(StateEntity, ABC):
 
         1. An RGB image
         2. A depth image
-        3. A segmentation Mask, the segmentation mask indicates for every pixel the visible Object.
+        3. A segmentation Mask, the segmentation mask indicates for every pixel the visible 'Object'
 
         :param target_pose: The pose to which the camera should point.
         :param cam_pose: The pose of the camera.
@@ -748,8 +761,8 @@ class World(StateEntity, ABC):
         pass
 
     def register_two_objects_collision_callbacks(self,
-                                                 object_a: Object,
-                                                 object_b: Object,
+                                                 object_a: 'Object',
+                                                 object_b: 'Object',
                                                  on_collision_callback: Callable,
                                                  on_collision_removal_callback: Optional[Callable] = None) -> None:
         """
@@ -768,16 +781,16 @@ class World(StateEntity, ABC):
     def add_resource_path(cls, path: str) -> None:
         """
         Adds a resource path in which the World will search for files. This resource directory is searched if an
-        Object is spawned only with a filename.
+        'Object'is spawned only with a filename.
 
         :param path: A path in the filesystem in which to search for files.
         """
         cls.data_directory.append(path)
 
-    def get_prospection_object_for_object(self, obj: Object) -> Object:
+    def get_prospection_object_for_object(self, obj: 'Object') -> 'Object':
         """
         Returns the corresponding object from the prospection world for a given object in the main world.
-         If the given Object is already in the prospection world, it is returned.
+         If the given 'Object'is already in the prospection world, it is returned.
 
         :param obj: The object for which the corresponding object in the prospection World should be found.
         :return: The corresponding object in the prospection world.
@@ -794,7 +807,7 @@ class World(StateEntity, ABC):
                     f" the object isn't anymore in the main (graphical) World"
                     f" or if the given object is already a prospection object. ")
 
-    def get_object_for_prospection_object(self, prospection_object: Object) -> Object:
+    def get_object_for_prospection_object(self, prospection_object: 'Object') -> 'Object':
         """
         Returns the corresponding object from the main World for a given
         object in the prospection world. If the  given object is not in the prospection
@@ -989,7 +1002,7 @@ class World(StateEntity, ABC):
         """
         raise NotImplementedError
 
-    def enable_joint_force_torque_sensor(self, obj: Object, fts_joint_idx: int) -> None:
+    def enable_joint_force_torque_sensor(self, obj: 'Object', fts_joint_idx: int) -> None:
         """
         You can enable a joint force/torque sensor in each joint. Once enabled, if you perform
         a simulation step, the get_joint_reaction_force_torque will report the joint reaction forces in
@@ -1001,7 +1014,7 @@ class World(StateEntity, ABC):
         """
         raise NotImplementedError
 
-    def disable_joint_force_torque_sensor(self, obj: Object, joint_id: int) -> None:
+    def disable_joint_force_torque_sensor(self, obj: 'Object', joint_id: int) -> None:
         """
         Disables the force torque sensor of a joint.
         :param obj: The object in which the joint is located.
@@ -1009,7 +1022,7 @@ class World(StateEntity, ABC):
         """
         raise NotImplementedError
 
-    def get_joint_reaction_force_torque(self, obj: Object, joint_id: int) -> List[float]:
+    def get_joint_reaction_force_torque(self, obj: 'Object', joint_id: int) -> List[float]:
         """
         Returns the joint reaction forces and torques of the specified joint.
         :param obj: The object in which the joint is located.
@@ -1018,7 +1031,7 @@ class World(StateEntity, ABC):
         """
         raise NotImplementedError
 
-    def get_applied_joint_motor_torque(self, obj: Object, joint_id: int) -> float:
+    def get_applied_joint_motor_torque(self, obj: 'Object', joint_id: int) -> float:
         """
         Returns the applied torque by a joint motor.
         :param obj: The object in which the joint is located.
@@ -1086,7 +1099,7 @@ class WorldSync(threading.Thread):
         self.remove_obj_queue: Queue = Queue()
         self.pause_sync: bool = False
         # Maps world to prospection world objects
-        self.object_mapping: Dict[Object, Object] = {}
+        self.object_mapping: Dict['Object', 'Object'] = {}
         self.equal_states = False
 
     def run(self, wait_time_as_n_simulation_steps: Optional[int] = 1):
@@ -1107,9 +1120,8 @@ class WorldSync(threading.Thread):
                 obj = self.add_obj_queue.get()
                 # [0:name, 1:type, 2:path, 3:description, 4:position, 5:orientation,
                 # 6:self.world.prospection_world, 7:rgba_color, 8:world object]
-                o = Object(obj[0], obj[1], obj[2], obj[3], Pose(obj[4], obj[5]), obj[6], obj[7])
                 # Maps the World object to the prospection world object
-                self.object_mapping[obj[8]] = o
+                self.object_mapping[obj[8]] = copy(obj[8])
                 self.add_obj_queue.task_done()
             for i in range(self.remove_obj_queue.qsize()):
                 obj = self.remove_obj_queue.get()
@@ -1155,1849 +1167,3 @@ class WorldSync(threading.Thread):
         for obj, prospection_obj in self.object_mapping.items():
             eql = eql and obj.get_pose() == prospection_obj.get_pose()
         self.equal_states = eql
-
-
-class WorldEntity(StateEntity, ABC):
-    """
-    A data class that represents an entity of the world, such as an object or a link.
-    """
-
-    def __init__(self, _id: int, world: Optional[World] = None):
-        StateEntity.__init__(self)
-        self.id = _id
-        self.world: World = world if world is not None else World.current_world
-
-
-class Object(WorldEntity):
-    """
-    Represents a spawned Object in the World.
-    """
-
-    prospection_world_prefix: str = "prospection/"
-    """
-    The ObjectDescription of the object, this contains the name and type of the object as well as the path to the source 
-    file.
-    """
-
-    def __init__(self, name: str, obj_type: ObjectType, path: str,
-                 description: Type[ObjectDescription],
-                 pose: Optional[Pose] = None,
-                 world: Optional[World] = None,
-                 color: Optional[Color] = Color(),
-                 ignore_cached_files: Optional[bool] = False):
-        """
-        The constructor loads the description file into the given World, if no World is specified the
-        :py:attr:`~World.current_world` will be used. It is also possible to load .obj and .stl file into the World.
-        The rgba_color parameter is only used when loading .stl or .obj files,
-         for URDFs :func:`~Object.set_color` can be used.
-
-        :param name: The name of the object
-        :param obj_type: The type of the object as an ObjectType enum.
-        :param path: The path to the source file, if only a filename is provided then the resources directories will be
-         searched.
-        :param description: The ObjectDescription of the object, this contains the joints and links of the object.
-        :param pose: The pose at which the Object should be spawned
-        :param world: The World in which the object should be spawned,
-         if no world is specified the :py:attr:`~World.current_world` will be used.
-        :param color: The rgba_color with which the object should be spawned.
-        :param ignore_cached_files: If true the file will be spawned while ignoring cached files.
-        """
-
-        super().__init__(-1, world)
-
-        if pose is None:
-            pose = Pose()
-
-        self.name: str = name
-        self.obj_type: ObjectType = obj_type
-        self.color: Color = color
-        self.description = description()
-        self.cache_manager = self.world.cache_manager
-
-        self.local_transformer = LocalTransformer()
-        self.original_pose = self.local_transformer.transform_pose(pose, "map")
-        self._current_pose = self.original_pose
-
-        self.id, self.path = self._load_object_and_get_id(path, ignore_cached_files)
-
-        self.description.update_description_from_file(self.path)
-
-        self.tf_frame = ((self.prospection_world_prefix if self.world.is_prospection_world else "")
-                         + f"{self.name}_{self.id}")
-
-        self._update_object_description_from_file(self.path)
-
-        if self.description.name == robot_description.name:
-            self.world.set_robot_if_not_set(self)
-
-        self._init_joint_name_and_id_map()
-        self._init_link_name_and_id_map()
-
-        self._init_links_and_update_transforms()
-        self._init_joints()
-
-        self.attachments: Dict[Object, Attachment] = {}
-
-        if not self.world.is_prospection_world:
-            self._add_to_world_sync_obj_queue(self.path)
-
-        self.world.objects.append(self)
-
-    def _load_object_and_get_id(self, path, ignore_cached_files: bool) -> Tuple[int, str]:
-        """
-        Loads an object to the given World with the given position and orientation. The rgba_color will only be
-        used when an .obj or .stl file is given.
-        If a .obj or .stl file is given, before spawning, an urdf file with the .obj or .stl as mesh will be created
-        and this URDf file will be loaded instead.
-        When spawning a URDf file a new file will be created in the cache directory, if there exists none.
-        This new file will have resolved mesh file paths, meaning there will be no references
-        to ROS packges instead there will be absolute file paths.
-
-        :param ignore_cached_files: Whether to ignore files in the cache directory.
-        :return: The unique id of the object and the path of the file that was loaded.
-        """
-
-        path = self.world.update_cache_dir_with_object(path, ignore_cached_files, self)
-
-        try:
-            obj_id = self.world.load_description_and_get_object_id(path, Pose(self.get_position_as_list(),
-                                                                              self.get_orientation_as_list()))
-            return obj_id, path
-        except Exception as e:
-            logging.error(
-                "The File could not be loaded. Please note that the path has to be either a URDF, stl or obj file or"
-                " the name of an URDF string on the parameter server.")
-            os.remove(path)
-            raise (e)
-
-    def _update_object_description_from_file(self, path: str) -> None:
-        """
-        Updates the object description from the given file path.
-        :param path: The path to the file from which the object description should be updated.
-        """
-        self.description.update_description_from_file(path)
-
-    def _init_joint_name_and_id_map(self) -> None:
-        """
-        Creates a dictionary which maps the joint names to their unique ids and vice versa.
-        """
-        n_joints = len(self.joint_names)
-        self.joint_name_to_id = dict(zip(self.joint_names, range(n_joints)))
-        self.joint_id_to_name = dict(zip(self.joint_name_to_id.values(), self.joint_name_to_id.keys()))
-
-    def _init_link_name_and_id_map(self) -> None:
-        """
-        Creates a dictionary which maps the link names to their unique ids and vice versa.
-        """
-        n_links = len(self.link_names)
-        self.link_name_to_id: Dict[str, int] = dict(zip(self.link_names, range(n_links)))
-        self.link_name_to_id[self.description.get_root()] = -1
-        self.link_id_to_name: Dict[int, str] = dict(zip(self.link_name_to_id.values(), self.link_name_to_id.keys()))
-
-    def _init_links_and_update_transforms(self) -> None:
-        """
-        Initializes the link objects from the URDF file and creates a dictionary which maps the link names to the
-        corresponding link objects.
-        """
-        self.links = {}
-        for link_name, link_id in self.link_name_to_id.items():
-            link_description = self.description.get_link_by_name(link_name)
-            if link_name == self.description.get_root():
-                self.links[link_name] = self.description.RootLink(self)
-            else:
-                self.links[link_name] = self.description.Link(link_id, link_description, self)
-
-        self.update_link_transforms()
-
-    def _init_joints(self):
-        """
-        Initialize the joint objects from the URDF file and creates a dictionary which mas the joint names to the
-        corresponding joint objects
-        """
-        self.joints = {}
-        for joint_name, joint_id in self.joint_name_to_id.items():
-            joint_description = self.description.get_joint_by_name(joint_name)
-            self.joints[joint_name] = self.description.Joint(joint_id, joint_description, self)
-
-    def _add_to_world_sync_obj_queue(self, path: str) -> None:
-        """
-        Adds this object to the objects queue of the WorldSync object of the World.
-        :param path: The path of the URDF file of this object.
-        """
-        self.world.world_sync.add_obj_queue.put(
-            [self.name, self.obj_type, path, type(self.description), self.get_position_as_list(),
-             self.get_orientation_as_list(),
-             self.world.prospection_world, self.color, self])
-
-    @property
-    def link_names(self) -> List[str]:
-        """
-        :return: The name of each link as a list.
-        """
-        return self.world.get_object_link_names(self)
-
-    @property
-    def number_of_links(self) -> int:
-        """
-        :return: The number of links of this object.
-        """
-        return len(self.description.links)
-
-    @property
-    def joint_names(self) -> List[str]:
-        """
-        :return: The name of each joint as a list.
-        """
-        return self.world.get_object_joint_names(self)
-
-    @property
-    def number_of_joints(self) -> int:
-        """
-        :return: The number of joints of this object.
-        """
-        return len(self.description.joints)
-
-    @property
-    def base_origin_shift(self) -> np.ndarray:
-        """
-        The shift between the base of the object and the origin of the object.
-        :return: A numpy array with the shift between the base of the object and the origin of the object.
-        """
-        return np.array(self.get_pose().position_as_list()) - np.array(self.get_base_origin().position_as_list())
-
-    def __repr__(self):
-        skip_attr = ["links", "joints", "description", "attachments"]
-        return self.__class__.__qualname__ + f"(" + ', \n'.join(
-            [f"{key}={value}" if key not in skip_attr else f"{key}: ..." for key, value in self.__dict__.items()]) + ")"
-
-    def remove(self) -> None:
-        """
-        Removes this object from the World it currently resides in.
-        For the object to be removed it has to be detached from all objects it
-        is currently attached to. After this is done a call to world remove object is done
-        to remove this Object from the simulation/world.
-        """
-        self.world.remove_object(self)
-
-    def reset(self, remove_saved_states=True) -> None:
-        """
-        Resets the Object to the state it was first spawned in.
-        All attached objects will be detached, all joints will be set to the
-        default position of 0 and the object will be set to the position and
-        orientation in which it was spawned.
-        :param remove_saved_states: If True the saved states will be removed.
-        """
-        self.detach_all()
-        self.reset_all_joints_positions()
-        self.set_pose(self.original_pose)
-        if remove_saved_states:
-            self.remove_saved_states()
-
-    def attach(self,
-               child_object: Object,
-               parent_link: Optional[str] = None,
-               child_link: Optional[str] = None,
-               bidirectional: Optional[bool] = True) -> None:
-        """
-        Attaches another object to this object. This is done by
-        saving the transformation between the given link, if there is one, and
-        the base pose of the other object. Additionally, the name of the link, to
-        which the object is attached, will be saved.
-        Furthermore, a simulator constraint will be created so the attachment
-        also works while simulation.
-        Loose attachments means that the attachment will only be one-directional. For example, if this object moves the
-        other, attached, object will also move but not the other way around.
-
-        :param child_object: The other object that should be attached.
-        :param parent_link: The link name of this object.
-        :param child_link: The link name of the other object.
-        :param bidirectional: If the attachment should be a loose attachment.
-        """
-        parent_link = self.links[parent_link] if parent_link else self.root_link
-        child_link = child_object.links[child_link] if child_link else child_object.root_link
-
-        attachment = Attachment(parent_link, child_link, bidirectional)
-
-        self.attachments[child_object] = attachment
-        child_object.attachments[self] = attachment.get_inverse()
-
-        self.world.attachment_event(self, [self, child_object])
-
-    def detach(self, child_object: Object) -> None:
-        """
-        Detaches another object from this object. This is done by
-        deleting the attachment from the attachments dictionary of both objects
-        and deleting the constraint of the simulator.
-        Afterward the detachment event of the corresponding World will be fired.
-
-        :param child_object: The object which should be detached
-        """
-        del self.attachments[child_object]
-        del child_object.attachments[self]
-
-        self.world.detachment_event(self, [self, child_object])
-
-    def detach_all(self) -> None:
-        """
-        Detach all objects attached to this object.
-        """
-        attachments = self.attachments.copy()
-        for att in attachments.keys():
-            self.detach(att)
-
-    def update_attachment_with_object(self, child_object: Object):
-        self.attachments[child_object].update_transform_and_constraint()
-
-    def get_position(self) -> Point:
-        """
-        Returns the position of this Object as a list of xyz.
-
-        :return: The current position of this object
-        """
-        return self.get_pose().position
-
-    def get_orientation(self) -> Pose.orientation:
-        """
-        Returns the orientation of this object as a list of xyzw, representing a quaternion.
-
-        :return: A list of xyzw
-        """
-        return self.get_pose().orientation
-
-    def get_position_as_list(self) -> List[float]:
-        """
-        Returns the position of this Object as a list of xyz.
-
-        :return: The current position of this object
-        """
-        return self.get_pose().position_as_list()
-
-    def get_orientation_as_list(self) -> List[float]:
-        """
-        Returns the orientation of this object as a list of xyzw, representing a quaternion.
-
-        :return: A list of xyzw
-        """
-        return self.get_pose().orientation_as_list()
-
-    def get_pose(self) -> Pose:
-        """
-        Returns the position of this object as a list of xyz. Alias for :func:`~Object.get_position`.
-
-        :return: The current pose of this object
-        """
-        return self._current_pose
-
-    def set_pose(self, pose: Pose, base: Optional[bool] = False, set_attachments: Optional[bool] = True) -> None:
-        """
-        Sets the Pose of the object.
-
-        :param pose: New Pose for the object
-        :param base: If True places the object base instead of origin at the specified position and orientation
-        :param set_attachments: Whether to set the poses of the attached objects to this object or not.
-        """
-        pose_in_map = self.local_transformer.transform_pose(pose, "map")
-        if base:
-            pose_in_map.position = np.array(pose_in_map.position) + self.base_origin_shift
-
-        self.reset_base_pose(pose_in_map)
-
-        if set_attachments:
-            self._set_attached_objects_poses()
-
-    def reset_base_pose(self, pose: Pose):
-        self.world.reset_object_base_pose(self, pose)
-        self.update_pose()
-
-    def update_pose(self):
-        """
-        Updates the current pose of this object from the world, and updates the poses of all links.
-        """
-        self._current_pose = self.world.get_object_pose(self)
-        self._update_all_links_poses()
-        self.update_link_transforms()
-
-    def _update_all_joints_positions(self):
-        """
-        Updates the posisitons of all joints by getting them from the simulator.
-        """
-        for joint in self.joints.values():
-            joint._update_position()
-
-    def _update_all_links_poses(self):
-        """
-        Updates the poses of all links by getting them from the simulator.
-        """
-        for link in self.links.values():
-            link._update_pose()
-
-    def move_base_to_origin_pos(self) -> None:
-        """
-        Move the object such that its base will be at the current origin position.
-        This is useful when placing objects on surfaces where you want the object base in contact with the surface.
-        """
-        self.set_pose(self.get_pose(), base=True)
-
-    def save_state(self, state_id) -> None:
-        """
-        Saves the state of this object by saving the state of all links and attachments.
-        :param state_id: The unique id of the state.
-        """
-        self.save_links_states(state_id)
-        self.save_joints_states(state_id)
-        super().save_state(state_id)
-
-    def save_links_states(self, state_id: int) -> None:
-        """
-        Saves the state of all links of this object.
-        :param state_id: The unique id of the state.
-        """
-        for link in self.links.values():
-            link.save_state(state_id)
-
-    def save_joints_states(self, state_id: int) -> None:
-        """
-        Saves the state of all joints of this object.
-        :param state_id: The unique id of the state.
-        """
-        for joint in self.joints.values():
-            joint.save_state(state_id)
-
-    @property
-    def current_state(self) -> ObjectState:
-        return ObjectState(self.attachments.copy(), self.link_states, self.joint_states)
-
-    @current_state.setter
-    def current_state(self, state: ObjectState) -> None:
-        self.attachments = state.attachments
-        self.link_states = state.link_states
-        self.joint_states = state.joint_states
-
-    @property
-    def link_states(self) -> Dict[int, LinkState]:
-        """
-        Returns the current state of all links of this object.
-        :return: A dictionary with the link id as key and the current state of the link as value.
-        """
-        return {link.id: link.current_state for link in self.links.values()}
-
-    @link_states.setter
-    def link_states(self, link_states: Dict[int, LinkState]) -> None:
-        """
-        Sets the current state of all links of this object.
-        :param link_states: A dictionary with the link id as key and the current state of the link as value.
-        """
-        for link in self.links.values():
-            link.current_state = link_states[link.id]
-
-    @property
-    def joint_states(self) -> Dict[int, JointState]:
-        """
-        Returns the current state of all joints of this object.
-        :return: A dictionary with the joint id as key and the current state of the joint as value.
-        """
-        return {joint.id: joint.current_state for joint in self.joints.values()}
-
-    @joint_states.setter
-    def joint_states(self, joint_states: Dict[int, JointState]) -> None:
-        """
-        Sets the current state of all joints of this object.
-        :param joint_states: A dictionary with the joint id as key and the current state of the joint as value.
-        """
-        for joint in self.joints.values():
-            joint.current_state = joint_states[joint.id]
-
-    def restore_state(self, state_id: int) -> None:
-        """
-        Restores the state of this object by restoring the state of all links and attachments.
-        :param state_id: The unique id of the state.
-        """
-        self.restore_attachments(state_id)
-        self.restore_links_states(state_id)
-        self.restore_joints_states(state_id)
-
-    def restore_attachments(self, state_id: int) -> None:
-        """
-        Restores the attachments of this object from a saved state using the given state id.
-        :param state_id: The unique id of the state.
-        """
-        self.attachments = self.saved_states[state_id].attachments
-
-    def restore_links_states(self, state_id: int) -> None:
-        """
-        Restores the states of all links of this object from a saved state using the given state id.
-        :param state_id: The unique id of the state.
-        """
-        for link in self.links.values():
-            link.restore_state(state_id)
-
-    def restore_joints_states(self, state_id: int) -> None:
-        """
-        Restores the states of all joints of this object from a saved state using the given state id.
-        :param state_id: The unique id of the state.
-        """
-        for joint in self.joints.values():
-            joint.restore_state(state_id)
-
-    def remove_saved_states(self) -> None:
-        """
-        Removes all saved states of this object.
-        """
-        super().remove_saved_states()
-        self.remove_links_saved_states()
-        self.remove_joints_saved_states()
-
-    def remove_links_saved_states(self) -> None:
-        """
-        Removes all saved states of the links of this object.
-        """
-        for link in self.links.values():
-            link.remove_saved_states()
-
-    def remove_joints_saved_states(self) -> None:
-        """
-        Removes all saved states of the joints of this object.
-        """
-        for joint in self.joints.values():
-            joint.remove_saved_states()
-
-    def _set_attached_objects_poses(self, already_moved_objects: Optional[List[Object]] = None) -> None:
-        """
-        Updates the positions of all attached objects. This is done
-        by calculating the new pose in world coordinate frame and setting the
-        base pose of the attached objects to this new pose.
-        After this the _set_attached_objects method of all attached objects
-        will be called.
-
-        :param already_moved_objects: A list of Objects that were already moved, these will be excluded to prevent
-         loops in the update.
-        """
-
-        if already_moved_objects is None:
-            already_moved_objects = []
-
-        for child in self.attachments:
-
-            if child in already_moved_objects:
-                continue
-
-            attachment = self.attachments[child]
-            if not attachment.bidirectional:
-                self.update_attachment_with_object(child)
-                child.update_attachment_with_object(self)
-
-            else:
-                link_to_object = attachment.parent_to_child_transform
-                child.set_pose(link_to_object.to_pose(), set_attachments=False)
-                child._set_attached_objects_poses(already_moved_objects + [self])
-
-    def set_position(self, position: Union[Pose, Point], base=False) -> None:
-        """
-        Sets this Object to the given position, if base is true the bottom of the Object will be placed at the position
-        instead of the origin in the center of the Object. The given position can either be a Pose,
-         in this case only the position is used or a geometry_msgs.msg/Point which is the position part of a Pose.
-
-        :param position: Target position as xyz.
-        :param base: If the bottom of the Object should be placed or the origin in the center.
-        """
-        pose = Pose()
-        if isinstance(position, Pose):
-            target_position = position.position
-            pose.frame = position.frame
-        elif isinstance(position, Point):
-            target_position = position
-        elif isinstance(position, list):
-            target_position = position
-        else:
-            raise TypeError("The given position has to be a Pose, Point or a list of xyz.")
-
-        pose.position = target_position
-        pose.orientation = self.get_orientation()
-        self.set_pose(pose, base=base)
-
-    def set_orientation(self, orientation: Union[Pose, Quaternion]) -> None:
-        """
-        Sets the orientation of the Object to the given orientation. Orientation can either be a Pose, in this case only
-        the orientation of this pose is used or a geometry_msgs.msg/Quaternion which is the orientation of a Pose.
-
-        :param orientation: Target orientation given as a list of xyzw.
-        """
-        pose = Pose()
-        if isinstance(orientation, Pose):
-            target_orientation = orientation.orientation
-            pose.frame = orientation.frame
-        else:
-            target_orientation = orientation
-
-        pose.pose.position = self.get_position()
-        pose.pose.orientation = target_orientation
-        self.set_pose(pose)
-
-    def get_joint_id(self, name: str) -> int:
-        """
-        Returns the unique id for a joint name. As used by the world/simulator.
-
-        :param name: The joint name
-        :return: The unique id
-        """
-        return self.joint_name_to_id[name]
-
-    def get_root_link_description(self) -> LinkDescription:
-        """
-        Returns the root link of the URDF of this object.
-        :return: The root link as defined in the URDF of this object.
-        """
-        root_link_name = self.description.get_root()
-        for link_description in self.description.links:
-            if link_description.name == root_link_name:
-                return link_description
-
-    @property
-    def root_link(self) -> Link:
-        """
-        Returns the root link of this object.
-        :return: The root link of this object.
-        """
-        return self.links[self.description.get_root()]
-
-    @property
-    def root_link_name(self) -> str:
-        """
-        Returns the name of the root link of this object.
-        :return: The name of the root link of this object.
-        """
-        return self.description.get_root()
-
-    def get_root_link_id(self) -> int:
-        """
-        Returns the unique id of the root link of this object.
-        :return: The unique id of the root link of this object.
-        """
-        return self.get_link_id(self.description.get_root())
-
-    def get_link_id(self, link_name: str) -> int:
-        """
-        Returns a unique id for a link name.
-        :param link_name: The name of the link.
-        :return: The unique id of the link.
-        """
-        assert link_name is not None
-        return self.link_name_to_id[link_name]
-
-    def get_link_by_id(self, link_id: int) -> Link:
-        """
-        Returns the link for a given unique link id
-        :param link_id: The unique id of the link.
-        :return: The link object.
-        """
-        return self.links[self.link_id_to_name[link_id]]
-
-    def get_joint_by_id(self, joint_id: int) -> str:
-        """
-        Returns the joint name for a unique world id
-
-        :param joint_id: The world id of for joint
-        :return: The joint name
-        """
-        return dict(zip(self.joint_name_to_id.values(), self.joint_name_to_id.keys()))[joint_id]
-
-    def reset_all_joints_positions(self) -> None:
-        """
-        Sets the current position of all joints to 0. This is useful if the joints should be reset to their default
-        """
-        joint_names = list(self.joint_name_to_id.keys())
-        joint_positions = [0] * len(joint_names)
-        self.set_joint_positions(dict(zip(joint_names, joint_positions)))
-
-    def set_joint_positions(self, joint_poses: dict) -> None:
-        """
-        Sets the current position of multiple joints at once, this method should be preferred when setting
-         multiple joints at once instead of running :func:`~Object.set_joint_position` in a loop.
-
-        :param joint_poses:
-        """
-        for joint_name, joint_position in joint_poses.items():
-            self.joints[joint_name].position = joint_position
-        # self.update_pose()
-        self._update_all_links_poses()
-        self.update_link_transforms()
-        self._set_attached_objects_poses()
-
-    def set_joint_position(self, joint_name: str, joint_position: float) -> None:
-        """
-        Sets the position of the given joint to the given joint pose and updates the poses of all attached objects.
-
-        :param joint_name: The name of the joint
-        :param joint_position: The target pose for this joint
-        """
-        self.joints[joint_name].position = joint_position
-        self._update_all_links_poses()
-        self.update_link_transforms()
-        self._set_attached_objects_poses()
-
-    def get_joint_position(self, joint_name: str) -> float:
-        return self.joints[joint_name].position
-
-    def get_joint_damping(self, joint_name: str) -> float:
-        return self.joints[joint_name].damping
-
-    def get_joint_upper_limit(self, joint_name: str) -> float:
-        return self.joints[joint_name].upper_limit
-
-    def get_joint_lower_limit(self, joint_name: str) -> float:
-        return self.joints[joint_name].lower_limit
-
-    def get_joint_axis(self, joint_name: str) -> Point:
-        return self.joints[joint_name].axis
-
-    def get_joint_type(self, joint_name: str) -> JointType:
-        return self.joints[joint_name].type
-
-    def get_joint_limits(self, joint_name: str) -> Tuple[float, float]:
-        return self.joints[joint_name].limits
-
-    def find_joint_above(self, link_name: str, joint_type: JointType) -> str:
-        """
-        Traverses the chain from 'link' to the URDF origin and returns the first joint that is of type 'joint_type'.
-
-        :param link_name: AbstractLink name above which the joint should be found
-        :param joint_type: Joint type that should be searched for
-        :return: Name of the first joint which has the given type
-        """
-        chain = self.description.get_chain(self.description.get_root(), link_name)
-        reversed_chain = reversed(chain)
-        container_joint = None
-        for element in reversed_chain:
-            if element in self.joint_name_to_id and self.get_joint_type(element) == joint_type:
-                container_joint = element
-                break
-        if not container_joint:
-            rospy.logwarn(f"No joint of type {joint_type} found above link {link_name}")
-        return container_joint
-
-    def get_positions_of_all_joints(self) -> Dict[str: float]:
-        """
-        Returns the positions of all joints of the object as a dictionary of joint names and joint positions.
-
-        :return: A dictionary with all joints positions'.
-        """
-        return {j.name: j.position for j in self.joints.values()}
-
-    def update_link_transforms(self, transform_time: Optional[rospy.Time] = None) -> None:
-        """
-        Updates the transforms of all links of this object using time 'transform_time' or the current ros time.
-        """
-        for link in self.links.values():
-            link.update_transform(transform_time)
-
-    def contact_points(self) -> List:
-        """
-        Returns a list of contact points of this Object with other Objects.
-
-        :return: A list of all contact points with other objects
-        """
-        return self.world.get_object_contact_points(self)
-
-    def contact_points_simulated(self) -> List:
-        """
-        Returns a list of all contact points between this Object and other Objects after stepping the simulation once.
-
-        :return: A list of contact points between this Object and other Objects
-        """
-        state_id = self.world.save_state()
-        self.world.step()
-        contact_points = self.contact_points()
-        self.world.restore_state(state_id)
-        return contact_points
-
-    def set_color(self, rgba_color: Color) -> None:
-        """
-        Changes the color of this object, the color has to be given as a list
-        of RGBA values.
-
-        :param rgba_color: The color as Color object with RGBA values between 0 and 1
-        """
-        # Check if there is only one link, this is the case for primitive
-        # forms or if loaded from an .stl or .obj file
-        if self.links != {}:
-            for link in self.links.values():
-                link.color = rgba_color
-        else:
-            self.root_link.color = rgba_color
-
-    def get_color(self) -> Union[Color, Dict[str, Color]]:
-        """
-        This method returns the rgba_color of this object. The return is either:
-
-            1. A Color object with RGBA values, this is the case if the object only has one link (this
-                happens for example if the object is spawned from a .obj or .stl file)
-            2. A dict with the link name as key and the rgba_color as value. The rgba_color is given as a Color Object.
-                Please keep in mind that not every link may have a rgba_color. This is dependent on the URDF from which
-                 the object is spawned.
-
-        :return: The rgba_color as Color object with RGBA values between 0 and 1 or a dict with the link name as key and
-            the rgba_color as value.
-        """
-        link_to_color_dict = self.links_colors
-
-        if len(link_to_color_dict) == 1:
-            return list(link_to_color_dict.values())[0]
-        else:
-            return link_to_color_dict
-
-    @property
-    def links_colors(self) -> Dict[str, Color]:
-        """
-        The color of each link as a dictionary with link names as keys and RGBA colors as values.
-        """
-        return self.world.get_colors_of_object_links(self)
-
-    def get_axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
-        """
-        :return: The axis aligned bounding box of this object.
-        """
-        return self.world.get_object_axis_aligned_bounding_box(self)
-
-    def get_base_origin(self) -> Pose:
-        """
-        :return: the origin of the base/bottom of this object.
-        """
-        aabb = self.get_link_by_id(-1).get_axis_aligned_bounding_box()
-        base_width = np.absolute(aabb.min_x - aabb.max_x)
-        base_length = np.absolute(aabb.min_y - aabb.max_y)
-        return Pose([aabb.min_x + base_width / 2, aabb.min_y + base_length / 2, aabb.min_z],
-                    self.get_pose().orientation_as_list())
-
-
-def filter_contact_points(contact_points, exclude_ids) -> List:
-    """
-    Returns a list of contact points where Objects that are in the 'exclude_ids' list are removed.
-
-    :param contact_points: A list of contact points
-    :param exclude_ids: A list of unique ids of Objects that should be removed from the list
-    :return: A list containing 'contact_points' without Objects that are in 'exclude_ids'
-    """
-    return list(filter(lambda cp: cp[2] not in exclude_ids, contact_points))
-
-
-class EntityDescription(ABC):
-
-    @property
-    @abstractmethod
-    def origin(self) -> Pose:
-        """
-        Returns the origin of this entity.
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def name(self) -> str:
-        """
-        Returns the name of this entity.
-        """
-        pass
-
-
-class LinkDescription(EntityDescription):
-    """
-    A class that represents a link description of an object.
-    """
-
-    def __init__(self, parsed_link_description: Any):
-        self.parsed_description = parsed_link_description
-
-    @property
-    @abstractmethod
-    def geometry(self) -> Shape:
-        """
-        Returns the geometry type of the URDF collision element of this link.
-        """
-        pass
-
-
-class JointDescription(EntityDescription):
-    """
-    A class that represents a joint description of a URDF joint.
-    """
-
-    def __init__(self, parsed_joint_description: Any):
-        self.parsed_description = parsed_joint_description
-
-    @property
-    @abstractmethod
-    def type(self) -> JointType:
-        """
-        :return: The type of this joint.
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def axis(self) -> Point:
-        """
-        :return: The axis of this joint, for example the rotation axis for a revolute joint.
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def has_limits(self) -> bool:
-        """
-        Checks if this joint has limits.
-        :return: True if the joint has limits, False otherwise.
-        """
-        pass
-
-    @property
-    def limits(self) -> Tuple[float, float]:
-        """
-        :return: The lower and upper limits of this joint.
-        """
-        lower, upper = self.lower_limit, self.upper_limit
-        if lower > upper:
-            lower, upper = upper, lower
-        return lower, upper
-
-    @property
-    @abstractmethod
-    def lower_limit(self) -> Union[float, None]:
-        """
-        :return: The lower limit of this joint, or None if the joint has no limits.
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def upper_limit(self) -> Union[float, None]:
-        """
-        :return: The upper limit of this joint, or None if the joint has no limits.
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def parent_link_name(self) -> str:
-        """
-        :return: The name of the parent link of this joint.
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def child_link_name(self) -> str:
-        """
-        :return: The name of the child link of this joint.
-        """
-        pass
-
-    @property
-    def damping(self) -> float:
-        """
-        :return: The damping of this joint.
-        """
-        raise NotImplementedError
-
-    @property
-    def friction(self) -> float:
-        """
-        :return: The friction of this joint.
-        """
-        raise NotImplementedError
-
-
-class ObjectEntity(WorldEntity):
-    """
-    An abstract base class that represents a physical part/entity of an Object.
-    This can be a link or a joint of an Object.
-    """
-
-    def __init__(self, _id: int, obj: Object):
-        WorldEntity.__init__(self, _id, obj.world)
-        self.object: Object = obj
-
-    @property
-    @abstractmethod
-    def pose(self) -> Pose:
-        """
-        :return: The pose of this entity relative to the world frame.
-        """
-        pass
-
-    @property
-    def transform(self) -> Transform:
-        """
-        Returns the transform of this entity.
-
-        :return: The transform of this entity.
-        """
-        return self.pose.to_transform(self.tf_frame)
-
-    @property
-    @abstractmethod
-    def tf_frame(self) -> str:
-        """
-        Returns the tf frame of this entity.
-
-        :return: The tf frame of this entity.
-        """
-        pass
-
-    @property
-    def object_id(self) -> int:
-        """
-        :return: the id of the object to which this entity belongs.
-        """
-        return self.object.id
-
-    def __repr__(self):
-        return self.__class__.__qualname__ + f"(" + ', \n'.join(
-            [f"{key}={value}" for key, value in self.__dict__.items()]) + ")"
-
-    def __str__(self):
-        return self.__repr__()
-
-
-class AbstractConstraint:
-    """
-    Represents an abstract constraint concept, this could be used to create joints for example or any kind of constraint
-    between two links in the world.
-    """
-
-    def __init__(self,
-                 parent_link: Link,
-                 child_link: Link,
-                 _type: JointType,
-                 parent_to_constraint: Transform,
-                 child_to_constraint: Transform):
-        self.parent_link: Link = parent_link
-        self.child_link: Link = child_link
-        self.type: JointType = _type
-        self.parent_to_constraint = parent_to_constraint
-        self.child_to_constraint = child_to_constraint
-        self._parent_to_child = None
-
-    @property
-    def parent_to_child_transform(self) -> Union[Transform, None]:
-        if self._parent_to_child is None:
-            if self.parent_to_constraint is not None and self.child_to_constraint is not None:
-                self._parent_to_child = self.parent_to_constraint * self.child_to_constraint.invert()
-        return self._parent_to_child
-
-    @parent_to_child_transform.setter
-    def parent_to_child_transform(self, transform: Transform) -> None:
-        self._parent_to_child = transform
-
-    @property
-    def parent_object_id(self) -> int:
-        """
-        Returns the id of the parent object of the constraint.
-
-        :return: The id of the parent object of the constraint
-        """
-        return self.parent_link.object_id
-
-    @property
-    def child_object_id(self) -> int:
-        """
-        Returns the id of the child object of the constraint.
-
-        :return: The id of the child object of the constraint
-        """
-        return self.child_link.object_id
-
-    @property
-    def parent_link_id(self) -> int:
-        """
-        Returns the id of the parent link of the constraint.
-
-        :return: The id of the parent link of the constraint
-        """
-        return self.parent_link.id
-
-    @property
-    def child_link_id(self) -> int:
-        """
-        Returns the id of the child link of the constraint.
-
-        :return: The id of the child link of the constraint
-        """
-        return self.child_link.id
-
-    @property
-    def position_wrt_parent_as_list(self) -> List[float]:
-        """
-        Returns the constraint frame pose with respect to the parent origin as a list.
-
-        :return: The constraint frame pose with respect to the parent origin as a list
-        """
-        return self.pose_wrt_parent.position_as_list()
-
-    @property
-    def orientation_wrt_parent_as_list(self) -> List[float]:
-        """
-        Returns the constraint frame orientation with respect to the parent origin as a list.
-
-        :return: The constraint frame orientation with respect to the parent origin as a list
-        """
-        return self.pose_wrt_parent.orientation_as_list()
-
-    @property
-    def pose_wrt_parent(self) -> Pose:
-        """
-        Returns the joint frame pose with respect to the parent origin.
-
-        :return: The joint frame pose with respect to the parent origin
-        """
-        return self.parent_to_constraint.to_pose()
-
-    @property
-    def position_wrt_child_as_list(self) -> List[float]:
-        """
-        Returns the constraint frame pose with respect to the child origin as a list.
-
-        :return: The constraint frame pose with respect to the child origin as a list
-        """
-        return self.pose_wrt_child.position_as_list()
-
-    @property
-    def orientation_wrt_child_as_list(self) -> List[float]:
-        """
-        Returns the constraint frame orientation with respect to the child origin as a list.
-
-        :return: The constraint frame orientation with respect to the child origin as a list
-        """
-        return self.pose_wrt_child.orientation_as_list()
-
-    @property
-    def pose_wrt_child(self) -> Pose:
-        """
-        Returns the joint frame pose with respect to the child origin.
-
-        :return: The joint frame pose with respect to the child origin
-        """
-        return self.child_to_constraint.to_pose()
-
-
-class Constraint(AbstractConstraint):
-    """
-    Represents a constraint between two links in the World.
-    """
-
-    def __init__(self,
-                 parent_link: Link,
-                 child_link: Link,
-                 _type: JointType,
-                 axis_in_child_frame: Point,
-                 constraint_to_parent: Transform,
-                 child_to_constraint: Transform):
-        parent_to_constraint = constraint_to_parent.invert()
-        AbstractConstraint.__init__(self, parent_link, child_link, _type, parent_to_constraint, child_to_constraint)
-        self.axis: Point = axis_in_child_frame
-
-    @property
-    def axis_as_list(self) -> List[float]:
-        """
-        Returns the axis of this constraint as a list.
-
-        :return: The axis of this constraint as a list of xyz
-        """
-        return [self.axis.x, self.axis.y, self.axis.z]
-
-
-class Joint(ObjectEntity, JointDescription, ABC):
-    """
-    Represents a joint of an Object in the World.
-    """
-
-    def __init__(self, _id: int,
-                 joint_description: JointDescription,
-                 obj: Object):
-        ObjectEntity.__init__(self, _id, obj)
-        JointDescription.__init__(self, joint_description.parsed_description)
-        self._update_position()
-
-    @property
-    def tf_frame(self) -> str:
-        """
-        The tf frame of a joint is the tf frame of the child link.
-        """
-        return self.child_link.tf_frame
-
-    @property
-    def pose(self) -> Pose:
-        """
-        Returns the pose of this joint. The pose is the pose of the child link of this joint.
-
-        :return: The pose of this joint.
-        """
-        return self.child_link.pose
-
-    def _update_position(self) -> None:
-        """
-        Updates the current position of the joint from the physics simulator.
-        """
-        self._current_position = self.world.get_joint_position(self.object, self.name)
-
-    @property
-    def parent_link(self) -> Link:
-        """
-        Returns the parent link of this joint.
-        :return: The parent link as a AbstractLink object.
-        """
-        return self.object.links[self.parent_link_name]
-
-    @property
-    def child_link(self) -> Link:
-        """
-        Returns the child link of this joint.
-        :return: The child link as a AbstractLink object.
-        """
-        return self.object.links[self.child_link_name]
-
-    @property
-    def position(self) -> float:
-        return self._current_position
-
-    def reset_position(self, position: float) -> None:
-        self.world.reset_joint_position(self.object, self.name, position)
-        self._update_position()
-
-    def get_object_id(self) -> int:
-        """
-        Returns the id of the object to which this joint belongs.
-        :return: The integer id of the object to which this joint belongs.
-        """
-        return self.object.id
-
-    @position.setter
-    def position(self, joint_position: float) -> None:
-        """
-        Sets the position of the given joint to the given joint pose. If the pose is outside the joint limits, as stated
-        in the URDF, an error will be printed. However, the joint will be set either way.
-
-        :param joint_position: The target pose for this joint
-        """
-        # TODO Limits for rotational (infinitie) joints are 0 and 1, they should be considered seperatly
-        if self.has_limits:
-            low_lim, up_lim = self.limits
-            if not low_lim <= joint_position <= up_lim:
-                logging.error(
-                    f"The joint position has to be within the limits of the joint. The joint limits for {self.name}"
-                    f" are {low_lim} and {up_lim}")
-                logging.error(f"The given joint position was: {joint_position}")
-                # Temporarily disabled because kdl outputs values exciting joint limits
-                # return
-        self.reset_position(joint_position)
-
-    def enable_force_torque_sensor(self) -> None:
-        self.world.enable_joint_force_torque_sensor(self.object, self.id)
-
-    def disable_force_torque_sensor(self) -> None:
-        self.world.disable_joint_force_torque_sensor(self.object, self.id)
-
-    def get_reaction_force_torque(self) -> List[float]:
-        return self.world.get_joint_reaction_force_torque(self.object, self.id)
-
-    def get_applied_motor_torque(self) -> float:
-        return self.world.get_applied_joint_motor_torque(self.object, self.id)
-
-    def restore_state(self, state_id: int) -> None:
-        self.current_state = self.saved_states[state_id]
-
-    @property
-    def current_state(self) -> JointState:
-        return JointState(self.position)
-
-    @current_state.setter
-    def current_state(self, joint_state: JointState) -> None:
-        self.position = joint_state.position
-
-
-class Link(ObjectEntity, LinkDescription, ABC):
-    """
-    Represents a link of an Object in the World.
-    """
-
-    def __init__(self, _id: int, link_description: LinkDescription, obj: Object):
-        ObjectEntity.__init__(self, _id, obj)
-        LinkDescription.__init__(self, link_description.parsed_description)
-        self.local_transformer: LocalTransformer = LocalTransformer()
-        self.constraint_ids: Dict[Link, int] = {}
-        self._update_pose()
-
-    @property
-    def current_state(self) -> LinkState:
-        return LinkState(self.constraint_ids.copy())
-
-    @current_state.setter
-    def current_state(self, link_state: LinkState) -> None:
-        self.constraint_ids = link_state.constraint_ids
-
-    def add_fixed_constraint_with_link(self, child_link: Link) -> int:
-        """
-        Adds a fixed constraint between this link and the given link, used to create attachments for example.
-        :param child_link: The child link to which a fixed constraint should be added.
-        :return: The unique id of the constraint.
-        """
-        constraint_id = self.world.add_fixed_constraint(self,
-                                                        child_link,
-                                                        child_link.get_transform_from_link(self))
-        self.constraint_ids[child_link] = constraint_id
-        child_link.constraint_ids[self] = constraint_id
-        return constraint_id
-
-    def remove_constraint_with_link(self, child_link: Link) -> None:
-        """
-        Removes the constraint between this link and the given link.
-        :param child_link: The child link of the constraint that should be removed.
-        """
-        self.world.remove_constraint(self.constraint_ids[child_link])
-        del self.constraint_ids[child_link]
-        del child_link.constraint_ids[self]
-
-    @property
-    def is_root(self) -> bool:
-        """
-        Returns whether this link is the root link of the object.
-        :return: True if this link is the root link, False otherwise.
-        """
-        return self.object.get_root_link_id() == self.id
-
-    def update_transform(self, transform_time: Optional[rospy.Time] = None) -> None:
-        """
-        Updates the transformation of this link at the given time.
-        :param transform_time: The time at which the transformation should be updated.
-        """
-        self.local_transformer.update_transforms([self.transform], transform_time)
-
-    def get_transform_to_link(self, link: Link) -> Transform:
-        """
-        Returns the transformation from this link to the given link.
-        :param link: The link to which the transformation should be returned.
-        :return: A Transform object with the transformation from this link to the given link.
-        """
-        return link.get_transform_from_link(self)
-
-    def get_transform_from_link(self, link: Link) -> Transform:
-        """
-        Returns the transformation from the given link to this link.
-        :param link: The link from which the transformation should be returned.
-        :return: A Transform object with the transformation from the given link to this link.
-        """
-        return self.get_pose_wrt_link(link).to_transform(self.tf_frame)
-
-    def get_pose_wrt_link(self, link: Link) -> Pose:
-        """
-        Returns the pose of this link with respect to the given link.
-        :param link: The link with respect to which the pose should be returned.
-        :return: A Pose object with the pose of this link with respect to the given link.
-        """
-        return self.local_transformer.transform_pose(self.pose, link.tf_frame)
-
-    def get_axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
-        """
-        Returns the axis aligned bounding box of this link.
-        :return: An AxisAlignedBoundingBox object with the axis aligned bounding box of this link.
-        """
-        return self.world.get_link_axis_aligned_bounding_box(self)
-
-    @property
-    def position(self) -> Point:
-        """
-        The getter for the position of the link relative to the world frame.
-        :return: A Point object containing the position of the link relative to the world frame.
-        """
-        return self.pose.position
-
-    @property
-    def position_as_list(self) -> List[float]:
-        """
-        The getter for the position of the link relative to the world frame as a list.
-        :return: A list containing the position of the link relative to the world frame.
-        """
-        return self.pose.position_as_list()
-
-    @property
-    def orientation(self) -> Quaternion:
-        """
-        The getter for the orientation of the link relative to the world frame.
-        :return: A Quaternion object containing the orientation of the link relative to the world frame.
-        """
-        return self.pose.orientation
-
-    @property
-    def orientation_as_list(self) -> List[float]:
-        """
-        The getter for the orientation of the link relative to the world frame as a list.
-        :return: A list containing the orientation of the link relative to the world frame.
-        """
-        return self.pose.orientation_as_list()
-
-    def _update_pose(self) -> None:
-        """
-        Updates the current pose of this link from the world.
-        """
-        self._current_pose = self.world.get_link_pose(self)
-
-    @property
-    def pose(self) -> Pose:
-        """
-        The pose of the link relative to the world frame.
-        :return: A Pose object containing the pose of the link relative to the world frame.
-        """
-        return self._current_pose
-
-    @property
-    def pose_as_list(self) -> List[List[float]]:
-        """
-        The pose of the link relative to the world frame as a list.
-        :return: A list containing the position and orientation of the link relative to the world frame.
-        """
-        return self.pose.to_list()
-
-    def get_origin_transform(self) -> Transform:
-        """
-        Returns the transformation between the link frame and the origin frame of this link.
-        """
-        return self.origin.to_transform(self.tf_frame)
-
-    @property
-    def color(self) -> Color:
-        """
-        The getter for the rgba_color of this link.
-        :return: A Color object containing the rgba_color of this link.
-        """
-        return self.world.get_link_color(self)
-
-    @color.setter
-    def color(self, color: List[float]) -> None:
-        """
-        The setter for the color of this link, could be rgb or rgba.
-        :param color: The color as a list of floats, either rgb or rgba.
-        """
-        self.world.set_link_color(self, Color.from_list(color))
-
-    @property
-    def origin_transform(self) -> Transform:
-        """
-        :return: The transform from world to origin of entity.
-        """
-        return self.origin.to_transform(self.tf_frame)
-
-    @property
-    def tf_frame(self) -> str:
-        """
-        The name of the tf frame of this link.
-        """
-        return f"{self.object.tf_frame}/{self.name}"
-
-
-class RootLink(Link, ABC):
-    """
-    Represents the root link of an Object in the World.
-    It differs from the normal AbstractLink class in that the pose ande the tf_frame is the same as that of the object.
-    """
-
-    def __init__(self, obj: Object):
-        super().__init__(obj.get_root_link_id(), obj.get_root_link_description(), obj)
-
-    @property
-    def tf_frame(self) -> str:
-        """
-        Returns the tf frame of the root link, which is the same as the tf frame of the object.
-        """
-        return self.object.tf_frame
-
-    def _update_pose(self) -> None:
-        self._current_pose = self.object.get_pose()
-
-
-class ObjectDescription(EntityDescription):
-    MESH_EXTENSIONS: Tuple[str] = (".obj", ".stl")
-
-    class Link(Link, ABC):
-        ...
-
-    class RootLink(RootLink, ABC):
-        ...
-
-    class Joint(Joint, ABC):
-        ...
-
-    def __init__(self, path: Optional[str] = None):
-        if path:
-            self.update_description_from_file(path)
-        else:
-            self._parsed_description = None
-
-    def update_description_from_file(self, path: str) -> None:
-        """
-        Updates the description of this object from the file at the given path.
-        :param path: The path of the file to update from.
-        """
-        self._parsed_description = self.load_description(path)
-
-    @property
-    def parsed_description(self) -> Any:
-        """
-        Return the object parsed from the description file.
-        """
-        return self._parsed_description
-
-    @parsed_description.setter
-    def parsed_description(self, parsed_description: Any):
-        """
-        Return the object parsed from the description file.
-        :param parsed_description: The parsed description object.
-        """
-        self._parsed_description = parsed_description
-
-    @abstractmethod
-    def load_description(self, path: str) -> Any:
-        """
-        Loads the description from the file at the given path.
-        :param path: The path to the source file, if only a filename is provided then the resources directories will be
-         searched.
-        """
-        pass
-
-    def generate_description_from_file(self, path: str, extension: str) -> str:
-        """
-        Generates and preprocesses the description from the file at the given path and returns the preprocessed
-        description as a string.
-        :param path: The path of the file to preprocess.
-        :param extension: The file extension of the file to preprocess.
-        :return: The processed description string.
-        """
-
-        if extension in self.MESH_EXTENSIONS:
-            description_string = self.generate_from_mesh_file(path)
-        elif extension == self.get_file_extension():
-            description_string = self.generate_from_description_file(path)
-        else:
-            # Using the description from the parameter server
-            description_string = self.generate_from_parameter_server(path)
-
-        return description_string
-
-    def get_file_name(self, path_object: pathlib.Path, extension: str, object_name: str) -> str:
-        """
-        Returns the file name of the description file.
-        :param path_object: The path object of the description file or the mesh file.
-        :param extension: The file extension of the description file or the mesh file.
-        :param object_name: The name of the object.
-        :return: The file name of the description file.
-        """
-        if extension in self.MESH_EXTENSIONS:
-            file_name = path_object.stem + self.get_file_extension()
-        elif extension == self.get_file_extension():
-            file_name = path_object.name
-        else:
-            file_name = object_name + self.get_file_extension()
-
-        return file_name
-
-    @classmethod
-    @abstractmethod
-    def generate_from_mesh_file(cls, path: str) -> str:
-        """
-        Generates a description file from one of the mesh types defined in the MESH_EXTENSIONS and
-        returns the path of the generated file.
-        :param path: The path to the .obj file.
-        :return: The path of the generated description file.
-        """
-        pass
-
-    @classmethod
-    @abstractmethod
-    def generate_from_description_file(cls, path: str) -> str:
-        """
-        Preprocesses the given file and returns the preprocessed description string.
-        :param path: The path of the file to preprocess.
-        :return: The preprocessed description string.
-        """
-        pass
-
-    @classmethod
-    @abstractmethod
-    def generate_from_parameter_server(cls, name: str) -> str:
-        """
-        Preprocesses the description from the ROS parameter server and returns the preprocessed description string.
-        :param name: The name of the description on the parameter server.
-        :return: The preprocessed description string.
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def links(self) -> List[LinkDescription]:
-        """
-        :return: A list of links descriptions of this object.
-        """
-        pass
-
-    @abstractmethod
-    def get_link_by_name(self, link_name: str) -> LinkDescription:
-        """
-        :return: The link description with the given name.
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def joints(self) -> List[JointDescription]:
-        """
-        :return: A list of joints descriptions of this object.
-        """
-        pass
-
-    @abstractmethod
-    def get_joint_by_name(self, joint_name: str) -> JointDescription:
-        """
-        :return: The joint description with the given name.
-        """
-        pass
-
-    @abstractmethod
-    def get_root(self) -> str:
-        """
-        :return: the name of the root link of this object.
-        """
-        pass
-
-    @abstractmethod
-    def get_chain(self, start_link_name: str, end_link_name: str) -> List[str]:
-        """
-        :return: the chain of links from 'start_link_name' to 'end_link_name'.
-        """
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def get_file_extension() -> str:
-        """
-        :return: The file extension of the description file.
-        """
-        pass
-
-
-class Attachment(AbstractConstraint):
-    def __init__(self,
-                 parent_link: Link,
-                 child_link: Link,
-                 bidirectional: Optional[bool] = False,
-                 parent_to_child_transform: Optional[Transform] = None,
-                 constraint_id: Optional[int] = None):
-        """
-        Creates an attachment between the parent object link and the child object link.
-        This could be a bidirectional attachment, meaning that both objects will move when one moves.
-        :param parent_link: The parent object link.
-        :param child_link: The child object link.
-        :param bidirectional: If true, both objects will move when one moves.
-        :param parent_to_child_transform: The transform from the parent link to the child object link.
-        :param constraint_id: The id of the constraint in the simulator.
-        """
-        super().__init__(parent_link, child_link, JointType.FIXED, parent_to_child_transform,
-                         Transform(frame=child_link.tf_frame))
-        self.id = constraint_id
-        self.bidirectional: bool = bidirectional
-        self._loose: bool = False
-
-        if self.parent_to_child_transform is None:
-            self.update_transform()
-
-        if self.id is None:
-            self.add_fixed_constraint()
-
-    def update_transform_and_constraint(self) -> None:
-        """
-        Updates the transform and constraint of this attachment.
-        """
-        self.update_transform()
-        self.update_constraint()
-
-    def update_transform(self) -> None:
-        """
-        Updates the transform of this attachment by calculating the transform from the parent link to the child link.
-        """
-        self.parent_to_child_transform = self.calculate_transform()
-
-    def update_constraint(self) -> None:
-        """
-        Updates the constraint of this attachment by removing the old constraint if one exists and adding a new one.
-        """
-        self.remove_constraint_if_exists()
-        self.add_fixed_constraint()
-
-    def add_fixed_constraint(self) -> None:
-        """
-        Adds a fixed constraint between the parent link and the child link.
-        """
-        self.id = self.parent_link.add_fixed_constraint_with_link(self.child_link)
-
-    def calculate_transform(self) -> Transform:
-        """
-        Calculates the transform from the parent link to the child link.
-        """
-        return self.parent_link.get_transform_to_link(self.child_link)
-
-    def remove_constraint_if_exists(self) -> None:
-        """
-        Removes the constraint between the parent and the child links if one exists.
-        """
-        if self.child_link in self.parent_link.constraint_ids:
-            self.parent_link.remove_constraint_with_link(self.child_link)
-
-    def get_inverse(self) -> Attachment:
-        """
-        :return: A new Attachment object with the parent and child links swapped.
-        """
-        attachment = Attachment(self.child_link, self.parent_link, self.bidirectional,
-                                constraint_id=self.id)
-        attachment.loose = not self._loose
-        return attachment
-
-    @property
-    def loose(self) -> bool:
-        """
-        If true, then the child object will not move when parent moves.
-        """
-        return self._loose
-
-    @loose.setter
-    def loose(self, loose: bool) -> None:
-        """
-        Sets the loose property of this attachment.
-        :param loose: If true, then the child object will not move when parent moves.
-        """
-        self._loose = loose and not self.bidirectional
-
-    @property
-    def is_reversed(self) -> bool:
-        """
-        :return: True if the parent and child links are swapped.
-        """
-        return self.loose
-
-    def __del__(self) -> None:
-        """
-        Removes the constraint between the parent and the child links if one exists when the attachment is deleted.
-        """
-        self.remove_constraint_if_exists()
-
-
-class CacheManager:
-    cache_dir: str = World.cache_dir
-    """
-    The directory where the cached files are stored.
-    """
-
-    mesh_extensions: List[str] = [".obj", ".stl"]
-    """
-    The file extensions of mesh files.
-    """
-
-    def update_cache_dir_with_object(self, path: str, ignore_cached_files: bool,
-                                     object_description: ObjectDescription, object_name: str) -> str:
-        """
-        Checks if the file is already in the cache directory, if not it will be preprocessed and saved in the cache.
-        """
-        path_object = pathlib.Path(path)
-        extension = path_object.suffix
-
-        path = self.look_for_file_in_data_dir(path, path_object)
-
-        self.create_cache_dir_if_not_exists()
-
-        # save correct path in case the file is already in the cache directory
-        cache_path = self.cache_dir + object_description.get_file_name(path_object, extension, object_name)
-
-        # if file is not yet cached preprocess the description file and save it in the cache directory.
-        if not self.is_cached(path, object_description) or ignore_cached_files:
-            self.generate_description_and_write_to_cache(path, extension, cache_path, object_description)
-
-        return cache_path
-
-    def generate_description_and_write_to_cache(self, path: str, extension: str, cache_path: str,
-                                                object_description: ObjectDescription) -> None:
-        """
-        Generates the description from the file at the given path and writes it to the cache directory.
-        :param path: The path of the file to preprocess.
-        :param extension: The file extension of the file to preprocess.
-        :param cache_path: The path of the file in the cache directory.
-        :param object_description: The object description of the file.
-        """
-        description_string = object_description.generate_description_from_file(path, extension)
-        self.write_to_cache(description_string, cache_path)
-
-    @staticmethod
-    def write_to_cache(description_string: str, cache_path: str) -> None:
-        """
-        Writes the description string to the cache directory.
-        :param description_string: The description string to write to the cache directory.
-        :param cache_path: The path of the file in the cache directory.
-        """
-        with open(cache_path, "w") as file:
-            file.write(description_string)
-
-    @staticmethod
-    def look_for_file_in_data_dir(path: str, path_object: pathlib.Path) -> str:
-        """
-        Looks for a file in the data directory of the World. If the file is not found in the data directory, this method
-        raises a FileNotFoundError.
-        :param path: The path of the file to look for.
-        :param path_object: The pathlib object of the file to look for.
-        """
-        if re.match("[a-zA-Z_0-9].[a-zA-Z0-9]", path):
-            for data_dir in World.data_directory:
-                for file in os.listdir(data_dir):
-                    if file == path:
-                        return data_dir + f"/{path}"
-                if path:
-                    break
-
-        if not path:
-            raise FileNotFoundError(
-                f"File {path_object.name} could not be found in the resource directory {World.data_directory}")
-
-        return path
-
-    def create_cache_dir_if_not_exists(self):
-        """
-        Creates the cache directory if it does not exist.
-        """
-        if not pathlib.Path(self.cache_dir).exists():
-            os.mkdir(self.cache_dir)
-
-    def is_cached(self, path: str, object_description: ObjectDescription) -> bool:
-        """
-        Checks if the file in the given path is already cached or if
-        there is already a cached file with the given name, this is the case if a .stl, .obj file or a description from
-        the parameter server is used.
-
-        :param path: The path of the file to check.
-        :param object_description: The object description of the file.
-        :return: True if there already exists a cached file, False in any other case.
-        """
-        return True if self.check_with_extension(path) else self.check_without_extension(path, object_description)
-
-    def check_with_extension(self, path: str) -> bool:
-        """
-        Checks if the file in the given ath exists in the cache directory including file extension.
-        :param path: The path of the file to check.
-        """
-        file_name = pathlib.Path(path).name
-        full_path = pathlib.Path(self.cache_dir + file_name)
-        return full_path.exists()
-
-    def check_without_extension(self, path: str, object_description: ObjectDescription) -> bool:
-        """
-        Checks if the file in the given path exists in the cache directory without file extension,
-        the extension is added after the file name manually in this case.
-        :param path: The path of the file to check.
-        :param object_description: The object description of the file.
-        """
-        file_stem = pathlib.Path(path).stem
-        full_path = pathlib.Path(self.cache_dir + file_stem + object_description.get_file_extension())
-        return full_path.exists()
