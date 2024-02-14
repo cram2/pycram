@@ -1,4 +1,3 @@
-import time
 import unittest
 from pycram.designators import action_designator, object_designator
 from pycram.robot_descriptions import robot_description

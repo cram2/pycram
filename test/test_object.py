@@ -39,7 +39,7 @@ class TestObject(BulletWorldTestCase):
         self.assertEqual(self.robot.saved_states[1].attachments, self.robot.attachments)
         self.assertTrue(self.milk in self.robot.saved_states[1].attachments)
         for link in self.robot.links.values():
-            self.assertEqual(link.get_current_state(), link.saved_states[1])
+            self.assertEqual(link.current_state, link.saved_states[1])
 
     def test_restore_state(self):
         self.robot.attach(self.milk)
@@ -52,7 +52,7 @@ class TestObject(BulletWorldTestCase):
         self.milk.restore_state(1)
         self.assertTrue(self.milk in self.robot.attachments)
         for link in self.robot.links.values():
-            curr_state = link.get_current_state()
+            curr_state = link.current_state
             saved_state = link.saved_states[1]
             self.assertEqual(curr_state, saved_state)
             self.assertEqual(curr_state.constraint_ids, saved_state.constraint_ids)

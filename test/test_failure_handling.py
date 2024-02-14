@@ -10,6 +10,9 @@ from pycram.failure_handling import Retry
 from pycram.plan_failures import PlanFailure
 from pycram.process_module import ProcessModule, simulated_robot
 from pycram.robot_descriptions import robot_description
+from pycram.urdf_interface import ObjectDescription
+
+extension = ObjectDescription.get_file_extension()
 
 
 # start ik_and_description.launch
@@ -30,7 +33,8 @@ class FailureHandlingTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.world = BulletWorld(WorldMode.DIRECT)
-        cls.robot = Object(robot_description.name, ObjectType.ROBOT, robot_description.name + ".urdf")
+        cls.robot = Object(robot_description.name, ObjectType.ROBOT, robot_description.name + extension,
+                           ObjectDescription)
         ProcessModule.execution_delay = True
 
     def setUp(self):

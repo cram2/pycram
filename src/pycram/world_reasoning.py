@@ -111,7 +111,7 @@ def visible(
 
         state_id = World.current_world.save_state()
         for obj in World.current_world.objects:
-            if obj == prospection_obj or World.robot and obj == prospection_robot:
+            if obj == prospection_obj or (World.robot and obj == prospection_robot):
                 continue
             else:
                 obj.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
