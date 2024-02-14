@@ -92,9 +92,23 @@ class BulletWorld(World):
     def get_joint_position(self, obj: Object, joint_name: str) -> float:
         return p.getJointState(obj.id, obj.joint_name_to_id[joint_name], physicsClientId=self.id)[0]
 
+    def get_object_joint_names(self, obj: Object) -> List[str]:
+        return [p.getJointInfo(obj.id, i, physicsClientId=self.id)[1].decode('utf-8')
+                for i in range(self.get_object_number_of_joints(obj))]
+
     def get_link_pose(self, link: Link) -> Pose:
-        bullet_link_state = p.getLinkState(link.object_id, link.id, physicsClientId=self.id)[4:6]
-        return Pose(*bullet_link_state)
+        bullet_link_state = p.getLinkState(link.object_id, link.id, physicsClientId=self.id)
+        return Pose(*bullet_link_state[4:6])
+
+    def get_object_link_names(self, obj: Object) -> List[str]:
+        num_links = self.get_object_number_of_links(obj)
+        return [p.getJointInfo(obj.id, i, physicsClientId=self.id)[12].decode('utf-8')
+                for i in range(num_links)]
+
+    def get_object_number_of_links(self, obj: Object) -> int:
+        return p.getNumJoints(obj.id, physicsClientId=self.id)
+
+    get_object_number_of_joints = get_object_number_of_links
 
     def perform_collision_detection(self) -> None:
         p.performCollisionDetection(physicsClientId=self.id)
@@ -228,7 +242,8 @@ class BulletWorld(World):
                               physicsClientId=self.id)
 
     def create_visual_shape(self, visual_shape: VisualShape) -> int:
-        return p.createVisualShape(visual_shape.visual_geometry_type.value, rgbaColor=visual_shape.rgba_color,
+        return p.createVisualShape(visual_shape.visual_geometry_type.value,
+                                   rgbaColor=visual_shape.rgba_color.get_rgba(),
                                    visualFramePosition=visual_shape.visual_frame_position,
                                    physicsClientId=self.id, **visual_shape.shape_data())
 

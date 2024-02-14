@@ -208,12 +208,30 @@ class ObjectDescription(AbstractObjectDescription):
         urdf_string = rospy.get_param(name)
         return self.correct_urdf_string(urdf_string)
 
+    def get_link_by_name(self, link_name: str) -> LinkDescription:
+        """
+        :return: The link description with the given name.
+        """
+        for link in self.links:
+            if link.name == link_name:
+                return link
+        raise ValueError(f"Link with name {link_name} not found")
+
     @property
     def links(self) -> List[LinkDescription]:
         """
         :return: A list of links descriptions of this object.
         """
         return [LinkDescription(link) for link in self.parsed_description.links]
+
+    def get_joint_by_name(self, joint_name: str) -> JointDescription:
+        """
+        :return: The joint description with the given name.
+        """
+        for joint in self.joints:
+            if joint.name == joint_name:
+                return joint
+        raise ValueError(f"Joint with name {joint_name} not found")
 
     @property
     def joints(self) -> List[JointDescription]:

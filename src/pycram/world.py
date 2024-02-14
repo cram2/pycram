@@ -346,12 +346,31 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
+    def get_object_joint_names(self, obj: Object) -> List[str]:
+        """
+        Returns the names of all joints of this object.
+
+        :param obj: The object.
+        :return: A list of joint names.
+        """
+        pass
+
+    @abstractmethod
     def get_link_pose(self, link: Link) -> Pose:
         """
         Get the pose of a link of an articulated object with respect to the world frame.
 
         :param link: The link as a AbstractLink object.
         :return: The pose of the link as a Pose object.
+        """
+        pass
+
+    @abstractmethod
+    def get_object_link_names(self, obj: Object) -> List[str]:
+        """
+        Returns the names of all links of this object.
+        :param obj: The object.
+        :return: A list of link names.
         """
         pass
 
@@ -1270,8 +1289,8 @@ class Object(WorldEntity):
         """
         Creates a dictionary which maps the link names to their unique ids and vice versa.
         """
-        n_links = len(self.link_names_without_root)
-        self.link_name_to_id: Dict[str, int] = dict(zip(self.link_names_without_root, range(n_links)))
+        n_links = len(self.link_names)
+        self.link_name_to_id: Dict[str, int] = dict(zip(self.link_names, range(n_links)))
         self.link_name_to_id[self.description.get_root()] = -1
         self.link_id_to_name: Dict[int, str] = dict(zip(self.link_name_to_id.values(), self.link_name_to_id.keys()))
 
@@ -1281,9 +1300,8 @@ class Object(WorldEntity):
         corresponding link objects.
         """
         self.links = {}
-        for link_description in self.description.links:
-            link_name = link_description.name
-            link_id = self.link_name_to_id[link_name]
+        for link_name, link_id in self.link_name_to_id.items():
+            link_description = self.description.get_link_by_name(link_name)
             if link_name == self.description.get_root():
                 self.links[link_name] = self.description.RootLink(self)
             else:
@@ -1297,9 +1315,8 @@ class Object(WorldEntity):
         corresponding joint objects
         """
         self.joints = {}
-        for joint_description in self.description.joints:
-            joint_name = joint_description.name
-            joint_id = self.joint_name_to_id[joint_name]
+        for joint_name, joint_id in self.joint_name_to_id.items():
+            joint_description = self.description.get_joint_by_name(joint_name)
             self.joints[joint_name] = self.description.Joint(joint_id, joint_description, self)
 
     def _add_to_world_sync_obj_queue(self, path: str) -> None:
@@ -1313,18 +1330,11 @@ class Object(WorldEntity):
              self.world.prospection_world, self.color, self])
 
     @property
-    def link_names_without_root(self):
-        """
-        :return: The name of each link except the root link as a list.
-        """
-        return list(filter(lambda x: x != self.root_link_name, self.link_names))
-
-    @property
     def link_names(self) -> List[str]:
         """
         :return: The name of each link as a list.
         """
-        return [link.name for link in self.description.links]
+        return self.world.get_object_link_names(self)
 
     @property
     def number_of_links(self) -> int:
@@ -1338,7 +1348,7 @@ class Object(WorldEntity):
         """
         :return: The name of each joint as a list.
         """
-        return [joint.name for joint in self.description.joints]
+        return self.world.get_object_joint_names(self)
 
     @property
     def number_of_joints(self) -> int:
@@ -2727,11 +2737,25 @@ class ObjectDescription(EntityDescription):
         """
         pass
 
+    @abstractmethod
+    def get_link_by_name(self, link_name: str) -> LinkDescription:
+        """
+        :return: The link description with the given name.
+        """
+        pass
+
     @property
     @abstractmethod
     def joints(self) -> List[JointDescription]:
         """
         :return: A list of joints descriptions of this object.
+        """
+        pass
+
+    @abstractmethod
+    def get_joint_by_name(self, joint_name: str) -> JointDescription:
+        """
+        :return: The joint description with the given name.
         """
         pass
 

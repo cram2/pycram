@@ -20,7 +20,9 @@ class TestCaseBulletWorldReasoning(BulletWorldTestCase):
         self.milk.set_pose(Pose([1.5, 0, 1.2]))
         self.robot.set_pose(Pose())
         time.sleep(1)
-        self.assertTrue(btr.visible(self.milk, self.robot.links[robot_description.get_camera_frame()].pose,
+        camera_frame = robot_description.get_camera_frame()
+        self.world.add_vis_axis(self.robot.links[camera_frame].pose)
+        self.assertTrue(btr.visible(self.milk, self.robot.links[camera_frame].pose,
                                     robot_description.front_facing_axis))
 
     def test_occluding(self):
