@@ -147,13 +147,13 @@ class BulletWorldTest(BulletWorldTestCase):
         milk_2 = Object("milk", ObjectType.MILK, "milk.stl", ObjectDescription, pose=Pose([1.3, 1, 0.9]))
         time.sleep(0.1)
         try:
-            self.world.prospection_world.remove_object(milk_2)
-            self.assertTrue(milk_2 in self.world.objects)
+            prospection_milk_2 = self.world.get_prospection_object_for_object(milk_2)
+            self.world.remove_object(milk_2)
+            time.sleep(0.1)
             self.world.get_prospection_object_for_object(milk_2)
             self.assertFalse(True)
         except ValueError as e:
             self.assertTrue(True)
-        self.world.remove_object(milk_2)
 
     def test_no_object_found_for_given_prospection_object(self):
         milk_2 = Object("milk", ObjectType.MILK, "milk.stl", ObjectDescription, pose=Pose([1.3, 1, 0.9]))
