@@ -170,6 +170,8 @@ class World(StateEntity, ABC):
 
         self._init_events()
 
+        self._current_state: Optional[WorldState] = None
+
     def _init_events(self):
         """
         Initializes dynamic events that can be used to react to changes in the World.
@@ -244,17 +246,16 @@ class World(StateEntity, ABC):
         """
         pass
 
-    # TODO: This is not used anywhere, should it be removed?
-    def get_objects_by_name(self, name: str) -> List['Object']:
+    def get_object_by_name(self, name: str) -> List['Object']:
         """
         Returns a list of all Objects in this World with the same name as the given one.
 
         :param name: The name of the returned Objects.
         :return: A list of all Objects with the name 'name'.
         """
-        return list(filter(lambda obj: obj.name == name, self.objects))
+        return list(filter(lambda obj: obj.name == name, self.objects))[0]
 
-    def get_objects_by_type(self, obj_type: ObjectType) -> List['Object']:
+    def get_object_by_type(self, obj_type: ObjectType) -> List['Object']:
         """
         Returns a list of all Objects which have the type 'obj_type'.
 
@@ -301,7 +302,7 @@ class World(StateEntity, ABC):
 
         self.remove_object_from_simulator(obj)
 
-        if World.robot == self:
+        if World.robot == obj:
             World.robot = None
 
     def add_fixed_constraint(self, parent_link: 'Link', child_link: 'Link',
@@ -529,30 +530,6 @@ class World(StateEntity, ABC):
         """
         pass
 
-    def get_attachment_event(self) -> Event:
-        """
-        Returns the event reference that is fired if an attachment occurs.
-
-        :return: The reference to the attachment event
-        """
-        return self.attachment_event
-
-    def get_detachment_event(self) -> Event:
-        """
-        Returns the event reference that is fired if a detachment occurs.
-
-        :return: The event reference for the detachment event.
-        """
-        return self.detachment_event
-
-    def get_manipulation_event(self) -> Event:
-        """
-        Returns the event reference that is fired if any manipulation occurs.
-
-        :return: The event reference for the manipulation event.
-        """
-        return self.manipulation_event
-
     @abstractmethod
     def set_realtime(self, real_time: bool) -> None:
         """
@@ -666,6 +643,8 @@ class World(StateEntity, ABC):
 
     @property
     def current_state(self) -> WorldState:
+        if self._current_state is None:
+            self._current_state = WorldState(self.save_physics_simulator_state(), self.object_states)
         return self._current_state
 
     @current_state.setter
@@ -674,20 +653,20 @@ class World(StateEntity, ABC):
         self.object_states = state.object_states
 
     @property
-    def object_states(self) -> Dict[int, ObjectState]:
+    def object_states(self) -> Dict[str, ObjectState]:
         """
         Returns the states of all objects in the World.
         :return: A dictionary with the object id as key and the object state as value.
         """
-        return {obj.id: obj.current_state for obj in self.objects}
+        return {obj.name: obj.current_state for obj in self.objects}
 
     @object_states.setter
-    def object_states(self, states: Dict[int, ObjectState]) -> None:
+    def object_states(self, states: Dict[str, ObjectState]) -> None:
         """
         Sets the states of all objects in the World.
         """
-        for obj_id, obj_state in states.items():
-            self.get_object_by_id(obj_id).current_state = obj_state
+        for obj_name, obj_state in states.items():
+            self.get_object_by_name(obj_name).current_state = obj_state
 
     def save_objects_state(self, state_id: int) -> None:
         """
@@ -696,18 +675,6 @@ class World(StateEntity, ABC):
         """
         for obj in self.objects:
             obj.save_state(state_id)
-
-    def restore_state(self, state_id) -> None:
-        """
-        Restores the state of the World according to the given state using the unique state id. This includes the state
-        of the physics simulator and the state of all objects.
-        However, restore can not respawn objects if there are objects that were deleted between creation of the state
-        and restoring, they will be skipped.
-
-        :param state_id: The unique id representing the state.
-        """
-        self.restore_physics_simulator_state(state_id)
-        self.restore_objects_states(state_id)
 
     @abstractmethod
     def save_physics_simulator_state(self) -> int:
@@ -893,13 +860,12 @@ class World(StateEntity, ABC):
         :param pose: The pose of the origin of the multi body relative to the world frame.
         :return: The unique id of the created multi body.
         """
-        # Dummy parameter since these are needed to spawn visual shapes as a
-        # multibody.
+        # Dummy parameter since these are needed to spawn visual shapes as a multibody.
         num_of_shapes = len(visual_shape_ids)
         link_poses = [Pose() for _ in range(num_of_shapes)]
         link_masses = [1.0 for _ in range(num_of_shapes)]
         link_parent = [0 for _ in range(num_of_shapes)]
-        link_joints = [JointType.FIXED for _ in range(num_of_shapes)]
+        link_joints = [JointType.FIXED.value for _ in range(num_of_shapes)]
         link_collision = [-1 for _ in range(num_of_shapes)]
         link_joint_axis = [Point(1, 0, 0) for _ in range(num_of_shapes)]
 
@@ -1158,12 +1124,14 @@ class WorldSync(threading.Thread):
         while self.pause_sync:
             time.sleep(0.1)
 
-    def check_for_equal(self) -> None:
+    def check_for_equal(self) -> bool:
         """
         Checks if both Worlds have the same state, meaning all objects are in the same position.
         This is currently not used, but might be used in the future if synchronization issues worsen.
+        :return: True if both Worlds have the same state, False otherwise.
         """
         eql = True
         for obj, prospection_obj in self.object_mapping.items():
             eql = eql and obj.get_pose() == prospection_obj.get_pose()
         self.equal_states = eql
+        return eql

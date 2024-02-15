@@ -411,7 +411,7 @@ class Object(WorldEntity):
 
     @property
     def current_state(self) -> ObjectState:
-        return ObjectState(self.attachments.copy(), self.link_states, self.joint_states)
+        return ObjectState(self.attachments.copy(), self.link_states.copy(), self.joint_states.copy())
 
     @current_state.setter
     def current_state(self, state: ObjectState) -> None:
@@ -452,15 +452,6 @@ class Object(WorldEntity):
         """
         for joint in self.joints.values():
             joint.current_state = joint_states[joint.id]
-
-    def restore_state(self, state_id: int) -> None:
-        """
-        Restores the state of this object by restoring the state of all links and attachments.
-        :param state_id: The unique id of the state.
-        """
-        self.restore_attachments(state_id)
-        self.restore_links_states(state_id)
-        self.restore_joints_states(state_id)
 
     def restore_attachments(self, state_id: int) -> None:
         """
@@ -818,5 +809,16 @@ class Object(WorldEntity):
         Returns a copy of this object. The copy will have the same name, type, path, description, pose, world and color.
         :return: A copy of this object.
         """
-        return Object(self.name, self.obj_type, self.path, type(self.description), self.get_pose(),
-                      self.world.prospection_world, self.color)
+        obj = Object(self.name, self.obj_type, self.path, type(self.description), self.get_pose(),
+                     self.world.prospection_world, self.color)
+        obj.current_state = self.current_state
+        return obj
+
+    def __eq__(self, other):
+        if not isinstance(other, Object):
+            return False
+        return (self.id == other.id and self.world == other.world and self.name == other.name
+                and self.obj_type == other.obj_type)
+
+    def __hash__(self):
+        return hash((self.name, self.obj_type, self.id, self.world.id))
