@@ -701,14 +701,6 @@ class World(StateEntity, ABC):
         """
         pass
 
-    def restore_objects_states(self, state_id: int) -> None:
-        """
-        Restores the state of all objects in the World according to the given state using the unique state id.
-        :param state_id: The unique id representing the state.
-        """
-        for obj in self.objects:
-            obj.restore_state(state_id)
-
     def get_images_for_target(self,
                               target_pose: Pose,
                               cam_pose: Pose,
