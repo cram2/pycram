@@ -3,20 +3,21 @@ from __future__ import annotations
 
 import threading
 import time
-from typing_extensions import List, Optional, Dict
 
 import numpy as np
 import pybullet as p
 import rosgraph
 import rospy
+from geometry_msgs.msg import Point
+from typing_extensions import List, Optional, Dict
 
-from .enums import ObjectType, WorldMode
+from .enums import ObjectType, WorldMode, JointType
 from .pose import Pose
+from .urdf_interface import ObjectDescription
 from .world import World
-from .world_object import Object
 from .world_constraints import Constraint
 from .world_dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape
-from .urdf_interface import ObjectDescription
+from .world_object import Object
 
 Link = ObjectDescription.Link
 RootLink = ObjectDescription.RootLink
@@ -56,7 +57,7 @@ class BulletWorld(World):
 
         # Needed to let the other thread start the simulation, before Objects are spawned.
         time.sleep(0.1)
-        self.vis_axis: List[Object] = []
+        self.vis_axis: List[int] = []
 
         # Some default settings
         self.set_gravity([0, 0, -9.8])
@@ -212,19 +213,15 @@ class BulletWorld(World):
         box_vis_shape = BoxVisualShape(Color(0, 0, 1, 0.8), [0.01, 0.01, length], [0.01, 0.01, length])
         vis_z = self.create_visual_shape(box_vis_shape)
 
-        obj = p.createMultiBody(baseVisualShapeIndex=-1, linkVisualShapeIndices=[vis_x, vis_y, vis_z],
-                                basePosition=position, baseOrientation=orientation,
-                                linkPositions=[[0, 0, 0], [0, 0, 0], [0, 0, 0]],
-                                linkMasses=[1.0, 1.0, 1.0], linkOrientations=[[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1]],
-                                linkInertialFramePositions=[[0, 0, 0], [0, 0, 0], [0, 0, 0]],
-                                linkInertialFrameOrientations=[[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1]],
-                                linkParentIndices=[0, 0, 0],
-                                linkJointTypes=[p.JOINT_FIXED, p.JOINT_FIXED, p.JOINT_FIXED],
-                                linkJointAxis=[[1, 0, 0], [0, 1, 0], [0, 0, 1]],
-                                linkCollisionShapeIndices=[-1, -1, -1],
-                                physicsClientId=self.id)
+        multibody = MultiBody(base_visual_shape_index=-1, base_pose=pose_in_map,
+                              link_visual_shape_indices=[vis_x, vis_y, vis_z],
+                              link_poses=[Pose(), Pose(), Pose()], link_masses=[1.0, 1.0, 1.0],
+                              link_inertial_frame_poses=[Pose(), Pose(), Pose()], link_parent_indices=[0, 0, 0],
+                              link_joint_types=[JointType.FIXED.value, JointType.FIXED.value, JointType.FIXED.value],
+                              link_joint_axis=[Point(1, 0, 0), Point(0, 1, 0), Point(0, 0, 1)],
+                              link_collision_shape_indices=[-1, -1, -1])
 
-        self.vis_axis.append(obj)
+        self.vis_axis.append(self.create_multi_body(multibody))
 
     def remove_vis_axis(self) -> None:
         """
@@ -250,21 +247,21 @@ class BulletWorld(World):
                                    physicsClientId=self.id, **visual_shape.shape_data())
 
     def create_multi_body(self, multi_body: MultiBody) -> int:
-        return p.createMultiBody(baseVisualShapeIndex=-MultiBody.base_visual_shape_index,
-                                 linkVisualShapeIndices=MultiBody.link_visual_shape_indices,
-                                 basePosition=MultiBody.base_pose.position_as_list(),
-                                 baseOrientation=MultiBody.base_pose.orientation_as_list(),
-                                 linkPositions=[pose.position_as_list() for pose in MultiBody.link_poses],
-                                 linkMasses=MultiBody.link_masses,
-                                 linkOrientations=[pose.orientation_as_list() for pose in MultiBody.link_poses],
+        return p.createMultiBody(baseVisualShapeIndex=-multi_body.base_visual_shape_index,
+                                 linkVisualShapeIndices=multi_body.link_visual_shape_indices,
+                                 basePosition=multi_body.base_pose.position_as_list(),
+                                 baseOrientation=multi_body.base_pose.orientation_as_list(),
+                                 linkPositions=[pose.position_as_list() for pose in multi_body.link_poses],
+                                 linkMasses=multi_body.link_masses,
+                                 linkOrientations=[pose.orientation_as_list() for pose in multi_body.link_poses],
                                  linkInertialFramePositions=[pose.position_as_list()
-                                                             for pose in MultiBody.link_inertial_frame_poses],
+                                                             for pose in multi_body.link_inertial_frame_poses],
                                  linkInertialFrameOrientations=[pose.orientation_as_list()
-                                                                for pose in MultiBody.link_inertial_frame_poses],
-                                 linkParentIndices=MultiBody.link_parent_indices,
-                                 linkJointTypes=MultiBody.link_joint_types,
-                                 linkJointAxis=[[point.x, point.y, point.z] for point in MultiBody.link_joint_axis],
-                                 linkCollisionShapeIndices=MultiBody.link_collision_shape_indices)
+                                                                for pose in multi_body.link_inertial_frame_poses],
+                                 linkParentIndices=multi_body.link_parent_indices,
+                                 linkJointTypes=multi_body.link_joint_types,
+                                 linkJointAxis=[[point.x, point.y, point.z] for point in multi_body.link_joint_axis],
+                                 linkCollisionShapeIndices=multi_body.link_collision_shape_indices)
 
     def get_images_for_target(self,
                               target_pose: Pose,
@@ -299,7 +296,7 @@ class BulletWorld(World):
         return p.addUserDebugText(text, position, color.get_rgb(), physicsClientId=self.id, **args)
 
     def remove_text(self, text_id: Optional[int] = None) -> None:
-        if text_id:
+        if text_id is not None:
             p.removeUserDebugItem(text_id, physicsClientId=self.id)
         else:
             p.removeAllUserDebugItems(physicsClientId=self.id)
@@ -416,9 +413,9 @@ class Gui(threading.Thread):
 
                         # camera movement when the left mouse button is pressed
                         if mouse_state[0] == 3:
-                            speed_x = abs(old_mouse_x - mouse_x) if (abs(old_mouse_x - mouse_x)) < max_speed\
+                            speed_x = abs(old_mouse_x - mouse_x) if (abs(old_mouse_x - mouse_x)) < max_speed \
                                 else max_speed
-                            speed_y = abs(old_mouse_y - mouse_y) if (abs(old_mouse_y - mouse_y)) < max_speed\
+                            speed_y = abs(old_mouse_y - mouse_y) if (abs(old_mouse_y - mouse_y)) < max_speed \
                                 else max_speed
 
                             # max angle of 89.5 and -89.5 to make sure the camera does not flip (is annoying)
