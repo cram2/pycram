@@ -29,7 +29,10 @@ class BulletWorldTest(BulletWorldTestCase):
 
     def test_save_and_restore_state(self):
         self.robot.attach(self.milk)
+        self.milk.attach(self.cereal)
+        all_object_attachments = {obj: obj.attachments.copy() for obj in self.world.objects}
         state_id = self.world.save_state()
+        self.milk.detach(self.cereal)
         robot_link = self.robot.root_link
         milk_link = self.milk.root_link
         cid = robot_link.constraint_ids[milk_link]
@@ -38,8 +41,11 @@ class BulletWorldTest(BulletWorldTestCase):
         self.world.restore_state(state_id)
         cid = robot_link.constraint_ids[milk_link]
         self.assertTrue(milk_link in robot_link.constraint_ids)
-        self.assertTrue(self.milk in self.robot.attachments)
         self.assertTrue(cid == self.robot.attachments[self.milk].id)
+        for obj in self.world.objects:
+            self.assertTrue(len(obj.attachments) == len(all_object_attachments[obj]))
+            for att in obj.attachments:
+                self.assertTrue(att in all_object_attachments[obj])
 
     def test_remove_object(self):
         # time.sleep(2)
@@ -50,6 +56,14 @@ class BulletWorldTest(BulletWorldTestCase):
         BulletWorldTest.milk = Object("milk", ObjectType.MILK, "milk.stl",
                                       ObjectDescription, pose=Pose([1.3, 1, 0.9]))
 
+    def test_remove_robot(self):
+        robot_id = self.robot.id
+        self.assertTrue(robot_id in [obj.id for obj in self.world.objects])
+        self.world.remove_object(self.robot)
+        self.assertTrue(robot_id not in [obj.id for obj in self.world.objects])
+        BulletWorldTest.robot = Object(robot_description.name, ObjectType.ROBOT,
+                                       robot_description.name + self.extension, ObjectDescription)
+
     def test_get_joint_position(self):
         self.assertEqual(self.robot.get_joint_position("head_pan_joint"), 0.0)
 
@@ -58,19 +72,29 @@ class BulletWorldTest(BulletWorldTestCase):
         self.milk.set_position(self.robot.get_position())
         self.assertTrue(len(self.robot.contact_points()) > 0)
 
+    def test_enable_joint_force_torque_sensor(self):
+        self.world.enable_joint_force_torque_sensor(self.robot, self.robot.get_joint_id("head_pan_joint"))
+        force_torque = self.world.get_joint_reaction_force_torque(self.robot, self.robot.get_joint_id("head_pan_joint"))
+        # TODO: useless because even if the sensor is disabled, the force_torque is still 0
+        for ft in force_torque:
+            self.assertTrue(ft == 0.0)
 
-class BulletWorldTestRemove(BulletWorldTestCase):
+    def test_disable_joint_force_torque_sensor(self):
+        self.world.enable_joint_force_torque_sensor(self.robot, self.robot.get_joint_id("head_pan_joint"))
+        self.world.disable_joint_force_torque_sensor(self.robot, self.robot.get_joint_id("head_pan_joint"))
+        force_torque = self.world.get_joint_reaction_force_torque(self.robot, self.robot.get_joint_id("head_pan_joint"))
+        for ft in force_torque:
+            self.assertTrue(ft == 0.0)
+
+    def test_get_applied_joint_motor_torque(self):
+        self.world.get_applied_joint_motor_torque(self.robot, self.robot.get_joint_id("head_pan_joint"))
+
     def test_step_simulation(self):
         # TODO: kitchen explodes when stepping simulation, fix this
-        time.sleep(2)
-        self.world.remove_object(self.kitchen)
-        time.sleep(2)
+        self.kitchen.set_position([100, 100, 0])
         self.milk.set_position(Pose([0, 0, 2]))
         self.world.simulate(1)
         self.assertTrue(self.milk.get_position().z < 2)
-        # self.kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen" + self.extension, ObjectDescription,
-        #                       world=self.world)
-        # time.sleep(2)
 
     def test_set_real_time_simulation(self):
         self.milk.set_position(Pose([100, 0, 2]))
@@ -79,8 +103,72 @@ class BulletWorldTestRemove(BulletWorldTestCase):
         time_elapsed = time.time() - curr_time
         self.assertAlmostEqual(time_elapsed, 0.5, delta=0.2)
 
+    def test_collision_callback(self):
+        self.kitchen.set_position([100, 100, 0])
+        self.collision_called = False
+        self.no_collision_called = False
 
-class BulletWorldTestVis(BulletWorldTestCase):
+        def collision_callback():
+            self.collision_called = True
+
+        def no_collision_callback():
+            self.no_collision_called = True
+
+        self.world.register_two_objects_collision_callbacks(self.milk, self.cereal,
+                                                            collision_callback, no_collision_callback)
+
+        self.world.simulate(1)
+        self.assertTrue(self.no_collision_called)
+        self.assertFalse(self.collision_called)
+
+        self.collision_called = False
+        self.no_collision_called = False
+
+        new_milk_position = self.cereal.get_position()
+        new_milk_position.z += 0.5
+        self.milk.set_position(new_milk_position)
+
+        self.world.simulate(4)
+        self.assertTrue(self.collision_called)
+
+    def test_equal_world_states(self):
+        time.sleep(2)
+        self.robot.set_pose(Pose([1, 0, 0], [0, 0, 0, 1]))
+        self.assertFalse(self.world.world_sync.check_for_equal())
+        self.world.prospection_world.object_states = self.world.current_state.object_states
+        time.sleep(0.1)
+        self.assertTrue(self.world.world_sync.check_for_equal())
+
+    def test_add_resource_path(self):
+        self.world.add_resource_path("test")
+        self.assertTrue("test" in self.world.data_directory)
+
+    def test_no_prospection_object_found_for_given_object(self):
+        milk_2 = Object("milk", ObjectType.MILK, "milk.stl", ObjectDescription, pose=Pose([1.3, 1, 0.9]))
+        time.sleep(0.1)
+        try:
+            self.world.prospection_world.remove_object(milk_2)
+            self.assertTrue(milk_2 in self.world.objects)
+            self.world.get_prospection_object_for_object(milk_2)
+            self.assertFalse(True)
+        except ValueError as e:
+            self.assertTrue(True)
+        self.world.remove_object(milk_2)
+
+    def test_no_object_found_for_given_prospection_object(self):
+        milk_2 = Object("milk", ObjectType.MILK, "milk.stl", ObjectDescription, pose=Pose([1.3, 1, 0.9]))
+        time.sleep(0.1)
+        prospection_milk = self.world.get_prospection_object_for_object(milk_2)
+        self.assertTrue(self.world.get_object_for_prospection_object(prospection_milk) == milk_2)
+        try:
+            self.world.remove_object(milk_2)
+            self.world.get_object_for_prospection_object(prospection_milk)
+            time.sleep(0.1)
+            self.assertFalse(True)
+        except ValueError as e:
+            self.assertTrue(True)
+        time.sleep(0.1)
+
     def test_add_vis_axis(self):
         self.world.add_vis_axis(self.robot.links[robot_description.get_camera_frame()].pose)
         self.assertTrue(len(self.world.vis_axis) == 1)
@@ -143,4 +231,3 @@ class XMLTester(unittest.TestCase):
         resulting_tree = ET.ElementTree(ET.fromstring(result))
         for element in resulting_tree.iter("link"):
             self.assertTrue(len([*element.iter("inertial")]) > 0)
-

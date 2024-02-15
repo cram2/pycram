@@ -255,3 +255,15 @@ class Attachment(AbstractConstraint):
         Removes the constraint between the parent and the child links if one exists when the attachment is deleted.
         """
         self.remove_constraint_if_exists()
+
+    def __copy__(self):
+        return Attachment(self.parent_link, self.child_link, self.bidirectional, self.parent_to_child_transform,
+                          self.id)
+
+    def __eq__(self, other):
+        return (self.parent_link == other.parent_link and self.child_link == other.child_link and
+                self.bidirectional == other.bidirectional and
+                self.parent_to_child_transform == other.parent_to_child_transform)
+
+    def __hash__(self):
+        return hash((self.parent_link, self.child_link, self.bidirectional, self.parent_to_child_transform))

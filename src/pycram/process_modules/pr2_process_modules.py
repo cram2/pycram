@@ -184,7 +184,7 @@ class Pr2Detecting(ProcessModule):
         # should be [0, 0, 1]
         front_facing_axis = robot_description.front_facing_axis
 
-        objects = World.current_world.get_objects_by_type(object_type)
+        objects = World.current_world.get_object_by_type(object_type)
         for obj in objects:
             if btr.visible(obj, robot.links[cam_frame_name].pose, front_facing_axis):
                 return obj
@@ -346,7 +346,7 @@ class Pr2DetectingReal(ProcessModule):
         obj_pose.orientation = [0, 0, 0, 1]
         obj_pose.position.x += 0.05
 
-        world_obj = World.current_world.get_objects_by_type(designator.object_type)
+        world_obj = World.current_world.get_object_by_type(designator.object_type)
         if world_obj:
             world_obj[0].set_pose(obj_pose)
             return world_obj[0]

@@ -34,7 +34,7 @@ class BulletWorldTestCase(unittest.TestCase):
     # Tests in here would not be properly executed in the CI
 
     def tearDown(self):
-        time.sleep(0.1)
+        time.sleep(0.2)
         self.world.reset_world()
 
     @classmethod

@@ -327,7 +327,7 @@ class State(ABC):
 @dataclass
 class WorldState(State):
     simulator_state_id: int
-    object_states: Dict[int, 'ObjectState']
+    object_states: Dict[str, 'ObjectState']
 
 
 @dataclass

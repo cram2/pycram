@@ -170,6 +170,6 @@ class RealObject(ObjectDesignatorDescription):
         """
         object_candidates = query(self)
         for obj_desig in object_candidates:
-            for world_obj in World.get_objects_by_type(obj_desig.obj_type):
+            for world_obj in World.get_object_by_type(obj_desig.obj_type):
                 obj_desig.world_object = world_obj
                 yield obj_desig

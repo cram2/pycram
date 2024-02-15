@@ -171,7 +171,7 @@ class HSRDetecting(ProcessModule):
             cam_frame_name = solution['cam_frame']
             front_facing_axis = solution['front_facing_axis']
 
-            objects = World.current_world.get_objects_by_type(object_type)
+            objects = World.current_world.get_object_by_type(object_type)
             for obj in objects:
                 if btr.visible(obj, robot.links[cam_frame_name].pose, front_facing_axis, 0.5):
                     return obj

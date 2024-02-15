@@ -370,6 +370,15 @@ class Link(ObjectEntity, LinkDescription, ABC):
         """
         return f"{self.object.tf_frame}/{self.name}"
 
+    def __eq__(self, other):
+        return self.id == other.id and self.object == other.object and self.name == other.name
+
+    def __copy__(self):
+        return Link(self.id, self, self.object)
+
+    def __hash__(self):
+        return hash((self.id, self.object, self.name))
+
 
 class RootLink(Link, ABC):
     """
@@ -389,6 +398,9 @@ class RootLink(Link, ABC):
 
     def _update_pose(self) -> None:
         self._current_pose = self.object.get_pose()
+
+    def __copy__(self):
+        return RootLink(self.object)
 
 
 class Joint(ObjectEntity, JointDescription, ABC):
@@ -498,6 +510,15 @@ class Joint(ObjectEntity, JointDescription, ABC):
     @current_state.setter
     def current_state(self, joint_state: JointState) -> None:
         self.position = joint_state.position
+
+    def __copy__(self):
+        return Joint(self.id, self, self.object)
+
+    def __eq__(self, other):
+        return self.id == other.id and self.object == other.object and self.name == other.name
+
+    def __hash__(self):
+        return hash((self.id, self.object, self.name))
 
 
 class ObjectDescription(EntityDescription):
