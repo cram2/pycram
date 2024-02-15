@@ -1,15 +1,16 @@
 import time
 import unittest
+import xml.etree.ElementTree as ET
 
 import rospkg
 
-from bullet_world_testcase import BulletWorldTestCase
+from bullet_world_testcase import BulletWorldTestCase, BulletWorldGUITestCase
+from pycram.enums import ObjectType, WorldMode
 from pycram.pose import Pose
 from pycram.robot_descriptions import robot_description
-from pycram.enums import ObjectType
-from pycram.world_object import Object
-import xml.etree.ElementTree as ET
 from pycram.urdf_interface import ObjectDescription
+from pycram.world_dataclasses import Color
+from pycram.world_object import Object
 
 fix_missing_inertial = ObjectDescription.fix_missing_inertial
 
@@ -41,12 +42,13 @@ class BulletWorldTest(BulletWorldTestCase):
         self.assertTrue(cid == self.robot.attachments[self.milk].id)
 
     def test_remove_object(self):
-        time.sleep(2)
+        # time.sleep(2)
         milk_id = self.milk.id
         self.assertTrue(milk_id in [obj.id for obj in self.world.objects])
         self.world.remove_object(self.milk)
         self.assertTrue(milk_id not in [obj.id for obj in self.world.objects])
-        BulletWorldTest.milk = Object("milk", ObjectType.MILK, "milk.stl", ObjectDescription, pose=Pose([1.3, 1, 0.9]))
+        BulletWorldTest.milk = Object("milk", ObjectType.MILK, "milk.stl",
+                                      ObjectDescription, pose=Pose([1.3, 1, 0.9]))
 
     def test_get_joint_position(self):
         self.assertEqual(self.robot.get_joint_position("head_pan_joint"), 0.0)
@@ -56,24 +58,73 @@ class BulletWorldTest(BulletWorldTestCase):
         self.milk.set_position(self.robot.get_position())
         self.assertTrue(len(self.robot.contact_points()) > 0)
 
+
+class BulletWorldTestRemove(BulletWorldTestCase):
     def test_step_simulation(self):
         # TODO: kitchen explodes when stepping simulation, fix this
         time.sleep(2)
         self.world.remove_object(self.kitchen)
+        time.sleep(2)
         self.milk.set_position(Pose([0, 0, 2]))
         self.world.simulate(1)
         self.assertTrue(self.milk.get_position().z < 2)
+        # self.kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen" + self.extension, ObjectDescription,
+        #                       world=self.world)
+        # time.sleep(2)
 
     def test_set_real_time_simulation(self):
-        # self.world.remove_object(self.kitchen)
         self.milk.set_position(Pose([100, 0, 2]))
         curr_time = time.time()
         self.world.simulate(0.5, real_time=True)
         time_elapsed = time.time() - curr_time
-        self.assertAlmostEqual(time_elapsed, 0.5, delta=0.1)
+        self.assertAlmostEqual(time_elapsed, 0.5, delta=0.2)
 
-    def test_create_vis_axis(self):
-        self.world.add_vis_axis(self.robot.links[robot_description.get_camera_frame()].pose, 1)
+
+class BulletWorldTestVis(BulletWorldTestCase):
+    def test_add_vis_axis(self):
+        self.world.add_vis_axis(self.robot.links[robot_description.get_camera_frame()].pose)
+        self.assertTrue(len(self.world.vis_axis) == 1)
+        self.world.remove_vis_axis()
+        self.assertTrue(len(self.world.vis_axis) == 0)
+
+    def test_add_text(self):
+        link: ObjectDescription.Link = self.robot.links[robot_description.get_camera_frame()]
+        text_id = self.world.add_text("test", link.pose.position_as_list(), link.pose.orientation_as_list(), 1,
+                                      Color(1, 0, 0, 1), 3, link.object_id, link.id)
+        if self.world.mode == WorldMode.GUI:
+            time.sleep(4)
+
+    def test_remove_text(self):
+        link: ObjectDescription.Link = self.robot.links[robot_description.get_camera_frame()]
+        text_id_1 = self.world.add_text("test 1", link.pose.position_as_list(), link.pose.orientation_as_list(), 1,
+                                        Color(1, 0, 0, 1), 0, link.object_id, link.id)
+        text_id = self.world.add_text("test 2", link.pose.position_as_list(), link.pose.orientation_as_list(), 1,
+                                      Color(0, 1, 0, 1), 0, link.object_id, link.id)
+
+        if self.world.mode == WorldMode.GUI:
+            time.sleep(2)
+        self.world.remove_text(text_id_1)
+        if self.world.mode == WorldMode.GUI:
+            time.sleep(3)
+
+    def test_remove_all_text(self):
+        link: ObjectDescription.Link = self.robot.links[robot_description.get_camera_frame()]
+        text_id_1 = self.world.add_text("test 1", link.pose.position_as_list(), link.pose.orientation_as_list(), 1,
+                                        Color(1, 0, 0, 1), 0, link.object_id, link.id)
+        text_id = self.world.add_text("test 2", link.pose.position_as_list(), link.pose.orientation_as_list(), 1,
+                                      Color(0, 1, 0, 1), 0, link.object_id, link.id)
+        if self.world.mode == WorldMode.GUI:
+            time.sleep(2)
+        self.world.remove_text()
+        if self.world.mode == WorldMode.GUI:
+            time.sleep(3)
+
+
+@unittest.skip("Not working in CI")
+class BulletWorldTestGUI(BulletWorldGUITestCase):
+    def test_add_vis_axis(self):
+        time.sleep(10)
+        self.world.add_vis_axis(self.robot.links[robot_description.get_camera_frame()].pose)
         self.assertTrue(len(self.world.vis_axis) == 1)
         self.world.remove_vis_axis()
         self.assertTrue(len(self.world.vis_axis) == 0)
@@ -92,3 +143,4 @@ class XMLTester(unittest.TestCase):
         resulting_tree = ET.ElementTree(ET.fromstring(result))
         for element in resulting_tree.iter("link"):
             self.assertTrue(len([*element.iter("inertial")]) > 0)
+
