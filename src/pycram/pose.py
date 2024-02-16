@@ -100,8 +100,8 @@ class Pose(PoseStamped):
         """
         if (not type(value) == list and not type(value) == tuple and not type(value) == GeoPose
                 and not type(value) == Point):
-            rospy.logwarn("Position can only be a list or geometry_msgs/Pose")
-            return
+            rospy.logerr("Position can only be a list or geometry_msgs/Pose")
+            raise TypeError("Position can only be a list/tuple or geometry_msgs/Pose")
         if type(value) == list or type(value) == tuple and len(value) == 3:
             self.pose.position.x = value[0]
             self.pose.position.y = value[1]

@@ -184,13 +184,6 @@ class ObjectEntity(WorldEntity):
         """
         return self.object.id
 
-    def __repr__(self):
-        return self.__class__.__qualname__ + f"(" + ', \n'.join(
-            [f"{key}={value}" for key, value in self.__dict__.items()]) + ")"
-
-    def __str__(self):
-        return self.__repr__()
-
 
 class Link(ObjectEntity, LinkDescription, ABC):
     """
@@ -509,7 +502,8 @@ class Joint(ObjectEntity, JointDescription, ABC):
 
     @current_state.setter
     def current_state(self, joint_state: JointState) -> None:
-        self.position = joint_state.position
+        if self._current_position != joint_state.position:
+            self.position = joint_state.position
 
     def __copy__(self):
         return Joint(self.id, self, self.object)
@@ -578,14 +572,22 @@ class ObjectDescription(EntityDescription):
         :param extension: The file extension of the file to preprocess.
         :return: The processed description string.
         """
+        description_string = None
 
         if extension in self.MESH_EXTENSIONS:
             description_string = self.generate_from_mesh_file(path)
         elif extension == self.get_file_extension():
             description_string = self.generate_from_description_file(path)
         else:
-            # Using the description from the parameter server
-            description_string = self.generate_from_parameter_server(path)
+            try:
+                # Using the description from the parameter server
+                description_string = self.generate_from_parameter_server(path)
+            except KeyError:
+                logging.warning(f"Couldn't find dile data in the ROS parameter server")
+        if description_string is None:
+            logging.error(f"Could not find file with path {path} in the resources directory nor"
+                          f" in the ros parameter server.")
+            raise FileNotFoundError
 
         return description_string
 

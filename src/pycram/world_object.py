@@ -72,8 +72,6 @@ class Object(WorldEntity):
         self.tf_frame = ((self.prospection_world_prefix if self.world.is_prospection_world else "")
                          + f"{self.name}_{self.id}")
 
-        self._update_object_description_from_file(self.path)
-
         if self.description.name == robot_description.name:
             self.world.set_robot_if_not_set(self)
 
@@ -104,7 +102,11 @@ class Object(WorldEntity):
         :return: The unique id of the object and the path of the file that was loaded.
         """
 
-        path = self.world.update_cache_dir_with_object(path, ignore_cached_files, self)
+        try:
+            path = self.world.update_cache_dir_with_object(path, ignore_cached_files, self)
+        except FileNotFoundError as e:
+            logging.error("Could not generate description from file.")
+            raise e
 
         try:
             obj_id = self.world.load_description_and_get_object_id(path, Pose(self.get_position_as_list(),
@@ -115,14 +117,7 @@ class Object(WorldEntity):
                 "The File could not be loaded. Please note that the path has to be either a URDF, stl or obj file or"
                 " the name of an URDF string on the parameter server.")
             os.remove(path)
-            raise (e)
-
-    def _update_object_description_from_file(self, path: str) -> None:
-        """
-        Updates the object description from the given file path.
-        :param path: The path to the file from which the object description should be updated.
-        """
-        self.description.update_description_from_file(path)
+            raise e
 
     def _init_joint_name_and_id_map(self) -> None:
         """
@@ -170,10 +165,7 @@ class Object(WorldEntity):
         """
         Adds this object to the objects queue of the WorldSync object of the World.
         """
-        self.world.world_sync.add_obj_queue.put(
-            [self.name, self.obj_type, self.path, type(self.description), self.get_position_as_list(),
-             self.get_orientation_as_list(),
-             self.world.prospection_world, self.color, self])
+        self.world.world_sync.add_obj_queue.put(self)
 
     @property
     def link_names(self) -> List[str]:
@@ -183,13 +175,6 @@ class Object(WorldEntity):
         return self.world.get_object_link_names(self)
 
     @property
-    def number_of_links(self) -> int:
-        """
-        :return: The number of links of this object.
-        """
-        return len(self.description.links)
-
-    @property
     def joint_names(self) -> List[str]:
         """
         :return: The name of each joint as a list.
@@ -197,19 +182,12 @@ class Object(WorldEntity):
         return self.world.get_object_joint_names(self)
 
     @property
-    def number_of_joints(self) -> int:
-        """
-        :return: The number of joints of this object.
-        """
-        return len(self.description.joints)
-
-    @property
     def base_origin_shift(self) -> np.ndarray:
         """
         The shift between the base of the object and the origin of the object.
         :return: A numpy array with the shift between the base of the object and the origin of the object.
         """
-        return np.array(self.get_pose().position_as_list()) - np.array(self.get_base_origin().position_as_list())
+        return np.array(self.get_position_as_list()) - np.array(self.get_base_position_as_list())
 
     def __repr__(self):
         skip_attr = ["links", "joints", "description", "attachments"]
@@ -318,6 +296,14 @@ class Object(WorldEntity):
         """
         return self.get_pose().position_as_list()
 
+    def get_base_position_as_list(self) -> List[float]:
+        """
+        Returns the position of this Object as a list of xyz.
+
+        :return: The current position of this object
+        """
+        return self.get_base_origin().position_as_list()
+
     def get_orientation_as_list(self) -> List[float]:
         """
         Returns the orientation of this object as a list of xyzw, representing a quaternion.
@@ -344,7 +330,7 @@ class Object(WorldEntity):
         """
         pose_in_map = self.local_transformer.transform_pose(pose, "map")
         if base:
-            pose_in_map.position = np.array(pose_in_map.position) + self.base_origin_shift
+            pose_in_map.position = (np.array(pose_in_map.position_as_list()) + self.base_origin_shift).tolist()
 
         self.reset_base_pose(pose_in_map)
 
@@ -363,13 +349,6 @@ class Object(WorldEntity):
         self._update_all_links_poses()
         self.update_link_transforms()
 
-    def _update_all_joints_positions(self):
-        """
-        Updates the posisitons of all joints by getting them from the simulator.
-        """
-        for joint in self.joints.values():
-            joint._update_position()
-
     def _update_all_links_poses(self):
         """
         Updates the poses of all links by getting them from the simulator.
@@ -377,7 +356,7 @@ class Object(WorldEntity):
         for link in self.links.values():
             link._update_pose()
 
-    def move_base_to_origin_pos(self) -> None:
+    def move_base_to_origin_pose(self) -> None:
         """
         Move the object such that its base will be at the current origin position.
         This is useful when placing objects on surfaces where you want the object base in contact with the surface.
@@ -411,10 +390,12 @@ class Object(WorldEntity):
 
     @property
     def current_state(self) -> ObjectState:
-        return ObjectState(self.attachments.copy(), self.link_states.copy(), self.joint_states.copy())
+        return ObjectState(self.get_pose(), self.attachments.copy(), self.link_states.copy(), self.joint_states.copy())
 
     @current_state.setter
     def current_state(self, state: ObjectState) -> None:
+        if self.get_pose().dist(state.pose) != 0.0:
+            self.set_pose(state.pose, base=False, set_attachments=False)
         self.attachments = state.attachments
         self.link_states = state.link_states
         self.joint_states = state.joint_states
@@ -452,29 +433,6 @@ class Object(WorldEntity):
         """
         for joint in self.joints.values():
             joint.current_state = joint_states[joint.id]
-
-    def restore_attachments(self, state_id: int) -> None:
-        """
-        Restores the attachments of this object from a saved state using the given state id.
-        :param state_id: The unique id of the state.
-        """
-        self.attachments = self.saved_states[state_id].attachments
-
-    def restore_links_states(self, state_id: int) -> None:
-        """
-        Restores the states of all links of this object from a saved state using the given state id.
-        :param state_id: The unique id of the state.
-        """
-        for link in self.links.values():
-            link.restore_state(state_id)
-
-    def restore_joints_states(self, state_id: int) -> None:
-        """
-        Restores the states of all joints of this object from a saved state using the given state id.
-        :param state_id: The unique id of the state.
-        """
-        for joint in self.joints.values():
-            joint.restore_state(state_id)
 
     def remove_saved_states(self) -> None:
         """
@@ -519,7 +477,7 @@ class Object(WorldEntity):
                 continue
 
             attachment = self.attachments[child]
-            if not attachment.bidirectional:
+            if attachment.loose:
                 self.update_attachment_with_object(child)
                 child.update_attachment_with_object(self)
 
@@ -552,7 +510,7 @@ class Object(WorldEntity):
         pose.orientation = self.get_orientation()
         self.set_pose(pose, base=base)
 
-    def set_orientation(self, orientation: Union[Pose, Quaternion]) -> None:
+    def set_orientation(self, orientation: Union[Pose, Quaternion, List, Tuple, np.ndarray]) -> None:
         """
         Sets the orientation of the Object to the given orientation. Orientation can either be a Pose, in this case only
         the orientation of this pose is used or a geometry_msgs.msg/Quaternion which is the orientation of a Pose.
@@ -563,8 +521,13 @@ class Object(WorldEntity):
         if isinstance(orientation, Pose):
             target_orientation = orientation.orientation
             pose.frame = orientation.frame
-        else:
+        elif isinstance(orientation, Quaternion):
             target_orientation = orientation
+        elif (isinstance(orientation, list) or isinstance(orientation, np.ndarray) or isinstance(orientation, tuple)) \
+                and len(orientation) == 4:
+            target_orientation = Quaternion(*orientation)
+        else:
+            raise TypeError("The given orientation has to be a Pose, Quaternion or one of list/tuple/ndarray of xyzw.")
 
         pose.pose.position = self.get_position()
         pose.pose.orientation = target_orientation
@@ -584,9 +547,8 @@ class Object(WorldEntity):
         Returns the root link of the URDF of this object.
         :return: The root link as defined in the URDF of this object.
         """
-        root_link_name = self.description.get_root()
         for link_description in self.description.links:
-            if link_description.name == root_link_name:
+            if link_description.name == self.root_link_name:
                 return link_description
 
     @property
@@ -627,15 +589,6 @@ class Object(WorldEntity):
         :return: The link object.
         """
         return self.links[self.link_id_to_name[link_id]]
-
-    def get_joint_by_id(self, joint_id: int) -> str:
-        """
-        Returns the joint name for a unique world id
-
-        :param joint_id: The world id of for joint
-        :return: The joint name
-        """
-        return dict(zip(self.joint_name_to_id.values(), self.joint_name_to_id.keys()))[joint_id]
 
     def reset_all_joints_positions(self) -> None:
         """
@@ -692,7 +645,7 @@ class Object(WorldEntity):
     def get_joint_limits(self, joint_name: str) -> Tuple[float, float]:
         return self.joints[joint_name].limits
 
-    def find_joint_above(self, link_name: str, joint_type: JointType) -> str:
+    def find_joint_above_link(self, link_name: str, joint_type: JointType) -> str:
         """
         Traverses the chain from 'link' to the URDF origin and returns the first joint that is of type 'joint_type'.
 
@@ -798,11 +751,11 @@ class Object(WorldEntity):
         """
         :return: the origin of the base/bottom of this object.
         """
-        aabb = self.get_link_by_id(-1).get_axis_aligned_bounding_box()
+        aabb = self.get_axis_aligned_bounding_box()
         base_width = np.absolute(aabb.min_x - aabb.max_x)
         base_length = np.absolute(aabb.min_y - aabb.max_y)
         return Pose([aabb.min_x + base_width / 2, aabb.min_y + base_length / 2, aabb.min_z],
-                    self.get_pose().orientation_as_list())
+                    self.get_orientation_as_list())
 
     def __copy__(self) -> 'Object':
         """

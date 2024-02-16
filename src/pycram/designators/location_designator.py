@@ -257,7 +257,7 @@ class AccessingLocation(LocationDesignatorDescription):
         test_robot = World.current_world.get_prospection_object_for_object(self.robot)
 
         # Find a Joint of type prismatic which is above the handle in the URDF tree
-        container_joint = self.handle.world_object.find_joint_above(self.handle.name, JointType.PRISMATIC)
+        container_joint = self.handle.world_object.find_joint_above_link(self.handle.name, JointType.PRISMATIC)
 
         init_pose = link_pose_for_joint_config(self.handle.world_object, {
             container_joint: self.handle.world_object.get_joint_limits(container_joint)[0]},

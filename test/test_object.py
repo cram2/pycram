@@ -1,14 +1,88 @@
+import os
+
+import numpy as np
+
 from bullet_world_testcase import BulletWorldTestCase
-from pycram.enums import JointType
+
+from pycram.enums import JointType, ObjectType
 from pycram.pose import Pose
-from geometry_msgs.msg import Point
+from pycram.world_dataclasses import Color
+from pycram.world_object import Object
+from pycram.urdf_interface import ObjectDescription
+
+from geometry_msgs.msg import Point, Quaternion
 
 
 class TestObject(BulletWorldTestCase):
 
+    def test_wrong_object_description_path(self):
+        with self.assertRaises(FileNotFoundError):
+            milk = Object("milk2", ObjectType.MILK, "wrong_path.sk", ObjectDescription)
+
+    def test_malformed_object_description(self):
+        malformed_file = "../resources/cached/malformed_description.urdf"
+        with open(malformed_file, "w") as file:
+            file.write("malformed")
+        with self.assertRaises(Exception):
+            Object("milk2", ObjectType.MILK, malformed_file, ObjectDescription)
+
+    def test_move_base_to_origin_pose(self):
+        self.milk.set_position(Point(1, 2, 3), base=False)
+        self.milk.move_base_to_origin_pose()
+        self.assertEqual(self.milk.get_base_position_as_list(), [1, 2, 3])
+
     def test_set_position_as_point(self):
         self.milk.set_position(Point(1, 2, 3))
         self.assertEqual(self.milk.get_position_as_list(), [1, 2, 3])
+
+    def test_uni_direction_attachment(self):
+        self.milk.attach(self.cereal, bidirectional=False)
+
+        milk_position = self.milk.get_position_as_list()
+        cereal_position = self.cereal.get_position_as_list()
+
+        def move_milk_and_assert_cereal_moved():
+            milk_position[0] += 1
+            cereal_position[0] += 1
+            self.milk.set_position(milk_position)
+
+            new_cereal_position = self.cereal.get_position_as_list()
+            self.assertEqual(new_cereal_position, cereal_position)
+
+        def move_cereal_and_assert_milk_not_moved():
+            cereal_position[0] += 1
+            self.cereal.set_position(cereal_position)
+
+            new_milk_position = self.milk.get_position_as_list()
+            self.assertEqual(new_milk_position, milk_position)
+
+        # move twice to test updated attachment at the new cereal position
+        for _ in range(2):
+            move_milk_and_assert_cereal_moved()
+            move_cereal_and_assert_milk_not_moved()
+
+    def test_setting_wrong_position_type(self):
+        with self.assertRaises(TypeError):
+            self.milk.set_position(np.array([1, 2, 3]))
+
+        with self.assertRaises(TypeError):
+            self.milk.get_pose().position = np.array([1, 2, 3])
+
+    def test_set_orientation_as_list(self):
+        self.milk.set_orientation([1, 0, 0, 0])
+        self.assertEqual(self.milk.get_orientation_as_list(), [1, 0, 0, 0])
+
+    def test_set_orientation_as_quaternion(self):
+        self.milk.set_orientation(Quaternion(*[1, 0, 0, 0]))
+        self.assertEqual(self.milk.get_orientation_as_list(), [1, 0, 0, 0])
+
+    def test_set_orientation_as_ndarray(self):
+        self.milk.set_orientation(np.array([1, 0, 0, 0]))
+        self.assertEqual(self.milk.get_orientation_as_list(), [1, 0, 0, 0])
+
+    def test_set_wrong_orientation_type(self):
+        with self.assertRaises(TypeError):
+            self.milk.set_orientation(1)
 
     def test_set_position_as_pose(self):
         self.milk.set_position(Pose([1, 2, 3]))
@@ -56,3 +130,35 @@ class TestObject(BulletWorldTestCase):
             saved_state = link.saved_states[1]
             self.assertEqual(curr_state, saved_state)
             self.assertEqual(curr_state.constraint_ids, saved_state.constraint_ids)
+
+    def test_get_link_by_id(self):
+        self.assertEqual(self.robot.get_link_by_id(-1), self.robot.root_link)
+
+    def test_find_joint_above_link(self):
+        self.assertEqual(self.robot.find_joint_above_link("head_pan_link", JointType.REVOLUTE), "head_pan_joint")
+
+    def test_wrong_joint_type_for_joint_above_link(self):
+        container_joint = self.robot.find_joint_above_link("head_pan_link", JointType.CONTINUOUS)
+        self.assertTrue(container_joint is None)
+
+    def test_contact_points_simulated(self):
+        self.milk.set_position([0, 0, 100])
+        contact_points = self.milk.contact_points_simulated()
+        self.assertFalse(contact_points)
+        self.milk.set_position(self.cereal.get_position_as_list(), base=True)
+        contact_points = self.milk.contact_points_simulated()
+        self.assertTrue(contact_points)
+
+    def test_set_color(self):
+        self.milk.set_color(Color(1, 0, 0, 1))
+        self.assertEqual(self.milk.get_color(), Color(1, 0, 0, 1))
+        self.robot.set_color(Color(0, 1, 0, 1))
+        for color in self.robot.get_color().values():
+            self.assertEqual(color, Color(0, 1, 0, 1))
+
+    def test_object_equal(self):
+        milk2 = Object("milk2", ObjectType.MILK, "milk.stl", ObjectDescription)
+        self.assertNotEqual(self.milk, milk2)
+        self.assertEqual(self.milk, self.milk)
+        self.assertNotEqual(self.milk, self.cereal)
+        self.assertNotEqual(self.milk, self.world)
