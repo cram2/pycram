@@ -77,67 +77,6 @@ class Color:
 
 
 @dataclass
-class Constraint:
-    """
-    Dataclass for storing a constraint between two objects.
-    """
-    parent_link: 'Link'
-    child_link: 'Link'
-    joint_type: JointType
-    joint_axis_in_child_link_frame: Point
-    joint_frame_pose_wrt_parent_origin: Pose
-    joint_frame_pose_wrt_child_origin: Pose
-
-    def get_parent_object_id(self) -> int:
-        """
-        Returns the id of the parent object of the constraint.
-
-        :return: The id of the parent object of the constraint
-        """
-        return self.parent_link.object.id
-
-    def get_child_object_id(self) -> int:
-        """
-        Returns the id of the child object of the constraint.
-
-        :return: The id of the child object of the constraint
-        """
-        return self.child_link.object.id
-
-    def get_parent_link_id(self) -> int:
-        """
-        Returns the id of the parent link of the constraint.
-
-        :return: The id of the parent link of the constraint
-        """
-        return self.parent_link.id
-
-    def get_child_link_id(self) -> int:
-        """
-        Returns the id of the child link of the constraint.
-
-        :return: The id of the child link of the constraint
-        """
-        return self.child_link.id
-
-    def get_joint_axis_as_list(self) -> List[float]:
-        """
-        Returns the joint axis of the constraint as a list.
-
-        :return: The joint axis of the constraint as a list
-        """
-        return get_point_as_list(self.joint_axis_in_child_link_frame)
-    
-    def get_joint_position_wrt_parent_as_list(self) -> List[float]:
-        """
-        Returns the joint frame pose with respect to the parent origin as a list.
-
-        :return: The joint frame pose with respect to the parent origin as a list
-        """
-        return self.joint_frame_pose_wrt_parent_origin.position_as_list()
-
-
-@dataclass
 class AxisAlignedBoundingBox:
     """
     Dataclass for storing an axis-aligned bounding box.
