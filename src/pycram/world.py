@@ -1076,10 +1076,8 @@ class WorldSync(threading.Thread):
             # self.equal_states = False
             for i in range(self.add_obj_queue.qsize()):
                 obj = self.add_obj_queue.get()
-                # [0:name, 1:type, 2:path, 3:description, 4:position, 5:orientation,
-                # 6:self.world.prospection_world, 7:rgba_color, 8:world object]
                 # Maps the World object to the prospection world object
-                self.object_mapping[obj[8]] = copy(obj[8])
+                self.object_mapping[obj] = copy(obj)
                 self.add_obj_queue.task_done()
             for i in range(self.remove_obj_queue.qsize()):
                 obj = self.remove_obj_queue.get()
@@ -1090,17 +1088,7 @@ class WorldSync(threading.Thread):
                 self.remove_obj_queue.task_done()
 
             for world_obj, prospection_obj in self.object_mapping.items():
-                b_pose = world_obj.get_pose()
-                s_pose = prospection_obj.get_pose()
-                if b_pose.dist(s_pose) != 0.0:
-                    prospection_obj.set_pose(world_obj.get_pose())
-
-                # Manage joint positions
-                if len(world_obj.joint_name_to_id) > 2:
-                    for joint_name in world_obj.joint_name_to_id.keys():
-                        if prospection_obj.get_joint_position(joint_name) != world_obj.get_joint_position(joint_name):
-                            prospection_obj.set_joint_positions(world_obj.get_positions_of_all_joints())
-                            break
+                prospection_obj.current_state = world_obj.current_state
 
             self.check_for_pause()
             # self.check_for_equal()

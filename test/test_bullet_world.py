@@ -48,7 +48,6 @@ class BulletWorldTest(BulletWorldTestCase):
                 self.assertTrue(att in all_object_attachments[obj])
 
     def test_remove_object(self):
-        # time.sleep(2)
         milk_id = self.milk.id
         self.assertTrue(milk_id in [obj.id for obj in self.world.objects])
         self.world.remove_object(self.milk)
@@ -136,7 +135,7 @@ class BulletWorldTest(BulletWorldTestCase):
         self.robot.set_pose(Pose([1, 0, 0], [0, 0, 0, 1]))
         self.assertFalse(self.world.world_sync.check_for_equal())
         self.world.prospection_world.object_states = self.world.current_state.object_states
-        time.sleep(0.1)
+        time.sleep(0.05)
         self.assertTrue(self.world.world_sync.check_for_equal())
 
     def test_add_resource_path(self):
@@ -145,7 +144,7 @@ class BulletWorldTest(BulletWorldTestCase):
 
     def test_no_prospection_object_found_for_given_object(self):
         milk_2 = Object("milk", ObjectType.MILK, "milk.stl", ObjectDescription, pose=Pose([1.3, 1, 0.9]))
-        time.sleep(0.1)
+        time.sleep(0.05)
         try:
             prospection_milk_2 = self.world.get_prospection_object_for_object(milk_2)
             self.world.remove_object(milk_2)
@@ -157,7 +156,7 @@ class BulletWorldTest(BulletWorldTestCase):
 
     def test_no_object_found_for_given_prospection_object(self):
         milk_2 = Object("milk", ObjectType.MILK, "milk.stl", ObjectDescription, pose=Pose([1.3, 1, 0.9]))
-        time.sleep(0.1)
+        time.sleep(0.05)
         prospection_milk = self.world.get_prospection_object_for_object(milk_2)
         self.assertTrue(self.world.get_object_for_prospection_object(prospection_milk) == milk_2)
         try:
@@ -167,7 +166,7 @@ class BulletWorldTest(BulletWorldTestCase):
             self.assertFalse(True)
         except ValueError as e:
             self.assertTrue(True)
-        time.sleep(0.1)
+        time.sleep(0.05)
 
     def test_add_vis_axis(self):
         self.world.add_vis_axis(self.robot.links[robot_description.get_camera_frame()].pose)

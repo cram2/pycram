@@ -63,8 +63,8 @@ class BulletWorld(World):
         self.set_gravity([0, 0, -9.8])
 
         if not is_prospection_world:
-            plane = Object("floor", ObjectType.ENVIRONMENT, "plane" + self.extension, ObjectDescription,
-                           world=self)
+            _ = Object("floor", ObjectType.ENVIRONMENT, "plane" + self.extension, ObjectDescription,
+                       world=self)
 
     def load_description_and_get_object_id(self, path: str, pose: Pose) -> int:
         return p.loadURDF(path,
@@ -201,8 +201,6 @@ class BulletWorld(World):
         """
 
         pose_in_map = self.local_transformer.transform_pose(pose, "map")
-
-        position, orientation = pose_in_map.to_list()
 
         box_vis_shape = BoxVisualShape(Color(1, 0, 0, 0.8), [length, 0.01, 0.01], [length, 0.01, 0.01])
         vis_x = self.create_visual_shape(box_vis_shape)

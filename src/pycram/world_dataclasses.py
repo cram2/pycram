@@ -332,6 +332,7 @@ class WorldState(State):
 
 @dataclass
 class ObjectState(State):
+    pose: Pose
     attachments: Dict['Object', 'Attachment']
     link_states: Dict[int, 'LinkState']
     joint_states: Dict[int, 'JointState']
