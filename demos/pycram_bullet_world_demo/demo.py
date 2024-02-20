@@ -6,7 +6,7 @@ from pycram.enums import ObjectType
 from pycram.pose import Pose
 from pycram.process_module import simulated_robot, with_simulated_robot
 from pycram.urdf_interface import ObjectDescription
-from pycram.world import Object
+from pycram.world_object import Object
 from pycram.world_dataclasses import Color
 
 extension = ObjectDescription.get_file_extension()
@@ -70,7 +70,7 @@ with simulated_robot:
     spoon.detach(apartment)
 
     # Detect and pickup the spoon
-    LookAtAction([apartment.links["handle_cab10_t"].pose]).resolve().perform()
+    LookAtAction([apartment.get_link_pose("handle_cab10_t")]).resolve().perform()
 
     spoon_desig = DetectAction(BelieveObject(types=[ObjectType.SPOON])).resolve().perform()
 

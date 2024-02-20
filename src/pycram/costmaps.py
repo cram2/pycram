@@ -680,9 +680,9 @@ class SemanticCostmap(Costmap):
         """
         self.world: World = world if world else World.current_world
         self.object: Object = object
-        self.link: Link = object.links[urdf_link_name]
+        self.link: Link = object.get_link(urdf_link_name)
         self.resolution: float = resolution
-        self.origin: Pose = object.links[urdf_link_name].pose
+        self.origin: Pose = object.get_link_pose(urdf_link_name)
         self.height: int = 0
         self.width: int = 0
         self.map: np.ndarray = []

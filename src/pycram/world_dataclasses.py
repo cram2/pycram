@@ -1,15 +1,20 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union
 from .enums import JointType, Shape
 from .pose import Pose, Point
 from abc import ABC, abstractmethod
+from .description import Link
+from .world_object import Object
+from .world_constraints import Attachment
 
 
 def get_point_as_list(point: Point) -> List[float]:
     """
     Returns the point as a list.
 
-    :param point: The point
+    :param point: The point.
     :return: The point as a list
     """
     return [point.x, point.y, point.z]
@@ -199,6 +204,10 @@ class BoxVisualShape(VisualShape):
     def visual_geometry_type(self) -> Shape:
         return Shape.BOX
 
+    @property
+    def size(self) -> List[float]:
+        return self.half_extents
+
 
 @dataclass
 class SphereVisualShape(VisualShape):
@@ -235,11 +244,11 @@ class CylinderVisualShape(CapsuleVisualShape):
 
 @dataclass
 class MeshVisualShape(VisualShape):
-    mesh_scale: List[float]
-    mesh_file_name: str
+    scale: List[float]
+    file_name: str
 
     def shape_data(self) -> Dict[str, Union[List[float], str]]:
-        return {"meshScale": self.mesh_scale, "meshFileName": self.mesh_file_name}
+        return {"meshScale": self.scale, "meshFileName": self.file_name}
 
     @property
     def visual_geometry_type(self) -> Shape:
@@ -264,24 +273,24 @@ class State(ABC):
 
 
 @dataclass
-class WorldState(State):
-    simulator_state_id: int
-    object_states: Dict[str, 'ObjectState']
-
-
-@dataclass
-class ObjectState(State):
-    pose: Pose
-    attachments: Dict['Object', 'Attachment']
-    link_states: Dict[int, 'LinkState']
-    joint_states: Dict[int, 'JointState']
-
-
-@dataclass
 class LinkState(State):
-    constraint_ids: Dict['Link', int]
+    constraint_ids: Dict[Link, int]
 
 
 @dataclass
 class JointState(State):
     position: float
+
+
+@dataclass
+class ObjectState(State):
+    pose: Pose
+    attachments: Dict[Object, Attachment]
+    link_states: Dict[int, LinkState]
+    joint_states: Dict[int, JointState]
+
+
+@dataclass
+class WorldState(State):
+    simulator_state_id: int
+    object_states: Dict[str, ObjectState]

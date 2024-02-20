@@ -95,13 +95,13 @@ def visibility_validator(pose: Pose,
     robot_pose = robot.get_pose()
     if isinstance(object_or_pose, Object):
         robot.set_pose(pose)
-        camera_pose = robot.links[robot_description.get_camera_frame()].pose
+        camera_pose = robot.get_link_pose(robot_description.get_camera_frame())
         robot.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
         ray = world.ray_test(camera_pose.position_as_list(), object_or_pose.get_position_as_list())
         res = ray == object_or_pose.id
     else:
         robot.set_pose(pose)
-        camera_pose = robot.links[robot_description.get_camera_frame()].pose
+        camera_pose = robot.get_link_pose(robot_description.get_camera_frame())
         robot.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
         # TODO: Check if this is correct
         ray = world.ray_test(camera_pose.position_as_list(), object_or_pose)

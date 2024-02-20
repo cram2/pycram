@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import os
 
@@ -6,13 +8,16 @@ import rospy
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
-from pycram.enums import ObjectType, JointType
-from pycram.local_transformer import LocalTransformer
-from pycram.pose import Pose
-from pycram.robot_descriptions import robot_description
-from pycram.world import WorldEntity, World
-from pycram.world_constraints import Attachment
-from pycram.world_dataclasses import Color, ObjectState, LinkState, JointState, AxisAlignedBoundingBox
+from .enums import ObjectType, JointType
+from .local_transformer import LocalTransformer
+from .pose import Pose, Transform
+from .robot_descriptions import robot_description
+from .world import WorldEntity, World
+from .world_constraints import Attachment
+from .world_dataclasses import Color, ObjectState, LinkState, JointState, AxisAlignedBoundingBox, VisualShape
+from .description import ObjectDescription, LinkDescription
+
+Link = ObjectDescription.Link
 
 
 class Object(WorldEntity):
@@ -27,7 +32,7 @@ class Object(WorldEntity):
     """
 
     def __init__(self, name: str, obj_type: ObjectType, path: str,
-                 description: Type['ObjectDescription'],
+                 description: Type[ObjectDescription],
                  pose: Optional[Pose] = None,
                  world: Optional[World] = None,
                  color: Optional[Color] = Color(),
@@ -181,6 +186,126 @@ class Object(WorldEntity):
         """
         return self.world.get_object_joint_names(self)
 
+    def get_link(self, link_name: str) -> Link:
+        """
+        Returns the link object with the given name.
+        :param link_name: The name of the link.
+        :return: The link object.
+        """
+        return self.links[link_name]
+
+    def get_link_pose(self, link_name: str) -> Pose:
+        """
+        Returns the pose of the link with the given name.
+        :param link_name: The name of the link.
+        :return: The pose of the link.
+        """
+        return self.links[link_name].pose
+
+    def get_link_position(self, link_name: str) -> Point:
+        """
+        Returns the position of the link with the given name.
+        :param link_name: The name of the link.
+        :return: The position of the link.
+        """
+        return self.links[link_name].position
+
+    def get_link_position_as_list(self, link_name: str) -> List[float]:
+        """
+        Returns the position of the link with the given name.
+        :param link_name: The name of the link.
+        :return: The position of the link.
+        """
+        return self.links[link_name].position_as_list
+
+    def get_link_orientation(self, link_name: str) -> Quaternion:
+        """
+        Returns the orientation of the link with the given name.
+        :param link_name: The name of the link.
+        :return: The orientation of the link.
+        """
+        return self.links[link_name].orientation
+
+    def get_link_orientation_as_list(self, link_name: str) -> List[float]:
+        """
+        Returns the orientation of the link with the given name.
+        :param link_name: The name of the link.
+        :return: The orientation of the link.
+        """
+        return self.links[link_name].orientation_as_list
+
+    def get_link_tf_frame(self, link_name: str) -> str:
+        """
+        Returns the tf frame of the link with the given name.
+        :param link_name: The name of the link.
+        :return: The tf frame of the link.
+        """
+        return self.links[link_name].tf_frame
+
+    def get_link_axis_aligned_bounding_box(self, link_name: str) -> AxisAlignedBoundingBox:
+        """
+        Returns the axis aligned bounding box of the link with the given name.
+        :param link_name: The name of the link.
+        :return: The axis aligned bounding box of the link.
+        """
+        return self.links[link_name].get_axis_aligned_bounding_box()
+
+    def get_transform_between_links(self, from_link: str, to_link: str) -> Transform:
+        """
+        Returns the transform between two links.
+        :param from_link: The name of the link from which the transform should be calculated.
+        :param to_link: The name of the link to which the transform should be calculated.
+        """
+        return self.links[from_link].get_transform_to_link(self.links[to_link])
+
+    def get_link_color(self, link_name: str) -> Color:
+        """
+        Returns the color of the link with the given name.
+        :param link_name: The name of the link.
+        :return: The color of the link.
+        """
+        return self.links[link_name].color
+
+    def set_link_color(self, link_name: str, color: List[float]) -> None:
+        """
+        Sets the color of the link with the given name.
+        :param link_name: The name of the link.
+        :param color: The new color of the link.
+        """
+        self.links[link_name].color = Color.from_list(color)
+
+    def get_link_geometry(self, link_name: str) -> VisualShape:
+        """
+        Returns the geometry of the link with the given name.
+        :param link_name: The name of the link.
+        :return: The geometry of the link.
+        """
+        return self.links[link_name].geometry
+
+    def get_link_transform(self, link_name: str) -> Transform:
+        """
+        Returns the transform of the link with the given name.
+        :param link_name: The name of the link.
+        :return: The transform of the link.
+        """
+        return self.links[link_name].transform
+
+    def get_link_origin(self, link_name: str) -> Pose:
+        """
+        Returns the origin of the link with the given name.
+        :param link_name: The name of the link.
+        :return: The origin of the link as a 'Pose'.
+        """
+        return self.links[link_name].origin
+
+    def get_link_origin_transform(self, link_name: str) -> Transform:
+        """
+        Returns the origin transform of the link with the given name.
+        :param link_name: The name of the link.
+        :return: The origin transform of the link.
+        """
+        return self.links[link_name].origin_transform
+
     @property
     def base_origin_shift(self) -> np.ndarray:
         """
@@ -218,7 +343,7 @@ class Object(WorldEntity):
             self.remove_saved_states()
 
     def attach(self,
-               child_object: 'Object',
+               child_object: Object,
                parent_link: Optional[str] = None,
                child_link: Optional[str] = None,
                bidirectional: Optional[bool] = True) -> None:
@@ -247,7 +372,7 @@ class Object(WorldEntity):
 
         self.world.attachment_event(self, [self, child_object])
 
-    def detach(self, child_object: 'Object') -> None:
+    def detach(self, child_object: Object) -> None:
         """
         Detaches another object from this object. This is done by
         deleting the attachment from the attachments dictionary of both objects
@@ -269,7 +394,7 @@ class Object(WorldEntity):
         for att in attachments.keys():
             self.detach(att)
 
-    def update_attachment_with_object(self, child_object: 'Object'):
+    def update_attachment_with_object(self, child_object: Object):
         self.attachments[child_object].update_transform_and_constraint()
 
     def get_position(self) -> Point:
@@ -456,7 +581,7 @@ class Object(WorldEntity):
         for joint in self.joints.values():
             joint.remove_saved_states()
 
-    def _set_attached_objects_poses(self, already_moved_objects: Optional[List['Object']] = None) -> None:
+    def _set_attached_objects_poses(self, already_moved_objects: Optional[List[Object]] = None) -> None:
         """
         Updates the positions of all attached objects. This is done
         by calculating the new pose in world coordinate frame and setting the
@@ -542,7 +667,7 @@ class Object(WorldEntity):
         """
         return self.joint_name_to_id[name]
 
-    def get_root_link_description(self) -> 'LinkDescription':
+    def get_root_link_description(self) -> LinkDescription:
         """
         Returns the root link of the URDF of this object.
         :return: The root link as defined in the URDF of this object.
@@ -552,7 +677,7 @@ class Object(WorldEntity):
                 return link_description
 
     @property
-    def root_link(self) -> 'Link':
+    def root_link(self) -> Link:
         """
         Returns the root link of this object.
         :return: The root link of this object.
@@ -582,7 +707,7 @@ class Object(WorldEntity):
         """
         return self.link_name_to_id[link_name]
 
-    def get_link_by_id(self, link_id: int) -> 'Link':
+    def get_link_by_id(self, link_id: int) -> Link:
         """
         Returns the link for a given unique link id
         :param link_id: The unique id of the link.
@@ -644,6 +769,9 @@ class Object(WorldEntity):
 
     def get_joint_limits(self, joint_name: str) -> Tuple[float, float]:
         return self.joints[joint_name].limits
+
+    def get_joint_child_link(self, joint_name: str) -> Link:
+        return self.joints[joint_name].child_link
 
     def find_joint_above_link(self, link_name: str, joint_type: JointType) -> str:
         """
@@ -757,7 +885,7 @@ class Object(WorldEntity):
         return Pose([aabb.min_x + base_width / 2, aabb.min_y + base_length / 2, aabb.min_z],
                     self.get_orientation_as_list())
 
-    def __copy__(self) -> 'Object':
+    def __copy__(self) -> Object:
         """
         Returns a copy of this object. The copy will have the same name, type, path, description, pose, world and color.
         :return: A copy of this object.

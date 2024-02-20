@@ -55,9 +55,9 @@ class TFBroadcaster:
             pose.header.stamp = rospy.Time.now()
             self._publish_pose(obj.tf_frame, pose)
             for link in obj.link_name_to_id.keys():
-                link_pose = obj.links[link].pose
+                link_pose = obj.get_link_pose(link)
                 link_pose.header.stamp = rospy.Time.now()
-                self._publish_pose(obj.links[link].tf_frame, link_pose)
+                self._publish_pose(obj.get_link_tf_frame(link), link_pose)
 
     def _update_static_odom(self) -> None:
         """

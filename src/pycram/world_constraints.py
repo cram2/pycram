@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 from geometry_msgs.msg import Point
 from typing_extensions import Union, List, Optional
 
-from pycram.enums import JointType
-from pycram.pose import Transform, Pose
+from .enums import JointType
+from .pose import Transform, Pose
+
+from .description import Link
 
 
 class AbstractConstraint:
@@ -12,13 +16,13 @@ class AbstractConstraint:
     """
 
     def __init__(self,
-                 parent_link: 'Link',
-                 child_link: 'Link',
+                 parent_link: Link,
+                 child_link: Link,
                  _type: JointType,
                  parent_to_constraint: Transform,
                  child_to_constraint: Transform):
-        self.parent_link: 'Link' = parent_link
-        self.child_link: 'Link' = child_link
+        self.parent_link: Link = parent_link
+        self.child_link: Link = child_link
         self.type: JointType = _type
         self.parent_to_constraint = parent_to_constraint
         self.child_to_constraint = child_to_constraint
@@ -132,8 +136,8 @@ class Constraint(AbstractConstraint):
     """
 
     def __init__(self,
-                 parent_link: 'Link',
-                 child_link: 'Link',
+                 parent_link: Link,
+                 child_link: Link,
                  _type: JointType,
                  axis_in_child_frame: Point,
                  constraint_to_parent: Transform,
@@ -154,8 +158,8 @@ class Constraint(AbstractConstraint):
 
 class Attachment(AbstractConstraint):
     def __init__(self,
-                 parent_link: 'Link',
-                 child_link: 'Link',
+                 parent_link: Link,
+                 child_link: Link,
                  bidirectional: Optional[bool] = False,
                  parent_to_child_transform: Optional[Transform] = None,
                  constraint_id: Optional[int] = None):

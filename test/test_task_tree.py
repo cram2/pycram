@@ -4,7 +4,7 @@ import pycram.task
 from pycram.task import with_tree
 import unittest
 import anytree
-from  bullet_world_testcase import BulletWorldTestCase
+from bullet_world_testcase import BulletWorldTestCase
 import pycram.plan_failures
 from pycram.designators import object_designator, action_designator
 

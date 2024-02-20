@@ -24,6 +24,8 @@ from .world_dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallback
                                 MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape, SphereVisualShape,
                                 CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
                                 ObjectState, State, WorldState)
+from .world_object import Object
+from .description import Link
 
 
 class StateEntity:
@@ -117,9 +119,9 @@ class World(StateEntity, ABC):
         used at the moment.
     """
 
-    robot: Optional['Object'] = None
+    robot: Optional[Object] = None
     """
-    Global reference to the spawned 'Object'that represents the robot. The robot is identified by checking the name in
+    Global reference to the spawned Object that represents the robot. The robot is identified by checking the name in
      the URDF with the name of the URDF on the parameter server. 
     """
 
@@ -157,7 +159,7 @@ class World(StateEntity, ABC):
         self.local_transformer = LocalTransformer()
         self._update_local_transformer_worlds()
 
-        self.objects: List['Object'] = []
+        self.objects: List[Object] = []
         # List of all Objects in the World
 
         self.id: int = -1
@@ -166,7 +168,7 @@ class World(StateEntity, ABC):
         self.mode: WorldMode = mode
         # The mode of the simulation, can be "GUI" or "DIRECT"
 
-        self.coll_callbacks: Dict[Tuple['Object', 'Object'], CollisionCallbacks] = {}
+        self.coll_callbacks: Dict[Tuple[Object, Object], CollisionCallbacks] = {}
 
         self._init_events()
 
@@ -218,7 +220,7 @@ class World(StateEntity, ABC):
             self.world_sync.start()
 
     def update_cache_dir_with_object(self, path: str, ignore_cached_files: bool,
-                                     obj: 'Object') -> str:
+                                     obj: Object) -> str:
         """
         Updates the cache directory with the given object.
 
@@ -246,7 +248,7 @@ class World(StateEntity, ABC):
         """
         pass
 
-    def get_object_by_name(self, name: str) -> List['Object']:
+    def get_object_by_name(self, name: str) -> List[Object]:
         """
         Returns a list of all Objects in this World with the same name as the given one.
 
@@ -255,7 +257,7 @@ class World(StateEntity, ABC):
         """
         return list(filter(lambda obj: obj.name == name, self.objects))[0]
 
-    def get_object_by_type(self, obj_type: ObjectType) -> List['Object']:
+    def get_object_by_type(self, obj_type: ObjectType) -> List[Object]:
         """
         Returns a list of all Objects which have the type 'obj_type'.
 
@@ -264,29 +266,29 @@ class World(StateEntity, ABC):
         """
         return list(filter(lambda obj: obj.obj_type == obj_type, self.objects))
 
-    def get_object_by_id(self, obj_id: int) -> 'Object':
+    def get_object_by_id(self, obj_id: int) -> Object:
         """
-        Returns the single 'Object'that has the unique id.
+        Returns the single Object that has the unique id.
 
-        :param obj_id: The unique id for which the 'Object'should be returned.
-        :return: The 'Object'with the id 'id'.
+        :param obj_id: The unique id for which the Object should be returned.
+        :return: The Object with the id 'id'.
         """
         return list(filter(lambda obj: obj.id == obj_id, self.objects))[0]
 
     @abstractmethod
-    def remove_object_from_simulator(self, obj: 'Object') -> None:
+    def remove_object_from_simulator(self, obj: Object) -> None:
         """
         Removes an object from the physics simulator.
         :param obj: The object to be removed.
         """
         pass
 
-    def remove_object(self, obj: 'Object') -> None:
+    def remove_object(self, obj: Object) -> None:
         """
         Removes this object from the current world.
         For the object to be removed it has to be detached from all objects it
         is currently attached to. After this is done a call to world remove object is done
-        to remove this 'Object'from the simulation/world.
+        to remove this Object from the simulation/world.
 
         :param obj: The object to be removed.
         """
@@ -305,7 +307,7 @@ class World(StateEntity, ABC):
         if World.robot == obj:
             World.robot = None
 
-    def add_fixed_constraint(self, parent_link: 'Link', child_link: 'Link',
+    def add_fixed_constraint(self, parent_link: Link, child_link: Link,
                              child_to_parent_transform: Transform) -> int:
         """
         Creates a fixed joint constraint between the given parent and child links,
@@ -347,7 +349,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_joint_position(self, obj: 'Object', joint_name: str) -> float:
+    def get_joint_position(self, obj: Object, joint_name: str) -> float:
         """
         Get the position of a joint of an articulated object
 
@@ -358,7 +360,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_object_joint_names(self, obj: 'Object') -> List[str]:
+    def get_object_joint_names(self, obj: Object) -> List[str]:
         """
         Returns the names of all joints of this object.
 
@@ -368,7 +370,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_link_pose(self, link: 'Link') -> Pose:
+    def get_link_pose(self, link: Link) -> Pose:
         """
         Get the pose of a link of an articulated object with respect to the world frame.
 
@@ -378,7 +380,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_object_link_names(self, obj: 'Object') -> List[str]:
+    def get_object_link_names(self, obj: Object) -> List[str]:
         """
         Returns the names of all links of this object.
         :param obj: The object.
@@ -419,7 +421,7 @@ class World(StateEntity, ABC):
             obj.update_pose()
 
     @abstractmethod
-    def get_object_pose(self, obj: 'Object') -> Pose:
+    def get_object_pose(self, obj: Object) -> Pose:
         """
         Get the pose of an object in the world frame from the current object pose in the simulator.
         """
@@ -433,9 +435,9 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_object_contact_points(self, obj: 'Object') -> List:
+    def get_object_contact_points(self, obj: Object) -> List:
         """
-        Returns a list of contact points of this 'Object'with all other Objects.
+        Returns a list of contact points of this Object with all other Objects.
 
         :param obj: The object.
         :return: A list of all contact points with other objects
@@ -443,7 +445,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_contact_points_between_two_objects(self, obj1: 'Object', obj2: 'Object') -> List:
+    def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> List:
         """
         Returns a list of contact points between obj1 and obj2.
 
@@ -454,7 +456,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def reset_joint_position(self, obj: 'Object', joint_name: str, joint_pose: float) -> None:
+    def reset_joint_position(self, obj: Object, joint_name: str, joint_pose: float) -> None:
         """
         Reset the joint position instantly without physics simulation
 
@@ -465,7 +467,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def reset_object_base_pose(self, obj: 'Object', pose: Pose):
+    def reset_object_base_pose(self, obj: Object, pose: Pose):
         """
         Reset the world position and orientation of the base of the object instantaneously,
         not through physics simulation. (x,y,z) position vector and (x,y,z,w) quaternion orientation.
@@ -483,7 +485,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def set_link_color(self, link: 'Link', rgba_color: Color):
+    def set_link_color(self, link: Link, rgba_color: Color):
         """
         Changes the rgba_color of a link of this object, the rgba_color has to be given as Color object.
 
@@ -493,7 +495,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_link_color(self, link: 'Link') -> Color:
+    def get_link_color(self, link: Link) -> Color:
         """
         This method returns the rgba_color of this link.
         :param link: The link for which the rgba_color should be returned.
@@ -502,7 +504,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_colors_of_object_links(self, obj: 'Object') -> Dict[str, Color]:
+    def get_colors_of_object_links(self, obj: Object) -> Dict[str, Color]:
         """
         Get the RGBA colors of each link in the object as a dictionary from link name to rgba_color.
 
@@ -512,7 +514,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_object_axis_aligned_bounding_box(self, obj: 'Object') -> AxisAlignedBoundingBox:
+    def get_object_axis_aligned_bounding_box(self, obj: Object) -> AxisAlignedBoundingBox:
         """
         Returns the axis aligned bounding box of this object. The return of this method are two points in
         world coordinate frame which define a bounding box.
@@ -523,7 +525,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_link_axis_aligned_bounding_box(self, link: 'Link') -> AxisAlignedBoundingBox:
+    def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
         """
         Returns the axis aligned bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
@@ -550,21 +552,21 @@ class World(StateEntity, ABC):
         """
         pass
 
-    def set_robot_if_not_set(self, robot: 'Object') -> None:
+    def set_robot_if_not_set(self, robot: Object) -> None:
         """
         Sets the robot if it is not set yet.
 
-        :param robot: The 'Object'reference to the 'Object'representing the robot.
+        :param robot: The Object reference to the Object representing the robot.
         """
         if not self.robot_is_set():
             self.set_robot(robot)
 
     @staticmethod
-    def set_robot(robot: Union['Object', None]) -> None:
+    def set_robot(robot: Union[Object, None]) -> None:
         """
-        Sets the global variable for the robot 'Object' This should be set on spawning the robot.
+        Sets the global variable for the robot Object This should be set on spawning the robot.
 
-        :param robot: The 'Object'reference to the 'Object'representing the robot.
+        :param robot: The Object reference to the Object representing the robot.
         """
         World.robot = robot
 
@@ -710,7 +712,7 @@ class World(StateEntity, ABC):
 
         1. An RGB image
         2. A depth image
-        3. A segmentation Mask, the segmentation mask indicates for every pixel the visible 'Object'
+        3. A segmentation Mask, the segmentation mask indicates for every pixel the visible Object
 
         :param target_pose: The pose to which the camera should point.
         :param cam_pose: The pose of the camera.
@@ -720,8 +722,8 @@ class World(StateEntity, ABC):
         pass
 
     def register_two_objects_collision_callbacks(self,
-                                                 object_a: 'Object',
-                                                 object_b: 'Object',
+                                                 object_a: Object,
+                                                 object_b: Object,
                                                  on_collision_callback: Callable,
                                                  on_collision_removal_callback: Optional[Callable] = None) -> None:
         """
@@ -740,16 +742,16 @@ class World(StateEntity, ABC):
     def add_resource_path(cls, path: str) -> None:
         """
         Adds a resource path in which the World will search for files. This resource directory is searched if an
-        'Object'is spawned only with a filename.
+        Object is spawned only with a filename.
 
         :param path: A path in the filesystem in which to search for files.
         """
         cls.data_directory.append(path)
 
-    def get_prospection_object_for_object(self, obj: 'Object') -> 'Object':
+    def get_prospection_object_for_object(self, obj: Object) -> Object:
         """
         Returns the corresponding object from the prospection world for a given object in the main world.
-         If the given 'Object'is already in the prospection world, it is returned.
+         If the given Object is already in the prospection world, it is returned.
 
         :param obj: The object for which the corresponding object in the prospection World should be found.
         :return: The corresponding object in the prospection world.
@@ -766,7 +768,7 @@ class World(StateEntity, ABC):
                     f" the object isn't anymore in the main (graphical) World"
                     f" or if the given object is already a prospection object. ")
 
-    def get_object_for_prospection_object(self, prospection_object: 'Object') -> 'Object':
+    def get_object_for_prospection_object(self, prospection_object: Object) -> Object:
         """
         Returns the corresponding object from the main World for a given
         object in the prospection world. If the  given object is not in the prospection
@@ -960,7 +962,7 @@ class World(StateEntity, ABC):
         """
         raise NotImplementedError
 
-    def enable_joint_force_torque_sensor(self, obj: 'Object', fts_joint_idx: int) -> None:
+    def enable_joint_force_torque_sensor(self, obj: Object, fts_joint_idx: int) -> None:
         """
         You can enable a joint force/torque sensor in each joint. Once enabled, if you perform
         a simulation step, the get_joint_reaction_force_torque will report the joint reaction forces in
@@ -972,7 +974,7 @@ class World(StateEntity, ABC):
         """
         raise NotImplementedError
 
-    def disable_joint_force_torque_sensor(self, obj: 'Object', joint_id: int) -> None:
+    def disable_joint_force_torque_sensor(self, obj: Object, joint_id: int) -> None:
         """
         Disables the force torque sensor of a joint.
         :param obj: The object in which the joint is located.
@@ -980,7 +982,7 @@ class World(StateEntity, ABC):
         """
         raise NotImplementedError
 
-    def get_joint_reaction_force_torque(self, obj: 'Object', joint_id: int) -> List[float]:
+    def get_joint_reaction_force_torque(self, obj: Object, joint_id: int) -> List[float]:
         """
         Returns the joint reaction forces and torques of the specified joint.
         :param obj: The object in which the joint is located.
@@ -989,7 +991,7 @@ class World(StateEntity, ABC):
         """
         raise NotImplementedError
 
-    def get_applied_joint_motor_torque(self, obj: 'Object', joint_id: int) -> float:
+    def get_applied_joint_motor_torque(self, obj: Object, joint_id: int) -> float:
         """
         Returns the applied torque by a joint motor.
         :param obj: The object in which the joint is located.
@@ -1057,7 +1059,7 @@ class WorldSync(threading.Thread):
         self.remove_obj_queue: Queue = Queue()
         self.pause_sync: bool = False
         # Maps world to prospection world objects
-        self.object_mapping: Dict['Object', 'Object'] = {}
+        self.object_mapping: Dict[Object, Object] = {}
         self.equal_states = False
 
     def run(self, wait_time_as_n_simulation_steps: Optional[int] = 1):

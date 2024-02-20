@@ -12,6 +12,7 @@ import traceback
 from ..pose import Pose
 from ..robot_descriptions import robot_description
 from ..world import World
+from ..world_dataclasses import MeshVisualShape
 from ..world_object import Object
 from ..robot_description import ManipulatorDescription
 
@@ -160,9 +161,9 @@ def spawn_object(object: Object) -> None:
     :param object: World object that should be spawned
     """
     if len(object.link_name_to_id) == 1:
-        geometry = object.description.link_map[object.description.get_root()].collision.geometry
-        if isinstance(geometry, urdf_parser_py.urdf.Mesh):
-            filename = geometry.filename
+        geometry = object.get_link_geometry(object.root_link_name)
+        if isinstance(geometry, MeshVisualShape):
+            filename = geometry.file_name
             spawn_mesh(object.name + "_" + str(object.id), filename, object.get_pose())
     else:
         spawn_urdf(object.name + "_" + str(object.id), object.path, object.get_pose())

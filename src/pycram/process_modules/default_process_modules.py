@@ -30,8 +30,8 @@ class DefaultMoveHead(ProcessModule):
 
         pan_joint = robot_description.chains["neck"].joints[0]
         tilt_joint = robot_description.chains["neck"].joints[1]
-        pose_in_pan = local_transformer.transform_pose(target, robot.links[pan_link].tf_frame)
-        pose_in_tilt = local_transformer.transform_pose(target, robot.links[tilt_link].tf_frame)
+        pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame(pan_link))
+        pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame(tilt_link))
 
         new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
         new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2) * -1
