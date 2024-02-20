@@ -1,7 +1,7 @@
 import time
 
-from bullet_world_testcase import BulletWorldTestCase
 import pycram.world_reasoning as btr
+from bullet_world_testcase import BulletWorldTestCase
 from pycram.pose import Pose
 from pycram.robot_descriptions import robot_description
 
@@ -21,15 +21,15 @@ class TestCaseBulletWorldReasoning(BulletWorldTestCase):
         self.robot.set_pose(Pose())
         time.sleep(1)
         camera_frame = robot_description.get_camera_frame()
-        self.world.add_vis_axis(self.robot.links[camera_frame].pose)
-        self.assertTrue(btr.visible(self.milk, self.robot.links[camera_frame].pose,
+        self.world.add_vis_axis(self.robot.get_link_pose(camera_frame))
+        self.assertTrue(btr.visible(self.milk, self.robot.get_link_pose(camera_frame),
                                     robot_description.front_facing_axis))
 
     def test_occluding(self):
         self.milk.set_pose(Pose([3, 0, 1.2]))
         self.robot.set_pose(Pose())
-        self.assertTrue(btr.occluding(self.milk, self.robot.links[robot_description.get_camera_frame()].pose,
-                                          robot_description.front_facing_axis) != [])
+        self.assertTrue(btr.occluding(self.milk, self.robot.get_link_pose(robot_description.get_camera_frame()),
+                                      robot_description.front_facing_axis) != [])
 
     def test_reachable(self):
         self.robot.set_pose(Pose())

@@ -326,7 +326,7 @@ class PickUpAction(ActionDesignatorDescription):
 
             # prepose depending on the gripper (its annoying we have to put pr2_1 here tbh
             # gripper_frame = "pr2_1/l_gripper_tool_frame" if self.arm == "left" else "pr2_1/r_gripper_tool_frame"
-            gripper_frame = robot.links[robot_description.get_tool_frame(self.arm)].tf_frame
+            gripper_frame = robot.get_link_tf_frame(robot_description.get_tool_frame(self.arm))
             # First rotate the gripper, so the further calculations makes sense
             tmp_for_rotate_pose = object.local_transformer.transform_pose(adjusted_oTm, gripper_frame)
             tmp_for_rotate_pose.pose.position.x = 0
@@ -436,7 +436,7 @@ class PlaceAction(ActionDesignatorDescription):
             # Transformations such that the target position is the position of the object and not the tcp
             tool_name = robot_description.get_tool_frame(self.arm)
             tcp_to_object = local_tf.transform_pose(object_pose,
-                                                    World.robot.links[tool_name].tf_frame)
+                                                    World.robot.get_link_tf_frame(tool_name))
             target_diff = self.target_location.to_transform("target").inverse_times(
                 tcp_to_object.to_transform("object")).to_pose()
 
@@ -445,7 +445,7 @@ class PlaceAction(ActionDesignatorDescription):
             World.robot.detach(self.object_designator.world_object)
             retract_pose = local_tf.transform_pose(
                 target_diff,
-                World.robot.links[robot_description.get_tool_frame(self.arm)].tf_frame)
+                World.robot.get_link_tf_frame(robot_description.get_tool_frame(self.arm)))
             retract_pose.position.x -= 0.07
             MoveTCPMotion(retract_pose, self.arm).resolve().perform()
 
@@ -887,7 +887,7 @@ class GraspingAction(ActionDesignatorDescription):
             gripper_name = robot_description.get_tool_frame(self.arm)
 
             object_pose_in_gripper = lt.transform_pose(object_pose,
-                                                       World.robot.links[gripper_name].tf_frame)
+                                                       World.robot.get_link_tf_frame(gripper_name))
 
             pre_grasp = object_pose_in_gripper.copy()
             pre_grasp.pose.position.x -= 0.1

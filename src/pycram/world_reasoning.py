@@ -202,7 +202,7 @@ def reachable(
         if not target_pose:
             return False
 
-        gripper_pose = prospection_robot.links[gripper_name].pose
+        gripper_pose = prospection_robot.get_link_pose(gripper_name)
         diff = target_pose.dist(gripper_pose)
 
     return diff < threshold
@@ -273,4 +273,4 @@ def link_pose_for_joint_config(
     with UseProspectionWorld():
         for joint, pose in joint_config.items():
             prospection_object.set_joint_position(joint, pose)
-        return prospection_object.links[link_name].pose
+        return prospection_object.get_link_pose(link_name)

@@ -97,7 +97,7 @@ class ObjectPart(ObjectDesignatorDescription):
         for name in self.names:
             if name in self.part_of.world_object.link_name_to_id.keys():
                 yield self.Object(name, self.type, self.part_of.world_object,
-                                  self.part_of.world_object.links[name].pose)
+                                  self.part_of.world_object.get_link_pose(name))
 
 
 class LocatedObject(ObjectDesignatorDescription):

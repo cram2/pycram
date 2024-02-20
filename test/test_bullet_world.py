@@ -23,9 +23,9 @@ class BulletWorldTest(BulletWorldTestCase):
 
     def test_robot_orientation(self):
         self.robot.set_pose(Pose([0, 1, 1]))
-        head_position = self.robot.links['head_pan_link'].position.z
+        head_position = self.robot.get_link_position('head_pan_link').z
         self.robot.set_orientation(Pose(orientation=[0, 0, 1, 1]))
-        self.assertEqual(self.robot.links['head_pan_link'].position.z, head_position)
+        self.assertEqual(self.robot.get_link_position('head_pan_link').z, head_position)
 
     def test_save_and_restore_state(self):
         self.robot.attach(self.milk)
@@ -169,20 +169,20 @@ class BulletWorldTest(BulletWorldTestCase):
         time.sleep(0.05)
 
     def test_add_vis_axis(self):
-        self.world.add_vis_axis(self.robot.links[robot_description.get_camera_frame()].pose)
+        self.world.add_vis_axis(self.robot.get_link_pose(robot_description.get_camera_frame()))
         self.assertTrue(len(self.world.vis_axis) == 1)
         self.world.remove_vis_axis()
         self.assertTrue(len(self.world.vis_axis) == 0)
 
     def test_add_text(self):
-        link: ObjectDescription.Link = self.robot.links[robot_description.get_camera_frame()]
-        text_id = self.world.add_text("test", link.pose.position_as_list(), link.pose.orientation_as_list(), 1,
+        link: ObjectDescription.Link = self.robot.get_link(robot_description.get_camera_frame())
+        text_id = self.world.add_text("test", link.position_as_list, link.orientation_as_list, 1,
                                       Color(1, 0, 0, 1), 3, link.object_id, link.id)
         if self.world.mode == WorldMode.GUI:
             time.sleep(4)
 
     def test_remove_text(self):
-        link: ObjectDescription.Link = self.robot.links[robot_description.get_camera_frame()]
+        link: ObjectDescription.Link = self.robot.get_link(robot_description.get_camera_frame())
         text_id_1 = self.world.add_text("test 1", link.pose.position_as_list(), link.pose.orientation_as_list(), 1,
                                         Color(1, 0, 0, 1), 0, link.object_id, link.id)
         text_id = self.world.add_text("test 2", link.pose.position_as_list(), link.pose.orientation_as_list(), 1,
@@ -195,7 +195,7 @@ class BulletWorldTest(BulletWorldTestCase):
             time.sleep(3)
 
     def test_remove_all_text(self):
-        link: ObjectDescription.Link = self.robot.links[robot_description.get_camera_frame()]
+        link: ObjectDescription.Link = self.robot.get_link(robot_description.get_camera_frame())
         text_id_1 = self.world.add_text("test 1", link.pose.position_as_list(), link.pose.orientation_as_list(), 1,
                                         Color(1, 0, 0, 1), 0, link.object_id, link.id)
         text_id = self.world.add_text("test 2", link.pose.position_as_list(), link.pose.orientation_as_list(), 1,
@@ -211,7 +211,7 @@ class BulletWorldTest(BulletWorldTestCase):
 class BulletWorldTestGUI(BulletWorldGUITestCase):
     def test_add_vis_axis(self):
         time.sleep(10)
-        self.world.add_vis_axis(self.robot.links[robot_description.get_camera_frame()].pose)
+        self.world.add_vis_axis(self.robot.get_link_pose(robot_description.get_camera_frame()))
         self.assertTrue(len(self.world.vis_axis) == 1)
         self.world.remove_vis_axis()
         self.assertTrue(len(self.world.vis_axis) == 0)

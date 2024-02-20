@@ -125,7 +125,7 @@ def query(object_desc: ObjectDesignatorDescription) -> ObjectDesignatorDescripti
 
     for i in range(0, len(query_result.res[0].pose)):
         pose = Pose.from_pose_stamped(query_result.res[0].pose[i])
-        pose.frame = World.current_world.robot.links[pose.frame].tf_frame  # TODO: pose.frame is a link name?
+        pose.frame = World.current_world.robot.get_link_tf_frame(pose.frame)  # TODO: pose.frame is a link name?
         source = query_result.res[0].poseSource[i]
 
         lt = LocalTransformer()

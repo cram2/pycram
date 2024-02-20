@@ -1,17 +1,19 @@
+from __future__ import annotations
+
+import logging
 import pathlib
 from abc import ABC, abstractmethod
-import logging
 
 import rospy
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Tuple, Union, Any, List, Optional, Dict
 
-from pycram.enums import Shape, JointType
-from pycram.local_transformer import LocalTransformer
-from pycram.pose import Pose, Transform
-from pycram.world import WorldEntity
-from pycram.world_object import Object
-from pycram.world_dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState
+from .enums import JointType
+from .local_transformer import LocalTransformer
+from .pose import Pose, Transform
+from .world import WorldEntity
+from .world_dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape
+from .world_object import Object
 
 
 class EntityDescription(ABC):
@@ -43,7 +45,7 @@ class LinkDescription(EntityDescription):
 
     @property
     @abstractmethod
-    def geometry(self) -> Shape:
+    def geometry(self) -> VisualShape:
         """
         Returns the geometry type of the URDF collision element of this link.
         """
@@ -436,7 +438,7 @@ class Joint(ObjectEntity, JointDescription, ABC):
         Returns the parent link of this joint.
         :return: The parent link as a AbstractLink object.
         """
-        return self.object.links[self.parent_link_name]
+        return self.object.get_link(self.parent_link_name)
 
     @property
     def child_link(self) -> Link:
@@ -444,7 +446,7 @@ class Joint(ObjectEntity, JointDescription, ABC):
         Returns the child link of this joint.
         :return: The child link as a AbstractLink object.
         """
-        return self.object.links[self.child_link_name]
+        return self.object.get_link(self.child_link_name)
 
     @property
     def position(self) -> float:

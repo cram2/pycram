@@ -11,12 +11,14 @@ import rospy
 import urdf_parser_py
 
 from pycram.pose import Transform
+from ..world_dataclasses import MeshVisualShape, CylinderVisualShape, BoxVisualShape, SphereVisualShape
 
 
 class VizMarkerPublisher:
     """
     Publishes an Array of visualization marker which represent the situation in the World
     """
+
     def __init__(self, topic_name="/pycram/viz_marker", interval=0.1):
         """
         The Publisher creates an Array of Visualization marker with a Marker for each link of each Object in the
@@ -59,7 +61,7 @@ class VizMarkerPublisher:
             if obj.name == "floor":
                 continue
             for link in obj.link_name_to_id.keys():
-                geom = obj.links[link].get_geometry()
+                geom = obj.get_link_geometry(link)
                 if not geom:
                     continue
                 msg = Marker()
@@ -68,9 +70,9 @@ class VizMarkerPublisher:
                 msg.id = obj.link_name_to_id[link]
                 msg.type = Marker.MESH_RESOURCE
                 msg.action = Marker.ADD
-                link_pose = obj.links[link].transform
-                if obj.links[link].origin:
-                    link_origin = obj.links[link].get_origin_transform()
+                link_pose = obj.get_link_transform(link)
+                if obj.get_link_origin(link):
+                    link_origin = obj.get_link_origin_transform(link)
                 else:
                     link_origin = Transform()
                 link_pose_with_origin = link_pose * link_origin
@@ -81,19 +83,19 @@ class VizMarkerPublisher:
                 msg.color = ColorRGBA(*color)
                 msg.lifetime = rospy.Duration(1)
 
-                if type(geom) == urdf_parser_py.urdf.Mesh:
+                if isinstance(geom, MeshVisualShape):
                     msg.type = Marker.MESH_RESOURCE
-                    msg.mesh_resource = "file://" + geom.filename
+                    msg.mesh_resource = "file://" + geom.file_name
                     msg.scale = Vector3(1, 1, 1)
                     msg.mesh_use_embedded_materials = True
-                elif type(geom) == urdf_parser_py.urdf.Cylinder:
+                elif isinstance(geom, CylinderVisualShape):
                     msg.type = Marker.CYLINDER
                     msg.scale = Vector3(geom.radius * 2, geom.radius * 2, geom.length)
-                elif type(geom) == urdf_parser_py.urdf.Box:
+                elif isinstance(geom, BoxVisualShape):
                     msg.type = Marker.CUBE
                     msg.scale = Vector3(*geom.size)
-                elif type(geom) == urdf_parser_py.urdf.Sphere:
-                    msg.type == Marker.SPHERE
+                elif isinstance(geom, SphereVisualShape):
+                    msg.type = Marker.SPHERE
                     msg.scale = Vector3(geom.radius * 2, geom.radius * 2, geom.radius * 2)
 
                 marker_array.markers.append(msg)
@@ -105,4 +107,3 @@ class VizMarkerPublisher:
         """
         self.kill_event.set()
         self.thread.join()
-

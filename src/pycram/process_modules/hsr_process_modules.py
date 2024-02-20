@@ -101,9 +101,9 @@ class HSRAccessing(ProcessModule):
             drawer_handle = solution['drawer_handle']
             drawer_joint = solution['drawer_joint']
             dis = solution['distance']
-            calculate_and_apply_ik(robot, gripper, kitchen.links[drawer_handle].position)
+            calculate_and_apply_ik(robot, gripper, kitchen.get_link_position(drawer_handle))
             time.sleep(0.2)
-            han_pose = kitchen.links[drawer_handle].position
+            han_pose = kitchen.get_link_position(drawer_handle)
             new_p = Point(han_pose[0] - dis, han_pose[1], han_pose[2])
             calculate_and_apply_ik(robot, gripper, new_p)
             kitchen.set_joint_position(drawer_joint, 0.3)
@@ -173,7 +173,7 @@ class HSRDetecting(ProcessModule):
 
             objects = World.current_world.get_object_by_type(object_type)
             for obj in objects:
-                if btr.visible(obj, robot.links[cam_frame_name].pose, front_facing_axis, 0.5):
+                if btr.visible(obj, robot.get_link_pose(cam_frame_name), front_facing_axis, 0.5):
                     return obj
 
 

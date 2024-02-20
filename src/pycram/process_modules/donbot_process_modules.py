@@ -56,7 +56,7 @@ class DonbotPlace(ProcessModule):
         object_pose = obj.get_pose()
         local_tf = LocalTransformer()
         tcp_to_object = local_tf.transform_pose(object_pose,
-                                                robot.links[robot_description.get_tool_frame("left")].tf_frame)
+                                                robot.get_link_tf_frame(robot_description.get_tool_frame("left")))
         target_diff = desig.target.to_transform("target").inverse_times(tcp_to_object.to_transform("object")).to_pose()
 
         _move_arm_tcp(target_diff, robot, "left")
@@ -75,7 +75,7 @@ class DonbotMoveHead(ProcessModule):
 
         local_transformer = LocalTransformer()
 
-        pose_in_shoulder = local_transformer.transform_pose(target, robot.links["ur5_shoulder_link"].tf_frame)
+        pose_in_shoulder = local_transformer.transform_pose(target, robot.get_link_tf_frame("ur5_shoulder_link"))
 
         if pose_in_shoulder.position.x >= 0 and pose_in_shoulder.position.x >= abs(pose_in_shoulder.position.y):
             robot.set_joint_positions(robot_description.get_static_joint_chain("left", "front"))
@@ -86,7 +86,7 @@ class DonbotMoveHead(ProcessModule):
         if pose_in_shoulder.position.y <= 0 and abs(pose_in_shoulder.position.y) > abs(pose_in_shoulder.position.x):
             robot.set_joint_positions(robot_description.get_static_joint_chain("left", "arm_left"))
 
-        pose_in_shoulder = local_transformer.transform_pose(target, robot.links["ur5_shoulder_link"].tf_frame)
+        pose_in_shoulder = local_transformer.transform_pose(target, robot.get_link_tf_frame("ur5_shoulder_link"))
 
         new_pan = np.arctan2(pose_in_shoulder.position.y, pose_in_shoulder.position.x)
 
