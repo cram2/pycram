@@ -260,11 +260,11 @@ class MoveArmJointsMotion(BaseMotion):
     Moves the joints of each arm into the given position
     """
 
-    left_arm_poses: Optional[Dict[str, float]]
+    left_arm_poses: Optional[Dict[str, float]] = None
     """
     Target positions for the left arm joints
     """
-    right_arm_poses: Optional[Dict[str, float]]
+    right_arm_poses: Optional[Dict[str, float]] = None
     """
     Target positions for the right arm joints
     """
@@ -286,7 +286,7 @@ class WorldStateDetectingMotion(BaseMotion):
     Detects an object based on the world state.
     """
 
-    object_type: str
+    object_type: ObjectType
     """
     Object type that should be detected
     """
