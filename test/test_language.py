@@ -169,7 +169,7 @@ class LanguageTestCase(test_bullet_world.BulletWorldTest):
     def test_perform_parallel(self):
 
         def check_thread_id(main_id):
-            self.assertNotEquals(main_id, threading.get_ident())
+            self.assertNotEqual(main_id, threading.get_ident())
         act = Code(check_thread_id, {"main_id": threading.get_ident()})
         act2 = Code(check_thread_id, {"main_id": threading.get_ident()})
         act3 = Code(check_thread_id, {"main_id": threading.get_ident()})
