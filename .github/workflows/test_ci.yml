@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Check for ros server
         run: |
-          docker ps -a
+          ls -a
           roslaunch pycram ik_and_description.launch
           grep -E -w '11311/(tcp|udp)' /etc/services
     
