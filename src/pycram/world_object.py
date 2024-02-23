@@ -750,28 +750,67 @@ class Object(WorldEntity):
         self._set_attached_objects_poses()
 
     def get_joint_position(self, joint_name: str) -> float:
+        """
+        :param joint_name: The name of the joint
+        :return: The current position of the given joint
+        """
         return self.joints[joint_name].position
 
     def get_joint_damping(self, joint_name: str) -> float:
+        """
+        :param joint_name: The name of the joint
+        :return: The damping of the given joint
+        """
         return self.joints[joint_name].damping
 
     def get_joint_upper_limit(self, joint_name: str) -> float:
+        """
+        :param joint_name: The name of the joint
+        :return: The upper limit of the given joint
+        """
         return self.joints[joint_name].upper_limit
 
     def get_joint_lower_limit(self, joint_name: str) -> float:
+        """
+        :param joint_name: The name of the joint
+        :return: The lower limit of the given joint
+        """
         return self.joints[joint_name].lower_limit
 
     def get_joint_axis(self, joint_name: str) -> Point:
+        """
+        :param joint_name: The name of the joint
+        :return: The axis of the given joint
+        """
         return self.joints[joint_name].axis
 
     def get_joint_type(self, joint_name: str) -> JointType:
+        """
+        :param joint_name: The name of the joint
+        :return: The type of the given joint
+        """
         return self.joints[joint_name].type
 
     def get_joint_limits(self, joint_name: str) -> Tuple[float, float]:
+        """
+        :param joint_name: The name of the joint
+        :return: The lower and upper limits of the given joint
+        """
         return self.joints[joint_name].limits
 
     def get_joint_child_link(self, joint_name: str) -> Link:
+        """
+        :param joint_name: The name of the joint
+        :return: The child link of the given joint
+        """
         return self.joints[joint_name].child_link
+
+    def get_joint_parent_link(self, joint_name: str) -> Link:
+        """
+        :param joint_name: The name of the joint
+        :return: The parent link of the given joint
+        """
+        return self.joints[joint_name].parent_link
 
     def find_joint_above_link(self, link_name: str, joint_type: JointType) -> str:
         """

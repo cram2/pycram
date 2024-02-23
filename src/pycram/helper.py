@@ -55,7 +55,7 @@ def _apply_ik(robot: WorldObject, joint_poses: List[float], joints: List[str]) -
 
 
 def calculate_wrist_tool_offset(wrist_frame: str, tool_frame: str, robot: WorldObject) -> Transform:
-    return robot.get_transfrom_between_links(wrist_frame, tool_frame)
+    return robot.get_transform_between_links(wrist_frame, tool_frame)
 
 
 def transform(pose: List[float],

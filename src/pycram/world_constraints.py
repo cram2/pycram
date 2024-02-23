@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from geometry_msgs.msg import Point
-from typing_extensions import Union, List, Optional
+from typing_extensions import Union, List, Optional, TYPE_CHECKING
 
 from .enums import JointType
 from .pose import Transform, Pose
 
-from .description import Link
+if TYPE_CHECKING:
+    from .description import Link
 
 
 class AbstractConstraint:
