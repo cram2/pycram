@@ -6,14 +6,16 @@ from abc import ABC, abstractmethod
 
 import rospy
 from geometry_msgs.msg import Point, Quaternion
-from typing_extensions import Tuple, Union, Any, List, Optional, Dict
+from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING
 
 from .enums import JointType
 from .local_transformer import LocalTransformer
 from .pose import Pose, Transform
 from .world import WorldEntity
 from .world_dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape
-from .world_object import Object
+
+if TYPE_CHECKING:
+    from .world_object import Object
 
 
 class EntityDescription(ABC):

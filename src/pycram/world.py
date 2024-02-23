@@ -11,7 +11,7 @@ from queue import Queue
 import numpy as np
 import rospy
 from geometry_msgs.msg import Point
-from typing_extensions import List, Optional, Dict, Tuple, Callable
+from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING
 from typing_extensions import Union
 
 from .cache_manager import CacheManager
@@ -24,8 +24,10 @@ from .world_dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallback
                                 MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape, SphereVisualShape,
                                 CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
                                 ObjectState, State, WorldState)
-from .world_object import Object
-from .description import Link
+
+if TYPE_CHECKING:
+    from .world_object import Object
+    from .description import Link
 
 
 class StateEntity:

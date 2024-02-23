@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union
+from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING
 from .enums import JointType, Shape
 from .pose import Pose, Point
 from abc import ABC, abstractmethod
-from .description import Link
-from .world_object import Object
-from .world_constraints import Attachment
+
+if TYPE_CHECKING:
+    from .description import Link
+    from .world_object import Object
+    from .world_constraints import Attachment
 
 
 def get_point_as_list(point: Point) -> List[float]:
