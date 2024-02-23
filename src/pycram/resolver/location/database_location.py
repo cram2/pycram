@@ -45,12 +45,12 @@ class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLoca
 
         # query all relative robot positions in regard to an objects position
         # make sure to order the joins() correctly
-        query = (select(PickUpAction.arm, PickUpAction.grasp, RobotState.torso_height, Position.x, Position.y)
+        query = (select(PickUpAction.arm, PickUpAction.grasp, RobotState.torso_height, robot_pos.x, robot_pos.y)
                  .join(TaskTreeNode.code)
                  .join(Code.designator.of_type(PickUpAction))
                  .join(PickUpAction.robot_state)
                  .join(RobotState.pose)
-                 .join(orm.base.Pose.position)
+                 .join(robot_pos)
                  .join(PickUpAction.object).where(Object.type == self.target.type)
                                            .where(TaskTreeNode.status == "SUCCEEDED"))
 
