@@ -2,10 +2,17 @@ import os
 import pathlib
 import re
 
-from typing_extensions import List
+from typing_extensions import List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .description import ObjectDescription
 
 
 class CacheManager:
+
+    """
+    The CacheManager is responsible for caching object description files and managing the cache directory.
+    """
 
     mesh_extensions: List[str] = [".obj", ".stl"]
     """
@@ -13,16 +20,23 @@ class CacheManager:
     """
 
     def __init__(self, cache_dir: str, data_directory: List[str]):
+        """
+        Initializes the CacheManager.
+        :param cache_dir: The directory where the cached files are stored.
+        :param data_directory: The directory where all resource files are stored.
+        """
         self.cache_dir = cache_dir
-        # The directory where the cached files are stored.
-
         self.data_directory = data_directory
-        # The directory where all resource files are stored.
 
     def update_cache_dir_with_object(self, path: str, ignore_cached_files: bool,
                                      object_description: 'ObjectDescription', object_name: str) -> str:
         """
         Checks if the file is already in the cache directory, if not it will be preprocessed and saved in the cache.
+        :param path: The path of the file to preprocess and save in the cache directory.
+        :param ignore_cached_files: If True, the file will be preprocessed and saved in the cache directory even if it
+         is already cached.
+        :param object_description: The object description of the file.
+        :param object_name: The name of the object.
         """
         path_object = pathlib.Path(path)
         extension = path_object.suffix

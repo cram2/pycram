@@ -164,7 +164,7 @@ class World(StateEntity, ABC):
         self.objects: List[Object] = []
         # List of all Objects in the World
 
-        self.id: int = -1
+        self.id: Optional[int] = -1
         # This is used to connect to the physics server (allows multiple clients)
 
         self.mode: WorldMode = mode
@@ -1002,6 +1002,9 @@ class World(StateEntity, ABC):
         """
         raise NotImplementedError
 
+    def __del__(self):
+        self.exit()
+
 
 class UseProspectionWorld:
     """
@@ -1013,6 +1016,11 @@ class UseProspectionWorld:
             NavigateAction.Action([[1, 0, 0], [0, 0, 0, 1]]).perform()
     """
 
+    WAIT_TIME_FOR_ADDING_QUEUE = 20
+    """
+    The time in seconds to wait for the adding queue to be ready.
+    """
+
     def __init__(self):
         self.prev_world: Optional[World] = None
         # The previous world is saved to restore it after the with block is exited.
@@ -1022,7 +1030,7 @@ class UseProspectionWorld:
         This method is called when entering the with block, it will set the current world to the prospection world
         """
         if not World.current_world.is_prospection_world:
-            time.sleep(20 * World.current_world.simulation_time_step)
+            time.sleep(self.WAIT_TIME_FOR_ADDING_QUEUE * World.current_world.simulation_time_step)
             # blocks until the adding queue is ready
             World.current_world.world_sync.add_obj_queue.join()
 

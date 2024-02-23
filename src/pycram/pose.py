@@ -14,6 +14,25 @@ from tf import transformations
 from .orm.base import Pose as ORMPose, Position, Quaternion, ProcessMetaData
 
 
+def get_normalized_quaternion(quaternion: np.ndarray) -> GeoQuaternion:
+    """
+    Normalizes a given quaternion such that it has a magnitude of 1.
+
+    :param quaternion: The quaternion that should be normalized
+    :return: The normalized quaternion
+    """
+    mag = math.sqrt(sum(v**2 for v in quaternion))
+    normed_rotation = quaternion / mag
+
+    geo_quaternion = GeoQuaternion()
+    geo_quaternion.x = normed_rotation[0]
+    geo_quaternion.y = normed_rotation[1]
+    geo_quaternion.z = normed_rotation[2]
+    geo_quaternion.w = normed_rotation[3]
+
+    return geo_quaternion
+
+
 class Pose(PoseStamped):
     """
     Pose representation for PyCRAM, this class extends the PoseStamped ROS message from geometry_msgs. Thus making it
@@ -98,11 +117,11 @@ class Pose(PoseStamped):
 
         :param value: List or geometry_msgs/Pose message for the position
         """
-        if (not type(value) == list and not type(value) == tuple and not type(value) == GeoPose
-                and not type(value) == Point):
+        if (not isinstance(value, list) and not isinstance(value, tuple) and not isinstance(value, GeoPose)
+                and not isinstance(value, Point)):
             rospy.logerr("Position can only be a list or geometry_msgs/Pose")
             raise TypeError("Position can only be a list/tuple or geometry_msgs/Pose")
-        if type(value) == list or type(value) == tuple and len(value) == 3:
+        if isinstance(value, list) or isinstance(value, tuple) and len(value) == 3:
             self.pose.position.x = value[0]
             self.pose.position.y = value[1]
             self.pose.position.z = value[2]
@@ -125,22 +144,16 @@ class Pose(PoseStamped):
 
         :param value: New orientation, either a list or geometry_msgs/Quaternion
         """
-        if not type(value) == list and not type(value) == tuple and not type(value) == GeoQuaternion:
+        if not isinstance(value, list) and not isinstance(value, tuple) and not isinstance(value, GeoQuaternion):
             rospy.logwarn("Orientation can only be a list or geometry_msgs/Quaternion")
             return
 
-        if type(value) == list or type(value) == tuple and len(value) == 4:
+        if isinstance(value, list) or isinstance(value, tuple) and len(value) == 4:
             orientation = np.array(value)
         else:
             orientation = np.array([value.x, value.y, value.z, value.w])
         # This is used instead of np.linalg.norm since numpy is too slow on small arrays
-        mag = math.sqrt(sum(v**2 for v in orientation))
-        normed_orientation = orientation / mag
-
-        self.pose.orientation.x = normed_orientation[0]
-        self.pose.orientation.y = normed_orientation[1]
-        self.pose.orientation.z = normed_orientation[2]
-        self.pose.orientation.w = normed_orientation[3]
+        self.pose.orientation = get_normalized_quaternion(orientation)
 
     def to_list(self) -> List[List[float]]:
         """
@@ -207,7 +220,7 @@ class Pose(PoseStamped):
         :param other: Other pose which should be compared
         :return: True if both Poses have the same position, orientation and frame. False otherwise
         """
-        if not type(other) == Pose:
+        if not isinstance(other, Pose):
             return False
         self_position = self.position_as_list()
         other_position = other.position_as_list()
@@ -354,10 +367,10 @@ class Transform(TransformStamped):
 
         :param value: The new value for the translation, either a list or geometry_msgs/Vector3
         """
-        if not type(value) == list and not type(value) == Vector3:
+        if not isinstance(value, list) and not isinstance(value, Vector3):
             rospy.logwarn("Value of a translation can only be a list of a geometry_msgs/Vector3")
             return
-        if type(value) == list and len(value) == 3:
+        if isinstance(value, list) and len(value) == 3:
             self.transform.translation.x = value[0]
             self.transform.translation.y = value[1]
             self.transform.translation.z = value[2]
@@ -379,22 +392,16 @@ class Transform(TransformStamped):
 
         :param value: The new value for the rotation, either a list or geometry_msgs/Quaternion
         """
-        if not type(value) == list and not type(value) == GeoQuaternion:
+        if not isinstance(value, list) and not isinstance(value, GeoQuaternion):
             rospy.logwarn("Value of the rotation can only be a list or a geometry.msgs/Quaternion")
             return
-        if type(value) == list and len(value) == 4:
+        if isinstance(value, list) and len(value) == 4:
             rotation = np.array(value)
 
         else:
             rotation = np.array([value.x, value.y, value.z, value.w])
         # This is used instead of np.linalg.norm since numpy is too slow on small arrays
-        mag = math.sqrt(sum(v**2 for v in rotation))
-        normed_rotation = rotation / mag
-
-        self.transform.rotation.x = normed_rotation[0]
-        self.transform.rotation.y = normed_rotation[1]
-        self.transform.rotation.z = normed_rotation[2]
-        self.transform.rotation.w = normed_rotation[3]
+        self.transform.rotation = get_normalized_quaternion(rotation)
 
     def copy(self) -> Transform:
         """
@@ -453,7 +460,7 @@ class Transform(TransformStamped):
         :param other: The Transform which should be multiplied with this one.
         :return: The resulting Transform from the multiplication
         """
-        if not type(other) == Transform:
+        if not isinstance(other, Transform):
             rospy.logerr(f"Can only multiply two Transforms")
             return
         self_trans = transformations.translation_matrix(self.translation_as_list())
@@ -487,7 +494,7 @@ class Transform(TransformStamped):
         :param other: Other pose which should be compared
         :return: True if both Transforms have the same translation, rotation, frame and child frame. False otherwise
         """
-        if not type(other) == Transform:
+        if not isinstance(other, Transform):
             return False
         self_position = self.translation_as_list()
         other_position = other.translation_as_list()
