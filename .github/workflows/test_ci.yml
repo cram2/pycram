@@ -1,0 +1,22 @@
+name: hopeful_CI
+on: 
+  push:
+    branches: 
+      - dev
+
+jobs:
+  container-test-job:
+    runs-on: ubuntu-latest
+    container: 
+      image: leoaung/testing_ci:one
+      ports:
+        - 11311
+      volumes:
+        - docker_volume:/opt/ros/overlay_ws
+    steps:
+      - name: Check for ros server
+        run: |
+          roslaunch pycram ik_and_description.launch
+          grep -E -w '11311/(tcp|udp)' /etc/services
+    
+
