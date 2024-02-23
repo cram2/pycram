@@ -1,0 +1,73 @@
+name: Build Sphinx documentation 📖
+
+on:
+  push:
+  pull_request:
+    branches:
+      - master
+      - dev
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+defaults:
+  run:
+    shell: bash
+    working-directory: .
+
+jobs:
+  test-and-build:
+    name: Build Sphinx documentation
+    runs-on: ubuntu-20.04
+
+    steps:
+
+      - name: Checkout 🛎
+        uses: actions/checkout@v3
+
+      # ----------------------------------------------------------------------------------------------------------------
+
+      - name: Install PyCRAM dependencies 🍼
+        uses: py-actions/py-dependency-install@v4
+        with:
+          path: "requirements.txt"
+
+      # ----------------------------------------------------------------------------------------------------------------
+      - name: Install Sphinx dependencies 📚
+        uses: py-actions/py-dependency-install@v4
+        with:
+          path: "doc/requirements.txt"
+
+      # ----------------------------------------------------------------------------------------------------------------
+      - name: Build Sphinx documentation 📝
+        working-directory: ./doc
+        run: |
+          sudo apt install pandoc
+          make html
+
+
+  cache_pip:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: load pip cache
+        id: load-pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: pip
+
+      - if: ${{ steps.load-pip.outputs.cache-hit != 'true' }}
+        name: install pip requirements
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install -r requirements.txt
+
+      - if: ${{ steps.load-pip.outputs.cache-hit != 'true' }}
+        name: cache pip
+        id: cache-pip
+        uses: actions/cache/save@v3
+        with:
+          path: ~/.cache/pip
+          key: pip
+
+
