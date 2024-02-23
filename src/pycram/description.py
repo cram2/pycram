@@ -20,6 +20,10 @@ if TYPE_CHECKING:
 
 class EntityDescription(ABC):
 
+    """
+    A class that represents a description of an entity. This can be a link, joint or object description.
+    """
+
     @property
     @abstractmethod
     def origin(self) -> Pose:
@@ -49,14 +53,14 @@ class LinkDescription(EntityDescription):
     @abstractmethod
     def geometry(self) -> VisualShape:
         """
-        Returns the geometry type of the URDF collision element of this link.
+        Returns the geometry type of the collision element of this link.
         """
         pass
 
 
 class JointDescription(EntityDescription):
     """
-    A class that represents a joint description of a URDF joint.
+    A class that represents the description of a joint.
     """
 
     def __init__(self, parsed_joint_description: Any):
@@ -468,8 +472,8 @@ class Joint(ObjectEntity, JointDescription, ABC):
     @position.setter
     def position(self, joint_position: float) -> None:
         """
-        Sets the position of the given joint to the given joint pose. If the pose is outside the joint limits, as stated
-        in the URDF, an error will be printed. However, the joint will be set either way.
+        Sets the position of the given joint to the given joint pose. If the pose is outside the joint limits,
+         an error will be printed. However, the joint will be set either way.
 
         :param joint_position: The target pose for this joint
         """
@@ -477,10 +481,10 @@ class Joint(ObjectEntity, JointDescription, ABC):
         if self.has_limits:
             low_lim, up_lim = self.limits
             if not low_lim <= joint_position <= up_lim:
-                logging.error(
+                logging.warning(
                     f"The joint position has to be within the limits of the joint. The joint limits for {self.name}"
                     f" are {low_lim} and {up_lim}")
-                logging.error(f"The given joint position was: {joint_position}")
+                logging.warning(f"The given joint position was: {joint_position}")
                 # Temporarily disabled because kdl outputs values exciting joint limits
                 # return
         self.reset_position(joint_position)
@@ -497,15 +501,16 @@ class Joint(ObjectEntity, JointDescription, ABC):
     def get_applied_motor_torque(self) -> float:
         return self.world.get_applied_joint_motor_torque(self.object, self.id)
 
-    def restore_state(self, state_id: int) -> None:
-        self.current_state = self.saved_states[state_id]
-
     @property
     def current_state(self) -> JointState:
         return JointState(self.position)
 
     @current_state.setter
     def current_state(self, joint_state: JointState) -> None:
+        """
+        Updates the current state of this joint from the given joint state if the position is different.
+        :param joint_state: The joint state to update from.
+        """
         if self._current_position != joint_state.position:
             self.position = joint_state.position
 
@@ -520,7 +525,15 @@ class Joint(ObjectEntity, JointDescription, ABC):
 
 
 class ObjectDescription(EntityDescription):
-    MESH_EXTENSIONS: Tuple[str] = (".obj", ".stl")
+
+    """
+    A class that represents the description of an object.
+    """
+
+    mesh_extensions: Tuple[str] = (".obj", ".stl")
+    """
+    The file extensions of the mesh files that can be used to generate a description file.
+    """
 
     class Link(Link, ABC):
         ...
@@ -532,6 +545,9 @@ class ObjectDescription(EntityDescription):
         ...
 
     def __init__(self, path: Optional[str] = None):
+        """
+        :param path: The path of the file to update the description data from.
+        """
         if path:
             self.update_description_from_file(path)
         else:
@@ -554,8 +570,7 @@ class ObjectDescription(EntityDescription):
     @parsed_description.setter
     def parsed_description(self, parsed_description: Any):
         """
-        Return the object parsed from the description file.
-        :param parsed_description: The parsed description object.
+        :param parsed_description: The parsed description object (depends on the description file type).
         """
         self._parsed_description = parsed_description
 
@@ -578,7 +593,7 @@ class ObjectDescription(EntityDescription):
         """
         description_string = None
 
-        if extension in self.MESH_EXTENSIONS:
+        if extension in self.mesh_extensions:
             description_string = self.generate_from_mesh_file(path)
         elif extension == self.get_file_extension():
             description_string = self.generate_from_description_file(path)
@@ -603,7 +618,7 @@ class ObjectDescription(EntityDescription):
         :param object_name: The name of the object.
         :return: The file name of the description file.
         """
-        if extension in self.MESH_EXTENSIONS:
+        if extension in self.mesh_extensions:
             file_name = path_object.stem + self.get_file_extension()
         elif extension == self.get_file_extension():
             file_name = path_object.name
@@ -616,7 +631,7 @@ class ObjectDescription(EntityDescription):
     @abstractmethod
     def generate_from_mesh_file(cls, path: str) -> str:
         """
-        Generates a description file from one of the mesh types defined in the MESH_EXTENSIONS and
+        Generates a description file from one of the mesh types defined in the mesh_extensions and
         returns the path of the generated file.
         :param path: The path to the .obj file.
         :return: The path of the generated description file.
