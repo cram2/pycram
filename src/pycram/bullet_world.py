@@ -92,8 +92,8 @@ class BulletWorld(World):
     def remove_constraint(self, constraint_id):
         p.removeConstraint(constraint_id, physicsClientId=self.id)
 
-    def get_joint_position(self, obj: Object, joint_name: str) -> float:
-        return p.getJointState(obj.id, obj.joint_name_to_id[joint_name], physicsClientId=self.id)[0]
+    def get_joint_position(self, joint: Joint) -> float:
+        return p.getJointState(joint.object_id, joint.id, physicsClientId=self.id)[0]
 
     def get_object_joint_names(self, obj: Object) -> List[str]:
         return [p.getJointInfo(obj.id, i, physicsClientId=self.id)[1].decode('utf-8')
@@ -129,8 +129,8 @@ class BulletWorld(World):
         self.perform_collision_detection()
         return p.getContactPoints(obj1.id, obj2.id, physicsClientId=self.id)
 
-    def reset_joint_position(self, obj: Object, joint_name: str, joint_pose: float) -> None:
-        p.resetJointState(obj.id, obj.joint_name_to_id[joint_name], joint_pose, physicsClientId=self.id)
+    def reset_joint_position(self, joint: Joint, joint_position: str) -> None:
+        p.resetJointState(joint.object_id, joint.id, joint_position, physicsClientId=self.id)
 
     def reset_object_base_pose(self, obj: Object, pose: Pose) -> None:
         p.resetBasePositionAndOrientation(obj.id, pose.position_as_list(), pose.orientation_as_list(),

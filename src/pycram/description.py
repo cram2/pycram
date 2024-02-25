@@ -436,7 +436,7 @@ class Joint(ObjectEntity, JointDescription, ABC):
         """
         Updates the current position of the joint from the physics simulator.
         """
-        self._current_position = self.world.get_joint_position(self.object, self.name)
+        self._current_position = self.world.get_joint_position(self)
 
     @property
     def parent_link(self) -> Link:
@@ -459,7 +459,7 @@ class Joint(ObjectEntity, JointDescription, ABC):
         return self._current_position
 
     def reset_position(self, position: float) -> None:
-        self.world.reset_joint_position(self.object, self.name, position)
+        self.world.reset_joint_position(self, position)
         self._update_position()
 
     def get_object_id(self) -> int:
