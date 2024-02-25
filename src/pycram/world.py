@@ -27,7 +27,7 @@ from .world_dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallback
 
 if TYPE_CHECKING:
     from .world_object import Object
-    from .description import Link
+    from .description import Link, Joint
 
 
 class StateEntity:
@@ -351,12 +351,11 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_joint_position(self, obj: Object, joint_name: str) -> float:
+    def get_joint_position(self, joint: Joint) -> float:
         """
         Get the position of a joint of an articulated object
 
-        :param obj: The object.
-        :param joint_name: The name of the joint.
+        :param joint: The joint to get the position for.
         :return: The joint position as a float.
         """
         pass
@@ -458,13 +457,12 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def reset_joint_position(self, obj: Object, joint_name: str, joint_pose: float) -> None:
+    def reset_joint_position(self, joint: Joint, joint_position: float) -> None:
         """
         Reset the joint position instantly without physics simulation
 
-        :param obj: The object
-        :param joint_name: The name of the joint
-        :param joint_pose: The new joint pose
+        :param joint: The joint to reset the position for.
+        :param joint_position: The new joint pose.
         """
         pass
 
