@@ -8,7 +8,7 @@ jobs:
   container-test-job:
     runs-on: ubuntu-20.04
     container: 
-      image: leoaung/testing_ci:one
+      image: leoaung/testing_ci:two
       ports:
         - 11311
       volumes:
@@ -17,7 +17,7 @@ jobs:
       - name: Check for ros server
         run: |
           ls -a
-          roslaunch pycram ik_and_description.launch
-          grep -E -w '11311/(tcp|udp)' /etc/services
+          curl http://localhost:11311
+
     
 
