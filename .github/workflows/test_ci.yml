@@ -16,7 +16,10 @@ jobs:
     steps:
       - name: Check for ros server
         run: |
+          ls -a
           cd ..
+          ls -a
+          cd /opt/ros/overlay_ws
           ls -a
           apt-get -y install curl 
           curl http://localhost:11311
