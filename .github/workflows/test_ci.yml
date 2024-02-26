@@ -14,13 +14,16 @@ jobs:
       volumes:
         - docker_volume:/opt/ros/overlay_ws
     steps:
-      - name: Check for ros server
+      - name: Check for files
         run: |
           ls -a
           cd ..
           ls -a
           cd /opt/ros/overlay_ws
           ls -a
+          ls -l
+      - name: Check ros server
+        run: |
           apt-get -y install curl 
           curl http://localhost:11311
 
