@@ -3,6 +3,13 @@ on:
   push:
     branches: 
       - dev
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        type: boolean
+        required: false
+        default: false
+        description: 'Run tmate session'
 
 jobs:
   container-test-job:
@@ -23,6 +30,9 @@ jobs:
           ls -l
           cd src
           ls -l
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}                  
       - name: Check ros server
         run: |
           apt-get -y install curl 
