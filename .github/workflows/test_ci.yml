@@ -20,7 +20,8 @@ jobs:
           cd ..
           ls -a
           cd /opt/ros/overlay_ws
-          ls -a
+          ls -l
+          cd src
           ls -l
       - name: Check ros server
         run: |
