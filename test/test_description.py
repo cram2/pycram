@@ -19,7 +19,9 @@ class DescriptionTest(BulletWorldTestCase):
         self.assertEqual(self.robot.get_joint_parent_link("base_footprint_joint"), self.robot.root_link)
 
     def test_generate_description_from_mesh(self):
-        self.assertTrue(self.milk.description.generate_description_from_file("../resources/cached/milk.stl", ".stl"))
+        self.assertTrue(self.milk.description.generate_description_from_file("../resources/cached/milk.stl",
+                                                                             "milk", ".stl"))
 
     def test_generate_description_from_description_file(self):
-        self.assertTrue(self.milk.description.generate_description_from_file("../resources/cached/milk.urdf", ".urdf"))
+        self.assertTrue(self.milk.description.generate_description_from_file("../resources/cached/milk.urdf",
+                                                                             "milk", ".urdf"))
