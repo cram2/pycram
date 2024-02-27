@@ -5,14 +5,14 @@ import numpy as np
 import requests
 
 import pycram.plan_failures
-from pycram.bullet_world import BulletWorld
-from pycram.world_object import Object
+from pycram.worlds.bullet_world import BulletWorld
+from pycram.worlds.concepts.world_object import Object
 from pycram.designators import action_designator, object_designator
 from pycram.process_module import ProcessModule
 from pycram.process_module import simulated_robot
 from pycram.robot_descriptions import robot_description
-from pycram.pose import Pose
-from pycram.enums import WorldMode
+from pycram.worlds.datastructures.pose import Pose
+from pycram.worlds.datastructures.enums import WorldMode
 
 # check if jpt is installed
 jpt_installed = True

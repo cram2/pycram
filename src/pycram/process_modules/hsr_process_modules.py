@@ -3,8 +3,8 @@ from threading import Lock
 from typing_extensions import Optional
 from ..robot_descriptions import robot_description
 from ..process_module import ProcessModule, ProcessModuleManager
-from ..world import World
-from ..pose import Pose, Point
+from pycram.world import World
+from pycram.worlds.datastructures.pose import Pose, Point
 from ..helper import _apply_ik
 from ..external_interfaces.ik import request_ik
 from .. import world_reasoning as btr

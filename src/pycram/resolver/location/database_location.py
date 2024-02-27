@@ -4,14 +4,14 @@ import sqlalchemy.sql
 from tf import transformations
 import pycram.designators.location_designator
 import pycram.task
-from pycram.costmaps import OccupancyCostmap
-from pycram.orm.action_designator import PickUpAction, Action
+from pycram.worlds.concepts.costmaps import OccupancyCostmap
+from pycram.orm.action_designator import PickUpAction
 from pycram.orm.object_designator import Object
-from pycram.orm.base import Position, RobotState, Designator, Base
+from pycram.orm.base import Position, RobotState
 from pycram.orm.task import TaskTreeNode, Code
 from .jpt_location import JPTCostmapLocation
 from ... import orm
-from ...pose import Pose
+from pycram.worlds.datastructures.pose import Pose
 
 
 class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLocation):

@@ -14,20 +14,20 @@ from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING
 from typing_extensions import Union
 
-from .cache_manager import CacheManager
-from .enums import JointType, ObjectType, WorldMode
-from .event import Event
-from .local_transformer import LocalTransformer
-from .pose import Pose, Transform
-from .world_constraints import Constraint
-from .world_dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
-                                MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape, SphereVisualShape,
-                                CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
-                                ObjectState, State, WorldState)
+from pycram.worlds.concepts.cache_manager import CacheManager
+from pycram.worlds.datastructures.enums import JointType, ObjectType, WorldMode
+from pycram.worlds.concepts.event import Event
+from pycram.worlds.datastructures.local_transformer import LocalTransformer
+from pycram.worlds.datastructures.pose import Pose, Transform
+from pycram.worlds.concepts.constraints import Constraint
+from pycram.worlds.datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
+                                                      MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape, SphereVisualShape,
+                                                      CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
+                                                      ObjectState, State, WorldState)
 
 if TYPE_CHECKING:
-    from .world_object import Object
-    from .description import Link, Joint
+    from pycram.worlds.concepts.world_object import Object
+    from pycram.description import Link, Joint
 
 
 class StateEntity:

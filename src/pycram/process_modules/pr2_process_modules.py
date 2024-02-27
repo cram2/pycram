@@ -12,16 +12,16 @@ import rospy
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..external_interfaces.ik import request_ik
 from ..helper import _apply_ik
-from ..local_transformer import LocalTransformer
+from pycram.worlds.datastructures.local_transformer import LocalTransformer
 from ..designators.object_designator import ObjectDesignatorDescription
 from ..designators.motion_designator import MoveMotion, PickUpMotion, PlaceMotion, LookingMotion, \
     DetectingMotion, MoveTCPMotion, MoveArmJointsMotion, WorldStateDetectingMotion, MoveJointsMotion, \
     MoveGripperMotion, OpeningMotion, ClosingMotion, MotionDesignatorDescription
 from ..robot_descriptions import robot_description
-from ..world import World
-from ..world_object import Object
-from ..pose import Pose
-from ..enums import JointType, ObjectType
+from pycram.world import World
+from pycram.worlds.concepts.world_object import Object
+from pycram.worlds.datastructures.pose import Pose
+from pycram.worlds.datastructures.enums import JointType, ObjectType
 from ..external_interfaces import giskard
 from ..external_interfaces.robokudo import query
 

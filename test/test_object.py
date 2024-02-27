@@ -1,14 +1,11 @@
-import os
-
 import numpy as np
 
 from bullet_world_testcase import BulletWorldTestCase
 
-from pycram.enums import JointType, ObjectType
-from pycram.pose import Pose
-from pycram.world_dataclasses import Color
-from pycram.world_object import Object
-from pycram.urdf_interface import ObjectDescription
+from pycram.worlds.datastructures.enums import JointType, ObjectType
+from pycram.worlds.datastructures.pose import Pose
+from pycram.worlds.datastructures.dataclasses import Color
+from pycram.worlds.concepts.world_object import Object
 
 from geometry_msgs.msg import Point, Quaternion
 

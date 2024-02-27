@@ -3,9 +3,9 @@ from threading import Lock
 import numpy as np
 from typing_extensions import Optional
 
-from ..bullet_world import World
+from pycram.worlds.bullet_world import World
 from ..designators.motion_designator import MoveArmJointsMotion, WorldStateDetectingMotion
-from ..local_transformer import LocalTransformer
+from pycram.worlds.datastructures.local_transformer import LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_descriptions import robot_description
 from ..process_modules.pr2_process_modules import Pr2PickUp, Pr2Detecting as DonbotDetecting, _move_arm_tcp

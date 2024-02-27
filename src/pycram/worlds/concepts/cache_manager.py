@@ -1,11 +1,10 @@
 import os
 import pathlib
-import re
 
 from typing_extensions import List, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .description import ObjectDescription
+    from pycram.description import ObjectDescription
 
 
 class CacheManager:

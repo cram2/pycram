@@ -23,7 +23,7 @@ from . import utils
 import logging
 import logging.config
 
-# with utils.suppress_stdout_stderr():
+# with datastructures.suppress_stdout_stderr():
 #     import pycram.process_modules
 import pycram.process_modules
 

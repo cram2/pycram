@@ -1,13 +1,13 @@
-from pycram.bullet_world import BulletWorld
+from pycram.worlds.bullet_world import BulletWorld
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.designators.object_designator import *
-from pycram.enums import ObjectType
-from pycram.pose import Pose
+from pycram.worlds.datastructures.enums import ObjectType
+from pycram.worlds.datastructures.pose import Pose
 from pycram.process_module import simulated_robot, with_simulated_robot
-from pycram.urdf_interface import ObjectDescription
-from pycram.world_object import Object
-from pycram.world_dataclasses import Color
+from pycram.object_descriptors.urdf import ObjectDescription
+from pycram.worlds.concepts.world_object import Object
+from pycram.worlds.datastructures.dataclasses import Color
 
 extension = ObjectDescription.get_file_extension()
 

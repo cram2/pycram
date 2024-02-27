@@ -3,11 +3,11 @@ from __future__ import annotations
 from geometry_msgs.msg import Point
 from typing_extensions import Union, List, Optional, TYPE_CHECKING
 
-from .enums import JointType
-from .pose import Transform, Pose
+from pycram.worlds.datastructures.enums import JointType
+from pycram.worlds.datastructures.pose import Transform, Pose
 
 if TYPE_CHECKING:
-    from .description import Link
+    from pycram.description import Link
 
 
 class AbstractConstraint:

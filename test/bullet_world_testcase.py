@@ -1,13 +1,13 @@
 import time
 import unittest
 
-from pycram.bullet_world import BulletWorld
-from pycram.world_object import Object
-from pycram.pose import Pose
+from pycram.worlds.bullet_world import BulletWorld
+from pycram.worlds.concepts.world_object import Object
+from pycram.worlds.datastructures.pose import Pose
 from pycram.robot_descriptions import robot_description
 from pycram.process_module import ProcessModule
-from pycram.enums import ObjectType, WorldMode
-from pycram.urdf_interface import ObjectDescription
+from pycram.worlds.datastructures.enums import ObjectType, WorldMode
+from pycram.object_descriptors.urdf import ObjectDescription
 
 
 class BulletWorldTestCase(unittest.TestCase):

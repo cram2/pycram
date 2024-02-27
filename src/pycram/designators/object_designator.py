@@ -1,12 +1,12 @@
 import dataclasses
 from typing_extensions import List, Optional, Callable
 import sqlalchemy.orm
-from ..world import World
-from ..world_object import Object as WorldObject
+from pycram.world import World
+from pycram.worlds.concepts.world_object import Object as WorldObject
 from ..designator import ObjectDesignatorDescription
 from ..orm.base import ProcessMetaData
 from ..orm.object_designator import (BelieveObject as ORMBelieveObject, ObjectPart as ORMObjectPart)
-from ..pose import Pose
+from pycram.worlds.datastructures.pose import Pose
 from ..external_interfaces.robokudo import query
 
 

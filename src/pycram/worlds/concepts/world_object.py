@@ -8,15 +8,16 @@ import rospy
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
-from .enums import ObjectType, JointType
-from .local_transformer import LocalTransformer
-from .pose import Pose, Transform
-from .robot_descriptions import robot_description
-from .world import WorldEntity, World
-from .world_constraints import Attachment
-from .world_dataclasses import Color, ObjectState, LinkState, JointState, AxisAlignedBoundingBox, VisualShape
-from .description import ObjectDescription, LinkDescription
-from .urdf_interface import ObjectDescription as URDF
+from pycram.description import ObjectDescription, LinkDescription
+from pycram.object_descriptors.urdf import ObjectDescription as URDFObject
+from pycram.robot_descriptions import robot_description
+from pycram.world import WorldEntity, World
+from pycram.worlds.concepts.constraints import Attachment
+from pycram.worlds.datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
+                                                      AxisAlignedBoundingBox, VisualShape)
+from pycram.worlds.datastructures.enums import ObjectType, JointType
+from pycram.worlds.datastructures.local_transformer import LocalTransformer
+from pycram.worlds.datastructures.pose import Pose, Transform
 
 Link = ObjectDescription.Link
 
@@ -33,7 +34,7 @@ class Object(WorldEntity):
     """
 
     def __init__(self, name: str, obj_type: ObjectType, path: str,
-                 description: Optional[Type[ObjectDescription]] = URDF,
+                 description: Optional[Type[ObjectDescription]] = URDFObject,
                  pose: Optional[Pose] = None,
                  world: Optional[World] = None,
                  color: Optional[Color] = Color(),
@@ -119,9 +120,15 @@ class Object(WorldEntity):
                 raise e
 
         try:
-            obj_id = self.world.load_object_and_get_id(path, Pose(self.get_position_as_list(),
-                                                                  self.get_orientation_as_list()))
+            simulator_object_path = path
+            if simulator_object_path is None:
+                # This is useful when the object is already loaded in the simulator so it would use its name instead of
+                #  its path
+                simulator_object_path = self.name
+            obj_id = self.world.load_object_and_get_id(simulator_object_path, Pose(self.get_position_as_list(),
+                                                                                   self.get_orientation_as_list()))
             return obj_id, path
+
         except Exception as e:
             logging.error(
                 "The File could not be loaded. Please note that the path has to be either a URDF, stl or obj file or"
