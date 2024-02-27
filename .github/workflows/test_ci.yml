@@ -37,10 +37,14 @@ jobs:
           roslaunch pycram ik_and_description.launch &           
       #- name: Run roscore
        # run: |
-      - name: Check ros server
+      - name: Install python dependencies
         run: |
-          apt-get -y install curl 
-          curl http://localhost:11311
-
-    
+          sudo pip3 install --upgrade pip
+          cd /opt/ros/overlay_ws/src/pycram
+          sudo pip3 install -r requirements.txt
+          sudo pip3 instal --ingnore-instaled pytest pyjpt mlflow
+      - name: Run tests
+        run: |
+          roscd pycram
+          pytest -v test  
 
