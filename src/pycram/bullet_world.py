@@ -63,7 +63,7 @@ class BulletWorld(World):
         self.set_gravity([0, 0, -9.8])
 
         if not is_prospection_world:
-            _ = Object("floor", ObjectType.ENVIRONMENT, "plane" + self.extension, ObjectDescription,
+            _ = Object("floor", ObjectType.ENVIRONMENT, "plane" + self.extension,
                        world=self)
 
     def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[Pose] = None) -> int:

@@ -17,14 +17,14 @@ class TestObject(BulletWorldTestCase):
 
     def test_wrong_object_description_path(self):
         with self.assertRaises(FileNotFoundError):
-            milk = Object("milk2", ObjectType.MILK, "wrong_path.sk", ObjectDescription)
+            milk = Object("milk2", ObjectType.MILK, "wrong_path.sk")
 
     def test_malformed_object_description(self):
         malformed_file = "../resources/cached/malformed_description.urdf"
         with open(malformed_file, "w") as file:
             file.write("malformed")
         with self.assertRaises(Exception):
-            Object("milk2", ObjectType.MILK, malformed_file, ObjectDescription)
+            Object("milk2", ObjectType.MILK, malformed_file)
 
     def test_move_base_to_origin_pose(self):
         self.milk.set_position(Point(1, 2, 3), base=False)
@@ -157,7 +157,7 @@ class TestObject(BulletWorldTestCase):
             self.assertEqual(color, Color(0, 1, 0, 1))
 
     def test_object_equal(self):
-        milk2 = Object("milk2", ObjectType.MILK, "milk.stl", ObjectDescription)
+        milk2 = Object("milk2", ObjectType.MILK, "milk.stl")
         self.assertNotEqual(self.milk, milk2)
         self.assertEqual(self.milk, self.milk)
         self.assertNotEqual(self.milk, self.cereal)

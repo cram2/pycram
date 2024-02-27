@@ -18,10 +18,10 @@ class BulletWorldTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.world = BulletWorld(mode=WorldMode.DIRECT)
-        cls.milk = Object("milk", ObjectType.MILK, "milk.stl", ObjectDescription, pose=Pose([1.3, 1, 0.9]))
+        cls.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
         cls.robot = Object(robot_description.name, ObjectType.ROBOT,
-                           robot_description.name + cls.extension, ObjectDescription)
-        cls.kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen" + cls.extension, ObjectDescription)
+                           robot_description.name + cls.extension)
+        cls.kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen" + cls.extension)
         cls.cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl",
                             ObjectDescription, pose=Pose([1.3, 0.7, 0.95]))
         ProcessModule.execution_delay = False
@@ -50,10 +50,10 @@ class BulletWorldGUITestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.world = BulletWorld(mode=WorldMode.GUI)
-        cls.milk = Object("milk", ObjectType.MILK, "milk.stl", ObjectDescription, pose=Pose([1.3, 1, 0.9]))
+        cls.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
         cls.robot = Object(robot_description.name, ObjectType.ROBOT,
-                           robot_description.name + cls.extension, ObjectDescription)
-        cls.kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen" + cls.extension, ObjectDescription)
+                           robot_description.name + cls.extension)
+        cls.kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen" + cls.extension)
         cls.cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl",
                             ObjectDescription, pose=Pose([1.3, 0.7, 0.95]))
         ProcessModule.execution_delay = False

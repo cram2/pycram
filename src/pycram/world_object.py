@@ -16,6 +16,7 @@ from .world import WorldEntity, World
 from .world_constraints import Attachment
 from .world_dataclasses import Color, ObjectState, LinkState, JointState, AxisAlignedBoundingBox, VisualShape
 from .description import ObjectDescription, LinkDescription
+from .urdf_interface import ObjectDescription as URDF
 
 Link = ObjectDescription.Link
 
@@ -32,7 +33,7 @@ class Object(WorldEntity):
     """
 
     def __init__(self, name: str, obj_type: ObjectType, path: str,
-                 description: Type[ObjectDescription],
+                 description: Optional[Type[ObjectDescription]] = URDF,
                  pose: Optional[Pose] = None,
                  world: Optional[World] = None,
                  color: Optional[Color] = Color(),

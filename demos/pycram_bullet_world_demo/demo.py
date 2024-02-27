@@ -12,16 +12,16 @@ from pycram.world_dataclasses import Color
 extension = ObjectDescription.get_file_extension()
 
 world = BulletWorld()
-robot = Object("pr2", ObjectType.ROBOT, f"pr2{extension}", ObjectDescription, pose=Pose([1, 2, 0]))
-apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}", ObjectDescription)
+robot = Object("pr2", ObjectType.ROBOT, f"pr2{extension}", pose=Pose([1, 2, 0]))
+apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")
 
-milk = Object("milk", ObjectType.MILK, "milk.stl", ObjectDescription, pose=Pose([2.5, 2, 1.02]),
+milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([2.5, 2, 1.02]),
               color=Color(1, 0, 0, 1))
-cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", ObjectDescription,
+cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl",
                 pose=Pose([2.5, 2.3, 1.05]), color=Color(0, 1, 0, 1))
-spoon = Object("spoon", ObjectType.SPOON, "spoon.stl", ObjectDescription, pose=Pose([2.4, 2.2, 0.85]),
+spoon = Object("spoon", ObjectType.SPOON, "spoon.stl", pose=Pose([2.4, 2.2, 0.85]),
                color=Color(0, 0, 1, 1))
-bowl = Object("bowl", ObjectType.BOWL, "bowl.stl", ObjectDescription, pose=Pose([2.5, 2.2, 1.02]),
+bowl = Object("bowl", ObjectType.BOWL, "bowl.stl", pose=Pose([2.5, 2.2, 1.02]),
               color=Color(1, 1, 0, 1))
 apartment.attach(spoon, 'cabinet10_drawer_top')
 
