@@ -1,10 +1,6 @@
-import unittest
 from pycram.designators.location_designator import *
-from pycram.designators import action_designator, object_designator
 from pycram.robot_descriptions import robot_description
-from pycram.process_module import simulated_robot
-from pycram.pose import Pose
-import pycram.enums
+from pycram.worlds.datastructures.pose import Pose
 from bullet_world_testcase import BulletWorldTestCase
 
 

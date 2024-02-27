@@ -1,16 +1,15 @@
 import sys
 from typing_extensions import Callable
 
-import rosnode
 import rospy
 import actionlib
 import rosnode
 
 from ..designator import ObjectDesignatorDescription
-from ..pose import Pose
-from ..local_transformer import LocalTransformer
-from ..world import World
-from ..enums import ObjectType
+from pycram.worlds.datastructures.pose import Pose
+from pycram.worlds.datastructures.local_transformer import LocalTransformer
+from pycram.world import World
+from pycram.worlds.datastructures.enums import ObjectType
 
 try:
     from robokudo_msgs.msg import ObjectDesignator as robokudo_ObjetDesignator

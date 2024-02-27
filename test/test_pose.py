@@ -1,6 +1,6 @@
 import unittest
 
-from pycram.pose import Pose, Transform
+from pycram.worlds.datastructures.pose import Pose, Transform
 
 
 class TestPose(unittest.TestCase):

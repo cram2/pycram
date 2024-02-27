@@ -8,11 +8,11 @@ classes.
 from typing_extensions import Optional
 
 from .base import MapperArgsMixin, Designator, PoseMixin
-from .object_designator import Object, ObjectMixin
+from .object_designator import Object
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey
 
-from ..enums import ObjectType
+from pycram.worlds.datastructures.enums import ObjectType
 
 
 class Motion(MapperArgsMixin, Designator):

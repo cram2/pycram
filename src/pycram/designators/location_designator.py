@@ -2,17 +2,17 @@ import dataclasses
 from typing_extensions import List, Union, Iterable, Optional, Callable
 
 from .object_designator import ObjectDesignatorDescription, ObjectPart
-from ..world import World, UseProspectionWorld
-from ..world_reasoning import link_pose_for_joint_config
+from pycram.world import World, UseProspectionWorld
+from pycram.world_reasoning import link_pose_for_joint_config
 from ..designator import DesignatorError, LocationDesignatorDescription
-from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
+from pycram.worlds.concepts.costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
 from ..robot_descriptions import robot_description
-from ..enums import JointType
+from pycram.worlds.datastructures.enums import JointType
 from ..helper import transform
-from ..pose_generator_and_validator import pose_generator, visibility_validator, reachability_validator, \
+from pycram.pose_generator_and_validator import pose_generator, visibility_validator, reachability_validator, \
     generate_orientation
 from ..robot_description import ManipulatorDescription
-from ..pose import Pose
+from pycram.worlds.datastructures.pose import Pose
 
 
 class Location(LocationDesignatorDescription):

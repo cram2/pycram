@@ -2,9 +2,8 @@ import unittest
 from pycram.designators import action_designator, object_designator
 from pycram.robot_descriptions import robot_description
 from pycram.process_module import simulated_robot
-from pycram.pose import Pose
-from pycram.enums import ObjectType
-import pycram.enums
+from pycram.worlds.datastructures.pose import Pose
+from pycram.worlds.datastructures.enums import ObjectType, Arms
 from bullet_world_testcase import BulletWorldTestCase
 import numpy as np
 
@@ -42,8 +41,8 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.assertEqual(description.ground().object_designator.name, "milk")
 
     def test_park_arms(self):
-        description = action_designator.ParkArmsAction([pycram.enums.Arms.BOTH])
-        self.assertEqual(description.ground().arm, pycram.enums.Arms.BOTH)
+        description = action_designator.ParkArmsAction([Arms.BOTH])
+        self.assertEqual(description.ground().arm, Arms.BOTH)
         with simulated_robot:
             description.resolve().perform()
         for joint, pose in robot_description.get_static_joint_chain("right", "park").items():

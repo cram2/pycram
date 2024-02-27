@@ -5,9 +5,9 @@ import time
 
 from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import JointState
-from ..world import World
+from pycram.world import World
 from ..robot_descriptions import robot_description
-from ..pose import Pose
+from pycram.worlds.datastructures.pose import Pose
 
 
 class RobotStateUpdater:

@@ -13,13 +13,13 @@ import anytree
 import sqlalchemy.orm.session
 import tqdm
 
-from .world import World
+from pycram.world import World
 from .orm.task import (Code as ORMCode, TaskTreeNode as ORMTaskTreeNode)
 from .orm.base import ProcessMetaData
 from .plan_failures import PlanFailure
 from .language import Code
-from .enums import TaskStatus
-from .world_dataclasses import Color
+from pycram.worlds.datastructures.enums import TaskStatus
+from pycram.worlds.datastructures.dataclasses import Color
 
 
 class TaskCode(Code):

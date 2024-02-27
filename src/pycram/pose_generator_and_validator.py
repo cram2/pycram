@@ -1,15 +1,15 @@
 import tf
 import numpy as np
 
-from .world import World
-from .world_object import Object
-from .world_reasoning import contact
-from .costmaps import Costmap
-from .pose import Pose, Transform
-from .robot_descriptions import robot_description
-from .external_interfaces.ik import request_ik
-from .plan_failures import IKError
-from .helper import _apply_ik
+from pycram.world import World
+from pycram.worlds.concepts.world_object import Object
+from pycram.world_reasoning import contact
+from pycram.worlds.concepts.costmaps import Costmap
+from pycram.worlds.datastructures.pose import Pose, Transform
+from pycram.robot_descriptions import robot_description
+from pycram.external_interfaces.ik import request_ik
+from pycram.plan_failures import IKError
+from pycram.helper import _apply_ik
 from typing_extensions import Tuple, List, Union, Dict, Iterable
 
 

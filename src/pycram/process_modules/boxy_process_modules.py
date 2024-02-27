@@ -2,14 +2,13 @@ from threading import Lock
 
 import numpy as np
 
-from ..world import World
+from pycram.world import World
 from ..designators.motion_designator import PlaceMotion
-from ..local_transformer import LocalTransformer
+from pycram.worlds.datastructures.local_transformer import LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_descriptions import robot_description
 from ..process_modules.pr2_process_modules import (_park_arms, Pr2Navigation as BoxyNavigation,
-                                                   Pr2PickUp as BoxyPickUp, Pr2Open as BoxyOpen,
-                                                   Pr2Close as BoxyClose, Pr2Detecting as BoxyDetecting,
+                                                   Pr2PickUp as BoxyPickUp, Pr2Detecting as BoxyDetecting,
                                                    Pr2MoveTCP as BoxyMoveTCP, Pr2MoveArmJoints as BoxyMoveArmJoints,
                                                    Pr2WorldStateDetecting as BoxyWorldStateDetecting, _move_arm_tcp)
 

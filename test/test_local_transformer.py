@@ -1,8 +1,8 @@
 import rospy
 
 
-from pycram.local_transformer import LocalTransformer
-from pycram.pose import Pose, Transform
+from pycram.worlds.datastructures.local_transformer import LocalTransformer
+from pycram.worlds.datastructures.pose import Pose, Transform
 from bullet_world_testcase import BulletWorldTestCase
 
 

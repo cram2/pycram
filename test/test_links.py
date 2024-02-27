@@ -1,7 +1,5 @@
-import time
-
 from bullet_world_testcase import BulletWorldTestCase
-from pycram.world_dataclasses import Color
+from pycram.worlds.datastructures.dataclasses import Color
 
 
 class TestLinks(BulletWorldTestCase):

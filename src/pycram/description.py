@@ -8,14 +8,14 @@ import rospy
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING
 
-from .enums import JointType
-from .local_transformer import LocalTransformer
-from .pose import Pose, Transform
-from .world import WorldEntity
-from .world_dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape
+from pycram.worlds.datastructures.enums import JointType
+from pycram.worlds.datastructures.local_transformer import LocalTransformer
+from pycram.worlds.datastructures.pose import Pose, Transform
+from pycram.world import WorldEntity
+from pycram.worlds.datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape
 
 if TYPE_CHECKING:
-    from .world_object import Object
+    from pycram.worlds.concepts.world_object import Object
 
 
 class EntityDescription(ABC):

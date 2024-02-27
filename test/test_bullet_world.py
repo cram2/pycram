@@ -5,12 +5,12 @@ import xml.etree.ElementTree as ET
 import rospkg
 
 from bullet_world_testcase import BulletWorldTestCase, BulletWorldGUITestCase
-from pycram.enums import ObjectType, WorldMode
-from pycram.pose import Pose
+from pycram.worlds.datastructures.enums import ObjectType, WorldMode
+from pycram.worlds.datastructures.pose import Pose
 from pycram.robot_descriptions import robot_description
-from pycram.urdf_interface import ObjectDescription
-from pycram.world_dataclasses import Color
-from pycram.world_object import Object
+from pycram.object_descriptors.urdf import ObjectDescription
+from pycram.worlds.datastructures.dataclasses import Color
+from pycram.worlds.concepts.world_object import Object
 
 fix_missing_inertial = ObjectDescription.fix_missing_inertial
 

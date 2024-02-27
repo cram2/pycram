@@ -139,7 +139,7 @@ class ManipulatorDescription(InteractionDescription):
     This class allows with the given interaction description to include a gripper
     description which is placed between the last link of the interaction description
     and the rest of it.
-    Independently from that a tool frame can be saved, which allows to use objects
+    Independently of that a tool frame can be saved, which allows to use objects
     to manipulate the environment::
 
                                                                            |--> (tool_frame)

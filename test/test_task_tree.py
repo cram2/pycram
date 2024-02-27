@@ -1,4 +1,4 @@
-from pycram.pose import Pose
+from pycram.worlds.datastructures.pose import Pose
 from pycram.process_module import simulated_robot
 import pycram.task
 from pycram.task import with_tree

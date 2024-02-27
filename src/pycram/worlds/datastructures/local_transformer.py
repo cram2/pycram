@@ -9,7 +9,7 @@ from tf import TransformerROS
 from rospy import Duration
 
 from geometry_msgs.msg import TransformStamped
-from .pose import Pose, Transform
+from pycram.worlds.datastructures.pose import Pose, Transform
 from typing_extensions import List, Optional, Union, Iterable
 
 

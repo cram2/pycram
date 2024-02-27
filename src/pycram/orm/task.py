@@ -1,11 +1,9 @@
 """Implementation of ORM classes associated with pycram.task."""
 from typing_extensions import Optional
 from sqlalchemy import ForeignKey
-from sqlalchemy.orm import MappedAsDataclass, Mapped, mapped_column, relationship
-from .action_designator import Action
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base, Designator
-from .motion_designator import Motion
-from ..enums import TaskStatus
+from pycram.worlds.datastructures.enums import TaskStatus
 import datetime
 
 

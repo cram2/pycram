@@ -1,9 +1,9 @@
 from ...external_interfaces.giskard import achieve_cartesian_goal
 from ...designators.location_designator import CostmapLocation
-from ...world import UseProspectionWorld, World
-from ...pose import Pose
+from pycram.world import UseProspectionWorld, World
+from pycram.worlds.datastructures.pose import Pose
 from ...robot_descriptions import robot_description
-from ...pose_generator_and_validator import reachability_validator
+from pycram.pose_generator_and_validator import reachability_validator
 from typing_extensions import Tuple, Dict
 
 import tf
