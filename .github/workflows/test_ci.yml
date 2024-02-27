@@ -33,7 +33,7 @@ jobs:
           sudo -s
           source /opt/ros/noetic/setup.bash
           cd /opt/ros/overlay_ws    
-          source devel/setup.bash   
+          source /opt/ros/overlay_ws/devel/setup.bash 
       - name: Run roscore
         run: |
           roslaunch pycram ik_and_description.launch &           
