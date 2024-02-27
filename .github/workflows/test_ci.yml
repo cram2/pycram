@@ -1,4 +1,8 @@
 name: hopeful_CI
+defaults:
+  run:
+    shell: bash -ieo pipefail {0}
+
 on: 
   push:
     branches: 
