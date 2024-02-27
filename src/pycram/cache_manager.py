@@ -41,15 +41,14 @@ class CacheManager:
         path_object = pathlib.Path(path)
         extension = path_object.suffix
 
-        path = self.look_for_file_in_data_dir(path, path_object)
-
         self.create_cache_dir_if_not_exists()
 
         # save correct path in case the file is already in the cache directory
         cache_path = self.cache_dir + object_description.get_file_name(path_object, extension, object_name)
 
-        # if file is not yet cached preprocess the description file and save it in the cache directory.
         if not self.is_cached(path, object_description) or ignore_cached_files:
+            # if file is not yet cached preprocess the description file and save it in the cache directory.
+            path = self.look_for_file_in_data_dir(path_object)
             self.generate_description_and_write_to_cache(path, object_name, extension, cache_path, object_description)
 
         return cache_path
@@ -77,21 +76,21 @@ class CacheManager:
         with open(cache_path, "w") as file:
             file.write(description_string)
 
-    def look_for_file_in_data_dir(self, path: str, path_object: pathlib.Path) -> str:
+    def look_for_file_in_data_dir(self, path_object: pathlib.Path) -> str:
         """
         Looks for a file in the data directory of the World. If the file is not found in the data directory, this method
         raises a FileNotFoundError.
-        :param path: The path of the file to look for.
         :param path_object: The pathlib object of the file to look for.
         """
-        if re.match("[a-zA-Z_0-9].[a-zA-Z0-9]", path):
-            for data_dir in self.data_directory:
-                for file in os.listdir(data_dir):
-                    if file == path:
-                        return data_dir + f"/{path}"
+
+        name = path_object.name
+        for data_dir in self.data_directory:
+            for file in os.listdir(data_dir):
+                if file == name:
+                    return data_dir + f"/{name}"
 
         raise FileNotFoundError(
-            f"File {path_object.name} could not be found in the resource directory {self.data_directory}")
+            f"File {name} could not be found in the resource directory {self.data_directory}")
 
     def create_cache_dir_if_not_exists(self):
         """
