@@ -34,9 +34,9 @@ jobs:
           source /opt/ros/noetic/setup.bash
           cd /opt/ros/overlay_ws    
           source /opt/ros/overlay_ws/devel/setup.bash 
-      - name: Run roscore
-        run: |
           roslaunch pycram ik_and_description.launch &           
+      #- name: Run roscore
+       # run: |
       - name: Check ros server
         run: |
           apt-get -y install curl 
