@@ -77,8 +77,9 @@ class Object(WorldEntity):
         self.tf_frame = ((self.prospection_world_prefix if self.world.is_prospection_world else "")
                          + f"{self.name}_{self.id}")
 
-        if self.description.name == robot_description.name:
-            self.world.set_robot_if_not_set(self)
+        if robot_description is not None:
+            if self.description.name == robot_description.name:
+                self.world.set_robot_if_not_set(self)
 
         self._init_joint_name_and_id_map()
         self._init_link_name_and_id_map()
@@ -93,7 +94,8 @@ class Object(WorldEntity):
 
         self.world.objects.append(self)
 
-    def _load_object_and_get_id(self, path, ignore_cached_files: bool) -> Tuple[int, str]:
+    def _load_object_and_get_id(self, path: Optional[str] = None,
+                                ignore_cached_files: Optional[bool] = False) -> Tuple[int, Union[str, None]]:
         """
         Loads an object to the given World with the given position and orientation. The rgba_color will only be
         used when an .obj or .stl file is given.
@@ -103,19 +105,21 @@ class Object(WorldEntity):
         This new file will have resolved mesh file paths, meaning there will be no references
         to ROS packges instead there will be absolute file paths.
 
+        :param path: The path to the description file, if None then no file will be loaded, this is useful when the
+            PyCRAM is not responsible for loading the file but another system is.
         :param ignore_cached_files: Whether to ignore files in the cache directory.
         :return: The unique id of the object and the path of the file that was loaded.
         """
+        if path is not None:
+            try:
+                path = self.world.update_cache_dir_with_object(path, ignore_cached_files, self)
+            except FileNotFoundError as e:
+                logging.error("Could not generate description from file.")
+                raise e
 
         try:
-            path = self.world.update_cache_dir_with_object(path, ignore_cached_files, self)
-        except FileNotFoundError as e:
-            logging.error("Could not generate description from file.")
-            raise e
-
-        try:
-            obj_id = self.world.load_description_and_get_object_id(path, Pose(self.get_position_as_list(),
-                                                                              self.get_orientation_as_list()))
+            obj_id = self.world.load_object_and_get_id(path, Pose(self.get_position_as_list(),
+                                                                  self.get_orientation_as_list()))
             return obj_id, path
         except Exception as e:
             logging.error(

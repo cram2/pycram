@@ -129,12 +129,13 @@ class World(StateEntity, ABC):
 
     data_directory: List[str] = [os.path.join(os.path.dirname(__file__), '..', '..', 'resources')]
     """
-    Global reference for the data directories, this is used to search for the URDF files of the robot and the objects.
+    Global reference for the data directories, this is used to search for the description files of the robot 
+    and the objects.
     """
 
     cache_dir = data_directory[0] + '/cached/'
     """
-    Global reference for the cache directory, this is used to cache the URDF files of the robot and the objects.
+    Global reference for the cache directory, this is used to cache the description files of the robot and the objects.
     """
 
     def __init__(self, mode: WorldMode, is_prospection_world: bool, simulation_frequency: float):
@@ -240,11 +241,11 @@ class World(StateEntity, ABC):
         return 1 / World.simulation_frequency
 
     @abstractmethod
-    def load_description_and_get_object_id(self, path: str, pose: Pose) -> int:
+    def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[Pose] = None) -> int:
         """
         Loads a description file (e.g. URDF) at the given pose and returns the id of the loaded object.
 
-        :param path: The path to the description file.
+        :param path: The path to the description file, if None the description file is assumed to be already loaded.
         :param pose: The pose at which the object should be loaded.
         :return: The id of the loaded object.
         """

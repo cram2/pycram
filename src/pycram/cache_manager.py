@@ -50,20 +50,21 @@ class CacheManager:
 
         # if file is not yet cached preprocess the description file and save it in the cache directory.
         if not self.is_cached(path, object_description) or ignore_cached_files:
-            self.generate_description_and_write_to_cache(path, extension, cache_path, object_description)
+            self.generate_description_and_write_to_cache(path, object_name, extension, cache_path, object_description)
 
         return cache_path
 
-    def generate_description_and_write_to_cache(self, path: str, extension: str, cache_path: str,
+    def generate_description_and_write_to_cache(self, path: str, name: str, extension: str, cache_path: str,
                                                 object_description: 'ObjectDescription') -> None:
         """
         Generates the description from the file at the given path and writes it to the cache directory.
         :param path: The path of the file to preprocess.
+        :param name: The name of the object.
         :param extension: The file extension of the file to preprocess.
         :param cache_path: The path of the file in the cache directory.
         :param object_description: The object description of the file.
         """
-        description_string = object_description.generate_description_from_file(path, extension)
+        description_string = object_description.generate_description_from_file(path, name, extension)
         self.write_to_cache(description_string, cache_path)
 
     @staticmethod
@@ -88,14 +89,9 @@ class CacheManager:
                 for file in os.listdir(data_dir):
                     if file == path:
                         return data_dir + f"/{path}"
-                if path:
-                    break
 
-        if not path:
-            raise FileNotFoundError(
-                f"File {path_object.name} could not be found in the resource directory {self.data_directory}")
-
-        return path
+        raise FileNotFoundError(
+            f"File {path_object.name} could not be found in the resource directory {self.data_directory}")
 
     def create_cache_dir_if_not_exists(self):
         """

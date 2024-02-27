@@ -583,18 +583,19 @@ class ObjectDescription(EntityDescription):
         """
         pass
 
-    def generate_description_from_file(self, path: str, extension: str) -> str:
+    def generate_description_from_file(self, path: str, name: str, extension: str) -> str:
         """
         Generates and preprocesses the description from the file at the given path and returns the preprocessed
         description as a string.
         :param path: The path of the file to preprocess.
+        :param name: The name of the object.
         :param extension: The file extension of the file to preprocess.
         :return: The processed description string.
         """
         description_string = None
 
         if extension in self.mesh_extensions:
-            description_string = self.generate_from_mesh_file(path)
+            description_string = self.generate_from_mesh_file(path, name)
         elif extension == self.get_file_extension():
             description_string = self.generate_from_description_file(path)
         else:
@@ -629,11 +630,12 @@ class ObjectDescription(EntityDescription):
 
     @classmethod
     @abstractmethod
-    def generate_from_mesh_file(cls, path: str) -> str:
+    def generate_from_mesh_file(cls, path: str, name: str) -> str:
         """
         Generates a description file from one of the mesh types defined in the mesh_extensions and
         returns the path of the generated file.
         :param path: The path to the .obj file.
+        :param name: The name of the object.
         :return: The path of the generated description file.
         """
         pass

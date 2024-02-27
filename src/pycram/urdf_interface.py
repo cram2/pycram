@@ -158,12 +158,13 @@ class ObjectDescription(AbstractObjectDescription):
         with open(path, 'r') as file:
             return URDF.from_xml_string(file.read())
 
-    def generate_from_mesh_file(self, path, color: Optional[Color] = Color()) -> str:
+    def generate_from_mesh_file(self, path: str, name: str, color: Optional[Color] = Color()) -> str:
         """
         Generates an URDf file with the given .obj or .stl file as mesh. In addition, the given rgba_color will be
         used to create a material tag in the URDF.
 
         :param path: The path to the mesh file.
+        :param name: The name of the object.
         :param color: The color of the object.
         :return: The absolute path of the created file
         """
@@ -189,7 +190,7 @@ class ObjectDescription(AbstractObjectDescription):
         rgb = " ".join(list(map(str, color.get_rgba())))
         pathlib_obj = pathlib.Path(path)
         path = str(pathlib_obj.resolve())
-        content = urdf_template.replace("~a", self.name).replace("~b", path).replace("~c", rgb)
+        content = urdf_template.replace("~a", name).replace("~b", path).replace("~c", rgb)
         return content
 
     def generate_from_description_file(self, path: str) -> str:
