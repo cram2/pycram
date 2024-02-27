@@ -24,14 +24,16 @@ jobs:
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
-      - name: Start ros server
+      - name: Set up sources
         shell: bash
         run: |
           sudo -s
           source /opt/ros/noetic/setup.bash
           cd /opt/ros/overlay_ws    
-          source devel/setup.bash 
-          roslaunch pycram ik_and_description.launch             
+          source devel/setup.bash   
+      - name: Run roscore
+        run: |
+          roslaunch pycram ik_and_description.launch &           
       - name: Check ros server
         run: |
           apt-get -y install curl 
