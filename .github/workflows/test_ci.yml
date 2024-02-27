@@ -26,6 +26,7 @@ jobs:
 #        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
       - name: Start ros server
         run: |
+          sudo -s
           source /opt/ros/noetic/setup.bash
           cd /opt/ros/overlay_ws    
           source devel/setup.bash 
