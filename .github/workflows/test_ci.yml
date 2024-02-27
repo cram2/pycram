@@ -1,7 +1,7 @@
 name: hopeful_CI
 defaults:
   run:
-    shell: bash -ieo pipefail {0}
+    shell: bash {0}
 
 on: 
   push:
@@ -29,6 +29,7 @@ jobs:
         uses: mxschmitt/action-tmate@v3
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
       - name: Set up sources
+        shell: bash
         run: |
           source /opt/ros/noetic/setup.bash
           cd /opt/ros/overlay_ws    
