@@ -21,18 +21,15 @@ jobs:
       volumes:
         - docker_volume:/opt/ros/overlay_ws
     steps:
-      - name: Check for files
+#      - name: Setup tmate session
+#        uses: mxschmitt/action-tmate@v3
+#        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+      - name: Start ros server
         run: |
-          ls -a
-          cd ..
-          ls -a
-          cd /opt/ros/overlay_ws
-          ls -l
-          cd src
-          ls -l
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}                  
+          source /opt/ros/noetic/setup.bash
+          cd /opt/ros/overlay_ws    
+          source devel/setup.bash 
+          roslaunch pycram ik_and_description.launch             
       - name: Check ros server
         run: |
           apt-get -y install curl 
