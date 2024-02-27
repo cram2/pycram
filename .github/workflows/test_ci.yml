@@ -25,6 +25,7 @@ jobs:
         uses: mxschmitt/action-tmate@v3
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
       - name: Start ros server
+        shell: bash
         run: |
           sudo -s
           source /opt/ros/noetic/setup.bash
