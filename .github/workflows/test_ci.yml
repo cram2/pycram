@@ -43,6 +43,10 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}      
       - name: Run tests
         run: |
-          cd /opt/ros/overlay_ws/src/pycram
+          sudo -s
+          source /opt/ros/noetic/setup.bash
+          cd /opt/ros/overlay_ws    
+          source /opt/ros/overlay_ws/devel/setup.bash 
+          roscd pycram
           pytest -v test  
 
