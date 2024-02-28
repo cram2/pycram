@@ -25,9 +25,6 @@ jobs:
       volumes:
         - docker_volume:/opt/ros/overlay_ws
     steps:
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
       - name: Set up sources & Run roscore
         run: |
           sudo -s
@@ -41,6 +38,9 @@ jobs:
           cd /opt/ros/overlay_ws/src/pycram
           pip3 install -r requirements.txt
           pip3 install --ignore-installed pytest pyjpt mlflow
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}      
       - name: Run tests
         run: |
           cd /opt/ros/overlay_ws/src/pycram
