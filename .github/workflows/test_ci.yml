@@ -19,7 +19,7 @@ jobs:
   container-test-job:
     runs-on: ubuntu-20.04
     container: 
-      image: leoaung/testing_ci:two
+      image: leoaung/testing_ci:latest
       ports:
         - 11311
       volumes:
@@ -28,15 +28,13 @@ jobs:
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
-      - name: Set up sources
+      - name: Set up sources & Run roscore
         run: |
           sudo -s
           source /opt/ros/noetic/setup.bash
           cd /opt/ros/overlay_ws    
           source /opt/ros/overlay_ws/devel/setup.bash 
           roslaunch pycram ik_and_description.launch &           
-      #- name: Run roscore
-       # run: |
       - name: Install python dependencies
         run: |
           pip3 install --upgrade pip --root-user-action=ignore
@@ -45,10 +43,6 @@ jobs:
           pip3 install --ignore-installed pytest pyjpt mlflow
       - name: Run tests
         run: |
-          sudo -s
-          source /opt/ros/noetic/setup.bash
-          cd /opt/ros/overlay_ws    
-          source /opt/ros/overlay_ws/devel/setup.bash 
-          roscd pycram
+          cd /opt/ros/overlay_ws/src/pycram
           pytest -v test  
 
