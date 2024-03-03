@@ -5,7 +5,7 @@ from sqlalchemy import select, Select
 import pycram.designators.location_designator
 import pycram.task
 from pycram.costmaps import OccupancyCostmap
-from pycram.orm.action_designator import PickUpAction, Action
+from pycram.orm.action_designator import PickUpAction
 from pycram.orm.object_designator import Object
 from pycram.orm.base import Position, RobotState, Pose as ORMPose, Quaternion
 from pycram.orm.task import TaskTreeNode, Code
@@ -39,9 +39,12 @@ class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLoca
         OccupancyCostmap.
         """
 
+        # create aliases for the Position and Pose tables, since they are used multiple times
         robot_pos = sqlalchemy.orm.aliased(Position)
         robot_pose = sqlalchemy.orm.aliased(ORMPose)
         object_pos = sqlalchemy.orm.aliased(Position)
+
+        # calculate the relative position of the robot to the object
         relative_x = robot_pos.x - object_pos.x
         relative_y = robot_pos.y - object_pos.y
 
@@ -61,10 +64,8 @@ class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLoca
                                                     .where(TaskTreeNode.status == "SUCCEEDED"))
 
         # create Occupancy costmap for the target object
-
         ocm = OccupancyCostmap(distance_to_obstacle=0.3, from_ros=False, size=200, resolution=0.02,
                                origin=self.target.pose)
-        ocm.visualize()
 
         # working on a copy of the costmap, since found rectangles are deleted
         map = np.copy(ocm.map)
@@ -73,20 +74,26 @@ class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLoca
 
         filters = []
 
+        # for every index pair (i, j) in the occupancy costmap
         for i in range(0, map.shape[0]):
             for j in range(0, map.shape[1]):
+
+                # if this index has not been used yet
                 if map[i][j] > 0:
                     curr_width = ocm._find_consectuive_line((i, j), map)
                     curr_pose = (i, j)
                     curr_height = ocm._find_max_box_height((i, j), curr_width, map)
 
+                    # calculate the rectangle in the costmap
                     x_lower = (curr_pose[0] - origin[0]) * ocm.resolution
                     x_upper = (curr_pose[0] + curr_width - origin[0]) * ocm.resolution
                     y_lower = (curr_pose[1] - origin[1]) * ocm.resolution
                     y_upper = (curr_pose[1] + curr_height - origin[1]) * ocm.resolution
 
+                    # mark the found rectangle as occupied
                     map[i:i + curr_height, j:j + curr_width] = 0
 
+                    # transform to jpt query
                     filters.append(sqlalchemy.and_(relative_x >= x_lower, relative_x < x_upper,
                                                    relative_y >= y_lower, relative_y < y_upper))
 
@@ -99,6 +106,7 @@ class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLoca
         :param sample: The database row.
         :return: The costmap location
         """
+
         target_x, target_y, target_z = self.target.pose.position_as_list()
         position = [target_x + sample[3], target_y + sample[4], 0]
         orientation = [sample[5], sample[6], sample[7], sample[8]]
