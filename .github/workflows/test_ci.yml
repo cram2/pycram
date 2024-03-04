@@ -26,7 +26,7 @@ jobs:
       - name: Checkout PyCRAM
         uses: actions/checkout@v3
         with: 
-          path: 'ros_ws/src/pycram'
+          path: 'ros_ws/src/pycram'  
           repository: ${{ github.repository }}
           ref: ${{ github.ref }}
           submodules: 'recursive'
