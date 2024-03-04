@@ -22,9 +22,16 @@ jobs:
       image: leoaung/testing_ci:latest
       ports:
         - 11311
-      volumes:
-        - docker_volume:/opt/ros/overlay_ws
     steps:
+      - name: Checkout PyCRAM
+        uses: actions/checkout@v3
+        with: 
+          path: 'ros_ws/src/pycram'
+          repository: ${{ github.repository }}
+          ref: ${{ github.ref }}
+          submodules: 'recursive'
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Set up sources & Run roscore
         run: |
           sudo -s
