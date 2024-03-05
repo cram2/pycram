@@ -30,8 +30,6 @@ jobs:
           repository: ${{ github.repository }}
           ref: ${{ github.ref }}
           submodules: 'recursive'
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
       - name: Update PyCRAM files
         run: |
           rm -rf /opt/ros/overlay_ws/src/pycram/* 
