@@ -43,14 +43,14 @@ jobs:
           cd /opt/ros/overlay_ws
           catkin_make    
           source /opt/ros/overlay_ws/devel/setup.bash 
-          roslaunch pycram ik_and_description.launch &   
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3        
+          roslaunch pycram ik_and_description.launch &       
       - name: Install python dependencies
         run: |
           pip3 install --upgrade pip --root-user-action=ignore
           cd /opt/ros/overlay_ws/src/pycram
           pip3 install -r requirements.txt
+      - name: Install Pytest, pyjpt & mlflow
+        run: |
           pip3 install --ignore-installed pytest pyjpt mlflow
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
