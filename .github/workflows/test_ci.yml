@@ -34,7 +34,8 @@ jobs:
         uses: mxschmitt/action-tmate@v3
       - name: Update PyCRAM files
         run: |
-          rm -rf /opt/ros/overlay_ws/src/pycram/* /opt/ros/overlay_ws/src/pycram/.* 2>/dev/null
+          rm -rf /opt/ros/overlay_ws/src/pycram/* 
+          find /tmp/data/ -type f -name ".*" -delete
           mv /__w/pycram_CI/pycram_CI/ros/src/pycram /opt/ros/overlay_ws/src
       - name: Set up sources & Run roscore
         run: |
