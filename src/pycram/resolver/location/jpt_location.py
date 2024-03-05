@@ -1,11 +1,18 @@
 import dataclasses
+import json
 import time
 from typing import Optional, List, Tuple
 
-import jpt
+import sqlalchemy
+import sqlalchemy.orm
+
+from probabilistic_model.learning.jpt.jpt import JPT
+from probabilistic_model.learning.jpt.variables import infer_variables_from_dataframe
+from random_events.events import Event
 import numpy as np
 import pybullet
 import tf
+from sqlalchemy import select
 
 import pycram.designators.location_designator
 import pycram.task
@@ -14,23 +21,25 @@ from ...plan_failures import PlanFailure
 from ...pose import Pose
 from pycram.bullet_world import BulletWorld, Object
 
+from ...orm.action_designator import PickUpAction
+from ...orm.object_designator import Object
+from ...orm.base import Position, RobotState, Pose as ORMPose, Quaternion
+from ...orm.task import TaskTreeNode, Code
+from .database_location import Location, RequiresDatabase
 
-class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation):
-    """Costmap Locations using Joint Probability Trees (JPTs).
+import pandas as pd
+
+
+class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation, RequiresDatabase):
+    """
+    Costmap Locations using Joint Probability Trees (JPTs).
     JPT costmaps are trained to model the dependency with a robot position relative to the object, the robots type,
     the objects type, the robot torso height, and the grasp parameters.
     Solutions to the problem definitions are chosen in such a way that the success probability is highest.
     """
 
-    @dataclasses.dataclass
-    class Location(pycram.designators.location_designator.LocationDesignatorDescription.Location):
-        pose: Pose
-        reachable_arm: str
-        torso_height: float
-        grasp: str
-
     def __init__(self, target: Object, reachable_for=None, reachable_arm=None,
-                 model: Optional[jpt.trees.JPT] = None, path: Optional[str] = None, resolver=None):
+                 model: Optional[JPT] = None, path: Optional[str] = None):
         """
         Create a JPT Costmap
 
@@ -40,7 +49,7 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
         :param model: The JPT model as a loaded tree in memory, either model or path must be set
         :param path: The path to the JPT model, either model or path must be set
         """
-        super().__init__(target, reachable_for, None, reachable_arm, resolver)
+        super().__init__(target, reachable_for, None, reachable_arm, None)
         # check if arguments are plausible
         if (not model and not path) or (model and path):
             raise ValueError("Either model or path must be set.")
@@ -51,12 +60,36 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
 
         # load model from path
         if path:
-            self.model = jpt.trees.JPT.load(path)
+            with open(path, "r") as f:
+                json_dict = json.load(f)
+            self.model = JPT.from_json(json_dict)
 
         # initialize member for visualized objects
         self.visual_ids: List[int] = []
+        self.arm, self.grasp, self.relative_x, self.relative_y, self.torso_height, self.w, self.x, self.y, self.z = (
+            self.model.variables)
 
-    def evidence_from_occupancy_costmap(self) -> List[jpt.variables.LabelAssignment]:
+    @classmethod
+    def fit_from_database(cls, session: sqlalchemy.orm.session.Session, success_only: bool = False):
+        """
+        Fit a JPT to become a location designator using the data from the database that is reachable via the session.
+
+        :param session:
+        :param success_only:
+        :return:
+        """
+        query, _, _ = RequiresDatabase.create_query()
+        if success_only:
+            query = query.where(TaskTreeNode.status == "SUCCEEDED")
+
+        samples = pd.read_sql(query, session.bind)
+        samples = samples.rename(columns={"anon_1": "relative_x", "anon_2": "relative_y"})
+        variables = infer_variables_from_dataframe(samples)
+        model = JPT(variables, min_samples_leaf=0.1)
+        model.fit(samples)
+        return model
+
+    def evidence_from_occupancy_costmap(self) -> List[Event]:
         """
         Create a list of boxes that can be used as evidences for a jpt. The list of boxes describe areas where the
         robot can stand.
@@ -102,12 +135,12 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
                     rectangle = np.array([lower_corner, upper_corner]).T
 
                     # transform to jpt query
-                    query = self.model.bind({"x": list(rectangle[0]), "y": list(rectangle[1])})
+                    query = Event({self.x: list(rectangle[0]), self.y: list(rectangle[1])})
                     queries.append(query)
 
         return queries
 
-    def create_evidence(self, use_success=True) -> jpt.variables.LabelAssignment:
+    def create_evidence(self, use_success=True) -> Event:
         """
         Create evidence usable for JPTs where type and status are set if wanted.
 
@@ -121,7 +154,7 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
         if use_success:
             evidence["status"] = {"SUCCEEDED"}
 
-        return self.model.bind(evidence)
+        return evidence
 
     def sample(self, amount: int = 1) -> np.ndarray:
         """
