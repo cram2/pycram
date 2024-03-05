@@ -32,7 +32,7 @@ jobs:
           submodules: 'recursive'
       - name: Update PyCRAM files
         run: |
-          rm -r /opt/ros/overlay_ws/src/pycram/* /opt/ros/overlay_ws/src/pycram/.*
+          rm -rf /opt/ros/overlay_ws/src/pycram/* /opt/ros/overlay_ws/src/pycram/.*
           mv /__w/pycram_CI/pycram_CI/ros/src/pycram /opt/ros/overlay_ws/src
       - name: Set up sources & Run roscore
         run: |
