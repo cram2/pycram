@@ -35,7 +35,8 @@ jobs:
       - name: Update PyCRAM files
         run: |
           rm -rf /opt/ros/overlay_ws/src/pycram/* 
-          find /opt/ros/overlay_ws/src/pycram/ -type f -name ".*" -delete
+          cd /opt/ros/overlay_ws/src/pycram
+          rm -rf .git .github .gitignore .gitmodules .readthedocs.yaml
           mv /__w/pycram_CI/pycram_CI/ros/src/pycram /opt/ros/overlay_ws/src
       - name: Set up sources & Run roscore
         run: |
