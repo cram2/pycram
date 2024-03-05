@@ -30,13 +30,16 @@ jobs:
           repository: ${{ github.repository }}
           ref: ${{ github.ref }}
           submodules: 'recursive'
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
+      - name: Update PyCRAM files
+        run: |
+          rm -r /opt/ros/overlay_ws/src/pycram/* /opt/ros/overlay_ws/src/pycram/.*
+          mv /__w/pycram_CI/pycram_CI/ros/src/pycram /opt/ros/overlay_ws/src
       - name: Set up sources & Run roscore
         run: |
           sudo -s
           source /opt/ros/noetic/setup.bash
-          cd /opt/ros/overlay_ws    
+          cd /opt/ros/overlay_ws
+          catkin_make    
           source /opt/ros/overlay_ws/devel/setup.bash 
           roslaunch pycram ik_and_description.launch &           
       - name: Install python dependencies
