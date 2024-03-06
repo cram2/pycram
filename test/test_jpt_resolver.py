@@ -1,7 +1,6 @@
 import os
 import unittest
 
-import enums
 import pycram.plan_failures
 from pycram.bullet_world import BulletWorld, Object
 from pycram.designators import action_designator, object_designator
@@ -32,6 +31,7 @@ except ImportError:
 pycrorm_uri = os.getenv('PYCRORM_URI')
 if pycrorm_uri:
     pycrorm_uri = "mysql+pymysql://" + pycrorm_uri
+
 @unittest.skipIf(not jpt_installed, "probabilistic model is not installed. "
                                     "Install via 'pip install probabilistic_model")
 class JPTResolverTestCase(unittest.TestCase):

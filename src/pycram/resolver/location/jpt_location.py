@@ -3,6 +3,7 @@ import json
 import time
 from typing import Optional, List, Tuple
 
+import portion
 import sqlalchemy
 import sqlalchemy.orm
 
@@ -11,7 +12,7 @@ from probabilistic_model.learning.jpt.variables import infer_variables_from_data
 from random_events.events import Event
 import numpy as np
 import pybullet
-import tf
+import tf.transformations
 from sqlalchemy import select
 
 import pycram.designators.location_designator
@@ -26,11 +27,21 @@ from ...orm.object_designator import Object
 from ...orm.base import Position, RobotState, Pose as ORMPose, Quaternion
 from ...orm.task import TaskTreeNode, Code
 from .database_location import Location, RequiresDatabase
+from ...enums import TaskStatus
 
 import pandas as pd
 
+from probabilistic_model.probabilistic_circuit.probabilistic_circuit import DeterministicSumUnit
 
-class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation, RequiresDatabase):
+
+class QueryBuilder(RequiresDatabase):
+
+    def select_statement(self):
+        return (select(PickUpAction.arm, PickUpAction.grasp, RobotState.torso_height, self.relative_x,
+                       self.relative_y, TaskTreeNode.status))
+
+
+class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation):
     """
     Costmap Locations using Joint Probability Trees (JPTs).
     JPT costmaps are trained to model the dependency with a robot position relative to the object, the robots type,
@@ -66,7 +77,7 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation,
 
         # initialize member for visualized objects
         self.visual_ids: List[int] = []
-        self.arm, self.grasp, self.relative_x, self.relative_y, self.torso_height, self.w, self.x, self.y, self.z = (
+        self.arm, self.grasp, self.relative_x, self.relative_y, self.status, self.torso_height = (
             self.model.variables)
 
     @classmethod
@@ -78,18 +89,19 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation,
         :param success_only:
         :return:
         """
-        query, _, _ = RequiresDatabase.create_query()
+        query_builder = QueryBuilder(session)
+        query = query_builder.create_query()
         if success_only:
-            query = query.where(TaskTreeNode.status == "SUCCEEDED")
+            query = query.where(TaskTreeNode.status == TaskStatus.SUCCEEDED)
 
         samples = pd.read_sql(query, session.bind)
         samples = samples.rename(columns={"anon_1": "relative_x", "anon_2": "relative_y"})
-        variables = infer_variables_from_dataframe(samples)
+        variables = infer_variables_from_dataframe(samples, scale_continuous_types=False)
         model = JPT(variables, min_samples_leaf=0.1)
         model.fit(samples)
         return model
 
-    def evidence_from_occupancy_costmap(self) -> List[Event]:
+    def events_from_occupancy_costmap(self) -> List[Event]:
         """
         Create a list of boxes that can be used as evidences for a jpt. The list of boxes describe areas where the
         robot can stand.
@@ -109,90 +121,55 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation,
         # working on a copy of the costmap, since found rectangles are deleted
         map = np.copy(ocm.map)
 
-        # initialize result
-        queries = []
+        origin = np.array([ocm.height / 2, ocm.width / 2])
 
-        origin = np.array([ocm.height/2, ocm.width/2])
+        events = []
 
-        # for every index pair (i, j) in the occupancy map
+        # for every index pair (i, j) in the occupancy costmap
         for i in range(0, map.shape[0]):
             for j in range(0, map.shape[1]):
 
                 # if this index has not been used yet
                 if map[i][j] > 0:
+                    curr_width = ocm._find_consectuive_line((i, j), map)
+                    curr_pose = (i, j)
+                    curr_height = ocm._find_max_box_height((i, j), curr_width, map)
 
-                    # get consecutive box
-                    width = ocm._find_consectuive_line((i, j), map)
-                    height = ocm._find_max_box_height((i, j), width, map)
+                    # calculate the rectangle in the costmap
+                    x_lower = (curr_pose[0] - origin[0]) * ocm.resolution
+                    x_upper = (curr_pose[0] + curr_width - origin[0]) * ocm.resolution
+                    y_lower = (curr_pose[1] - origin[1]) * ocm.resolution
+                    y_upper = (curr_pose[1] + curr_height - origin[1]) * ocm.resolution
 
-                    # mark box as used
-                    map[i:i+height, j:j+width] = 0
+                    # mark the found rectangle as occupied
+                    map[i:i + curr_height, j:j + curr_width] = 0
 
-                    # calculate to coordinates relative to the objects pose
-                    pose = np.array([i, j])
-                    lower_corner = (pose - origin) * ocm.resolution
-                    upper_corner = (pose - origin + np.array([height, width])) * ocm.resolution
-                    rectangle = np.array([lower_corner, upper_corner]).T
+                    event = Event({self.relative_x: portion.closedopen(x_lower, x_upper),
+                                   self.relative_y: portion.closedopen(y_lower, y_upper)})
 
-                    # transform to jpt query
-                    query = Event({self.x: list(rectangle[0]), self.y: list(rectangle[1])})
-                    queries.append(query)
+                    events.append(event)
 
-        return queries
+        return events
 
-    def create_evidence(self, use_success=True) -> Event:
+    def ground_model(self) -> DeterministicSumUnit:
         """
-        Create evidence usable for JPTs where type and status are set if wanted.
-
-        :param use_success: Rather to set success or not
-        :return: The usable label-assignment
+        Ground the model to the current evidence.
         """
-        evidence = dict()
 
-        evidence["type"] = {self.target.type}
+        locations = self.events_from_occupancy_costmap()
 
-        if use_success:
-            evidence["status"] = {"SUCCEEDED"}
-
-        return evidence
-
-    def sample(self, amount: int = 1) -> np.ndarray:
-        """
-        Sample from the locations that fit the CostMap and are not occupied.
-
-        :param amount: The amount of samples to draw
-        :return: A numpy array containing the samples drawn from the tree.
-        """
-        evidence = self.create_evidence()
-
-        locations = self.evidence_from_occupancy_costmap()
-        solutions = []
+        model = DeterministicSumUnit()
 
         for location in locations:
-            for variable, value in evidence.items():
-                location[variable] = value
+            conditional, probability = self.model.conditional(location)
+            if probability > 0:
+                model.add_subcircuit(conditional, probability)
 
-            for leaf in self.model.apply(location):
-                if leaf.probability(location) == 0:
-                    continue
-                altered_leaf = leaf.conditional_leaf(location)
-                # success_probability = altered_leaf.probability(location)
-                success_probability = altered_leaf.probability(self.model.bind({"status": "SUCCEEDED"}))
+        if len(model.subcircuits) == 0:
+            raise PlanFailure("No possible locations found")
 
-                mpe_state, _ = altered_leaf.mpe(self.model.minimal_distances)
-                location["grasp"] = mpe_state["grasp"]
-                location["arm"] = mpe_state["arm"]
-                location["relative torso height"] = mpe_state["relative torso height"]
-                location["x"] = mpe_state["x"]
-                location["y"] = mpe_state["y"]
-                solutions.append((location, success_probability, leaf.prior))
-
-        solutions = sorted(solutions, key=lambda x: x[1], reverse=True)
-        best_solution = solutions[0]
-        conditional_model = self.model.conditional_jpt(best_solution[0])
-
-        # conditional_model.plot(plotvars=conditional_model.variables)
-        return conditional_model.sample(amount)
+        model.normalize()
+        return model
 
     def sample_to_location(self, sample: np.ndarray) -> Location:
         """
@@ -201,21 +178,25 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation,
         :param sample: The drawn sample
         :return: The usable costmap-location
         """
-        sample_dict = {variable.name: value for variable, value in zip(self.model.variables, sample)}
+        sample_dict = {variable: value for variable, value in zip(self.model.variables, sample)}
         target_x, target_y, target_z = self.target.pose.position_as_list()
-        pose = [target_x + sample_dict["x"], target_y + sample_dict["y"], 0]
+        pose = [target_x + sample_dict[self.relative_x], target_y + sample_dict[self.relative_y], 0]
 
         angle = np.arctan2(pose[1] - target_y, pose[0] - target_x) + np.pi
 
         orientation = list(tf.transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
-        torso_height = np.clip(target_z - sample_dict["relative torso height"], 0, 0.33)
-        result = self.Location(Pose(pose, orientation), sample_dict["arm"], torso_height, sample_dict["grasp"])
+        torso_height = np.clip(target_z - sample_dict[self.torso_height], 0, 0.33)
+        result = Location(Pose(pose, orientation), sample_dict[self.arm], torso_height, sample_dict[self.grasp])
         return result
 
     def __iter__(self):
-        samples = self.sample(200)
-        for sample in samples:
-            yield self.sample_to_location(sample)
+
+        model = self.ground_model()
+
+        for _ in range(20):
+            sample = model.sample(1)
+            print(sample)
+            yield self.sample_to_location(sample[0])
 
     def visualize(self):
         """
