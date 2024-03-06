@@ -63,14 +63,14 @@ class RequiresDatabase:
         return select(PickUpAction.arm, PickUpAction.grasp, RobotState.torso_height, self.relative_x, self.relative_y,
                Quaternion.x, Quaternion.y, Quaternion.z, Quaternion.w).distinct()
     def join_statement(self, query: Select):
-        return (query.join(TaskTreeNode.code).
-                join(Code.designator.of_type(PickUpAction)).join(PickUpAction.robot_state)
-                 .join(self.robot_pose, RobotState.pose)
-                 .join(self.robot_pos, self.robot_pose.position)
-                 .join(ORMPose.orientation)
-                 .join(PickUpAction.object)
-                 .join(Object.pose)
-                 .join(self.object_pos, ORMPose.position))
+        return (query.join(TaskTreeNode.code).join(Code.designator.of_type(PickUpAction)).
+                join(PickUpAction.robot_state)
+                .join(self.robot_pose, RobotState.pose)
+                .join(self.robot_pos, self.robot_pose.position)
+                .join(ORMPose.orientation)
+                .join(PickUpAction.object)
+                .join(Object.pose)
+                .join(self.object_pos, ORMPose.position))
 
 
 class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLocation, RequiresDatabase):
