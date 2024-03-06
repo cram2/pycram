@@ -1,4 +1,4 @@
-ARG FROM_IMAGE = ros:noetic-ros-core
+ARG FROM_IMAGE=ros:noetic-ros-core
 ARG OVERLAY_WS=/opt/ros/overlay_ws
 
 FROM $FROM_IMAGE AS cacher
