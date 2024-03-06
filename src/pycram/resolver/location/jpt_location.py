@@ -81,7 +81,7 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
             self.model.variables)
 
     @classmethod
-    def fit_from_database(cls, session: sqlalchemy.orm.session.Session, success_only: bool = False):
+    def fit_from_database(cls, session: sqlalchemy.orm.session.Session, success_only: bool = False) -> JPT:
         """
         Fit a JPT to become a location designator using the data from the database that is reachable via the session.
 
@@ -93,7 +93,6 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
         query = query_builder.create_query()
         if success_only:
             query = query.where(TaskTreeNode.status == TaskStatus.SUCCEEDED)
-
         samples = pd.read_sql(query, session.bind)
         samples = samples.rename(columns={"anon_1": "relative_x", "anon_2": "relative_y"})
         variables = infer_variables_from_dataframe(samples, scale_continuous_types=False)
@@ -181,11 +180,8 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
         sample_dict = {variable: value for variable, value in zip(self.model.variables, sample)}
         target_x, target_y, target_z = self.target.pose.position_as_list()
         pose = [target_x + sample_dict[self.relative_x], target_y + sample_dict[self.relative_y], 0]
-
-        angle = np.arctan2(pose[1] - target_y, pose[0] - target_x) + np.pi
-
-        orientation = list(tf.transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
-        torso_height = np.clip(target_z - sample_dict[self.torso_height], 0, 0.33)
+        orientation = [0, 0, 0, 1]
+        torso_height = sample_dict[self.torso_height]
         result = Location(Pose(pose, orientation), sample_dict[self.arm], torso_height, sample_dict[self.grasp])
         return result
 
@@ -195,7 +191,6 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
 
         for _ in range(20):
             sample = model.sample(1)
-            print(sample)
             yield self.sample_to_location(sample[0])
 
     def visualize(self):

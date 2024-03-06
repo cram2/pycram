@@ -1,4 +1,5 @@
 import os
+import time
 import unittest
 
 import pycram.plan_failures
@@ -15,6 +16,8 @@ import pycram.orm
 import pycram.task
 from pycram.task import with_tree
 from pycram.designators.object_designator import ObjectDesignatorDescription
+from pycram.ros.viz_marker_publisher import VizMarkerPublisher
+
 
 import sqlalchemy
 import sqlalchemy.orm
@@ -46,6 +49,7 @@ class JPTResolverTestCase(unittest.TestCase):
     def setUpClass(cls) -> None:
         global pycrorm_uri
         cls.world = BulletWorld("DIRECT")
+        # VizMarkerPublisher(interval=0.1)
         cls.milk = Object("milk", "milk", "milk.stl", pose=Pose([1.3, 1, 0.9]))
         cls.robot = Object(robot_description.name, ObjectType.ROBOT, robot_description.name + ".urdf")
         ProcessModule.execution_delay = False
@@ -95,6 +99,46 @@ class JPTResolverTestCase(unittest.TestCase):
             MoveTorsoActionPerformable(sample.torso_height).perform()
             PickUpActionPerformable(ObjectDesignatorDescription(types=["milk"]).resolve(), arm=sample.reachable_arm,
                                     grasp=sample.grasp).perform()
+
+    def test_costmap_with_obstacles(self):
+        kitchen = Object("kitchen", "environment", "kitchen.urdf")
+        self.world.reset_bullet_world()
+
+        cml = JPTCostmapLocation(self.milk, model=self.model)
+        sample = next(iter(cml))
+
+        with simulated_robot:
+            NavigateActionPerformable(sample.pose).perform()
+
+            MoveTorsoActionPerformable(sample.torso_height).perform()
+
+            try:
+                PickUpActionPerformable(
+                    ObjectDesignatorDescription(types=["milk"]).resolve(),
+                    arm=sample.reachable_arm, grasp=sample.grasp).perform()
+
+            except pycram.plan_failures.PlanFailure as p:
+                kitchen.remove()
+                raise p
+        kitchen.remove()
+
+    def test_object_at_different_location(self):
+        kitchen = Object("kitchen", "environment", "kitchen.urdf")
+        self.world.reset_bullet_world()
+
+        new_milk = Object("new_milk", "milk", "milk.stl", pose=Pose([-1.45, 2.5, 0.95]))
+        cml = JPTCostmapLocation(new_milk, model=self.model)
+
+        sample = next(iter(cml))
+        with simulated_robot:
+            NavigateActionPerformable(sample.pose).perform()
+            MoveTorsoActionPerformable(sample.torso_height).perform()
+            try:
+                PickUpActionPerformable(
+                    ObjectDesignatorDescription(names=["new_milk"], types=["milk"]).resolve(),
+                    arm=sample.reachable_arm, grasp=sample.grasp).perform()
+            except pycram.plan_failures.PlanFailure as p:
+                raise p
 
 
 if __name__ == '__main__':
