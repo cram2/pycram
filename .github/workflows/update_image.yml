@@ -12,11 +12,11 @@ jobs:
       - name: log into Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{secrets.DOCKERHUB_USERNAME}}
-          password: ${{secrets.DOCKERHUB_PASS}}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASS }}
 
       - name: Build Docker image
-        run: docker build . -t ${{secrets.DOCKER_USERNAME}}/node-example-1 -f docker/Dockerfile
+        run: docker build . -t ${{ secrets.DOCKERHUB_USERNAME }}/node-example-1 -f docker/Dockerfile
 
       - name: Docker push
         run: docker push ${{secrets.DOCKERHUB_USERNAME}}/node-example-1
