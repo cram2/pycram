@@ -18,7 +18,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with: 
-          file: ./docker
+          context: ./docker
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME}}/testing_ci:latest
 
