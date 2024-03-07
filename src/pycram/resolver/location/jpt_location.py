@@ -38,7 +38,7 @@ class QueryBuilder(RequiresDatabase):
 
     def select_statement(self):
         return (select(PickUpAction.arm, PickUpAction.grasp, RobotState.torso_height, self.relative_x,
-                       self.relative_y, TaskTreeNode.status))
+                       self.relative_y, Quaternion.x, Quaternion.y, Quaternion.z, TaskTreeNode.status)).distinct()
 
 
 class JPTCostmapLocation(AbstractCostmapLocation):
@@ -66,8 +66,8 @@ class JPTCostmapLocation(AbstractCostmapLocation):
         self.visual_ids: List[int] = []
 
         # easy access to models variables
-        self.arm, self.grasp, self.relative_x, self.relative_y, self.status, self.torso_height = (
-            self.model.variables)
+        (self.arm, self.grasp, self.relative_x, self.relative_y, self.status, self.torso_height, self.qx, self.qy,
+         self.qz) = self.model.variables
 
     @classmethod
     def fit_from_database(cls, session: sqlalchemy.orm.session.Session, success_only: bool = False) -> JPT:
@@ -136,7 +136,7 @@ class JPTCostmapLocation(AbstractCostmapLocation):
         sample_dict = {variable: value for variable, value in zip(self.model.variables, sample)}
         target_x, target_y, target_z = self.target.pose.position_as_list()
         pose = [target_x + sample_dict[self.relative_x], target_y + sample_dict[self.relative_y], 0]
-        orientation = [0, 0, 0, 1]
+        orientation = [sample_dict[self.qx], sample_dict[self.qy], sample_dict[self.qz], 1]
         torso_height = sample_dict[self.torso_height]
         result = Location(Pose(pose, orientation), sample_dict[self.arm], torso_height, sample_dict[self.grasp])
         return result
