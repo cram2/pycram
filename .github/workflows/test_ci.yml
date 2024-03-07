@@ -1,4 +1,4 @@
-name: hopeful_CI
+name: pycram_docker_ci
 defaults:
   run:
     shell: bash -ieo pipefail {0}
