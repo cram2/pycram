@@ -39,10 +39,10 @@ jobs:
       - name: Set up sources & Run roscore
         run: |
           sudo -s
-          source /opt/ros/noetic/setup.bash
+          echo 'source /opt/ros/noetic/setup.bash' >> ~/.bashrc
           cd /opt/ros/overlay_ws
           catkin_make    
-          source /opt/ros/overlay_ws/devel/setup.bash 
+          echo 'source /opt/ros/overlay_ws/devel/setup.bash' >> ~/.bashrc 
           roslaunch pycram ik_and_description.launch &       
       - name: Install python dependencies
         run: |
