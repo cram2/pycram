@@ -34,18 +34,12 @@ class TaskTreeTestCase(BulletWorldTestCase):
         # self.tearDownBulletWorld()
         tt = pycram.task.task_tree
 
-        # print(anytree.RenderTree(tt))
-
         self.assertEqual(15, len(tt.root))
         self.assertEqual(10, len(tt.root.leaves))
-        names = [node.code.function.__name__ for node in anytree.PreOrderIter(tt.root)]
-        self.assertEqual(names, ["no_operation", "plan", "perform", "perform", "perform", "perform", "perform",
-                                 "perform", "perform", "perform", "perform", "perform", "perform", "perform", "perform"]
-                         )
 
         # check that all nodes succeeded
         for node in anytree.PreOrderIter(tt.root):
-            if node.code != pycram.task.NoOperation():
+            if not isinstance(node.action, pycram.task.NoOperation):
                 self.assertEqual(node.status, pycram.task.TaskStatus.SUCCEEDED)
 
     def test_exception(self):
@@ -54,6 +48,7 @@ class TaskTreeTestCase(BulletWorldTestCase):
         @with_tree
         def failing_plan():
             raise pycram.plan_failures.PlanFailure("PlanFailure for UnitTesting")
+
         pycram.task.reset_tree()
 
         self.assertRaises(pycram.plan_failures.PlanFailure, failing_plan)
@@ -61,7 +56,7 @@ class TaskTreeTestCase(BulletWorldTestCase):
         tt = pycram.task.task_tree
 
         for node in anytree.PreOrderIter(tt.root):
-            if node.code != pycram.task.NoOperation():
+            if not isinstance(node.action, pycram.task.NoOperation):
                 self.assertEqual(node.status, pycram.task.TaskStatus.FAILED)
                 self.assertEqual(pycram.plan_failures.PlanFailure, type(node.reason))
 
@@ -71,7 +66,7 @@ class TaskTreeTestCase(BulletWorldTestCase):
         tt = pycram.task.task_tree
         # self.setUpBulletWorld(False)
         with simulated_robot:
-            [node.code.execute() for node in tt.root.leaves]
+            [node.action.perform() for node in tt.root.leaves]
 
     def test_simulated_tree(self):
         with pycram.task.SimulatedTaskTree() as st:
@@ -80,12 +75,14 @@ class TaskTreeTestCase(BulletWorldTestCase):
 
             self.assertEqual(15, len(tt.root))
             self.assertEqual(10, len(tt.root.leaves))
-            names = [node.code.function.__name__ for node in anytree.PreOrderIter(tt.root)]
-            self.assertEqual(names, ["simulation", "plan", "perform", "perform", "perform", "perform", "perform",
-                                     "perform", "perform", "perform", "perform", "perform", "perform", "perform",
-                                     "perform"])
 
         self.assertEqual(len(pycram.task.task_tree), 1)
+
+    def test_to_sql(self):
+        self.plan()
+        tt = pycram.task.task_tree
+        result = tt.root.to_sql()
+        self.assertIsNotNone(result)
 
 
 if __name__ == '__main__':

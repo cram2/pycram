@@ -25,8 +25,8 @@ from pycram.bullet_world import BulletWorld, Object
 from ...orm.action_designator import PickUpAction
 from ...orm.object_designator import Object
 from ...orm.base import Position, RobotState, Pose as ORMPose, Quaternion
-from ...orm.task import TaskTreeNode, Code
-from .database_location import Location, RequiresDatabase
+from ...orm.task import TaskTreeNode
+from .database_location import Location, RequiresDatabase, Rectangle, AbstractCostmapLocation
 from ...enums import TaskStatus
 
 import pandas as pd
@@ -41,7 +41,7 @@ class QueryBuilder(RequiresDatabase):
                        self.relative_y, TaskTreeNode.status))
 
 
-class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation):
+class JPTCostmapLocation(AbstractCostmapLocation):
     """
     Costmap Locations using Joint Probability Trees (JPTs).
     JPT costmaps are trained to model the dependency with a robot position relative to the object, the robots type,
@@ -50,7 +50,7 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
     """
 
     def __init__(self, target: Object, reachable_for=None, reachable_arm=None,
-                 model: Optional[JPT] = None, path: Optional[str] = None):
+                 model: Optional[JPT] = None):
         """
         Create a JPT Costmap
 
@@ -58,25 +58,14 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
         :param reachable_for: The robot to grab the object with
         :param reachable_arm: The arm to use
         :param model: The JPT model as a loaded tree in memory, either model or path must be set
-        :param path: The path to the JPT model, either model or path must be set
         """
-        super().__init__(target, reachable_for, None, reachable_arm, None)
-        # check if arguments are plausible
-        if (not model and not path) or (model and path):
-            raise ValueError("Either model or path must be set.")
-
-        # set model
-        if model:
-            self.model = model
-
-        # load model from path
-        if path:
-            with open(path, "r") as f:
-                json_dict = json.load(f)
-            self.model = JPT.from_json(json_dict)
+        super().__init__(target, reachable_for, reachable_arm)
+        self.model = model
 
         # initialize member for visualized objects
         self.visual_ids: List[int] = []
+
+        # easy access to models variables
         self.arm, self.grasp, self.relative_x, self.relative_y, self.status, self.torso_height = (
             self.model.variables)
 
@@ -108,45 +97,12 @@ class JPTCostmapLocation(pycram.designators.location_designator.CostmapLocation)
         :return: List of evidences describing the found boxes
         """
 
-        # create Occupancy costmap for the target object
-        position, orientation = self.target.pose.to_list()
-        position = list(position)
-        position[-1] = 0
-
-        ocm = OccupancyCostmap(distance_to_obstacle=0.3, from_ros=False, size=200, resolution=0.02,
-                               origin=Pose(position, orientation))
-        # ocm.visualize()
-
-        # working on a copy of the costmap, since found rectangles are deleted
-        map = np.copy(ocm.map)
-
-        origin = np.array([ocm.height / 2, ocm.width / 2])
-
         events = []
-
-        # for every index pair (i, j) in the occupancy costmap
-        for i in range(0, map.shape[0]):
-            for j in range(0, map.shape[1]):
-
-                # if this index has not been used yet
-                if map[i][j] > 0:
-                    curr_width = ocm._find_consectuive_line((i, j), map)
-                    curr_pose = (i, j)
-                    curr_height = ocm._find_max_box_height((i, j), curr_width, map)
-
-                    # calculate the rectangle in the costmap
-                    x_lower = (curr_pose[0] - origin[0]) * ocm.resolution
-                    x_upper = (curr_pose[0] + curr_width - origin[0]) * ocm.resolution
-                    y_lower = (curr_pose[1] - origin[1]) * ocm.resolution
-                    y_upper = (curr_pose[1] + curr_height - origin[1]) * ocm.resolution
-
-                    # mark the found rectangle as occupied
-                    map[i:i + curr_height, j:j + curr_width] = 0
-
-                    event = Event({self.relative_x: portion.closedopen(x_lower, x_upper),
-                                   self.relative_y: portion.closedopen(y_lower, y_upper)})
-
-                    events.append(event)
+        for rectangle in self.create_occupancy_rectangles():
+            # get the occupancy costmap
+            event = Event({self.relative_x: portion.closedopen(rectangle.x_lower, rectangle.x_upper),
+                           self.relative_y: portion.closedopen(rectangle.y_lower, rectangle.y_upper)})
+            events.append(event)
 
         return events
 

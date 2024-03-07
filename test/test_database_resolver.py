@@ -17,15 +17,7 @@ from pycram.pose import Pose
 from pycram.robot_descriptions import robot_description
 from pycram.task import with_tree
 from pycram.enums import ObjectType
-
-# check if jpt is installed
-jpt_installed = True
-try:
-    import jpt
-    from pycram.resolver.location.database_location import DatabaseCostmapLocation
-except ImportError:
-    jpt_installed = False
-
+from pycram.resolver.location.database_location import DatabaseCostmapLocation
 
 pycrorm_uri = os.getenv('PYCRORM_URI')
 if pycrorm_uri:
@@ -33,8 +25,6 @@ if pycrorm_uri:
 
 
 @unittest.skipIf(pycrorm_uri is None, "pycrorm database is not available.")
-@unittest.skipIf(not jpt_installed, "jpt is not installed but needed for the definition of DatabaseCostmapLocations. "
-                                    "Install via 'pip install pyjpt'")
 class DatabaseResolverTestCase(unittest.TestCase,):
     world: BulletWorld
     milk: Object
