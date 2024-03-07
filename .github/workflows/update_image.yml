@@ -21,10 +21,5 @@ jobs:
           context: ./docker
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME}}/testing_ci:latest
-
-
-      # - name: Build Docker image
-      #   run: docker build . -t ${{ secrets.DOCKERHUB_USERNAME }}/node-example-1 -f docker/Dockerfile
-
-      # - name: Docker push
-      #   run: docker push ${{secrets.DOCKERHUB_USERNAME}}/node-example-1
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
