@@ -5,6 +5,7 @@ on:
     types: 
       - completed
 
+# Runs if pycram_docekr_ci ran successfully
 jobs:
   on-success:
     runs-on: ubuntu-latest
@@ -27,5 +28,3 @@ jobs:
           context: ./docker
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME}}/testing_ci:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max

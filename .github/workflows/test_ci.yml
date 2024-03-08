@@ -7,7 +7,7 @@ on:
   push:
     branches: 
       - dev
-  workflow_dispatch:
+  workflow_dispatch: # For manual debugging
     inputs:
       debug_enabled:
         type: boolean
@@ -19,7 +19,7 @@ jobs:
   build_and_run_tests:
     runs-on: ubuntu-20.04
     container: 
-      image: leoaung/testing_ci:latest # Change docker image to your own
+      image: leoaung/testing_ci:latest
     steps:
       - name: Checkout PyCRAM
         uses: actions/checkout@v3
@@ -28,12 +28,14 @@ jobs:
           repository: ${{ github.repository }}
           ref: ${{ github.ref }}
           submodules: 'recursive'
+
       - name: Update PyCRAM source files
         run: |
           rm -rf /opt/ros/overlay_ws/src/pycram/* 
           cd /opt/ros/overlay_ws/src/pycram
           rm -rf .git .github .gitignore .gitmodules .readthedocs.yaml
           mv /__w/pycram_CI/pycram_CI/ros/src/pycram /opt/ros/overlay_ws/src
+
       - name: Remake workspace & start roscore
         run: |
           sudo -s
@@ -41,15 +43,18 @@ jobs:
           cd /opt/ros/overlay_ws
           catkin_make    
           source /opt/ros/overlay_ws/devel/setup.bash 
-          roslaunch pycram ik_and_description.launch &       
+          roslaunch pycram ik_and_description.launch & 
+
       - name: Install python dependencies
         run: |
           pip3 install --upgrade pip --root-user-action=ignore
           cd /opt/ros/overlay_ws/src/pycram
           pip3 install -r requirements.txt
+
       - name: Install Pytest, pyjpt & mlflow
         run: |
           pip3 install --ignore-installed pytest pyjpt mlflow   
+
       - name: Run tests
         run: |
           sudo -s
@@ -59,7 +64,7 @@ jobs:
           roscd pycram
           pytest -v test  
       # For debugging     
-      # - name: Setup tmate session
-      #   uses: mxschmitt/action-tmate@v3
-      # if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}   
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}   
 
