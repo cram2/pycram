@@ -5,7 +5,7 @@ on:
     types: 
       - completed
 
-# Runs if pycram_docekr_ci ran successfully
+# Runs if pycram_docekr_ci workflow ran successfully
 jobs:
   on-success:
     runs-on: ubuntu-latest
