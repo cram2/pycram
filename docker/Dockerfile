@@ -5,12 +5,11 @@ FROM $FROM_IMAGE as cacher
 ARG OVERLAY_WS 
 WORKDIR $OVERLAY_WS/src
 
-# Checks PyCRAM repo for latest commit --> will rebuild if there is a new commit
-ADD "https://api.github.com/repos/cram2/pycram/commits?per_page=1" latest_commit
-
 RUN apt-get update && apt-get install python3-pip python3-vcstool git -y && pip3 install pip --upgrade
 RUN pip3 install rosdep && rosdep init
 
+# Checks PyCRAM repo for latest commit --> will rebuild if there is a new commit
+ADD "https://api.github.com/repos/cram2/pycram/commits?per_page=1" latest_commit
 RUN vcs import --input https://raw.githubusercontent.com/cram2/pycram/dev/pycram-https.rosinstall --recursive --skip-existing $OVERLAY_WS/src
 RUN rosdep update && rosdep install --from-paths $OVERLAY_WS/src --ignore-src -r -y
 

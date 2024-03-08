@@ -16,12 +16,10 @@ on:
         description: 'Run tmate session'
 
 jobs:
-  container-test-job:
+  build_and_run_tests:
     runs-on: ubuntu-20.04
     container: 
-      image: leoaung/testing_ci:latest
-      ports:
-        - 11311
+      image: leoaung/testing_ci:latest # Change docker image to your own
     steps:
       - name: Checkout PyCRAM
         uses: actions/checkout@v3
@@ -30,13 +28,13 @@ jobs:
           repository: ${{ github.repository }}
           ref: ${{ github.ref }}
           submodules: 'recursive'
-      - name: Update PyCRAM files
+      - name: Update PyCRAM source files
         run: |
           rm -rf /opt/ros/overlay_ws/src/pycram/* 
           cd /opt/ros/overlay_ws/src/pycram
           rm -rf .git .github .gitignore .gitmodules .readthedocs.yaml
           mv /__w/pycram_CI/pycram_CI/ros/src/pycram /opt/ros/overlay_ws/src
-      - name: Set up sources & Run roscore
+      - name: Remake workspace & start roscore
         run: |
           sudo -s
           source /opt/ros/noetic/setup.bash
@@ -51,10 +49,7 @@ jobs:
           pip3 install -r requirements.txt
       - name: Install Pytest, pyjpt & mlflow
         run: |
-          pip3 install --ignore-installed pytest pyjpt mlflow
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}      
+          pip3 install --ignore-installed pytest pyjpt mlflow   
       - name: Run tests
         run: |
           sudo -s
@@ -63,4 +58,8 @@ jobs:
           source /opt/ros/overlay_ws/devel/setup.bash 
           roscd pycram
           pytest -v test  
+      # For debugging     
+      # - name: Setup tmate session
+      #   uses: mxschmitt/action-tmate@v3
+      # if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}   
 
