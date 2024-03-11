@@ -19,7 +19,7 @@ jobs:
   build_and_run_tests:
     runs-on: ubuntu-20.04
     container:
-      image: ${{ vars.DOCKER_IMAGE}}
+      image: ${{ vars.DOCKER_IMAGE}} #add docker image variable to repo
     steps:
       - name: Checkout PyCRAM
         uses: actions/checkout@v3
