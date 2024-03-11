@@ -3,9 +3,9 @@ defaults:
   run:
     shell: bash -ieo pipefail {0}
 
-on: 
+on:
   push:
-    branches: 
+    branches:
       - dev
   workflow_dispatch: # For manual debugging
     inputs:
@@ -13,21 +13,21 @@ on:
         type: boolean
         required: false
         default: false
-        description: 'Run tmate session' 
+        description: "Run tmate session"
 
 jobs:
   build_and_run_tests:
     runs-on: ubuntu-20.04
-    container: 
-      image: leoaung/testing_ci:latest
+    container:
+      image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPONAME }}:latest
     steps:
       - name: Checkout PyCRAM
         uses: actions/checkout@v3
-        with: 
-          path: 'ros/src/pycram'  
+        with:
+          path: "ros/src/pycram"
           repository: ${{ github.repository }}
           ref: ${{ github.ref }}
-          submodules: 'recursive'
+          submodules: "recursive"
 
       - name: Update PyCRAM source files
         run: |
@@ -43,7 +43,7 @@ jobs:
           cd /opt/ros/overlay_ws
           catkin_make    
           source /opt/ros/overlay_ws/devel/setup.bash 
-          roslaunch pycram ik_and_description.launch & 
+          roslaunch pycram ik_and_description.launch &
 
       - name: Install python dependencies
         run: |
@@ -53,7 +53,7 @@ jobs:
 
       - name: Install Pytest, pyjpt & mlflow
         run: |
-          pip3 install --ignore-installed pytest pyjpt mlflow   
+          pip3 install --ignore-installed pytest pyjpt mlflow
 
       - name: Run tests
         run: |
@@ -62,10 +62,9 @@ jobs:
           cd /opt/ros/overlay_ws    
           source /opt/ros/overlay_ws/devel/setup.bash 
           roscd pycram
-          pytest -v test  
-          
-      # For debugging     
+          pytest -v test
+
+      # For debugging
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}   
-
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
