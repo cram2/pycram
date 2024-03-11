@@ -15,22 +15,11 @@ on:
         default: false
         description: "Run tmate session"
 
-env:
-  docker_image: ${{ secrets.DOCKERHUB_USERNAME}}/${{ secrets.DOCKERHUB_REPONAME}}:latest
-
 jobs:
-  prepare-image: # Step for getting environment variable to work
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "null"
-    outputs:
-      image: ${{ env.docker_image }}
-
   build_and_run_tests:
     runs-on: ubuntu-20.04
-    needs: [prepare-image]
     container:
-      image: ${{ needs.prepare-image.outputs.image}}
+      image: ${{ vars.DOCKER_IMAGE}}
     steps:
       - name: Checkout PyCRAM
         uses: actions/checkout@v3
