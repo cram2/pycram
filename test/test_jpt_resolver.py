@@ -18,7 +18,7 @@ from pycram.task import with_tree
 from pycram.designators.object_designator import ObjectDesignatorDescription
 from pycram.ros.viz_marker_publisher import VizMarkerPublisher
 
-
+import plotly.graph_objects as go
 import sqlalchemy
 import sqlalchemy.orm
 
@@ -27,7 +27,7 @@ jpt_installed = True
 try:
     from probabilistic_model.learning.jpt.jpt import JPT
     from probabilistic_model.learning.jpt.variables import infer_variables_from_dataframe
-    from pycram.resolver.location.jpt_location import JPTCostmapLocation
+    from pycram.resolver.location.jpt_location import JPTCostmapLocation, GaussianCostmapModel
 except ImportError:
     jpt_installed = False
 
@@ -139,6 +139,13 @@ class JPTResolverTestCase(unittest.TestCase):
                     arm=sample.reachable_arm, grasp=sample.grasp).perform()
             except pycram.plan_failures.PlanFailure as p:
                 raise p
+
+
+class TruncatedNormalTestCase(unittest.TestCase):
+
+    def test_normal_costmap(self):
+        model = GaussianCostmapModel(0.1, 0.5).create_model()
+        go.Figure(model.root.plot()).show()
 
 
 if __name__ == '__main__':

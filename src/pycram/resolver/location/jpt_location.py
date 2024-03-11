@@ -13,6 +13,7 @@ from random_events.events import Event
 import numpy as np
 import pybullet
 import tf.transformations
+from random_events.variables import Continuous
 from sqlalchemy import select
 
 import pycram.designators.location_designator
@@ -31,7 +32,66 @@ from ...enums import TaskStatus
 
 import pandas as pd
 
-from probabilistic_model.probabilistic_circuit.probabilistic_circuit import DeterministicSumUnit
+from probabilistic_model.probabilistic_circuit.probabilistic_circuit import DeterministicSumUnit, ProbabilisticCircuit, DecomposableProductUnit
+from probabilistic_model.probabilistic_circuit.distributions import GaussianDistribution
+
+
+class GaussianCostmapModel:
+    """
+    Class that generates a Gaussian Costmap around the center of an object. The costmap cuts out a square in the middle
+    that has side lengths given by ``distance_to_center``.
+    """
+
+    distance_to_center: float
+    """
+    The side length of the cut out square.
+    """
+
+    variance: float
+    """
+    The variance of the distributions involved
+    """
+
+    relative_x = Continuous("relative_x")
+    relative_y = Continuous("relative_y")
+
+    def __init__(self, distance_to_center: float = 0., variance: float = 0.5):
+        self.distance_to_center = distance_to_center
+        self.variance = variance
+
+    def create_model_with_center(self) -> ProbabilisticCircuit:
+        """
+        Create a fully factorized gaussian at the center of the map.
+        """
+        centered_model = DecomposableProductUnit()
+        centered_model.add_subcircuit(GaussianDistribution(self.relative_x, 0., 0.5))
+        centered_model.add_subcircuit(GaussianDistribution(self.relative_y, 0., 0.5))
+        return centered_model.probabilistic_circuit
+
+    def create_model(self) -> ProbabilisticCircuit:
+        """
+        Create a gaussian model that assumes mass everywhere besides the center square.
+
+        :return: The probabilistic circuit
+        """
+        centered_model = self.create_model_with_center()
+
+        model = DeterministicSumUnit()
+
+        north_region = Event({self.relative_x: portion.closed(-self.distance_to_center, self.distance_to_center),
+                              self.relative_y: portion.closed(self.distance_to_center, float("inf"))})
+        south_region = Event({self.relative_x: portion.closed(-self.distance_to_center, self.distance_to_center),
+                              self.relative_y: portion.closed(-float("inf"), -self.distance_to_center)})
+        east_region = Event({self.relative_x: portion.closed(self.distance_to_center, float("inf")),
+                             self.relative_y: portion.open(-float("inf"), float("inf"))})
+        west_region = Event({self.relative_x: portion.closed(-float("inf"), -self.distance_to_center),
+                             self.relative_y: portion.open(-float("inf"), float("inf"))})
+
+        for region in [north_region, south_region, east_region, west_region]:
+            conditional, probability = centered_model.conditional(region)
+            model.add_subcircuit(conditional.root, probability)
+
+        return model.probabilistic_circuit
 
 
 class QueryBuilder(RequiresDatabase):
@@ -50,7 +110,7 @@ class JPTCostmapLocation(AbstractCostmapLocation):
     """
 
     def __init__(self, target: Object, reachable_for=None, reachable_arm=None,
-                 model: Optional[JPT] = None):
+                 model: Optional[ProbabilisticCircuit] = None):
         """
         Create a JPT Costmap
 
@@ -70,7 +130,8 @@ class JPTCostmapLocation(AbstractCostmapLocation):
          self.qz) = self.model.variables
 
     @classmethod
-    def fit_from_database(cls, session: sqlalchemy.orm.session.Session, success_only: bool = False) -> JPT:
+    def fit_from_database(cls, session: sqlalchemy.orm.session.Session, success_only: bool = False) -> (
+            ProbabilisticCircuit):
         """
         Fit a JPT to become a location designator using the data from the database that is reachable via the session.
 
@@ -87,7 +148,7 @@ class JPTCostmapLocation(AbstractCostmapLocation):
         variables = infer_variables_from_dataframe(samples, scale_continuous_types=False)
         model = JPT(variables, min_samples_leaf=0.1)
         model.fit(samples)
-        return model
+        return model.probabilistic_circuit
 
     def events_from_occupancy_costmap(self) -> List[Event]:
         """
@@ -118,7 +179,7 @@ class JPTCostmapLocation(AbstractCostmapLocation):
         for location in locations:
             conditional, probability = self.model.conditional(location)
             if probability > 0:
-                model.add_subcircuit(conditional, probability)
+                model.add_subcircuit(conditional.root, probability)
 
         if len(model.subcircuits) == 0:
             raise PlanFailure("No possible locations found")
@@ -142,72 +203,17 @@ class JPTCostmapLocation(AbstractCostmapLocation):
         return result
 
     def __iter__(self):
-
         model = self.ground_model()
-
-        for _ in range(20):
-            sample = model.sample(1)
-            yield self.sample_to_location(sample[0])
+        samples = model.sample(20)
+        for sample in samples:
+            yield self.sample_to_location(sample)
 
     def visualize(self):
         """
         Plot the possible areas to stand in the BulletWorld. The opacity is the probability of success.
 
         """
-
-        evidence = self.create_evidence(use_success=False)
-
-        conditional_model = self.model.conditional_jpt(evidence)
-
-        for leaf in conditional_model.leaves.values():
-
-            success = leaf.distributions["status"].p({"SUCCEEDED"})
-
-            if success == 0:
-                continue
-
-            x_intervals = leaf.distributions["x"].cdf.intervals
-            y_intervals = leaf.distributions["y"].cdf.intervals
-
-            x_range = np.array([x_intervals[0].upper, x_intervals[-1].lower])
-            y_range = np.array([y_intervals[0].upper, y_intervals[-1].lower])
-
-            center = np.array([sum(x_range) / 2, sum(y_range) / 2])
-
-            visual = pybullet.createVisualShape(pybullet.GEOM_BOX,
-                                                halfExtents=[(x_range[1] - x_range[0]) / 2,
-                                                             (y_range[1] - y_range[0]) / 2, 0.001],
-                                                rgbaColor=[1, 0, 0, success],
-                                                visualFramePosition=[*center, 0])
-
-            self.visual_ids.append(visual)
-
-        for id_list in np.array_split(np.array(self.visual_ids), np.ceil(len(self.visual_ids) / 127)):
-            # Dummy paramater since these are needed to spawn visual shapes as a multibody.
-            link_poses = [[0, 0, 0] for c in id_list]
-            link_orientations = [[0, 0, 0, 1] for c in id_list]
-            link_masses = [1.0 for c in id_list]
-            link_parent = [0 for c in id_list]
-            link_joints = [pybullet.JOINT_FIXED for c in id_list]
-            link_collision = [-1 for c in id_list]
-            link_joint_axis = [[1, 0, 0] for c in id_list]
-
-            # The position at which the multibody will be spawned. Offset such that
-            # the origin referes to the centre of the costmap.
-            origin_pose = self.target.pose.to_list()
-            base_position = list(origin_pose[0])
-            base_position[2] = 0
-
-            map_obj = pybullet.createMultiBody(baseVisualShapeIndex=-1, linkVisualShapeIndices=id_list,
-                                               basePosition=base_position, baseOrientation=origin_pose[1],
-                                               linkPositions=link_poses,
-                                               linkMasses=link_masses, linkOrientations=link_orientations,
-                                               linkInertialFramePositions=link_poses,
-                                               linkInertialFrameOrientations=link_orientations,
-                                               linkParentIndices=link_parent,
-                                               linkJointTypes=link_joints, linkJointAxis=link_joint_axis,
-                                               linkCollisionShapeIndices=link_collision)
-            self.visual_ids.append(map_obj)
+        raise NotImplementedError
 
     def close_visualization(self) -> None:
         """
