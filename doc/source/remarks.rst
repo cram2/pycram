@@ -17,7 +17,7 @@ To fix this issue one has to execute
     python -m ipykernel install --user --name <kernel_name> --display-name "<Name_to_display>"
 
 in your terminal. --name is the name of your virtual environment and --display-name is the name
-that will display in the drop down menu of jupyter. After that, select the correct kernel and
+that will display in the drop down menu of jupyter. After that, select the correct Python interpreter kernel and
 everything should work now.
 
 Adding Notebooks to the Documentation
