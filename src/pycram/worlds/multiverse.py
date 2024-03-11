@@ -111,16 +111,6 @@ class Multiverse(MultiverseSocket, World):
     def get_object_link_names(self, obj: Object) -> List[str]:
         return [link.name for link in obj.description.links]
 
-    def remove_object_from_simulator(self, obj: Object) -> None:
-        logging.warning("remove_object_from_simulator is not implemented in Multiverse")
-
-    def add_constraint(self, constraint: Constraint) -> int:
-        logging.warning("add_constraint is not implemented in Multiverse")
-        return 0
-
-    def remove_constraint(self, constraint_id) -> None:
-        logging.warning("remove_constraint is not implemented in Multiverse")
-
     def _init_getter(self):
         self.request_meta_data["receive"] = {}
         self.request_meta_data["send"] = {}
@@ -181,6 +171,22 @@ class Multiverse(MultiverseSocket, World):
         self.send_data = [time.time(), *pose.position_as_list(), *pose.orientation_as_list()]
         self._communicate(False)
 
+    def disconnect_from_physics_server(self) -> None:
+        self.stop()
+
+    def join_threads(self) -> None:
+        pass
+
+    def remove_object_from_simulator(self, obj: Object) -> None:
+        logging.warning("remove_object_from_simulator is not implemented in Multiverse")
+
+    def add_constraint(self, constraint: Constraint) -> int:
+        logging.warning("add_constraint is not implemented in Multiverse")
+        return 0
+
+    def remove_constraint(self, constraint_id) -> None:
+        logging.warning("remove_constraint is not implemented in Multiverse")
+
     def perform_collision_detection(self) -> None:
         logging.warning("perform_collision_detection is not implemented in Multiverse")
 
@@ -192,8 +198,28 @@ class Multiverse(MultiverseSocket, World):
         logging.warning("get_contact_points_between_two_objects is not implemented in Multiverse")
         return []
 
+    def ray_test(self, from_position: List[float], to_position: List[float]) -> int:
+        logging.error("ray_test is not implemented in Multiverse")
+        raise NotImplementedError
+
+    def ray_test_batch(self, from_positions: List[List[float]], to_positions: List[List[float]],
+                       num_threads: int = 1) -> List[int]:
+        logging.error("ray_test_batch is not implemented in Multiverse")
+        raise NotImplementedError
+
     def step(self):
         logging.warning("step is not implemented in Multiverse")
+
+    def save_physics_simulator_state(self) -> int:
+        logging.warning("save_physics_simulator_state is not implemented in Multiverse")
+        return 0
+
+    def remove_physics_simulator_state(self, state_id: int) -> None:
+        logging.warning("remove_physics_simulator_state is not implemented in Multiverse")
+
+    def restore_physics_simulator_state(self, state_id: int) -> None:
+        logging.error("restore_physics_simulator_state is not implemented in Multiverse")
+        raise NotImplementedError
 
     def set_link_color(self, link: Link, rgba_color: Color):
         logging.warning("set_link_color is not implemented in Multiverse")
@@ -219,29 +245,3 @@ class Multiverse(MultiverseSocket, World):
 
     def set_gravity(self, gravity_vector: List[float]) -> None:
         logging.warning("set_gravity is not implemented in Multiverse")
-
-    def disconnect_from_physics_server(self) -> None:
-        self.stop()
-
-    def join_threads(self) -> None:
-        pass
-
-    def save_physics_simulator_state(self) -> int:
-        logging.warning("save_physics_simulator_state is not implemented in Multiverse")
-        return 0
-
-    def remove_physics_simulator_state(self, state_id: int) -> None:
-        logging.warning("remove_physics_simulator_state is not implemented in Multiverse")
-
-    def restore_physics_simulator_state(self, state_id: int) -> None:
-        logging.error("restore_physics_simulator_state is not implemented in Multiverse")
-        raise NotImplementedError
-
-    def ray_test(self, from_position: List[float], to_position: List[float]) -> int:
-        logging.error("ray_test is not implemented in Multiverse")
-        raise NotImplementedError
-
-    def ray_test_batch(self, from_positions: List[List[float]], to_positions: List[List[float]],
-                       num_threads: int = 1) -> List[int]:
-        logging.error("ray_test_batch is not implemented in Multiverse")
-        raise NotImplementedError
