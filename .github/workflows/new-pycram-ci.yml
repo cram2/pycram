@@ -17,9 +17,12 @@ on:
 
 jobs:
   build_and_run_tests:
+    env:
+      Dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME}}
+      Dockerhub_reponame: ${{ secrets.DOCKERHUB_REPONAME}}
     runs-on: ubuntu-20.04
     container:
-      image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPONAME }}:latest
+      image: $Dockerhub_username/$Dockerhub_reponame:latest
     steps:
       - name: Checkout PyCRAM
         uses: actions/checkout@v3
