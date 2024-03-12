@@ -110,23 +110,21 @@ class AbstractCostmapLocation(pycram.designators.location_designator.CostmapLoca
         """
         super().__init__(target, reachable_for, None, reachable_arm, None)
 
-    def create_occupancy_rectangles(self) -> List[Rectangle]:
+    @staticmethod
+    def create_occupancy_rectangles_from_map(ocm: OccupancyCostmap):
         """
+        Create a list of rectangles that represent the occupied space of the target object from an OccupancyCostmap.
+
+        :param ocm: The OccupancyCostmap
         :return: A list of rectangles that represent the occupied space of the target object.
         """
-        # create Occupancy costmap for the target object
-        ocm = OccupancyCostmap(distance_to_obstacle=0.3, from_ros=False, size=200, resolution=0.02,
-                               origin=self.target.pose)
-
-        # working on a copy of the costmap, since found rectangles are deleted
         ocm_map = np.copy(ocm.map)
-
         origin = np.array([ocm.height / 2, ocm.width / 2])
         rectangles = []
 
         # for every index pair (i, j) in the occupancy costmap
-        for i in range(0, ocm_map.shape[0]):
-            for j in range(0, ocm_map.shape[1]):
+        for i in range(0, ocm.map.shape[0]):
+            for j in range(0, ocm.map.shape[1]):
 
                 # if this index has not been used yet
                 if ocm_map[i][j] > 0:
@@ -146,6 +144,15 @@ class AbstractCostmapLocation(pycram.designators.location_designator.CostmapLoca
                     rectangles.append(Rectangle(x_lower, x_upper, y_lower, y_upper))
 
         return rectangles
+
+    def create_occupancy_rectangles(self) -> List[Rectangle]:
+        """
+        :return: A list of rectangles that represent the occupied space of the target object.
+        """
+        # create Occupancy costmap for the target object
+        ocm = OccupancyCostmap(distance_to_obstacle=0.3, from_ros=False, size=200, resolution=0.02,
+                               origin=self.target.pose)
+        return self.create_occupancy_rectangles_from_map(ocm)
 
 
 class DatabaseCostmapLocation(AbstractCostmapLocation, RequiresDatabase):
