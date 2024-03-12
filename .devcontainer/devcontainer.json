@@ -1,0 +1,7 @@
+{
+  "name": "PyCRAM dev container",
+  "image": "leoaung/testing_ci:latest",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  }
+}
