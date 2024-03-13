@@ -34,6 +34,11 @@ jobs:
           ref: ${{ github.ref }}
           submodules: "recursive"
 
+      # For debugging
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}          
+
       - name: Update PyCRAM source files
         run: |
           rm -rf /opt/ros/overlay_ws/src/pycram/* 
@@ -69,7 +74,4 @@ jobs:
           roscd pycram
           pytest -v test
 
-      # For debugging
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+
