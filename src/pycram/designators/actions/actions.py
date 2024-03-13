@@ -1,9 +1,12 @@
 import abc
 import inspect
+
+import numpy as np
+from tf import transformations
 from typing_extensions import Union, Type
 from pycram.designator import ActionDesignatorDescription
 from pycram.designators.motion_designator import *
-from pycram.enums import Arms
+from pycram.enums import Arms, Grasp
 from pycram.task import with_tree
 from dataclasses import dataclass, field
 from ..location_designator import CostmapLocation
@@ -21,7 +24,8 @@ from ...orm.action_designator import (ParkArmsAction as ORMParkArmsAction, Navig
                                       MoveTorsoAction as ORMMoveTorsoAction, SetGripperAction as ORMSetGripperAction,
                                       LookAtAction as ORMLookAtAction, DetectAction as ORMDetectAction,
                                       TransportAction as ORMTransportAction, OpenAction as ORMOpenAction,
-                                      CloseAction as ORMCloseAction, GraspingAction as ORMGraspingAction, Action)
+                                      CloseAction as ORMCloseAction, GraspingAction as ORMGraspingAction, Action,
+                                      FaceAtAction as ORMFaceAtAction)
 
 
 @dataclass
@@ -550,3 +554,68 @@ class GraspingActionPerformable(ActionAbstract):
 
         MoveTCPMotion(object_pose, self.arm, allow_gripper_collision=True).perform()
         MoveGripperMotion("close", self.arm, allow_gripper_collision=True).perform()
+
+
+@dataclass
+class FaceAtPerformable(ActionAbstract):
+    """
+    Turn the robot chassis such that is faces the ``pose`` and after that perform a look at action.
+    """
+
+    pose: Pose
+    """
+    The pose to face 
+    """
+
+    orm_class = ORMFaceAtAction
+
+    @with_tree
+    def perform(self) -> None:
+        # get the robot position
+        robot_position = BulletWorld.robot.pose
+
+        # calculate orientation for robot to face the object
+        angle = np.arctan2(robot_position.position.y - self.pose.position.y,
+                           robot_position.position.x - self.pose.position.x) + np.pi
+        orientation = list(transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
+
+        # create new robot pose
+        new_robot_pose = Pose(robot_position.to_list()[0], orientation)
+
+        # turn robot
+        NavigateActionPerformable(new_robot_pose).perform()
+
+        # look at target
+        LookAtActionPerformable(self.pose).perform()
+
+
+@dataclass
+class MoveAndPickUpPerformable(ActionAbstract):
+    """
+    Navigate to `standing_position`, then turn towards the object and pick it up.
+    """
+
+    standing_position: Pose
+    """
+    The pose to stand before trying to pick up the object
+    """
+
+    object_designator: ObjectDesignatorDescription.Object
+    """
+    The object to pick up
+    """
+
+    arm: Arms
+    """
+    The arm to use
+    """
+
+    grasp: Grasp
+    """
+    The grasp to use
+    """
+
+    def perform(self):
+        NavigateActionPerformable(self.standing_position).perform()
+        FaceAtPerformable(self.object_designator.pose).perform()
+        PickUpActionPerformable(self.object_designator, self.arm, self.grasp).perform()

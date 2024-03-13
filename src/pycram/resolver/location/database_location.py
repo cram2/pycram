@@ -6,18 +6,19 @@ import sqlalchemy.sql
 from sqlalchemy import select, Select
 from typing_extensions import List
 
-import pycram.designators.location_designator
-import pycram.task
-from pycram.costmaps import OccupancyCostmap
-from pycram.orm.action_designator import PickUpAction
-from pycram.orm.base import Position, RobotState, Pose as ORMPose, Quaternion
-from pycram.orm.object_designator import Object
-from pycram.orm.task import TaskTreeNode
+from ...costmaps import Rectangle, OccupancyCostmap
+from ...designator import LocationDesignatorDescription
+from ...designators.location_designator import CostmapLocation
+from ...orm.action_designator import PickUpAction
+from ...orm.base import RobotState, Quaternion
+from ...orm.object_designator import Object
+from ...orm.task import TaskTreeNode
 from ...pose import Pose
+from ...orm.queries.queries import PickUpWithContext
 
 
 @dataclass
-class Location(pycram.designators.location_designator.LocationDesignatorDescription.Location):
+class Location(LocationDesignatorDescription.Location):
     """
     A location that is described by a pose, a reachable arm, a torso height and a grasp.
     """
@@ -27,76 +28,7 @@ class Location(pycram.designators.location_designator.LocationDesignatorDescript
     grasp: str
 
 
-@dataclass
-class Rectangle:
-    """
-    A rectangle that is described by a lower and upper x and y value.
-    """
-    x_lower: float
-    x_upper: float
-    y_lower: float
-    y_upper: float
-
-
-class RequiresDatabase:
-    """
-    Mixin class that provides a database session.
-    """
-
-    robot_position = sqlalchemy.orm.aliased(Position)
-    """
-    3D Vector of robot position
-    """
-
-    robot_pose = sqlalchemy.orm.aliased(ORMPose)
-    """
-    Complete robot pose
-    """
-
-    object_position = sqlalchemy.orm.aliased(Position)
-    """
-    3D Vector for object position
-    """
-
-    relative_x = robot_position.x - object_position.x
-    """
-    Distance on x axis between robot and object
-    """
-
-    relative_y = robot_position.y - object_position.y
-    """
-    Distance on y axis between robot and object
-    """
-
-    def __init__(self, session: sqlalchemy.orm.Session = None):
-        """
-        Create a new RequiresDatabase instance.
-
-        :param session: The database session
-        """
-        self.session = session
-
-    def create_query(self) -> Select:
-        """
-        Create a query that queries the database for all pick up actions with context.
-        """
-        query = self.join_statement(self.select_statement())
-        return query
-
-    def select_statement(self):
-        return select(PickUpAction.arm, PickUpAction.grasp, RobotState.torso_height, self.relative_x, self.relative_y,
-                      Quaternion.x, Quaternion.y, Quaternion.z, Quaternion.w).distinct()
-
-    def join_statement(self, query: Select):
-        return (query.join(TaskTreeNode).join(TaskTreeNode.action.of_type(PickUpAction))
-                .join(PickUpAction.robot_state).join(self.robot_pose, RobotState.pose)
-                .join(self.robot_position, self.robot_pose.position)
-                .join(ORMPose.orientation)
-                .join(PickUpAction.object)
-                .join(Object.pose).join(self.object_position, ORMPose.position))
-
-
-class AbstractCostmapLocation(pycram.designators.location_designator.CostmapLocation):
+class AbstractCostmapLocation(CostmapLocation):
     """
     Abstract Class for JPT and Database costmaps.
     """
@@ -110,41 +42,6 @@ class AbstractCostmapLocation(pycram.designators.location_designator.CostmapLoca
         """
         super().__init__(target, reachable_for, None, reachable_arm, None)
 
-    @staticmethod
-    def create_occupancy_rectangles_from_map(ocm: OccupancyCostmap):
-        """
-        Create a list of rectangles that represent the occupied space of the target object from an OccupancyCostmap.
-
-        :param ocm: The OccupancyCostmap
-        :return: A list of rectangles that represent the occupied space of the target object.
-        """
-        ocm_map = np.copy(ocm.map)
-        origin = np.array([ocm.height / 2, ocm.width / 2])
-        rectangles = []
-
-        # for every index pair (i, j) in the occupancy costmap
-        for i in range(0, ocm.map.shape[0]):
-            for j in range(0, ocm.map.shape[1]):
-
-                # if this index has not been used yet
-                if ocm_map[i][j] > 0:
-                    curr_width = ocm._find_consectuive_line((i, j), ocm_map)
-                    curr_pose = (i, j)
-                    curr_height = ocm._find_max_box_height((i, j), curr_width, ocm_map)
-
-                    # calculate the rectangle in the costmap
-                    x_lower = (curr_pose[0] - origin[0]) * ocm.resolution
-                    x_upper = (curr_pose[0] + curr_width - origin[0]) * ocm.resolution
-                    y_lower = (curr_pose[1] - origin[1]) * ocm.resolution
-                    y_upper = (curr_pose[1] + curr_height - origin[1]) * ocm.resolution
-
-                    # mark the found rectangle as occupied
-                    ocm_map[i:i + curr_height, j:j + curr_width] = 0
-
-                    rectangles.append(Rectangle(x_lower, x_upper, y_lower, y_upper))
-
-        return rectangles
-
     def create_occupancy_rectangles(self) -> List[Rectangle]:
         """
         :return: A list of rectangles that represent the occupied space of the target object.
@@ -152,10 +49,10 @@ class AbstractCostmapLocation(pycram.designators.location_designator.CostmapLoca
         # create Occupancy costmap for the target object
         ocm = OccupancyCostmap(distance_to_obstacle=0.3, from_ros=False, size=200, resolution=0.02,
                                origin=self.target.pose)
-        return self.create_occupancy_rectangles_from_map(ocm)
+        return ocm.partitioning_rectangles()
 
 
-class DatabaseCostmapLocation(AbstractCostmapLocation, RequiresDatabase):
+class DatabaseCostmapLocation(AbstractCostmapLocation):
     """
     Class that represents costmap locations from a given Database.
     The database has to have a schema that is compatible with the pycram.orm package.
@@ -172,7 +69,13 @@ class DatabaseCostmapLocation(AbstractCostmapLocation, RequiresDatabase):
 
         """
         super().__init__(target, reachable_for, reachable_arm)
-        RequiresDatabase.__init__(self, session)
+        self.session = session
+
+    @staticmethod
+    def select_statement(query_context: PickUpWithContext) -> Select:
+        return query_context.join_statement(select(PickUpAction.arm, PickUpAction.grasp, RobotState.torso_height,
+                                                   query_context.relative_x, query_context.relative_y, Quaternion.x,
+                                                   Quaternion.y, Quaternion.z, Quaternion.w).distinct())
 
     def create_query_from_occupancy_costmap(self) -> Select:
         """
@@ -180,8 +83,10 @@ class DatabaseCostmapLocation(AbstractCostmapLocation, RequiresDatabase):
         OccupancyCostmap.
         """
 
+        query_context = PickUpWithContext()
+
         # get query
-        query = self.create_query()
+        query = self.select_statement(query_context)
 
         # constraint query to correct object type and successful task status
         query = query.where(Object.type == self.target.type).where(TaskTreeNode.status == "SUCCEEDED")
@@ -191,8 +96,10 @@ class DatabaseCostmapLocation(AbstractCostmapLocation, RequiresDatabase):
         # for every rectangle
         for rectangle in self.create_occupancy_rectangles():
             # add sql filter
-            filters.append(sqlalchemy.and_(self.relative_x >= rectangle.x_lower, self.relative_x < rectangle.x_upper,
-                                           self.relative_y >= rectangle.y_lower, self.relative_y < rectangle.y_upper))
+            filters.append(sqlalchemy.and_(query_context.relative_x >= rectangle.x_lower,
+                                           query_context.relative_x < rectangle.x_upper,
+                                           query_context.relative_y >= rectangle.y_lower,
+                                           query_context.relative_y < rectangle.y_upper))
 
         return query.where(sqlalchemy.or_(*filters))
 
