@@ -4,6 +4,12 @@ on:
     workflows: ["pycram_docker_ci"]
     types: 
       - completed
+  workflow_dispatch: # For manual debugging
+    inputs:
+      manually_build_and_push_image:
+        type: boolean
+        required: false
+        default: false
 
 # Runs if pycram_docker_ci workflow WAS successfuL
 jobs:
