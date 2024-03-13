@@ -1,6 +1,8 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import numpy as np
 import pybullet as p
 import rospy
@@ -15,6 +17,17 @@ from typing import Tuple, List, Union, Optional
 
 from .local_transformer import LocalTransformer
 from .pose import Pose
+
+
+@dataclass
+class Rectangle:
+    """
+    A rectangle that is described by a lower and upper x and y value.
+    """
+    x_lower: float
+    x_upper: float
+    y_lower: float
+    y_upper: float
 
 
 class Costmap:
@@ -212,6 +225,40 @@ class Costmap:
             return self.merge(other)
         else:
             raise ValueError(f"Can only combine two costmaps other type was {type(other)}")
+
+    def partitioning_rectangles(self) -> List[Rectangle]:
+        """
+        Partition the map attached to this costmap into rectangles. The rectangles are axis aligned, exhaustive and
+        disjoint sets.
+
+        :return: A list containing the partitioning rectangles
+        """
+        ocm_map = np.copy(self.map)
+        origin = np.array([self.height / 2, self.width / 2])
+        rectangles = []
+
+        # for every index pair (i, j) in the occupancy costmap
+        for i in range(0, self.map.shape[0]):
+            for j in range(0, self.map.shape[1]):
+
+                # if this index has not been used yet
+                if ocm_map[i][j] > 0:
+                    curr_width = self._find_consectuive_line((i, j), ocm_map)
+                    curr_pose = (i, j)
+                    curr_height = self._find_max_box_height((i, j), curr_width, ocm_map)
+
+                    # calculate the rectangle in the costmap
+                    x_lower = (curr_pose[0] - origin[0]) * self.resolution
+                    x_upper = (curr_pose[0] + curr_width - origin[0]) * self.resolution
+                    y_lower = (curr_pose[1] - origin[1]) * self.resolution
+                    y_upper = (curr_pose[1] + curr_height - origin[1]) * self.resolution
+
+                    # mark the found rectangle as occupied
+                    ocm_map[i:i + curr_height, j:j + curr_width] = 0
+
+                    rectangles.append(Rectangle(x_lower, x_upper, y_lower, y_upper))
+
+        return rectangles
 
 
 class OccupancyCostmap(Costmap):

@@ -22,3 +22,8 @@ class TestCostmapsCase(BulletWorldTestCase):
         self.robot.attach(self.milk)
         self.assertTrue(np.sum(o.map[80:90, 90:110]) != 0)
 
+    def test_partition_into_rectangles(self):
+        ocm = OccupancyCostmap(distance_to_obstacle=0.2, from_ros=False, size=200, resolution=0.02,
+                                origin=Pose([0, 0, 0], [0, 0, 0, 1]))
+        rectangles = ocm.partitioning_rectangles()
+        self.assertEqual(len(rectangles), 10)
