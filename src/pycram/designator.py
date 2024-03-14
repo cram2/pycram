@@ -28,6 +28,7 @@ from .orm.object_designator import (Object as ORMObjectDesignator)
 from .orm.base import RobotState, ProcessMetaData
 from .task import with_tree
 
+from owlready2 import Thing
 
 class DesignatorError(Exception):
     """Implementation of designator errors."""
@@ -318,7 +319,7 @@ class DesignatorDescription(ABC):
     :ivar resolve: The resolver function to use for this designator, defaults to self.ground
     """
 
-    def __init__(self, resolver: Optional[Callable] = None):
+    def __init__(self, resolver: Optional[Callable] = None, onto_concept: Thing = None):
         """
         Create a Designator description.
 
@@ -327,6 +328,7 @@ class DesignatorDescription(ABC):
 
         if resolver is None:
             self.resolve = self.ground
+        self.onto_concept = onto_concept
 
     def make_dictionary(self, properties: List[str]):
         """
@@ -436,8 +438,8 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
 
             return action
 
-    def __init__(self, resolver=None):
-        super().__init__(resolver)
+    def __init__(self, resolver=None, onto_concept: Thing = None):
+        super().__init__(resolver, onto_concept)
         Language.__init__(self)
 
     def ground(self) -> Action:
@@ -469,8 +471,8 @@ class LocationDesignatorDescription(DesignatorDescription):
         The resolved pose of the location designator. Pose is inherited by all location designator.
         """
 
-    def __init__(self, resolver=None):
-        super().__init__(resolver)
+    def __init__(self, resolver=None, onto_concept: Thing = None):
+        super().__init__(resolver, onto_concept)
 
     def ground(self) -> Location:
         """
@@ -635,7 +637,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
         #     return pose
 
     def __init__(self, names: Optional[List[str]] = None, types: Optional[List[str]] = None,
-                 resolver: Optional[Callable] = None):
+                 resolver: Optional[Callable] = None, onto_concept: Thing = None):
         """
         Base of all object designator descriptions. Every object designator has the name and type of the object.
 
@@ -643,7 +645,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
         :param types: A list of types that could represent the object
         :param resolver: An alternative resolver that returns an object designator for the list of names and types
         """
-        super().__init__(resolver)
+        super().__init__(resolver, onto_concept)
         self.types: Optional[List[str]] = types
         self.names: Optional[List[str]] = names
 

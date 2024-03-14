@@ -5,6 +5,7 @@ _block -- wrap multiple statements into a single block.
 
 Classes:
 GeneratorList -- implementation of generator list wrappers.
+Singleton -- implementation of singleton metaclass
 """
 from inspect import isgeneratorfunction
 from typing import List
@@ -22,6 +23,13 @@ from .robot_descriptions import robot_description
 import os
 import math
 
+class Singleton(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
 
 class bcolors:
     """
