@@ -1,22 +1,16 @@
 name: update_docker_image
 on:
-  workflow_run:
-    workflows: ["pycram_docker_ci"]
-    types:
-      - completed
-  workflow_dispatch: # manual run
-    inputs:
-      manual_run:
-        description: "build and push manually"
-        type: boolean
-        default: false
-        required: false
+  push:
+    branches:
+      - master
+      - dev
+    paths:
+      - 'requirements.txt' 
+# only run when a commit has changes in the requirements.txt file
 
-# Runs if pycram_docker_ci workflow Wwa successful
 jobs:
   build_and_push_docker_image:
     runs-on: ubuntu-latest
-    if: ${{ (github.event.workflow_run.conclusion == 'success') || (github.event.inputs.manual_run)}}
     steps:
       - uses: actions/checkout@v4
       - name: Set up Docker Buildx
