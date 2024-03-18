@@ -291,7 +291,8 @@ class Pr2MoveTCPReal(ProcessModule):
         if designator.allow_gripper_collision:
             giskard.allow_gripper_collision(designator.arm)
         giskard.achieve_cartesian_goal(pose_in_map, robot_description.get_tool_frame(designator.arm),
-                                       robot_description.base_link)
+                                       "torso_lift_link")
+                                       #robot_description.base_link)
 
 
 class Pr2MoveArmJointsReal(ProcessModule):
