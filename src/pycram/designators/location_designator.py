@@ -168,7 +168,7 @@ class CostmapLocation(LocationDesignatorDescription):
         ground_pose = Pose(target_pose.position_as_list())
         ground_pose.position.z = 0
 
-        occupancy = OccupancyCostmap(0.4, False, 200, 0.02, ground_pose)
+        occupancy = OccupancyCostmap(0.32, False, 200, 0.02, ground_pose)
         final_map = occupancy
 
         if self.reachable_for:
