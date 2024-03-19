@@ -2,8 +2,8 @@ import unittest
 from pycram.designators import action_designator, object_designator
 from pycram.robot_descriptions import robot_description
 from pycram.process_module import simulated_robot
-from pycram.worlds.datastructures.pose import Pose
-from pycram.worlds.datastructures.enums import ObjectType, Arms
+from pycram.datastructures.pose import Pose
+from pycram.datastructures.enums import ObjectType, Arms
 from bullet_world_testcase import BulletWorldTestCase
 import numpy as np
 

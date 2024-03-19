@@ -6,7 +6,7 @@ import sqlalchemy.orm
 from .location_designator import CostmapLocation
 from .motion_designator import *
 from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
-from pycram.worlds.datastructures.local_transformer import LocalTransformer
+from pycram.datastructures.local_transformer import LocalTransformer
 from ..orm.action_designator import (ParkArmsAction as ORMParkArmsAction, NavigateAction as ORMNavigateAction,
                                      PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction,
                                      MoveTorsoAction as ORMMoveTorsoAction, SetGripperAction as ORMSetGripperAction,
@@ -19,10 +19,10 @@ from ..orm.base import Base
 from ..plan_failures import ObjectUnfetchable, ReachabilityFailure
 from ..robot_descriptions import robot_description
 from ..task import with_tree
-from pycram.worlds.datastructures.enums import Arms
+from pycram.datastructures.enums import Arms
 from ..designator import ActionDesignatorDescription
 from pycram.world import World
-from pycram.worlds.datastructures.pose import Pose
+from pycram.datastructures.pose import Pose
 from ..helper import multiply_quaternions
 
 

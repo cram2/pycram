@@ -14,19 +14,19 @@ from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING
 from typing_extensions import Union
 
-from pycram.worlds.concepts.cache_manager import CacheManager
-from pycram.worlds.datastructures.enums import JointType, ObjectType, WorldMode
-from pycram.worlds.concepts.event import Event
-from pycram.worlds.datastructures.local_transformer import LocalTransformer
-from pycram.worlds.datastructures.pose import Pose, Transform
-from pycram.worlds.concepts.constraints import Constraint
-from pycram.worlds.datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
-                                                      MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape, SphereVisualShape,
-                                                      CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
-                                                      ObjectState, State, WorldState)
+from pycram.cache_manager import CacheManager
+from pycram.datastructures.enums import JointType, ObjectType, WorldMode
+from pycram.world_concepts.event import Event
+from pycram.datastructures.local_transformer import LocalTransformer
+from pycram.datastructures.pose import Pose, Transform
+from pycram.world_concepts.constraints import Constraint
+from pycram.datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
+                                               MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape, SphereVisualShape,
+                                               CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
+                                               ObjectState, State, WorldState)
 
 if TYPE_CHECKING:
-    from pycram.worlds.concepts.world_object import Object
+    from pycram.world_concepts.world_object import Object
     from pycram.description import Link, Joint
 
 

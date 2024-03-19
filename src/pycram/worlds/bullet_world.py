@@ -11,13 +11,13 @@ import rospy
 from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict
 
-from pycram.worlds.datastructures.enums import ObjectType, WorldMode, JointType
-from pycram.worlds.datastructures.pose import Pose
+from pycram.datastructures.enums import ObjectType, WorldMode, JointType
+from pycram.datastructures.pose import Pose
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.world import World
-from pycram.worlds.concepts.constraints import Constraint
-from pycram.worlds.datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape
-from pycram.worlds.concepts.world_object import Object
+from pycram.world_concepts.constraints import Constraint
+from pycram.datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape
+from pycram.world_concepts.world_object import Object
 
 Link = ObjectDescription.Link
 RootLink = ObjectDescription.RootLink

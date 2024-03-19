@@ -2,10 +2,10 @@ import tf
 import numpy as np
 
 from pycram.world import World
-from pycram.worlds.concepts.world_object import Object
+from pycram.world_concepts.world_object import Object
 from pycram.world_reasoning import contact
-from pycram.worlds.concepts.costmaps import Costmap
-from pycram.worlds.datastructures.pose import Pose, Transform
+from pycram.world_concepts.costmaps import Costmap
+from pycram.datastructures.pose import Pose, Transform
 from pycram.robot_descriptions import robot_description
 from pycram.external_interfaces.ik import request_ik
 from pycram.plan_failures import IKError

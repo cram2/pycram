@@ -9,8 +9,8 @@ from pycram.world import World
 from visualization_msgs.msg import MarkerArray, Marker
 import rospy
 
-from pycram.worlds.datastructures.pose import Transform
-from pycram.worlds.datastructures.dataclasses import MeshVisualShape, CylinderVisualShape, BoxVisualShape, SphereVisualShape
+from pycram.datastructures.pose import Transform
+from pycram.datastructures.dataclasses import MeshVisualShape, CylinderVisualShape, BoxVisualShape, SphereVisualShape
 
 
 class VizMarkerPublisher:

@@ -4,9 +4,9 @@ from typing_extensions import List, Tuple, Optional, Union, Dict
 import numpy as np
 
 from pycram.external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
-from pycram.worlds.datastructures.pose import Pose, Transform
+from pycram.datastructures.pose import Pose, Transform
 from pycram.robot_descriptions import robot_description
-from pycram.worlds.concepts.world_object import Object
+from pycram.world_concepts.world_object import Object
 from pycram.world import World, UseProspectionWorld
 
 

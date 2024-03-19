@@ -13,8 +13,8 @@ import numpy as np
 from pytransform3d.rotations import quaternion_wxyz_from_xyzw, quaternion_xyzw_from_wxyz
 from pytransform3d.transformations import transform_from_pq, transform_from, pq_from_transform
 
-from pycram.worlds.concepts.world_object import Object as WorldObject
-from pycram.worlds.datastructures.pose import Transform, Pose
+from pycram.world_concepts.world_object import Object as WorldObject
+from pycram.datastructures.pose import Transform, Pose
 import math
 
 

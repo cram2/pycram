@@ -10,7 +10,7 @@ from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column, Session, relationship, \
     declared_attr
 
-from pycram.worlds.datastructures.enums import ObjectType
+from pycram.datastructures.enums import ObjectType
 
 
 def get_pycram_version_from_git() -> Optional[str]:

@@ -2,11 +2,11 @@ import time
 import unittest
 
 from pycram.worlds.bullet_world import BulletWorld
-from pycram.worlds.concepts.world_object import Object
-from pycram.worlds.datastructures.pose import Pose
+from pycram.world_concepts.world_object import Object
+from pycram.datastructures.pose import Pose
 from pycram.robot_descriptions import robot_description
 from pycram.process_module import ProcessModule
-from pycram.worlds.datastructures.enums import ObjectType, WorldMode
+from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.object_descriptors.urdf import ObjectDescription
 
 

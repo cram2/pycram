@@ -3,7 +3,7 @@ from typing_extensions import Optional
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base, Designator
-from pycram.worlds.datastructures.enums import TaskStatus
+from pycram.datastructures.enums import TaskStatus
 import datetime
 
 

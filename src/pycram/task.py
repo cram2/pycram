@@ -18,8 +18,8 @@ from .orm.task import (Code as ORMCode, TaskTreeNode as ORMTaskTreeNode)
 from .orm.base import ProcessMetaData
 from .plan_failures import PlanFailure
 from .language import Code
-from pycram.worlds.datastructures.enums import TaskStatus
-from pycram.worlds.datastructures.dataclasses import Color
+from pycram.datastructures.enums import TaskStatus
+from pycram.datastructures.dataclasses import Color
 
 
 class TaskCode(Code):
