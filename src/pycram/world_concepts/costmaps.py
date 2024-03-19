@@ -11,12 +11,12 @@ from matplotlib import colors
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 
 from pycram.world import UseProspectionWorld
-from pycram.worlds.concepts.world_object import Object
+from pycram.world_concepts.world_object import Object
 from pycram.description import Link
-from pycram.worlds.datastructures.local_transformer import LocalTransformer
-from pycram.worlds.datastructures.pose import Pose, Transform
+from pycram.datastructures.local_transformer import LocalTransformer
+from pycram.datastructures.pose import Pose, Transform
 from pycram.world import World
-from pycram.worlds.datastructures.dataclasses import AxisAlignedBoundingBox, BoxVisualShape, Color
+from pycram.datastructures.dataclasses import AxisAlignedBoundingBox, BoxVisualShape, Color
 
 
 class Costmap:

@@ -12,7 +12,7 @@ from .object_designator import Object
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey
 
-from pycram.worlds.datastructures.enums import ObjectType
+from pycram.datastructures.enums import ObjectType
 
 
 class Motion(MapperArgsMixin, Designator):

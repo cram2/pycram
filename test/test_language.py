@@ -2,10 +2,10 @@ import threading
 import time
 import unittest
 from pycram.designators.action_designator import *
-from pycram.worlds.datastructures.enums import ObjectType, State
+from pycram.datastructures.enums import ObjectType, State
 from pycram.fluent import Fluent
 from pycram.plan_failures import PlanFailure
-from pycram.worlds.datastructures.pose import Pose
+from pycram.datastructures.pose import Pose
 from pycram.language import Sequential, Language, Parallel, TryAll, TryInOrder, Monitor, Code
 from pycram.process_module import simulated_robot
 from bullet_world_testcase import BulletWorldTestCase

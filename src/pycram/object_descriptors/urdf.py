@@ -10,11 +10,11 @@ from urdf_parser_py import urdf
 from urdf_parser_py.urdf import (URDF, Collision, Box as URDF_Box, Cylinder as URDF_Cylinder,
                                  Sphere as URDF_Sphere, Mesh as URDF_Mesh)
 
-from pycram.worlds.datastructures.enums import JointType, Shape
-from pycram.worlds.datastructures.pose import Pose
+from pycram.datastructures.enums import JointType, Shape
+from pycram.datastructures.pose import Pose
 from pycram.description import JointDescription as AbstractJointDescription, \
     LinkDescription as AbstractLinkDescription, ObjectDescription as AbstractObjectDescription
-from pycram.worlds.datastructures.dataclasses import Color
+from pycram.datastructures.dataclasses import Color
 
 
 class LinkDescription(AbstractLinkDescription):

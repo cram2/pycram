@@ -1,5 +1,5 @@
 from bullet_world_testcase import BulletWorldTestCase
-from pycram.worlds.datastructures.dataclasses import Color
+from pycram.datastructures.dataclasses import Color
 
 
 class TestLinks(BulletWorldTestCase):
