@@ -1,5 +1,6 @@
 import abc
-from typing_extensions import Union
+import inspect
+from typing_extensions import Union, Type
 from pycram.designator import ActionDesignatorDescription
 from pycram.designators.motion_designator import *
 from pycram.enums import Arms
@@ -10,7 +11,9 @@ from ..object_designator import BelieveObject
 from ...bullet_world import BulletWorld
 from ...helper import multiply_quaternions
 from ...local_transformer import LocalTransformer
-from ...orm.base import Base
+from ...orm.base import Base, Pose as ORMPose
+from ...orm.object_designator import Object as ORMObject, ObjectPart as ORMObjectPart
+from ...orm.action_designator import Action as ORMAction
 from ...plan_failures import ObjectUnfetchable, ReachabilityFailure
 from ...robot_descriptions import robot_description
 from ...orm.action_designator import (ParkArmsAction as ORMParkArmsAction, NavigateAction as ORMNavigateAction,
@@ -24,32 +27,75 @@ from ...orm.action_designator import (ParkArmsAction as ORMParkArmsAction, Navig
 @dataclass
 class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC):
     """Base class for performable actions."""
+    orm_class: Type[ORMAction] = field(init=False, default=None)
+    """
+    The ORM class that is used to insert this action into the database. Must be overwritten by every action in order to
+    be able to insert the action into the database.
+    """
 
     @abc.abstractmethod
     def perform(self) -> None:
         """
-        Perform the action. Will be overwritten by each action.
+        Perform the action.
+
+        Will be overwritten by each action.
         """
         pass
 
-    @abc.abstractmethod
     def to_sql(self) -> Action:
         """
-        Convert this action to its ORM equivalent. Will be overwritten by each action.
-        """
-        pass
+        Convert this action to its ORM equivalent.
 
-    @abc.abstractmethod
+        Needs to be overwritten by an action if it didn't overwrite the orm_class attribute with its ORM equivalent.
+
+        :return: An instance of the ORM equivalent of the action with the parameters set
+        """
+        # get all class parameters (ignore inherited ones)
+        class_variables = {key: value for key, value in vars(self).items()
+                           if key in inspect.getfullargspec(self.__init__).args}
+
+        # get all orm class parameters (ignore inherited ones)
+        orm_class_variables = inspect.getfullargspec(self.orm_class.__init__).args
+
+        # list of parameters that will be passed to the ORM class. If the name does not match the orm_class equivalent
+        # or if it is a type that needs to be inserted into the session manually, it will not be added to the list
+        parameters = [value for key, value in class_variables.items() if key in orm_class_variables
+                      and not isinstance(value, (ObjectDesignatorDescription.Object, Pose))]
+
+        return self.orm_class(*parameters)
+
     def insert(self, session: Session, **kwargs) -> Action:
         """
         Insert this action into the database.
 
+        Needs to be overwritten by an action if the action has attributes that do not exist in the orm class
+        equivalent. In that case, the attributes need to be inserted into the session manually.
+
         :param session: Session with a database that is used to add and commit the objects
         :param kwargs: Possible extra keyword arguments
-        :return: The completely instanced ORM object
+        :return: The completely instanced ORM action that was inserted into the database
         """
 
         action = super().insert(session)
+
+        # get all class parameters (ignore inherited ones)
+        class_variables = {key: value for key, value in vars(self).items()
+                           if key in inspect.getfullargspec(self.__init__).args}
+
+        # get all orm class parameters (ignore inherited ones)
+        orm_class_variables = inspect.getfullargspec(self.orm_class.__init__).args
+
+        # loop through all class parameters and insert them into the session unless they are already added by the ORM
+        for key, value in class_variables.items():
+            if key not in orm_class_variables:
+                variable = value.insert(session)
+                if isinstance(variable, ORMObject):
+                    action.object_id = variable.id
+                elif isinstance(variable, ORMPose):
+                    action.pose_id = variable.id
+
+        session.add(action)
+        session.commit()
         return action
 
 
@@ -63,19 +109,11 @@ class MoveTorsoActionPerformable(ActionAbstract):
     """
     Target position of the torso joint
     """
+    orm_class: Type[ActionAbstract] = field(init=False, default=ORMMoveTorsoAction)
 
     @with_tree
     def perform(self) -> None:
         MoveJointsMotion([robot_description.torso_joint], [self.position]).perform()
-
-    def to_sql(self) -> ORMMoveTorsoAction:
-        return ORMMoveTorsoAction(self.position)
-
-    def insert(self, session: Session, **kwargs) -> ORMMoveTorsoAction:
-        action = super().insert(session)
-        session.add(action)
-        session.commit()
-        return action
 
 
 @dataclass
@@ -92,19 +130,11 @@ class SetGripperActionPerformable(ActionAbstract):
     """
     The motion that should be set on the gripper
     """
+    orm_class: Type[ActionAbstract] = field(init=False, default=ORMSetGripperAction)
 
     @with_tree
     def perform(self) -> None:
         MoveGripperMotion(gripper=self.gripper, motion=self.motion).perform()
-
-    def to_sql(self) -> ORMSetGripperAction:
-        return ORMSetGripperAction(self.gripper, self.motion)
-
-    def insert(self, session: Session, *args, **kwargs) -> ORMSetGripperAction:
-        action = super().insert(session)
-        session.add(action)
-        session.commit()
-        return action
 
 
 @dataclass
@@ -120,12 +150,6 @@ class ReleaseActionPerformable(ActionAbstract):
     object_designator: ObjectDesignatorDescription.Object
 
     def perform(self) -> None:
-        raise NotImplementedError
-
-    def to_sql(self) -> ORMParkArmsAction:
-        raise NotImplementedError
-
-    def insert(self, session: Session, **kwargs) -> ORMParkArmsAction:
         raise NotImplementedError
 
 
@@ -145,12 +169,6 @@ class GripActionPerformable(ActionAbstract):
     def perform(self) -> None:
         raise NotImplementedError()
 
-    def to_sql(self) -> Base:
-        raise NotImplementedError()
-
-    def insert(self, session: Session, *args, **kwargs) -> Base:
-        raise NotImplementedError()
-
 
 @dataclass
 class ParkArmsActionPerformable(ActionAbstract):
@@ -162,6 +180,7 @@ class ParkArmsActionPerformable(ActionAbstract):
     """
     Entry from the enum for which arm should be parked
     """
+    orm_class: Type[ActionAbstract] = field(init=False, default=ORMParkArmsAction)
 
     @with_tree
     def perform(self) -> None:
@@ -181,15 +200,6 @@ class ParkArmsActionPerformable(ActionAbstract):
             right_poses = robot_description.get_static_joint_chain("right", kwargs["right_arm_config"])
 
         MoveArmJointsMotion(left_poses, right_poses).perform()
-
-    def to_sql(self) -> ORMParkArmsAction:
-        return ORMParkArmsAction(self.arm.name)
-
-    def insert(self, session: Session, **kwargs) -> ORMParkArmsAction:
-        action = super().insert(session)
-        session.add(action)
-        session.commit()
-        return action
 
 
 @dataclass
@@ -218,6 +228,7 @@ class PickUpActionPerformable(ActionAbstract):
     The object at the time this Action got created. It is used to be a static, information holding entity. It is
     not updated when the BulletWorld object is changed.
     """
+    orm_class: Type[ActionAbstract] = field(init=False, default=ORMPickUpAction)
 
     @with_tree
     def perform(self) -> None:
@@ -285,20 +296,6 @@ class PickUpActionPerformable(ActionAbstract):
         # Remove the vis axis from the world
         BulletWorld.current_bullet_world.remove_vis_axis()
 
-    def to_sql(self) -> ORMPickUpAction:
-        return ORMPickUpAction(self.arm, self.grasp)
-
-    def insert(self, session: Session, **kwargs) -> ORMPickUpAction:
-        action = super().insert(session)
-
-        od = self.object_at_execution.insert(session)
-        action.object_id = od.id
-
-        session.add(action)
-        session.commit()
-
-        return action
-
 
 @dataclass
 class PlaceActionPerformable(ActionAbstract):
@@ -318,6 +315,7 @@ class PlaceActionPerformable(ActionAbstract):
     """
     Pose in the world at which the object should be placed
     """
+    orm_class: Type[ActionAbstract] = field(init=False, default=ORMPlaceAction)
 
     @with_tree
     def perform(self) -> None:
@@ -339,23 +337,6 @@ class PlaceActionPerformable(ActionAbstract):
         retract_pose.position.x -= 0.07
         MoveTCPMotion(retract_pose, self.arm).perform()
 
-    def to_sql(self) -> ORMPlaceAction:
-        return ORMPlaceAction(self.arm)
-
-    def insert(self, session: Session, *args, **kwargs) -> ORMPlaceAction:
-        action = super().insert(session)
-
-        od = self.object_designator.insert(session)
-        action.object_id = od.id
-
-        pose = self.target_location.insert(session)
-        action.pose_id = pose.id
-
-        session.add(action)
-        session.commit()
-
-        return action
-
 
 @dataclass
 class NavigateActionPerformable(ActionAbstract):
@@ -367,24 +348,11 @@ class NavigateActionPerformable(ActionAbstract):
     """
     Location to which the robot should be navigated
     """
+    orm_class: Type[ActionAbstract] = field(init=False, default=ORMNavigateAction)
 
     @with_tree
     def perform(self) -> None:
         MoveMotion(self.target_location).perform()
-
-    def to_sql(self) -> ORMNavigateAction:
-        return ORMNavigateAction()
-
-    def insert(self, session: Session, *args, **kwargs) -> ORMNavigateAction:
-        action = super().insert(session)
-
-        pose = self.target_location.insert(session)
-        action.pose_id = pose.id
-
-        session.add(action)
-        session.commit()
-
-        return action
 
 
 @dataclass
@@ -405,11 +373,11 @@ class TransportActionPerformable(ActionAbstract):
     """
     Target Location to which the object should be transported
     """
+    orm_class: Type[ActionAbstract] = field(init=False, default=ORMTransportAction)
 
     @with_tree
     def perform(self) -> None:
         robot_desig = BelieveObject(names=[robot_description.name])
-        # ParkArmsAction.Action(Arms.BOTH).perform()
         ParkArmsActionPerformable(Arms.BOTH).perform()
         pickup_loc = CostmapLocation(target=self.object_designator, reachable_for=robot_desig.resolve(),
                                      reachable_arm=self.arm)
@@ -425,7 +393,6 @@ class TransportActionPerformable(ActionAbstract):
 
         NavigateActionPerformable(pickup_pose.pose).perform()
         PickUpActionPerformable(self.object_designator, self.arm, "front").perform()
-        # ParkArmsAction.Action(Arms.BOTH).perform()
         ParkArmsActionPerformable(Arms.BOTH).perform()
         try:
             place_loc = CostmapLocation(target=self.target_location, reachable_for=robot_desig.resolve(),
@@ -436,23 +403,6 @@ class TransportActionPerformable(ActionAbstract):
         NavigateActionPerformable(place_loc.pose).perform()
         PlaceActionPerformable(self.object_designator, self.arm, self.target_location).perform()
         ParkArmsActionPerformable(Arms.BOTH).perform()
-
-    def to_sql(self) -> ORMTransportAction:
-        return ORMTransportAction(self.arm)
-
-    def insert(self, session: Session, *args, **kwargs) -> ORMTransportAction:
-        action = super().insert(session)
-
-        od = self.object_designator.insert(session)
-        action.object_id = od.id
-
-        pose = self.target_location.insert(session)
-        action.pose_id = pose.id
-
-        session.add(action)
-        session.commit()
-
-        return action
 
 
 @dataclass
@@ -465,23 +415,11 @@ class LookAtActionPerformable(ActionAbstract):
     """
     Position at which the robot should look, given as 6D pose
     """
+    orm_class: Type[ActionAbstract] = field(init=False, default=ORMLookAtAction)
 
     @with_tree
     def perform(self) -> None:
         LookingMotion(target=self.target).perform()
-
-    def to_sql(self) -> ORMLookAtAction:
-        return ORMLookAtAction()
-
-    def insert(self, session: Session, *args, **kwargs) -> ORMLookAtAction:
-        action = super().insert(session)
-
-        pose = self.target.insert(session)
-        action.pose_id = pose.id
-
-        session.add(action)
-        session.commit()
-        return action
 
 
 @dataclass
@@ -494,24 +432,11 @@ class DetectActionPerformable(ActionAbstract):
     """
     Object designator loosely describing the object, e.g. only type. 
     """
+    orm_class: Type[ActionAbstract] = field(init=False, default=ORMDetectAction)
 
     @with_tree
     def perform(self) -> None:
         return DetectingMotion(object_type=self.object_designator.type).perform()
-
-    def to_sql(self) -> ORMDetectAction:
-        return ORMDetectAction()
-
-    def insert(self, session: Session, *args, **kwargs) -> ORMDetectAction:
-        action = super().insert(session)
-
-        od = self.object_designator.insert(session)
-        action.object_id = od.id
-
-        session.add(action)
-        session.commit()
-
-        return action
 
 
 @dataclass
@@ -528,6 +453,7 @@ class OpenActionPerformable(ActionAbstract):
     """
     Arm that should be used for opening the container
     """
+    orm_class: Type[ActionAbstract] = field(init=False, default=ORMOpenAction)
 
     @with_tree
     def perform(self) -> None:
@@ -535,20 +461,6 @@ class OpenActionPerformable(ActionAbstract):
         OpeningMotion(self.object_designator, self.arm).perform()
 
         MoveGripperMotion("open", self.arm, allow_gripper_collision=True).perform()
-
-    def to_sql(self) -> ORMOpenAction:
-        return ORMOpenAction(self.arm)
-
-    def insert(self, session: Session, *args, **kwargs) -> ORMOpenAction:
-        action = super().insert(session)
-
-        op = self.object_designator.insert(session)
-        action.object_id = op.id
-
-        session.add(action)
-        session.commit()
-
-        return action
 
 
 @dataclass
@@ -565,6 +477,7 @@ class CloseActionPerformable(ActionAbstract):
     """
     Arm that should be used for closing
     """
+    orm_class: Type[ActionAbstract] = field(init=False, default=ORMCloseAction)
 
     @with_tree
     def perform(self) -> None:
@@ -572,20 +485,6 @@ class CloseActionPerformable(ActionAbstract):
         ClosingMotion(self.object_designator, self.arm).perform()
 
         MoveGripperMotion("open", self.arm, allow_gripper_collision=True).perform()
-
-    def to_sql(self) -> ORMCloseAction:
-        return ORMCloseAction(self.arm)
-
-    def insert(self, session: Session, *args, **kwargs) -> ORMCloseAction:
-        action = super().insert(session)
-
-        op = self.object_designator.insert(session)
-        action.object_id = op.id
-
-        session.add(action)
-        session.commit()
-
-        return action
 
 
 @dataclass
@@ -602,6 +501,7 @@ class GraspingActionPerformable(ActionAbstract):
     """
     Object Designator for the object that should be grasped
     """
+    orm_class: Type[ActionAbstract] = field(init=False, default=ORMGraspingAction)
 
     @with_tree
     def perform(self) -> None:
@@ -623,17 +523,3 @@ class GraspingActionPerformable(ActionAbstract):
 
         MoveTCPMotion(object_pose, self.arm, allow_gripper_collision=True).perform()
         MoveGripperMotion("close", self.arm, allow_gripper_collision=True).perform()
-
-    def to_sql(self) -> ORMGraspingAction:
-        return ORMGraspingAction(self.arm)
-
-    def insert(self, session: Session, *args, **kwargs) -> ORMGraspingAction:
-        action = super().insert(session)
-
-        od = self.object_desig.insert(session)
-        action.object_id = od.id
-
-        session.add(action)
-        session.commit()
-
-        return action
