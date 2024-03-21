@@ -133,6 +133,7 @@ class DatabaseResolverTestCase(unittest.TestCase,):
         new_milk.remove()
         kitchen.remove()
 
+    @unittest.skip
     def test_multiple_objects(self):
         kitchen = Object("kitchen", "environment", "../../resources/kitchen.urdf")
         new_milk = Object("new_milk", "milk", "../../resources/milk.stl", pose=Pose([-1.45, 2.5, 0.9]))

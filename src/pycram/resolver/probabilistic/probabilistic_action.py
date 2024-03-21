@@ -5,7 +5,7 @@ import portion
 from probabilistic_model.probabilistic_circuit.distributions import GaussianDistribution, SymbolicDistribution
 from probabilistic_model.probabilistic_circuit.probabilistic_circuit import ProbabilisticCircuit, \
     DecomposableProductUnit, DeterministicSumUnit
-from random_events.events import Event
+from random_events.events import Event, ComplexEvent
 from random_events.variables import Symbolic, Continuous
 import tqdm
 from typing_extensions import Optional, List, Iterator
@@ -20,6 +20,7 @@ from ...orm.task import TaskTreeNode
 from ...orm.action_designator import PickUpAction as ORMPickUpAction
 from ...plan_failures import ObjectUnreachable, PlanFailure
 from ...pose import Pose
+import plotly.graph_objects as go
 
 
 class ProbabilisticAction:
@@ -98,6 +99,13 @@ class GaussianCostmapModel:
         self.distance_to_center = distance_to_center
         self.variance = variance
 
+    def center_event(self) -> Event:
+        """
+        Create an event that describes the center of the map.
+        """
+        return Event({self.relative_x: portion.open(-self.distance_to_center, self.distance_to_center),
+                      self.relative_y: portion.open(-self.distance_to_center, self.distance_to_center)})
+
     def create_model_with_center(self) -> ProbabilisticCircuit:
         """
         Create a fully factorized gaussian at the center of the map.
@@ -105,6 +113,10 @@ class GaussianCostmapModel:
         centered_model = DecomposableProductUnit()
         centered_model.add_subcircuit(GaussianDistribution(self.relative_x, 0., self.variance))
         centered_model.add_subcircuit(GaussianDistribution(self.relative_y, 0., self.variance))
+        centered_model.add_subcircuit(SymbolicDistribution(self.grasp,
+                                                           [1/len(self.grasp.domain)] * len(self.grasp.domain)))
+        centered_model.add_subcircuit(SymbolicDistribution(self.arm,
+                                                           [1/len(self.arm.domain)] * len(self.arm.domain)))
         return centered_model.probabilistic_circuit
 
     def create_model(self) -> ProbabilisticCircuit:
@@ -114,30 +126,14 @@ class GaussianCostmapModel:
         :return: The probabilistic circuit
         """
         centered_model = self.create_model_with_center()
-
-        region_model = DeterministicSumUnit()
-
-        north_region = Event({self.relative_x: portion.closed(-self.distance_to_center, self.distance_to_center),
-                              self.relative_y: portion.closed(self.distance_to_center, float("inf"))})
-        south_region = Event({self.relative_x: portion.closed(-self.distance_to_center, self.distance_to_center),
-                              self.relative_y: portion.closed(-float("inf"), -self.distance_to_center)})
-        east_region = Event({self.relative_x: portion.closed(self.distance_to_center, float("inf")),
-                             self.relative_y: portion.open(-float("inf"), float("inf"))})
-        west_region = Event({self.relative_x: portion.closed(-float("inf"), -self.distance_to_center),
-                             self.relative_y: portion.open(-float("inf"), float("inf"))})
-
-        for region in [north_region, south_region, east_region, west_region]:
-            conditional, probability = centered_model.conditional(region)
-            region_model.add_subcircuit(conditional.root, probability)
-
-        result = DecomposableProductUnit()
-        p_arms = SymbolicDistribution(self.arm, [1 / len(self.arm.domain) for _ in self.arm.domain])
-        p_grasp = SymbolicDistribution(self.grasp, [1 / len(self.grasp.domain) for _ in self.grasp.domain])
-        result.add_subcircuit(p_arms)
-        result.add_subcircuit(p_grasp)
-        result.add_subcircuit(region_model)
-
-        return result.probabilistic_circuit
+        outer_event = self.center_event().complement()
+        limiting_event = Event({self.relative_x: portion.open(-2, 2),
+                                self.relative_y: portion.open(-2, 2)})
+        event = outer_event & limiting_event
+        # go.Figure(event.plot()).show()
+        result, _ = centered_model.conditional(event)
+        print(result)
+        return result
 
 
 class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
@@ -191,7 +187,7 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
         action = MoveAndPickUpPerformable(standing_position, self.object_designator, arm, grasp)
         return action
 
-    def events_from_occupancy_and_visibility_costmap(self) -> List[Event]:
+    def events_from_occupancy_and_visibility_costmap(self) -> ComplexEvent:
         """
         Create events from the occupancy and visibility costmap.
 
@@ -199,10 +195,10 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
         """
 
         # create occupancy and visibility costmap for the target object
-        ocm = OccupancyCostmap(distance_to_obstacle=0.3, from_ros=False, size=200, resolution=0.02,
+        ocm = OccupancyCostmap(distance_to_obstacle=0.3, from_ros=False, size=200, resolution=0.1,
                                origin=self.object_designator.pose)
         vcm = VisibilityCostmap(min_height=1.27, max_height=1.69,
-                                size=200, resolution=0.02, origin=self.object_designator.pose)
+                                size=200, resolution=0.1, origin=self.object_designator.pose)
         mcm = ocm + vcm
 
         # convert rectangles to events
@@ -211,35 +207,29 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
             event = Event({self.variables.relative_x: portion.open(rectangle.x_lower, rectangle.x_upper),
                            self.variables.relative_y: portion.open(rectangle.y_lower, rectangle.y_upper)})
             events.append(event)
-        return events
+        return ComplexEvent(events)
 
     def ground_model(self, model: Optional[ProbabilisticCircuit] = None,
-                     events: Optional[List[Event]] = None) -> ProbabilisticCircuit:
+                     event: Optional[ComplexEvent] = None) -> ProbabilisticCircuit:
         """
         Ground the model to the current evidence.
 
         :param model: The model that should be grounded. If None, the policy is used.
-        :param events: The events that should be used as evidence. If None, the occupancy costmap is used.
+        :param event: The events that should be used as evidence. If None, the occupancy costmap is used.
         :return: The grounded model
         """
 
         if model is None:
             model = self.policy
-        if events is None:
-            events = self.events_from_occupancy_and_visibility_costmap()
+        if event is None:
+            event = self.events_from_occupancy_and_visibility_costmap()
 
-        result = DeterministicSumUnit()
+        result, probability = model.conditional(event)
 
-        for event in events:
-            conditional, probability = model.conditional(event)
-            if probability > 0:
-                result.add_subcircuit(conditional.root, probability)
-
-        if len(result.subcircuits) == 0:
+        if probability == 0:
             raise ObjectUnreachable("No possible locations found")
 
-        result.normalize()
-        return result.probabilistic_circuit
+        return result
 
     def iter_with_mode(self) -> Iterator[MoveAndPickUpPerformable]:
         """
@@ -282,7 +272,7 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
     def query_for_database():
         query_context = PickUpWithContext()
         query = select(ORMPickUpAction.arm, ORMPickUpAction.grasp,
-                       query_context.relative_x, query_context.relative_y).distinct()
+                       query_context.relative_x, query_context.relative_y)
         query = query_context.join_statement(query).where(TaskTreeNode.status == TaskStatus.SUCCEEDED)
         return query
 
