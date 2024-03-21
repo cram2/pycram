@@ -1,5 +1,5 @@
 <launch>
-  <arg name="robot" default="pr2" />
+  <arg name="robot" default="stretch" />
   <arg name="use_knowrob" default="false"/>
 
 <node pkg="kdl_ik_service" type="start_ros_server.py" name="kdl_ik_service" output="screen" />
@@ -37,6 +37,13 @@
     <param name="robot_description"
               textfile="$(find pycram)/resources/hsrb.urdf"/>
   </group>
+
+  <!-- stretch -->
+  <group if="$(eval robot == 'stretch')">
+    <param name="robot_description"
+              textfile="$(find pycram)/resources/stretch.urdf"/>
+  </group>
+
 
   <!-- Use Knowrob -->
   <group if="$(eval use_knowrob)">
