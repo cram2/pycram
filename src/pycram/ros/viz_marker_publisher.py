@@ -70,14 +70,14 @@ class VizMarkerPublisher:
                 msg.type = Marker.MESH_RESOURCE
                 msg.action = Marker.ADD
                 link_pose = obj.get_link_transform(link)
-                if obj.get_link_origin(link):
+                if obj.get_link_origin(link) is not None:
                     link_origin = obj.get_link_origin_transform(link)
                 else:
                     link_origin = Transform()
                 link_pose_with_origin = link_pose * link_origin
                 msg.pose = link_pose_with_origin.to_pose().pose
 
-                color = [1, 1, 1, 1] if obj.link_name_to_id[link] == -1 else obj.get_color()
+                color = [1, 1, 1, 1] if obj.link_name_to_id[link] == -1 else obj.get_link_color(link).get_rgba()
 
                 msg.color = ColorRGBA(*color)
                 msg.lifetime = rospy.Duration(1)

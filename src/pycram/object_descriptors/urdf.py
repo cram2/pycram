@@ -10,38 +10,55 @@ from urdf_parser_py import urdf
 from urdf_parser_py.urdf import (URDF, Collision, Box as URDF_Box, Cylinder as URDF_Cylinder,
                                  Sphere as URDF_Sphere, Mesh as URDF_Mesh)
 
-from pycram.datastructures.enums import JointType, Shape
+from pycram.datastructures.enums import JointType
 from pycram.datastructures.pose import Pose
 from pycram.description import JointDescription as AbstractJointDescription, \
     LinkDescription as AbstractLinkDescription, ObjectDescription as AbstractObjectDescription
-from pycram.datastructures.dataclasses import Color
+from pycram.datastructures.dataclasses import Color, VisualShape, BoxVisualShape, CylinderVisualShape, \
+    SphereVisualShape, MeshVisualShape
 
 
 class LinkDescription(AbstractLinkDescription):
     """
     A class that represents a link description of an object.
     """
-    urdf_shape_map = {
-        URDF_Box: Shape.BOX,
-        URDF_Cylinder: Shape.CYLINDER,
-        URDF_Sphere: Shape.SPHERE,
-        URDF_Mesh: Shape.MESH
-    }
 
     def __init__(self, urdf_description: urdf.Link):
         super().__init__(urdf_description)
 
     @property
-    def geometry(self) -> Union[Shape, None]:
+    def geometry(self) -> Union[VisualShape, None]:
         """
         Returns the geometry type of the URDF collision element of this link.
         """
-        return self.urdf_shape_map[type(self.collision.geometry)]
+        if self.collision is None:
+            return None
+        urdf_geometry = self.collision.geometry
+        return self._get_visual_shape(urdf_geometry)
+
+    @staticmethod
+    def _get_visual_shape(urdf_geometry) -> Union[VisualShape, None]:
+        """
+        Returns the VisualShape of the given URDF geometry.
+        """
+        if isinstance(urdf_geometry, URDF_Box):
+            return BoxVisualShape(Color(), [0, 0, 0], urdf_geometry.size)
+        if isinstance(urdf_geometry, URDF_Cylinder):
+            return CylinderVisualShape(Color(), [0, 0, 0], urdf_geometry.radius, urdf_geometry.length)
+        if isinstance(urdf_geometry, URDF_Sphere):
+            return SphereVisualShape(Color(), [0, 0, 0], urdf_geometry.radius)
+        if isinstance(urdf_geometry, URDF_Mesh):
+            return MeshVisualShape(Color(), [0, 0, 0], urdf_geometry.scale, urdf_geometry.filename)
+        return None
 
     @property
-    def origin(self) -> Pose:
+    def origin(self) -> Union[Pose, None]:
+        if self.collision is None:
+            return None
+        if self.collision.origin is None:
+            return None
         return Pose(self.collision.origin.xyz,
-                    quaternion_from_euler(*self.collision.origin.rpy))
+                    quaternion_from_euler(*self.collision.origin.rpy).tolist())
 
     @property
     def name(self) -> str:
