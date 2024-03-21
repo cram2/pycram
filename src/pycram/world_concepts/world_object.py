@@ -286,7 +286,7 @@ class Object(WorldEntity):
         """
         self.links[link_name].color = Color.from_list(color)
 
-    def get_link_geometry(self, link_name: str) -> VisualShape:
+    def get_link_geometry(self, link_name: str) -> Union[VisualShape, None]:
         """
         Returns the geometry of the link with the given name.
         :param link_name: The name of the link.

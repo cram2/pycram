@@ -51,7 +51,7 @@ class LinkDescription(EntityDescription):
 
     @property
     @abstractmethod
-    def geometry(self) -> VisualShape:
+    def geometry(self) -> Union[VisualShape, None]:
         """
         Returns the geometry type of the collision element of this link.
         """
