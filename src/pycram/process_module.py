@@ -74,6 +74,7 @@ class RealRobot:
     """
     def __init__(self):
         self.pre: str = ""
+        self.pre_delay: bool = False
 
     def __enter__(self):
         """
@@ -82,6 +83,8 @@ class RealRobot:
         """
         self.pre = ProcessModuleManager.execution_type
         ProcessModuleManager.execution_type = "real"
+        self.pre_delay = ProcessModule.execution_delay
+        ProcessModule.execution_delay = False
 
     def __exit__(self, type, value, traceback):
         """
@@ -89,6 +92,7 @@ class RealRobot:
         used one.
         """
         ProcessModuleManager.execution_type = self.pre
+        ProcessModule.execution_delay = self.pre_delay
 
     def __call__(self):
         return self
