@@ -530,7 +530,7 @@ class ObjectDescription(EntityDescription):
     A class that represents the description of an object.
     """
 
-    mesh_extensions: Tuple[str] = (".obj", ".stl")
+    mesh_extensions: Tuple[str] = (".obj", ".stl", ".dae")
     """
     The file extensions of the mesh files that can be used to generate a description file.
     """
