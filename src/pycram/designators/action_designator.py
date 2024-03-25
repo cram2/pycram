@@ -29,8 +29,8 @@ class MoveTorsoAction(ActionDesignatorDescription):
         """
         super().__init__(resolver, onto_concept)
         self.positions: List[float] = positions
-        if self.onto_concept is None:
-            self.onto_concept = OntologyOWL.onto.MoveTorso
+        if self.onto_concept is None and OntologyOWL.soma is not None:
+            self.onto_concept = OntologyOWL.soma.MoveTorso
 
     def ground(self) -> MoveTorsoActionPerformable:
         """
@@ -66,8 +66,8 @@ class SetGripperAction(ActionDesignatorDescription):
         super().__init__(resolver, onto_concept)
         self.grippers: List[str] = grippers
         self.motions: List[str] = motions
-        if self.onto_concept is None:
-            self.onto_concept = OntologyOWL.onto.SettingGripper
+        if self.onto_concept is None and OntologyOWL.soma is not None:
+            self.onto_concept = OntologyOWL.soma.SettingGripper
 
     def ground(self) -> SetGripperActionPerformable:
         """
@@ -99,8 +99,8 @@ class ReleaseAction(ActionDesignatorDescription):
         super().__init__(resolver, onto_concept)
         self.grippers: List[str] = grippers
         self.object_designator_description = object_designator_description
-        if self.onto_concept is None:
-            self.onto_concept = OntologyOWL.onto.Releasing
+        if self.onto_concept is None and OntologyOWL.soma is not None:
+            self.onto_concept = OntologyOWL.soma.Releasing
 
     def ground(self) -> ReleaseActionPerformable:
         return ReleaseActionPerformable(self.grippers[0], self.object_designator_description.ground())
@@ -123,12 +123,11 @@ class GripAction(ActionDesignatorDescription):
         self.grippers: List[str] = grippers
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.efforts: List[float] = efforts
-        if self.onto_concept is None:
-            self.onto_concept = OntologyOWL.onto.Holding
+        if self.onto_concept is None and OntologyOWL.soma is not None:
+            self.onto_concept = OntologyOWL.soma.Holding
 
     def ground(self) -> GripActionPerformable:
         return GripActionPerformable(self.grippers[0], self.object_designator_description.ground(), self.efforts[0])
-
 
 class ParkArmsAction(ActionDesignatorDescription):
     """
@@ -144,8 +143,8 @@ class ParkArmsAction(ActionDesignatorDescription):
         """
         super().__init__(resolver, onto_concept)
         self.arms: List[Arms] = arms
-        if self.onto_concept is None:
-            self.onto_concept = OntologyOWL.onto.ParkingArms
+        if self.onto_concept is None and OntologyOWL.onto:
+            self.onto_concept = OntologyOWL.soma.ParkingArms
 
     def ground(self) -> ParkArmsActionPerformable:
         """
@@ -177,8 +176,8 @@ class PickUpAction(ActionDesignatorDescription):
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
         self.arms: List[str] = arms
         self.grasps: List[str] = grasps
-        if self.onto_concept is None:
-            self.onto_concept = OntologyOWL.onto.PickingUp
+        if self.onto_concept is None and OntologyOWL.soma is not None:
+            self.onto_concept = OntologyOWL.soma.PickingUp
 
     def ground(self) -> PickUpActionPerformable:
         """
@@ -214,8 +213,8 @@ class PlaceAction(ActionDesignatorDescription):
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
         self.target_locations: List[Pose] = target_locations
         self.arms: List[str] = arms
-        if self.onto_concept is None:
-            self.onto_concept = OntologyOWL.onto.Placing
+        if self.onto_concept is None and OntologyOWL.soma is not None:
+            self.onto_concept = OntologyOWL.soma.Placing
 
     def ground(self) -> PlaceActionPerformable:
         """
@@ -243,8 +242,8 @@ class NavigateAction(ActionDesignatorDescription):
         """
         super().__init__(resolver, onto_concept)
         self.target_locations: List[Pose] = target_locations
-        if self.onto_concept is None:
-            self.onto_concept = OntologyOWL.onto.Navigating
+        if self.onto_concept is None and OntologyOWL.soma is not None:
+            self.onto_concept = OntologyOWL.soma.Navigating
 
     def ground(self) -> NavigateActionPerformable:
         """
@@ -277,8 +276,8 @@ class TransportAction(ActionDesignatorDescription):
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
         self.arms: List[str] = arms
         self.target_locations: List[Pose] = target_locations
-        if self.onto_concept is None:
-            self.onto_concept = OntologyOWL.onto.Transporting
+        if self.onto_concept is None and OntologyOWL.soma is not None:
+            self.onto_concept = OntologyOWL.soma.Transporting
 
     def ground(self) -> TransportActionPerformable:
         """
@@ -307,8 +306,8 @@ class LookAtAction(ActionDesignatorDescription):
         """
         super().__init__(resolver, onto_concept)
         self.targets: List[Pose] = targets
-        if self.onto_concept is None:
-            self.onto_concept = OntologyOWL.onto.LookingAt
+        if self.onto_concept is None and OntologyOWL.soma is not None:
+            self.onto_concept = OntologyOWL.soma.LookingAt
 
     def ground(self) -> LookAtActionPerformable:
         """
@@ -333,8 +332,8 @@ class DetectAction(ActionDesignatorDescription):
         """
         super().__init__(resolver, onto_concept)
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
-        if self.onto_concept is None:
-            self.onto_concept = OntologyOWL.onto.LookingFor #CheckingObjectPresence
+        if self.onto_concept is None and OntologyOWL.soma is not None:
+            self.onto_concept = OntologyOWL.soma.LookingFor #CheckingObjectPresence
 
     def ground(self) -> DetectActionPerformable:
         """
@@ -363,8 +362,8 @@ class OpenAction(ActionDesignatorDescription):
         super().__init__(resolver, onto_concept)
         self.object_designator_description: ObjectPart = object_designator_description
         self.arms: List[str] = arms
-        if self.onto_concept is None:
-            self.onto_concept = OntologyOWL.onto.Opening
+        if self.onto_concept is None and OntologyOWL.soma is not None:
+            self.onto_concept = OntologyOWL.soma.Opening
 
     def ground(self) -> OpenActionPerformable:
         """
@@ -395,8 +394,8 @@ class CloseAction(ActionDesignatorDescription):
         super().__init__(resolver, onto_concept)
         self.object_designator_description: ObjectPart = object_designator_description
         self.arms: List[str] = arms
-        if self.onto_concept is None:
-            self.onto_concept = OntologyOWL.onto.Closing
+        if self.onto_concept is None and OntologyOWL.soma is not None:
+            self.onto_concept = OntologyOWL.soma.Closing
 
     def ground(self) -> CloseActionPerformable:
         """
@@ -426,8 +425,8 @@ class GraspingAction(ActionDesignatorDescription):
         super().__init__(resolver, onto_concept)
         self.arms: List[str] = arms
         self.object_description: ObjectDesignatorDescription = object_description
-        if self.onto_concept is None:
-            self.onto_concept = OntologyOWL.onto.Grasping
+        if self.onto_concept is None and OntologyOWL.soma is not None:
+            self.onto_concept = OntologyOWL.soma.Grasping
 
     def ground(self) -> GraspingActionPerformable:
         """

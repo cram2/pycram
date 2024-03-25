@@ -7,7 +7,7 @@ from pycram.robot_descriptions import robot_description
 from pycram.process_module import ProcessModule
 from pycram.enums import ObjectType
 from pycram.ros.viz_marker_publisher import VizMarkerPublisher
-
+from pycram.ontology import OntologyManager
 
 class BulletWorldTestCase(unittest.TestCase):
 
@@ -23,6 +23,7 @@ class BulletWorldTestCase(unittest.TestCase):
         cls.cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", pose=Pose([1.3, 0.7, 0.95]))
         ProcessModule.execution_delay = False
         cls.viz_marker_publisher = VizMarkerPublisher()
+        OntologyManager("http://www.ease-crc.org/ont/SOMA.owl")
 
     def setUp(self):
         self.world.reset_bullet_world()
