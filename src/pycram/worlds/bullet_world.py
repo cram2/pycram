@@ -66,7 +66,7 @@ class BulletWorld(World):
             _ = Object("floor", ObjectType.ENVIRONMENT, "plane" + self.extension,
                        world=self)
 
-    def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[Pose] = None) -> int:
+    def load_object_and_get_id(self, path: str, pose: Optional[Pose] = None) -> int:
         if pose is None:
             pose = Pose()
         return self._load_object_and_get_id(path, pose)

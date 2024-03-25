@@ -3,23 +3,27 @@
 import time
 import unittest
 
+from typing_extensions import Optional
+
 from pycram.worlds.multiverse import Multiverse
-from pycram.worlds.datastructures.enums import ObjectType
-from pycram.worlds.datastructures.pose import Pose
+from pycram.datastructures.enums import ObjectType
+from pycram.datastructures.pose import Pose
 from pycram.object_descriptors.urdf import ObjectDescription
-from pycram.worlds.concepts.world_object import Object
+from pycram.world_concepts.world_object import Object
 
 multiverse_installed = True
 try:
-    from multiverse_pycram_socket.multiverse_socket import SocketAddress
+    from pycram.world_concepts.multiverse_socket import MultiverseMetaData, SocketAddress
 except ImportError:
     multiverse_installed = False
 
 
 @unittest.skipIf(not multiverse_installed, "Multiverse is not installed.")
-@unittest.skip("Needs Multiverse server and simulation to be running")
+# @unittest.skip("Needs Multiverse server and simulation to be running")
 class MultiversePyCRAMTestCase(unittest.TestCase):
     multiverse: Multiverse
+    table: Optional[Object] = None
+    robot: Optional[Object] = None
 
     @classmethod
     def setUpClass(cls):
@@ -38,8 +42,8 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     @classmethod
     def tearDown(cls):
-        # cls.table.set_position([-3.17, 4, 1])
-        pass
+        if cls.table is not None:
+            cls.table.set_position([-3.17, 4, 1])
 
     def test_set_position(self):
         table_position = self.table.get_position_as_list()
