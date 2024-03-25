@@ -14,9 +14,26 @@ class OntologyOWL(object, metaclass=Singleton):
     """
     Singleton class as the adapter accessing data of an OWL ontology, largely based on owlready2.
     """
+
+    """
+    The ontology instance as the result of an ontology loading operation, eg by owlready2 get_ontology().load()
+    """
     onto = None
+    """
+    The SOMA ontology instance, referencing :attr:`onto` in case of ontology loading from SOMA
+    """
+    soma = None
+    """
+    Ontology world, place holder of triples stored by owlready2. Ref: https://owlready2.readthedocs.io/en/latest/world.html 
+    """
     onto_world = None
+    """
+    Full name path of the file from which the ontology is loaded
+    """
     onto_filename = None
+    """
+    Namespace of the loaded ontology
+    """
     onto_namespace = None
 
     @classmethod
@@ -53,6 +70,8 @@ class OntologyOWL(object, metaclass=Singleton):
             OntologyOWL.onto = onto
             OntologyOWL.onto_namespace = get_namespace(onto.base_iri).name
             print(f'Ontology namespace: {OntologyOWL.onto_namespace}')
+            if OntologyOWL.onto_namespace == "SOMA":
+                OntologyOWL.soma = OntologyOWL.onto
             OntologyOWL.onto_filename = onto_filename
         else:
             assert False, f'Ontology [{onto.base_iri}]\'s name: {onto.name} failed being loaded'
@@ -85,11 +104,14 @@ class OntologyOWL(object, metaclass=Singleton):
         """
         for onto_class in cls.onto.classes():
             if onto_class.name == class_name:
+                print('-------------------')
                 print(onto_class, type(onto_class))
                 print('Super classes: ', onto_class.is_a)
                 print('Ancestors: ', onto_class.ancestors())
                 print('Subclasses: ', list(onto_class.subclasses()))
                 print('Properties: ', list(onto_class.get_class_properties()))
+                print('Direct Instances: ', list(onto_class.direct_instances()))
+                print('Inverse Restrictions: ', list(onto_class.inverse_restrictions()))
                 return onto_class
         return None
 
@@ -127,14 +149,15 @@ class OntologyOWL(object, metaclass=Singleton):
 
 if __name__ == "__main__":
     OntologyOWL("http://www.ease-crc.org/ont/SOMA.owl")
+    onto = OntologyOWL.onto
 
     print(OntologyOWL.get_ontology_classes_by_namespace("SOMA"))
     print(OntologyOWL.get_ontology_classes_by_subname('Container'))
-    print(f'{OntologyOWL.onto.name}.Container: ', OntologyOWL.onto.Container)
-    print(OntologyOWL.get_ontology_descendants(OntologyOWL.onto.Container, 'Container'))
+    print(f'{onto.name}.Container: ', onto.Container)
+    print(OntologyOWL.get_ontology_descendants(onto.Container, 'Container'))
 
     print(OntologyOWL.get_ontology_classes_by_subname('Navigating'))
-    print(OntologyOWL.get_ontology_class('Navigating'))
+    OntologyOWL.get_ontology_class('Navigating')
 
     # enum -> Onto class, the gate to ontology knowledge related to ObjectType
     print(OntologyOWL.get_ontology_classes_by_subname('Container'))
@@ -148,9 +171,23 @@ if __name__ == "__main__":
         # PyCram obj -> Onto concept
         onto_concept = ChildOntoClass('child_onto')
         print('\nonto_concept:', onto_concept, '- type: ', type(onto_concept))
+
         pycram_obj = ObjectDesignatorDescription(names=["obj"])
         pycram_obj.pose = lambda: Pose
         pycram_obj.onto_concept = onto_concept
     else:
-        print(f"No {parent_onto_cls_name} found in {OntologyOWL.onto}")
+        print(f"No {parent_onto_cls_name} found in {onto}")
+
+    sync_reasoner_hermit(infer_property_values=True)
+    #sync_reasoner_pellet(infer_property_values=True, infer_data_property_values=True)
+
+    OntologyOWL.get_ontology_class('Pouring')
+    print(f'{onto.Pouring}-isTaskAffordedBy: ', onto.Pouring.isTaskAffordedBy)
+
+    OntologyOWL.get_ontology_class('Pourable')
+    print(f'{onto.Pourable}-affordsBearer: ', onto.Pourable.affordsBearer)
+
+    OntologyOWL.get_ontology_class('PouredObject')
+    print(f'{onto.PouredObject}-isBearerAffordedBy: ', onto.PouredObject.isBearerAffordedBy)
+
 
