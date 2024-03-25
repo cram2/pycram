@@ -1,6 +1,6 @@
 from pycram.designators.location_designator import *
 from pycram.robot_descriptions import robot_description
-from pycram.worlds.datastructures.pose import Pose
+from pycram.datastructures.pose import Pose
 from bullet_world_testcase import BulletWorldTestCase
 
 

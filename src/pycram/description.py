@@ -8,14 +8,14 @@ import rospy
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING
 
-from pycram.worlds.datastructures.enums import JointType
-from pycram.worlds.datastructures.local_transformer import LocalTransformer
-from pycram.worlds.datastructures.pose import Pose, Transform
+from pycram.datastructures.enums import JointType
+from pycram.datastructures.local_transformer import LocalTransformer
+from pycram.datastructures.pose import Pose, Transform
 from pycram.world import WorldEntity
-from pycram.worlds.datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape
+from pycram.datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape
 
 if TYPE_CHECKING:
-    from pycram.worlds.concepts.world_object import Object
+    from pycram.world_concepts.world_object import Object
 
 
 class EntityDescription(ABC):
@@ -51,7 +51,7 @@ class LinkDescription(EntityDescription):
 
     @property
     @abstractmethod
-    def geometry(self) -> VisualShape:
+    def geometry(self) -> Union[VisualShape, None]:
         """
         Returns the geometry type of the collision element of this link.
         """
@@ -530,7 +530,7 @@ class ObjectDescription(EntityDescription):
     A class that represents the description of an object.
     """
 
-    mesh_extensions: Tuple[str] = (".obj", ".stl")
+    mesh_extensions: Tuple[str] = (".obj", ".stl", ".dae")
     """
     The file extensions of the mesh files that can be used to generate a description file.
     """

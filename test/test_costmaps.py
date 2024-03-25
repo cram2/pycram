@@ -1,8 +1,8 @@
 import numpy as np
 
 from bullet_world_testcase import BulletWorldTestCase
-from pycram.worlds.concepts.costmaps import OccupancyCostmap
-from pycram.worlds.datastructures.pose import Pose
+from pycram.world_concepts.costmaps import OccupancyCostmap
+from pycram.datastructures.pose import Pose
 
 
 class TestCostmapsCase(BulletWorldTestCase):

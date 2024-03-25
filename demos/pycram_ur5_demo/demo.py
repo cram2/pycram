@@ -6,7 +6,7 @@ import pybullet as pb
 
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world import Object
-from pycram.worlds.datastructures.pose import Pose
+from pycram.datastructures.pose import Pose
 from pycram.ros.force_torque_sensor import ForceTorqueSensor
 from pycram.ros.joint_state_publisher import JointStatePublisher
 from pycram.ros.tf_broadcaster import TFBroadcaster

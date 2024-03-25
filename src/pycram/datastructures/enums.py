@@ -19,6 +19,7 @@ class TaskStatus(Enum):
     SUCCEEDED = 2
     FAILED = 3
 
+
 class JointType(Enum):
     """
     Enum for readable joint types.
@@ -31,9 +32,6 @@ class JointType(Enum):
     UNKNOWN = 5
     CONTINUOUS = 6
     FLOATING = 7
-
-    # override enum method to return an int
-
 
 
 class Grasp(Enum):

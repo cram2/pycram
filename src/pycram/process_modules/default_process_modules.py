@@ -9,7 +9,7 @@ from ..process_modules.pr2_process_modules import Pr2Navigation as DefaultNaviga
     Pr2MoveTCP as DefaultMoveTCP
 from ..robot_descriptions import robot_description
 from pycram.world import World
-from pycram.worlds.datastructures.local_transformer import LocalTransformer
+from pycram.datastructures.local_transformer import LocalTransformer
 from ..designators.motion_designator import LookingMotion, MoveArmJointsMotion, MoveJointsMotion
 
 

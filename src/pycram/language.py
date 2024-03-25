@@ -5,7 +5,7 @@ import time
 from typing_extensions import Iterable, Optional, Callable, Dict, Any, List, Union
 from anytree import NodeMixin, Node, PreOrderIter
 
-from pycram.worlds.datastructures.enums import State
+from pycram.datastructures.enums import State
 import threading
 
 from .fluent import Fluent

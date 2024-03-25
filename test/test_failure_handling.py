@@ -5,7 +5,7 @@ import roslaunch
 from pycram.worlds.bullet_world import BulletWorld, Object
 from pycram.designator import ActionDesignatorDescription
 from pycram.designators.action_designator import ParkArmsAction
-from pycram.worlds.datastructures.enums import ObjectType, Arms, WorldMode
+from pycram.datastructures.enums import ObjectType, Arms, WorldMode
 from pycram.failure_handling import Retry
 from pycram.plan_failures import PlanFailure
 from pycram.process_module import ProcessModule, simulated_robot

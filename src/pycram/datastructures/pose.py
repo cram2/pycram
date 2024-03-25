@@ -58,10 +58,10 @@ class Pose(PoseStamped):
         :param time: The time at which this Pose is valid, as ROS time
         """
         super().__init__()
-        if position:
+        if position is not None:
             self.position = position
 
-        if orientation:
+        if orientation is not None:
             self.orientation = orientation
         else:
             self.pose.orientation.w = 1.0

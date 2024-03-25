@@ -3,7 +3,7 @@ import dataclasses
 from sqlalchemy.orm import Session
 from .object_designator import ObjectDesignatorDescription, ObjectPart, RealObject
 from pycram.world import World
-from pycram.worlds.concepts.world_object import Object
+from pycram.world_concepts.world_object import Object
 from ..designator import DesignatorError
 from ..plan_failures import PerceptionObjectNotFound
 from ..process_module import ProcessModuleManager
@@ -13,10 +13,10 @@ from ..orm.motion_designator import (MoveMotion as ORMMoveMotion,
                                      MoveTCPMotion as ORMMoveTCPMotion, LookingMotion as ORMLookingMotion,
                                      MoveGripperMotion as ORMMoveGripperMotion, DetectingMotion as ORMDetectingMotion,
                                      OpeningMotion as ORMOpeningMotion, ClosingMotion as ORMClosingMotion)
-from pycram.worlds.datastructures.enums import ObjectType
+from pycram.datastructures.enums import ObjectType
 
 from typing_extensions import List, Dict, Callable, Optional
-from pycram.worlds.datastructures.pose import Pose
+from pycram.datastructures.pose import Pose
 from ..task import with_tree
 
 

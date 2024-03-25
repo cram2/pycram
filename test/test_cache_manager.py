@@ -1,8 +1,8 @@
 from pathlib import Path
 
 from bullet_world_testcase import BulletWorldTestCase
-from pycram.worlds.datastructures.enums import ObjectType
-from pycram.worlds.concepts.world_object import Object
+from pycram.datastructures.enums import ObjectType
+from pycram.world_concepts.world_object import Object
 
 
 class TestCacheManager(BulletWorldTestCase):
