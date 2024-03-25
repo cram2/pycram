@@ -241,11 +241,11 @@ class World(StateEntity, ABC):
         return 1 / World.simulation_frequency
 
     @abstractmethod
-    def load_object_and_get_id(self, path: str, pose: Optional[Pose] = None) -> int:
+    def load_object_and_get_id(self, obj: Object, pose: Optional[Pose] = None) -> int:
         """
         Loads a description file (e.g. URDF) at the given pose and returns the id of the loaded object.
 
-        :param path: The path to the description file.
+        :param obj: The object to be loaded.
         :param pose: The pose at which the object should be loaded.
         :return: The id of the loaded object.
         """
