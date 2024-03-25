@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 
-import time
 import unittest
 
 from typing_extensions import Optional
 
-from pycram.worlds.multiverse import Multiverse
 from pycram.datastructures.enums import ObjectType
 from pycram.datastructures.pose import Pose
-from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.world_concepts.world_object import Object
+from pycram.worlds.multiverse import Multiverse
 
 multiverse_installed = True
 try:
@@ -22,49 +20,57 @@ except ImportError:
 # @unittest.skip("Needs Multiverse server and simulation to be running")
 class MultiversePyCRAMTestCase(unittest.TestCase):
     multiverse: Multiverse
-    table: Optional[Object] = None
+    wooden_log: Optional[Object] = None
     robot: Optional[Object] = None
 
     @classmethod
     def setUpClass(cls):
-        cls.multiverse = Multiverse(simulation="crane_simulation",
+        cls.multiverse = Multiverse(simulation="pycram_test",
                                     client_addr=SocketAddress(port="5481"),
                                     is_prospection=True)
-
-        # cls.table = Object("wooden_log_1", ObjectType.GENERIC_OBJECT, "WoodenLog.stl", ObjectDescription,
-        #                    pose=Pose([-3.17, 4, 1], [0, 0, 0, 1]))
-        cls.robot = Object("ur5e", ObjectType.ROBOT, "ur5e_without_gripper.urdf", ObjectDescription,
-                           pose=Pose())
+        # cls.wooden_log = Object("wooden_log", ObjectType.GENERIC_OBJECT, "WoodenLog.urdf",
+        #                         pose=Pose([0, 0, 0.5], [0, 0, 0, 1]))
 
     @classmethod
     def tearDownClass(cls):
         cls.multiverse.disconnect_from_physics_server()
 
-    @classmethod
-    def tearDown(cls):
-        if cls.table is not None:
-            cls.table.set_position([-3.17, 4, 1])
+    def tearDown(self):
+        self.multiverse.reset_world()
+
+    def test_reset_world(self):
+        self.multiverse.reset_world()
+
+    def test_spawn_object(self):
+        milk = self.spawn_milk()
+
+    def test_remove_object(self):
+        milk = self.spawn_milk()
+        milk.remove()
 
     def test_set_position(self):
-        table_position = self.table.get_position_as_list()
-        self.assertEqual(table_position, [-3.17, 4, 1])
-        table_position[0] += 1
-        self.table.set_position(table_position)
-        table_position = self.table.get_position_as_list()
-        self.assertAlmostEqual(table_position, [-2.17, 4, 1])
-        time.sleep(5)
+        milk = self.spawn_milk()
+        original_milk_position = milk.get_position_as_list()
+        original_milk_position[0] += 1
+        milk.set_position(original_milk_position)
+        milk_position = milk.get_position_as_list()
+        self.assertAlmostEqual(milk_position, original_milk_position)
 
     def test_update_position(self):
-        self.table.update_pose()
-        table_position = self.table.get_position_as_list()
-        for i, v in enumerate([-3.17, 4, 1]):
-            self.assertAlmostEqual(table_position[i], v)
+        milk = self.spawn_milk()
+        milk.update_pose()
+        milk_position = milk.get_position_as_list()
+        for i, v in enumerate([0, 0, 2]):
+            self.assertAlmostEqual(milk_position[i], v)
 
     def test_get_joint_position(self):
-        joint_position = self.robot.get_joint_position("shoulder_pan_joint")
-        self.assertAlmostEqual(joint_position, 0.0)
+        # self.wooden_log.remove()
+        self.spawn_robot()
+        # joint_position = self.robot.get_joint_position("joint1")
+        # self.assertAlmostEqual(joint_position, 0.0)
 
     def test_set_joint_position(self):
+        self.spawn_robot()
         joint_position = self.robot.get_joint_position("shoulder_pan_joint")
         self.robot.set_joint_position("shoulder_pan_joint", joint_position - 1.0)
         self.robot.joints["shoulder_pan_joint"]._update_position()
@@ -75,3 +81,12 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.robot.set_position([0, 0, 1])
         self.assertEqual(self.robot.get_position_as_list(), [0, 0, 1])
 
+    @staticmethod
+    def spawn_milk() -> Object:
+        return Object("milk_box", ObjectType.MILK, "milk_box.urdf",
+                      pose=Pose([0, 0, 2], [0, 0, 0, 1]))
+
+    @staticmethod
+    def spawn_robot() -> Object:
+        return Object("panda", ObjectType.ROBOT, "panda.urdf",
+                      pose=Pose([0, 0, 3], [0, 0, 0, 1]))

@@ -114,20 +114,18 @@ class Object(WorldEntity):
         """
         if path is not None:
             try:
-                path = self.world.update_cache_dir_with_object(path, ignore_cached_files, self)
+                self.path = self.world.update_cache_dir_with_object(path, ignore_cached_files, self)
             except FileNotFoundError as e:
                 logging.error("Could not generate description from file.")
                 raise e
 
+        else:
+            self.path = self.name
+
         try:
-            simulator_object_path = path
-            if simulator_object_path is None:
-                # This is useful when the object is already loaded in the simulator so it would use its name instead of
-                #  its path
-                simulator_object_path = self.name
-            obj_id = self.world.load_object_and_get_id(simulator_object_path, Pose(self.get_position_as_list(),
-                                                                                   self.get_orientation_as_list()))
-            return obj_id, path
+            obj_id = self.world.load_object_and_get_id(self, Pose(self.get_position_as_list(),
+                                                                  self.get_orientation_as_list()))
+            return obj_id, self.path
 
         except Exception as e:
             logging.error(

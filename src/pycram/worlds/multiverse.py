@@ -110,6 +110,8 @@ class Multiverse(MultiverseSocket, World):
         self.simulation: str = simulation
         self._make_sure_multiverse_resources_are_added()
         self.last_object_id: int = -1
+        self.object_name_to_id: Dict[str, int] = {}
+        self.object_id_to_name: Dict[int, str] = {}
         self.time_start = time()
         self.run()
 
@@ -130,36 +132,32 @@ class Multiverse(MultiverseSocket, World):
             return "joint_rvalue"
         return self._joint_type_to_position_name[joint.type]
 
-    def load_object_and_get_id(self, path: str, pose: Optional[Pose] = None) -> int:
+    def load_object_and_get_id(self, obj: Object, pose: Optional[Pose] = None) -> int:
         """
-        This is a placeholder until a proper spawning mechanism is available in Multiverse.
-        param path: The path is used as the name of the object.
+        Spawn the object in the simulator and return the object id. Object name has to be unique and has to be same as
+        the name of the object in the description file.
+        param obj: The object to be loaded.
         param pose: The pose of the object.
         """
         if pose is None:
             pose = Pose()
 
-        name = path.split('/')[-1]
-        self.request_meta_data["meta_data"]["simulation_name"] = self._meta_data.simulation_name
-        self.request_meta_data["send"][path] = ["position",
-                                                "quaternion",
-                                                "relative_velocity"]
-        self.send_and_receive_meta_data()
-
-        time_now = time() - self.time_start
-        self.send_data = [time_now,
-                          0, 0, 5,
-                          0.0, 0.0, 0.0, 1.0,
-                          0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                          0, 0, 3,
-                          0.0, 0.0, 0.0, 1.0]
-        self.send_and_receive_data()
-
-        self._reset_body_pose(path, pose)
+        self._reset_body_pose(obj.name, pose)
 
         self.last_object_id += 1
 
+        self.object_name_to_id[obj.name] = self.last_object_id
+        self.object_id_to_name[self.last_object_id] = obj.name
+
         return self.last_object_id
+
+    def _init_spawn_object(self, name: str) -> None:
+        """
+        Initialize the object spawning process.
+        """
+        self._init_setter()
+        self.request_meta_data["send"][name] = ["position", "quaternion"]
+        self.send_and_receive_meta_data()
 
     def get_object_joint_names(self, obj: Object) -> List[str]:
         return [joint.name for joint in obj.description.joints]
@@ -186,6 +184,9 @@ class Multiverse(MultiverseSocket, World):
     def _init_setter(self):
         self.request_meta_data["send"] = {}
         self.request_meta_data["receive"] = {}
+        self.set_simulation_in_request_meta_data()
+
+    def set_simulation_in_request_meta_data(self):
         self.request_meta_data["meta_data"]["simulation_name"] = self.simulation
 
     def reset_joint_position(self, joint: Joint, joint_position: float) -> None:
@@ -205,8 +206,8 @@ class Multiverse(MultiverseSocket, World):
     def _get_body_pose(self, body_name: str) -> Pose:
         self._init_getter()
         self.request_meta_data["receive"][body_name] = ["position", "quaternion"]
-        self._communicate(True)
-        self._communicate()
+        self.send_and_receive_meta_data()
+        self.send_and_receive_data()
         if len(self.receive_data) != 8:
             logging.error(f"Invalid body pose data: {self.receive_data}")
             raise ValueError
@@ -219,13 +220,11 @@ class Multiverse(MultiverseSocket, World):
         """
         Reset the pose of a body in the simulator.
         """
-        self.request_meta_data["send"] = {}
-        self.request_meta_data["receive"] = {}
-        self.request_meta_data["meta_data"]["simulation_name"] = "crane_simulation"
+        self._init_setter()
         self.request_meta_data["send"][body_name] = ["position", "quaternion"]
-        self._communicate(True)
-        self.send_data = [time(), *pose.position_as_list(), *pose.orientation_as_list()]
-        self._communicate(False)
+        self.send_and_receive_meta_data()
+        self.send_data = [time() - self.time_start, *pose.position_as_list(), *pose.orientation_as_list()]
+        self.send_and_receive_data()
 
     def disconnect_from_physics_server(self) -> None:
         self.stop()
@@ -234,7 +233,12 @@ class Multiverse(MultiverseSocket, World):
         pass
 
     def remove_object_from_simulator(self, obj: Object) -> None:
-        logging.warning("remove_object_from_simulator is not implemented in Multiverse")
+        self.set_simulation_in_request_meta_data()
+        self.request_meta_data["send"][obj.name] = []
+        self.request_meta_data["receive"][obj.name] = []
+        self.send_and_receive_meta_data()
+        self.send_data = [time() - self.time_start]
+        self.send_and_receive_data()
 
     def add_constraint(self, constraint: Constraint) -> int:
         logging.warning("add_constraint is not implemented in Multiverse")
