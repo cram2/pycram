@@ -1,25 +1,21 @@
 import logging
 import os
-import time
-from pathlib import Path
+from time import time
 
 from typing_extensions import List, Dict, Optional
 
-from multiverse_pycram_socket.multiverse_socket import MultiverseSocket, SocketAddress
-
-from .datastructures.enums import WorldMode, JointType
-from .datastructures.pose import Pose
-from .datastructures.dataclasses import AxisAlignedBoundingBox, Color
-from .concepts.world_object import Object
-from .concepts.constraints import Constraint
-from ..world import World
+from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color
+from ..datastructures.enums import WorldMode, JointType
+from ..datastructures.pose import Pose
 from ..description import Link, Joint
+from ..world import World
+from ..world_concepts.constraints import Constraint
+from ..world_concepts.multiverse_socket import MultiverseSocket, SocketAddress
+from ..world_concepts.world_object import Object
 
 
 def get_resource_paths(dirname: str) -> List[str]:
-
-    # resources_paths = ["../robots", "../worlds", "../objects"]
-    resources_paths = []
+    resources_paths = ["../robots", "../worlds", "../objects"]
     resources_paths = [
         os.path.join(dirname, resources_path.replace('../', '')) if not os.path.isabs(
             resources_path) else resources_path
@@ -40,12 +36,52 @@ def get_resource_paths(dirname: str) -> List[str]:
     return resources_paths
 
 
+def find_multiverse_resources_path() -> Optional[str]:
+    """
+    Find the path to the Multiverse resources directory.
+    """
+    # Get the path to the Multiverse installation
+    multiverse_path = find_multiverse_path()
+
+    # Check if the path to the Multiverse installation was found
+    if multiverse_path:
+        # Construct the path to the resources directory
+        resources_path = os.path.join(multiverse_path, 'resources')
+
+        # Check if the resources directory exists
+        if os.path.exists(resources_path):
+            return resources_path
+
+    return None
+
+
+def find_multiverse_path() -> Optional[str]:
+    """
+    Find the path to the Multiverse installation.
+    """
+    # Get the value of PYTHONPATH environment variable
+    pythonpath = os.getenv('PYTHONPATH')
+
+    # Check if PYTHONPATH is set
+    if pythonpath:
+        # Split the PYTHONPATH into individual paths using the platform-specific path separator
+        paths = pythonpath.split(os.pathsep)
+
+        # Iterate through each path and check if 'Multiverse' is in it
+        for path in paths:
+            if 'multiverse' in path:
+                multiverse_path = path.split('multiverse')[0]
+                return multiverse_path + 'multiverse'
+
+    return None
+
+
 class Multiverse(MultiverseSocket, World):
     """
     This class implements an interface between Multiverse and PyCRAM.
     """
 
-    _joint_type_to_attribute: Dict[JointType, str] = {
+    _joint_type_to_position_name: Dict[JointType, str] = {
         JointType.REVOLUTE: "joint_rvalue",
         JointType.PRISMATIC: "joint_tvalue",
     }
@@ -74,6 +110,7 @@ class Multiverse(MultiverseSocket, World):
         self.simulation: str = simulation
         self._make_sure_multiverse_resources_are_added()
         self.last_object_id: int = -1
+        self.time_start = time()
         self.run()
 
     def _make_sure_multiverse_resources_are_added(self):
@@ -81,19 +118,19 @@ class Multiverse(MultiverseSocket, World):
         Add the multiverse resources to the pycram world resources.
         """
         if not self.added_multiverse_resources:
-            dirname = Path("../../../../../resources").resolve().__str__()
+            dirname = find_multiverse_resources_path()
             resources_paths = get_resource_paths(dirname)
             for resource_path in resources_paths:
                 self.add_resource_path(resource_path)
             self.added_multiverse_resources = True
 
-    def get_joint_attribute(self, joint: Joint) -> str:
-        if joint.type not in self._joint_type_to_attribute:
+    def get_joint_position_name(self, joint: Joint) -> str:
+        if joint.type not in self._joint_type_to_position_name:
             logging.warning(f"Invalid joint type: {joint.type}")
             return "joint_rvalue"
-        return self._joint_type_to_attribute[joint.type]
+        return self._joint_type_to_position_name[joint.type]
 
-    def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[Pose] = None) -> int:
+    def load_object_and_get_id(self, path: str, pose: Optional[Pose] = None) -> int:
         """
         This is a placeholder until a proper spawning mechanism is available in Multiverse.
         param path: The path is used as the name of the object.
@@ -101,8 +138,27 @@ class Multiverse(MultiverseSocket, World):
         """
         if pose is None:
             pose = Pose()
+
+        name = path.split('/')[-1]
+        self.request_meta_data["meta_data"]["simulation_name"] = self._meta_data.simulation_name
+        self.request_meta_data["send"][path] = ["position",
+                                                "quaternion",
+                                                "relative_velocity"]
+        self.send_and_receive_meta_data()
+
+        time_now = time() - self.time_start
+        self.send_data = [time_now,
+                          0, 0, 5,
+                          0.0, 0.0, 0.0, 1.0,
+                          0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                          0, 0, 3,
+                          0.0, 0.0, 0.0, 1.0]
+        self.send_and_receive_data()
+
         self._reset_body_pose(path, pose)
+
         self.last_object_id += 1
+
         return self.last_object_id
 
     def get_object_joint_names(self, obj: Object) -> List[str]:
@@ -118,9 +174,9 @@ class Multiverse(MultiverseSocket, World):
 
     def get_joint_position(self, joint: Joint) -> float:
         self._init_getter()
-        attribute = self.get_joint_attribute(joint)
+        attribute = self.get_joint_position_name(joint)
         self.request_meta_data["receive"][joint.name] = [attribute]
-        self._communicate(True)
+        self.send_and_receive_meta_data()
         receive_data = self.response_meta_data["receive"][joint.name][attribute]
         if len(receive_data) != 1:
             logging.error(f"Invalid joint position data: {receive_data}")
@@ -134,11 +190,11 @@ class Multiverse(MultiverseSocket, World):
 
     def reset_joint_position(self, joint: Joint, joint_position: float) -> None:
         self._init_setter()
-        self._communicate(True)
-        attribute = self.get_joint_attribute(joint)
+        self.send_and_receive_meta_data()
+        attribute = self.get_joint_position_name(joint)
         self.request_meta_data["send"][joint.name] = [attribute]
-        self.send_data = [time.time(), joint_position]
-        self._communicate()
+        self.send_data = [time(), joint_position]
+        self.send_and_receive_data()
 
     def get_link_pose(self, link: Link) -> Pose:
         return self._get_body_pose(link.name)
@@ -168,7 +224,7 @@ class Multiverse(MultiverseSocket, World):
         self.request_meta_data["meta_data"]["simulation_name"] = "crane_simulation"
         self.request_meta_data["send"][body_name] = ["position", "quaternion"]
         self._communicate(True)
-        self.send_data = [time.time(), *pose.position_as_list(), *pose.orientation_as_list()]
+        self.send_data = [time(), *pose.position_as_list(), *pose.orientation_as_list()]
         self._communicate(False)
 
     def disconnect_from_physics_server(self) -> None:
