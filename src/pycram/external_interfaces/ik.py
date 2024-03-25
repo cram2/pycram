@@ -6,10 +6,10 @@ from moveit_msgs.msg import RobotState
 from moveit_msgs.srv import GetPositionIK
 from sensor_msgs.msg import JointState
 
-from pycram.worlds.concepts.world_object import Object
+from pycram.world_concepts.world_object import Object
 from ..helper import calculate_wrist_tool_offset, _apply_ik
-from pycram.worlds.datastructures.local_transformer import LocalTransformer
-from pycram.worlds.datastructures.pose import Pose
+from pycram.datastructures.local_transformer import LocalTransformer
+from pycram.datastructures.pose import Pose
 from ..robot_descriptions import robot_description
 from ..plan_failures import IKError
 

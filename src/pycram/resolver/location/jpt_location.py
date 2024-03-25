@@ -6,10 +6,10 @@ import numpy as np
 import tf
 
 from ...designators import location_designator
-from pycram.worlds.concepts.costmaps import OccupancyCostmap
-from pycram.worlds.datastructures.pose import Pose
+from pycram.world_concepts.costmaps import OccupancyCostmap
+from pycram.datastructures.pose import Pose
 from pycram.world import Object, World
-from pycram.worlds.datastructures.dataclasses import BoxVisualShape, Color
+from pycram.datastructures.dataclasses import BoxVisualShape, Color
 
 
 class JPTCostmapLocation(location_designator.CostmapLocation):

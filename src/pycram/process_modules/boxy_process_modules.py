@@ -4,7 +4,7 @@ import numpy as np
 
 from pycram.world import World
 from ..designators.motion_designator import PlaceMotion
-from pycram.worlds.datastructures.local_transformer import LocalTransformer
+from pycram.datastructures.local_transformer import LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_descriptions import robot_description
 from ..process_modules.pr2_process_modules import (_park_arms, Pr2Navigation as BoxyNavigation,

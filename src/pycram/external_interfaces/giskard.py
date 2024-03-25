@@ -5,11 +5,11 @@ import rospy
 import sys
 import rosnode
 
-from pycram.worlds.datastructures.pose import Pose
+from pycram.datastructures.pose import Pose
 from ..robot_descriptions import robot_description
 from pycram.world import World
-from pycram.worlds.datastructures.dataclasses import MeshVisualShape
-from pycram.worlds.concepts.world_object import Object
+from pycram.datastructures.dataclasses import MeshVisualShape
+from pycram.world_concepts.world_object import Object
 from ..robot_description import ManipulatorDescription
 
 from typing_extensions import List, Dict, Callable, Optional

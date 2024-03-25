@@ -13,7 +13,7 @@ import pycram.task
 from bullet_world_testcase import BulletWorldTestCase
 import test_task_tree
 from pycram.designators import action_designator, object_designator
-from pycram.worlds.datastructures.pose import Pose
+from pycram.datastructures.pose import Pose
 from pycram.process_module import simulated_robot
 from pycram.task import with_tree
 

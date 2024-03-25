@@ -5,14 +5,14 @@ from .object_designator import ObjectDesignatorDescription, ObjectPart
 from pycram.world import World, UseProspectionWorld
 from pycram.world_reasoning import link_pose_for_joint_config
 from ..designator import DesignatorError, LocationDesignatorDescription
-from pycram.worlds.concepts.costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
+from pycram.world_concepts.costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
 from ..robot_descriptions import robot_description
-from pycram.worlds.datastructures.enums import JointType
+from pycram.datastructures.enums import JointType
 from ..helper import transform
 from pycram.pose_generator_and_validator import pose_generator, visibility_validator, reachability_validator, \
     generate_orientation
 from ..robot_description import ManipulatorDescription
-from pycram.worlds.datastructures.pose import Pose
+from pycram.datastructures.pose import Pose
 
 
 class Location(LocationDesignatorDescription):

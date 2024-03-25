@@ -12,12 +12,12 @@ from pycram.description import ObjectDescription, LinkDescription
 from pycram.object_descriptors.urdf import ObjectDescription as URDFObject
 from pycram.robot_descriptions import robot_description
 from pycram.world import WorldEntity, World
-from pycram.worlds.concepts.constraints import Attachment
-from pycram.worlds.datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
-                                                      AxisAlignedBoundingBox, VisualShape)
-from pycram.worlds.datastructures.enums import ObjectType, JointType
-from pycram.worlds.datastructures.local_transformer import LocalTransformer
-from pycram.worlds.datastructures.pose import Pose, Transform
+from pycram.world_concepts.constraints import Attachment
+from pycram.datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
+                                               AxisAlignedBoundingBox, VisualShape)
+from pycram.datastructures.enums import ObjectType, JointType
+from pycram.datastructures.local_transformer import LocalTransformer
+from pycram.datastructures.pose import Pose, Transform
 
 Link = ObjectDescription.Link
 
@@ -286,7 +286,7 @@ class Object(WorldEntity):
         """
         self.links[link_name].color = Color.from_list(color)
 
-    def get_link_geometry(self, link_name: str) -> VisualShape:
+    def get_link_geometry(self, link_name: str) -> Union[VisualShape, None]:
         """
         Returns the geometry of the link with the given name.
         :param link_name: The name of the link.

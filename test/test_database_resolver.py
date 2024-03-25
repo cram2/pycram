@@ -3,17 +3,17 @@ import unittest
 import sqlalchemy
 import sqlalchemy.orm
 import pycram.plan_failures
-from pycram.worlds.concepts.world_object import Object
+from pycram.world_concepts.world_object import Object
 from pycram import task
 from pycram.world import World
 from pycram.designators import action_designator, object_designator
 from pycram.orm.base import Base
 from pycram.process_module import ProcessModule
 from pycram.process_module import simulated_robot
-from pycram.worlds.datastructures.pose import Pose
+from pycram.datastructures.pose import Pose
 from pycram.robot_descriptions import robot_description
 from pycram.task import with_tree
-from pycram.worlds.datastructures.enums import ObjectType, WorldMode
+from pycram.datastructures.enums import ObjectType, WorldMode
 
 # check if jpt is installed
 jpt_installed = True

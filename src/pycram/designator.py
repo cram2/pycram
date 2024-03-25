@@ -9,17 +9,17 @@ from sqlalchemy.orm.session import Session
 import rospy
 
 from pycram.world import World
-from pycram.worlds.concepts.world_object import Object as WorldObject
+from pycram.world_concepts.world_object import Object as WorldObject
 from .helper import GeneratorList, bcolors
 from threading import Lock
 from time import time
 from typing_extensions import List, Dict, Any, Optional, Union, get_type_hints, Callable, Iterable
 
-from pycram.worlds.datastructures.local_transformer import LocalTransformer
+from pycram.datastructures.local_transformer import LocalTransformer
 from .language import Language
-from pycram.worlds.datastructures.pose import Pose
+from pycram.datastructures.pose import Pose
 from .robot_descriptions import robot_description
-from pycram.worlds.datastructures.enums import ObjectType
+from pycram.datastructures.enums import ObjectType
 
 import logging
 

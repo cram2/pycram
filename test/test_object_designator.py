@@ -1,7 +1,7 @@
 import unittest
 from bullet_world_testcase import BulletWorldTestCase
 from pycram.designators.object_designator import *
-from pycram.worlds.datastructures.enums import ObjectType
+from pycram.datastructures.enums import ObjectType
 
 
 class TestObjectDesignator(BulletWorldTestCase):
