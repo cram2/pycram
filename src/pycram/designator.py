@@ -25,7 +25,7 @@ import logging
 from .orm.action_designator import (Action as ORMAction)
 from .orm.object_designator import (Object as ORMObjectDesignator)
 
-from .orm.base import Quaternion, Position, Base, RobotState, ProcessMetaData
+from .orm.base import RobotState, ProcessMetaData
 from .task import with_tree
 
 
@@ -424,15 +424,15 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
             metadata = ProcessMetaData().insert(session)
 
             # create robot-state object
-            robot_state = RobotState(self.robot_torso_height, self.robot_type, pose.id)
-            robot_state.process_metadata_id = metadata.id
+            robot_state = RobotState(self.robot_torso_height, self.robot_type)
+            robot_state.pose = pose
+            robot_state.process_metadata = metadata
             session.add(robot_state)
-            session.commit()
 
             # create action
             action = self.to_sql()
-            action.process_metadata_id = metadata.id
-            action.robot_state_id = robot_state.id
+            action.process_metadata = metadata
+            action.robot_state = robot_state
 
             return action
 
@@ -545,16 +545,13 @@ class ObjectDesignatorDescription(DesignatorDescription):
             :return: The completely instanced ORM object
             """
             metadata = ProcessMetaData().insert(session)
+            pose = self.pose.insert(session)
 
             # create object orm designator
             obj = self.to_sql()
-            obj.process_metadata_id = metadata.id
-
-            pose = self.pose.insert(session)
-            obj.pose_id = pose.id
-
+            obj.process_metadata = metadata
+            obj.pose = pose
             session.add(obj)
-            session.commit()
             return obj
 
         def frozen_copy(self) -> 'ObjectDesignatorDescription.Object':
