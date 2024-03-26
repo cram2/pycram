@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import time
 import unittest
 
 from typing_extensions import Optional
@@ -20,7 +20,7 @@ except ImportError:
 # @unittest.skip("Needs Multiverse server and simulation to be running")
 class MultiversePyCRAMTestCase(unittest.TestCase):
     multiverse: Multiverse
-    wooden_log: Optional[Object] = None
+    big_bowl: Optional[Object] = None
     robot: Optional[Object] = None
 
     @classmethod
@@ -28,25 +28,43 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         cls.multiverse = Multiverse(simulation="pycram_test",
                                     client_addr=SocketAddress(port="5481"),
                                     is_prospection=True)
-        # cls.wooden_log = Object("wooden_log", ObjectType.GENERIC_OBJECT, "WoodenLog.urdf",
-        #                         pose=Pose([0, 0, 0.5], [0, 0, 0, 1]))
+        # cls.big_bowl = Object("big_bowl", ObjectType.GENERIC_OBJECT, "BigBowl.obj",
+        #                       pose=Pose([2, 2, 1], [0, 0, 0, 1]))
 
     @classmethod
     def tearDownClass(cls):
         cls.multiverse.disconnect_from_physics_server()
 
     def tearDown(self):
-        self.multiverse.reset_world()
+        # self.multiverse.reset_world()
+        pass
 
     def test_reset_world(self):
+        self.big_bowl.set_position([1, 1, 0])
+        self.assertAlmostEqual(self.big_bowl.get_position_as_list(), [1, 1, 0])
         self.multiverse.reset_world()
+        big_bowl_pose = self.big_bowl.get_pose()
+        self.assertAlmostEqual(big_bowl_pose, self.big_bowl.original_pose)
 
     def test_spawn_object(self):
         milk = self.spawn_milk()
+        self.assertIsInstance(milk, Object)
+        milk_pose = milk.get_pose()
+        self.assertAlmostEqual(milk_pose, milk.original_pose)
 
     def test_remove_object(self):
         milk = self.spawn_milk()
         milk.remove()
+        milk.set_position([1, 1, 1])
+
+    def test_check_object_exists(self):
+        self.multiverse.request_meta_data["send"] = {}
+        self.multiverse.request_meta_data["meta_data"]["world_name"] = ""
+        self.multiverse.request_meta_data["meta_data"]["simulation_name"] = self.multiverse._meta_data.simulation_name
+        self.multiverse.request_meta_data["receive"] = {}
+        print(self.multiverse.request_meta_data)
+        self.multiverse.send_and_receive_meta_data()
+        print(self.multiverse.response_meta_data)
 
     def test_set_position(self):
         milk = self.spawn_milk()
