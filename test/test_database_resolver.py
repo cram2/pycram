@@ -36,7 +36,7 @@ class DatabaseResolverTestCase(unittest.TestCase,):
     def setUpClass(cls) -> None:
         global pycrorm_uri
         cls.world = BulletWorld("DIRECT")
-        cls.milk = Object("milk", "milk", "../resources/milk.stl", pose=Pose([1.3, 1, 0.9]))
+        cls.milk = Object("milk", "milk", "milk.stl", pose=Pose([1.3, 1, 0.9]))
         cls.robot = Object(robot_description.name, ObjectType.ROBOT, robot_description.name + ".urdf")
         ProcessModule.execution_delay = False
         cls.engine = sqlalchemy.create_engine(pycrorm_uri)
@@ -84,7 +84,7 @@ class DatabaseResolverTestCase(unittest.TestCase,):
                                     grasp=sample.grasp).perform()
 
     def test_costmap_with_obstacles(self):
-        kitchen = Object("kitchen", "environment", "../resources/kitchen.urdf")
+        kitchen = Object("kitchen", "environment", "kitchen.urdf")
         self.plan()
         pycram.orm.base.ProcessMetaData().description = "costmap_with_obstacles_test"
         pycram.task.task_tree.root.insert(self.session)
@@ -106,14 +106,14 @@ class DatabaseResolverTestCase(unittest.TestCase,):
         kitchen.remove()
 
     def test_object_at_different_location(self):
-        kitchen = Object("kitchen", "environment", "../resources/kitchen.urdf")
+        kitchen = Object("kitchen", "environment", "kitchen.urdf")
         self.plan()
 
         pycram.orm.base.ProcessMetaData().description = "object_at_different_location_test"
         pycram.task.task_tree.root.insert(self.session)
         self.world.reset_bullet_world()
 
-        new_milk = Object("new_milk", "milk", "../resources/milk.stl", pose=Pose([-1.45, 2.5, 0.95]))
+        new_milk = Object("new_milk", "milk", "milk.stl", pose=Pose([-1.45, 2.5, 0.95]))
         cml = DatabaseCostmapLocation(new_milk, self.session, reachable_for=self.robot)
 
         sample = next(iter(cml))
@@ -135,8 +135,8 @@ class DatabaseResolverTestCase(unittest.TestCase,):
 
     @unittest.skip
     def test_multiple_objects(self):
-        kitchen = Object("kitchen", "environment", "../resources/kitchen.urdf")
-        new_milk = Object("new_milk", "milk", "../resources/milk.stl", pose=Pose([-1.45, 2.5, 0.9]))
+        kitchen = Object("kitchen", "environment", "kitchen.urdf")
+        new_milk = Object("new_milk", "milk", "milk.stl", pose=Pose([-1.45, 2.5, 0.9]))
 
         object_description = ObjectDesignatorDescription(names=["milk"])
         object_description_new_milk = ObjectDesignatorDescription(names=["new_milk"])
