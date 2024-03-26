@@ -49,7 +49,7 @@ class Base(_Base):
     __abstract__ = True
 
     @declared_attr
-    def process_metadata_id(self) -> Mapped[Optional[int]]:
+    def process_metadata_id(self) -> Mapped[int]:
         return mapped_column(ForeignKey(f'{ProcessMetaData.__tablename__}.id'), default=None, init=False)
     """Related MetaData Object to store information about the context of this experiment."""
 
@@ -164,7 +164,6 @@ class ProcessMetaData(_Base):
         """Insert this into the database using the session. Skipped if it already is inserted."""
         if not self.committed():
             session.add(self)
-            session.commit()
         return self
 
     @classmethod
@@ -222,8 +221,6 @@ class Color(Base):
 
 class RobotState(PoseMixin, Base):
     """ORM Representation of a robots state."""
-
-    pose_to_init = True
 
     torso_height: Mapped[float]
     """The torso height of the robot."""

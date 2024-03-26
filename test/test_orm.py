@@ -10,7 +10,6 @@ import pycram.orm.task
 import pycram.task
 import pycram.task
 from bullet_world_testcase import BulletWorldTestCase
-import test_task_tree
 from pycram.bullet_world import Object
 from pycram.designators import action_designator, object_designator, motion_designator
 from pycram.designators.actions.actions import ParkArmsActionPerformable, MoveTorsoActionPerformable, \
@@ -36,7 +35,6 @@ class DatabaseTestCaseMixin(BulletWorldTestCase):
         super().setUp()
         pycram.orm.base.Base.metadata.create_all(self.engine)
         self.session = sqlalchemy.orm.Session(bind=self.engine)
-        self.session.commit()
 
     def tearDown(self):
         super().tearDown()
@@ -205,7 +203,8 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
             action.perform()
         pycram.orm.base.ProcessMetaData().description = "code_designator_type_test"
         pycram.task.task_tree.root.insert(self.session)
-        result = self.session.scalars(select(pycram.orm.task.Code).where(pycram.orm.task.Code.function == "perform")).all()
+        result = (self.session.scalars(select(pycram.orm.task.Code).where(pycram.orm.task.Code.function == "perform"))
+                  .all())
         self.assertEqual(result[0].designator.dtype, action_designator.NavigateAction.__name__)
         self.assertEqual(result[1].designator.dtype, motion_designator.MoveMotion.__name__)
 

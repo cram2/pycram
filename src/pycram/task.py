@@ -70,14 +70,13 @@ class TaskCode(Code):
 
         if self_ and getattr(self_, "insert", None):
             designator = self_.insert(session)
-            code.designator_id = designator.id
+            code.designator = designator
 
         # get and set metadata
         metadata = ProcessMetaData().insert(session)
-        code.process_metadata_id = metadata.id
+        code.process_metadata = metadata
 
         session.add(code)
-        session.commit()
         return code
 
 
@@ -163,18 +162,17 @@ class TaskTreeNode(anytree.NodeMixin):
         else:
             reason = None
 
-        return ORMTaskTreeNode(None, self.start_time, self.end_time, self.status.name,
-                               reason, id(self.parent) if self.parent else None)
+        return ORMTaskTreeNode(self.start_time, self.end_time, self.status.name, reason)
 
     def insert(self, session: sqlalchemy.orm.session.Session, recursive: bool = True,
-               parent_id: Optional[int] = None, use_progress_bar: bool = True,
+               parent: Optional[TaskTreeNode] = None, use_progress_bar: bool = True,
                progress_bar: Optional[tqdm.tqdm] = None) -> ORMTaskTreeNode:
         """
         Insert this node into the database.
 
         :param session: The current session with the database.
         :param recursive: Rather if the entire tree should be inserted or just this node, defaults to True
-        :param parent_id: The primary key of the parent node, defaults to None
+        :param parent: The parent node, defaults to None
         :param use_progress_bar: Rather to use a progressbar or not
         :param progress_bar: The progressbar to update. If a progress bar is desired and this is None, a new one will be
             created.
@@ -191,26 +189,30 @@ class TaskTreeNode(anytree.NodeMixin):
 
         # convert self to orm object
         node = self.to_sql()
-        node.code_id = code.id
+        node.code = code
 
         # get and set metadata
         metadata = ProcessMetaData().insert(session)
-        node.process_metadata_id = metadata.id
+        node.process_metadata = metadata
 
-        # set parent to id from constructor
-        node.parent_id = parent_id
+        # set node parent
+        node.parent = parent
 
-        # add the node to database to retrieve the new id
+        # add the node to the session; note that the instance is not yet committed to the db, but rather in a
+        # pending state
         session.add(node)
-        session.commit()
 
         if progress_bar:
             progress_bar.update()
 
         # if recursive, insert all children
         if recursive:
-            [child.insert(session, parent_id=node.id, use_progress_bar=use_progress_bar, progress_bar=progress_bar)
+            [child.insert(session, parent=node, use_progress_bar=use_progress_bar, progress_bar=progress_bar)
              for child in self.children]
+
+        # once recursion is done and the root node is reached again, commit the session to the database
+        if self.parent is None:
+            session.commit()
 
         return node
 
