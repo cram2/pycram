@@ -255,7 +255,7 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
         self.assertEqual(result[0].motion, "open")
 
     def test_open_and_closeAction(self):
-        apartment = Object("apartment", ObjectType.ENVIRONMENT, "../resources/apartment.urdf")
+        apartment = Object("apartment", ObjectType.ENVIRONMENT, "apartment.urdf")
         apartment_desig = BelieveObject(names=["apartment"]).resolve()
         handle_desig = object_designator.ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig).resolve()
 
