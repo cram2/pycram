@@ -1,4 +1,6 @@
 from ..robot_description import *
+import numpy as np
+import tf
 
 
 class StretchDescription(RobotDescription):
@@ -28,8 +30,8 @@ class StretchDescription(RobotDescription):
                                 ["link_head_pan", "link_head_tilt"])
         self.add_chain("neck", neck)
 
-        arm_joints = ['joint_arm_l4', 'joint_arm_l3', 'joint_arm_l2', 'joint_arm_l1', 'joint_arm_l0']
-        arm_links = ['link_arm_l4', 'link_arm_l3', 'link_arm_l2', 'link_arm_l1', 'link_arm_l0']
+        arm_joints = ['joint_lift','joint_arm_l3', 'joint_arm_l2', 'joint_arm_l1', 'joint_arm_l0', "joint_wrist_yaw"]
+        arm_links = ['link_lift', 'link_arm_l3', 'link_arm_l2', 'link_arm_l1', 'link_arm_l0', "link_wrist_yaw"]
 
         arm_chain_desc = ChainDescription("arm", arm_joints, arm_links)
         arm_inter_desc = InteractionDescription(arm_chain_desc, "link_wrist_yaw")
@@ -59,3 +61,9 @@ class StretchDescription(RobotDescription):
 
     def get_camera_frame(self, name="color"):
         return super().get_camera_frame(name)
+
+    @staticmethod
+    def stretch_orientation_generator(position, origin):
+        angle = np.arctan2(position[1] - origin.position.y, position[0] - origin.position.x) + np.pi
+        quaternion = list(tf.transformations.quaternion_from_euler(0, 0, angle + np.pi / 2, axes="sxyz"))
+        return quaternion
