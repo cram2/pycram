@@ -18,6 +18,7 @@ class VizMarkerPublisher:
     """
     Publishes an Array of visualization marker which represent the situation in the Bullet World
     """
+
     def __init__(self, topic_name="/pycram/viz_marker", interval=0.1):
         """
         The Publisher creates an Array of Visualization marker with a Marker for each link of each Object in the Bullet
@@ -33,8 +34,9 @@ class VizMarkerPublisher:
 
         self.thread = threading.Thread(target=self._publish)
         self.kill_event = threading.Event()
-        self.thread.start()
+        self.main_world = BulletWorld.current_bullet_world if not BulletWorld.current_bullet_world.is_shadow_world else BulletWorld.current_bullet_world.world_sync.world
 
+        self.thread.start()
         atexit.register(self._stop_publishing)
 
     def _publish(self) -> None:
@@ -56,7 +58,7 @@ class VizMarkerPublisher:
         :return: An Array of Visualization Marker
         """
         marker_array = MarkerArray()
-        for obj in BulletWorld.current_bullet_world.objects:
+        for obj in self.main_world.objects:
             if obj.name == "floor":
                 continue
             for link in obj.links.keys():
@@ -72,7 +74,8 @@ class VizMarkerPublisher:
                 link_pose = obj.get_link_pose(link).to_transform(link)
                 if obj.urdf_object.link_map[link].collision.origin:
                     link_origin = Transform(obj.urdf_object.link_map[link].collision.origin.xyz,
-                                            list(quaternion_from_euler(*obj.urdf_object.link_map[link].collision.origin.rpy)))
+                                            list(quaternion_from_euler(
+                                                *obj.urdf_object.link_map[link].collision.origin.rpy)))
                 else:
                     link_origin = Transform()
                 link_pose_with_origin = link_pose * link_origin
@@ -107,4 +110,3 @@ class VizMarkerPublisher:
         """
         self.kill_event.set()
         self.thread.join()
-
