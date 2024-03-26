@@ -64,7 +64,7 @@ jobs:
 
       - name: Install pytest, pyjpt & mlflow
         run: |
-          pip3 install --ignore-installed pytest pyjpt mlflow
+          pip3 install --ignore-installed pytest pyjpt
 
       - name: Run tests
         run: | 
