@@ -76,6 +76,7 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/ros_ws/src/pycram
           sudo pip3 install -r requirements.txt
+          sudo pip3 install -r requirements-resolver.txt
       - name: install additional requirements
         run: |
           sudo pip3 install --ignore-installed pytest pyjpt mlflow
