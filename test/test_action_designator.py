@@ -2,7 +2,8 @@ import time
 import unittest
 from pycram.designators import action_designator, object_designator
 from pycram.designators.actions.actions import MoveTorsoActionPerformable, PickUpActionPerformable, \
-    NavigateActionPerformable
+    NavigateActionPerformable, FaceAtPerformable
+from pycram.local_transformer import LocalTransformer
 from pycram.robot_descriptions import robot_description
 from pycram.process_module import simulated_robot
 from pycram.pose import Pose
@@ -136,6 +137,12 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             np.array(self.robot.get_link_pose(robot_description.get_tool_frame("right")).position_as_list()) -
             np.array(self.milk.get_pose().position_as_list()))
         self.assertTrue(dist < 0.01)
+
+    def test_facing(self):
+        with simulated_robot:
+            FaceAtPerformable(self.milk.pose).perform()
+            milk_in_robot_frame = LocalTransformer().transform_to_object_frame(self.milk.pose, self.robot)
+            self.assertAlmostEqual(milk_in_robot_frame.position.y, 0.)
 
 
 if __name__ == '__main__':
