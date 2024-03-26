@@ -40,13 +40,19 @@ class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC):
     @abc.abstractmethod
     def perform(self) -> None:
         """
-        Perform the action. Will be overwritten by each action.
+        Perform the action.
+
+        Will be overwritten by each action.
         """
         pass
 
     def to_sql(self) -> Action:
         """
-        Convert this action to its ORM equivalent. Will be overwritten by each action.
+        Convert this action to its ORM equivalent.
+
+        Needs to be overwritten by an action if it didn't overwrite the orm_class attribute with its ORM equivalent.
+
+        :return: An instance of the ORM equivalent of the action with the parameters set
         """
         # get all class parameters (ignore inherited ones)
         class_variables = {key: value for key, value in vars(self).items()
@@ -66,9 +72,12 @@ class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC):
         """
         Insert this action into the database.
 
+        Needs to be overwritten by an action if the action has attributes that do not exist in the orm class
+        equivalent. In that case, the attributes need to be inserted into the session manually.
+
         :param session: Session with a database that is used to add and commit the objects
         :param kwargs: Possible extra keyword arguments
-        :return: The completely instanced ORM object
+        :return: The completely instanced ORM action that was inserted into the database
         """
 
         action = super().insert(session)
@@ -105,9 +114,6 @@ class MoveTorsoActionPerformable(ActionAbstract):
     Target position of the torso joint
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMMoveTorsoAction)
-    """
-    The ORM class that is used to insert this action into the database
-    """
 
     @with_tree
     def perform(self) -> None:
@@ -129,9 +135,6 @@ class SetGripperActionPerformable(ActionAbstract):
     The motion that should be set on the gripper
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMSetGripperAction)
-    """
-    The ORM class that is used to insert this action into the database
-    """
 
     @with_tree
     def perform(self) -> None:
@@ -182,9 +185,6 @@ class ParkArmsActionPerformable(ActionAbstract):
     Entry from the enum for which arm should be parked
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMParkArmsAction)
-    """
-    The ORM class that is used to insert this action into the database
-    """
 
     @with_tree
     def perform(self) -> None:
@@ -233,9 +233,6 @@ class PickUpActionPerformable(ActionAbstract):
     not updated when the BulletWorld object is changed.
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMPickUpAction)
-    """
-    The ORM class that is used to insert this action into the database
-    """
 
     @with_tree
     def perform(self) -> None:
@@ -323,9 +320,6 @@ class PlaceActionPerformable(ActionAbstract):
     Pose in the world at which the object should be placed
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMPlaceAction)
-    """
-    The ORM class that is used to insert this action into the database
-    """
 
     @with_tree
     def perform(self) -> None:
@@ -359,9 +353,6 @@ class NavigateActionPerformable(ActionAbstract):
     Location to which the robot should be navigated
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMNavigateAction)
-    """
-    The ORM class that is used to insert this action into the database
-    """
 
     @with_tree
     def perform(self) -> None:
@@ -387,9 +378,6 @@ class TransportActionPerformable(ActionAbstract):
     Target Location to which the object should be transported
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMTransportAction)
-    """
-    The ORM class that is used to insert this action into the database
-    """
 
     @with_tree
     def perform(self) -> None:
@@ -432,9 +420,6 @@ class LookAtActionPerformable(ActionAbstract):
     Position at which the robot should look, given as 6D pose
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMLookAtAction)
-    """
-    The ORM class that is used to insert this action into the database
-    """
 
     @with_tree
     def perform(self) -> None:
@@ -452,9 +437,6 @@ class DetectActionPerformable(ActionAbstract):
     Object designator loosely describing the object, e.g. only type. 
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMDetectAction)
-    """
-    The ORM class that is used to insert this action into the database
-    """
 
     @with_tree
     def perform(self) -> None:
@@ -476,9 +458,6 @@ class OpenActionPerformable(ActionAbstract):
     Arm that should be used for opening the container
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMOpenAction)
-    """
-    The ORM class that is used to insert this action into the database
-    """
 
     @with_tree
     def perform(self) -> None:
@@ -503,9 +482,6 @@ class CloseActionPerformable(ActionAbstract):
     Arm that should be used for closing
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMCloseAction)
-    """
-    The ORM class that is used to insert this action into the database
-    """
 
     @with_tree
     def perform(self) -> None:
@@ -530,9 +506,6 @@ class GraspingActionPerformable(ActionAbstract):
     Object Designator for the object that should be grasped
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMGraspingAction)
-    """
-    The ORM class that is used to insert this action into the database
-    """
 
     @with_tree
     def perform(self) -> None:
