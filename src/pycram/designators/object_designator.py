@@ -67,6 +67,7 @@ class ObjectPart(ObjectDesignatorDescription):
         :param part_of: Parent object of which the part should be described
         :param type: Type of the part
         :param resolver: An alternative resolver to resolve the input parameter to an object designator
+        :param onto_concepts: A list of ontology concepts that the object part is categorized as or associated with
         """
         super().__init__(names, type, resolver)
 
@@ -124,6 +125,7 @@ class LocatedObject(ObjectDesignatorDescription):
         :param reference_frames: Frame of reference in which the object position should be
         :param timestamps: Timestamps for which positions should be returned
         :param resolver: An alternative resolver that resolves the input parameter to an object designator.
+        :param onto_concepts: A list of ontology concepts that the object is categorized as
         """
         super(LocatedObject, self).__init__(names, types, resolver)
         self.reference_frames: List[str] = reference_frames
