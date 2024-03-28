@@ -175,6 +175,9 @@ class Object(WorldEntity):
         self.joints = {}
         for joint_name, joint_id in self.joint_name_to_id.items():
             joint_description = self.description.get_joint_by_name(joint_name)
+            if joint_description.type not in [JointType.PRISMATIC, JointType.REVOLUTE]:
+                rospy.logwarn(f"Joint type {joint_description.type} is not supported.")
+                continue
             self.joints[joint_name] = self.description.Joint(joint_id, joint_description, self)
 
     def _add_to_world_sync_obj_queue(self) -> None:
