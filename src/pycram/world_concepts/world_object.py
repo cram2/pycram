@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+from typing import Iterable
 
 import numpy as np
 import rospy
@@ -621,7 +622,7 @@ class Object(WorldEntity):
                 child.set_pose(link_to_object.to_pose(), set_attachments=False)
                 child._set_attached_objects_poses(already_moved_objects + [self])
 
-    def set_position(self, position: Union[Pose, Point], base=False) -> None:
+    def set_position(self, position: Union[Pose, Point, List], base=False) -> None:
         """
         Sets this Object to the given position, if base is true the bottom of the Object will be placed at the position
         instead of the origin in the center of the Object. The given position can either be a Pose,
@@ -636,10 +637,13 @@ class Object(WorldEntity):
             pose.frame = position.frame
         elif isinstance(position, Point):
             target_position = position
-        elif isinstance(position, list):
-            target_position = position
+        elif isinstance(position, List):
+            if len(position) == 3:
+                target_position = Point(*position)
+            else:
+                raise ValueError("The given position has to be a list of 3 values.")
         else:
-            raise TypeError("The given position has to be a Pose, Point or a list of xyz.")
+            raise TypeError("The given position has to be a Pose, Point or an iterable of xyz values.")
 
         pose.position = target_position
         pose.orientation = self.get_orientation()

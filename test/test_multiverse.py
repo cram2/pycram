@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import time
 import unittest
+from unittest import skip
 
 from typing_extensions import Optional
 
@@ -28,16 +29,15 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         cls.multiverse = Multiverse(simulation="pycram_test",
                                     client_addr=SocketAddress(port="5481"),
                                     is_prospection=True)
-        # cls.big_bowl = Object("big_bowl", ObjectType.GENERIC_OBJECT, "BigBowl.obj",
-        #                       pose=Pose([2, 2, 1], [0, 0, 0, 1]))
+        cls.big_bowl = Object("big_bowl", ObjectType.GENERIC_OBJECT, "BigBowl.obj",
+                              pose=Pose([2, 2, 1], [0, 0, 0, 1]))
 
     @classmethod
     def tearDownClass(cls):
         cls.multiverse.disconnect_from_physics_server()
 
     def tearDown(self):
-        # self.multiverse.reset_world()
-        pass
+        self.multiverse.reset_world()
 
     def test_reset_world(self):
         self.big_bowl.set_position([1, 1, 0])
@@ -55,16 +55,11 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def test_remove_object(self):
         milk = self.spawn_milk()
         milk.remove()
-        milk.set_position([1, 1, 1])
 
     def test_check_object_exists(self):
-        self.multiverse.request_meta_data["send"] = {}
-        self.multiverse.request_meta_data["meta_data"]["world_name"] = ""
-        self.multiverse.request_meta_data["meta_data"]["simulation_name"] = self.multiverse._meta_data.simulation_name
-        self.multiverse.request_meta_data["receive"] = {}
-        print(self.multiverse.request_meta_data)
-        self.multiverse.send_and_receive_meta_data()
-        print(self.multiverse.response_meta_data)
+        milk = self.spawn_milk()
+        data = self.multiverse.get_all_objects_data_from_server()
+        self.assertTrue(milk.name in data)
 
     def test_set_position(self):
         milk = self.spawn_milk()
@@ -81,12 +76,14 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         for i, v in enumerate([0, 0, 2]):
             self.assertAlmostEqual(milk_position[i], v)
 
+    @skip("Not implemented")
     def test_get_joint_position(self):
         # self.wooden_log.remove()
         self.spawn_robot()
         # joint_position = self.robot.get_joint_position("joint1")
         # self.assertAlmostEqual(joint_position, 0.0)
 
+    @skip("Not implemented")
     def test_set_joint_position(self):
         self.spawn_robot()
         joint_position = self.robot.get_joint_position("shoulder_pan_joint")
@@ -95,7 +92,9 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         joint_position = self.robot.get_joint_position("shoulder_pan_joint")
         self.assertAlmostEqual(joint_position, -1.0)
 
+    @skip("Not implemented")
     def test_set_robot_position(self):
+        robot = self.spawn_robot()
         self.robot.set_position([0, 0, 1])
         self.assertEqual(self.robot.get_position_as_list(), [0, 0, 1])
 

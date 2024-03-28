@@ -15,15 +15,16 @@ from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKI
 from typing_extensions import Union
 
 from pycram.cache_manager import CacheManager
+from pycram.datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
+                                               MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape,
+                                               SphereVisualShape,
+                                               CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
+                                               ObjectState, State, WorldState)
 from pycram.datastructures.enums import JointType, ObjectType, WorldMode
-from pycram.world_concepts.event import Event
 from pycram.datastructures.local_transformer import LocalTransformer
 from pycram.datastructures.pose import Pose, Transform
 from pycram.world_concepts.constraints import Constraint
-from pycram.datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
-                                               MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape, SphereVisualShape,
-                                               CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
-                                               ObjectState, State, WorldState)
+from pycram.world_concepts.event import Event
 
 if TYPE_CHECKING:
     from pycram.world_concepts.world_object import Object
@@ -579,6 +580,15 @@ class World(StateEntity, ABC):
         :return: True if the robot has been set, False otherwise.
         """
         return World.robot is not None
+
+    def check_object_exists_and_issue_warning_if_not(self, obj: Object) -> bool:
+        """
+        Check if the object exists in the world and raise an error if it does not.
+        """
+        if obj not in self.objects:
+            rospy.logwarn(f"Object {obj.name} not found in the world.")
+            return False
+        return True
 
     def exit(self) -> None:
         """

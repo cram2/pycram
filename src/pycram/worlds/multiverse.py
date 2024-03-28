@@ -171,6 +171,7 @@ class Multiverse(MultiverseSocket, World):
         self.request_meta_data["meta_data"]["simulation_name"] = self._meta_data.simulation_name
 
     def get_joint_position(self, joint: Joint) -> float:
+        self.check_object_exists_and_issue_warning_if_not(joint.object)
         self._init_getter()
         attribute = self.get_joint_position_name(joint)
         self.request_meta_data["receive"][joint.name] = [attribute]
@@ -198,9 +199,11 @@ class Multiverse(MultiverseSocket, World):
         self.send_and_receive_data()
 
     def get_link_pose(self, link: Link) -> Pose:
+        self.check_object_exists_and_issue_warning_if_not(link.object)
         return self._get_body_pose(link.name)
 
     def get_object_pose(self, obj: Object) -> Pose:
+        self.check_object_exists_and_issue_warning_if_not(obj)
         return self._get_body_pose(obj.name)
 
     def _get_body_pose(self, body_name: str) -> Pose:
@@ -214,17 +217,29 @@ class Multiverse(MultiverseSocket, World):
         return Pose(self.receive_data[1:4], self.receive_data[4:])
 
     def reset_object_base_pose(self, obj: Object, pose: Pose):
+        self.check_object_exists_and_issue_warning_if_not(obj)
         self._reset_body_pose(obj.name, pose)
 
-    def _reset_body_pose(self, body_name: str, pose: Pose):
+    def _reset_body_pose(self, body_name: str, pose: Pose) -> None:
         """
         Reset the pose of a body in the simulator.
+        param body_name: The name of the body.
+        param pose: The pose of the body.
         """
         self._init_setter()
         self.request_meta_data["send"][body_name] = ["position", "quaternion"]
         self.send_and_receive_meta_data()
         self.send_data = [time() - self.time_start, *pose.position_as_list(), *pose.orientation_as_list()]
         self.send_and_receive_data()
+
+    def get_all_objects_data_from_server(self) -> Dict[str, Dict]:
+        """
+        Get all objects data from the multiverse server.
+        """
+        self._init_getter()
+        self.request_meta_data["receive"][""] = [""]
+        self.send_and_receive_meta_data()
+        return self.response_meta_data["receive"]
 
     def disconnect_from_physics_server(self) -> None:
         self.stop()
@@ -251,10 +266,13 @@ class Multiverse(MultiverseSocket, World):
         logging.warning("perform_collision_detection is not implemented in Multiverse")
 
     def get_object_contact_points(self, obj: Object) -> List:
+        self.check_object_exists_and_issue_warning_if_not(obj)
         logging.warning("get_object_contact_points is not implemented in Multiverse")
         return []
 
     def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> List:
+        self.check_object_exists_and_issue_warning_if_not(obj1)
+        self.check_object_exists_and_issue_warning_if_not(obj2)
         logging.warning("get_contact_points_between_two_objects is not implemented in Multiverse")
         return []
 
@@ -282,21 +300,26 @@ class Multiverse(MultiverseSocket, World):
         raise NotImplementedError
 
     def set_link_color(self, link: Link, rgba_color: Color):
+        self.check_object_exists_and_issue_warning_if_not(link.object)
         logging.warning("set_link_color is not implemented in Multiverse")
 
     def get_link_color(self, link: Link) -> Color:
+        self.check_object_exists_and_issue_warning_if_not(link.object)
         logging.warning("get_link_color is not implemented in Multiverse")
         return Color()
 
     def get_colors_of_object_links(self, obj: Object) -> Dict[str, Color]:
+        self.check_object_exists_and_issue_warning_if_not(obj)
         logging.warning("get_colors_of_object_links is not implemented in Multiverse")
         return {}
 
     def get_object_axis_aligned_bounding_box(self, obj: Object) -> AxisAlignedBoundingBox:
+        self.check_object_exists_and_issue_warning_if_not(obj)
         logging.error("get_object_axis_aligned_bounding_box is not implemented in Multiverse")
         raise NotImplementedError
 
     def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
+        self.check_object_exists_and_issue_warning_if_not(link.object)
         logging.error("get_link_axis_aligned_bounding_box is not implemented in Multiverse")
         raise NotImplementedError
 
