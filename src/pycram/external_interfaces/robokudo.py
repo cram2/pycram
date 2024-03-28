@@ -39,7 +39,7 @@ def init_robokudo_interface(func: Callable) -> Callable:
             rospy.logwarn("RoboKudo is not running, could not initialize RoboKudo interface")
             return
 
-        func(*args, **kwargs)
+        return func(*args, **kwargs)
     return wrapper
 
 
