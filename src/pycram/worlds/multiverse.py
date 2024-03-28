@@ -2,6 +2,7 @@ import logging
 import os
 from time import time
 
+import rospy
 from typing_extensions import List, Dict, Optional
 
 from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color
@@ -160,7 +161,9 @@ class Multiverse(MultiverseSocket, World):
         self.send_and_receive_meta_data()
 
     def get_object_joint_names(self, obj: Object) -> List[str]:
-        return [joint.name for joint in obj.description.joints]
+
+        return [joint.name for joint in obj.description.joints
+                if joint.type in [JointType.REVOLUTE, JointType.PRISMATIC]]
 
     def get_object_link_names(self, obj: Object) -> List[str]:
         return [link.name for link in obj.description.links]
@@ -192,10 +195,10 @@ class Multiverse(MultiverseSocket, World):
 
     def reset_joint_position(self, joint: Joint, joint_position: float) -> None:
         self._init_setter()
-        self.send_and_receive_meta_data()
         attribute = self.get_joint_position_name(joint)
         self.request_meta_data["send"][joint.name] = [attribute]
-        self.send_data = [time(), joint_position]
+        self.send_and_receive_meta_data()
+        self.send_data = [time() - self.time_start, joint_position]
         self.send_and_receive_data()
 
     def get_link_pose(self, link: Link) -> Pose:
@@ -210,6 +213,7 @@ class Multiverse(MultiverseSocket, World):
         self._init_getter()
         self.request_meta_data["receive"][body_name] = ["position", "quaternion"]
         self.send_and_receive_meta_data()
+        self.send_data = [time() - self.time_start]
         self.send_and_receive_data()
         if len(self.receive_data) != 8:
             logging.error(f"Invalid body pose data: {self.receive_data}")
@@ -219,6 +223,12 @@ class Multiverse(MultiverseSocket, World):
     def reset_object_base_pose(self, obj: Object, pose: Pose):
         self.check_object_exists_and_issue_warning_if_not(obj)
         self._reset_body_pose(obj.name, pose)
+
+    def multiverse_reset_world(self):
+        self._init_setter()
+        self.send_and_receive_meta_data()
+        self.send_data = [0]
+        self.send_and_receive_data()
 
     def _reset_body_pose(self, body_name: str, pose: Pose) -> None:
         """

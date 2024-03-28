@@ -38,6 +38,8 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     def tearDown(self):
         self.multiverse.reset_world()
+        # self.multiverse.multiverse_reset_world()
+        pass
 
     def test_reset_world(self):
         self.big_bowl.set_position([1, 1, 0])
@@ -76,21 +78,27 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         for i, v in enumerate([0, 0, 2]):
             self.assertAlmostEqual(milk_position[i], v)
 
-    @skip("Not implemented")
-    def test_get_joint_position(self):
-        # self.wooden_log.remove()
-        self.spawn_robot()
-        # joint_position = self.robot.get_joint_position("joint1")
-        # self.assertAlmostEqual(joint_position, 0.0)
-
-    @skip("Not implemented")
+    # @skip("Not implemented")
     def test_set_joint_position(self):
-        self.spawn_robot()
-        joint_position = self.robot.get_joint_position("shoulder_pan_joint")
-        self.robot.set_joint_position("shoulder_pan_joint", joint_position - 1.0)
-        self.robot.joints["shoulder_pan_joint"]._update_position()
-        joint_position = self.robot.get_joint_position("shoulder_pan_joint")
-        self.assertAlmostEqual(joint_position, -1.0)
+        robot = self.spawn_robot()
+        original_joint_position = robot.get_joint_position("joint1")
+        step = 1.57
+        i = 0
+        while True:
+            robot.set_joint_position("joint1", original_joint_position - step*i)
+            robot.joints["joint1"]._update_position()
+            joint_position = robot.get_joint_position("joint1")
+            if joint_position <= original_joint_position-1.57:
+                break
+            i += 1
+            # time.sleep(0.1)
+        self.assertAlmostEqual(joint_position, original_joint_position-1.57)
+
+    def test_destroy_robot(self):
+        robot = self.spawn_robot()
+        self.assertTrue(robot in self.multiverse.objects)
+        robot.remove()
+        self.assertTrue(robot not in self.multiverse.objects)
 
     @skip("Not implemented")
     def test_set_robot_position(self):
