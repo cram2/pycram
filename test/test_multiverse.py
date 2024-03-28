@@ -3,6 +3,7 @@ import time
 import unittest
 from unittest import skip
 
+import psutil
 from typing_extensions import Optional
 
 from pycram.datastructures.enums import ObjectType
@@ -16,13 +17,23 @@ try:
 except ImportError:
     multiverse_installed = False
 
+processes = psutil.process_iter()
+process_names = [p.name() for p in processes]
+multiverse_running = True
+mujoco_running = True
+if 'multiverse_server' not in process_names:
+    multiverse_running = False
+if 'mujoco' not in process_names:
+    mujoco_running = False
+
 
 @unittest.skipIf(not multiverse_installed, "Multiverse is not installed.")
+@unittest.skipIf(not multiverse_running, "Multiverse server is not running.")
+@unittest.skipIf(not mujoco_running, "Mujoco is not running.")
 # @unittest.skip("Needs Multiverse server and simulation to be running")
 class MultiversePyCRAMTestCase(unittest.TestCase):
     multiverse: Multiverse
     big_bowl: Optional[Object] = None
-    robot: Optional[Object] = None
 
     @classmethod
     def setUpClass(cls):
@@ -42,8 +53,11 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         pass
 
     def test_reset_world(self):
-        self.big_bowl.set_position([1, 1, 0])
-        self.assertAlmostEqual(self.big_bowl.get_position_as_list(), [1, 1, 0])
+        set_position = [1, 1, 0]
+        self.big_bowl.set_position(set_position)
+        bowl_position = self.big_bowl.get_position_as_list()
+        for i in range(3):
+            self.assertAlmostEqual(bowl_position[i], set_position[i])
         self.multiverse.reset_world()
         big_bowl_pose = self.big_bowl.get_pose()
         self.assertAlmostEqual(big_bowl_pose, self.big_bowl.original_pose)
@@ -78,7 +92,6 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         for i, v in enumerate([0, 0, 2]):
             self.assertAlmostEqual(milk_position[i], v)
 
-    # @skip("Not implemented")
     def test_set_joint_position(self):
         robot = self.spawn_robot()
         original_joint_position = robot.get_joint_position("joint1")
@@ -94,17 +107,24 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             # time.sleep(0.1)
         self.assertAlmostEqual(joint_position, original_joint_position-1.57)
 
-    def test_destroy_robot(self):
+    def test_spawn_robot(self):
         robot = self.spawn_robot()
+        self.assertIsInstance(robot, Object)
         self.assertTrue(robot in self.multiverse.objects)
-        robot.remove()
-        self.assertTrue(robot not in self.multiverse.objects)
+        self.assertTrue(self.multiverse.robot.name == robot.name)
 
-    @skip("Not implemented")
+    def test_destroy_robot(self):
+        if self.multiverse.robot is None:
+            self.spawn_robot()
+        self.assertTrue(self.multiverse.robot in self.multiverse.objects)
+        self.multiverse.robot.remove()
+        self.assertTrue(self.multiverse.robot not in self.multiverse.objects)
+
     def test_set_robot_position(self):
-        robot = self.spawn_robot()
-        self.robot.set_position([0, 0, 1])
-        self.assertEqual(self.robot.get_position_as_list(), [0, 0, 1])
+        if self.multiverse.robot is None:
+            self.spawn_robot()
+        self.multiverse.robot.set_position([0, 0, 1])
+        self.assertEqual(self.multiverse.robot.get_position_as_list(), [0, 0, 1])
 
     @staticmethod
     def spawn_milk() -> Object:
