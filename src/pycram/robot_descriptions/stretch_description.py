@@ -38,9 +38,8 @@ class StretchDescription(RobotDescription):
 
         gripper_links = ['link_gripper_finger_left', 'link_gripper_fingertip_left',
                          'link_gripper_finger_right', 'link_gripper_fingertip_right', 'link_grasp_center']
-        gripper_joints = ['joint_gripper_finger_left', 'joint_gripper_fingertip_left',
-                          'joint_gripper_finger_right', 'joint_gripper_fingertip_right', 'joint_grasp_center']
-        arm_gripper_desc = GripperDescription("gripper", gripper_links, gripper_joints,
+        gripper_joints = ['joint_gripper_finger_left', 'joint_gripper_finger_right']
+        arm_gripper_desc = GripperDescription("arm", gripper_links, gripper_joints,
                                               gripper_meter_to_jnt_multiplier=5.0,
                                               gripper_minimal_position=0.013,
                                               gripper_convergence_delta=0.005)
@@ -48,7 +47,7 @@ class StretchDescription(RobotDescription):
         arm_desc = ManipulatorDescription(arm_inter_desc, tool_frame="link_grasp_center", gripper_description=arm_gripper_desc)
         self.add_chain("arm", arm_desc)
 
-        arm_park = [0.0, 0.0, 0.0, 0.0, 0.0]
+        arm_park = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.add_static_joint_chain("arm", "park", arm_park)
 
         gripper_confs = {"open": [0.59, 0.59], "close": [0.0, 0.0]}
