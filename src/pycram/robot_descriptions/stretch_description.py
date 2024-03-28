@@ -45,7 +45,7 @@ class StretchDescription(RobotDescription):
                                               gripper_convergence_delta=0.005)
 
         arm_desc = ManipulatorDescription(arm_inter_desc, tool_frame="link_grasp_center", gripper_description=arm_gripper_desc)
-        self.add_chain("arm", arm_desc)
+        self.add_chains({"arm": arm_desc, "right": arm_desc, "left": arm_desc})
 
         arm_park = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.add_static_joint_chain("arm", "park", arm_park)
