@@ -65,45 +65,6 @@ class PoseGenerator:
             orientation = self.orientation_generator(map_to_point.translation_as_list(), self.costmap.origin)
             yield Pose(map_to_point.translation_as_list(), orientation)
 
-    # @staticmethod
-    # def pose_generator(costmap: Costmap, number_of_samples=100, orientation_generator=None) -> Iterable:
-    #     """
-    #     A generator that crates pose candidates from a given costmap. The generator
-    #     selects the highest 100 values and returns the corresponding positions.
-    #     Orientations are calculated such that the Robot faces the center of the costmap.
-    #
-    #     :param costmap: The costmap from which poses should be sampled.
-    #     :param number_of_samples: The number of samples from the costmap that should be returned at max
-    #     :param orientation_generator: function that generates an orientation given a position and the origin of the costmap
-    #     :Yield: A tuple of position and orientation
-    #     """
-    #     if not orientation_generator:
-    #         orientation_generator = PoseGenerator.current_orientation_generator
-    #
-    #     # Determines how many positions should be sampled from the costmap
-    #     if number_of_samples == -1:
-    #         number_of_samples = costmap.map.flatten().shape[0]
-    #     indices = np.argpartition(costmap.map.flatten(), -number_of_samples)[-number_of_samples:]
-    #     indices = np.dstack(np.unravel_index(indices, costmap.map.shape)).reshape(number_of_samples, 2)
-    #
-    #     height = costmap.map.shape[0]
-    #     width = costmap.map.shape[1]
-    #     center = np.array([height // 2, width // 2])
-    #     for ind in indices:
-    #         if costmap.map[ind[0]][ind[1]] == 0:
-    #             continue
-    #         # The position is calculated by creating a vector from the 2D position in the costmap (given by x and y)
-    #         # and the center of the costmap (since this is the origin). This vector is then turned into a transformation
-    #         # and muiltiplied with the transformation of the origin.
-    #         vector_to_origin = (center - ind) * costmap.resolution
-    #         point_to_origin = Transform([*vector_to_origin, 0], frame="point", child_frame="origin")
-    #         origin_to_map = costmap.origin.to_transform("origin").invert()
-    #         point_to_map = point_to_origin * origin_to_map
-    #         map_to_point = point_to_map.invert()
-    #
-    #         orientation = orientation_generator(map_to_point.translation_as_list(), costmap.origin)
-    #         yield Pose(map_to_point.translation_as_list(), orientation)
-
     @staticmethod
     def height_generator() -> float:
         pass
