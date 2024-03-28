@@ -1,76 +1,55 @@
 from threading import Lock
 from typing import Any
 
-from ..external_interfaces.ik import request_ik
 from ..helper import _apply_ik
-from ..pose import Pose
-from ..process_module import ProcessModule, ProcessModuleManager
-from ..robot_descriptions import robot_description
-from ..bullet_world import BulletWorld, Object
-from ..bullet_world_reasoning import visible
+from .default_process_modules import *
 
 
-class StretchNavigate(ProcessModule):
-    def _execute(self, designator) -> Any:
-        BulletWorld.robot.set_pose(designator.target)
+class StretchNavigate(DefaultNavigation):
+    pass
 
 
 class StretchMoveHead(ProcessModule):
     def _execute(self, designator) -> Any:
-        pass
-
-
-class StretchMoveGripper(ProcessModule):
-    def _execute(self, designator) -> Any:
-        robot = BulletWorld.robot
-        gripper = designator.gripper
-        motion = designator.motion
-        for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
-            robot.set_joint_state(joint, state)
-
-
-class StretchDetect(ProcessModule):
-    def _execute(self, designator) -> Any:
-        robot = BulletWorld.robot
-        object_type = designator.object_type
-        # Should be "wide_stereo_optical_frame"
-        cam_frame_name = robot_description.get_camera_frame()
-        # should be [0, 0, 1]
-        front_facing_axis = robot_description.front_facing_axis
-
-        objects = BulletWorld.current_bullet_world.get_objects_by_type(object_type)
-        for obj in objects:
-            if visible(obj, robot.get_link_pose(cam_frame_name), front_facing_axis):
-                return obj
-
-
-class StretchMoveTCP(ProcessModule):
-    def _execute(self, designator) -> Any:
         target = designator.target
         robot = BulletWorld.robot
 
-        _move_arm_tcp(target, robot, designator.arm)
+        local_transformer = LocalTransformer()
+        pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame("link_head_pan"))
+        pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame("link_head_tilt"))
+
+        new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
+        new_tilt = np.arctan2(-pose_in_tilt.position.y, pose_in_tilt.position.z ** 2 + pose_in_tilt.position.x ** 2) * -1
+
+        current_pan = robot.get_joint_state("joint_head_pan")
+        current_tilt = robot.get_joint_state("joint_head_tilt")
+
+        robot.set_joint_state("joint_head_pan", new_pan + current_pan)
+        robot.set_joint_state("joint_head_tilt", new_tilt + current_tilt)
 
 
-class StretchMoveArmJoints(ProcessModule):
-    def _execute(self, designator) -> Any:
-        robot = BulletWorld.robot
-        if designator.right_arm_poses:
-            robot.set_joint_states(designator.right_arm_poses)
-        if designator.left_arm_poses:
-            robot.set_joint_states(designator.left_arm_poses)
+class StretchMoveGripper(DefaultMoveGripper):
+    pass
 
 
-class StretchMoveJoints(ProcessModule):
-    def _execute(self, designator) -> Any:
-        robot = BulletWorld.robot
-        robot.set_joint_states(dict(zip(designator.names, designator.positions)))
+class StretchDetecting(DefaultDetecting):
+    pass
 
 
-class StretchWorldStateDetecting(ProcessModule):
-    def _execute(self, designator) -> Any:
-        obj_type = designator.object_type
-        return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
+class StretchMoveTCP(DefaultMoveTCP):
+    pass
+
+
+class StretchMoveArmJoints(DefaultMoveArmJoints):
+    pass
+
+
+class StretchMoveJoints(DefaultMoveJoints):
+    pass
+
+
+class StretchWorldStateDetecting(DefaultWorldStateDetecting):
+    pass
 
 
 class StretchOpen(ProcessModule):
@@ -108,4 +87,40 @@ class StretchManager(ProcessModuleManager):
 
     def navigate(self):
         if ProcessModuleManager.execution_type == "simulated":
-            return StretchNavigate()
+            return StretchNavigate(self._navigate_lock)
+    def looking(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return StretchMoveHead(self._looking_lock)
+
+    def detecting(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return StretchDetecting(self._detecting_lock)
+
+    def move_tcp(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return StretchMoveTCP(self._move_tcp_lock)
+
+    def move_arm_joints(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return StretchMoveArmJoints(self._move_arm_joints_lock)
+
+    def world_state_detecting(self):
+        if ProcessModuleManager.execution_type == "simulated" or ProcessModuleManager.execution_type == "real":
+            return StretchWorldStateDetecting(self._world_state_detecting_lock)
+
+    def move_joints(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return StretchMoveJoints(self._move_joints_lock)
+
+    def move_gripper(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return StretchMoveGripper(self._move_gripper_lock)
+
+    def open(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return StretchOpen(self._open_lock)
+
+    def close(self):
+        if ProcessModuleManager.execution_type == "simulated":
+            return StretchClose(self._close_lock)
+
