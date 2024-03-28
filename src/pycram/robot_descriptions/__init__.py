@@ -70,7 +70,7 @@ def update_robot_description(robot_name=None, from_ros=None):
     return InitializedRobotDescription(description)
 
 
-with utils.suppress_stdout_stderr():
-    update_robot_description(from_ros=True)  # "ur5_robotiq")#  # todo: put in ros init
+# with utils.suppress_stdout_stderr():
+update_robot_description(from_ros=True)  # "ur5_robotiq")#  # todo: put in ros init
 
 robot_description = InitializedRobotDescription.i
