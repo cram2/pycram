@@ -14,16 +14,16 @@ class TaskTreeNode(Base):
 
     id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True, init=False)
 
-    action_id: Mapped[Optional[int]] = mapped_column(ForeignKey(f'{Designator.__tablename__}.id'), default=None)
+    action_id: Mapped[Optional[int]] = mapped_column(ForeignKey(f'{Designator.__tablename__}.id'), init=False)
     action: Mapped[Optional[Designator]] = relationship(init=False)
 
-    start_time: Mapped[datetime.datetime] = mapped_column(default=None)
-    end_time: Mapped[Optional[datetime.datetime]] = mapped_column(default=None)
+    start_time: Mapped[datetime.datetime]
+    end_time: Mapped[Optional[datetime.datetime]]
 
-    status: Mapped[TaskStatus] = mapped_column(default=None)
-    reason: Mapped[Optional[str]] = mapped_column(default=None)
+    status: Mapped[TaskStatus]
+    reason: Mapped[Optional[str]]
 
-    parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("TaskTreeNode.id"), default=None)
-    parent: Mapped["TaskTreeNode"] = relationship(foreign_keys=[parent_id], init=False, remote_side=[id])
+    parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("TaskTreeNode.id"), init=False)
+    parent: Mapped[Optional["TaskTreeNode"]] = relationship(init=False, remote_side=[id])
 
 

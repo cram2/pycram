@@ -1,7 +1,5 @@
 import os
 import unittest
-
-import anytree
 from sqlalchemy import select
 import sqlalchemy.orm
 import pycram.orm.action_designator
@@ -12,7 +10,6 @@ import pycram.orm.task
 import pycram.task
 import pycram.task
 from bullet_world_testcase import BulletWorldTestCase
-import test_task_tree
 from pycram.bullet_world import Object
 from pycram.designators import action_designator, object_designator, motion_designator
 from pycram.designators.actions.actions import ParkArmsActionPerformable, MoveTorsoActionPerformable, \
@@ -38,7 +35,6 @@ class DatabaseTestCaseMixin(BulletWorldTestCase):
         super().setUp()
         pycram.orm.base.Base.metadata.create_all(self.engine)
         self.session = sqlalchemy.orm.Session(bind=self.engine)
-        self.session.commit()
 
     def tearDown(self):
         super().tearDown()
