@@ -277,12 +277,12 @@ class PickUpActionPerformable(ActionAbstract):
 
         # Perform the motion with the prepose and open gripper
         BulletWorld.current_bullet_world.add_vis_axis(prepose)
-        MoveTCPMotion(prepose, self.arm).perform()
+        MoveTCPMotion(prepose, self.arm, allow_gripper_collision=True).perform()
         MoveGripperMotion(motion="open", gripper=self.arm).perform()
 
         # Perform the motion with the adjusted pose -> actual grasp and close gripper
         BulletWorld.current_bullet_world.add_vis_axis(adjusted_oTm)
-        MoveTCPMotion(adjusted_oTm, self.arm).perform()
+        MoveTCPMotion(adjusted_oTm, self.arm, allow_gripper_collision=True).perform()
         adjusted_oTm.pose.position.z += 0.03
         MoveGripperMotion(motion="close", gripper=self.arm).perform()
         tool_frame = robot_description.get_tool_frame(self.arm)
@@ -290,7 +290,7 @@ class PickUpActionPerformable(ActionAbstract):
 
         # Lift object
         BulletWorld.current_bullet_world.add_vis_axis(adjusted_oTm)
-        MoveTCPMotion(adjusted_oTm, self.arm).perform()
+        MoveTCPMotion(adjusted_oTm, self.arm, allow_gripper_collision=True).perform()
 
         # Remove the vis axis from the world
         BulletWorld.current_bullet_world.remove_vis_axis()

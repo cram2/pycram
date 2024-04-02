@@ -11,8 +11,7 @@ from ..robot_descriptions import robot_description
 from ..enums import JointType
 from ..helper import transform
 from ..plan_failures import EnvironmentManipulationImpossible
-from ..pose_generator_and_validator import pose_generator, visibility_validator, reachability_validator, \
-    generate_orientation
+from ..pose_generator_and_validator import PoseGenerator, visibility_validator, reachability_validator
 from ..robot_description import ManipulatorDescription
 from ..pose import Pose
 
@@ -168,7 +167,7 @@ class CostmapLocation(LocationDesignatorDescription):
         ground_pose = Pose(target_pose.position_as_list())
         ground_pose.position.z = 0
 
-        occupancy = OccupancyCostmap(0.4, False, 200, 0.02, ground_pose)
+        occupancy = OccupancyCostmap(0.32, False, 200, 0.02, ground_pose)
         final_map = occupancy
 
         if self.reachable_for:
@@ -183,8 +182,7 @@ class CostmapLocation(LocationDesignatorDescription):
             test_robot = BulletWorld.current_bullet_world.get_shadow_object(robot_object)
 
         with Use_shadow_world():
-
-            for maybe_pose in pose_generator(final_map, number_of_samples=600):
+            for maybe_pose in PoseGenerator(final_map, number_of_samples=600):
                 res = True
                 arms = None
                 if self.visible_for:
@@ -276,8 +274,8 @@ class AccessingLocation(LocationDesignatorDescription):
                                                self.handle.name)
 
         with Use_shadow_world():
-            for maybe_pose in pose_generator(final_map, number_of_samples=600,
-                                             orientation_generator=lambda p, o: generate_orientation(p, half_pose)):
+            for maybe_pose in PoseGenerator(final_map, number_of_samples=600,
+                                             orientation_generator=lambda p, o: PoseGenerator.generate_orientation(p, half_pose)):
 
                 hand_links = []
                 for name, chain in robot_description.chains.items():
@@ -340,6 +338,6 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
         if self.for_object:
             min, max = self.for_object.bullet_world_object.get_AABB()
             height_offset = (max[2] - min[2]) / 2
-        for maybe_pose in pose_generator(sem_costmap):
+        for maybe_pose in PoseGenerator(sem_costmap):
             maybe_pose.position.z += height_offset
             yield self.Location(maybe_pose)
