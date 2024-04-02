@@ -132,7 +132,6 @@ class GaussianCostmapModel:
         event = outer_event & limiting_event
         # go.Figure(event.plot()).show()
         result, _ = centered_model.conditional(event)
-        print(result)
         return result
 
 
@@ -179,6 +178,11 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
         return GaussianCostmapModel().create_model()
 
     def sample_to_action(self, sample: List) -> MoveAndPickUpPerformable:
+        """
+        Convert a sample from the underlying distribution to a performable action.
+        :param sample: The sample
+        :return: The action
+        """
         arm, grasp, relative_x, relative_y = sample
         position = [relative_x, relative_y, 0.]
         pose = Pose(position, frame=self.object_designator.bullet_world_object.tf_frame)

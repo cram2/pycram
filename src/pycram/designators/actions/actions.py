@@ -553,7 +553,7 @@ class FaceAtPerformable(ActionAbstract):
         orientation = list(transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
 
         # create new robot pose
-        new_robot_pose = Pose(robot_position.to_list()[0], orientation)
+        new_robot_pose = Pose(robot_position.position_as_list(), orientation)
 
         # turn robot
         NavigateActionPerformable(new_robot_pose).perform()
