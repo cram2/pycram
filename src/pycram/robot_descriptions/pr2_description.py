@@ -97,6 +97,9 @@ class PR2Description(RobotDescription):
                                            "right": [0, 0, 1, 1],
                                            "top": [0, 1, 0, 1]})
 
+        self.gripper_action_topics = {"left": "l_gripper_controller/gripper_action",
+                                      "right": "r_gripper_controller/gripper_action"}
+
     def get_camera_frame(self, name="optical_frame"):
         # TODO: Hacky since only one optical camera frame from pr2 is used
         return super().get_camera_frame(name)

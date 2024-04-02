@@ -1,27 +1,64 @@
+from dataclasses import dataclass
+
 import numpy as np
 import sqlalchemy.orm
 import sqlalchemy.sql
-from tf import transformations
-import pycram.designators.location_designator
-import pycram.task
-from pycram.costmaps import OccupancyCostmap
-from pycram.orm.action_designator import PickUpAction, Action
-from pycram.orm.object_designator import Object
-from pycram.orm.base import Position, RobotState, Designator, Base
-from pycram.orm.task import TaskTreeNode, Code
-from .jpt_location import JPTCostmapLocation
-from ... import orm
+from sqlalchemy import select, Select
+from typing_extensions import List
+
+from ...costmaps import Rectangle, OccupancyCostmap
+from ...designator import LocationDesignatorDescription
+from ...designators.location_designator import CostmapLocation
+from ...orm.action_designator import PickUpAction
+from ...orm.base import RobotState, Quaternion
+from ...orm.object_designator import Object
+from ...orm.task import TaskTreeNode
 from ...pose import Pose
+from ...orm.queries.queries import PickUpWithContext
 
 
-class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLocation):
+@dataclass
+class Location(LocationDesignatorDescription.Location):
+    """
+    A location that is described by a pose, a reachable arm, a torso height and a grasp.
+    """
+    pose: Pose
+    reachable_arm: str
+    torso_height: float
+    grasp: str
+
+
+class AbstractCostmapLocation(CostmapLocation):
+    """
+    Abstract Class for JPT and Database costmaps.
+    """
+
+    def __init__(self, target, reachable_for=None, reachable_arm=None):
+        """
+        Create a new AbstractCostmapLocation instance.
+        :param target: The target object
+        :param reachable_for:
+        :param reachable_arm:
+        """
+        super().__init__(target, reachable_for, None, reachable_arm, None)
+
+    def create_occupancy_rectangles(self) -> List[Rectangle]:
+        """
+        :return: A list of rectangles that represent the occupied space of the target object.
+        """
+        # create Occupancy costmap for the target object
+        ocm = OccupancyCostmap(distance_to_obstacle=0.3, from_ros=False, size=200, resolution=0.02,
+                               origin=self.target.pose)
+        return ocm.partitioning_rectangles()
+
+
+class DatabaseCostmapLocation(AbstractCostmapLocation):
     """
     Class that represents costmap locations from a given Database.
     The database has to have a schema that is compatible with the pycram.orm package.
     """
 
-    def __init__(self, target, session: sqlalchemy.orm.Session = None,
-                 reachable_for=None, reachable_arm=None, resolver=None):
+    def __init__(self, target, session: sqlalchemy.orm.Session = None, reachable_for=None, reachable_arm=None):
         """
         Create a Database Costmap
 
@@ -31,88 +68,61 @@ class DatabaseCostmapLocation(pycram.designators.location_designator.CostmapLoca
         :param reachable_arm: The arm to use
 
         """
-        super().__init__(target, reachable_for, None, reachable_arm, resolver)
+        super().__init__(target, reachable_for, reachable_arm)
         self.session = session
 
-    def create_query_from_occupancy_costmap(self) -> sqlalchemy.orm.Query:
+    @staticmethod
+    def select_statement(query_context: PickUpWithContext) -> Select:
+        return query_context.join_statement(select(PickUpAction.arm, PickUpAction.grasp, RobotState.torso_height,
+                                                   query_context.relative_x, query_context.relative_y, Quaternion.x,
+                                                   Quaternion.y, Quaternion.z, Quaternion.w).distinct())
+
+    def create_query_from_occupancy_costmap(self) -> Select:
         """
         Create a query that queries all relative robot positions from an object that are not occluded using an
         OccupancyCostmap.
         """
 
-        robot_pos = sqlalchemy.orm.aliased(Position)
-        object_pos = sqlalchemy.orm.aliased(Position)
+        query_context = PickUpWithContext()
 
-        # query all relative robot positions in regard to an objects position
-        # make sure to order the joins() correctly
-        query = (self.session.query(PickUpAction.arm, PickUpAction.grasp, RobotState.torso_height, Position.x,
-                                    Position.y).join(TaskTreeNode.code)
-                                               .join(Code.designator.of_type(PickUpAction))
-                                               .join(PickUpAction.robot_state)
-                                               .join(RobotState.pose)
-                                               .join(orm.base.Pose.position)
-                                               .join(PickUpAction.object).filter(Object.type == self.target.type)
-                                                                         .filter(TaskTreeNode.status == "SUCCEEDED"))
+        # get query
+        query = self.select_statement(query_context)
 
-        # create Occupancy costmap for the target object
-        position, orientation = self.target.pose.to_list()
-        position = list(position)
-        position[-1] = 0
-
-        ocm = OccupancyCostmap(distance_to_obstacle=0.3, from_ros=False, size=200, resolution=0.02,
-                               origin=Pose(position, orientation))
-        # ocm.visualize()
-
-        # working on a copy of the costmap, since found rectangles are deleted
-        map = np.copy(ocm.map)
-
-        origin = np.array([ocm.height / 2, ocm.width / 2])
+        # constraint query to correct object type and successful task status
+        query = query.where(Object.type == self.target.type).where(TaskTreeNode.status == "SUCCEEDED")
 
         filters = []
 
-        # for every index pair (i, j) in the occupancy map
-        for i in range(0, map.shape[0]):
-            for j in range(0, map.shape[1]):
+        # for every rectangle
+        for rectangle in self.create_occupancy_rectangles():
+            # add sql filter
+            filters.append(sqlalchemy.and_(query_context.relative_x >= rectangle.x_lower,
+                                           query_context.relative_x < rectangle.x_upper,
+                                           query_context.relative_y >= rectangle.y_lower,
+                                           query_context.relative_y < rectangle.y_upper))
 
-                # if this index has not been used yet
-                if map[i][j] > 0:
-                    # get consecutive box
-                    width = ocm._find_consectuive_line((i, j), map)
-                    height = ocm._find_max_box_height((i, j), width, map)
+        return query.where(sqlalchemy.or_(*filters))
 
-                    # mark box as used
-                    map[i:i + height, j:j + width] = 0
-
-                    # calculate to coordinates relative to the objects pose
-                    pose = np.array([i, j])
-                    lower_corner = (pose - origin) * ocm.resolution
-                    upper_corner = (pose - origin + np.array([height, width])) * ocm.resolution
-                    rectangle = np.array([lower_corner, upper_corner]).T
-
-                    # transform to jpt query
-                    filters.append(sqlalchemy.and_(robot_pos.x >= rectangle[0][0], robot_pos.x < rectangle[0][1],
-                                                   robot_pos.y >= rectangle[1][0], robot_pos.y < rectangle[1][1]))
-                    # query = self.model.bind({"x": list(rectangle[0]), "y": list(rectangle[1])})
-
-        return query.filter(sqlalchemy.or_(*filters))
-
-    def sample_to_location(self, sample: sqlalchemy.engine.row.Row) -> JPTCostmapLocation.Location:
+    def sample_to_location(self, sample: sqlalchemy.engine.row.Row) -> Location:
         """
         Convert a database row to a costmap location.
 
         :param sample: The database row.
         :return: The costmap location
         """
-        target_x, target_y, target_z = self.target.pose.position_as_list()
-        pose = [target_x + sample.x, target_y + sample.y, 0]
-        angle = np.arctan2(pose[1] - target_y, pose[0] - target_x) + np.pi
-        orientation = list(transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
 
-        result = JPTCostmapLocation.Location(Pose(pose, orientation), sample.arm, sample.torso_height, sample.grasp)
+        target_x, target_y, target_z = self.target.pose.position_as_list()
+        position = [target_x + sample[3], target_y + sample[4], 0]
+        orientation = [sample[5], sample[6], sample[7], sample[8]]
+
+        result = Location(Pose(position, orientation), sample.arm, sample.torso_height, sample.grasp)
         return result
 
-    def __iter__(self) -> JPTCostmapLocation.Location:
-        query = self.create_query_from_occupancy_costmap().limit(200)
-        samples = query.all()
-        for sample in samples:
-            yield self.sample_to_location(sample)
+    def __iter__(self) -> Location:
+        statement = self.create_query_from_occupancy_costmap().limit(200)
+        samples = self.session.execute(statement).all()
+        if samples:
+            for sample in samples:
+                yield self.sample_to_location(sample)
+        else:
+            raise ValueError("No samples found")

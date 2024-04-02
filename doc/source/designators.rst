@@ -45,7 +45,7 @@ action looks like this:
 
 .. code-block:: python
 
-    NavigateAction.Action(robot_position=((0.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0)), target_location=[[1, 0, 0], [0, 0, 0, 1]])
+    NavigateActionPerformable(robot_position=((0.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0)), target_location=[[1, 0, 0], [0, 0, 0, 1]])
 
 
 A visual representation of the whole idea of designator and designator descriptions can be

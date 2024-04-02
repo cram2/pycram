@@ -12,7 +12,7 @@ to correctly set up the jupyter server, however the notebook will always use you
 
 To fix this issue one has to execute
 
-.. code-block:: console
+.. code-block:: shell
 
     python -m ipykernel install --user --name <kernel_name> --display-name "<Name_to_display>"
 
@@ -40,7 +40,7 @@ Missing pr2_arm_kinematics
 
 Aptitudes autoremove likes to also remove the arm kinematics. Reinstall the missing libraries with
 
-.. code-block:: console
+.. code-block:: shell
 
     sudo apt-get install ros-noetic-moveit
 

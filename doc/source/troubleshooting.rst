@@ -18,7 +18,7 @@ file was not launched.
 To solve this problem you just have to launch the ``ik_and_description`` file of PyCRAM. This can be done via the
 following command.
 
-.. code-block:: bash
+.. code-block:: shell
 
     roslaunch pycram ik_and_description
 

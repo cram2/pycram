@@ -27,14 +27,16 @@ Misc
     notebooks/bullet_world
     notebooks/minimal_task_tree
     notebooks/pose
-    notebooks/custom_resolver
+    notebooks/improving_actions
+    notebooks/language
+    notebooks/local_transformer
 
 Interface Examples
 ==================
 
 .. nbgallery::
-    notebooks/giskard
-    notebooks/robokudo
+    notebooks/interface_examples/giskard
+    notebooks/interface_examples/robokudo
 
 Object Relational Mapping
 =========================

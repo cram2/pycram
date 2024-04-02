@@ -7,6 +7,7 @@ from .bullet_world import Object, BulletWorld, Use_shadow_world
 from .bullet_world_reasoning import contact
 from .costmaps import Costmap
 from .pose import Pose, Transform
+from .robot_description import ManipulatorDescription
 from .robot_descriptions import robot_description
 from .external_interfaces.ik import request_ik
 from .plan_failures import IKError
@@ -14,65 +15,77 @@ from .helper import _apply_ik
 from typing import Type, Tuple, List, Union, Dict, Iterable
 
 
-def pose_generator(costmap: Costmap, number_of_samples=100, orientation_generator=None) -> Iterable:
-    """
-    A generator that crates pose candidates from a given costmap. The generator
-    selects the highest 100 values and returns the corresponding positions.
-    Orientations are calculated such that the Robot faces the center of the costmap.
+class PoseGenerator:
+    current_orientation_generator = None
 
-    :param costmap: The costmap from which poses should be sampled.
-    :param number_of_samples: The number of samples from the costmap that should be returned at max
-    :param orientation_generator: function that generates an orientation given a position and the origin of the costmap
-    :Yield: A tuple of position and orientation
-    """
-    if not orientation_generator:
-        orientation_generator = generate_orientation
+    def __init__(self, costmap: Costmap, number_of_samples=100, orientation_generator=None):
+        """
+       :param costmap: The costmap from which poses should be sampled.
+       :param number_of_samples: The number of samples from the costmap that should be returned at max
+       :param orientation_generator: function that generates an orientation given a position and the origin of the costmap
+        """
 
-    # Determines how many positions should be sampled from the costmap
-    if number_of_samples == -1:
-        number_of_samples = costmap.map.flatten().shape[0]
-    indices = np.argpartition(costmap.map.flatten(), -number_of_samples)[-number_of_samples:]
-    indices = np.dstack(np.unravel_index(indices, costmap.map.shape)).reshape(number_of_samples, 2)
+        if not PoseGenerator.current_orientation_generator:
+            PoseGenerator.current_orientation_generator = PoseGenerator.generate_orientation
 
-    height = costmap.map.shape[0]
-    width = costmap.map.shape[1]
-    center = np.array([height // 2, width // 2])
-    for ind in indices:
-        if costmap.map[ind[0]][ind[1]] == 0:
-            continue
-        # The position is calculated by creating a vector from the 2D position in the costmap (given by x and y)
-        # and the center of the costmap (since this is the origin). This vector is then turned into a transformation
-        # and muiltiplied with the transformation of the origin.
-        vector_to_origin = (center - ind) * costmap.resolution
-        point_to_origin = Transform([*vector_to_origin, 0], frame="point", child_frame="origin")
-        origin_to_map = costmap.origin.to_transform("origin").invert()
-        point_to_map = point_to_origin * origin_to_map
-        map_to_point = point_to_map.invert()
+        self.costmap = costmap
+        self.number_of_samples = number_of_samples
+        self.orientation_generator = orientation_generator if orientation_generator else PoseGenerator.current_orientation_generator
 
-        orientation = orientation_generator(map_to_point.translation_as_list(), costmap.origin)
-        yield Pose(map_to_point.translation_as_list(), orientation)
+    def __iter__(self) -> Iterable:
+        """
+        A generator that crates pose candidates from a given costmap. The generator
+        selects the highest 100 values and returns the corresponding positions.
+        Orientations are calculated such that the Robot faces the center of the costmap.
 
+        :Yield: A tuple of position and orientation
+        """
 
-def height_generator() -> float:
-    pass
+        # Determines how many positions should be sampled from the costmap
+        if self.number_of_samples == -1:
+            self.number_of_samples = self.costmap.map.flatten().shape[0]
+        indices = np.argpartition(self.costmap.map.flatten(), -self.number_of_samples)[-self.number_of_samples:]
+        indices = np.dstack(np.unravel_index(indices, self.costmap.map.shape)).reshape(self.number_of_samples, 2)
 
+        height = self.costmap.map.shape[0]
+        width = self.costmap.map.shape[1]
+        center = np.array([height // 2, width // 2])
+        for ind in indices:
+            if self.costmap.map[ind[0]][ind[1]] == 0:
+                continue
+            # The position is calculated by creating a vector from the 2D position in the costmap (given by x and y)
+            # and the center of the costmap (since this is the origin). This vector is then turned into a transformation
+            # and muiltiplied with the transformation of the origin.
+            vector_to_origin = (center - ind) * self.costmap.resolution
+            point_to_origin = Transform([*vector_to_origin, 0], frame="point", child_frame="origin")
+            origin_to_map = self.costmap.origin.to_transform("origin").invert()
+            point_to_map = point_to_origin * origin_to_map
+            map_to_point = point_to_map.invert()
 
-def generate_orientation(position: List[float], origin: Pose) -> List[float]:
-    """
-    This method generates the orientation for a given position in a costmap. The
-    orientation is calculated such that the robot faces the origin of the costmap.
-    This generation is done by simply calculating the arctan between the position,
-    in the costmap, and the origin of the costmap.
+            orientation = self.orientation_generator(map_to_point.translation_as_list(), self.costmap.origin)
+            yield Pose(map_to_point.translation_as_list(), orientation)
 
-    :param position: The position in the costmap. This position is already converted
-        to the world coordinate frame.
-    :param origin: The origin of the costmap. This is also the point which the
-        robot should face.
-    :return: A quaternion of the calculated orientation
-    """
-    angle = np.arctan2(position[1]-origin.position.y, position[0]-origin.position.x) + np.pi
-    quaternion = list(tf.transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
-    return quaternion
+    @staticmethod
+    def height_generator() -> float:
+        pass
+
+    @staticmethod
+    def generate_orientation(position: List[float], origin: Pose) -> List[float]:
+        """
+        This method generates the orientation for a given position in a costmap. The
+        orientation is calculated such that the robot faces the origin of the costmap.
+        This generation is done by simply calculating the arctan between the position,
+        in the costmap, and the origin of the costmap.
+
+        :param position: The position in the costmap. This position is already converted
+            to the world coordinate frame.
+        :param origin: The origin of the costmap. This is also the point which the
+            robot should face.
+        :return: A quaternion of the calculated orientation
+        """
+        angle = np.arctan2(position[1] - origin.position.y, position[0] - origin.position.x) + np.pi
+        quaternion = list(tf.transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
+        return quaternion
 
 
 def visibility_validator(pose: Pose,
@@ -134,14 +147,9 @@ def reachability_validator(pose: Pose,
         target = target.get_pose()
 
     robot.set_pose(pose)
+    manipulator_descs = list(
+        filter(lambda chain: isinstance(chain[1], ManipulatorDescription), robot_description.chains.items()))
 
-    left_gripper = robot_description.get_tool_frame('left')
-    right_gripper = robot_description.get_tool_frame('right')
-
-    # left_joints = robot_description._safely_access_chains('left').joints
-    left_joints = robot_description.chains['left'].joints
-    # right_joints = robot_description._safely_access_chains('right').joints
-    right_joints = robot_description.chains['right'].joints
     # TODO Make orientation adhere to grasping orientation
     res = False
     arms = []
@@ -151,52 +159,30 @@ def reachability_validator(pose: Pose,
     if robot in allowed_collision.keys():
         allowed_robot_links = allowed_collision[robot]
 
-    try:
-        # resp = request_ik(base_link, end_effector, target_diff, robot, left_joints)
-        resp = request_ik(target, robot, left_joints, left_gripper)
+    for chain_name, chain in manipulator_descs:
+        joint_state_before_ik = robot._current_joint_states
+        try:
+            resp = request_ik(target, robot, chain.joints, chain.tool_frame)
 
-        _apply_ik(robot, resp, left_joints)
+            _apply_ik(robot, resp, chain.joints)
 
-        for obj in BulletWorld.current_bullet_world.objects:
-            if obj.name == "floor":
-                continue
-            in_contact, contact_links = contact(robot, obj, return_links=True)
-            allowed_links = allowed_collision[obj] if obj in allowed_collision.keys() else []
+            for obj in BulletWorld.current_bullet_world.objects:
+                if obj.name == "floor":
+                    continue
+                in_contact, contact_links = contact(robot, obj, return_links=True)
+                allowed_links = allowed_collision[obj] if obj in allowed_collision.keys() else []
 
-            if in_contact:
-                for link in contact_links:
+                if in_contact:
+                    for link in contact_links:
 
-                    if link[0] in allowed_robot_links or link[1] in allowed_links:
-                        in_contact = False
+                        if link[0] in allowed_robot_links or link[1] in allowed_links:
+                            in_contact = False
 
-        if not in_contact:
-            arms.append("left")
-            res = True
-    except IKError:
-        pass
-
-    try:
-        # resp = request_ik(base_link, end_effector, target_diff, robot, right_joints)
-        resp = request_ik(target, robot, right_joints, right_gripper)
-
-        _apply_ik(robot, resp, right_joints)
-
-        for obj in BulletWorld.current_bullet_world.objects:
-            if obj.name == "floor":
-                continue
-            in_contact, contact_links = contact(robot, obj, return_links=True)
-            allowed_links = allowed_collision[obj] if obj in allowed_collision.keys() else []
-
-            if in_contact:
-                for link in contact_links:
-
-                    if link[0] in allowed_robot_links or link[1] in allowed_links:
-                        in_contact = False
-
-        if not in_contact:
-            arms.append("right")
-            res = True
-    except IKError:
-        pass
-
+            if not in_contact:
+                arms.append(chain_name)
+                res = True
+        except IKError:
+            pass
+        finally:
+            robot.set_joint_states(joint_state_before_ik)
     return res, arms

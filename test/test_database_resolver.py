@@ -1,27 +1,23 @@
 import os
+import time
 import unittest
 import sqlalchemy
 import sqlalchemy.orm
 import pycram.plan_failures
 from pycram import task
 from pycram.bullet_world import BulletWorld, Object
-from pycram.designators import action_designator, object_designator
+from pycram.designators import action_designator
+from pycram.designators.actions.actions import MoveTorsoActionPerformable, PickUpActionPerformable, \
+    NavigateActionPerformable, PlaceActionPerformable
 from pycram.orm.base import Base
+from pycram.designators.object_designator import ObjectDesignatorDescription
 from pycram.process_module import ProcessModule
 from pycram.process_module import simulated_robot
 from pycram.pose import Pose
 from pycram.robot_descriptions import robot_description
 from pycram.task import with_tree
 from pycram.enums import ObjectType
-
-# check if jpt is installed
-jpt_installed = True
-try:
-    import jpt
-    from pycram.resolver.location.database_location import DatabaseCostmapLocation
-except ImportError:
-    jpt_installed = False
-
+from pycram.resolver.location.database_location import DatabaseCostmapLocation
 
 pycrorm_uri = os.getenv('PYCRORM_URI')
 if pycrorm_uri:
@@ -29,8 +25,6 @@ if pycrorm_uri:
 
 
 @unittest.skipIf(pycrorm_uri is None, "pycrorm database is not available.")
-@unittest.skipIf(not jpt_installed, "jpt is not installed but needed for the definition of DatabaseCostmapLocations. "
-                                    "Install via 'pip install pyjpt'")
 class DatabaseResolverTestCase(unittest.TestCase,):
     world: BulletWorld
     milk: Object
@@ -46,31 +40,33 @@ class DatabaseResolverTestCase(unittest.TestCase,):
         cls.robot = Object(robot_description.name, ObjectType.ROBOT, robot_description.name + ".urdf")
         ProcessModule.execution_delay = False
         cls.engine = sqlalchemy.create_engine(pycrorm_uri)
-        cls.session = sqlalchemy.orm.Session(bind=cls.engine)
 
     def setUp(self) -> None:
         self.world.reset_bullet_world()
         pycram.orm.base.Base.metadata.create_all(self.engine)
+        self.session = sqlalchemy.orm.Session(bind=self.engine)
         self.session.commit()
 
     def tearDown(self) -> None:
         self.world.reset_bullet_world()
         pycram.task.reset_tree()
+        pycram.orm.base.ProcessMetaData.reset()
+        self.session.rollback()
+        pycram.orm.base.Base.metadata.drop_all(self.engine)
+        self.session.close()
 
     @classmethod
     def tearDownClass(cls) -> None:
         cls.world.exit()
-        cls.session.commit()
-        cls.session.close()
 
     @with_tree
     def plan(self):
-        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        object_description = ObjectDesignatorDescription(names=["milk"])
         description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], ["left"])
         with simulated_robot:
-            action_designator.NavigateAction.Action(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
-            action_designator.MoveTorsoAction.Action(0.3).perform()
-            action_designator.PickUpAction.Action(object_description.resolve(), "left", "front").perform()
+            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            MoveTorsoActionPerformable(0.3).perform()
+            PickUpActionPerformable(object_description.resolve(), "left", "front").perform()
             description.resolve().perform()
 
     def test_costmap_no_obstacles(self):
@@ -83,31 +79,110 @@ class DatabaseResolverTestCase(unittest.TestCase,):
         sample = next(iter(cml))
 
         with simulated_robot:
-            # action_designator.NavigateAction.Action(sample.pose).perform()
-            action_designator.MoveTorsoAction.Action(sample.torso_height).perform()
-            action_designator.PickUpAction.Action(
-                object_designator.ObjectDesignatorDescription(types=["milk"]).resolve(),
-                arm=sample.reachable_arm, grasp=sample.grasp).perform()
+            MoveTorsoActionPerformable(sample.torso_height).perform()
+            PickUpActionPerformable(ObjectDesignatorDescription(types=["milk"]).resolve(), arm=sample.reachable_arm,
+                                    grasp=sample.grasp).perform()
 
-    @unittest.skip
     def test_costmap_with_obstacles(self):
         kitchen = Object("kitchen", "environment", "kitchen.urdf")
+        self.plan()
+        pycram.orm.base.ProcessMetaData().description = "costmap_with_obstacles_test"
+        pycram.task.task_tree.root.insert(self.session)
+        self.world.reset_bullet_world()
 
         cml = DatabaseCostmapLocation(self.milk, self.session, reachable_for=self.robot)
+        sample = next(iter(cml))
 
-        for i in range(20):
-            sample = next(iter(cml))
-            with simulated_robot:
-                action_designator.NavigateAction.Action(sample.pose).perform()
-                action_designator.MoveTorsoAction.Action(sample.torso_height).perform()
+        with simulated_robot:
+            NavigateActionPerformable(sample.pose).perform()
+            MoveTorsoActionPerformable(sample.torso_height).perform()
+            try:
+                PickUpActionPerformable(
+                    ObjectDesignatorDescription(types=["milk"]).resolve(),
+                    arm=sample.reachable_arm, grasp=sample.grasp).perform()
+            except pycram.plan_failures.PlanFailure as p:
+                kitchen.remove()
+                raise p
+        kitchen.remove()
+
+    def test_object_at_different_location(self):
+        kitchen = Object("kitchen", "environment", "kitchen.urdf")
+        self.plan()
+
+        pycram.orm.base.ProcessMetaData().description = "object_at_different_location_test"
+        pycram.task.task_tree.root.insert(self.session)
+        self.world.reset_bullet_world()
+
+        new_milk = Object("new_milk", "milk", "milk.stl", pose=Pose([-1.45, 2.5, 0.95]))
+        cml = DatabaseCostmapLocation(new_milk, self.session, reachable_for=self.robot)
+
+        sample = next(iter(cml))
+        with simulated_robot:
+            NavigateActionPerformable(sample.pose).perform()
+            MoveTorsoActionPerformable(sample.torso_height).perform()
+            try:
+                PickUpActionPerformable(
+                    ObjectDesignatorDescription(names=["new_milk"], types=["milk"]).resolve(),
+                    arm=sample.reachable_arm, grasp=sample.grasp).perform()
+            except pycram.plan_failures.PlanFailure as p:
+                new_milk.remove()
+                kitchen.remove()
+                raise p
+            PlaceActionPerformable(ObjectDesignatorDescription(names=["new_milk"], types=["milk"]).resolve(),
+                                   arm=sample.reachable_arm, target_location=Pose([-1.45, 2.5, 0.95])).perform()
+        new_milk.remove()
+        kitchen.remove()
+
+    @unittest.skip
+    def test_multiple_objects(self):
+        kitchen = Object("kitchen", "environment", "kitchen.urdf")
+        new_milk = Object("new_milk", "milk", "milk.stl", pose=Pose([-1.45, 2.5, 0.9]))
+
+        object_description = ObjectDesignatorDescription(names=["milk"])
+        object_description_new_milk = ObjectDesignatorDescription(names=["new_milk"])
+        description = action_designator.PlaceAction(object_description_new_milk, [Pose([-1.45, 2.5, 0.9], [0, 0, 0, 1])], ["left"])
+        with simulated_robot:
+            NavigateActionPerformable(Pose([1, 0.4, 0], [0, 0, 0, 1])).perform()
+            MoveTorsoActionPerformable(0.3).perform()
+            PickUpActionPerformable(object_description.resolve(), "left", "front").perform()
+            PlaceActionPerformable(object_description.resolve(), "left", Pose([1.3, 1, 0.9], [0, 0, 0, 1])).perform()
+            NavigateActionPerformable(Pose([-1.75, 1.9, 0], [0, 0, 0, 1])).perform()
+            PickUpActionPerformable(object_description_new_milk.resolve(), "left", "front").perform()
+            description.resolve().perform()
+
+        pycram.orm.base.ProcessMetaData().description = "multiple_objects_test"
+        pycram.task.task_tree.root.insert(self.session)
+        self.world.reset_bullet_world()
+
+        cml = DatabaseCostmapLocation(self.milk, self.session, reachable_for=self.robot)
+        cml_new_milk = DatabaseCostmapLocation(new_milk, self.session, reachable_for=self.robot)
+
+        dcls = [cml, cml_new_milk]
+        for dcl in dcls:
+            sample = next(iter(dcl))
+            with (simulated_robot):
+                NavigateActionPerformable(sample.pose).perform()
+                MoveTorsoActionPerformable(sample.torso_height).perform()
                 try:
-                    action_designator.PickUpAction.Action(
-                        object_designator.ObjectDesignatorDescription(types=["milk"]).resolve(),
-                        arm=sample.reachable_arm, grasp=sample.grasp).perform()
-                except pycram.plan_failures.PlanFailure:
-                    continue
-                return
-        raise pycram.plan_failures.PlanFailure()
+                    if dcl.target.name == "milk":
+                        PickUpActionPerformable(
+                            ObjectDesignatorDescription(names=["milk"], types=["milk"]).resolve(),
+                            arm=sample.reachable_arm, grasp=sample.grasp).perform()
+                    else:
+                        PickUpActionPerformable(
+                            ObjectDesignatorDescription(names=["new_milk"], types=["milk"]).resolve(),
+                            arm=sample.reachable_arm, grasp=sample.grasp).perform()
+                except pycram.plan_failures.PlanFailure as p:
+                    new_milk.remove()
+                    kitchen.remove()
+                    raise p
+                PlaceActionPerformable(ObjectDesignatorDescription(names=[dcl.target.name], types=["milk"]).resolve(),
+                                       arm=sample.reachable_arm, target_location=Pose([dcl.target.pose.position.x,
+                                                                                       dcl.target.pose.position.y,
+                                                                                       dcl.target.pose.position.z])
+                                       ).perform()
+        new_milk.remove()
+        kitchen.remove()
 
 
 if __name__ == '__main__':
