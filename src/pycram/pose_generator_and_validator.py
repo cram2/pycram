@@ -6,6 +6,7 @@ import pybullet as p
 from .bullet_world import Object, BulletWorld, Use_shadow_world
 from .bullet_world_reasoning import contact
 from .costmaps import Costmap
+from .local_transformer import LocalTransformer
 from .pose import Pose, Transform
 from .robot_description import ManipulatorDescription
 from .robot_descriptions import robot_description
@@ -153,36 +154,59 @@ def reachability_validator(pose: Pose,
     # TODO Make orientation adhere to grasping orientation
     res = False
     arms = []
-    in_contact = False
+    for name, chain in manipulator_descs:
+        retract_target_pose = LocalTransformer().transform_pose(target, robot.get_link_tf_frame(chain.tool_frame))
+        retract_target_pose.position.x -= 0.07  # Care hard coded value copied from PlaceAction class
 
-    allowed_robot_links = []
-    if robot in allowed_collision.keys():
-        allowed_robot_links = allowed_collision[robot]
+        # retract_pose needs to be in world frame?
+        retract_target_pose = LocalTransformer().transform_pose(retract_target_pose, "map")
 
-    for chain_name, chain in manipulator_descs:
+        joints = robot_description.chains[name].joints
+        tool_frame = robot_description.get_tool_frame(name)
+
+        # TODO Make orientation adhere to grasping orientation
+        in_contact = False
+
         joint_state_before_ik = robot._current_joint_states
         try:
-            resp = request_ik(target, robot, chain.joints, chain.tool_frame)
+            # test the possible solution and apply it to the robot
+            resp = request_ik(target, robot, joints, tool_frame)
+            _apply_ik(robot, resp, joints)
 
-            _apply_ik(robot, resp, chain.joints)
-
-            for obj in BulletWorld.current_bullet_world.objects:
-                if obj.name == "floor":
-                    continue
-                in_contact, contact_links = contact(robot, obj, return_links=True)
-                allowed_links = allowed_collision[obj] if obj in allowed_collision.keys() else []
-
-                if in_contact:
-                    for link in contact_links:
-
-                        if link[0] in allowed_robot_links or link[1] in allowed_links:
-                            in_contact = False
-
+            in_contact = collision_check(robot, allowed_collision)
+            if not in_contact:  # only check for retract pose if pose worked
+                resp = request_ik(retract_target_pose, robot, joints, tool_frame)
+                _apply_ik(robot, resp, joints)
+                in_contact = collision_check(robot, allowed_collision)
             if not in_contact:
-                arms.append(chain_name)
-                res = True
+                arms.append(name)
         except IKError:
             pass
         finally:
             robot.set_joint_states(joint_state_before_ik)
+    if arms:
+        res = True
     return res, arms
+
+
+def collision_check(robot, allowed_collision):
+    in_contact = False
+    allowed_robot_links = []
+    if robot in allowed_collision.keys():
+        allowed_robot_links = allowed_collision[robot]
+
+    for obj in BulletWorld.current_bullet_world.objects:
+        if obj.name == "floor":
+            continue
+        in_contact, contact_links = contact(robot, obj, return_links=True)
+        allowed_links = allowed_collision[obj] if obj in allowed_collision.keys() else []
+
+        if in_contact:
+            for link in contact_links:
+
+                if link[0] in allowed_robot_links or link[1] in allowed_links:
+                    in_contact = False
+
+    return in_contact
+
+
