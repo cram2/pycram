@@ -1,12 +1,12 @@
 import time
 
-from test_bullet_world import BulletWorldTest
+from bullet_world_testcase import BulletWorldTestCase
 import pycram.bullet_world_reasoning as btr
 from pycram.pose import Pose
 from pycram.robot_descriptions import robot_description
 
 
-class TestBulletWorldReasoning(BulletWorldTest):
+class TestCaseBulletWorldReasoning(BulletWorldTestCase):
 
     def test_contact(self):
         self.milk.set_pose(Pose([1, 1, 1]))
@@ -35,7 +35,7 @@ class TestBulletWorldReasoning(BulletWorldTest):
     def test_blocking(self):
         self.milk.set_pose(Pose([0.5, -0.7, 1]))
         self.robot.set_pose(Pose())
-        time.sleep(1)
+        time.sleep(2)
         self.assertTrue(btr.blocking(Pose([0.5, -0.7, 1]), self.robot, robot_description.get_tool_frame("right")) != [])
 
     def test_supporting(self):

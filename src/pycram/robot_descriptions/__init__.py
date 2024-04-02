@@ -9,6 +9,7 @@ from .hsr_description import HSRDescription
 from .pr2_description import PR2Description
 from .ur5_description import UR5Description
 from .tiago_description import TiagoDescription
+from .stretch_description import StretchDescription
 from .. import utils
 from ..robot_description import RobotDescription
 
@@ -49,7 +50,7 @@ def update_robot_description(robot_name=None, from_ros=None):
         return None
 
     # Choose Description based on robot name
-    if 'donbot' in robot:
+    if 'iai_donbot' in robot:
         description = DonbotDescription
     elif 'pr2' in robot:
         description = PR2Description
@@ -61,13 +62,15 @@ def update_robot_description(robot_name=None, from_ros=None):
         description = UR5Description
     elif "tiago_dual" in robot:
         description = TiagoDescription
+    elif "stretch" in robot:
+        description = StretchDescription
     else:
         logger.error("(robot-description) The given robot name %s has no description class.", robot_name)
         return None
     return InitializedRobotDescription(description)
 
 
-with utils.suppress_stdout_stderr():
-    update_robot_description(from_ros=True)  # "ur5_robotiq")#  # todo: put in ros init
+# with utils.suppress_stdout_stderr():
+update_robot_description(from_ros=True)  # "ur5_robotiq")#  # todo: put in ros init
 
 robot_description = InitializedRobotDescription.i

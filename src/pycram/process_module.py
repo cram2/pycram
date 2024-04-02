@@ -5,19 +5,19 @@ ProcessModule -- implementation of process modules.
 """
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
-
 import inspect
+import threading
 import time
 from abc import ABC
-from threading import Lock
-
 import rospy
-
-from .designator import MotionDesignatorDescription
-from .fluent import Fluent
 from typing import Callable, List, Type, Any, Union
+from .language import Language
 
-from .robot_descriptions import  robot_description
+from .robot_descriptions import robot_description
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .designators.motion_designator import BaseMotion
 
 
 class ProcessModule:
@@ -28,19 +28,24 @@ class ProcessModule:
     """
     Adds a delay of 0.5 seconds after executing a process module, to make the execution in simulation more realistic
     """
+    block_list = []
+    """
+    List of thread ids for which no Process Modules should be executed. This is used as an interrupt mechanism for 
+    Designators
+    """
 
     def __init__(self, lock):
         """Create a new process module."""
         self._lock = lock
 
-    def _execute(self, designator: MotionDesignatorDescription.Motion) -> Any:
+    def _execute(self, designator: BaseMotion) -> Any:
         """
         Helper method for internal usage only.
         This method is to be overwritten instead of the execute method.
         """
         pass
 
-    def execute(self, designator: MotionDesignatorDescription.Motion) -> Any:
+    def execute(self, designator: BaseMotion) -> Any:
         """
         Execute the given designator. If there is already another process module of the same kind the `self._lock` will
         lock this thread until the execution of that process module is finished. This implicitly queues the execution of
@@ -49,6 +54,8 @@ class ProcessModule:
         :param designator: The designator to execute.
         :return: Return of the Process Module if there is any
         """
+        if threading.get_ident() in Language.block_list:
+            return None
         with self._lock:
             ret = self._execute(designator)
             if ProcessModule.execution_delay:
@@ -71,6 +78,7 @@ class RealRobot:
     """
     def __init__(self):
         self.pre: str = ""
+        self.pre_delay: bool = False
 
     def __enter__(self):
         """
@@ -79,6 +87,8 @@ class RealRobot:
         """
         self.pre = ProcessModuleManager.execution_type
         ProcessModuleManager.execution_type = "real"
+        self.pre_delay = ProcessModule.execution_delay
+        ProcessModule.execution_delay = False
 
     def __exit__(self, type, value, traceback):
         """
@@ -86,6 +96,7 @@ class RealRobot:
         used one.
         """
         ProcessModuleManager.execution_type = self.pre
+        ProcessModule.execution_delay = self.pre_delay
 
     def __call__(self):
         return self
@@ -236,11 +247,14 @@ class ProcessModuleManager(ABC):
         for pm_manager in ProcessModuleManager.available_pms:
             if pm_manager.robot_name == robot_description.name:
                 manager = pm_manager
+            if pm_manager.robot_name == "default":
+                default_manager = pm_manager
 
         if manager:
             return manager
         else:
-            rospy.logerr(f"No Process Module Manager found for robot: '{robot_description.name}'")
+            rospy.logwarn_once(f"No Process Module Manager found for robot: '{robot_description.name}', using default process modules")
+            return default_manager
 
     def navigate(self) -> Type[ProcessModule]:
         """

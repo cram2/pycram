@@ -6,6 +6,11 @@ class PlanFailure(Exception):
         Exception.__init__(self, *args, **kwargs)
 
 
+class NotALanguageExpression(PlanFailure):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
 class FailureDiagnosis(PlanFailure):
     """"""
 
