@@ -14,7 +14,7 @@ from ..object_designator import BelieveObject
 from ...bullet_world import BulletWorld
 from ...helper import multiply_quaternions
 from ...local_transformer import LocalTransformer
-from ...orm.base import Base, Pose as ORMPose
+from ...orm.base import Pose as ORMPose
 from ...orm.object_designator import Object as ORMObject, ObjectPart as ORMObjectPart
 from ...orm.action_designator import Action as ORMAction
 from ...plan_failures import ObjectUnfetchable, ReachabilityFailure
@@ -94,12 +94,11 @@ class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC):
             if key not in orm_class_variables:
                 variable = value.insert(session)
                 if isinstance(variable, ORMObject):
-                    action.object_id = variable.id
+                    action.object = variable
                 elif isinstance(variable, ORMPose):
-                    action.pose_id = variable.id
-
+                    action.pose = variable
         session.add(action)
-        session.commit()
+
         return action
 
 
