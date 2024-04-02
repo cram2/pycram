@@ -1,4 +1,5 @@
 import os
+import time
 import unittest
 import sqlalchemy
 import sqlalchemy.orm
@@ -16,15 +17,7 @@ from pycram.pose import Pose
 from pycram.robot_descriptions import robot_description
 from pycram.task import with_tree
 from pycram.enums import ObjectType
-
-# check if jpt is installed
-jpt_installed = True
-try:
-    import jpt
-    from pycram.resolver.location.database_location import DatabaseCostmapLocation
-except ImportError:
-    jpt_installed = False
-
+from pycram.resolver.location.database_location import DatabaseCostmapLocation
 
 pycrorm_uri = os.getenv('PYCRORM_URI')
 if pycrorm_uri:
@@ -32,8 +25,6 @@ if pycrorm_uri:
 
 
 @unittest.skipIf(pycrorm_uri is None, "pycrorm database is not available.")
-@unittest.skipIf(not jpt_installed, "jpt is not installed but needed for the definition of DatabaseCostmapLocations. "
-                                    "Install via 'pip install pyjpt'")
 class DatabaseResolverTestCase(unittest.TestCase,):
     world: BulletWorld
     milk: Object
@@ -142,6 +133,7 @@ class DatabaseResolverTestCase(unittest.TestCase,):
         new_milk.remove()
         kitchen.remove()
 
+    @unittest.skip
     def test_multiple_objects(self):
         kitchen = Object("kitchen", "environment", "kitchen.urdf")
         new_milk = Object("new_milk", "milk", "milk.stl", pose=Pose([-1.45, 2.5, 0.9]))

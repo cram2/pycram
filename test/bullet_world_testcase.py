@@ -1,21 +1,18 @@
 import unittest
 
-import numpy as np
-import rospkg
-
 import pycram.task
-from pycram.bullet_world import BulletWorld, Object, fix_missing_inertial
+from pycram.bullet_world import BulletWorld, Object
 from pycram.pose import Pose
 from pycram.robot_descriptions import robot_description
 from pycram.process_module import ProcessModule
 from pycram.enums import ObjectType
-import os
-import tf
+from pycram.ros.viz_marker_publisher import VizMarkerPublisher
 
 
 class BulletWorldTestCase(unittest.TestCase):
 
     world: BulletWorld
+    viz_marker_publisher: VizMarkerPublisher
 
     @classmethod
     def setUpClass(cls):
@@ -25,6 +22,7 @@ class BulletWorldTestCase(unittest.TestCase):
         cls.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
         cls.cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", pose=Pose([1.3, 0.7, 0.95]))
         ProcessModule.execution_delay = False
+        cls.viz_marker_publisher = VizMarkerPublisher()
 
     def setUp(self):
         self.world.reset_bullet_world()
@@ -39,7 +37,6 @@ class BulletWorldTestCase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        cls.viz_marker_publisher._stop_publishing()
         cls.world.exit()
-
-
 
