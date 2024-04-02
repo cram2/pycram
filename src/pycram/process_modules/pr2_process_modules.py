@@ -176,7 +176,7 @@ class Pr2Open(ProcessModule):
 
         desig.object_part.bullet_world_object.set_joint_state(container_joint,
                                                               part_of_object.get_joint_limits(
-                                                                  container_joint)[1])
+                                                                  container_joint)[1] - 0.05)
 
 
 class Pr2Close(ProcessModule):
