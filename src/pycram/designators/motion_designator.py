@@ -54,7 +54,7 @@ class BaseMotion(ABC):
         metadata = ProcessMetaData().insert(session)
 
         motion = self.to_sql()
-        motion.process_metadata_id = metadata.id
+        motion.process_metadata = metadata
 
         return motion
 
@@ -108,12 +108,9 @@ class MoveMotion(BaseMotion):
 
     def insert(self, session, *args, **kwargs) -> ORMMoveMotion:
         motion = super().insert(session)
-
         pose = self.target.insert(session)
-        motion.pose_id = pose.id
-
+        motion.pose = pose
         session.add(motion)
-        session.commit()
 
         return motion
 
@@ -147,12 +144,9 @@ class MoveTCPMotion(BaseMotion):
 
     def insert(self, session: Session, *args, **kwargs) -> ORMMoveTCPMotion:
         motion = super().insert(session)
-
         pose = self.target.insert(session)
-        motion.pose_id = pose.id
-
+        motion.pose = pose
         session.add(motion)
-        session.commit()
 
         return motion
 
@@ -174,12 +168,9 @@ class LookingMotion(BaseMotion):
 
     def insert(self, session: Session, *args, **kwargs) -> ORMLookingMotion:
         motion = super().insert(session)
-
         pose = self.target.insert(session)
-        motion.pose_id = pose.id
-
+        motion.pose = pose
         session.add(motion)
-        session.commit()
 
         return motion
 
@@ -213,9 +204,8 @@ class MoveGripperMotion(BaseMotion):
 
     def insert(self, session: Session, *args, **kwargs) -> ORMMoveGripperMotion:
         motion = super().insert(session)
-
         session.add(motion)
-        session.commit()
+
         return motion
 
 
@@ -250,7 +240,7 @@ class DetectingMotion(BaseMotion):
     def insert(self, session: Session, *args, **kwargs) -> ORMDetectingMotion:
         motion = super().insert(session)
         session.add(motion)
-        session.commit()
+
         return motion
 
 
@@ -353,12 +343,9 @@ class OpeningMotion(BaseMotion):
 
     def insert(self, session: Session, *args, **kwargs) -> ORMOpeningMotion:
         motion = super().insert(session)
-
         op = self.object_part.insert(session)
-        motion.object_id = op.id
-
+        motion.object = op
         session.add(motion)
-        session.commit()
 
         return motion
 
@@ -388,11 +375,8 @@ class ClosingMotion(BaseMotion):
 
     def insert(self, session: Session, *args, **kwargs) -> ORMClosingMotion:
         motion = super().insert(session)
-
         op = self.object_part.insert(session)
-        motion.object_id = op.id
-
+        motion.object = op
         session.add(motion)
-        session.commit()
 
         return motion

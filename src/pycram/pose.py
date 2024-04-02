@@ -242,20 +242,17 @@ class Pose(PoseStamped):
         metadata = ProcessMetaData().insert(session)
 
         position = Position(*self.position_as_list())
-        position.process_metadata_id = metadata.id
+        position.process_metadata = metadata
         orientation = Quaternion(*self.orientation_as_list())
-        orientation.process_metadata_id = metadata.id
-
+        orientation.process_metadata = metadata
         session.add(position)
         session.add(orientation)
-        session.commit()
-        pose = self.to_sql()
-        pose.process_metadata_id = metadata.id
-        pose.position_id = position.id
-        pose.orientation_id = orientation.id
 
+        pose = self.to_sql()
+        pose.process_metadata = metadata
+        pose.orientation = orientation
+        pose.position = position
         session.add(pose)
-        session.commit()
 
         return pose
 
