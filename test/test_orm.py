@@ -52,7 +52,6 @@ class ORMTestSchemaTestCase(DatabaseTestCaseMixin, unittest.TestCase):
         self.assertTrue("Position" in tables)
         self.assertTrue("Quaternion" in tables)
         self.assertTrue("TaskTreeNode" in tables)
-        self.assertTrue("Code" in tables)
         self.assertTrue("Action" in tables)
         self.assertTrue("ParkArmsAction" in tables)
         self.assertTrue("NavigateAction" in tables)
@@ -90,9 +89,6 @@ class ORMTaskTreeTestCase(DatabaseTestCaseMixin):
 
         node_results = self.session.scalars(select(pycram.orm.task.TaskTreeNode)).all()
         self.assertEqual(len(node_results), len(pycram.task.task_tree.root))
-
-        code_results = self.session.scalars(select(pycram.orm.task.Code)).all()
-        self.assertEqual(len(code_results), len(pycram.task.task_tree.root))
 
         position_results = self.session.scalars(select(pycram.orm.base.Position)).all()
         self.assertEqual(14, len(position_results))
@@ -203,10 +199,10 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
             action.perform()
         pycram.orm.base.ProcessMetaData().description = "code_designator_type_test"
         pycram.task.task_tree.root.insert(self.session)
-        result = (self.session.scalars(select(pycram.orm.task.Code).where(pycram.orm.task.Code.function == "perform"))
-                  .all())
-        self.assertEqual(result[0].designator.dtype, action_designator.NavigateAction.__name__)
-        self.assertEqual(result[1].designator.dtype, motion_designator.MoveMotion.__name__)
+        result = self.session.scalars(select(pycram.orm.task.TaskTreeNode).where(pycram.orm.task.TaskTreeNode.
+                                                                                 action_id.isnot(None))).all()
+        self.assertEqual(result[0].action.dtype, action_designator.NavigateAction.__name__)
+        self.assertEqual(result[1].action.dtype, motion_designator.MoveMotion.__name__)
 
     def test_parkArmsAction(self):
         action = ParkArmsActionPerformable(pycram.enums.Arms.BOTH)
