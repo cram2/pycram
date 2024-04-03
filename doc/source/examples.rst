@@ -64,8 +64,5 @@ Examples
 .. nbgallery::
 
     notebooks/orm_example
-
-    notebooks/orm_querying_examples
-
     notebooks/migrate_neems
-
+    notebooks/orm_querying_examples
