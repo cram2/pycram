@@ -140,7 +140,8 @@ def reachability_validator(pose: Pose,
         should be validated.
     :param target: The target position or object instance which should be the
         target for reachability.
-    :param allowed_collision:
+    :param allowed_collision: dict of objects with which the robot is allowed to collide each
+    object correlates to a list of links of which this object consists
     :return: True if the target is reachable for the robot and False in any other
         case.
     """
@@ -189,7 +190,22 @@ def reachability_validator(pose: Pose,
     return res, arms
 
 
-def collision_check(robot, allowed_collision):
+def collision_check(robot: Object, allowed_collision: list):
+    """
+    This method checks if a given robot collides with any object within the world
+     which it is not allowed to collide with.
+    This is done checking iterating over every object within the world and checking
+    if the robot collides with it. Careful the floor will be ignored.
+    If there is a collision with an object that was not within the allowed collision
+    list the function returns True else it will return False
+
+    :param robot: The robot object in the (Bullet)World where it should be checked if it collides
+        with something
+    :param allowed_collision: dict of objects with which the robot is allowed to collide each
+    object correlates to a list of links of which this object consists
+    :return: True if the target is reachable for the robot and False in any other
+        case.
+    """
     in_contact = False
     allowed_robot_links = []
     if robot in allowed_collision.keys():
