@@ -53,13 +53,35 @@ class StretchWorldStateDetecting(DefaultWorldStateDetecting):
 
 
 class StretchOpen(ProcessModule):
-    def _execute(self, designator) -> Any:
-        pass
+    def _execute(self, desig: OpeningMotion):
+        part_of_object = desig.object_part.bullet_world_object
+
+        container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
+
+        goal_pose = btr.link_pose_for_joint_config(part_of_object, {
+            container_joint: part_of_object.get_joint_limits(container_joint)[1] - 0.05}, desig.object_part.name)
+
+        _move_arm_tcp(goal_pose, BulletWorld.robot, desig.arm)
+
+        desig.object_part.bullet_world_object.set_joint_state(container_joint,
+                                                              part_of_object.get_joint_limits(
+                                                                  container_joint)[1] - 0.05)
 
 
 class StretchClose(ProcessModule):
-    def _execute(self, designator) -> Any:
-        pass
+    def _execute(self, desig: ClosingMotion):
+        part_of_object = desig.object_part.bullet_world_object
+
+        container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
+
+        goal_pose = btr.link_pose_for_joint_config(part_of_object, {
+            container_joint: part_of_object.get_joint_limits(container_joint)[0]}, desig.object_part.name)
+
+        _move_arm_tcp(goal_pose, BulletWorld.robot, desig.arm)
+
+        desig.object_part.bullet_world_object.set_joint_state(container_joint,
+                                                              part_of_object.get_joint_limits(
+                                                                  container_joint)[0])
 
 
 def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
@@ -88,6 +110,7 @@ class StretchManager(ProcessModuleManager):
     def navigate(self):
         if ProcessModuleManager.execution_type == "simulated":
             return StretchNavigate(self._navigate_lock)
+
     def looking(self):
         if ProcessModuleManager.execution_type == "simulated":
             return StretchMoveHead(self._looking_lock)

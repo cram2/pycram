@@ -66,6 +66,6 @@ class StretchDescription(RobotDescription):
 
     @staticmethod
     def stretch_orientation_generator(position, origin):
-        angle = np.arctan2(position[1] - origin.position.y, position[0] - origin.position.x) + np.pi
+        angle = np.arctan2(position[1] - origin.position.y, position[0] - origin.position.x) + np.pi + np.pi / 16
         quaternion = list(tf.transformations.quaternion_from_euler(0, 0, angle + np.pi / 2, axes="sxyz"))
         return quaternion
