@@ -6,6 +6,7 @@ import pybullet as p
 from .bullet_world import Object, BulletWorld, Use_shadow_world
 from .bullet_world_reasoning import contact
 from .costmaps import Costmap
+from .local_transformer import LocalTransformer
 from .pose import Pose, Transform
 from .robot_description import ManipulatorDescription
 from .robot_descriptions import robot_description
@@ -139,7 +140,8 @@ def reachability_validator(pose: Pose,
         should be validated.
     :param target: The target position or object instance which should be the
         target for reachability.
-    :param allowed_collision:
+    :param allowed_collision: dict of objects with which the robot is allowed to collide each
+    object correlates to a list of links of which this object consists
     :return: True if the target is reachable for the robot and False in any other
         case.
     """
@@ -153,36 +155,74 @@ def reachability_validator(pose: Pose,
     # TODO Make orientation adhere to grasping orientation
     res = False
     arms = []
-    in_contact = False
+    for name, chain in manipulator_descs:
+        retract_target_pose = LocalTransformer().transform_pose(target, robot.get_link_tf_frame(chain.tool_frame))
+        retract_target_pose.position.x -= 0.07  # Care hard coded value copied from PlaceAction class
 
-    allowed_robot_links = []
-    if robot in allowed_collision.keys():
-        allowed_robot_links = allowed_collision[robot]
+        # retract_pose needs to be in world frame?
+        retract_target_pose = LocalTransformer().transform_pose(retract_target_pose, "map")
 
-    for chain_name, chain in manipulator_descs:
+        joints = robot_description.chains[name].joints
+        tool_frame = robot_description.get_tool_frame(name)
+
+        # TODO Make orientation adhere to grasping orientation
+        in_contact = False
+
         joint_state_before_ik = robot._current_joint_states
         try:
-            resp = request_ik(target, robot, chain.joints, chain.tool_frame)
+            # test the possible solution and apply it to the robot
+            resp = request_ik(target, robot, joints, tool_frame)
+            _apply_ik(robot, resp, joints)
 
-            _apply_ik(robot, resp, chain.joints)
-
-            for obj in BulletWorld.current_bullet_world.objects:
-                if obj.name == "floor":
-                    continue
-                in_contact, contact_links = contact(robot, obj, return_links=True)
-                allowed_links = allowed_collision[obj] if obj in allowed_collision.keys() else []
-
-                if in_contact:
-                    for link in contact_links:
-
-                        if link[0] in allowed_robot_links or link[1] in allowed_links:
-                            in_contact = False
-
+            in_contact = collision_check(robot, allowed_collision)
+            if not in_contact:  # only check for retract pose if pose worked
+                resp = request_ik(retract_target_pose, robot, joints, tool_frame)
+                _apply_ik(robot, resp, joints)
+                in_contact = collision_check(robot, allowed_collision)
             if not in_contact:
-                arms.append(chain_name)
-                res = True
+                arms.append(name)
         except IKError:
             pass
         finally:
             robot.set_joint_states(joint_state_before_ik)
+    if arms:
+        res = True
     return res, arms
+
+
+def collision_check(robot: Object, allowed_collision: list):
+    """
+    This method checks if a given robot collides with any object within the world
+     which it is not allowed to collide with.
+    This is done checking iterating over every object within the world and checking
+    if the robot collides with it. Careful the floor will be ignored.
+    If there is a collision with an object that was not within the allowed collision
+    list the function returns True else it will return False
+
+    :param robot: The robot object in the (Bullet)World where it should be checked if it collides
+        with something
+    :param allowed_collision: dict of objects with which the robot is allowed to collide each
+    object correlates to a list of links of which this object consists
+    :return: True if the target is reachable for the robot and False in any other
+        case.
+    """
+    in_contact = False
+    allowed_robot_links = []
+    if robot in allowed_collision.keys():
+        allowed_robot_links = allowed_collision[robot]
+
+    for obj in BulletWorld.current_bullet_world.objects:
+        if obj.name == "floor":
+            continue
+        in_contact, contact_links = contact(robot, obj, return_links=True)
+        allowed_links = allowed_collision[obj] if obj in allowed_collision.keys() else []
+
+        if in_contact:
+            for link in contact_links:
+
+                if link[0] in allowed_robot_links or link[1] in allowed_links:
+                    in_contact = False
+
+    return in_contact
+
+
