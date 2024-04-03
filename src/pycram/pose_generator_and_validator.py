@@ -17,6 +17,13 @@ from typing import Type, Tuple, List, Union, Dict, Iterable
 
 class PoseGenerator:
     current_orientation_generator = None
+    """
+    If no orientation generator is given, this generator is used to generate the orientation of the robot.
+    """
+    override_orientation_generator = None
+    """
+    Override the orientation generator with a custom generator, which will be used regardless of the current_orientation_generator.
+    """
 
     def __init__(self, costmap: Costmap, number_of_samples=100, orientation_generator=None):
         """
@@ -31,6 +38,8 @@ class PoseGenerator:
         self.costmap = costmap
         self.number_of_samples = number_of_samples
         self.orientation_generator = orientation_generator if orientation_generator else PoseGenerator.current_orientation_generator
+        if PoseGenerator.override_orientation_generator:
+            self.orientation_generator = PoseGenerator.override_orientation_generator
 
     def __iter__(self) -> Iterable:
         """
