@@ -102,7 +102,6 @@ class StretchOpen(ProcessModule):
 class StretchClose(ProcessModule):
     """
     Process module for the simulated Stretch that closes an already grasped container
-    Process module for the simulated Stretch that closes an already grasped container
     """
     def _execute(self, desig: ClosingMotion):
         part_of_object = desig.object_part.bullet_world_object
