@@ -1,3 +1,4 @@
+import logging
 import os
 import pathlib
 
@@ -63,17 +64,27 @@ class CacheManager:
         :param object_description: The object description of the file.
         """
         description_string = object_description.generate_description_from_file(path, name, extension)
-        self.write_to_cache(description_string, cache_path)
+        wrote = self.write_to_cache(description_string, cache_path)
+        if wrote:
+            while not pathlib.Path(cache_path).exists():
+                pass
 
     @staticmethod
-    def write_to_cache(description_string: str, cache_path: str) -> None:
+    def write_to_cache(description_string: str, cache_path: str) -> bool:
         """
         Writes the description string to the cache directory.
         :param description_string: The description string to write to the cache directory.
         :param cache_path: The path of the file in the cache directory.
+        Returns:
+        - True if the description string was written to the cache directory.
         """
-        with open(cache_path, "w") as file:
-            file.write(description_string)
+        try:
+            with open(cache_path, "w") as file:
+                file.write(description_string)
+            return True
+        except Exception as e:
+            logging.warning(f"Could not write to cache: {e}")
+            return False
 
     def look_for_file_in_data_dir(self, path_object: pathlib.Path) -> str:
         """
