@@ -16,6 +16,12 @@ from typing import Type, Tuple, List, Union, Dict, Iterable
 
 
 class PoseGenerator:
+    """
+    Crates pose candidates from a given costmap. The generator
+    selects the highest values, amount is given by number_of_sample, and returns the corresponding positions.
+    Orientations are calculated such that the Robot faces the center of the costmap.
+    """
+
     current_orientation_generator = None
     """
     If no orientation generator is given, this generator is used to generate the orientation of the robot.
