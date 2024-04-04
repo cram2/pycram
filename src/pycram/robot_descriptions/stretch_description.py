@@ -30,8 +30,10 @@ class StretchDescription(RobotDescription):
                                 ["link_head_pan", "link_head_tilt"])
         self.add_chain("neck", neck)
 
-        arm_joints = ['joint_lift','joint_arm_l3', 'joint_arm_l2', 'joint_arm_l1', 'joint_arm_l0', "joint_wrist_yaw"]
-        arm_links = ['link_lift', 'link_arm_l3', 'link_arm_l2', 'link_arm_l1', 'link_arm_l0', "link_wrist_yaw"]
+        arm_joints = ['joint_lift', 'joint_arm_l3', 'joint_arm_l2', 'joint_arm_l1', 'joint_arm_l0', "joint_wrist_yaw",
+                      "joint_wrist_pitch", "joint_wrist_roll"]
+        arm_links = ['link_lift', 'link_arm_l3', 'link_arm_l2', 'link_arm_l1', 'link_arm_l0', "link_wrist_yaw",
+                     "link_wrist_pitch", "link_wrist_roll"]
 
         arm_chain_desc = ChainDescription("arm", arm_joints, arm_links)
         arm_inter_desc = InteractionDescription(arm_chain_desc, "link_wrist_yaw")
@@ -44,10 +46,11 @@ class StretchDescription(RobotDescription):
                                               gripper_minimal_position=0.013,
                                               gripper_convergence_delta=0.005)
 
-        arm_desc = ManipulatorDescription(arm_inter_desc, tool_frame="link_grasp_center", gripper_description=arm_gripper_desc)
+        arm_desc = ManipulatorDescription(arm_inter_desc, tool_frame="link_grasp_center",
+                                          gripper_description=arm_gripper_desc)
         self.add_chains({"arm": arm_desc, "right": arm_desc, "left": arm_desc})
 
-        arm_park = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        arm_park = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.add_static_joint_chain("arm", "park", arm_park)
 
         gripper_confs = {"open": [0.59, 0.59], "close": [0.0, 0.0]}
@@ -63,6 +66,6 @@ class StretchDescription(RobotDescription):
 
     @staticmethod
     def stretch_orientation_generator(position, origin):
-        angle = np.arctan2(position[1] - origin.position.y, position[0] - origin.position.x) + np.pi
+        angle = np.arctan2(position[1] - origin.position.y, position[0] - origin.position.x) + np.pi + np.pi / 16
         quaternion = list(tf.transformations.quaternion_from_euler(0, 0, angle + np.pi / 2, axes="sxyz"))
         return quaternion
