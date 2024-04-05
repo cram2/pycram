@@ -1,11 +1,11 @@
 from threading import Lock
 import numpy as np
-import pycram.bullet_world_reasoning as btr
+from .. import world_reasoning as btr
 import pycram.helper as helper
 from ..designators.motion_designator import *
-from ..enums import JointType
+from ..datastructures.enums import JointType
 from ..external_interfaces.ik import request_ik
-from ..local_transformer import LocalTransformer
+from ..datastructures.local_transformer import LocalTransformer
 
 from ..world import World
 from ..datastructures.local_transformer import LocalTransformer
@@ -20,7 +20,7 @@ def _park_arms(arm):
     :return: None
     """
 
-    robot = BulletWorld.robot
+    robot = World.robot
     if arm == "right":
         for joint, pose in robot_description.get_static_joint_chain("right", "park").items():
             robot.set_joint_state(joint, pose)
@@ -35,7 +35,7 @@ class BoxyNavigation(ProcessModule):
     """
 
     def _execute(self, desig: MoveMotion):
-        robot = BulletWorld.robot
+        robot = World.robot
         robot.set_pose(desig.target)
 
 
@@ -52,7 +52,7 @@ class BoxyOpen(ProcessModule):
         goal_pose = btr.link_pose_for_joint_config(part_of_object, {
             container_joint: part_of_object.get_joint_limits(container_joint)[1] - 0.05}, desig.object_part.name)
 
-        _move_arm_tcp(goal_pose, BulletWorld.robot, desig.arm)
+        _move_arm_tcp(goal_pose, World.robot, desig.arm)
 
         desig.object_part.bullet_world_object.set_joint_state(container_joint,
                                                               part_of_object.get_joint_limits(
@@ -71,7 +71,7 @@ class BoxyClose(ProcessModule):
         goal_pose = btr.link_pose_for_joint_config(part_of_object, {
             container_joint: part_of_object.get_joint_limits(container_joint)[0]}, desig.object_part.name)
 
-        _move_arm_tcp(goal_pose, BulletWorld.robot, desig.arm)
+        _move_arm_tcp(goal_pose, World.robot, desig.arm)
 
         desig.object_part.bullet_world_object.set_joint_state(container_joint,
                                                               part_of_object.get_joint_limits(
@@ -141,14 +141,14 @@ class BoxyDetecting(ProcessModule):
     """
 
     def _execute(self, desig):
-        robot = BulletWorld.robot
+        robot = World.robot
         object_type = desig.object_type
         # Should be "wide_stereo_optical_frame"
         cam_frame_name = robot_description.get_camera_frame()
         # should be [0, 0, 1]
         front_facing_axis = robot_description.front_facing_axis
 
-        objects = BulletWorld.current_bullet_world.get_objects_by_type(object_type)
+        objects = World.current_world.get_object_by_type(object_type)
         for obj in objects:
             if btr.visible(obj, robot.get_link_pose(cam_frame_name), front_facing_axis):
                 return obj
@@ -161,7 +161,7 @@ class BoxyMoveTCP(ProcessModule):
 
     def _execute(self, desig: MoveTCPMotion):
         target = desig.target
-        robot = BulletWorld.robot
+        robot = World.robot
 
         _move_arm_tcp(target, robot, desig.arm)
 
@@ -174,11 +174,11 @@ class BoxyMoveArmJoints(ProcessModule):
 
     def _execute(self, desig: MoveArmJointsMotion):
 
-        robot = BulletWorld.robot
+        robot = World.robot
         if desig.right_arm_poses:
-            robot.set_joint_states(desig.right_arm_poses)
+            robot.set_joint_positions(desig.right_arm_poses)
         if desig.left_arm_poses:
-            robot.set_joint_states(desig.left_arm_poses)
+            robot.set_joint_positions(desig.left_arm_poses)
 
 
 class BoxyWorldStateDetecting(ProcessModule):
@@ -188,7 +188,7 @@ class BoxyWorldStateDetecting(ProcessModule):
 
     def _execute(self, desig: WorldStateDetectingMotion):
         obj_type = desig.object_type
-        return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
+        return list(filter(lambda obj: obj.type == obj_type, World.current_bullet_world.objects))[0]
 
 
 def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:

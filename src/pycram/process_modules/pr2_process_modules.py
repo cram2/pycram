@@ -14,9 +14,9 @@ from ..external_interfaces.ik import request_ik
 from ..helper import _apply_ik
 from pycram.datastructures.local_transformer import LocalTransformer
 from ..designators.object_designator import ObjectDesignatorDescription
-from ..designators.motion_designator import MoveMotion, PickUpMotion, PlaceMotion, LookingMotion, \
+from ..designators.motion_designator import MoveMotion, LookingMotion, \
     DetectingMotion, MoveTCPMotion, MoveArmJointsMotion, WorldStateDetectingMotion, MoveJointsMotion, \
-    MoveGripperMotion, OpeningMotion, ClosingMotion, MotionDesignatorDescription
+    MoveGripperMotion, OpeningMotion, ClosingMotion
 from ..robot_descriptions import robot_description
 from pycram.world import World
 from pycram.world_concepts.world_object import Object
@@ -62,12 +62,9 @@ class Pr2MoveHead(ProcessModule):
         This process module moves the head to look at a specific point in the world coordinate frame.
         This point can either be a position or an object.
         """
-    def __init__(self, lock: Lock):
-        super().__init__(lock)
-        self.robot: Object = World.robot
-
     def _execute(self, desig: LookingMotion):
         target = desig.target
+        robot = World.robot
 
         local_transformer = LocalTransformer()
         pose_in_pan = local_transformer.transform_pose(target, self.robot.get_link_tf_frame("head_pan_link"))
@@ -79,27 +76,8 @@ class Pr2MoveHead(ProcessModule):
         current_pan = self.robot.get_joint_position("head_pan_joint")
         current_tilt = self.robot.get_joint_position("head_tilt_joint")
 
-        return new_pan + current_pan, new_tilt + current_tilt
-
-    @abstractmethod
-    def _execute(self, designator: LookingMotion.Motion) -> None:
-        pass
-
-
-class Pr2MoveHead(_Pr2MoveHead):
-    """
-    This process module moves the head to look at a specific point in the world coordinate frame.
-    This point can either be a position or an object.
-    """
-
-    def _execute(self, desig: LookingMotion.Motion):
-        """
-        Moves the head to look at the given position.
-        :param desig: The looking motion designator
-        """
-        pan_goal, tilt_goal = self.get_pan_and_tilt_goals(desig)
-        self.robot.set_joint_position("head_pan_joint", pan_goal)
-        self.robot.set_joint_position("head_tilt_joint", tilt_goal)
+        robot.set_joint_position("head_pan_joint", new_pan + current_pan)
+        robot.set_joint_position("head_tilt_joint", new_tilt + current_tilt)
 
 
 class Pr2MoveGripper(ProcessModule):
@@ -254,7 +232,7 @@ class Pr2MoveHeadReal(ProcessModule):
 
     def _execute(self, desig: LookingMotion):
         target = desig.target
-        robot = BulletWorld.robot
+        robot = World.robot
 
         local_transformer = LocalTransformer()
         pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame("head_pan_link"))
@@ -267,8 +245,8 @@ class Pr2MoveHeadReal(ProcessModule):
         current_tilt = robot.get_joint_state("head_tilt_joint")
 
         giskard.avoid_all_collisions()
-        giskard.achieve_joint_goal({"head_pan_joint": pan_goal,
-                                    "head_tilt_joint": tilt_goal})
+        giskard.achieve_joint_goal({"head_pan_joint": new_pan + current_pan,
+                                    "head_tilt_joint": new_tilt + current_tilt})
 
 
 class Pr2DetectingReal(ProcessModule):

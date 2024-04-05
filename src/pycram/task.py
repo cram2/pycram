@@ -15,7 +15,7 @@ import anytree
 import sqlalchemy.orm.session
 import tqdm
 
-from ..world import World
+from .world import World
 from .orm.task import TaskTreeNode as ORMTaskTreeNode
 from .orm.base import ProcessMetaData
 from .plan_failures import PlanFailure

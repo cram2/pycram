@@ -13,7 +13,6 @@ from typing_extensions import Callable, Type, Any, Union
 
 import rospy
 
-from .designator import MotionDesignatorDescription
 from .language import Language
 from .robot_descriptions import robot_description
 from typing_extensions import TYPE_CHECKING

@@ -6,14 +6,15 @@ from tf import transformations
 from typing_extensions import Union, Type
 from pycram.designator import ActionDesignatorDescription
 from pycram.designators.motion_designator import *
-from pycram.enums import Arms, Grasp
+from ...datastructures.pose import Pose
+from ...datastructures.enums import Arms, Grasp
 from pycram.task import with_tree
 from dataclasses import dataclass, field
 from ..location_designator import CostmapLocation
 from ..object_designator import BelieveObject
-from ...bullet_world import BulletWorld
+# from ...bullet_world import BulletWorld
 from ...helper import multiply_quaternions
-from ...local_transformer import LocalTransformer
+from ...datastructures.local_transformer import LocalTransformer
 from ...orm.base import Pose as ORMPose
 from ...orm.object_designator import Object as ORMObject, ObjectPart as ORMObjectPart
 from ...orm.action_designator import Action as ORMAction
@@ -237,7 +238,7 @@ class PickUpActionPerformable(ActionAbstract):
     def perform(self) -> None:
         # Store the object's data copy at execution
         self.object_at_execution = self.object_designator.frozen_copy()
-        robot = BulletWorld.robot
+        robot = World.robot
         # Retrieve object and robot from designators
         object = self.object_designator.bullet_world_object
         # Get grasp orientation and target pose
@@ -280,12 +281,12 @@ class PickUpActionPerformable(ActionAbstract):
         prepose = object.local_transformer.transform_pose(oTg, "map")
 
         # Perform the motion with the prepose and open gripper
-        BulletWorld.current_bullet_world.add_vis_axis(prepose)
+        World.current_world.add_vis_axis(prepose)
         MoveTCPMotion(prepose, self.arm, allow_gripper_collision=True).perform()
         MoveGripperMotion(motion="open", gripper=self.arm).perform()
 
         # Perform the motion with the adjusted pose -> actual grasp and close gripper
-        BulletWorld.current_bullet_world.add_vis_axis(adjusted_oTm)
+        World.current_world.add_vis_axis(adjusted_oTm)
         MoveTCPMotion(adjusted_oTm, self.arm, allow_gripper_collision=True).perform()
         adjusted_oTm.pose.position.z += 0.03
         MoveGripperMotion(motion="close", gripper=self.arm).perform()
@@ -293,11 +294,11 @@ class PickUpActionPerformable(ActionAbstract):
         robot.attach(object, tool_frame)
 
         # Lift object
-        BulletWorld.current_bullet_world.add_vis_axis(adjusted_oTm)
+        World.current_world.add_vis_axis(adjusted_oTm)
         MoveTCPMotion(adjusted_oTm, self.arm, allow_gripper_collision=True).perform()
 
         # Remove the vis axis from the world
-        BulletWorld.current_bullet_world.remove_vis_axis()
+        World.current_world.remove_vis_axis()
 
 
 @dataclass
@@ -322,20 +323,20 @@ class PlaceActionPerformable(ActionAbstract):
 
     @with_tree
     def perform(self) -> None:
-        object_pose = self.object_designator.bullet_world_object.get_pose()
+        object_pose = self.object_designator.world_object.get_pose()
         local_tf = LocalTransformer()
 
         # Transformations such that the target position is the position of the object and not the tcp
         tcp_to_object = local_tf.transform_pose(object_pose,
-                                                BulletWorld.robot.get_link_tf_frame(
+                                                World.robot.get_link_tf_frame(
                                                     robot_description.get_tool_frame(self.arm)))
         target_diff = self.target_location.to_transform("target").inverse_times(
             tcp_to_object.to_transform("object")).to_pose()
 
         MoveTCPMotion(target_diff, self.arm).perform()
         MoveGripperMotion("open", self.arm).perform()
-        BulletWorld.robot.detach(self.object_designator.bullet_world_object)
-        retract_pose = local_tf.transform_pose(target_diff, BulletWorld.robot.get_link_tf_frame(
+        World.robot.detach(self.object_designator.world_object)
+        retract_pose = local_tf.transform_pose(target_diff, World.robot.get_link_tf_frame(
             robot_description.get_tool_frame(self.arm)))
         retract_pose.position.x -= 0.07
         MoveTCPMotion(retract_pose, self.arm).perform()
@@ -516,7 +517,7 @@ class GraspingActionPerformable(ActionAbstract):
         gripper_name = robot_description.get_tool_frame(self.arm)
 
         object_pose_in_gripper = lt.transform_pose(object_pose,
-                                                   BulletWorld.robot.get_link_tf_frame(gripper_name))
+                                                   World.robot.get_link_tf_frame(gripper_name))
 
         pre_grasp = object_pose_in_gripper.copy()
         pre_grasp.pose.position.x -= 0.1
@@ -544,7 +545,7 @@ class FaceAtPerformable(ActionAbstract):
     @with_tree
     def perform(self) -> None:
         # get the robot position
-        robot_position = BulletWorld.robot.pose
+        robot_position = World.robot.pose
 
         # calculate orientation for robot to face the object
         angle = np.arctan2(robot_position.position.y - self.pose.position.y,
