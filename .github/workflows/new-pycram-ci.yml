@@ -61,6 +61,7 @@ jobs:
           cd /opt/ros/overlay_ws/src/pycram
           pip3 install -r requirements.txt
           pip3 install -r requirements-resolver.txt
+          pip3 install -r requirements-ontology.txt
 
       - name: Install pytest & pyjpt
         run: |
