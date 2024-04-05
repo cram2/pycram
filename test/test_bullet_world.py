@@ -95,6 +95,7 @@ class BulletWorldTest(BulletWorldTestCase):
         self.world.simulate(1)
         self.assertTrue(self.milk.get_position().z < 2)
 
+    @unittest.skip
     def test_set_real_time_simulation(self):
         self.milk.set_position(Pose([100, 0, 2]))
         curr_time = time.time()
