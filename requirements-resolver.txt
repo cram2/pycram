@@ -1,5 +1,4 @@
 -r requirements.txt
 probabilistic_model>=4.0.8
 random_events>=2.0.9
-SQLAlchemy
 tqdm

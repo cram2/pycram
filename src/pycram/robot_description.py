@@ -3,7 +3,7 @@ import rospy
 import rospkg
 from copy import deepcopy
 from numbers import Number
-from typing import List, Optional, Dict, Union, Type
+from typing_extensions import List, Optional, Dict, Union, Type
 from urdf_parser_py.urdf import URDF
 from . import utils
 
@@ -139,7 +139,7 @@ class ManipulatorDescription(InteractionDescription):
     This class allows with the given interaction description to include a gripper
     description which is placed between the last link of the interaction description
     and the rest of it.
-    Independently from that a tool frame can be saved, which allows to use objects
+    Independently of that a tool frame can be saved, which allows to use objects
     to manipulate the environment::
 
                                                                            |--> (tool_frame)
@@ -186,7 +186,7 @@ class GraspingDescription:
     """
     def __init__(self, grasp_dir: Optional[Dict] = None):
         self.grasps: Dict[str, List[float]] = grasp_dir if grasp_dir else {}
-        self.grasps_for_object: Dict['bullet_world.Object', List[str]] = {}
+        self.grasps_for_object: Dict['world.Object', List[str]] = {}
 
     def add_grasp(self, grasp: str, orientation: List[float]) -> None:
         """
@@ -198,7 +198,7 @@ class GraspingDescription:
         """
         self.grasps[grasp] = orientation
 
-    def add_graspings_for_object(self, grasps: List[str], object: 'bullet_world.Object') -> None:
+    def add_graspings_for_object(self, grasps: List[str], object: 'world.Object') -> None:
         """
         Adds all possible Grasps for the specified object. The used grasps have to
         be registered beforehand via the add_grasp method.
@@ -214,7 +214,7 @@ class GraspingDescription:
     def get_orientation_for_grasp(self, grasp: str) -> List[float]:
         return self.grasps[grasp]
 
-    def get_grasps_for_object(self, object: 'bullet_world.Object') -> List[str]:
+    def get_grasps_for_object(self, object: 'world.Object') -> List[str]:
         return self.grasps_for_object[object]
 
 
