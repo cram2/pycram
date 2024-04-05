@@ -55,6 +55,23 @@ class LocalTransformer(TransformerROS):
         # If the singelton was already initialized
         self._initialized = True
 
+    def transform_to_object_frame(self, pose: Pose,
+                                  world_object: 'world_concepts.world_object.Object', link_name: str = None) -> Union[Pose, None]:
+        """
+        Transforms the given pose to the coordinate frame of the given World object. If no link name is given the
+        base frame of the Object is used, otherwise the link frame is used as target for the transformation.
+
+        :param pose: Pose that should be transformed
+        :param world_object: BulletWorld Object in which frame the pose should be transformed
+        :param link_name: A link of the BulletWorld Object which will be used as target coordinate frame instead
+        :return: The new pose the in coordinate frame of the object
+        """
+        if link_name:
+            target_frame = world_object.get_link_tf_frame(link_name)
+        else:
+            target_frame = world_object.tf_frame
+        return self.transform_pose(pose, target_frame)
+
     def transform_pose(self, pose: Pose, target_frame: str) -> Union[Pose, None]:
         """
         Transforms a given pose to the target frame after updating the transforms for all objects in the current world.

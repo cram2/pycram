@@ -96,6 +96,14 @@ class Object(WorldEntity):
 
         self.world.objects.append(self)
 
+    @property
+    def pose(self):
+        return self.get_pose()
+
+    @pose.setter
+    def pose(self, pose: Pose):
+        self.set_pose(pose)
+
     def _load_object_and_get_id(self, path: Optional[str] = None,
                                 ignore_cached_files: Optional[bool] = False) -> Tuple[int, Union[str, None]]:
         """

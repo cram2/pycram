@@ -143,6 +143,7 @@ def _in_contact(robot: Object, obj: Object, allowed_collision: Dict[Object, List
                 allowed_robot_links: List[str]) -> bool:
     """
     This method checks if a given robot is in contact with a given object.
+
     :param robot: The robot object that should be checked for contact.
     :param obj: The object that should be checked for contact with the robot.
     :param allowed_collision: A dictionary that contains the allowed collisions for links of each object in the world.
@@ -220,7 +221,7 @@ def reachability_validator(pose: Pose,
         except IKError:
             pass
         finally:
-            robot.set_joint_states(joint_state_before_ik)
+            robot.set_joint_positions(joint_state_before_ik)
     if arms:
         res = True
     return res, arms

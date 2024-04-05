@@ -1,5 +1,6 @@
 import abc
 import inspect
+import time
 
 import numpy as np
 from tf import transformations
@@ -240,7 +241,7 @@ class PickUpActionPerformable(ActionAbstract):
         self.object_at_execution = self.object_designator.frozen_copy()
         robot = World.robot
         # Retrieve object and robot from designators
-        object = self.object_designator.bullet_world_object
+        object = self.object_designator.world_object
         # Get grasp orientation and target pose
         grasp = robot_description.grasps.get_orientation_for_grasp(self.grasp)
         # oTm = Object Pose in Frame map
@@ -440,7 +441,7 @@ class DetectActionPerformable(ActionAbstract):
 
     @with_tree
     def perform(self) -> None:
-        return DetectingMotion(object_type=self.object_designator.type).perform()
+        return DetectingMotion(object_type=self.object_designator.obj_type).perform()
 
 
 @dataclass
@@ -512,7 +513,7 @@ class GraspingActionPerformable(ActionAbstract):
         if isinstance(self.object_desig, ObjectPart.Object):
             object_pose = self.object_desig.part_pose
         else:
-            object_pose = self.object_desig.bullet_world_object.get_pose()
+            object_pose = self.object_desig.world_object.get_pose()
         lt = LocalTransformer()
         gripper_name = robot_description.get_tool_frame(self.arm)
 

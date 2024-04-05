@@ -204,7 +204,7 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
         self.assertEqual(result[1].action.dtype, motion_designator.MoveMotion.__name__)
 
     def test_parkArmsAction(self):
-        action = ParkArmsActionPerformable(pycram.enums.Arms.BOTH)
+        action = ParkArmsActionPerformable(pycram.datastructures.enums.Arms.BOTH)
         with simulated_robot:
             action.perform()
         pycram.orm.base.ProcessMetaData().description = "parkArmsAction_test"
@@ -230,7 +230,7 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         action = DetectActionPerformable(object_description.resolve())
         with simulated_robot:
-            ParkArmsActionPerformable(pycram.enums.Arms.BOTH).perform()
+            ParkArmsActionPerformable(pycram.datastructures.enums.Arms.BOTH).perform()
             NavigateActionPerformable(Pose([0, 1, 0], [0, 0, 0, 1])).perform()
             LookAtActionPerformable(object_description.resolve().pose).perform()
             action.perform()
@@ -257,7 +257,7 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
         self.kitchen.set_pose(Pose([20, 20, 0], [0, 0, 0, 1]))
 
         with simulated_robot:
-            ParkArmsActionPerformable(pycram.enums.Arms.BOTH).perform()
+            ParkArmsActionPerformable(pycram.datastructures.enums.Arms.BOTH).perform()
             NavigateActionPerformable(Pose([1.81, 1.73, 0.0],
                                            [0.0, 0.0, 0.594, 0.804])).perform()
             OpenActionPerformable(handle_desig, arm="left").perform()

@@ -7,6 +7,7 @@ from random_events.events import Event
 
 from pycram.designator import ObjectDesignatorDescription
 from pycram.datastructures.enums import ObjectType
+from pycram.designators.actions.actions import MoveTorsoActionPerformable
 from pycram.plan_failures import PlanFailure
 from pycram.process_module import simulated_robot
 from pycram.resolver.probabilistic.probabilistic_action import MoveAndPickUp, GaussianCostmapModel
@@ -51,6 +52,7 @@ class MoveAndPickUpTestCase(BulletWorldTestCase):
         with simulated_robot:
             for action in move_and_pick:
                 try:
+                    MoveTorsoActionPerformable(0.3).perform()
                     action.perform()
                     return  # Success
                 except PlanFailure as e:

@@ -44,6 +44,7 @@ class BulletWorldTestCase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        cls.viz_marker_publisher._stop_publishing()
         cls.world.exit()
 
 
