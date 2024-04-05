@@ -33,7 +33,7 @@ class VizMarkerPublisher:
 
         self.thread = threading.Thread(target=self._publish)
         self.kill_event = threading.Event()
-        self.main_world = World.current_world if not World.current_world.is_prospection_world elseWorld.current_world.world_sync.world
+        self.main_world = World.current_world if not World.current_world.is_prospection_world else World.current_world.world_sync.world
 
         self.thread.start()
         atexit.register(self._stop_publishing)

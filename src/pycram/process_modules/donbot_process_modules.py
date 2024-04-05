@@ -3,12 +3,12 @@ from threading import Lock
 import numpy as np
 from typing_extensions import Optional
 
-from pycram.worlds.bullet_world import World
+from ..worlds.bullet_world import World
 from ..designators.motion_designator import MoveArmJointsMotion, WorldStateDetectingMotion
-from pycram.datastructures.local_transformer import LocalTransformer
+from ..datastructures.local_transformer import LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_descriptions import robot_description
-from ..process_modules.pr2_process_modules import Pr2PickUp, Pr2Detecting as DonbotDetecting, _move_arm_tcp
+from ..process_modules.pr2_process_modules import Pr2Detecting as DonbotDetecting, _move_arm_tcp
 
 
 def _park_arms(arm):
@@ -32,15 +32,6 @@ class DonbotNavigation(ProcessModule):
     def _execute(self, desig):
         robot = World.robot
         robot.set_pose(desig.target)
-
-
-class DonbotPickUp(Pr2PickUp):
-    """
-    This process module is for picking up a given object.
-    The object has to be reachable for this process module to succeed.
-    """
-    def _execute(self, desig, used_arm: Optional[str] = "left"):
-        super()._execute(desig, "left")
 
 
 class DonbotPlace(ProcessModule):
@@ -160,10 +151,6 @@ class DonbotManager(ProcessModuleManager):
     def navigate(self):
         if ProcessModuleManager.execution_type == "simulated":
             return DonbotNavigation(self._navigate_lock)
-
-    def pick_up(self):
-        if ProcessModuleManager.execution_type == "simulated":
-            return DonbotPickUp(self._pick_up_lock)
 
     def place(self):
         if ProcessModuleManager.execution_type == "simulated":

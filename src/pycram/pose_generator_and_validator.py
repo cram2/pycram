@@ -6,7 +6,7 @@ from .world_concepts.world_object import Object
 from .world_reasoning import contact
 from .world_concepts.costmaps import Costmap
 from .datastructures.local_transformer import LocalTransformer
-from .pose import Pose, Transform
+from .datastructures.pose import Pose, Transform
 from .robot_description import ManipulatorDescription
 from .robot_descriptions import robot_description
 from .external_interfaces.ik import request_ik
