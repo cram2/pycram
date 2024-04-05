@@ -9,7 +9,6 @@ from pycram.robot_descriptions import robot_description
 from pycram.process_module import ProcessModule
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.object_descriptors.urdf import ObjectDescription
-from pycram.enums import ObjectType
 from pycram.ros.viz_marker_publisher import VizMarkerPublisher
 
 
