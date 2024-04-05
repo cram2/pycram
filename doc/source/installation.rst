@@ -281,13 +281,27 @@ To verify that it works, you can execute any Testcase.
 
 **Useful tips**
 
+- `Keyboard shortcuts <https://www.jetbrains.com/help/pycharm/mastering-keyboard-shortcuts.html>`_
+    - `Keymap <https://www.jetbrains.com/help/pycharm/mastering-keyboard-shortcuts.html#ws_print_keymap>`_
+
+- `Python interpreter <https://www.jetbrains.com/help/pycharm/configuring-python-interpreter.html>`_
+    - `Python virtual environment <https://www.jetbrains.com/help/pycharm/creating-virtual-environment.html>`_
+- `Python packages <https://www.jetbrains.com/help/pycharm/installing-uninstalling-and-upgrading-packages.html>`_
+- `Python console <https://www.jetbrains.com/help/pycharm/using-consoles.html>`_
+
 - **View | Active Editor | Soft-wrap**: wrap text inside the editor view
 
-- **View | Tool Windows | Structure**: display notebook structure window for easy content navigation
+- **View | Tool Windows | Structure**: display structure window for easy content navigation
 
-- **Alt+12**: Open terminal
+- **F12**: Open terminal
 
 - **Double Shift**: Quick file search
+
+- **Ctrl F/R**: Find/Replace text in current file
+
+- **Ctrl Shift F/R**: Find/Replace text in the whole project, module, directory, scope
+
+- **Settings | Editor | Inspections | Code is compatible with specific Python versions**: Enable/Disable Python version-specific warnings
 
 Using IPython as REPL
 =====================

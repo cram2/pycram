@@ -5,6 +5,11 @@ from dataclasses import dataclass, field, fields
 from abc import ABC, abstractmethod
 from inspect import isgenerator, isgeneratorfunction
 
+try:
+    import owlready2
+except ImportError:
+    owlready2 = None
+
 from sqlalchemy.orm.session import Session
 import rospy
 
@@ -27,8 +32,6 @@ from .orm.object_designator import (Object as ORMObjectDesignator)
 
 from .orm.base import RobotState, ProcessMetaData
 from .task import with_tree
-
-from owlready2 import Thing
 
 class DesignatorError(Exception):
     """Implementation of designator errors."""
@@ -319,17 +322,17 @@ class DesignatorDescription(ABC):
     :ivar resolve: The resolver function to use for this designator, defaults to self.ground
     """
 
-    def __init__(self, resolver: Optional[Callable] = None, onto_concepts: Optional[List[Thing]] = None):
+    def __init__(self, resolver: Optional[Callable] = None, ontology_concepts: Optional[List[owlready2.Thing]] = None):
         """
         Create a Designator description.
 
         :param resolver: The grounding method used for the description. The grounding method creates a location instance that matches the description.
-        :param onto_concepts: A list of ontology concepts that the designator is categorized as or associated with
+        :param ontology_concepts: A list of ontology concepts that the designator is categorized as or associated with
         """
 
         if resolver is None:
             self.resolve = self.ground
-        self.onto_concepts = [] if onto_concepts is None else onto_concepts
+        self.ontology_concepts = [] if ontology_concepts is None else ontology_concepts
 
     def make_dictionary(self, properties: List[str]):
         """
@@ -364,11 +367,11 @@ class DesignatorDescription(ABC):
     def copy(self) -> Type[DesignatorDescription]:
         return self
 
-    def get_default_onto_concept(self):
+    def get_default_ontology_concept(self) -> owlready2.Thing:
         """
-        Returns the first element of onto_concepts if there is, else None
+        Returns the first element of ontology_concepts if there is, else None
         """
-        return self.onto_concepts[0] if len(self.onto_concepts) > 0 else None
+        return self.ontology_concepts[0] if len(self.ontology_concepts) > 0 else None
 
 class ActionDesignatorDescription(DesignatorDescription, Language):
     """
@@ -444,14 +447,14 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
 
             return action
 
-    def __init__(self, resolver=None, onto_concepts: Optional[List[Thing]] = None):
+    def __init__(self, resolver=None, ontology_concepts: Optional[List[owlready2.Thing]] = None):
         """
         Base of all action designator descriptions.
 
         :param resolver: An alternative resolver that returns an action designator
-        :param onto_concepts: A list of ontology concepts that the action is categorized as or associated with
+        :param ontology_concepts: A list of ontology concepts that the action is categorized as or associated with
         """
-        super().__init__(resolver, onto_concepts)
+        super().__init__(resolver, ontology_concepts)
         Language.__init__(self)
 
     def ground(self) -> Action:
@@ -483,8 +486,8 @@ class LocationDesignatorDescription(DesignatorDescription):
         The resolved pose of the location designator. Pose is inherited by all location designator.
         """
 
-    def __init__(self, resolver=None, onto_concepts: Optional[List[Thing]] = None):
-        super().__init__(resolver, onto_concepts)
+    def __init__(self, resolver=None, ontology_concepts: Optional[List[owlready2.Thing]] = None):
+        super().__init__(resolver, ontology_concepts)
 
     def ground(self) -> Location:
         """
@@ -649,16 +652,16 @@ class ObjectDesignatorDescription(DesignatorDescription):
         #     return pose
 
     def __init__(self, names: Optional[List[str]] = None, types: Optional[List[str]] = None,
-                 resolver: Optional[Callable] = None, onto_concepts: Optional[List[Thing]] = None):
+                 resolver: Optional[Callable] = None, ontology_concepts: Optional[List[owlready2.Thing]] = None):
         """
         Base of all object designator descriptions. Every object designator has the name and type of the object.
 
         :param names: A list of names that could describe the object
         :param types: A list of types that could represent the object
         :param resolver: An alternative resolver that returns an object designator for the list of names and types
-        :param onto_concepts: A list of ontology concepts that the object is categorized as or associated with
+        :param ontology_concepts: A list of ontology concepts that the object is categorized as or associated with
         """
-        super().__init__(resolver, onto_concepts)
+        super().__init__(resolver, ontology_concepts)
         self.types: Optional[List[str]] = types
         self.names: Optional[List[str]] = names
 

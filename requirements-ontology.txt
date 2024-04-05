@@ -1,0 +1,2 @@
+-r requirements.txt
+owlready2>=0.45

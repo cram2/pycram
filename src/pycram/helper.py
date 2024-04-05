@@ -24,6 +24,9 @@ import os
 import math
 
 class Singleton(type):
+    """
+    Metaclass for singletons
+    """
     _instances = {}
 
     def __call__(cls, *args, **kwargs):
