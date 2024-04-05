@@ -6,7 +6,7 @@ import numpy as np
 from random_events.events import Event
 
 from pycram.designator import ObjectDesignatorDescription
-from pycram.enums import ObjectType
+from pycram.datastructures.enums import ObjectType
 from pycram.plan_failures import PlanFailure
 from pycram.process_module import simulated_robot
 from pycram.resolver.probabilistic.probabilistic_action import MoveAndPickUp, GaussianCostmapModel

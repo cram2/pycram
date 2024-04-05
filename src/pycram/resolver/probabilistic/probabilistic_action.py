@@ -9,17 +9,17 @@ from random_events.events import Event, ComplexEvent
 from random_events.variables import Symbolic, Continuous
 import tqdm
 from typing_extensions import Optional, List, Iterator
-from ...bullet_world import BulletWorld
-from ...costmaps import OccupancyCostmap, VisibilityCostmap
+from ...world import World
+from ...world_concepts.costmaps import OccupancyCostmap, VisibilityCostmap
 from ...designator import ActionDesignatorDescription, ObjectDesignatorDescription
 from ...designators.actions.actions import MoveAndPickUpPerformable, ActionAbstract
-from ...enums import Arms, Grasp, TaskStatus
-from ...local_transformer import LocalTransformer
+from ...datastructures.enums import Arms, Grasp, TaskStatus
+from ...datastructures.local_transformer import LocalTransformer
 from ...orm.queries.queries import PickUpWithContext
 from ...orm.task import TaskTreeNode
 from ...orm.action_designator import PickUpAction as ORMPickUpAction
 from ...plan_failures import ObjectUnreachable, PlanFailure
-from ...pose import Pose
+from ...datastructures.pose import Pose
 import plotly.graph_objects as go
 
 
