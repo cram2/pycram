@@ -1,14 +1,12 @@
-import time
-
+import numpy as np
+from random_events.variables import Continuous
+#  import plotly.graph_objects as go
 import portion
 from random_events.events import Event, ComplexEvent
 
 from bullet_world_testcase import BulletWorldTestCase
-from pycram.costmaps import OccupancyCostmap
-from pycram.pose import Pose
-import numpy as np
-from random_events.variables import Continuous
-#  import plotly.graph_objects as go
+from pycram.world_concepts.costmaps import OccupancyCostmap
+from pycram.datastructures.pose import Pose
 
 
 class TestCostmapsCase(BulletWorldTestCase):
@@ -23,7 +21,8 @@ class TestCostmapsCase(BulletWorldTestCase):
         self.robot.set_pose(Pose([0, 0, 0]))
         self.milk.set_pose(Pose([0.5, 0, 1]))
         self.cereal.set_pose(Pose([50, 50, 0]))
-        o = OccupancyCostmap(0.2, from_ros=False, size=200, resolution=0.02, origin=Pose([0, 0, 0], [0, 0, 0, 1]))
+        o = OccupancyCostmap(0.2, from_ros=False, size=200, resolution=0.02,
+                             origin=Pose([0, 0, 0], [0, 0, 0, 1]))
         self.assertEqual(np.sum(o.map[115:135, 90:110]), 0)
 
         self.robot.attach(self.milk)
@@ -52,3 +51,7 @@ class TestCostmapsCase(BulletWorldTestCase):
         # fig.show()
         self.assertTrue(event.are_events_disjoint())
 
+    def test_visualize(self):
+        o = OccupancyCostmap(0.2, from_ros=False, size=200, resolution=0.02,
+                             origin=Pose([0, 0, 0], [0, 0, 0, 1]))
+        o.visualize()

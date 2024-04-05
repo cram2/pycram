@@ -196,7 +196,7 @@ epub_exclude_files = ['search.html']
 
 # Example Thumbnail config
 nbsphinx_thumbnails = {
-    'notebooks/bullet_world': os.path.abspath("notebooks/thumbnails/bullet_world.png"),
+    'notebooks/world': os.path.abspath("notebooks/thumbnails/bullet_world.png"),
     'notebooks/minimal_task_tree': os.path.abspath("notebooks/thumbnails/tree.png"),
     'notebooks/action_designator': os.path.abspath("notebooks/thumbnails/action_designator.png"),
     'notebooks/motion_designator': os.path.abspath("notebooks/thumbnails/motion_designator.png"),

@@ -1,19 +1,18 @@
 import tf
 import numpy as np
-import rospy
-import pybullet as p
 
-from .bullet_world import Object, BulletWorld, Use_shadow_world
-from .bullet_world_reasoning import contact
-from .costmaps import Costmap
-from .local_transformer import LocalTransformer
-from .pose import Pose, Transform
+from .world import World
+from .world_concepts.world_object import Object
+from .world_reasoning import contact
+from .world_concepts.costmaps import Costmap
+from .datastructures.local_transformer import LocalTransformer
+from .datastructures.pose import Pose, Transform
 from .robot_description import ManipulatorDescription
 from .robot_descriptions import robot_description
 from .external_interfaces.ik import request_ik
 from .plan_failures import IKError
 from .helper import _apply_ik
-from typing import Type, Tuple, List, Union, Dict, Iterable
+from typing_extensions import Tuple, List, Union, Dict, Iterable
 
 
 class PoseGenerator:
@@ -107,11 +106,11 @@ class PoseGenerator:
 def visibility_validator(pose: Pose,
                          robot: Object,
                          object_or_pose: Union[Object, Pose],
-                         world: BulletWorld) -> bool:
+                         world: World) -> bool:
     """
     This method validates if the robot can see the target position from a given
     pose candidate. The target position can either be a position, in world coordinate
-    system, or an object in the BulletWorld. The validation is done by shooting a
+    system, or an object in the World. The validation is done by shooting a
     ray from the camera to the target position and checking that it does not collide
     with anything else.
 
@@ -119,25 +118,48 @@ def visibility_validator(pose: Pose,
     :param robot: The robot object for which this should be validated
     :param object_or_pose: The target position or object for which the pose
         candidate should be validated.
-    :param world: The BulletWorld instance in which this should be validated.
+    :param world: The World instance in which this should be validated.
     :return: True if the target is visible for the robot, None in any other case.
     """
     robot_pose = robot.get_pose()
-    if type(object_or_pose) == Object:
+    if isinstance(object_or_pose, Object):
         robot.set_pose(pose)
         camera_pose = robot.get_link_pose(robot_description.get_camera_frame())
         robot.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
-        ray = p.rayTest(camera_pose.position_as_list(), object_or_pose.get_pose().position_as_list(),
-                        physicsClientId=world.client_id)
-        res = ray[0][0] == object_or_pose.id
+        ray = world.ray_test(camera_pose.position_as_list(), object_or_pose.get_position_as_list())
+        res = ray == object_or_pose.id
     else:
         robot.set_pose(pose)
         camera_pose = robot.get_link_pose(robot_description.get_camera_frame())
         robot.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
-        ray = p.rayTest(camera_pose.position_as_list(), object_or_pose, physicsClientId=world.client_id)
-        res = ray[0][0] == -1
+        # TODO: Check if this is correct
+        ray = world.ray_test(camera_pose.position_as_list(), object_or_pose)
+        res = ray == -1
     robot.set_pose(robot_pose)
     return res
+
+
+def _in_contact(robot: Object, obj: Object, allowed_collision: Dict[Object, List[str]],
+                allowed_robot_links: List[str]) -> bool:
+    """
+    This method checks if a given robot is in contact with a given object.
+
+    :param robot: The robot object that should be checked for contact.
+    :param obj: The object that should be checked for contact with the robot.
+    :param allowed_collision: A dictionary that contains the allowed collisions for links of each object in the world.
+    :param allowed_robot_links: A list of links of the robot that are allowed to be in contact with the object.
+    :return: True if the robot is in contact with the object and False otherwise.
+    """
+    in_contact, contact_links = contact(robot, obj, return_links=True)
+    allowed_links = allowed_collision[obj] if obj in allowed_collision.keys() else []
+
+    if in_contact:
+        for link in contact_links:
+            if link[0].name in allowed_robot_links or link[1].name in allowed_links:
+                in_contact = False
+                # TODO: in_contact is never set to True after it was set to False is that correct?
+                # TODO: If it is correct, then this loop should break after the first contact is found
+    return in_contact
 
 
 def reachability_validator(pose: Pose,
@@ -151,7 +173,7 @@ def reachability_validator(pose: Pose,
     the validator returns True and False in any other case.
 
     :param pose: The pose candidate for which the reachability should be validated
-    :param robot: The robot object in the BulletWorld for which the reachability
+    :param robot: The robot object in the World for which the reachability
         should be validated.
     :param target: The target position or object instance which should be the
         target for reachability.
@@ -183,7 +205,7 @@ def reachability_validator(pose: Pose,
         # TODO Make orientation adhere to grasping orientation
         in_contact = False
 
-        joint_state_before_ik = robot._current_joint_states
+        joint_state_before_ik = robot.get_positions_of_all_joints()
         try:
             # test the possible solution and apply it to the robot
             resp = request_ik(target, robot, joints, tool_frame)
@@ -199,7 +221,7 @@ def reachability_validator(pose: Pose,
         except IKError:
             pass
         finally:
-            robot.set_joint_states(joint_state_before_ik)
+            robot.set_joint_positions(joint_state_before_ik)
     if arms:
         res = True
     return res, arms
@@ -226,17 +248,10 @@ def collision_check(robot: Object, allowed_collision: list):
     if robot in allowed_collision.keys():
         allowed_robot_links = allowed_collision[robot]
 
-    for obj in BulletWorld.current_bullet_world.objects:
+    for obj in World.current_world.objects:
         if obj.name == "floor":
             continue
-        in_contact, contact_links = contact(robot, obj, return_links=True)
-        allowed_links = allowed_collision[obj] if obj in allowed_collision.keys() else []
-
-        if in_contact:
-            for link in contact_links:
-
-                if link[0] in allowed_robot_links or link[1] in allowed_links:
-                    in_contact = False
+        in_contact= _in_contact(robot, obj, allowed_collision, allowed_robot_links)
 
     return in_contact
 

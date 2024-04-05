@@ -6,22 +6,22 @@ import rospy
 
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
-from ..bullet_world import BulletWorld
+from pycram.world import World
 
 
 class JointStatePublisher:
     """
-    Joint state publisher for the robot currently loaded in the BulletWorld
+    Joint state publisher for the robot currently loaded in the World
     """
     def __init__(self, joint_state_topic="/pycram/joint_state", interval=0.1):
         """
-        Robot object is from :py:attr:`~pycram.bullet_world.BulletWorld.robot` and current joint states are published to
+        Robot object is from :py:attr:`~pycram.world.World.robot` and current joint states are published to
         the given joint_state_topic as a JointState message.
 
         :param joint_state_topic: Topic name to which the joint states should be published
         :param interval: Interval at which the joint states should be published, in seconds
         """
-        self.world = BulletWorld.current_bullet_world
+        self.world = World.current_world
 
         self.joint_state_pub = rospy.Publisher(joint_state_topic, JointState, queue_size=10)
         self.interval = interval
@@ -33,15 +33,16 @@ class JointStatePublisher:
 
     def _publish(self) -> None:
         """
-        Publishes the current joint states of the :py:attr:`~pycram.bullet_world.BulletWorld.robot` in an infinite loop.
-        The joint states are published as long as the kill_event is not set by :py:meth:`~JointStatePublisher._stop_publishing`
+        Publishes the current joint states of the :py:attr:`~pycram.world.World.robot` in an infinite loop.
+        The joint states are published as long as the kill_event is not set
+         by :py:meth:`~JointStatePublisher._stop_publishing`
         """
-        robot = BulletWorld.robot
-        joint_names = [joint_name for joint_name in robot.joints.keys()]
+        robot = World.robot
+        joint_names = [joint_name for joint_name in robot.joint_name_to_id.keys()]
         seq = 0
 
         while not self.kill_event.is_set():
-            current_joint_states = [robot.get_joint_state(joint_name) for joint_name in joint_names]
+            current_joint_states = [robot.get_joint_position(joint_name) for joint_name in joint_names]
             h = Header()
             h.stamp = rospy.Time.now()
             h.seq = seq

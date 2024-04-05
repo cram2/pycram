@@ -1,14 +1,12 @@
-from pycram.external_interfaces.giskard import achieve_cartesian_goal
-from pycram.designators.location_designator import CostmapLocation
-from pycram.bullet_world import Use_shadow_world, BulletWorld
-from pycram.helper import _apply_ik
-from pycram.pose import Pose
-from pycram.robot_descriptions import robot_description
+from ...external_interfaces.giskard import achieve_cartesian_goal
+from ...designators.location_designator import CostmapLocation
+from pycram.world import UseProspectionWorld, World
+from pycram.datastructures.pose import Pose
+from ...robot_descriptions import robot_description
 from pycram.pose_generator_and_validator import reachability_validator
-from typing import Tuple, Dict
+from typing_extensions import Tuple, Dict
 
 import tf
-import numpy as np
 
 
 class GiskardLocation(CostmapLocation):
@@ -28,8 +26,8 @@ class GiskardLocation(CostmapLocation):
             pose_left, end_config_left = self._get_reachable_pose_for_arm(self.target,
                                                                           robot_description.get_tool_frame("left"))
 
-            test_robot = BulletWorld.current_bullet_world.get_shadow_object(BulletWorld.robot)
-            with Use_shadow_world():
+            test_robot = World.current_world.get_prospection_object_for_object(World.robot)
+            with UseProspectionWorld():
                 valid, arms = reachability_validator(pose_right, test_robot, self.target, {})
                 if valid:
                     yield CostmapLocation.Location(pose_right, arms)

@@ -6,14 +6,14 @@ import sqlalchemy.sql
 from sqlalchemy import select, Select
 from typing_extensions import List
 
-from ...costmaps import Rectangle, OccupancyCostmap
+from ...world_concepts.costmaps import Rectangle, OccupancyCostmap
 from ...designator import LocationDesignatorDescription
 from ...designators.location_designator import CostmapLocation
 from ...orm.action_designator import PickUpAction
 from ...orm.base import RobotState, Quaternion
 from ...orm.object_designator import Object
 from ...orm.task import TaskTreeNode
-from ...pose import Pose
+from ...datastructures.pose import Pose
 from ...orm.queries.queries import PickUpWithContext
 
 

@@ -1,12 +1,12 @@
 from pycram.designators.actions.actions import MoveTorsoActionPerformable, PickUpActionPerformable, \
     NavigateActionPerformable
-from pycram.pose import Pose
+from pycram.datastructures.pose import Pose
 from pycram.process_module import simulated_robot
 import pycram.task
 from pycram.task import with_tree
 import unittest
 import anytree
-from  bullet_world_testcase import BulletWorldTestCase
+from bullet_world_testcase import BulletWorldTestCase
 import pycram.plan_failures
 from pycram.designators import object_designator, action_designator
 
@@ -62,7 +62,7 @@ class TaskTreeTestCase(BulletWorldTestCase):
 
     def test_execution(self):
         self.plan()
-        self.world.reset_bullet_world()
+        self.world.reset_world()
         tt = pycram.task.task_tree
         # self.setUpBulletWorld(False)
         with simulated_robot:

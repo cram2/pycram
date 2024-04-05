@@ -1,17 +1,13 @@
-import unittest
 from pycram.designators.location_designator import *
-from pycram.designators import action_designator, object_designator
 from pycram.robot_descriptions import robot_description
-from pycram.process_module import simulated_robot
-from pycram.pose import Pose
-import pycram.enums
+from pycram.datastructures.pose import Pose
 from bullet_world_testcase import BulletWorldTestCase
 
 
 class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_reachability(self):
-        self.robot.set_joint_state(robot_description.torso_joint, 0.3)
+        self.robot.set_joint_position(robot_description.torso_joint, 0.3)
         object_desig = ObjectDesignatorDescription(names=["milk"])
         robot_desig = ObjectDesignatorDescription(names=[robot_description.name])
         location_desig = CostmapLocation(object_desig.resolve(), reachable_for=robot_desig.resolve())
@@ -37,7 +33,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.assertTrue(len(location.pose.orientation_as_list()) == 4)
 
     def test_reachability_and_visibility(self):
-        self.robot.set_joint_state(robot_description.torso_joint, 0.3)
+        self.robot.set_joint_position(robot_description.torso_joint, 0.3)
         object_desig = ObjectDesignatorDescription(names=["milk"])
         robot_desig = ObjectDesignatorDescription(names=[robot_description.name])
         location_desig = CostmapLocation(object_desig.resolve(), reachable_for=robot_desig.resolve(), visible_for=robot_desig.resolve())
