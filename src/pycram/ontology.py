@@ -12,7 +12,7 @@ except ImportError:
     owlready2 = None
     logging.warn("Could not import owlready2, OWL Ontology Manager could not be initialized")
 
-from pycram.enums import ObjectType
+from pycram.datastructures.enums import ObjectType
 from pycram.helper import Singleton
 from pycram.designator import DesignatorDescription, ObjectDesignatorDescription
 
