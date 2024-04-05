@@ -9,18 +9,18 @@ import datetime
 import inspect
 import json
 import logging
-from typing import List, Dict, Optional, Callable, Any
+from typing_extensions import List, Dict, Optional, Callable
 
 import anytree
-import pybullet
 import sqlalchemy.orm.session
 import tqdm
 
-from .bullet_world import BulletWorld
+from ..world import World
 from .orm.task import TaskTreeNode as ORMTaskTreeNode
 from .orm.base import ProcessMetaData
 from .plan_failures import PlanFailure
-from .enums import TaskStatus
+from .datastructures.enums import TaskStatus
+from .datastructures.dataclasses import Color
 
 if TYPE_CHECKING:
     from .designators.actions import Action
@@ -181,16 +181,16 @@ class SimulatedTaskTree:
     """TaskTree for execution in a 'new' simulation."""
 
     def __enter__(self):
-        """At the beginning of a with statement the current task tree and bullet world will be suspended and remembered.
+        """At the beginning of a with statement the current task tree and world will be suspended and remembered.
         Fresh structures are then available inside the with statement."""
         global task_tree
 
         self.suspended_tree = task_tree
-        self.world_state, self.objects2attached = BulletWorld.current_bullet_world.save_state()
+        self.world_state = World.current_world.save_state()
         self.simulated_root = TaskTreeNode()
         task_tree = self.simulated_root
-        pybullet.addUserDebugText("Simulating...", [0, 0, 1.75], textColorRGB=[0, 0, 0],
-                                  parentObjectUniqueId=1, lifeTime=0)
+        World.current_world.add_text("Simulating...", [0, 0, 1.75], color=Color.from_rgb([0, 0, 0]),
+                                     parent_object_id=1)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -199,8 +199,8 @@ class SimulatedTaskTree:
         """
         global task_tree
         task_tree = self.suspended_tree
-        BulletWorld.current_bullet_world.restore_state(self.world_state, self.objects2attached)
-        pybullet.removeAllUserDebugItems()
+        World.current_world.restore_state(self.world_state)
+        World.current_world.remove_text()
 
 
 task_tree: Optional[TaskTreeNode] = None

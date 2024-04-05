@@ -1,20 +1,18 @@
 import json
 import threading
 
-import rosnode
 import rospy
 import sys
 import rosnode
-import urdf_parser_py
 
-import traceback
-
-from ..pose import Pose
+from pycram.datastructures.pose import Pose
 from ..robot_descriptions import robot_description
-from ..bullet_world import BulletWorld, Object
+from pycram.world import World
+from pycram.datastructures.dataclasses import MeshVisualShape
+from pycram.world_concepts.world_object import Object
 from ..robot_description import ManipulatorDescription
 
-from typing import List, Tuple, Dict, Callable, Optional
+from typing_extensions import List, Dict, Callable, Optional
 from geometry_msgs.msg import PoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
 from threading import Lock, RLock
 
@@ -95,11 +93,11 @@ def init_giskard_interface(func: Callable) -> Callable:
 @init_giskard_interface
 def initial_adding_objects() -> None:
     """
-    Adds object that are loaded in the BulletWorld to the Giskard belief state, if they are not present at the moment.
+    Adds object that are loaded in the World to the Giskard belief state, if they are not present at the moment.
     """
     groups = giskard_wrapper.get_group_names()
-    for obj in BulletWorld.current_bullet_world.objects:
-        if obj is BulletWorld.robot:
+    for obj in World.current_world.objects:
+        if obj is World.robot:
             continue
         name = obj.name + "_" + str(obj.id)
         if name not in groups:
@@ -109,11 +107,11 @@ def initial_adding_objects() -> None:
 @init_giskard_interface
 def removing_of_objects() -> None:
     """
-    Removes objects that are present in the Giskard belief state but not in the BulletWorld from the Giskard belief state.
+    Removes objects that are present in the Giskard belief state but not in the World from the Giskard belief state.
     """
     groups = giskard_wrapper.get_group_names()
     object_names = list(
-        map(lambda obj: object_names.name + "_" + str(obj.id), BulletWorld.current_bullet_world.objects))
+        map(lambda obj: object_names.name + "_" + str(obj.id), World.current_world.objects))
     diff = list(set(groups) - set(object_names))
     for grp in diff:
         giskard_wrapper.remove_group(grp)
@@ -122,19 +120,19 @@ def removing_of_objects() -> None:
 @init_giskard_interface
 def sync_worlds() -> None:
     """
-    Synchronizes the BulletWorld and the Giskard belief state, this includes adding and removing objects to the Giskard
-    belief state such that it matches the objects present in the BulletWorld and moving the robot to the position it is
-    currently at in the BulletWorld.
+    Synchronizes the World and the Giskard belief state, this includes adding and removing objects to the Giskard
+    belief state such that it matches the objects present in the World and moving the robot to the position it is
+    currently at in the World.
     """
     add_gripper_groups()
-    bullet_object_names = set()
-    for obj in BulletWorld.current_bullet_world.objects:
-        if obj.name != robot_description.name and len(obj.links) != 1:
-            bullet_object_names.add(obj.name + "_" + str(obj.id))
+    world_object_names = set()
+    for obj in World.current_world.objects:
+        if obj.name != robot_description.name and len(obj.link_name_to_id) != 1:
+            world_object_names.add(obj.name + "_" + str(obj.id))
 
     giskard_object_names = set(giskard_wrapper.get_group_names())
     robot_name = {robot_description.name}
-    if not bullet_object_names.union(robot_name).issubset(giskard_object_names):
+    if not world_object_names.union(robot_name).issubset(giskard_object_names):
         giskard_wrapper.clear_world()
     initial_adding_objects()
 
@@ -154,14 +152,14 @@ def update_pose(object: Object) -> 'UpdateWorldResponse':
 @init_giskard_interface
 def spawn_object(object: Object) -> None:
     """
-    Spawns a BulletWorld Object in the giskard belief state.
+    Spawns a World Object in the giskard belief state.
 
-    :param object: BulletWorld object that should be spawned
+    :param object: World object that should be spawned
     """
-    if len(object.links) == 1:
-        geometry = object.urdf_object.link_map[object.urdf_object.get_root()].collision.geometry
-        if isinstance(geometry, urdf_parser_py.urdf.Mesh):
-            filename = geometry.filename
+    if len(object.link_name_to_id) == 1:
+        geometry = object.get_link_geometry(object.root_link_name)
+        if isinstance(geometry, MeshVisualShape):
+            filename = geometry.file_name
             spawn_mesh(object.name + "_" + str(object.id), filename, object.get_pose())
     else:
         spawn_urdf(object.name + "_" + str(object.id), object.path, object.get_pose())
@@ -172,7 +170,7 @@ def remove_object(object: Object) -> 'UpdateWorldResponse':
     """
     Removes an object from the giskard belief state.
 
-    :param object: The BulletWorld Object that should be removed
+    :param object: The World Object that should be removed
     """
     return giskard_wrapper.remove_group(object.name + "_" + str(object.id))
 
@@ -239,14 +237,14 @@ def _manage_par_motion_goals(goal_func, *args) -> Optional['MoveResult']:
                     if "tip_link" in par_value_pair.keys() and "root_link" in par_value_pair.keys():
                         if par_value_pair["tip_link"] == robot_description.base_link:
                             continue
-                        chain = BulletWorld.robot.urdf_object.get_chain(par_value_pair["root_link"],
-                                                                        par_value_pair["tip_link"])
+                        chain = World.robot.description.get_chain(par_value_pair["root_link"],
+                                                                  par_value_pair["tip_link"])
                         if set(chain).intersection(used_joints) != set():
                             giskard_wrapper.cmd_seq = tmp
                             raise AttributeError(f"The joint(s) {set(chain).intersection(used_joints)} is used by multiple Designators")
                         else:
                             [used_joints.add(joint) for joint in chain]
-                            
+
                     elif "goal_state" in par_value_pair.keys():
                         if set(par_value_pair["goal_state"].keys()).intersection(used_joints) != set():
                             giskard_wrapper.cmd_seq = tmp
@@ -529,8 +527,8 @@ def avoid_collisions(object1: Object, object2: Object) -> None:
     """
     Will avoid collision between the two objects for the next goal.
 
-    :param object1: The first BulletWorld Object
-    :param object2: The second BulletWorld Object
+    :param object1: The first World Object
+    :param object2: The second World Object
     """
     giskard_wrapper.avoid_collision(-1, object1.name + "_" + str(object1.id), object2.name + "_" + str(object2.id))
 
@@ -540,10 +538,10 @@ def avoid_collisions(object1: Object, object2: Object) -> None:
 @init_giskard_interface
 def make_world_body(object: Object) -> 'WorldBody':
     """
-    Creates a WorldBody message for a BulletWorld Object. The WorldBody will contain the URDF of the BulletWorld Object
+    Creates a WorldBody message for a World Object. The WorldBody will contain the URDF of the World Object
 
-    :param object: The BulletWorld Object
-    :return: A WorldBody message for the BulletWorld Object
+    :param object: The World Object
+    :return: A WorldBody message for the World Object
     """
     urdf_string = ""
     with open(object.path) as f:
