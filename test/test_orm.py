@@ -1,4 +1,3 @@
-import os
 import unittest
 from sqlalchemy import select
 import sqlalchemy.orm
@@ -17,7 +16,7 @@ from pycram.designators.actions.actions import ParkArmsActionPerformable, MoveTo
     OpenActionPerformable, CloseActionPerformable, DetectActionPerformable, LookAtActionPerformable
 from pycram.designators.object_designator import BelieveObject
 from pycram.enums import ObjectType
-from pycram.pose import Pose
+from pycram.datastructures.pose import Pose
 from pycram.process_module import simulated_robot
 from pycram.task import with_tree
 

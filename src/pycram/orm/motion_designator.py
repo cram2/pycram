@@ -5,14 +5,14 @@ Each motion designator class has its own table in the database with columns repr
 The MotionDesignator class is the base class that defines the polymorphic behavior of all other motion designator
 classes.
 """
-from typing import Optional
+from typing_extensions import Optional
 
 from .base import MapperArgsMixin, Designator, PoseMixin
-from .object_designator import Object, ObjectMixin
+from .object_designator import Object
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey
 
-from ..enums import ObjectType
+from pycram.datastructures.enums import ObjectType
 
 
 class Motion(MapperArgsMixin, Designator):

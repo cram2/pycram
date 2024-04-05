@@ -1,26 +1,16 @@
 from threading import Lock
 
-import pycram.bullet_world_reasoning as btr
 import numpy as np
 
-from ..robot_descriptions import robot_description
 from ..process_module import ProcessModule, ProcessModuleManager
-from ..bullet_world import BulletWorld, Object
-from ..external_interfaces.ik import request_ik, IKError
-from ..helper import _apply_ik
-from ..local_transformer import LocalTransformer
-from ..designators.motion_designator import *
-from ..enums import JointType
-
-
-class DefaultNavigation(ProcessModule):
-    """
-    The process module to move the robot from one position to another.
-    """
-
-    def _execute(self, desig: MoveMotion):
-        robot = BulletWorld.robot
-        robot.set_pose(desig.target)
+# from ..process_modules.pr2_process_modules import Pr2Navigation as DefaultNavigation, Pr2PickUp as DefaultPickUp, \
+#     Pr2Place as DefaultPlace, Pr2WorldStateDetecting as DefaultWorldStateDetecting, Pr2Open as DefaultOpen, \
+#     Pr2Close as DefaultClose, Pr2MoveGripper as DefaultMoveGripper, Pr2Detecting as DefaultDetecting, \
+#     Pr2MoveTCP as DefaultMoveTCP
+from ..robot_descriptions import robot_description
+from ..world import World
+from ..datastructures.local_transformer import LocalTransformer
+from ..designators.motion_designator import LookingMotion, MoveArmJointsMotion, MoveJointsMotion
 
 
 class DefaultMoveHead(ProcessModule):
@@ -31,7 +21,7 @@ class DefaultMoveHead(ProcessModule):
 
     def _execute(self, desig: LookingMotion):
         target = desig.target
-        robot = BulletWorld.robot
+        robot = World.robot
 
         local_transformer = LocalTransformer()
 
@@ -46,11 +36,11 @@ class DefaultMoveHead(ProcessModule):
         new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
         new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2) * -1
 
-        current_pan = robot.get_joint_state(pan_joint)
-        current_tilt = robot.get_joint_state(tilt_joint)
+        current_pan = robot.get_joint_position(pan_joint)
+        current_tilt = robot.get_joint_position(tilt_joint)
 
-        robot.set_joint_state(pan_joint, new_pan + current_pan)
-        robot.set_joint_state(tilt_joint, new_tilt + current_tilt)
+        robot.set_joint_position(pan_joint, new_pan + current_pan)
+        robot.set_joint_position(tilt_joint, new_tilt + current_tilt)
 
 
 class DefaultMoveGripper(ProcessModule):
@@ -107,20 +97,20 @@ class DefaultMoveArmJoints(ProcessModule):
 
     def _execute(self, desig: MoveArmJointsMotion):
 
-        robot = BulletWorld.robot
+        robot = World.robot
         if desig.right_arm_poses:
             for joint, pose in desig.right_arm_poses.items():
-                robot.set_joint_state(joint, pose)
+                robot.set_joint_position(joint, pose)
         if desig.left_arm_poses:
             for joint, pose in desig.left_arm_poses.items():
-                robot.set_joint_state(joint, pose)
+                robot.set_joint_position(joint, pose)
 
 
 class DefaultMoveJoints(ProcessModule):
     def _execute(self, desig: MoveJointsMotion):
-        robot = BulletWorld.robot
+        robot = World.robot
         for joint, pose in zip(desig.names, desig.positions):
-            robot.set_joint_state(joint, pose)
+            robot.set_joint_position(joint, pose)
 
 
 class DefaultWorldStateDetecting(ProcessModule):

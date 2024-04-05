@@ -4,8 +4,9 @@ import unittest
 import sqlalchemy
 import sqlalchemy.orm
 import pycram.plan_failures
+from pycram.world_concepts.world_object import Object
 from pycram import task
-from pycram.bullet_world import BulletWorld, Object
+from pycram.world import World
 from pycram.designators import action_designator
 from pycram.designators.actions.actions import MoveTorsoActionPerformable, PickUpActionPerformable, \
     NavigateActionPerformable, PlaceActionPerformable
@@ -13,10 +14,10 @@ from pycram.orm.base import Base
 from pycram.designators.object_designator import ObjectDesignatorDescription
 from pycram.process_module import ProcessModule
 from pycram.process_module import simulated_robot
-from pycram.pose import Pose
+from pycram.datastructures.pose import Pose
 from pycram.robot_descriptions import robot_description
 from pycram.task import with_tree
-from pycram.enums import ObjectType
+from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.resolver.location.database_location import DatabaseCostmapLocation
 
 pycrorm_uri = os.getenv('PYCRORM_URI')
@@ -26,7 +27,7 @@ if pycrorm_uri:
 
 @unittest.skipIf(pycrorm_uri is None, "pycrorm database is not available.")
 class DatabaseResolverTestCase(unittest.TestCase,):
-    world: BulletWorld
+    world: World
     milk: Object
     robot: Object
     engine: sqlalchemy.engine.Engine
@@ -35,20 +36,20 @@ class DatabaseResolverTestCase(unittest.TestCase,):
     @classmethod
     def setUpClass(cls) -> None:
         global pycrorm_uri
-        cls.world = BulletWorld("DIRECT")
+        cls.world = World(WorldMode.DIRECT)
         cls.milk = Object("milk", "milk", "milk.stl", pose=Pose([1.3, 1, 0.9]))
         cls.robot = Object(robot_description.name, ObjectType.ROBOT, robot_description.name + ".urdf")
         ProcessModule.execution_delay = False
         cls.engine = sqlalchemy.create_engine(pycrorm_uri)
 
     def setUp(self) -> None:
-        self.world.reset_bullet_world()
+        self.world.reset_world()
         pycram.orm.base.Base.metadata.create_all(self.engine)
         self.session = sqlalchemy.orm.Session(bind=self.engine)
         self.session.commit()
 
     def tearDown(self) -> None:
-        self.world.reset_bullet_world()
+        self.world.reset_world()
         pycram.task.reset_tree()
         pycram.orm.base.ProcessMetaData.reset()
         self.session.rollback()

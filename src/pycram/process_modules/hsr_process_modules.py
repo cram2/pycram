@@ -2,35 +2,44 @@ from threading import Lock
 from threading import Lock
 from typing import Any
 
-import numpy as np
-import rospy
-# from tmc_control_msgs.msg import GripperApplyEffortActionGoal
-# from tmc_msgs.msg import Voice
-
-import pycram.bullet_world_reasoning as btr
-from ..designators.motion_designator import *
-from ..bullet_world import BulletWorld, Object
+from typing_extensions import Optional
 from ..robot_descriptions import robot_description
-from ..enums import JointType, ObjectType
-from ..external_interfaces import giskard
-from ..external_interfaces.ik import request_ik
-# from ..external_interfaces.robokudo import queryEmpty, queryHuman, stop_queryHuman
+from ..process_module import ProcessModule, ProcessModuleManager
+from ..world import World
+from ..datastructures.pose import Pose, Point
 from ..helper import _apply_ik
-from ..local_transformer import LocalTransformer
-from ..process_module import ProcessModule
+from ..external_interfaces.ik import request_ik
+from .. import world_reasoning as btr
+import logging
+import time
+from ..datastructures.local_transformer import LocalTransformer
+
+
+
+def calculate_and_apply_ik(robot, gripper: str, target_position: Point, max_iterations: Optional[int] = None):
+    """
+    Calculates the inverse kinematics for the given target pose and applies it to the robot.
+    """
+    target_position_l  = [target_position.x, target_position.y, target_position.z]
+    # TODO: Check if this is correct (getting the arm and using its joints), previously joints was not provided.
+    arm = "right" if gripper == robot_description.get_tool_frame("right") else "left"
+    inv = request_ik(Pose(target_position_l, [0, 0, 0, 1]),
+                     robot, robot_description.chains[arm].joints, gripper)
+    joints = robot_description.chains[arm].joints
+    _apply_ik(robot, inv, joints)
 
 
 def _park_arms(arm):
     """
     Defines the joint poses for the parking positions of the arms of HSRB and applies them to the
-    in the BulletWorld defined robot.
+    in the World defined robot.
     :return: None
     """
 
-    robot = BulletWorld.robot
+    robot = World.robot
     if arm == "left":
         for joint, pose in robot_description.get_static_joint_chain("left", "park").items():
-            robot.set_joint_state(joint, pose)
+            robot.set_joint_position(joint, pose)
 
 
 class HSRBNavigation(ProcessModule):
@@ -74,11 +83,11 @@ class HSRBMoveGripper(ProcessModule):
     """
 
     def _execute(self, desig: MoveGripperMotion):
-        robot = BulletWorld.robot
+        robot = World.robot
         gripper = desig.gripper
         motion = desig.motion
         for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
-            robot.set_joint_state(joint, state)
+            robot.set_joint_position(joint, state)
 
 
 class HSRBDetecting(ProcessModule):
@@ -89,7 +98,7 @@ class HSRBDetecting(ProcessModule):
 
     def _execute(self, desig: DetectingMotion):
         rospy.loginfo("Detecting technique: {}".format(desig.technique))
-        robot = BulletWorld.robot
+        robot = World.robot
         object_type = desig.object_type
         # Should be "wide_stereo_optical_frame"
         cam_frame_name = robot_description.get_camera_frame()
@@ -111,7 +120,7 @@ class HSRBDetecting(ProcessModule):
         #
         # else:
         #     rospy.loginfo("Fake -> Detecting specific object type")
-        objects = BulletWorld.current_bullet_world.get_objects_by_type(object_type)
+        objects = World.current_world.get_object_by_type(object_type)
 
         object_dict = {}
 
@@ -141,7 +150,7 @@ class HSRBMoveArmJoints(ProcessModule):
 
     def _execute(self, desig: MoveArmJointsMotion):
 
-        robot = BulletWorld.robot
+        robot = World.robot
         if desig.right_arm_poses:
             robot.set_joint_states(desig.right_arm_poses)
         if desig.left_arm_poses:
@@ -165,7 +174,7 @@ class HSRBWorldStateDetecting(ProcessModule):
 
     def _execute(self, desig: WorldStateDetectingMotion):
         obj_type = desig.object_type
-        return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
+        return list(filter(lambda obj: obj.obj_type == obj_type, World.current_world.objects))[0]
 
 
 class HSRBOpen(ProcessModule):

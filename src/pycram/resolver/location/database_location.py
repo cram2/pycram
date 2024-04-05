@@ -13,7 +13,7 @@ from ...orm.action_designator import PickUpAction
 from ...orm.base import RobotState, Quaternion
 from ...orm.object_designator import Object
 from ...orm.task import TaskTreeNode
-from ...pose import Pose
+from ...datastructures.Pose import Pose
 from ...orm.queries.queries import PickUpWithContext
 
 
