@@ -16,8 +16,11 @@ from pycram.datastructures.enums import ObjectType
 from pycram.helper import Singleton
 from pycram.designator import DesignatorDescription, ObjectDesignatorDescription
 
+from pycram.ontology.ontology_common import OntologyConceptHolder
+
 SOMA_HOME_ONTOLOGY_IRI = "http://www.ease-crc.org/ont/SOMA-HOME.owl"
 SOMA_ONTOLOGY_IRI = "http://www.ease-crc.org/ont/SOMA.owl"
+
 
 class OntologyManager(object, metaclass=Singleton):
     """
@@ -105,32 +108,6 @@ class OntologyManager(object, metaclass=Singleton):
             rospy.logerr(f"Ontology [{ontology_.base_iri}]\'s name: {ontology_.name} failed being loaded")
             return
 
-        ontology_concept_class = self.get_ontology_class_by_ontology(ontology_, "OntologyConcept")
-        if ontology_concept_class:
-            del ontology_concept_class
-        with ontology_:
-            class OntologyConcept(owlready2.Thing):
-                """
-                A default ontology concept class that inherits from owlready2.Thing with a list of designators as its attribute
-                """
-                namespace = ontology_
-
-                def __init__(self, name: str):
-                    """
-                    Create a new ontology concept
-
-                    :param name: concept name
-                    """
-                    super().__init__(name)
-                    self.designators: List[DesignatorDescription] = []
-                    self.resolve: Callable = None
-
-                def get_default_designator(self) -> DesignatorDescription:
-                    """
-                    Return the first element of designators if there is, else None
-                    """
-                    return self.designators[0] if len(self.designators) > 0 else None
-
     @staticmethod
     def print_ontology_class(ontology_class):
         """
@@ -177,10 +154,11 @@ class OntologyManager(object, metaclass=Singleton):
                     func(sub_onto, **kwargs)
                     break
 
-    def save(self, target_filename: str = ""):
+    def save(self, target_filename: str = "", overwrite: bool = False):
         """
         Save the current ontology to disk
         :param target_filename: full name path of a file which the ontologies are saved into.
+        :param overwrite: overwrite an existing file if it exists
         If empty, they are saved to the same original OWL file from which the main ontology was loaded, or
         a file at the same folder with ontology search path specified at constructor if it was loaded from a remote IRI.
         """
@@ -190,11 +168,19 @@ class OntologyManager(object, metaclass=Singleton):
         self.ontology_world.save()
 
         # Save ontologies to OWL
-        current_ontology_filename = self.main_ontology_iri if Path(self.main_ontology_iri).exists() \
+        is_current_ontology_local = Path(self.main_ontology_iri).exists()
+        current_ontology_filename = self.main_ontology_iri if is_current_ontology_local \
             else f"{Path(self.ontology_world.filename).parent.absolute()}/{Path(self.main_ontology_iri).stem}.owl"
-        save_filename = target_filename if target_filename else current_ontology_filename
-        self.main_ontology.save(save_filename)
-        rospy.loginfo(f"Ontologies have been saved to {save_filename}")
+        save_to_same_file = is_current_ontology_local and (target_filename == current_ontology_filename)
+        if save_to_same_file and not overwrite:
+            rospy.logerr(f"Ontologies cannot be saved to the originally loaded [{target_filename}] if not by overwriting")
+        else:
+            save_filename = target_filename if target_filename else current_ontology_filename
+            self.main_ontology.save(save_filename)
+            if save_to_same_file and overwrite:
+                rospy.logwarn(f"Ontologies have been overwritten to {save_filename}")
+            else:
+                rospy.loginfo(f"Ontologies have been saved to {save_filename}")
 
     def create_ontology_concept_class(self, class_name: str,
                                       ontology_parent_concept_class: Optional[owlready2.Thing] = None) \
@@ -209,9 +195,10 @@ class OntologyManager(object, metaclass=Singleton):
         ontology_concept_class = self.get_ontology_class_by_ontology(self.main_ontology, class_name)
         if ontology_concept_class:
             return ontology_concept_class
-        else:
-            return types.new_class(class_name, (self.main_ontology.OntologyConcept, ontology_parent_concept_class,)
-                                   if inspect.isclass(ontology_parent_concept_class) else (self.main_ontology.OntologyConcept,))
+
+        with self.main_ontology:
+            return types.new_class(class_name, (owlready2.Thing, ontology_parent_concept_class,)
+                   if inspect.isclass(ontology_parent_concept_class) else (owlready2.Thing,))
 
     @staticmethod
     def create_ontology_property_class(class_name: str,
@@ -225,8 +212,9 @@ class OntologyManager(object, metaclass=Singleton):
         :return: The created ontology class
         """
         parent_class = ontology_parent_property_class if (ontology_parent_property_class and
-                                                          issubclass(ontology_parent_property_class, owlready2.Property)) \
-                                                      else None
+                                                          issubclass(ontology_parent_property_class,
+                                                                     owlready2.Property)) \
+            else None
         return types.new_class(class_name, (parent_class,) if parent_class else (owlready2.Property,))
 
     def get_ontology_classes_by_condition(self, condition: Callable, first_match_only=False, **kwargs) \
@@ -389,34 +377,46 @@ class OntologyManager(object, metaclass=Singleton):
 
     def create_ontology_linked_designator_by_concept(self, designator_name: str,
                                                      designator_class: Type[DesignatorDescription],
-                                                     ontology_concept_class: Type[
-                                                         owlready2.Thing]) -> DesignatorDescription:
+                                                     ontology_concept_class: Type[owlready2.Thing]) -> DesignatorDescription:
         """
-        Create an object designator that belongs to a given ontology concept class
+        Create a designator that belongs to a given ontology concept class
 
         :param designator_name: Designator name
         :param designator_class: Designator class
-        :param ontology_concept_class: Ontology concept class which the output designator is associated with
+        :param ontology_concept_class: An ontology concept class which the output designator is associated with
         :return: An object designator associated with the given ontology concept class
         """
-        designator = designator_class(names=[designator_name]) if issubclass(designator_class,
-                                                                             ObjectDesignatorDescription) \
-            else designator_class()
-        designator_ontology_concept = ontology_concept_class(name=f'{designator_name}_concept')
-        self.set_ontology_concept_designator_connection(designator, designator_ontology_concept)
+        ontology_concept_name = f'{designator_name}_concept'
+        if len(OntologyConceptHolder.get_designators_of_ontology_concept(ontology_concept_name)) > 0:
+            rospy.logerr(f"A designator named [{designator_name}] is already created for ontology concept [{ontology_concept_name}]")
+            return None
+
+        # Create a designator of `designator_class`
+        designator = designator_class(names=[designator_name]) if issubclass(designator_class, ObjectDesignatorDescription) \
+                                                               else designator_class()
+
+        # Link designator with an ontology concept of `ontology_concept_class`
+        ontology_concept_holder = OntologyConceptHolder.get_ontology_concept_holder_by_name(ontology_concept_name)
+        if ontology_concept_holder is None:
+            ontology_concept_holder = OntologyConceptHolder(ontology_concept_class(name=ontology_concept_name,
+                                                                                   namespace=self.main_ontology))
+        self.set_ontology_concept_designator_connection(designator, ontology_concept_holder)
         return designator
 
     @staticmethod
     def set_ontology_concept_designator_connection(designator: DesignatorDescription,
-                                                   ontology_concept: owlready2.Thing):
+                                                   ontology_concept_holder: OntologyConceptHolder):
         """
         Set two-way connection between a designator and an ontology concept
 
         :param designator: Designator
-        :param ontology_concept: Ontology concept
+        :param ontology_concept_holder: Ontology concept holder
         """
-        designator.ontology_concepts.append(ontology_concept)
-        ontology_concept.designators.append(designator)
+        if ontology_concept_holder not in designator.ontology_concept_holders:
+            designator.ontology_concept_holders.append(ontology_concept_holder)
+
+        if not ontology_concept_holder.has_designator(designator):
+            ontology_concept_holder.designators.append(designator)
 
     @staticmethod
     def set_ontology_relation(subject_designator: DesignatorDescription,
@@ -429,27 +429,32 @@ class OntologyManager(object, metaclass=Singleton):
         :param object_designator: An object designator as the ontology object
         :param predicate_name: Name of the predicate
         """
-        for subject_ontology_concept in subject_designator.ontology_concepts:
-            if hasattr(subject_ontology_concept, predicate_name):
-                getattr(subject_ontology_concept, predicate_name).extend(object_designator.ontology_concepts)
+        for subject_concept_holder in subject_designator.ontology_concept_holders:
+            subject_concept = subject_concept_holder.ontology_concept
+            if hasattr(subject_concept, predicate_name):
+                object_concepts_list = getattr(subject_concept, predicate_name)
+                object_concepts_names = [concept.name for concept in object_concepts_list]
+                for holder in object_designator.ontology_concept_holders:
+                    if holder.ontology_concept.name not in object_concepts_names:
+                        object_concepts_list.append(holder.ontology_concept)
             else:
-                rospy.logerr(f"[{subject_ontology_concept.name}] has no predicate [{predicate_name}]")
+                rospy.logerr(f"Ontology concept [{subject_concept.name}] has no predicate named [{predicate_name}]")
 
     @staticmethod
     def get_designators_by_subject_predicate(subject: DesignatorDescription,
                                              predicate_name: str) -> List[DesignatorDescription]:
         """
-        Get list of designators for a given subject designator and predicate
+        Get list of designators of an ontology-object concept given a subject designator and predicate
 
-        :param subject: The subject designator
-        :param predicate_name: The predicate name of the relation
+        :param subject: The ontology-subject designator
+        :param predicate_name: The ontology-predicate name of the relation
         :return: List of object designators
         """
-        designators = list(itertools.chain(
-            *[ontology_subject.designators for subject_ontology_concept in subject.ontology_concepts
-              for ontology_subject in getattr(subject_ontology_concept, predicate_name)
-              if hasattr(subject_ontology_concept, predicate_name)]))
-        return designators
+        return list(itertools.chain(
+            *[OntologyConceptHolder.get_designators_of_ontology_concept(object_concept.name)
+              for subject_concept_holder in subject.ontology_concept_holders
+              for object_concept in getattr(subject_concept_holder.ontology_concept, predicate_name)
+              if hasattr(subject_concept_holder.ontology_concept, predicate_name)]))
 
     def create_ontology_object_designator_from_type(self, object_type: ObjectType,
                                                     ontology_concept_class=Type[owlready2.Thing]) \
@@ -462,3 +467,15 @@ class OntologyManager(object, metaclass=Singleton):
         object_designator.types = [object_type_name]
         return object_designator
 
+    @staticmethod
+    def destroy_ontology_class(ontology_class, destroy_instances: bool = True):
+        """
+        Destroy all classes of an ontology
+        :param ontology_class: The ontology class to be destroyed
+        :param destroy_instances: Whether to destroy instances of those ontology classes
+        """
+        if destroy_instances:
+            for ontology_individual in ontology_class.instances():
+                destroy_entity(ontology_individual)
+            OntologyConceptHolder.remove_ontology_concept(ontology_class.name)
+            destroy_entity(ontology_class)
