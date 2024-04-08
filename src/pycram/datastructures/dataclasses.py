@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING
-from pycram.datastructures.enums import JointType, Shape
-from pycram.datastructures.pose import Pose, Point
+from .datastructures.enums import JointType, Shape
+from .datastructures.pose import Pose, Point
 from abc import ABC, abstractmethod
 
 if TYPE_CHECKING:
-    from pycram.description import Link
-    from pycram.world_concepts.world_object import Object
-    from pycram.world_concepts.constraints import Attachment
+    from ..description import Link
+    from ..world_concepts.world_object import Object
+    from ..world_concepts.constraints import Attachment
 
 
 def get_point_as_list(point: Point) -> List[float]:

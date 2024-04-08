@@ -7,6 +7,8 @@ from ..external_interfaces.robokudo import query
 from ..helper import _apply_ik
 from ..external_interfaces import giskard
 from .default_process_modules import *
+from ..world import World
+from ..designators.motion_designator import *
 
 
 class StretchNavigate(DefaultNavigation):
@@ -20,16 +22,18 @@ class StretchMoveHead(ProcessModule):
     """
     Process module for the simulated Stretch that moves the head such that it looks at the given position
     """
-    def _execute(self, designator) -> Any:
+
+    def _execute(self, designator: MoveMotion) -> Any:
         target = designator.target
-        robot = BulletWorld.robot
+        robot = World.robot
 
         local_transformer = LocalTransformer()
         pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame("link_head_pan"))
         pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame("link_head_tilt"))
 
         new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
-        new_tilt = np.arctan2(-pose_in_tilt.position.y, pose_in_tilt.position.z ** 2 + pose_in_tilt.position.x ** 2) * -1
+        new_tilt = np.arctan2(-pose_in_tilt.position.y,
+                              pose_in_tilt.position.z ** 2 + pose_in_tilt.position.x ** 2) * -1
 
         current_pan = robot.get_joint_state("joint_head_pan")
         current_tilt = robot.get_joint_state("joint_head_tilt")
@@ -84,15 +88,16 @@ class StretchOpen(ProcessModule):
     """
     Process module for the simulated Stretch that opens an already grasped container
     """
+
     def _execute(self, desig: OpeningMotion):
         part_of_object = desig.object_part.bullet_world_object
 
         container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
 
-        goal_pose = btr.link_pose_for_joint_config(part_of_object, {
+        goal_pose = link_pose_for_joint_config(part_of_object, {
             container_joint: part_of_object.get_joint_limits(container_joint)[1] - 0.05}, desig.object_part.name)
 
-        _move_arm_tcp(goal_pose, BulletWorld.robot, desig.arm)
+        _move_arm_tcp(goal_pose, World.robot, desig.arm)
 
         desig.object_part.bullet_world_object.set_joint_state(container_joint,
                                                               part_of_object.get_joint_limits(
@@ -103,19 +108,20 @@ class StretchClose(ProcessModule):
     """
     Process module for the simulated Stretch that closes an already grasped container
     """
+
     def _execute(self, desig: ClosingMotion):
-        part_of_object = desig.object_part.bullet_world_object
+        part_of_object = desig.object_part.world_object
 
         container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
 
-        goal_pose = btr.link_pose_for_joint_config(part_of_object, {
+        goal_pose = link_pose_for_joint_config(part_of_object, {
             container_joint: part_of_object.get_joint_limits(container_joint)[0]}, desig.object_part.name)
 
-        _move_arm_tcp(goal_pose, BulletWorld.robot, desig.arm)
+        _move_arm_tcp(goal_pose, World.robot, desig.arm)
 
-        desig.object_part.bullet_world_object.set_joint_state(container_joint,
-                                                              part_of_object.get_joint_limits(
-                                                                  container_joint)[0])
+        desig.object_part.world_object.set_joint_state(container_joint,
+                                                       part_of_object.get_joint_limits(
+                                                           container_joint)[0])
 
 
 def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
@@ -150,7 +156,7 @@ class StretchMoveHeadReal(ProcessModule):
 
     def _execute(self, desig: LookingMotion):
         target = desig.target
-        robot = BulletWorld.robot
+        robot = World.robot
 
         local_transformer = LocalTransformer()
         pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame("head_pan_link"))
@@ -179,11 +185,11 @@ class StretchDetectingReal(ProcessModule):
         obj_pose = query_result["ClusterPoseBBAnnotator"]
 
         lt = LocalTransformer()
-        obj_pose = lt.transform_pose(obj_pose, BulletWorld.robot.get_link_tf_frame("torso_lift_link"))
+        obj_pose = lt.transform_pose(obj_pose, World.robot.get_link_tf_frame("torso_lift_link"))
         obj_pose.orientation = [0, 0, 0, 1]
         obj_pose.position.x += 0.05
 
-        bullet_obj = BulletWorld.current_bullet_world.get_objects_by_type(designator.object_type)
+        bullet_obj = World.current_world.get_objects_by_type(designator.object_type)
         if bullet_obj:
             bullet_obj[0].set_pose(obj_pose)
             return bullet_obj[0]
@@ -339,4 +345,3 @@ class StretchManager(ProcessModuleManager):
             return StretchClose(self._close_lock)
         elif ProcessModuleManager.execution_type == "real":
             return StretchCloseReal(self._close_lock)
-
