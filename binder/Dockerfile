@@ -1,4 +1,4 @@
-FROM intel4coro/base-notebook:20.04-noetic
+FROM intel4coro/base-notebook:20.04-noetic-vnc
 
 # Initiate workspace 
 ENV PYCRAM_WS=/home/${NB_USER}/workspace/ros

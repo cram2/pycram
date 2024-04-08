@@ -5,12 +5,11 @@
     "url": "proxy/8001/rvizweb/webapps/rvizweb/build/www/index.html"
   },
   {
-    "name": "XPRA",
-    "title": "Xpra Desktop",
-    "icon": "proxy/8001/rvizweb/webapps/xpra-logo.svg",
-    "url": "xprahtml5/index.html",
+    "name": "VNC",
+    "title": "VNC Desktop",
+    "start": true,
     "mode": "split-right",
-    "start": true
+    "url": "desktop"
   },
   {
     "name": "rosgraph",

@@ -31,7 +31,7 @@ To enable Nvidia GPU, please install [nvidia-container-toolkit](https://github.c
 
 ### Option 2: Run on BinderHub
 
-- intro.ipynb: [![Binder](https://binder.intel4coro.de/badge_logo.svg)](https://binder.intel4coro.de/v2/gh/IntEL4CoRo/pycram.git/dev?urlpath=lab%2Ftree%2Fexamples%2Fintro.ipynb)
+- intro.ipynb: [![Binder](https://binder.intel4coro.de/badge_logo.svg)](https://binder.intel4coro.de/v2/gh/IntEL4CoRo/pycram.git/dev?urlpath=lab%2Ftree%2Fexamples%2Faction_designator.ipynb)
 
 ## Usage
 
