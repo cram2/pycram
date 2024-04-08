@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING
-from .datastructures.enums import JointType, Shape
-from .datastructures.pose import Pose, Point
+from .enums import JointType, Shape
+from .pose import Pose, Point
 from abc import ABC, abstractmethod
 
 if TYPE_CHECKING:
