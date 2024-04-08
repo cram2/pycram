@@ -4,7 +4,7 @@ import pathlib
 from typing_extensions import List, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from pycram.description import ObjectDescription
+    from .description import ObjectDescription
 
 
 class CacheManager:
@@ -21,6 +21,7 @@ class CacheManager:
     def __init__(self, cache_dir: str, data_directory: List[str]):
         """
         Initializes the CacheManager.
+
         :param cache_dir: The directory where the cached files are stored.
         :param data_directory: The directory where all resource files are stored.
         """
@@ -31,6 +32,7 @@ class CacheManager:
                                      object_description: 'ObjectDescription', object_name: str) -> str:
         """
         Checks if the file is already in the cache directory, if not it will be preprocessed and saved in the cache.
+
         :param path: The path of the file to preprocess and save in the cache directory.
         :param ignore_cached_files: If True, the file will be preprocessed and saved in the cache directory even if it
          is already cached.
@@ -56,6 +58,7 @@ class CacheManager:
                                                 object_description: 'ObjectDescription') -> None:
         """
         Generates the description from the file at the given path and writes it to the cache directory.
+
         :param path: The path of the file to preprocess.
         :param name: The name of the object.
         :param extension: The file extension of the file to preprocess.
@@ -69,6 +72,7 @@ class CacheManager:
     def write_to_cache(description_string: str, cache_path: str) -> None:
         """
         Writes the description string to the cache directory.
+
         :param description_string: The description string to write to the cache directory.
         :param cache_path: The path of the file in the cache directory.
         """
@@ -79,6 +83,7 @@ class CacheManager:
         """
         Looks for a file in the data directory of the World. If the file is not found in the data directory, this method
         raises a FileNotFoundError.
+
         :param path_object: The pathlib object of the file to look for.
         """
 
@@ -113,6 +118,7 @@ class CacheManager:
     def check_with_extension(self, path: str) -> bool:
         """
         Checks if the file in the given ath exists in the cache directory including file extension.
+
         :param path: The path of the file to check.
         """
         file_name = pathlib.Path(path).name
@@ -123,6 +129,7 @@ class CacheManager:
         """
         Checks if the file in the given path exists in the cache directory without file extension,
         the extension is added after the file name manually in this case.
+
         :param path: The path of the file to check.
         :param object_description: The object description of the file.
         """

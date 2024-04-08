@@ -210,7 +210,7 @@ nbsphinx_thumbnails = {
 
 autosectionlabel_prefix_document = True
 
-# autoapi_keep_files = True
+autoapi_keep_files = True
 
 
 suppress_warnings = []

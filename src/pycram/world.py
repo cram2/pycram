@@ -14,20 +14,20 @@ from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING
 from typing_extensions import Union
 
-from pycram.cache_manager import CacheManager
-from pycram.datastructures.enums import JointType, ObjectType, WorldMode
-from pycram.world_concepts.event import Event
-from pycram.datastructures.local_transformer import LocalTransformer
-from pycram.datastructures.pose import Pose, Transform
-from pycram.world_concepts.constraints import Constraint
-from pycram.datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
+from .cache_manager import CacheManager
+from .datastructures.enums import JointType, ObjectType, WorldMode
+from .world_concepts.event import Event
+from .datastructures.local_transformer import LocalTransformer
+from .datastructures.pose import Pose, Transform
+from .world_concepts.constraints import Constraint
+from .datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
                                                MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape, SphereVisualShape,
                                                CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
                                                ObjectState, State, WorldState)
 
 if TYPE_CHECKING:
-    from pycram.world_concepts.world_object import Object
-    from pycram.description import Link, Joint
+    from .world_concepts.world_object import Object
+    from .description import Link, Joint
 
 
 class StateEntity:
@@ -105,7 +105,7 @@ class World(StateEntity, ABC):
     """
     The World Class represents the physics Simulation and belief state, it is the main interface for reasoning about
     the World. This is implemented as a singleton, the current World can be accessed via the static variable
-     current_world which is managed by the World class itself.
+    current_world which is managed by the World class itself.
     """
 
     simulation_frequency: float
@@ -282,6 +282,7 @@ class World(StateEntity, ABC):
     def remove_object_from_simulator(self, obj: Object) -> None:
         """
         Removes an object from the physics simulator.
+
         :param obj: The object to be removed.
         """
         pass
@@ -385,6 +386,7 @@ class World(StateEntity, ABC):
     def get_object_link_names(self, obj: Object) -> List[str]:
         """
         Returns the names of all links of this object.
+
         :param obj: The object.
         :return: A list of link names.
         """
@@ -394,7 +396,7 @@ class World(StateEntity, ABC):
         """
         Simulates Physics in the World for a given amount of seconds. Usually this simulation is faster than real
         time. By setting the 'real_time' parameter this simulation is slowed down such that the simulated time is equal
-         to real time.
+        to real time.
 
         :param seconds: The amount of seconds that should be simulated.
         :param real_time: If the simulation should happen in real time or faster.
@@ -499,6 +501,7 @@ class World(StateEntity, ABC):
     def get_link_color(self, link: Link) -> Color:
         """
         This method returns the rgba_color of this link.
+
         :param link: The link for which the rgba_color should be returned.
         :return: The rgba_color as Color object with RGBA values between 0 and 1.
         """
@@ -659,6 +662,7 @@ class World(StateEntity, ABC):
     def object_states(self) -> Dict[str, ObjectState]:
         """
         Returns the states of all objects in the World.
+
         :return: A dictionary with the object id as key and the object state as value.
         """
         return {obj.name: obj.current_state for obj in self.objects}
@@ -674,6 +678,7 @@ class World(StateEntity, ABC):
     def save_objects_state(self, state_id: int) -> None:
         """
         Saves the state of all objects in the World according to the given state using the unique state id.
+
         :param state_id: The unique id representing the state.
         """
         for obj in self.objects:
@@ -683,6 +688,7 @@ class World(StateEntity, ABC):
     def save_physics_simulator_state(self) -> int:
         """
         Saves the state of the physics simulator and returns the unique id of the state.
+
         :return: The unique id representing the state.
         """
         pass
@@ -691,6 +697,7 @@ class World(StateEntity, ABC):
     def remove_physics_simulator_state(self, state_id: int) -> None:
         """
         Removes the state of the physics simulator with the given id.
+
         :param state_id: The unique id representing the state.
         """
         pass
@@ -700,6 +707,7 @@ class World(StateEntity, ABC):
         """
         Restores the objects and environment state in the physics simulator according to
          the given state using the unique state id.
+
         :param state_id: The unique id representing the state.
         """
         pass
@@ -790,6 +798,7 @@ class World(StateEntity, ABC):
         All attached objects will be detached, all joints will be set to the
         default position of 0 and all objects will be set to the position and
         orientation in which they were spawned.
+
         :param remove_saved_states: If the saved states should be removed.
         """
 
@@ -842,6 +851,7 @@ class World(StateEntity, ABC):
     def create_visual_shape(self, visual_shape: VisualShape) -> int:
         """
         Creates a visual shape in the physics simulator and returns the unique id of the created shape.
+
         :param visual_shape: The visual shape to be created, uses the VisualShape dataclass defined in world_dataclasses
         :return: The unique id of the created shape.
         """
@@ -851,6 +861,7 @@ class World(StateEntity, ABC):
         """
         Creates a multi body from visual shapes in the physics simulator and returns the unique id of the created
         multi body.
+
         :param visual_shape_ids: The ids of the visual shapes that should be used to create the multi body.
         :param pose: The pose of the origin of the multi body relative to the world frame.
         :return: The unique id of the created multi body.
@@ -877,6 +888,7 @@ class World(StateEntity, ABC):
         """
         Creates a multi body in the physics simulator and returns the unique id of the created multi body. The multibody
         is created by joining multiple links/shapes together with joints.
+
         :param multi_body: The multi body to be created, uses the MultiBody dataclass defined in world_dataclasses.
         :return: The unique id of the created multi body.
         """
@@ -885,8 +897,8 @@ class World(StateEntity, ABC):
     def create_box_visual_shape(self, shape_data: BoxVisualShape) -> int:
         """
         Creates a box visual shape in the physics simulator and returns the unique id of the created shape.
-        :param shape_data: The parameters that define the box visual shape to be created,
-         uses the BoxVisualShape dataclass defined in world_dataclasses.
+
+        :param shape_data: The parameters that define the box visual shape to be created, uses the BoxVisualShape dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
         """
         raise NotImplementedError
@@ -894,8 +906,8 @@ class World(StateEntity, ABC):
     def create_cylinder_visual_shape(self, shape_data: CylinderVisualShape) -> int:
         """
         Creates a cylinder visual shape in the physics simulator and returns the unique id of the created shape.
-        :param shape_data: The parameters that define the cylinder visual shape to be created,
-         uses the CylinderVisualShape dataclass defined in world_dataclasses.
+
+        :param shape_data: The parameters that define the cylinder visual shape to be created, uses the CylinderVisualShape dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
         """
         raise NotImplementedError
@@ -903,8 +915,8 @@ class World(StateEntity, ABC):
     def create_sphere_visual_shape(self, shape_data: SphereVisualShape) -> int:
         """
         Creates a sphere visual shape in the physics simulator and returns the unique id of the created shape.
-        :param shape_data: The parameters that define the sphere visual shape to be created,
-         uses the SphereVisualShape dataclass defined in world_dataclasses.
+
+        :param shape_data: The parameters that define the sphere visual shape to be created, uses the SphereVisualShape dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
         """
         raise NotImplementedError
@@ -912,8 +924,8 @@ class World(StateEntity, ABC):
     def create_capsule_visual_shape(self, shape_data: CapsuleVisualShape) -> int:
         """
         Creates a capsule visual shape in the physics simulator and returns the unique id of the created shape.
-        :param shape_data: The parameters that define the capsule visual shape to be created,
-         uses the CapsuleVisualShape dataclass defined in world_dataclasses.
+
+        :param shape_data: The parameters that define the capsule visual shape to be created, uses the CapsuleVisualShape dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
         """
         raise NotImplementedError
@@ -921,8 +933,8 @@ class World(StateEntity, ABC):
     def create_plane_visual_shape(self, shape_data: PlaneVisualShape) -> int:
         """
         Creates a plane visual shape in the physics simulator and returns the unique id of the created shape.
-        :param shape_data: The parameters that define the plane visual shape to be created,
-         uses the PlaneVisualShape dataclass defined in world_dataclasses.
+
+        :param shape_data: The parameters that define the plane visual shape to be created, uses the PlaneVisualShape dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
         """
         raise NotImplementedError
@@ -930,8 +942,9 @@ class World(StateEntity, ABC):
     def create_mesh_visual_shape(self, shape_data: MeshVisualShape) -> int:
         """
         Creates a mesh visual shape in the physics simulator and returns the unique id of the created shape.
+
         :param shape_data: The parameters that define the mesh visual shape to be created,
-         uses the MeshVisualShape dataclass defined in world_dataclasses.
+        uses the MeshVisualShape dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
         """
         raise NotImplementedError
@@ -941,15 +954,13 @@ class World(StateEntity, ABC):
                  parent_object_id: Optional[int] = None, parent_link_id: Optional[int] = None) -> int:
         """
         Adds text to the world.
+
         :param text: The text to be added.
         :param position: The position of the text in the world.
-        :param orientation: By default, debug text will always face the camera,
-        automatically rotation. By specifying a text orientation (quaternion), the orientation will be fixed in
-        world space or local space (when parent is specified).
+        :param orientation: By default, debug text will always face the camera, automatically rotation. By specifying a text orientation (quaternion), the orientation will be fixed in world space or local space (when parent is specified).
         :param size: The size of the text.
         :param color: The color of the text.
-        :param life_time: The lifetime in seconds of the text to remain in the world, if 0 the text will remain
-         in the world until it is removed manually.
+        :param life_time: The lifetime in seconds of the text to remain in the world, if 0 the text will remain in the world until it is removed manually.
         :param parent_object_id: The id of the object to which the text should be attached.
         :param parent_link_id: The id of the link to which the text should be attached.
         :return: The id of the added text.
@@ -959,6 +970,7 @@ class World(StateEntity, ABC):
     def remove_text(self, text_id: Optional[int] = None) -> None:
         """
         Removes text from the world using the given id. if no id is given all text will be removed.
+
         :param text_id: The id of the text to be removed.
         """
         raise NotImplementedError
@@ -970,6 +982,7 @@ class World(StateEntity, ABC):
         the fixed degrees of freedom: a fixed joint will measure all 6DOF joint forces/torques.
         A revolute/hinge joint force/torque sensor will measure 5DOF reaction forces along all axis except
         the hinge axis. The applied force by a joint motor is available through get_applied_joint_motor_torque.
+
         :param obj: The object in which the joint is located.
         :param fts_joint_idx: The index of the joint for which the force torque sensor should be enabled.
         """
@@ -978,6 +991,7 @@ class World(StateEntity, ABC):
     def disable_joint_force_torque_sensor(self, obj: Object, joint_id: int) -> None:
         """
         Disables the force torque sensor of a joint.
+
         :param obj: The object in which the joint is located.
         :param joint_id: The id of the joint for which the force torque sensor should be disabled.
         """
@@ -986,6 +1000,7 @@ class World(StateEntity, ABC):
     def get_joint_reaction_force_torque(self, obj: Object, joint_id: int) -> List[float]:
         """
         Returns the joint reaction forces and torques of the specified joint.
+
         :param obj: The object in which the joint is located.
         :param joint_id: The id of the joint for which the force torque should be returned.
         :return: The joint reaction forces and torques of the specified joint.
@@ -995,6 +1010,7 @@ class World(StateEntity, ABC):
     def get_applied_joint_motor_torque(self, obj: Object, joint_id: int) -> float:
         """
         Returns the applied torque by a joint motor.
+
         :param obj: The object in which the joint is located.
         :param joint_id: The id of the joint for which the applied motor torque should be returned.
         :return: The applied torque by a joint motor.
@@ -1078,9 +1094,9 @@ class WorldSync(threading.Thread):
         While this loop runs it continuously checks the cartesian and joint position of
         every object in the World and updates the corresponding object in the
         prospection world. When there are entries in the adding or removing queue the corresponding objects will
-         be added or removed in the same iteration.
-        :param wait_time_as_n_simulation_steps: The time in simulation steps to wait between each iteration of the
-         syncing loop.
+        be added or removed in the same iteration.
+
+        :param wait_time_as_n_simulation_steps: The time in simulation steps to wait between each iteration of the syncing loop.
         """
         while not self.terminate:
             self.check_for_pause()
@@ -1119,6 +1135,7 @@ class WorldSync(threading.Thread):
         """
         Checks if both Worlds have the same state, meaning all objects are in the same position.
         This is currently not used, but might be used in the future if synchronization issues worsen.
+
         :return: True if both Worlds have the same state, False otherwise.
         """
         eql = True
