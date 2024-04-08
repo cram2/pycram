@@ -76,7 +76,7 @@ class OntologyConceptHolder(object):
         return list(itertools.chain(
             *[concept_holder.ontology_concept
               for concept_holder in cls.__all_ontology_concept_holders.values()
-                if issubclass(concept_holder.ontology_concept, ontology_concept_class)]))
+              if owlready2.issubclass(concept_holder.ontology_concept, ontology_concept_class)]))
 
     @classmethod
     def get_ontology_concept_by_name(cls, ontology_concept_name: str) -> owlready2.Thing:
@@ -88,14 +88,13 @@ class OntologyConceptHolder(object):
         return concept_holder.ontology_concept if concept_holder else None
 
     @classmethod
-    def get_ontology_concept_holders_by_class(cls,  ontology_concept_class: Type[owlready2.Thing]):
+    def get_ontology_concept_holders_by_class(cls, ontology_concept_class: Type[owlready2.Thing]):
         """
         :ontology_concept_class: An ontology concept class
         Return a list of ontology concept holders for the given ontology concept class
         """
-        return list(itertools.chain(
-            *[concept_holder for concept_holder in cls.__all_ontology_concept_holders.values()
-              if issubclass(concept_holder.ontology_concept, ontology_concept_class)]))
+        return [concept_holder for concept_holder in cls.__all_ontology_concept_holders.values()
+                if isinstance(concept_holder.ontology_concept, ontology_concept_class)]
 
     @classmethod
     def get_ontology_concept_holder_by_name(cls, ontology_concept_name: str):
