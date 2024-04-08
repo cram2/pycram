@@ -8,7 +8,7 @@ from pycram.datastructures.dataclasses import Color
 from pycram.world_concepts.world_object import Object
 
 from geometry_msgs.msg import Point, Quaternion
-
+import pathlib
 
 class TestObject(BulletWorldTestCase):
 
@@ -17,7 +17,8 @@ class TestObject(BulletWorldTestCase):
             milk = Object("milk2", ObjectType.MILK, "wrong_path.sk")
 
     def test_malformed_object_description(self):
-        malformed_file = "../resources/cached/malformed_description.urdf"
+        file_path = pathlib.Path(__file__).parent.resolve()
+        malformed_file = str(file_path) + "/../resources/cached/malformed_description.urdf"
         with open(malformed_file, "w") as file:
             file.write("malformed")
         with self.assertRaises(Exception):
