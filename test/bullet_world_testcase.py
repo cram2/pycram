@@ -10,7 +10,7 @@ from pycram.process_module import ProcessModule
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.ros.viz_marker_publisher import VizMarkerPublisher
-from pycram.ontology import OntologyManager, SOMA_ONTOLOGY_IRI
+from pycram.ontology.ontology import OntologyManager, SOMA_ONTOLOGY_IRI
 
 class BulletWorldTestCase(unittest.TestCase):
 
