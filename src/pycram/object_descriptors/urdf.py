@@ -273,7 +273,7 @@ class ObjectDescription(AbstractObjectDescription):
     def correct_urdf_string(self, urdf_string: str) -> str:
         """
         Changes paths for files in the URDF from ROS paths to paths in the file system. Since World (PyBullet legacy)
-         can't deal with ROS package paths.
+        can't deal with ROS package paths.
 
         :param urdf_string: The name of the URDf on the parameter server
         :return: The URDF string with paths in the filesystem instead of ROS packages

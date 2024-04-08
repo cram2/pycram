@@ -11,13 +11,13 @@ import rospy
 from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict
 
-from pycram.datastructures.enums import ObjectType, WorldMode, JointType
-from pycram.datastructures.pose import Pose
-from pycram.object_descriptors.urdf import ObjectDescription
-from pycram.world import World
-from pycram.world_concepts.constraints import Constraint
-from pycram.datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape
-from pycram.world_concepts.world_object import Object
+from ..datastructures.enums import ObjectType, WorldMode, JointType
+from ..datastructures.pose import Pose
+from ..object_descriptors.urdf import ObjectDescription
+from ..world import World
+from ..world_concepts.constraints import Constraint
+from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape
+from ..world_concepts.world_object import Object
 
 Link = ObjectDescription.Link
 RootLink = ObjectDescription.RootLink
@@ -99,14 +99,14 @@ class BulletWorld(World):
     def remove_constraint(self, constraint_id):
         p.removeConstraint(constraint_id, physicsClientId=self.id)
 
-    def get_joint_position(self, joint: Joint) -> float:
+    def get_joint_position(self, joint: ObjectDescription.Joint) -> float:
         return p.getJointState(joint.object_id, joint.id, physicsClientId=self.id)[0]
 
     def get_object_joint_names(self, obj: Object) -> List[str]:
         return [p.getJointInfo(obj.id, i, physicsClientId=self.id)[1].decode('utf-8')
                 for i in range(self.get_object_number_of_joints(obj))]
 
-    def get_link_pose(self, link: Link) -> Pose:
+    def get_link_pose(self, link: ObjectDescription.Link) -> Pose:
         bullet_link_state = p.getLinkState(link.object_id, link.id, physicsClientId=self.id)
         return Pose(*bullet_link_state[4:6])
 
@@ -136,7 +136,7 @@ class BulletWorld(World):
         self.perform_collision_detection()
         return p.getContactPoints(obj1.id, obj2.id, physicsClientId=self.id)
 
-    def reset_joint_position(self, joint: Joint, joint_position: str) -> None:
+    def reset_joint_position(self, joint: ObjectDescription.Joint, joint_position: str) -> None:
         p.resetJointState(joint.object_id, joint.id, joint_position, physicsClientId=self.id)
 
     def reset_object_base_pose(self, obj: Object, pose: Pose) -> None:
@@ -149,10 +149,10 @@ class BulletWorld(World):
     def get_object_pose(self, obj: Object) -> Pose:
         return Pose(*p.getBasePositionAndOrientation(obj.id, physicsClientId=self.id))
 
-    def set_link_color(self, link: Link, rgba_color: Color):
+    def set_link_color(self, link: ObjectDescription.Link, rgba_color: Color):
         p.changeVisualShape(link.object_id, link.id, rgbaColor=rgba_color.get_rgba(), physicsClientId=self.id)
 
-    def get_link_color(self, link: Link) -> Color:
+    def get_link_color(self, link: ObjectDescription.Link) -> Color:
         return self.get_colors_of_object_links(link.object)[link.name]
 
     def get_colors_of_object_links(self, obj: Object) -> Dict[str, Color]:
@@ -166,7 +166,7 @@ class BulletWorld(World):
     def get_object_axis_aligned_bounding_box(self, obj: Object) -> AxisAlignedBoundingBox:
         return AxisAlignedBoundingBox.from_min_max(*p.getAABB(obj.id, physicsClientId=self.id))
 
-    def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
+    def get_link_axis_aligned_bounding_box(self, link: ObjectDescription.Link) -> AxisAlignedBoundingBox:
         return AxisAlignedBoundingBox.from_min_max(*p.getAABB(link.object_id, link.id, physicsClientId=self.id))
 
     def set_realtime(self, real_time: bool) -> None:
@@ -322,7 +322,7 @@ class BulletWorld(World):
 class Gui(threading.Thread):
     """
     For internal use only. Creates a new thread for the physics simulation that is active until closed by
-     :func:`~World.exit`
+    :func:`~World.exit`
     Also contains the code for controlling the camera.
     """
 
