@@ -1,32 +1,27 @@
-import time
 from threading import Lock
 
 import numpy as np
-import pybullet as p
+from typing_extensions import Optional
 
-import pycram.bullet_world_reasoning as btr
-import pycram.helper as helper
-from ..bullet_world import BulletWorld, Object
+from ..worlds.bullet_world import World
 from ..designators.motion_designator import MoveArmJointsMotion, WorldStateDetectingMotion
-from ..external_interfaces.ik import request_ik
-from ..local_transformer import LocalTransformer
-from ..pose import Pose
+from ..datastructures.local_transformer import LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_descriptions import robot_description
-from tf.transformations import euler_from_quaternion, quaternion_from_euler
+from ..process_modules.pr2_process_modules import Pr2Detecting as DonbotDetecting, _move_arm_tcp
 
 
 def _park_arms(arm):
     """
     Defines the joint poses for the parking positions of the arm of Donbot and applies them to the
-    in the BulletWorld defined robot.
+    in the World defined robot.
     :return: None
     """
 
-    robot = BulletWorld.robot
+    robot = World.robot
     if arm == "left":
         for joint, pose in robot_description.get_static_joint_chain("left", "park").items():
-            robot.set_joint_state(joint, pose)
+            robot.set_joint_position(joint, pose)
 
 
 class DonbotNavigation(ProcessModule):
@@ -35,28 +30,8 @@ class DonbotNavigation(ProcessModule):
     """
 
     def _execute(self, desig):
-        robot = BulletWorld.robot
+        robot = World.robot
         robot.set_pose(desig.target)
-
-class DonbotPickUp(ProcessModule):
-    """
-    This process module is for picking up a given object.
-    The object has to be reachable for this process module to succeed.
-    """
-
-    def _execute(self, desig):
-        object = desig.object_desig.bullet_world_object
-        robot = BulletWorld.robot
-        grasp = robot_description.grasps.get_orientation_for_grasp(desig.grasp)
-        target = object.get_pose()
-        target.orientation.x = grasp[0]
-        target.orientation.y = grasp[1]
-        target.orientation.z = grasp[2]
-        target.orientation.w = grasp[3]
-
-        _move_arm_tcp(target, robot, "left")
-        tool_frame = robot_description.get_tool_frame("left")
-        robot.attach(object, tool_frame)
 
 
 class DonbotPlace(ProcessModule):
@@ -65,19 +40,18 @@ class DonbotPlace(ProcessModule):
     """
 
     def _execute(self, desig):
-        object = desig.object.bullet_world_object
-        robot = BulletWorld.robot
+        obj = desig.object.world_object
+        robot = World.robot
 
         # Transformations such that the target position is the position of the object and not the tcp
-        object_pose = object.get_pose()
+        object_pose = obj.get_pose()
         local_tf = LocalTransformer()
         tcp_to_object = local_tf.transform_pose(object_pose,
                                                 robot.get_link_tf_frame(robot_description.get_tool_frame("left")))
         target_diff = desig.target.to_transform("target").inverse_times(tcp_to_object.to_transform("object")).to_pose()
 
         _move_arm_tcp(target_diff, robot, "left")
-        robot.detach(object)
-
+        robot.detach(obj)
 
 
 class DonbotMoveHead(ProcessModule):
@@ -88,26 +62,26 @@ class DonbotMoveHead(ProcessModule):
 
     def _execute(self, desig):
         target = desig.target
-        robot = BulletWorld.robot
+        robot = World.robot
 
         local_transformer = LocalTransformer()
 
         pose_in_shoulder = local_transformer.transform_pose(target, robot.get_link_tf_frame("ur5_shoulder_link"))
 
         if pose_in_shoulder.position.x >= 0 and pose_in_shoulder.position.x >= abs(pose_in_shoulder.position.y):
-            robot.set_joint_states(robot_description.get_static_joint_chain("left", "front"))
+            robot.set_joint_positions(robot_description.get_static_joint_chain("left", "front"))
         if pose_in_shoulder.position.y >= 0 and pose_in_shoulder.position.y >= abs(pose_in_shoulder.position.x):
-            robot.set_joint_states(robot_description.get_static_joint_chain("left", "arm_right"))
+            robot.set_joint_positions(robot_description.get_static_joint_chain("left", "arm_right"))
         if pose_in_shoulder.position.x <= 0 and abs(pose_in_shoulder.position.x) > abs(pose_in_shoulder.position.y):
-            robot.set_joint_states(robot_description.get_static_joint_chain("left", "back"))
+            robot.set_joint_positions(robot_description.get_static_joint_chain("left", "back"))
         if pose_in_shoulder.position.y <= 0 and abs(pose_in_shoulder.position.y) > abs(pose_in_shoulder.position.x):
-            robot.set_joint_states(robot_description.get_static_joint_chain("left", "arm_left"))
+            robot.set_joint_positions(robot_description.get_static_joint_chain("left", "arm_left"))
 
         pose_in_shoulder = local_transformer.transform_pose(target, robot.get_link_tf_frame("ur5_shoulder_link"))
 
         new_pan = np.arctan2(pose_in_shoulder.position.y, pose_in_shoulder.position.x)
 
-        robot.set_joint_state("ur5_shoulder_pan_joint", new_pan + robot.get_joint_state("ur5_shoulder_pan_joint"))
+        robot.set_joint_position("ur5_shoulder_pan_joint", new_pan + robot.get_joint_position("ur5_shoulder_pan_joint"))
 
 
 class DonbotMoveGripper(ProcessModule):
@@ -117,30 +91,10 @@ class DonbotMoveGripper(ProcessModule):
     """
 
     def _execute(self, desig):
-        robot = BulletWorld.robot
+        robot = World.robot
         gripper = desig.gripper
         motion = desig.motion
-        robot.set_joint_states(robot_description.get_static_gripper_chain(gripper, motion))
-
-
-class DonbotDetecting(ProcessModule):
-    """
-    This process module tries to detect an object with the given type. To be detected the object has to be in
-    the field of view of the robot.
-    """
-
-    def _execute(self, desig):
-        robot = BulletWorld.robot
-        object_type = desig.object_type
-        # Should be "wide_stereo_optical_frame"
-        cam_frame_name = robot_description.get_camera_frame()
-        # should be [0, 0, 1]
-        front_facing_axis = robot_description.front_facing_axis
-
-        objects = BulletWorld.current_bullet_world.get_objects_by_type(object_type)
-        for obj in objects:
-            if btr.visible(obj, robot.get_link_pose(cam_frame_name), front_facing_axis):
-                return obj
+        robot.set_joint_positions(robot_description.get_static_gripper_chain(gripper, motion))
 
 
 class DonbotMoveTCP(ProcessModule):
@@ -150,7 +104,7 @@ class DonbotMoveTCP(ProcessModule):
 
     def _execute(self, desig):
         target = desig.target
-        robot = BulletWorld.robot
+        robot = World.robot
 
         _move_arm_tcp(target, robot, desig.arm)
 
@@ -162,9 +116,9 @@ class DonbotMoveJoints(ProcessModule):
     """
 
     def _execute(self, desig: MoveArmJointsMotion):
-        robot = BulletWorld.robot
+        robot = World.robot
         if desig.left_arm_poses:
-            robot.set_joint_states(desig.left_arm_poses)
+            robot.set_joint_positions(desig.left_arm_poses)
 
 
 class DonbotWorldStateDetecting(ProcessModule):
@@ -174,15 +128,7 @@ class DonbotWorldStateDetecting(ProcessModule):
 
     def _execute(self, desig: WorldStateDetectingMotion):
         obj_type = desig.object_type
-        return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
-
-def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
-    gripper = robot_description.get_tool_frame(arm)
-
-    joints = robot_description.chains[arm].joints
-
-    inv = request_ik(target, robot, joints, gripper)
-    helper._apply_ik(robot, inv, joints)
+        return list(filter(lambda obj: obj.type == obj_type, World.current_world.objects))[0]
 
 
 class DonbotManager(ProcessModuleManager):
@@ -205,10 +151,6 @@ class DonbotManager(ProcessModuleManager):
     def navigate(self):
         if ProcessModuleManager.execution_type == "simulated":
             return DonbotNavigation(self._navigate_lock)
-
-    def pick_up(self):
-        if ProcessModuleManager.execution_type == "simulated":
-            return DonbotPickUp(self._pick_up_lock)
 
     def place(self):
         if ProcessModuleManager.execution_type == "simulated":
