@@ -1,7 +1,7 @@
 import unittest
 from bullet_world_testcase import BulletWorldTestCase
 from pycram.designators.object_designator import *
-from pycram.enums import ObjectType
+from pycram.datastructures.enums import ObjectType
 
 
 class TestObjectDesignator(BulletWorldTestCase):
@@ -11,7 +11,7 @@ class TestObjectDesignator(BulletWorldTestCase):
         obj = description.ground()
 
         self.assertEqual(obj.name, "milk")
-        self.assertEqual(obj.type, ObjectType.MILK)
+        self.assertEqual(obj.obj_type, ObjectType.MILK)
 
     def test_frozen_copy(self):
         description = ObjectDesignatorDescription(["milk"], [ObjectType.MILK])

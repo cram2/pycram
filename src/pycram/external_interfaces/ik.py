@@ -1,33 +1,17 @@
-from typing import List
+from typing_extensions import List, Union
 
-import pybullet as p
 import rospy
 from moveit_msgs.msg import PositionIKRequest
 from moveit_msgs.msg import RobotState
 from moveit_msgs.srv import GetPositionIK
 from sensor_msgs.msg import JointState
 
-from ..bullet_world import Object
-from ..helper import calculate_wrist_tool_offset
-from ..local_transformer import LocalTransformer
-from ..pose import Pose, Transform
+from pycram.world_concepts.world_object import Object
+from ..helper import calculate_wrist_tool_offset, _apply_ik
+from pycram.local_transformer import LocalTransformer
+from pycram.datastructures.pose import Pose
 from ..robot_descriptions import robot_description
 from ..plan_failures import IKError
-
-
-def _get_position_for_joints(robot, joints):
-    """
-    Returns a list with all joint positions for the joint names specified in
-    the joints parameter
-
-    :param robot: The robot the joint states should be taken from
-    :param joints: The list of joint names that should be in the output
-    :return: A list of joint states according and in the same order as the joint
-    names in the joints parameter
-    """
-    return list(
-        map(lambda x: p.getJointState(robot.id, robot.get_joint_id(x), physicsClientId=robot.world.client_id)[0],
-            joints))
 
 
 def _make_request_msg(root_link: str, tip_link: str, target_pose: Pose, robot_object: Object,
@@ -50,7 +34,7 @@ def _make_request_msg(root_link: str, tip_link: str, target_pose: Pose, robot_ob
     robot_state = RobotState()
     joint_state = JointState()
     joint_state.name = joints
-    joint_state.position = _get_position_for_joints(robot_object, joints)
+    joint_state.position = [robot_object.get_joint_position(joint) for joint in joints]
     # joint_state.velocity = [0.0 for x in range(len(joints))]
     # joint_state.effort = [0.0 for x in range(len(joints))]
     robot_state.joint_state = joint_state
@@ -76,8 +60,7 @@ def call_ik(root_link: str, tip_link: str, target_pose: Pose, robot_object: Obje
 
    :param root_link: The first link of the chain of joints to be altered
    :param tip_link: The last link in the chain of joints to be altered
-   :param target_pose: The target pose in frame of root link
-   second is the orientation as quaternion in world coordinate frame
+   :param target_pose: The target pose in frame of root link second is the orientation as quaternion in world coordinate frame
    :param robot_object: The robot object for which the ik solution should be generated
    :param joints: A list of joint name that should be altered
    :return: The solution that was generated as a list of joint values corresponding to the order of joints given
@@ -106,6 +89,61 @@ def call_ik(root_link: str, tip_link: str, target_pose: Pose, robot_object: Obje
     return resp.solution.joint_state.position
 
 
+def try_to_reach_with_grasp(pose_or_object: Union[Pose, Object],
+                            prospection_robot: Object, gripper_name: str,
+                            grasp: str) -> Union[Pose, None]:
+    """
+    Checks if the robot can reach a given position with a specific grasp orientation.
+    To determine this the inverse kinematics are calculated and applied.
+
+    :param pose_or_object: The position and rotation or Object for which reachability should be checked or an Object
+    :param prospection_robot: The robot that should reach for the position
+    :param gripper_name: The name of the end effector
+    :param grasp: The grasp type with which the object should be grasped
+    """
+
+    input_pose = pose_or_object.get_pose() if isinstance(pose_or_object, Object) else pose_or_object
+
+    target_pose = apply_grasp_orientation_to_pose(grasp, input_pose)
+
+    return try_to_reach(target_pose, prospection_robot, gripper_name)
+
+
+def apply_grasp_orientation_to_pose(grasp: str, pose: Pose) -> Pose:
+    """
+    Applies the orientation of a grasp to a given pose. This is done by using the grasp orientation
+    of the given grasp and applying it to the given pose.
+
+    :param grasp: The name of the grasp
+    :param pose: The pose to which the grasp orientation should be applied
+    """
+    local_transformer = LocalTransformer()
+    target_map = local_transformer.transform_pose(pose, "map")
+    grasp_orientation = robot_description.grasps.get_orientation_for_grasp(grasp)
+    target_map.orientation.x = grasp_orientation[0]
+    target_map.orientation.y = grasp_orientation[1]
+    target_map.orientation.z = grasp_orientation[2]
+    target_map.orientation.w = grasp_orientation[3]
+    return target_map
+
+
+def try_to_reach(pose_or_object: Union[Pose, Object], prospection_robot: Object,
+                 gripper_name: str) -> Union[Pose, None]:
+    input_pose = pose_or_object.get_pose() if isinstance(pose_or_object, Object) else pose_or_object
+
+    arm = "left" if gripper_name == robot_description.get_tool_frame("left") else "right"
+    joints = robot_description.chains[arm].joints
+
+    try:
+        inv = request_ik(input_pose, prospection_robot, joints, gripper_name)
+    except IKError as e:
+        rospy.logerr(f"Pose is not reachable: {e}")
+        return None
+    _apply_ik(prospection_robot, inv, joints)
+
+    return input_pose
+
+
 def request_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str) -> List[float]:
     """
     Top-level method to request ik solution for a given pose. Before calling the ik service the links directly before
@@ -125,7 +163,6 @@ def request_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str
     end_effector = robot_description.get_child(joints[-1])
 
     target_torso = local_transformer.transform_pose(target_pose, robot.get_link_tf_frame(base_link))
-    # target_torso = _transform_to_torso(pose, shadow_robot)
 
     diff = calculate_wrist_tool_offset(end_effector, gripper, robot)
     target_diff = target_torso.to_transform("target").inverse_times(diff).to_pose()
@@ -133,4 +170,3 @@ def request_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str
     inv = call_ik(base_link, end_effector, target_diff, robot, joints)
 
     return inv
-

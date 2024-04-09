@@ -1,28 +1,41 @@
 import tf
 import numpy as np
-import rospy
-import pybullet as p
 
-from .bullet_world import Object, BulletWorld, Use_shadow_world
-from .bullet_world_reasoning import contact
+from .world import World
+from .world_concepts.world_object import Object
+from .world_reasoning import contact
 from .costmaps import Costmap
-from .pose import Pose, Transform
+from .local_transformer import LocalTransformer
+from .datastructures.pose import Pose, Transform
 from .robot_description import ManipulatorDescription
 from .robot_descriptions import robot_description
 from .external_interfaces.ik import request_ik
 from .plan_failures import IKError
 from .helper import _apply_ik
-from typing import Type, Tuple, List, Union, Dict, Iterable
+from typing_extensions import Tuple, List, Union, Dict, Iterable
 
 
 class PoseGenerator:
+    """
+    Crates pose candidates from a given costmap. The generator
+    selects the highest values, amount is given by number_of_sample, and returns the corresponding positions.
+    Orientations are calculated such that the Robot faces the center of the costmap.
+    """
+
     current_orientation_generator = None
+    """
+    If no orientation generator is given, this generator is used to generate the orientation of the robot.
+    """
+    override_orientation_generator = None
+    """
+    Override the orientation generator with a custom generator, which will be used regardless of the current_orientation_generator.
+    """
 
     def __init__(self, costmap: Costmap, number_of_samples=100, orientation_generator=None):
         """
-       :param costmap: The costmap from which poses should be sampled.
-       :param number_of_samples: The number of samples from the costmap that should be returned at max
-       :param orientation_generator: function that generates an orientation given a position and the origin of the costmap
+        :param costmap: The costmap from which poses should be sampled.
+        :param number_of_samples: The number of samples from the costmap that should be returned at max
+        :param orientation_generator: function that generates an orientation given a position and the origin of the costmap
         """
 
         if not PoseGenerator.current_orientation_generator:
@@ -31,6 +44,8 @@ class PoseGenerator:
         self.costmap = costmap
         self.number_of_samples = number_of_samples
         self.orientation_generator = orientation_generator if orientation_generator else PoseGenerator.current_orientation_generator
+        if PoseGenerator.override_orientation_generator:
+            self.orientation_generator = PoseGenerator.override_orientation_generator
 
     def __iter__(self) -> Iterable:
         """
@@ -77,10 +92,8 @@ class PoseGenerator:
         This generation is done by simply calculating the arctan between the position,
         in the costmap, and the origin of the costmap.
 
-        :param position: The position in the costmap. This position is already converted
-            to the world coordinate frame.
-        :param origin: The origin of the costmap. This is also the point which the
-            robot should face.
+        :param position: The position in the costmap. This position is already converted to the world coordinate frame.
+        :param origin: The origin of the costmap. This is also the point which the robot should face.
         :return: A quaternion of the calculated orientation
         """
         angle = np.arctan2(position[1] - origin.position.y, position[0] - origin.position.x) + np.pi
@@ -91,37 +104,59 @@ class PoseGenerator:
 def visibility_validator(pose: Pose,
                          robot: Object,
                          object_or_pose: Union[Object, Pose],
-                         world: BulletWorld) -> bool:
+                         world: World) -> bool:
     """
     This method validates if the robot can see the target position from a given
     pose candidate. The target position can either be a position, in world coordinate
-    system, or an object in the BulletWorld. The validation is done by shooting a
+    system, or an object in the World. The validation is done by shooting a
     ray from the camera to the target position and checking that it does not collide
     with anything else.
 
     :param pose: The pose candidate that should be validated
     :param robot: The robot object for which this should be validated
-    :param object_or_pose: The target position or object for which the pose
-        candidate should be validated.
-    :param world: The BulletWorld instance in which this should be validated.
+    :param object_or_pose: The target position or object for which the pose candidate should be validated.
+    :param world: The World instance in which this should be validated.
     :return: True if the target is visible for the robot, None in any other case.
     """
     robot_pose = robot.get_pose()
-    if type(object_or_pose) == Object:
+    if isinstance(object_or_pose, Object):
         robot.set_pose(pose)
         camera_pose = robot.get_link_pose(robot_description.get_camera_frame())
         robot.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
-        ray = p.rayTest(camera_pose.position_as_list(), object_or_pose.get_pose().position_as_list(),
-                        physicsClientId=world.client_id)
-        res = ray[0][0] == object_or_pose.id
+        ray = world.ray_test(camera_pose.position_as_list(), object_or_pose.get_position_as_list())
+        res = ray == object_or_pose.id
     else:
         robot.set_pose(pose)
         camera_pose = robot.get_link_pose(robot_description.get_camera_frame())
         robot.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
-        ray = p.rayTest(camera_pose.position_as_list(), object_or_pose, physicsClientId=world.client_id)
-        res = ray[0][0] == -1
+        # TODO: Check if this is correct
+        ray = world.ray_test(camera_pose.position_as_list(), object_or_pose)
+        res = ray == -1
     robot.set_pose(robot_pose)
     return res
+
+
+def _in_contact(robot: Object, obj: Object, allowed_collision: Dict[Object, List[str]],
+                allowed_robot_links: List[str]) -> bool:
+    """
+    This method checks if a given robot is in contact with a given object.
+
+    :param robot: The robot object that should be checked for contact.
+    :param obj: The object that should be checked for contact with the robot.
+    :param allowed_collision: A dictionary that contains the allowed collisions for links of each object in the world.
+    :param allowed_robot_links: A list of links of the robot that are allowed to be in contact with the object.
+    :return: True if the robot is in contact with the object and False otherwise.
+    """
+    in_contact, contact_links = contact(robot, obj, return_links=True)
+    allowed_links = allowed_collision[obj] if obj in allowed_collision.keys() else []
+
+    if in_contact:
+        for link in contact_links:
+            if link[0].name in allowed_robot_links or link[1].name in allowed_links:
+                in_contact = False
+                # TODO: in_contact is never set to True after it was set to False is that correct?
+                # TODO: If it is correct, then this loop should break after the first contact is found
+    return in_contact
 
 
 def reachability_validator(pose: Pose,
@@ -135,13 +170,10 @@ def reachability_validator(pose: Pose,
     the validator returns True and False in any other case.
 
     :param pose: The pose candidate for which the reachability should be validated
-    :param robot: The robot object in the BulletWorld for which the reachability
-        should be validated.
-    :param target: The target position or object instance which should be the
-        target for reachability.
-    :param allowed_collision:
-    :return: True if the target is reachable for the robot and False in any other
-        case.
+    :param robot: The robot object in the World for which the reachability should be validated.
+    :param target: The target position or object instance which should be the target for reachability.
+    :param allowed_collision: dict of objects with which the robot is allowed to collide each object correlates to a list of links of which this object consists
+    :return: True if the target is reachable for the robot and False in any other case.
     """
     if type(target) == Object:
         target = target.get_pose()
@@ -153,36 +185,64 @@ def reachability_validator(pose: Pose,
     # TODO Make orientation adhere to grasping orientation
     res = False
     arms = []
-    in_contact = False
+    for name, chain in manipulator_descs:
+        retract_target_pose = LocalTransformer().transform_pose(target, robot.get_link_tf_frame(chain.tool_frame))
+        retract_target_pose.position.x -= 0.07  # Care hard coded value copied from PlaceAction class
 
+        # retract_pose needs to be in world frame?
+        retract_target_pose = LocalTransformer().transform_pose(retract_target_pose, "map")
+
+        joints = robot_description.chains[name].joints
+        tool_frame = robot_description.get_tool_frame(name)
+
+        # TODO Make orientation adhere to grasping orientation
+        in_contact = False
+
+        joint_state_before_ik = robot.get_positions_of_all_joints()
+        try:
+            # test the possible solution and apply it to the robot
+            resp = request_ik(target, robot, joints, tool_frame)
+            _apply_ik(robot, resp, joints)
+
+            in_contact = collision_check(robot, allowed_collision)
+            if not in_contact:  # only check for retract pose if pose worked
+                resp = request_ik(retract_target_pose, robot, joints, tool_frame)
+                _apply_ik(robot, resp, joints)
+                in_contact = collision_check(robot, allowed_collision)
+            if not in_contact:
+                arms.append(name)
+        except IKError:
+            pass
+        finally:
+            robot.set_joint_positions(joint_state_before_ik)
+    if arms:
+        res = True
+    return res, arms
+
+
+def collision_check(robot: Object, allowed_collision: list):
+    """
+    This method checks if a given robot collides with any object within the world
+    which it is not allowed to collide with.
+    This is done checking iterating over every object within the world and checking
+    if the robot collides with it. Careful the floor will be ignored.
+    If there is a collision with an object that was not within the allowed collision
+    list the function returns True else it will return False
+
+    :param robot: The robot object in the (Bullet)World where it should be checked if it collides with something
+    :param allowed_collision: dict of objects with which the robot is allowed to collide each object correlates to a list of links of which this object consists
+    :return: True if the target is reachable for the robot and False in any other case.
+    """
+    in_contact = False
     allowed_robot_links = []
     if robot in allowed_collision.keys():
         allowed_robot_links = allowed_collision[robot]
 
-    for chain_name, chain in manipulator_descs:
-        joint_state_before_ik = robot._current_joint_states
-        try:
-            resp = request_ik(target, robot, chain.joints, chain.tool_frame)
+    for obj in World.current_world.objects:
+        if obj.name == "floor":
+            continue
+        in_contact= _in_contact(robot, obj, allowed_collision, allowed_robot_links)
 
-            _apply_ik(robot, resp, chain.joints)
+    return in_contact
 
-            for obj in BulletWorld.current_bullet_world.objects:
-                if obj.name == "floor":
-                    continue
-                in_contact, contact_links = contact(robot, obj, return_links=True)
-                allowed_links = allowed_collision[obj] if obj in allowed_collision.keys() else []
 
-                if in_contact:
-                    for link in contact_links:
-
-                        if link[0] in allowed_robot_links or link[1] in allowed_links:
-                            in_contact = False
-
-            if not in_contact:
-                arms.append(chain_name)
-                res = True
-        except IKError:
-            pass
-        finally:
-            robot.set_joint_states(joint_state_before_ik)
-    return res, arms

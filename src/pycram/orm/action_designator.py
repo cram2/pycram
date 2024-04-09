@@ -1,8 +1,8 @@
-from typing import Optional
+from typing_extensions import Optional
 
 from .base import RobotState, Designator, MapperArgsMixin, PoseMixin
 from .object_designator import ObjectMixin
-from ..enums import Arms
+from pycram.datastructures.enums import Arms
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey
 

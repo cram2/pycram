@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 import time
-from typing import Iterable, Optional, Callable, Dict, Any, List, Union
-from anytree import NodeMixin, Node, PreOrderIter, RenderTree
+from typing_extensions import Iterable, Optional, Callable, Dict, Any, List, Union
+from anytree import NodeMixin, Node, PreOrderIter
 
-from .enums import State
+from pycram.datastructures.enums import State
 import threading
 
 from .fluent import Fluent
@@ -157,14 +157,13 @@ class Language(NodeMixin):
         """
         Simplifies the language tree by merging which have a parent-child relation and are of the same type.
 
-        .. code-block:: python
+        .. code-block::
 
             <pycram.new_language.Parallel>
             ├── <pycram.new_language.Parallel>
             │   ├── <pycram.designators.action_designator.NavigateAction>
             │   └── <pycram.designators.action_designator.MoveTorsoAction>
             └── <pycram.designators.action_designator.DetectAction>
-
 
             would be simplified to:
 
