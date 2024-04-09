@@ -291,7 +291,7 @@ class ViewsSchemaTest(DatabaseTestCaseMixin):
         self.assertEqual(view.__table__.columns[7].name, "quaternion_y")
         self.assertEqual(view.__table__.columns[8].name, "quaternion_z")
         self.assertEqual(view.__table__.columns[9].name, "quaternion_w")
-        self.assertEqual(view.__table__.columns[10].name, "type")
+        self.assertEqual(view.__table__.columns[10].name, "obj_type")
         self.assertEqual(view.__table__.columns[11].name, "status")
 
     def test_pickUpWithContextView(self):
