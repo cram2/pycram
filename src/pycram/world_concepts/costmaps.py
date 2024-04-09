@@ -12,13 +12,13 @@ import rospy
 from matplotlib import colors
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 
-from pycram.world import UseProspectionWorld
-from pycram.world_concepts.world_object import Object
-from pycram.description import Link
-from pycram.datastructures.local_transformer import LocalTransformer
-from pycram.datastructures.pose import Pose, Transform
-from pycram.world import World
-from pycram.datastructures.dataclasses import AxisAlignedBoundingBox, BoxVisualShape, Color
+from ..world import UseProspectionWorld
+from ..world_concepts.world_object import Object
+from ..description import Link
+from ..datastructures.local_transformer import LocalTransformer
+from ..datastructures.pose import Pose, Transform
+from ..world import World
+from ..datastructures.dataclasses import AxisAlignedBoundingBox, BoxVisualShape, Color
 
 
 @dataclass

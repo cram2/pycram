@@ -33,9 +33,9 @@ class PoseGenerator:
 
     def __init__(self, costmap: Costmap, number_of_samples=100, orientation_generator=None):
         """
-       :param costmap: The costmap from which poses should be sampled.
-       :param number_of_samples: The number of samples from the costmap that should be returned at max
-       :param orientation_generator: function that generates an orientation given a position and the origin of the costmap
+        :param costmap: The costmap from which poses should be sampled.
+        :param number_of_samples: The number of samples from the costmap that should be returned at max
+        :param orientation_generator: function that generates an orientation given a position and the origin of the costmap
         """
 
         if not PoseGenerator.current_orientation_generator:
@@ -92,10 +92,8 @@ class PoseGenerator:
         This generation is done by simply calculating the arctan between the position,
         in the costmap, and the origin of the costmap.
 
-        :param position: The position in the costmap. This position is already converted
-            to the world coordinate frame.
-        :param origin: The origin of the costmap. This is also the point which the
-            robot should face.
+        :param position: The position in the costmap. This position is already converted to the world coordinate frame.
+        :param origin: The origin of the costmap. This is also the point which the robot should face.
         :return: A quaternion of the calculated orientation
         """
         angle = np.arctan2(position[1] - origin.position.y, position[0] - origin.position.x) + np.pi
@@ -116,8 +114,7 @@ def visibility_validator(pose: Pose,
 
     :param pose: The pose candidate that should be validated
     :param robot: The robot object for which this should be validated
-    :param object_or_pose: The target position or object for which the pose
-        candidate should be validated.
+    :param object_or_pose: The target position or object for which the pose candidate should be validated.
     :param world: The World instance in which this should be validated.
     :return: True if the target is visible for the robot, None in any other case.
     """
@@ -173,14 +170,10 @@ def reachability_validator(pose: Pose,
     the validator returns True and False in any other case.
 
     :param pose: The pose candidate for which the reachability should be validated
-    :param robot: The robot object in the World for which the reachability
-        should be validated.
-    :param target: The target position or object instance which should be the
-        target for reachability.
-    :param allowed_collision: dict of objects with which the robot is allowed to collide each
-    object correlates to a list of links of which this object consists
-    :return: True if the target is reachable for the robot and False in any other
-        case.
+    :param robot: The robot object in the World for which the reachability should be validated.
+    :param target: The target position or object instance which should be the target for reachability.
+    :param allowed_collision: dict of objects with which the robot is allowed to collide each object correlates to a list of links of which this object consists
+    :return: True if the target is reachable for the robot and False in any other case.
     """
     if type(target) == Object:
         target = target.get_pose()
@@ -230,18 +223,15 @@ def reachability_validator(pose: Pose,
 def collision_check(robot: Object, allowed_collision: list):
     """
     This method checks if a given robot collides with any object within the world
-     which it is not allowed to collide with.
+    which it is not allowed to collide with.
     This is done checking iterating over every object within the world and checking
     if the robot collides with it. Careful the floor will be ignored.
     If there is a collision with an object that was not within the allowed collision
     list the function returns True else it will return False
 
-    :param robot: The robot object in the (Bullet)World where it should be checked if it collides
-        with something
-    :param allowed_collision: dict of objects with which the robot is allowed to collide each
-    object correlates to a list of links of which this object consists
-    :return: True if the target is reachable for the robot and False in any other
-        case.
+    :param robot: The robot object in the (Bullet)World where it should be checked if it collides with something
+    :param allowed_collision: dict of objects with which the robot is allowed to collide each object correlates to a list of links of which this object consists
+    :return: True if the target is reachable for the robot and False in any other case.
     """
     in_contact = False
     allowed_robot_links = []
