@@ -3,11 +3,11 @@ from __future__ import annotations
 from geometry_msgs.msg import Point
 from typing_extensions import Union, List, Optional, TYPE_CHECKING
 
-from pycram.datastructures.enums import JointType
-from pycram.datastructures.pose import Transform, Pose
+from ..datastructures.enums import JointType
+from ..datastructures.pose import Transform, Pose
 
 if TYPE_CHECKING:
-    from pycram.description import Link
+    from ..description import Link
 
 
 class AbstractConstraint:
@@ -167,6 +167,7 @@ class Attachment(AbstractConstraint):
         """
         Creates an attachment between the parent object link and the child object link.
         This could be a bidirectional attachment, meaning that both objects will move when one moves.
+
         :param parent_link: The parent object link.
         :param child_link: The child object link.
         :param bidirectional: If true, both objects will move when one moves.
@@ -244,6 +245,7 @@ class Attachment(AbstractConstraint):
     def loose(self, loose: bool) -> None:
         """
         Sets the loose property of this attachment.
+
         :param loose: If true, then the child object will not move when parent moves.
         """
         self._loose = loose and not self.bidirectional

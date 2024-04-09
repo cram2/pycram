@@ -60,8 +60,7 @@ def call_ik(root_link: str, tip_link: str, target_pose: Pose, robot_object: Obje
 
    :param root_link: The first link of the chain of joints to be altered
    :param tip_link: The last link in the chain of joints to be altered
-   :param target_pose: The target pose in frame of root link
-   second is the orientation as quaternion in world coordinate frame
+   :param target_pose: The target pose in frame of root link second is the orientation as quaternion in world coordinate frame
    :param robot_object: The robot object for which the ik solution should be generated
    :param joints: A list of joint name that should be altered
    :return: The solution that was generated as a list of joint values corresponding to the order of joints given
@@ -130,7 +129,6 @@ def apply_grasp_orientation_to_pose(grasp: str, pose: Pose) -> Pose:
 
 def try_to_reach(pose_or_object: Union[Pose, Object], prospection_robot: Object,
                  gripper_name: str) -> Union[Pose, None]:
-
     input_pose = pose_or_object.get_pose() if isinstance(pose_or_object, Object) else pose_or_object
 
     arm = "left" if gripper_name == robot_description.get_tool_frame("left") else "right"
@@ -172,4 +170,3 @@ def request_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str
     inv = call_ik(base_link, end_effector, target_diff, robot, joints)
 
     return inv
-

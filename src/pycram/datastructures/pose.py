@@ -11,7 +11,7 @@ import sqlalchemy.orm
 from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3, Point
 from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
 from tf import transformations
-from pycram.orm.base import Pose as ORMPose, Position, Quaternion, ProcessMetaData
+from ..orm.base import Pose as ORMPose, Position, Quaternion, ProcessMetaData
 
 
 def get_normalized_quaternion(quaternion: np.ndarray) -> GeoQuaternion:

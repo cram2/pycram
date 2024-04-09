@@ -9,7 +9,7 @@ from tf import TransformerROS
 from rospy import Duration
 
 from geometry_msgs.msg import TransformStamped
-from pycram.datastructures.pose import Pose, Transform
+from .pose import Pose, Transform
 from typing_extensions import List, Optional, Union, Iterable
 
 
@@ -39,14 +39,6 @@ class LocalTransformer(TransformerROS):
     def __init__(self):
         if self._initialized: return
         super().__init__(interpolate=True, cache_time=Duration(10))
-
-        # TF tf_stampeds and static_tf_stampeds of the Robot in the World:
-        # These are initialized with the function init_transforms_from_urdf and are
-        # used to update the local transformer with the function update_local_transformer_from_btr
-        # TODO: Ask Jonas if this is still needed
-        self.tf_stampeds: List[TransformStamped] = []
-        self.static_tf_stampeds: List[TransformStamped] = []
-
         # Since this file can't import world.py this holds the reference to the current_world
         self.world = None
         # TODO: Ask Jonas if this is still needed
@@ -100,6 +92,7 @@ class LocalTransformer(TransformerROS):
         """
         Update the transforms for all world objects then Look up for the latest known transform that transforms a point
          from source frame to target frame. If no time is given the last common time between the two frames is used.
+
         :param time: Time at which the transform should be looked up
         """
         self.world.update_transforms_for_objects_in_current_world()

@@ -34,8 +34,7 @@ class JointStatePublisher:
     def _publish(self) -> None:
         """
         Publishes the current joint states of the :py:attr:`~pycram.world.World.robot` in an infinite loop.
-        The joint states are published as long as the kill_event is not set
-         by :py:meth:`~JointStatePublisher._stop_publishing`
+        The joint states are published as long as the kill_event is not set by :py:meth:`~JointStatePublisher._stop_publishing`
         """
         robot = World.robot
         joint_names = [joint_name for joint_name in robot.joint_name_to_id.keys()]

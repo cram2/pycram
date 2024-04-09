@@ -592,9 +592,9 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
         def frozen_copy(self) -> 'ObjectDesignatorDescription.Object':
             """
-            :return: A copy containing only the fields of this class. The WorldObject attached to this pycram
-            object is not copied. The _pose gets set to a method that statically returns the pose of the object when
-            this method was called.
+            Returns a copy of this designator containing only the fields.
+
+            :return: A copy containing only the fields of this class. The WorldObject attached to this pycram object is not copied. The _pose gets set to a method that statically returns the pose of the object when this method was called.
             """
             result = ObjectDesignatorDescription.Object(self.name, self.obj_type, None)
             # get current object pose and set resulting pose to always be that
