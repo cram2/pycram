@@ -589,9 +589,10 @@ class World(StateEntity, ABC):
         """
         self.exit_prospection_world_if_exists()
         self.disconnect_from_physics_server()
-        self.reset_current_world()
         self.reset_robot()
         self.join_threads()
+        if World.current_world == self:
+            World.current_world = None
 
     def exit_prospection_world_if_exists(self) -> None:
         """
@@ -610,10 +611,11 @@ class World(StateEntity, ABC):
 
     def reset_current_world(self) -> None:
         """
-        Resets the current world to None if this is the current world.
+        Resets the pose of every object in the World to the pose it was spawned in and sets every joint to 0.
         """
-        if World.current_world == self:
-            World.current_world = None
+        for obj in self.objects:
+            obj.set_pose(obj.original_pose)
+            obj.set_joint_positions(dict(zip(list(obj.joint_names), [0] * len(obj.joint_names))))
 
     def reset_robot(self) -> None:
         """
