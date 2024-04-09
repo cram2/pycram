@@ -5,10 +5,9 @@ import pycram.helper as helper
 from ..designators.motion_designator import *
 from ..datastructures.enums import JointType
 from ..external_interfaces.ik import request_ik
-from ..datastructures.local_transformer import LocalTransformer
 
 from ..world import World
-from ..datastructures.local_transformer import LocalTransformer
+from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_descriptions import robot_description
 

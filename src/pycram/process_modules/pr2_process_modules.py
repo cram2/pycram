@@ -1,6 +1,5 @@
 from threading import Lock
-from typing_extensions import Any, Optional, Tuple
-from abc import abstractmethod
+from typing_extensions import Any
 
 import actionlib
 
@@ -12,16 +11,16 @@ import rospy
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..external_interfaces.ik import request_ik
 from ..helper import _apply_ik
-from pycram.datastructures.local_transformer import LocalTransformer
+from ..local_transformer import LocalTransformer
 from ..designators.object_designator import ObjectDesignatorDescription
 from ..designators.motion_designator import MoveMotion, LookingMotion, \
     DetectingMotion, MoveTCPMotion, MoveArmJointsMotion, WorldStateDetectingMotion, MoveJointsMotion, \
     MoveGripperMotion, OpeningMotion, ClosingMotion
 from ..robot_descriptions import robot_description
-from pycram.world import World
-from pycram.world_concepts.world_object import Object
-from pycram.datastructures.pose import Pose
-from pycram.datastructures.enums import JointType, ObjectType
+from ..world import World
+from ..world_concepts.world_object import Object
+from ..datastructures.pose import Pose
+from ..datastructures.enums import JointType, ObjectType
 from ..external_interfaces import giskard
 from ..external_interfaces.robokudo import query
 

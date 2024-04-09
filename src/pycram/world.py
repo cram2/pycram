@@ -17,7 +17,7 @@ from typing_extensions import Union
 from .cache_manager import CacheManager
 from .datastructures.enums import JointType, ObjectType, WorldMode
 from .world_concepts.event import Event
-from .datastructures.local_transformer import LocalTransformer
+from .local_transformer import LocalTransformer
 from .datastructures.pose import Pose, Transform
 from .world_concepts.constraints import Constraint
 from .datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
