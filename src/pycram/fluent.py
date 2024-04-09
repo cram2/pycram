@@ -1,13 +1,3 @@
-"""Implementation of fluents and the whenever macro.
-
-Macros:
-whenever -- macro to repeat a body as long as the value of a fluent is not None or whenever a pulsed fluent changes its value or gets pulsed.
-
-Classes:
-Behavior -- enumeration to describe how to handle missed pulses in the whenever macro.
-Fluent -- implementation of fluents.
-"""
-
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
@@ -16,7 +6,7 @@ import operator
 from enum import Enum
 from threading import Condition, Lock
 from uuid import uuid4
-from typing import Any, Optional, List, Callable
+from typing_extensions import Any, Optional, List, Callable
 
 
 class Behavior(Enum):
@@ -115,7 +105,7 @@ class Fluent:
     def whenever(self, callback: Callable) -> None:
         """
         Registers a callback which is called everytime this Fluent is pulsed. The callback should be a Callable. When
-        the callback is called it gets the current value of this Fluent as an argument. `1
+        the callback is called it gets the current value of this Fluent as an argument.
 
         :param callback: The callback which should be called when pulsed as a Callable.
         """
@@ -138,7 +128,6 @@ class Fluent:
 
     def set_value(self, value: Any) -> None:
         """Change the value of the fluent.
-
         Changing the value will also pulse the fluent.
 
         :param value: the new value of the fluent.

@@ -385,3 +385,13 @@ class SustainedFailure(PlanFailure):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+
+class ReasoningError(PlanFailure):
+    def __init__(*args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class CollisionError(PlanFailure):
+    def __init__(*args, **kwargs):
+        super().__init__(*args, **kwargs)

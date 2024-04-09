@@ -9,17 +9,16 @@ from random_events.events import Event, ComplexEvent
 from random_events.variables import Symbolic, Continuous
 import tqdm
 from typing_extensions import Optional, List, Iterator
-from ...bullet_world import BulletWorld
+from ...world import World
 from ...costmaps import OccupancyCostmap, VisibilityCostmap
 from ...designator import ActionDesignatorDescription, ObjectDesignatorDescription
 from ...designators.actions.actions import MoveAndPickUpPerformable, ActionAbstract
-from ...enums import Arms, Grasp, TaskStatus
+from ...datastructures.enums import Arms, Grasp, TaskStatus
 from ...local_transformer import LocalTransformer
 from ...orm.task import TaskTreeNode
 from ...orm.views import PickUpWithContextView
 from ...plan_failures import ObjectUnreachable, PlanFailure
-from ...pose import Pose
-import plotly.graph_objects as go
+from ...datastructures.pose import Pose
 
 
 class ProbabilisticAction:
@@ -184,7 +183,7 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
         """
         arm, grasp, relative_x, relative_y = sample
         position = [relative_x, relative_y, 0.]
-        pose = Pose(position, frame=self.object_designator.bullet_world_object.tf_frame)
+        pose = Pose(position, frame=self.object_designator.world_object.tf_frame)
         standing_position = LocalTransformer().transform_pose(pose, "map")
         standing_position.position.z = 0
         action = MoveAndPickUpPerformable(standing_position, self.object_designator, arm, grasp)
@@ -304,4 +303,4 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
             progress_bar.set_postfix({"Success Probability": successful_tries / total_tries})
 
             # reset world
-            BulletWorld.current_bullet_world.reset_bullet_world()
+            World.current_world.reset_current_world()

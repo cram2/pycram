@@ -1,16 +1,18 @@
 import itertools
 from typing_extensions import List, Union, Callable
-from .object_designator import ObjectDesignatorDescription, ObjectPart
-from ..enums import Arms
+from typing_extensions import Any, Union
+
+from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
+from ..datastructures.enums import Arms
 from ..designator import ActionDesignatorDescription
-from ..pose import Pose
-from pycram.designators.actions.actions import (ParkArmsActionPerformable, MoveTorsoActionPerformable,
+from .actions.actions import (ParkArmsActionPerformable, MoveTorsoActionPerformable,
                                                 SetGripperActionPerformable, GripActionPerformable,
                                                 PlaceActionPerformable, PickUpActionPerformable,
                                                 NavigateActionPerformable, TransportActionPerformable,
                                                 LookAtActionPerformable, DetectActionPerformable, OpenActionPerformable,
                                                 CloseActionPerformable, GraspingActionPerformable,
                                                 ReleaseActionPerformable)
+from ..datastructures.pose import Pose
 
 
 class MoveTorsoAction(ActionDesignatorDescription):
@@ -172,8 +174,10 @@ class PickUpAction(ActionDesignatorDescription):
 
         :return: A performable designator
         """
-        obj_desig = self.object_designator_description if isinstance(self.object_designator_description,
-                                                                     ObjectDesignatorDescription.Object) else self.object_designator_description.resolve()
+        if isinstance(self.object_designator_description, ObjectDesignatorDescription.Object):
+            obj_desig = self.object_designator_description
+        else:
+            obj_desig = self.object_designator_description.resolve()
 
         return PickUpActionPerformable(obj_desig, self.arms[0], self.grasps[0])
 

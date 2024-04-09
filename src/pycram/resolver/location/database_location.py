@@ -8,7 +8,7 @@ from ...costmaps import Rectangle, OccupancyCostmap
 from ...designator import LocationDesignatorDescription
 from ...designators.location_designator import CostmapLocation
 from ...orm.views import PickUpWithContextView
-from ...pose import Pose
+from ...datastructures.pose import Pose
 
 
 @dataclass

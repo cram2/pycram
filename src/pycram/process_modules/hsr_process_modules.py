@@ -1,36 +1,45 @@
-from threading import Lock
+import numpy as np
+import rospy
 from threading import Lock
 from typing import Any
 
-import numpy as np
-import rospy
-# from tmc_control_msgs.msg import GripperApplyEffortActionGoal
-# from tmc_msgs.msg import Voice
-
-import pycram.bullet_world_reasoning as btr
-from ..designators.motion_designator import *
-from ..bullet_world import BulletWorld, Object
+from ..datastructures.enums import JointType
 from ..robot_descriptions import robot_description
-from ..enums import JointType, ObjectType
-from ..external_interfaces import giskard
-from ..external_interfaces.ik import request_ik
-# from ..external_interfaces.robokudo import queryEmpty, queryHuman, stop_queryHuman
-from ..helper import _apply_ik
-from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModule
+from ..datastructures.pose import Point
+from ..helper import _apply_ik
+from ..external_interfaces.ik import request_ik
+from .. import world_reasoning as btr
+from ..local_transformer import LocalTransformer
+from ..designators.motion_designator import *
+from ..external_interfaces import giskard
+
+
+
+def calculate_and_apply_ik(robot, gripper: str, target_position: Point, max_iterations: Optional[int] = None):
+    """
+    Calculates the inverse kinematics for the given target pose and applies it to the robot.
+    """
+    target_position_l  = [target_position.x, target_position.y, target_position.z]
+    # TODO: Check if this is correct (getting the arm and using its joints), previously joints was not provided.
+    arm = "right" if gripper == robot_description.get_tool_frame("right") else "left"
+    inv = request_ik(Pose(target_position_l, [0, 0, 0, 1]),
+                     robot, robot_description.chains[arm].joints, gripper)
+    joints = robot_description.chains[arm].joints
+    _apply_ik(robot, inv, joints)
 
 
 def _park_arms(arm):
     """
     Defines the joint poses for the parking positions of the arms of HSRB and applies them to the
-    in the BulletWorld defined robot.
+    in the World defined robot.
     :return: None
     """
 
-    robot = BulletWorld.robot
+    robot = World.robot
     if arm == "left":
         for joint, pose in robot_description.get_static_joint_chain("left", "park").items():
-            robot.set_joint_state(joint, pose)
+            robot.set_joint_position(joint, pose)
 
 
 class HSRBNavigation(ProcessModule):
@@ -39,7 +48,7 @@ class HSRBNavigation(ProcessModule):
     """
 
     def _execute(self, desig: MoveMotion):
-        robot = BulletWorld.robot
+        robot = World.robot
         robot.set_pose(desig.target)
 
 
@@ -51,7 +60,7 @@ class HSRBMoveHead(ProcessModule):
 
     def _execute(self, desig: LookingMotion):
         target = desig.target
-        robot = BulletWorld.robot
+        robot = World.robot
 
         local_transformer = LocalTransformer()
         pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame("head_pan_link"))
@@ -60,11 +69,11 @@ class HSRBMoveHead(ProcessModule):
         new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
         new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2) * -1
 
-        current_pan = robot.get_joint_state("head_pan_joint")
-        current_tilt = robot.get_joint_state("head_tilt_joint")
+        current_pan = robot.get_joint_position("head_pan_joint")
+        current_tilt = robot.get_joint_position("head_tilt_joint")
 
-        robot.set_joint_state("head_pan_joint", new_pan + current_pan)
-        robot.set_joint_state("head_tilt_joint", new_tilt + current_tilt)
+        robot.set_joint_position("head_pan_joint", new_pan + current_pan)
+        robot.set_joint_position("head_tilt_joint", new_tilt + current_tilt)
 
 
 class HSRBMoveGripper(ProcessModule):
@@ -74,11 +83,11 @@ class HSRBMoveGripper(ProcessModule):
     """
 
     def _execute(self, desig: MoveGripperMotion):
-        robot = BulletWorld.robot
+        robot = World.robot
         gripper = desig.gripper
         motion = desig.motion
         for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
-            robot.set_joint_state(joint, state)
+            robot.set_joint_position(joint, state)
 
 
 class HSRBDetecting(ProcessModule):
@@ -89,7 +98,7 @@ class HSRBDetecting(ProcessModule):
 
     def _execute(self, desig: DetectingMotion):
         rospy.loginfo("Detecting technique: {}".format(desig.technique))
-        robot = BulletWorld.robot
+        robot = World.robot
         object_type = desig.object_type
         # Should be "wide_stereo_optical_frame"
         cam_frame_name = robot_description.get_camera_frame()
@@ -111,7 +120,7 @@ class HSRBDetecting(ProcessModule):
         #
         # else:
         #     rospy.loginfo("Fake -> Detecting specific object type")
-        objects = BulletWorld.current_bullet_world.get_objects_by_type(object_type)
+        objects = World.current_world.get_object_by_type(object_type)
 
         object_dict = {}
 
@@ -128,7 +137,7 @@ class HSRBMoveTCP(ProcessModule):
 
     def _execute(self, desig: MoveTCPMotion):
         target = desig.target
-        robot = BulletWorld.robot
+        robot = World.robot
 
         _move_arm_tcp(target, robot, desig.arm)
 
@@ -141,11 +150,11 @@ class HSRBMoveArmJoints(ProcessModule):
 
     def _execute(self, desig: MoveArmJointsMotion):
 
-        robot = BulletWorld.robot
+        robot = World.robot
         if desig.right_arm_poses:
-            robot.set_joint_states(desig.right_arm_poses)
+            robot.set_joint_positions(desig.right_arm_poses)
         if desig.left_arm_poses:
-            robot.set_joint_states(desig.left_arm_poses)
+            robot.set_joint_positions(desig.left_arm_poses)
 
 
 class HSRBMoveJoints(ProcessModule):
@@ -154,8 +163,8 @@ class HSRBMoveJoints(ProcessModule):
     """
 
     def _execute(self, desig: MoveJointsMotion):
-        robot = BulletWorld.robot
-        robot.set_joint_states(dict(zip(desig.names, desig.positions)))
+        robot = World.robot
+        robot.set_joint_positions(dict(zip(desig.names, desig.positions)))
 
 
 class HSRBWorldStateDetecting(ProcessModule):
@@ -165,7 +174,7 @@ class HSRBWorldStateDetecting(ProcessModule):
 
     def _execute(self, desig: WorldStateDetectingMotion):
         obj_type = desig.object_type
-        return list(filter(lambda obj: obj.type == obj_type, BulletWorld.current_bullet_world.objects))[0]
+        return list(filter(lambda obj: obj.obj_type == obj_type, World.current_world.objects))[0]
 
 
 class HSRBOpen(ProcessModule):
@@ -174,16 +183,16 @@ class HSRBOpen(ProcessModule):
     """
 
     def _execute(self, desig: OpeningMotion):
-        part_of_object = desig.object_part.bullet_world_object
+        part_of_object = desig.object_part.world_object
 
-        container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
+        container_joint = part_of_object.find_joint_above_link(desig.object_part.name, JointType.PRISMATIC)
 
         goal_pose = btr.link_pose_for_joint_config(part_of_object, {
             container_joint: part_of_object.get_joint_limits(container_joint)[1] - 0.05}, desig.object_part.name)
 
-        _move_arm_tcp(goal_pose, BulletWorld.robot, desig.arm)
+        _move_arm_tcp(goal_pose, World.robot, desig.arm)
 
-        desig.object_part.bullet_world_object.set_joint_state(container_joint,
+        desig.object_part.world_object.set_joint_position(container_joint,
                                                               part_of_object.get_joint_limits(container_joint)[1])
 
 
@@ -193,16 +202,16 @@ class HSRBClose(ProcessModule):
     """
 
     def _execute(self, desig: ClosingMotion):
-        part_of_object = desig.object_part.bullet_world_object
+        part_of_object = desig.object_part.world_object
 
-        container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
+        container_joint = part_of_object.find_joint_above_link(desig.object_part.name, JointType.PRISMATIC)
 
         goal_pose = btr.link_pose_for_joint_config(part_of_object, {
             container_joint: part_of_object.get_joint_limits(container_joint)[0]}, desig.object_part.name)
 
-        _move_arm_tcp(goal_pose, BulletWorld.robot, desig.arm)
+        _move_arm_tcp(goal_pose, World.robot, desig.arm)
 
-        desig.object_part.bullet_world_object.set_joint_state(container_joint,
+        desig.object_part.world_object.set_joint_position(container_joint,
                                                               part_of_object.get_joint_limits(container_joint)[0])
 
 
@@ -250,7 +259,7 @@ class HSRBMoveHeadReal(ProcessModule):
 
     def _execute(self, desig: LookingMotion):
         target = desig.target
-        robot = BulletWorld.robot
+        robot = World.robot
 
         local_transformer = LocalTransformer()
         pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame("head_pan_link"))
@@ -349,7 +358,7 @@ class HSRBDetectingReal(ProcessModule):
             size = (x, z / 2, y)
             size_box = (x / 2, z / 2, y / 2)
             hard_size = (0.02, 0.02, 0.03)
-            id = BulletWorld.current_bullet_world.add_rigid_box(obj_pose, hard_size, color)
+            id = World.current_world.add_rigid_box(obj_pose, hard_size, color)
             box_object = Object(obj_type + "_" + str(rospy.get_time()), obj_type, pose=obj_pose, color=color, id=id,
                                 customGeom={"size": [hard_size[0], hard_size[1], hard_size[2]]})
             box_object.set_pose(obj_pose)

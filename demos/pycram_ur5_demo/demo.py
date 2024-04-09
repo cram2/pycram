@@ -4,9 +4,9 @@ import os
 from rospkg import RosPack
 import pybullet as pb
 
-from pycram import robot_description
-from pycram.bullet_world import BulletWorld, Object
-from pycram.pose import Pose
+from pycram.worlds.bullet_world import BulletWorld
+from pycram.world import Object
+from pycram.datastructures.pose import Pose
 from pycram.ros.force_torque_sensor import ForceTorqueSensor
 from pycram.ros.joint_state_publisher import JointStatePublisher
 from pycram.ros.tf_broadcaster import TFBroadcaster
@@ -37,7 +37,7 @@ if __name__ == '__main__':
     lab = Object("kitchen", "environment", kitchen_urdf_path)
     robot = Object("ur", "robot", robot_urdf_path, pose=SPAWNING_POSES["robot"])
     cereal = Object("cereal", "object", os.path.join(RESOURCE_DIR, "breakfast_cereal.stl"),
-                         pose=SPAWNING_POSES["cereal"])
+                    pose=SPAWNING_POSES["cereal"])
     BulletWorld.robot = robot
 
     tf_broadcaster = TFBroadcaster("projection", "odom", 1.0)

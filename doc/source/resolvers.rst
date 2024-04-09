@@ -15,4 +15,4 @@ Tutorial
 A tutorial for custom resolver creation is found in the notebook below.
 
 .. nbgallery::
-    notebooks/custom_resolver
+    notebooks/improving_actions

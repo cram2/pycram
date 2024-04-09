@@ -3,20 +3,21 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 from .object_designator import ObjectDesignatorDescription, ObjectPart, RealObject
-from ..designator import ResolutionError
-from ..enums import ObjectType
+from ..world import World
+from ..world_concepts.world_object import Object
+from ..designator import DesignatorError
 from ..orm.base import ProcessMetaData
 from ..plan_failures import PerceptionObjectNotFound
 from ..process_module import ProcessModuleManager
-from ..orm.motion_designator import (MoveMotion as ORMMoveMotion, AccessingMotion as ORMAccessingMotion,
+from ..orm.motion_designator import (MoveMotion as ORMMoveMotion,
                                      MoveTCPMotion as ORMMoveTCPMotion, LookingMotion as ORMLookingMotion,
                                      MoveGripperMotion as ORMMoveGripperMotion, DetectingMotion as ORMDetectingMotion,
-                                     WorldStateDetectingMotion as ORMWorldStateDetectingMotion,
                                      OpeningMotion as ORMOpeningMotion, ClosingMotion as ORMClosingMotion,
                                      Motion as ORMMotionDesignator)
+from ..datastructures.enums import ObjectType
 
 from typing_extensions import Dict, Optional, get_type_hints, get_args, get_origin
-from ..pose import Pose
+from ..datastructures.pose import Pose
 from ..task import with_tree
 
 
@@ -223,16 +224,16 @@ class DetectingMotion(BaseMotion):
     @with_tree
     def perform(self):
         pm_manager = ProcessModuleManager.get_manager()
-        bullet_world_object = pm_manager.detecting().execute(self)
-        if not bullet_world_object:
+        world_object = pm_manager.detecting().execute(self)
+        if not world_object:
             raise PerceptionObjectNotFound(
                 f"Could not find an object with the type {self.object_type} in the FOV of the robot")
         if ProcessModuleManager.execution_type == "real":
-            return RealObject.Object(bullet_world_object.name, bullet_world_object.type,
-                                                  bullet_world_object, bullet_world_object.get_pose())
+            return RealObject.Object(world_object.name, world_object.obj_type,
+                                                  world_object, world_object.get_pose())
 
-        return ObjectDesignatorDescription.Object(bullet_world_object.name, bullet_world_object.type,
-                                                  bullet_world_object)
+        return ObjectDesignatorDescription.Object(world_object.name, world_object.obj_type,
+                                                  world_object)
 
     def to_sql(self) -> ORMDetectingMotion:
         return ORMDetectingMotion(self.object_type)
