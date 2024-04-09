@@ -4,23 +4,22 @@ from sqlalchemy import select
 import portion
 from probabilistic_model.probabilistic_circuit.distributions import GaussianDistribution, SymbolicDistribution
 from probabilistic_model.probabilistic_circuit.probabilistic_circuit import ProbabilisticCircuit, \
-    DecomposableProductUnit, DeterministicSumUnit
+    DecomposableProductUnit
 from random_events.events import Event, ComplexEvent
 from random_events.variables import Symbolic, Continuous
 import tqdm
 from typing_extensions import Optional, List, Iterator
 from ...world import World
-from ...world_concepts.costmaps import OccupancyCostmap, VisibilityCostmap
+from ...costmaps import OccupancyCostmap, VisibilityCostmap
 from ...designator import ActionDesignatorDescription, ObjectDesignatorDescription
 from ...designators.actions.actions import MoveAndPickUpPerformable, ActionAbstract
 from ...datastructures.enums import Arms, Grasp, TaskStatus
-from ...datastructures.local_transformer import LocalTransformer
+from ...local_transformer import LocalTransformer
 from ...orm.queries.queries import PickUpWithContext
 from ...orm.task import TaskTreeNode
 from ...orm.action_designator import PickUpAction as ORMPickUpAction
 from ...plan_failures import ObjectUnreachable, PlanFailure
 from ...datastructures.pose import Pose
-import plotly.graph_objects as go
 
 
 class ProbabilisticAction:

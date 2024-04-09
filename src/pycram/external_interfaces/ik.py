@@ -8,7 +8,7 @@ from sensor_msgs.msg import JointState
 
 from pycram.world_concepts.world_object import Object
 from ..helper import calculate_wrist_tool_offset, _apply_ik
-from pycram.datastructures.local_transformer import LocalTransformer
+from pycram.local_transformer import LocalTransformer
 from pycram.datastructures.pose import Pose
 from ..robot_descriptions import robot_description
 from ..plan_failures import IKError

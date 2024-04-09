@@ -1,12 +1,11 @@
 from dataclasses import dataclass
 
-import numpy as np
 import sqlalchemy.orm
 import sqlalchemy.sql
 from sqlalchemy import select, Select
 from typing_extensions import List
 
-from ...world_concepts.costmaps import Rectangle, OccupancyCostmap
+from ...costmaps import Rectangle, OccupancyCostmap
 from ...designator import LocationDesignatorDescription
 from ...designators.location_designator import CostmapLocation
 from ...orm.action_designator import PickUpAction

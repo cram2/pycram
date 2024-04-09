@@ -10,17 +10,16 @@ import rospy
 
 from .world import World
 from .world_concepts.world_object import Object as WorldObject
-from .datastructures.enums import ObjectType
 from .helper import GeneratorList, bcolors
 from threading import Lock
 from time import time
-from typing_extensions import List, Dict, Any, Optional, Union, get_type_hints, Callable, Iterable
+from typing_extensions import List, Dict, Any, Optional, Union, Callable, Iterable
 
-from pycram.datastructures.local_transformer import LocalTransformer
+from .local_transformer import LocalTransformer
 from .language import Language
-from pycram.datastructures.pose import Pose
+from .datastructures.pose import Pose
 from .robot_descriptions import robot_description
-from pycram.datastructures.enums import ObjectType
+from .datastructures.enums import ObjectType
 
 import logging
 
