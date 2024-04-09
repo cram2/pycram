@@ -1,7 +1,7 @@
 import inspect
 import logging
 from pathlib import Path
-from typing import Optional, List, Type, Callable
+from typing import Callable, Dict, List, Optional, Type
 
 import rospy
 
@@ -20,6 +20,8 @@ from pycram.ontology.ontology_common import OntologyConceptHolder
 
 SOMA_HOME_ONTOLOGY_IRI = "http://www.ease-crc.org/ont/SOMA-HOME.owl"
 SOMA_ONTOLOGY_IRI = "http://www.ease-crc.org/ont/SOMA.owl"
+SOMA_ONTOLOGY_NAMESPACE = "SOMA"
+DUL_ONTOLOGY_NAMESPACE = "DUL"
 
 
 class OntologyManager(object, metaclass=Singleton):
@@ -28,13 +30,16 @@ class OntologyManager(object, metaclass=Singleton):
 
     Attributes
     ----------
+    ontologies: Dict[str, owlready2.Ontology]
+        A dictionary of OWL ontologies, keyed by ontology name (same as its namespace name), eg. 'SOMA'
+
     main_ontology: owlready2.Ontology
         The main ontology instance as the result of an ontology loading operation
 
     main_ontology_iri: str
         Ontology IRI (Internationalized Resource Identifier), either a URL to a remote OWL file or the full name path of a local one
 
-    main_ontology_namespace: str
+    main_ontology_namespace: owlready2.Namespace
         Namespace of the main ontology
 
     soma: owlready2.Ontology
@@ -67,46 +72,23 @@ class OntologyManager(object, metaclass=Singleton):
             rospy.logerr("owlready2 is not imported!")
             return
 
+        self.ontologies: Dict[str, owlready2.Ontology] = {}
         self.main_ontology: owlready2.Ontology = None
         self.soma: owlready2.Ontology = None
         self.dul: owlready2.Ontology = None
 
         self.ontology_world: owlready2.World = None
         self.main_ontology_iri: str = main_ontology_iri
-        self.main_ontology_namespace: str = None
+        self.main_ontology_namespace: owlready2.Namespace = None
 
         # Create an ontology world with parallelized file parsing enabled
-        main_ontology_name = Path(main_ontology_iri).stem
-        self.ontology_world = World(filename=f"{ontology_search_path}/{main_ontology_name}.sqlite3", exclusive=False,
-                                    enable_thread_parallelism=True)
+        self.ontology_world = World(filename=f"{ontology_search_path}/{Path(main_ontology_iri).stem}.sqlite3",
+                                    exclusive=False, enable_thread_parallelism=True)
 
-        ontology_ = self.ontology_world.get_ontology(main_ontology_iri).load(reload_if_newer=True)
-        if ontology_.loaded:
-            # So any check for `main_ontology` later if passed means it has been already loaded
-            self.main_ontology = ontology_
-            self.main_ontology_namespace = owlready2.get_namespace(ontology_.base_iri).name
-
-            rospy.loginfo(
-                f'Main Ontology [{self.main_ontology.base_iri}]\'s name: {self.main_ontology.name} has been loaded')
-            rospy.loginfo(f'Main Ontology namespace: {self.main_ontology_namespace}')
-            rospy.loginfo(f'Loaded ontologies:')
-            self.browse_ontologies(condition=None, func=lambda ontology__: rospy.loginfo(ontology__.base_iri))
-
-            # Search for SOMA & DUL from imported sub-ontologies
-            def is_matching_ontology(ontology__, ontology_name):
-                return owlready2.get_namespace(ontology__.base_iri).name.lower() == ontology_name.lower()
-
-            def set_soma(ontology__, ontology_name):
-                self.soma = ontology__
-
-            def set_dul(ontology__, ontology_name):
-                self.dul = ontology__
-
-            self.browse_ontologies(condition=is_matching_ontology, func=set_soma, ontology_name="SOMA")
-            self.browse_ontologies(condition=is_matching_ontology, func=set_dul, ontology_name="DUL")
-        else:
-            rospy.logerr(f"Ontology [{ontology_.base_iri}]\'s name: {ontology_.name} failed being loaded")
-            return
+        self.main_ontology, self.main_ontology_namespace = self.load_ontology(main_ontology_iri)
+        if self.main_ontology.loaded:
+            self.soma = self.ontologies[SOMA_ONTOLOGY_NAMESPACE]
+            self.dul = self.ontologies[DUL_ONTOLOGY_NAMESPACE]
 
     @staticmethod
     def print_ontology_class(ontology_class):
@@ -125,32 +107,62 @@ class OntologyManager(object, metaclass=Singleton):
         rospy.loginfo(f"Direct Instances: {list(ontology_class.direct_instances())}")
         rospy.loginfo(f"Inverse Restrictions: {list(ontology_class.inverse_restrictions())}")
 
-    def browse_ontologies(self, condition: Optional[Callable] = None, func: Optional[Callable] = None, **kwargs):
+    def load_ontology(self, ontology_iri):
+        """
+        Load an ontology from an IRI
+        :param ontology_iri: An ontology IRI
+        :return: A tuple including an ontology instance & its namespace
+        """
+        ontology = self.ontology_world.get_ontology(ontology_iri).load(reload_if_newer=True)
+        ontology_namespace = owlready2.get_namespace(ontology_iri)
+        if ontology.loaded:
+            rospy.loginfo(
+                f'Ontology [{ontology.base_iri}]\'s name: {ontology.name} has been loaded')
+            rospy.loginfo(f'- main namespace: {ontology_namespace.name}')
+            rospy.loginfo(f'- loaded ontologies:')
+
+            def fetch_ontology(ontology__):
+                self.ontologies[ontology__.name] = ontology__
+                rospy.loginfo(ontology__.base_iri)
+
+            self.browse_ontologies(ontology, condition=None, func=lambda ontology__: fetch_ontology(ontology__))
+            return ontology, ontology_namespace
+        else:
+            rospy.logerr(f"Ontology [{ontology.base_iri}]\'s name: {ontology.name} failed being loaded")
+            return None, None
+
+    @staticmethod
+    def browse_ontologies(ontology: owlready2.Ontology,
+                          condition: Optional[Callable] = None, func: Optional[Callable] = None, **kwargs):
         """
         Browse the loaded ontologies (including the main and imported ones), doing operations based on a condition.
 
+        :param ontology: An ontology instance as the result of ontology loading
         :param condition: a Callable condition that if not None needs to be passed before doing operations, otherwise just
         always carry the operations
         :param func: a Callable specifying the operations to perform on all the loaded ontologies if condition is None,
         otherwise only the first ontology which meets the condition
         """
-        if self.main_ontology is None:
-            rospy.logerr("Main ontology has not been loaded!")
+        if ontology is None:
+            rospy.logerr(f"Ontology {ontology=} is None!")
+            return
+        elif not ontology.loaded:
+            rospy.logerr(f"Ontology {ontology} was not loaded!")
             return
 
-        do_func = func is not None
+        will_do_func = func is not None
         # No condition: Do func for all ontologies
         if condition is None:
-            if do_func:
-                func(self.main_ontology, **kwargs)
-                for sub_onto in self.main_ontology.get_imported_ontologies():
+            if will_do_func:
+                func(ontology, **kwargs)
+                for sub_onto in ontology.get_imported_ontologies():
                     func(sub_onto, **kwargs)
         # Else: Only do func for the first ontology which meets the condition
-        elif condition(self.main_ontology, **kwargs):
-            if do_func: func(self.main_ontology, **kwargs)
+        elif condition(ontology, **kwargs):
+            if will_do_func: func(ontology, **kwargs)
         else:
-            for sub_onto in self.main_ontology.get_imported_ontologies():
-                if condition(sub_onto, **kwargs) and do_func:
+            for sub_onto in ontology.get_imported_ontologies():
+                if condition(sub_onto, **kwargs) and will_do_func:
                     func(sub_onto, **kwargs)
                     break
 
@@ -281,11 +293,11 @@ class OntologyManager(object, metaclass=Singleton):
         :return: A list of the ontology classes under the given namespace
         """
 
-        def is_matching_ontology_namespace(ontology_class: Type[owlready2.Thing], main_ontology_namespace: str):
-            return ontology_class.namespace.name == main_ontology_namespace
+        def is_matching_ontology_namespace(ontology_class: Type[owlready2.Thing], ontology_namespace_: str):
+            return ontology_class.namespace.name == ontology_namespace_
 
         return self.get_ontology_classes_by_condition(condition=is_matching_ontology_namespace,
-                                                      main_ontology_namespace=ontology_namespace)
+                                                      ontology_namespace_=ontology_namespace)
 
     def get_ontology_classes_by_subname(self, class_subname: str) -> List[Type[owlready2.Thing]]:
         """
