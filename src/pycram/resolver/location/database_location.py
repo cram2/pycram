@@ -82,7 +82,7 @@ class DatabaseCostmapLocation(AbstractCostmapLocation):
         query = self.select_statement(view)
 
         # constraint query to correct object type and successful task status
-        query = query.where(view.type == self.target.type).where(view.status == "SUCCEEDED")
+        query = query.where(view.obj_type == self.target.obj_type).where(view.status == "SUCCEEDED")
 
         filters = []
 

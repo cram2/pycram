@@ -1,10 +1,10 @@
-from sqlalchemy.orm import declarative_base, column_property, query_expression, deferred, contains_eager
+from sqlalchemy.orm import declarative_base
 from typing_extensions import Union
 import sqlalchemy.orm
 from sqlalchemy import table, inspect, event, select, engine, MetaData, Select, TableClause, ExecutableDDLElement
 from sqlalchemy.ext.compiler import compiles
-from pycram.orm.action_designator import PickUpAction, Action
-from pycram.orm.base import Position, RobotState, Pose, Base, Quaternion, _Base
+from pycram.orm.action_designator import PickUpAction
+from pycram.orm.base import Position, RobotState, Pose, Base, Quaternion
 from pycram.orm.object_designator import Object
 from pycram.orm.task import TaskTreeNode
 
@@ -138,7 +138,7 @@ class PickUpWithContextView(base):
                              __relative_x.label("relative_x"), __relative_y.label("relative_y"),
                              Quaternion.x.label("quaternion_x"), Quaternion.y.label("quaternion_y"),
                              Quaternion.z.label("quaternion_z"), Quaternion.w.label("quaternion_w"),
-                             Object.type.label("type"), TaskTreeNode.status.label("status"))
+                             Object.obj_type.label("obj_type"), TaskTreeNode.status.label("status"))
                       .join(TaskTreeNode.action.of_type(PickUpAction))
                       .join(PickUpAction.robot_state)
                       .join(__robot_pose, RobotState.pose)

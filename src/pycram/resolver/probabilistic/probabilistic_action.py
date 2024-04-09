@@ -274,7 +274,7 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
     def query_for_database():
         view = PickUpWithContextView
         query = (select(view.arm, view.grasp, view.relative_x, view.relative_y)
-                 .where(TaskTreeNode.status == TaskStatus.SUCCEEDED))
+                 .where(view.status == TaskStatus.SUCCEEDED))
         return query
 
     def batch_rollout(self):
