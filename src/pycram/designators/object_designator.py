@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import dataclasses
-from typing_extensions import List, Optional, Callable
+from typing_extensions import List, Optional, Callable, TYPE_CHECKING
 import sqlalchemy.orm
 from pycram.world import World
 from pycram.world_concepts.world_object import Object as WorldObject
@@ -9,10 +11,8 @@ from ..orm.object_designator import (BelieveObject as ORMBelieveObject, ObjectPa
 from pycram.datastructures.pose import Pose
 from ..external_interfaces.robokudo import query
 
-try:
+if TYPE_CHECKING:
     import owlready2
-except ImportError:
-    owlready2 = None
 
 class BelieveObject(ObjectDesignatorDescription):
     """

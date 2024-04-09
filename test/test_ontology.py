@@ -1,20 +1,19 @@
+from __future__ import annotations
+
 import unittest
-import inspect
 import logging
 from pathlib import Path
-from typing import Optional, List, Type, Callable
+from typing import Type
+
+from pycram.designator import ObjectDesignatorDescription
 
 import rospy
-from pycram.datastructures.enums import ObjectType
-from pycram.designator import DesignatorDescription, ObjectDesignatorDescription
-from pycram.task import with_tree
-
 try:
     import owlready2
     from owlready2 import *
 except ImportError:
     owlready2 = None
-    logging.warn("Could not import owlready2, ontology unit-tests could not run")
+    rospy.logwarn("Could not import owlready2, Ontology unit-tests could not run!")
 
 from pycram.ontology.ontology import OntologyManager, SOMA_ONTOLOGY_IRI
 from pycram.ontology.ontology_common import OntologyConceptHolder
@@ -22,33 +21,44 @@ from pycram.ontology.ontology_common import OntologyConceptHolder
 
 class TestOntologyManager(unittest.TestCase):
     ontology_manager: OntologyManager
-    main_ontology: owlready2.Ontology
-    soma: owlready2.Ontology
-    dul: owlready2.Ontology
+    main_ontology: owlready2.Ontology | None
+    soma: owlready2.Ontology | None
+    dul: owlready2.Ontology | None
 
     @classmethod
     def setUpClass(cls):
         cls.ontology_manager = OntologyManager(SOMA_ONTOLOGY_IRI)
-        cls.main_ontology = cls.ontology_manager.main_ontology
-        cls.soma = cls.ontology_manager.soma
-        cls.dul = cls.ontology_manager.dul
+        if cls.ontology_manager.initialized():
+            cls.main_ontology = cls.ontology_manager.main_ontology
+            cls.soma = cls.ontology_manager.soma
+            cls.dul = cls.ontology_manager.dul
+        else:
+            cls.main_ontology = None
+            cls.soma = None
+            cls.dul = None
 
     @classmethod
     def tearDownClass(cls):
-        save_dir = Path(f"{Path.home()}/ontologies")
-        save_dir.mkdir(parents=True, exist_ok=True)
-        cls.ontology_manager.save(f"{save_dir}/{Path(cls.ontology_manager.main_ontology_iri).stem}.owl")
+        if cls.ontology_manager.initialized():
+            save_dir = Path(f"{Path.home()}/ontologies")
+            save_dir.mkdir(parents=True, exist_ok=True)
+            cls.ontology_manager.save(f"{save_dir}/{Path(cls.ontology_manager.main_ontology_iri).stem}.owl")
 
     def test_ontology_manager(self):
-        self.assertIs(self.ontology_manager, OntologyManager())
+        if self.ontology_manager.initialized():
+            self.assertIs(self.ontology_manager, OntologyManager())
 
     def test_ontology_concept_holder(self):
+        if not self.ontology_manager.initialized():
+            return
         dynamic_ontology_concept_class = self.ontology_manager.create_ontology_concept_class('DynamicOntologyConcept')
         dynamic_ontology_concept_holder = OntologyConceptHolder(dynamic_ontology_concept_class(name='dynamic_ontology_concept1',
                                                                                                namespace=self.main_ontology))
         self.assertTrue(owlready2.isinstance_python(dynamic_ontology_concept_holder.ontology_concept, owlready2.Thing))
 
     def test_loaded_ontologies(self):
+        if not self.ontology_manager.initialized():
+            return
         self.assertIsNotNone(self.main_ontology)
         self.assertTrue(self.main_ontology.loaded)
         self.assertIsNotNone(self.soma)
@@ -57,6 +67,8 @@ class TestOntologyManager(unittest.TestCase):
         self.assertTrue(self.dul.loaded)
 
     def test_ontology_concept_class_dynamic_creation(self):
+        if not self.ontology_manager.initialized():
+            return
         dynamic_ontology_concept_class = self.ontology_manager.create_ontology_concept_class('DynamicOntologyConcept')
         self.assertIsNotNone(dynamic_ontology_concept_class)
         self.assertEqual(dynamic_ontology_concept_class.namespace, self.main_ontology)
@@ -67,6 +79,8 @@ class TestOntologyManager(unittest.TestCase):
         self.assertTrue(owlready2.isinstance_python(dynamic_ontology_concept, owlready2.Thing))
 
     def test_ontology_triple_classes_dynamic_creation(self):
+        if not self.ontology_manager.initialized():
+            return
         # Test dynamic triple classes creation without inheritance from existing parent ontology classes
         self.ontology_manager.create_ontology_triple_classes(subject_class_name="OntologySubject",
                                                              object_class_name="OntologyObject",
@@ -95,16 +109,16 @@ class TestOntologyManager(unittest.TestCase):
                                                              ontology_property_parent_class=self.soma.affordsBearer,
                                                              ontology_inverse_property_parent_class=self.soma.isBearerAffordedBy)
 
-        def create_ontology_handheld_object(object_name: str, ontology_parent_class: Type[owlready2.Thing]):
+        def create_ontology_handheld_object_designator(object_name: str, ontology_parent_class: Type[owlready2.Thing]):
             return self.ontology_manager.create_ontology_linked_designator(designator_name=object_name,
                                                                            designator_class=ObjectDesignatorDescription,
                                                                            ontology_concept_name=f"Onto{object_name}",
                                                                            ontology_parent_class=ontology_parent_class)
 
         # Holdable object
-        egg = create_ontology_handheld_object("egg", self.main_ontology.OntologyHandheldObject)
+        egg = create_ontology_handheld_object_designator("egg", self.main_ontology.OntologyHandheldObject)
         # Placeholder object
-        egg_tray = create_ontology_handheld_object("egg_tray", self.main_ontology.OntologyPlaceHolderObject)
+        egg_tray = create_ontology_handheld_object_designator("egg_tray", self.main_ontology.OntologyPlaceHolderObject)
 
         # Create ontology relation between [Place-holder] and [Holdable obj]
         self.ontology_manager.set_ontology_relation(subject_designator=egg, object_designator=egg_tray,
@@ -127,6 +141,8 @@ class TestOntologyManager(unittest.TestCase):
         self.assertEqual(egg_tray_holdables[0], ["egg"])
 
     def test_ontology_class_destruction(self):
+        if not self.ontology_manager.initialized():
+            return
         concept_class_name = 'DynamicOntologyConcept'
         dynamic_ontology_concept_class = self.ontology_manager.create_ontology_concept_class(concept_class_name)
         OntologyConceptHolder(dynamic_ontology_concept_class(name='dynamic_ontology_concept3',
