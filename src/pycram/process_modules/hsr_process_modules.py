@@ -3,19 +3,14 @@ import rospy
 from threading import Lock
 from typing import Any
 
-from typing_extensions import Optional
-
 from ..datastructures.enums import JointType
 from ..robot_descriptions import robot_description
-from ..process_module import ProcessModule, ProcessModuleManager
-from ..world import World
-from ..datastructures.pose import Pose, Point
+from ..process_module import ProcessModule
+from ..datastructures.pose import Point
 from ..helper import _apply_ik
 from ..external_interfaces.ik import request_ik
 from .. import world_reasoning as btr
-import logging
-import time
-from ..datastructures.local_transformer import LocalTransformer
+from ..local_transformer import LocalTransformer
 from ..designators.motion_designator import *
 from ..external_interfaces import giskard
 

@@ -5,14 +5,9 @@ import numpy as np
 from ..datastructures.enums import JointType
 from ..external_interfaces.ik import request_ik
 from ..helper import _apply_ik
-from ..process_module import ProcessModule, ProcessModuleManager
-# from ..process_modules.pr2_process_modules import Pr2Navigation as DefaultNavigation, Pr2PickUp as DefaultPickUp, \
-#     Pr2Place as DefaultPlace, Pr2WorldStateDetecting as DefaultWorldStateDetecting, Pr2Open as DefaultOpen, \
-#     Pr2Close as DefaultClose, Pr2MoveGripper as DefaultMoveGripper, Pr2Detecting as DefaultDetecting, \
-#     Pr2MoveTCP as DefaultMoveTCP
+from ..process_module import ProcessModule
 from ..robot_descriptions import robot_description
-from ..world import World
-from ..datastructures.local_transformer import LocalTransformer
+from ..local_transformer import LocalTransformer
 from ..designators.motion_designator import *
 from ..world_reasoning import visible, link_pose_for_joint_config
 

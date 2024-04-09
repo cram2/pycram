@@ -16,7 +16,7 @@ from ..world_concepts.constraints import Attachment
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                                AxisAlignedBoundingBox, VisualShape)
 from ..datastructures.enums import ObjectType, JointType
-from ..datastructures.local_transformer import LocalTransformer
+from ..local_transformer import LocalTransformer
 from ..datastructures.pose import Pose, Transform
 
 Link = ObjectDescription.Link

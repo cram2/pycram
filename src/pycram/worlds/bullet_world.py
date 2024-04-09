@@ -48,9 +48,6 @@ class BulletWorld(World):
         """
         super().__init__(mode=mode, is_prospection_world=is_prospection_world, simulation_frequency=sim_frequency)
 
-        self._gui_thread: Gui = Gui(self, mode)
-        self._gui_thread.start()
-
         # This disables file caching from PyBullet, since this would also cache
         # files that can not be loaded
         p.setPhysicsEngineParameter(enableFileCaching=0)
@@ -65,6 +62,11 @@ class BulletWorld(World):
         if not is_prospection_world:
             _ = Object("floor", ObjectType.ENVIRONMENT, "plane" + self.extension,
                        world=self)
+
+    def _init_world(self, mode: WorldMode):
+        self._gui_thread: Gui = Gui(self, mode)
+        self._gui_thread.start()
+        time.sleep(0.1)
 
     def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[Pose] = None) -> int:
         if pose is None:
@@ -342,6 +344,11 @@ class Gui(threading.Thread):
         else:
             self.world.id = p.connect(p.GUI)
 
+            # DISCLAIMER
+            # This camera control only works if the WorldMooe.GUI BulletWorld is the first one to be created. This is
+            # due to a bug in the function pybullet.getDebugVisualizerCamera() which only returns the information of
+            # the first created simulation.
+
             # Disable the side windows of the GUI
             p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0, physicsClientId=self.world.id)
             # Change the init camera pose
@@ -378,18 +385,19 @@ class Gui(threading.Thread):
             # Loop to update the camera position based on keyboard events
             while p.isConnected(self.world.id):
                 # Monitor user input
-                keys = p.getKeyboardEvents()
-                mouse = p.getMouseEvents()
+                keys = p.getKeyboardEvents(self.world.id)
+                mouse = p.getMouseEvents(self.world.id)
 
                 # Get infos about the camera
                 width, height, dist = (p.getDebugVisualizerCamera()[0],
                                        p.getDebugVisualizerCamera()[1],
                                        p.getDebugVisualizerCamera()[10])
-                camera_target_position = p.getDebugVisualizerCamera()[11]
+                #print("width: ", width, "height: ", height, "dist: ", dist)
+                camera_target_position = p.getDebugVisualizerCamera(self.world.id)[11]
 
                 # Get vectors used for movement on x,y,z Vector
-                x_vec = [p.getDebugVisualizerCamera()[2][i] for i in [0, 4, 8]]
-                y_vec = [p.getDebugVisualizerCamera()[2][i] for i in [2, 6, 10]]
+                x_vec = [p.getDebugVisualizerCamera(self.world.id)[2][i] for i in [0, 4, 8]]
+                y_vec = [p.getDebugVisualizerCamera(self.world.id)[2][i] for i in [2, 6, 10]]
                 z_vec = (0, 0, 1)  # [p.getDebugVisualizerCamera()[2][i] for i in [1, 5, 9]]
 
                 # Check the mouse state
@@ -411,10 +419,10 @@ class Gui(threading.Thread):
                             mouse_state[2] = m[4]
 
                         # change visibility by clicking the mousewheel
-                        if m[4] == 6 and m[3] == 1 and visible == 1:
-                            visible = 0
-                        elif m[4] == 6 and visible == 0:
-                            visible = 1
+                        # if m[4] == 6 and m[3] == 1 and visible == 1:
+                        #     visible = 0
+                        # elif m[4] == 6 and visible == 0:
+                        #     visible = 1
 
                         # camera movement when the left mouse button is pressed
                         if mouse_state[0] == 3:
@@ -436,6 +444,7 @@ class Gui(threading.Thread):
                             elif mouse_y > old_mouse_y:
                                 camera_yaw -= (speed_y / 4) + 1
 
+                        # Camera movement when the middle mouse button is pressed
                         if mouse_state[1] == 3:
                             speed_x = abs(old_mouse_x - mouse_x)
                             factor = 0.05
@@ -529,10 +538,14 @@ class Gui(threading.Thread):
                                 dist -= dist * 0.02 * speed_mult
                         elif ord("-") in keys:
                             dist += dist * 0.02 * speed_mult
+                # print("dist: ", dist)
+                # print("camera_yaw: ", camera_yaw)
+                # print("camera_pitch: ", camera_pitch)
+                # print("camera_target_position: ", camera_target_position)
 
                 p.resetDebugVisualizerCamera(cameraDistance=dist, cameraYaw=camera_yaw, cameraPitch=camera_pitch,
-                                             cameraTargetPosition=camera_target_position)
+                                             cameraTargetPosition=camera_target_position, physicsClientId=self.world.id)
                 if visible == 0:
                     camera_target_position = (0.0, -50, 50)
-                p.resetBasePositionAndOrientation(sphere_uid, camera_target_position, [0, 0, 0, 1])
+                p.resetBasePositionAndOrientation(sphere_uid, camera_target_position, [0, 0, 0, 1], physicsClientId=self.world.id)
                 time.sleep(1. / 80.)

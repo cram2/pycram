@@ -5,7 +5,7 @@ import portion
 from random_events.events import Event, ComplexEvent
 
 from bullet_world_testcase import BulletWorldTestCase
-from pycram.world_concepts.costmaps import OccupancyCostmap
+from pycram.costmaps import OccupancyCostmap
 from pycram.datastructures.pose import Pose
 
 
