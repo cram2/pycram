@@ -9,7 +9,7 @@ from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING
 
 from .datastructures.enums import JointType
-from .datastructures.local_transformer import LocalTransformer
+from .local_transformer import LocalTransformer
 from .datastructures.pose import Pose, Transform
 from .world import WorldEntity
 from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape
