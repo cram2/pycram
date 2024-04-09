@@ -156,6 +156,11 @@ class World(StateEntity, ABC):
 
         self.cache_manager = CacheManager(self.cache_dir, self.data_directory)
 
+        self.id: Optional[int] = -1
+        # This is used to connect to the physics server (allows multiple clients)
+
+        self._init_world(mode)
+
         self.is_prospection_world: bool = is_prospection_world
         self._init_and_sync_prospection_world()
 
@@ -165,8 +170,7 @@ class World(StateEntity, ABC):
         self.objects: List[Object] = []
         # List of all Objects in the World
 
-        self.id: Optional[int] = -1
-        # This is used to connect to the physics server (allows multiple clients)
+
 
         self.mode: WorldMode = mode
         # The mode of the simulation, can be "GUI" or "DIRECT"
@@ -176,6 +180,13 @@ class World(StateEntity, ABC):
         self._init_events()
 
         self._current_state: Optional[WorldState] = None
+
+    @abstractmethod
+    def _init_world(self, mode: WorldMode):
+        """
+        Initializes the physics simulation.
+        """
+        raise NotImplementedError
 
     def _init_events(self):
         """
