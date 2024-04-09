@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import inspect
 import logging
 from pathlib import Path
@@ -10,7 +12,7 @@ try:
     from owlready2 import *
 except ImportError:
     owlready2 = None
-    logging.warn("Could not import owlready2, OWL Ontology Manager could not be initialized")
+    rospy.logwarn("Could not import owlready2, OntologyManager could not be initialized!")
 
 from pycram.datastructures.enums import ObjectType
 from pycram.helper import Singleton
@@ -69,7 +71,6 @@ class OntologyManager(object, metaclass=Singleton):
             Path(ontology_search_path).mkdir(parents=True, exist_ok=True)
             owlready2.onto_path.append(ontology_search_path)
         else:
-            rospy.logerr("owlready2 is not imported!")
             return
 
         self.ontologies: Dict[str, owlready2.Ontology] = {}
@@ -130,6 +131,9 @@ class OntologyManager(object, metaclass=Singleton):
         else:
             rospy.logerr(f"Ontology [{ontology.base_iri}]\'s name: {ontology.name} failed being loaded")
             return None, None
+
+    def initialized(self) -> bool:
+        return hasattr(self, "main_ontology") and self.main_ontology.loaded
 
     @staticmethod
     def browse_ontologies(ontology: owlready2.Ontology,
@@ -330,9 +334,9 @@ class OntologyManager(object, metaclass=Singleton):
                                        ontology_subject_parent_class: Optional[Type[owlready2.Thing]] = None,
                                        ontology_object_parent_class: Optional[Type[owlready2.Thing]] = None,
                                        ontology_property_parent_class: Optional[Type[
-                                           owlready2.Property]] = owlready2.ObjectProperty,
+                                           owlready2.Property]] = owlready2.ObjectProperty if owlready2 else None,
                                        ontology_inverse_property_parent_class: Optional[Type[
-                                           owlready2.Property]] = owlready2.ObjectProperty):
+                                           owlready2.Property]] = owlready2.ObjectProperty if owlready2 else None):
         """
         Dynamically create ontology triple classes under same namespace with the main ontology,
         as known as {subject, predicate, object}, with the relations among them
@@ -469,7 +473,7 @@ class OntologyManager(object, metaclass=Singleton):
               if hasattr(subject_concept_holder.ontology_concept, predicate_name)]))
 
     def create_ontology_object_designator_from_type(self, object_type: ObjectType,
-                                                    ontology_concept_class=Type[owlready2.Thing]) \
+                                                    ontology_concept_class: Type[owlready2.Thing]) \
             -> ObjectDesignatorDescription:
         object_type_name = object_type.name.lower()
         object_designator = \

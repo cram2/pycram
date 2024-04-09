@@ -1,13 +1,18 @@
+from __future__ import annotations
+
 import logging
-from typing import Optional, List, Type
+from typing import Callable, Dict, List, Optional, Type, TYPE_CHECKING
 import rospy
+
+if TYPE_CHECKING:
+    from pycram.designator import DesignatorDescription
 
 try:
     import owlready2
     from owlready2 import *
 except ImportError:
     owlready2 = None
-    logging.warn("Could not import owlready2")
+    rospy.logwarn("Could not import owlready2, OntologyConceptHolder will not be available!")
 
 
 class OntologyConceptHolder(object):
@@ -18,28 +23,35 @@ class OntologyConceptHolder(object):
 
     Attributes
     ----------
+    ontology_concept: owlready2.Thing
+        An ontology concept, either dynamically created, or loaded from an ontology
     designators: List[DesignatorDescription]
         List of designators associated with this ontology concept
     resolve: Callable
         A callable used to resolve the designators to whatever of interest, like designators or their resolving results
-    ontology_concept: owlready2.Thing
-        An ontology concept, either dynamically created, or loaded from an ontology
     """
-    __all_ontology_concept_holders = {}
+
+    __all_ontology_concept_holders: Dict[str, OntologyConceptHolder] = {}
+    """
+    Dictionary of all ontology concept holders, keyed by concept names
+    """
 
     def __init__(self, ontology_concept: owlready2.Thing):
         """
         :param ontology_concept: An ontology concept instance
         """
-        self.ontology_concept = ontology_concept
-        self.designators = []
-        self.resolve = None
+        if owlready2 is None:
+            return
+
+        self.ontology_concept: owlready2.Thing = ontology_concept
+        self.designators: List[DesignatorDescription] = []
+        self.resolve: Optional[Callable] = None
         if ontology_concept.name in self.__all_ontology_concept_holders:
             rospy.logerr(f"OntologyConceptHolder for [{ontology_concept.name}] was already created!")
         self.__all_ontology_concept_holders.setdefault(ontology_concept.name, self)
 
     @property
-    def name(self):
+    def name(self) -> str:
         """
         :return: Ontology concept name
         """
@@ -53,7 +65,7 @@ class OntologyConceptHolder(object):
         if ontology_concept_name in cls.__all_ontology_concept_holders:
             del cls.__all_ontology_concept_holders[ontology_concept_name]
 
-    def __eq__(self, other):
+    def __eq__(self, other: OntologyConceptHolder) -> bool:
         """
         Equality check based on name of the ontology concept
         :param other: Other ontology concept instance to check against
@@ -61,7 +73,7 @@ class OntologyConceptHolder(object):
         return ((self.ontology_concept == other.ontology_concept) or
                 (self.ontology_concept.name == other.ontology_concept.name))
 
-    def get_default_designator(self):
+    def get_default_designator(self) -> DesignatorDescription:
         """
         :return: The first element of designators if there is, else None
         """
@@ -88,7 +100,8 @@ class OntologyConceptHolder(object):
         return concept_holder.ontology_concept if concept_holder else None
 
     @classmethod
-    def get_ontology_concept_holders_by_class(cls, ontology_concept_class: Type[owlready2.Thing]):
+    def get_ontology_concept_holders_by_class(cls, ontology_concept_class: Type[owlready2.Thing])\
+            -> List[OntologyConceptHolder]:
         """
         :ontology_concept_class: An ontology concept class
         Return a list of ontology concept holders for the given ontology concept class
@@ -97,7 +110,7 @@ class OntologyConceptHolder(object):
                 if isinstance(concept_holder.ontology_concept, ontology_concept_class)]
 
     @classmethod
-    def get_ontology_concept_holder_by_name(cls, ontology_concept_name: str):
+    def get_ontology_concept_holder_by_name(cls, ontology_concept_name: str) -> OntologyConceptHolder:
         """
         :ontology_concept_name: Name of an ontology concept
         Return the ontology concept holder for one of a given name if exists, otherwise None
@@ -105,7 +118,7 @@ class OntologyConceptHolder(object):
         return cls.__all_ontology_concept_holders.get(ontology_concept_name)
 
     @classmethod
-    def get_ontology_concept_of_designator(cls, designator):
+    def get_ontology_concept_of_designator(cls, designator) -> owlready2.Thing | None:
         """
         :param designator: A designator associated with an ontology concept
         :return: The corresponding ontology concept for a given designator
@@ -116,7 +129,7 @@ class OntologyConceptHolder(object):
         return None
 
     @classmethod
-    def get_designators_of_ontology_concept(cls, ontology_concept_name: str):
+    def get_designators_of_ontology_concept(cls, ontology_concept_name: str) -> List[DesignatorDescription]:
         """
         :param ontology_concept_name: An ontology concept name
         :return: The corresponding designators associated with the given ontology concept
@@ -124,7 +137,7 @@ class OntologyConceptHolder(object):
         return cls.__all_ontology_concept_holders[ontology_concept_name].designators \
             if ontology_concept_name in cls.__all_ontology_concept_holders else []
 
-    def has_designator(self, designator):
+    def has_designator(self, designator) -> bool:
         """
         :return: True if a given designator was registered by this ontology concept holder, either by itself or under
         another of the same name
