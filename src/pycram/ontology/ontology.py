@@ -18,7 +18,7 @@ from pycram.datastructures.enums import ObjectType
 from pycram.helper import Singleton
 from pycram.designator import DesignatorDescription, ObjectDesignatorDescription
 
-from pycram.ontology.ontology_common import OntologyConceptHolder
+from pycram.ontology.ontology_common import OntologyConceptHolderStore, OntologyConceptHolder
 
 SOMA_HOME_ONTOLOGY_IRI = "http://www.ease-crc.org/ont/SOMA-HOME.owl"
 SOMA_ONTOLOGY_IRI = "http://www.ease-crc.org/ont/SOMA.owl"
@@ -391,7 +391,8 @@ class OntologyManager(object, metaclass=Singleton):
 
     def create_ontology_linked_designator_by_concept(self, designator_name: str,
                                                      designator_class: Type[DesignatorDescription],
-                                                     ontology_concept_class: Type[owlready2.Thing]) -> DesignatorDescription:
+                                                     ontology_concept_class: Type[owlready2.Thing]) \
+            -> DesignatorDescription | None:
         """
         Create a designator that belongs to a given ontology concept class
 
@@ -401,7 +402,7 @@ class OntologyManager(object, metaclass=Singleton):
         :return: An object designator associated with the given ontology concept class
         """
         ontology_concept_name = f'{designator_name}_concept'
-        if len(OntologyConceptHolder.get_designators_of_ontology_concept(ontology_concept_name)) > 0:
+        if len(OntologyConceptHolderStore().get_designators_of_ontology_concept(ontology_concept_name)) > 0:
             rospy.logerr(f"A designator named [{designator_name}] is already created for ontology concept [{ontology_concept_name}]")
             return None
 
@@ -410,7 +411,7 @@ class OntologyManager(object, metaclass=Singleton):
                                                                else designator_class()
 
         # Link designator with an ontology concept of `ontology_concept_class`
-        ontology_concept_holder = OntologyConceptHolder.get_ontology_concept_holder_by_name(ontology_concept_name)
+        ontology_concept_holder = OntologyConceptHolderStore().get_ontology_concept_holder_by_name(ontology_concept_name)
         if ontology_concept_holder is None:
             ontology_concept_holder = OntologyConceptHolder(ontology_concept_class(name=ontology_concept_name,
                                                                                    namespace=self.main_ontology))
@@ -465,7 +466,7 @@ class OntologyManager(object, metaclass=Singleton):
         :return: List of object designators
         """
         return list(itertools.chain(
-            *[OntologyConceptHolder.get_designators_of_ontology_concept(object_concept.name)
+            *[OntologyConceptHolderStore().get_designators_of_ontology_concept(object_concept.name)
               for subject_concept_holder in subject.ontology_concept_holders
               for object_concept in getattr(subject_concept_holder.ontology_concept, predicate_name)
               if hasattr(subject_concept_holder.ontology_concept, predicate_name)]))
@@ -491,5 +492,5 @@ class OntologyManager(object, metaclass=Singleton):
         if destroy_instances:
             for ontology_individual in ontology_class.instances():
                 destroy_entity(ontology_individual)
-            OntologyConceptHolder.remove_ontology_concept(ontology_class.name)
+            OntologyConceptHolderStore().remove_ontology_concept(ontology_class.name)
             destroy_entity(ontology_class)

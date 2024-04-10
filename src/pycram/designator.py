@@ -471,11 +471,11 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
         :param ontology_concept_classes: The ontology concept classes that the action is categorized as or associated with
         :param ontology_concept_name: The name of the ontology concept instance to be created
         """
-        from .ontology.ontology_common import OntologyConceptHolder
+        from .ontology.ontology_common import OntologyConceptHolderStore, OntologyConceptHolder
         if not self.ontology_concept_holders:
             for concept_name, concept_class in ontology_concept_classes.items():
                 if concept_class:
-                    existing_holders = OntologyConceptHolder.get_ontology_concept_holders_by_class(concept_class)
+                    existing_holders = OntologyConceptHolderStore().get_ontology_concept_holders_by_class(concept_class)
                     self.ontology_concept_holders.extend(existing_holders if existing_holders \
                                                          else [OntologyConceptHolder(concept_class(concept_name))])
 

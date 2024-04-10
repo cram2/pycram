@@ -16,7 +16,7 @@ except ImportError:
     rospy.logwarn("Could not import owlready2, Ontology unit-tests could not run!")
 
 from pycram.ontology.ontology import OntologyManager, SOMA_ONTOLOGY_IRI
-from pycram.ontology.ontology_common import OntologyConceptHolder
+from pycram.ontology.ontology_common import OntologyConceptHolderStore, OntologyConceptHolder
 
 
 class TestOntologyManager(unittest.TestCase):
@@ -150,7 +150,7 @@ class TestOntologyManager(unittest.TestCase):
 
         self.ontology_manager.destroy_ontology_class(dynamic_ontology_concept_class)
         self.assertIsNone(self.ontology_manager.get_ontology_class(concept_class_name))
-        self.assertFalse(OntologyConceptHolder.get_ontology_concepts_by_class(dynamic_ontology_concept_class))
+        self.assertFalse(OntologyConceptHolderStore().get_ontology_concepts_by_class(dynamic_ontology_concept_class))
 
 
 if __name__ == '__main__':
