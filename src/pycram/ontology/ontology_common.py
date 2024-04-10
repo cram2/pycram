@@ -81,12 +81,12 @@ class OntologyConceptHolderStore(object, metaclass=Singleton):
         return self.__all_ontology_concept_holders.get(ontology_concept_name)
 
     @staticmethod
-    def get_ontology_concept_of_designator(designator: DesignatorDescription) -> owlready2.Thing | None:
+    def get_ontology_concepts_of_designator(designator: DesignatorDescription) -> List[owlready2.Thing]:
         """
-        Get the corresponding ontology concept for a given designator
+        Get the corresponding ontology concepts for a given designator
         :param designator: A designator associated with an ontology concept
         """
-        return designator.ontology_concept_holders[0].ontology_concept if designator.ontology_concept_holders else None
+        return [concept_holder.ontology_concept for concept_holder in designator.ontology_concept_holders]
 
     def get_designators_of_ontology_concept(self, ontology_concept_name: str) -> List[DesignatorDescription]:
         """

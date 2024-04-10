@@ -369,11 +369,11 @@ class DesignatorDescription(ABC):
     def copy(self) -> DesignatorDescription:
         return self
 
-    def get_default_ontology_concept(self) -> owlready2.Thing:
+    def get_default_ontology_concept(self) -> owlready2.Thing | None:
         """
         Returns the first element of ontology_concept_holders if there is, else None
         """
-        return self.ontology_concept_holders[0] if len(self.ontology_concept_holders) > 0 else None
+        return self.ontology_concept_holders[0].ontology_concept if self.ontology_concept_holders else None
 
 class ActionDesignatorDescription(DesignatorDescription, Language):
     """
