@@ -256,9 +256,7 @@ class OntologyManager(object, metaclass=Singleton):
                     if first_match_only:
                         return out_classes
 
-        if len(out_classes):
-            for out_class in out_classes: self.print_ontology_class(out_class)
-        else:
+        if not out_classes:
             rospy.loginfo(f"No class with {kwargs} is found in the ontology {self.main_ontology}")
         return out_classes
 

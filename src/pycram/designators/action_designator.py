@@ -19,13 +19,16 @@ from .actions.actions import (ParkArmsActionPerformable, MoveTorsoActionPerforma
                                                 CloseActionPerformable, GraspingActionPerformable,
                                                 ReleaseActionPerformable)
 from ..datastructures.pose import Pose
+from ..ontology.ontology import OntologyConceptHolder
+
 
 class MoveTorsoAction(ActionDesignatorDescription):
     """
     Action Designator for Moving the torso of the robot up and down
     """
 
-    def __init__(self, positions: List[float], resolver=None, ontology_concept_holders: Optional[List[owlready2.Thing]] = None):
+    def __init__(self, positions: List[float], resolver=None,
+                 ontology_concept_holders: Optional[List[OntologyConceptHolder]] = None):
         """
         Create a designator description to move the torso of the robot up and down.
 

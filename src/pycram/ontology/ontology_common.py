@@ -73,17 +73,11 @@ class OntologyConceptHolder(object):
         return ((self.ontology_concept == other.ontology_concept) or
                 (self.ontology_concept.name == other.ontology_concept.name))
 
-    def get_default_designator(self) -> DesignatorDescription:
-        """
-        :return: The first element of designators if there is, else None
-        """
-        return self.designators[0] if len(self.designators) > 0 else None
-
     @classmethod
     def get_ontology_concepts_by_class(cls, ontology_concept_class: Type[owlready2.Thing]) -> List[owlready2.Thing]:
         """
+        Get a list of ontology concepts for a given class
         :ontology_concept_class: An ontology concept class
-        :return: A list of ontology concepts for a given class
         """
         return list(itertools.chain(
             *[concept_holder.ontology_concept
@@ -91,10 +85,10 @@ class OntologyConceptHolder(object):
               if owlready2.issubclass(concept_holder.ontology_concept, ontology_concept_class)]))
 
     @classmethod
-    def get_ontology_concept_by_name(cls, ontology_concept_name: str) -> owlready2.Thing:
+    def get_ontology_concept_by_name(cls, ontology_concept_name: str) -> owlready2.Thing | None:
         """
+        Get the ontology concept holder for one of a given name if exists, otherwise None
         :ontology_concept_name: Name of an ontology concept
-        Return the ontology concept holder for one of a given name if exists, otherwise None
         """
         concept_holder = cls.__all_ontology_concept_holders.get(ontology_concept_name)
         return concept_holder.ontology_concept if concept_holder else None
@@ -103,25 +97,25 @@ class OntologyConceptHolder(object):
     def get_ontology_concept_holders_by_class(cls, ontology_concept_class: Type[owlready2.Thing])\
             -> List[OntologyConceptHolder]:
         """
+        Get a list of ontology concept holders for the given ontology concept class
         :ontology_concept_class: An ontology concept class
-        Return a list of ontology concept holders for the given ontology concept class
         """
         return [concept_holder for concept_holder in cls.__all_ontology_concept_holders.values()
                 if isinstance(concept_holder.ontology_concept, ontology_concept_class)]
 
     @classmethod
-    def get_ontology_concept_holder_by_name(cls, ontology_concept_name: str) -> OntologyConceptHolder:
+    def get_ontology_concept_holder_by_name(cls, ontology_concept_name: str) -> OntologyConceptHolder | None:
         """
+        Get the ontology concept holder for one of a given name if exists, otherwise None
         :ontology_concept_name: Name of an ontology concept
-        Return the ontology concept holder for one of a given name if exists, otherwise None
         """
         return cls.__all_ontology_concept_holders.get(ontology_concept_name)
 
     @classmethod
     def get_ontology_concept_of_designator(cls, designator) -> owlready2.Thing | None:
         """
+        Get the corresponding ontology concept for a given designator
         :param designator: A designator associated with an ontology concept
-        :return: The corresponding ontology concept for a given designator
         """
         for ontology_concept_holder in cls.__all_ontology_concept_holders.values():
             if designator in ontology_concept_holder.designators:
@@ -131,11 +125,17 @@ class OntologyConceptHolder(object):
     @classmethod
     def get_designators_of_ontology_concept(cls, ontology_concept_name: str) -> List[DesignatorDescription]:
         """
+        Get the corresponding designators associated with the given ontology concept
         :param ontology_concept_name: An ontology concept name
-        :return: The corresponding designators associated with the given ontology concept
         """
         return cls.__all_ontology_concept_holders[ontology_concept_name].designators \
             if ontology_concept_name in cls.__all_ontology_concept_holders else []
+
+    def get_default_designator(self) -> DesignatorDescription | None:
+        """
+        Get the first element of designators if there is, else None
+        """
+        return self.designators[0] if len(self.designators) > 0 else None
 
     def has_designator(self, designator) -> bool:
         """
