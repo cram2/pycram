@@ -3,17 +3,12 @@ from dataclasses import dataclass
 import sqlalchemy.orm
 import sqlalchemy.sql
 from sqlalchemy import select, Select
-from typing_extensions import List
-
+from typing_extensions import List, Type
 from ...costmaps import Rectangle, OccupancyCostmap
 from ...designator import LocationDesignatorDescription
 from ...designators.location_designator import CostmapLocation
-from ...orm.action_designator import PickUpAction
-from ...orm.base import RobotState, Quaternion
-from ...orm.object_designator import Object
-from ...orm.task import TaskTreeNode
+from ...orm.views import PickUpWithContextView
 from ...datastructures.pose import Pose
-from ...orm.queries.queries import PickUpWithContext
 
 
 @dataclass
@@ -71,10 +66,9 @@ class DatabaseCostmapLocation(AbstractCostmapLocation):
         self.session = session
 
     @staticmethod
-    def select_statement(query_context: PickUpWithContext) -> Select:
-        return query_context.join_statement(select(PickUpAction.arm, PickUpAction.grasp, RobotState.torso_height,
-                                                   query_context.relative_x, query_context.relative_y, Quaternion.x,
-                                                   Quaternion.y, Quaternion.z, Quaternion.w).distinct())
+    def select_statement(view: Type[PickUpWithContextView]) -> Select:
+        return (select(view.arm, view.grasp, view.torso_height, view.relative_x, view.relative_y, view.quaternion_x,
+                       view.quaternion_y, view.quaternion_z, view.quaternion_w).distinct())
 
     def create_query_from_occupancy_costmap(self) -> Select:
         """
@@ -82,23 +76,23 @@ class DatabaseCostmapLocation(AbstractCostmapLocation):
         OccupancyCostmap.
         """
 
-        query_context = PickUpWithContext()
+        view = PickUpWithContextView
 
         # get query
-        query = self.select_statement(query_context)
+        query = self.select_statement(view)
 
         # constraint query to correct object type and successful task status
-        query = query.where(Object.type == self.target.type).where(TaskTreeNode.status == "SUCCEEDED")
+        query = query.where(view.obj_type == self.target.obj_type).where(view.status == "SUCCEEDED")
 
         filters = []
 
         # for every rectangle
         for rectangle in self.create_occupancy_rectangles():
             # add sql filter
-            filters.append(sqlalchemy.and_(query_context.relative_x >= rectangle.x_lower,
-                                           query_context.relative_x < rectangle.x_upper,
-                                           query_context.relative_y >= rectangle.y_lower,
-                                           query_context.relative_y < rectangle.y_upper))
+            filters.append(sqlalchemy.and_(view.relative_x >= rectangle.x_lower,
+                                           view.relative_x < rectangle.x_upper,
+                                           view.relative_y >= rectangle.y_lower,
+                                           view.relative_y < rectangle.y_upper))
 
         return query.where(sqlalchemy.or_(*filters))
 

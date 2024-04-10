@@ -15,9 +15,8 @@ from ...designator import ActionDesignatorDescription, ObjectDesignatorDescripti
 from ...designators.actions.actions import MoveAndPickUpPerformable, ActionAbstract
 from ...datastructures.enums import Arms, Grasp, TaskStatus
 from ...local_transformer import LocalTransformer
-from ...orm.queries.queries import PickUpWithContext
 from ...orm.task import TaskTreeNode
-from ...orm.action_designator import PickUpAction as ORMPickUpAction
+from ...orm.views import PickUpWithContextView
 from ...plan_failures import ObjectUnreachable, PlanFailure
 from ...datastructures.pose import Pose
 
@@ -273,10 +272,9 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
 
     @staticmethod
     def query_for_database():
-        query_context = PickUpWithContext()
-        query = select(ORMPickUpAction.arm, ORMPickUpAction.grasp,
-                       query_context.relative_x, query_context.relative_y)
-        query = query_context.join_statement(query).where(TaskTreeNode.status == TaskStatus.SUCCEEDED)
+        view = PickUpWithContextView
+        query = (select(view.arm, view.grasp, view.relative_x, view.relative_y)
+                 .where(view.status == TaskStatus.SUCCEEDED))
         return query
 
     def batch_rollout(self):
