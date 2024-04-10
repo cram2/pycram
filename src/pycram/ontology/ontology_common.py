@@ -33,11 +33,11 @@ class OntologyConceptHolderStore(object, metaclass=Singleton):
             return
         self.__all_ontology_concept_holders: Dict[str, OntologyConceptHolder] = {}
 
-    def add_ontology_concept_holder(self, concept_name: str, concept_holder: OntologyConceptHolder):
-        if concept_name in self.__all_ontology_concept_holders:
-            rospy.logerr(f"OntologyConceptHolder for `{concept_name}` was already created!")
+    def add_ontology_concept_holder(self, ontology_concept_name: str, ontology_concept_holder: OntologyConceptHolder):
+        if ontology_concept_name in self.__all_ontology_concept_holders:
+            rospy.logerr(f"OntologyConceptHolder for `{ontology_concept_name}` was already created!")
         else:
-            self.__all_ontology_concept_holders.setdefault(concept_name, concept_holder)
+            self.__all_ontology_concept_holders.setdefault(ontology_concept_name, ontology_concept_holder)
 
     def remove_ontology_concept(self, ontology_concept_name: str):
         """
@@ -86,7 +86,7 @@ class OntologyConceptHolderStore(object, metaclass=Singleton):
         Get the corresponding ontology concept for a given designator
         :param designator: A designator associated with an ontology concept
         """
-        return designator.ontology_concept_holders[0].ontology_concept
+        return designator.ontology_concept_holders[0].ontology_concept if designator.ontology_concept_holders else None
 
     def get_designators_of_ontology_concept(self, ontology_concept_name: str) -> List[DesignatorDescription]:
         """
