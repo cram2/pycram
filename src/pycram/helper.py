@@ -22,7 +22,11 @@ class Singleton(type):
     """
     Metaclass for singletons
     """
+
     _instances = {}
+    """
+    Dictionary of singleton child classes inheriting from this metaclass, keyed by child class objects.
+    """
 
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
