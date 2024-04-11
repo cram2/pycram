@@ -108,7 +108,7 @@ class OntologyManager(object, metaclass=Singleton):
         rospy.loginfo(f"Direct Instances: {list(ontology_class.direct_instances())}")
         rospy.loginfo(f"Inverse Restrictions: {list(ontology_class.inverse_restrictions())}")
 
-    def load_ontology(self, ontology_iri):
+    def load_ontology(self, ontology_iri) -> tuple[owlready2.Ontology, owlready2.Namespace] | None:
         """
         Load an ontology from an IRI
         :param ontology_iri: An ontology IRI
@@ -130,14 +130,14 @@ class OntologyManager(object, metaclass=Singleton):
             return ontology, ontology_namespace
         else:
             rospy.logerr(f"Ontology [{ontology.base_iri}]\'s name: {ontology.name} failed being loaded")
-            return None, None
+            return None
 
     def initialized(self) -> bool:
         return hasattr(self, "main_ontology") and self.main_ontology.loaded
 
     @staticmethod
     def browse_ontologies(ontology: owlready2.Ontology,
-                          condition: Optional[Callable] = None, func: Optional[Callable] = None, **kwargs):
+                          condition: Optional[Callable] = None, func: Optional[Callable] = None, **kwargs) -> None:
         """
         Browse the loaded ontologies (including the main and imported ones), doing operations based on a condition.
 
@@ -170,13 +170,14 @@ class OntologyManager(object, metaclass=Singleton):
                     func(sub_onto, **kwargs)
                     break
 
-    def save(self, target_filename: str = "", overwrite: bool = False):
+    def save(self, target_filename: str = "", overwrite: bool = False) -> bool:
         """
         Save the current ontology to disk
         :param target_filename: full name path of a file which the ontologies are saved into.
-        :param overwrite: overwrite an existing file if it exists
+        :param overwrite: overwrite an existing file if it exists.
         If empty, they are saved to the same original OWL file from which the main ontology was loaded, or
         a file at the same folder with ontology search path specified at constructor if it was loaded from a remote IRI.
+        :return: True if the ontology was successfully saved, False otherwise
         """
 
         # Commit the whole graph data of the current ontology world, saving it into SQLite3, to be reused the next time
@@ -190,6 +191,7 @@ class OntologyManager(object, metaclass=Singleton):
         save_to_same_file = is_current_ontology_local and (target_filename == current_ontology_filename)
         if save_to_same_file and not overwrite:
             rospy.logerr(f"Ontologies cannot be saved to the originally loaded [{target_filename}] if not by overwriting")
+            return False
         else:
             save_filename = target_filename if target_filename else current_ontology_filename
             self.main_ontology.save(save_filename)
@@ -197,6 +199,7 @@ class OntologyManager(object, metaclass=Singleton):
                 rospy.logwarn(f"Ontologies have been overwritten to {save_filename}")
             else:
                 rospy.loginfo(f"Ontologies have been saved to {save_filename}")
+            return True
 
     def create_ontology_concept_class(self, class_name: str,
                                       ontology_parent_concept_class: Optional[owlready2.Thing] = None) \
@@ -219,7 +222,7 @@ class OntologyManager(object, metaclass=Singleton):
     @staticmethod
     def create_ontology_property_class(class_name: str,
                                        ontology_parent_property_class: Optional[Type[owlready2.Property]] = None) \
-            -> Type[owlready2.Property]:
+            -> Type[owlready2.Property] | None:
         """
         Create a new property class in ontology
 
@@ -261,7 +264,7 @@ class OntologyManager(object, metaclass=Singleton):
         return out_classes
 
     @staticmethod
-    def get_ontology_class_by_ontology(ontology: owlready2.Ontology, class_name: str) -> Type[owlready2.Thing]:
+    def get_ontology_class_by_ontology(ontology: owlready2.Ontology, class_name: str) -> Type[owlready2.Thing] | None:
         """
         Get an ontology class if it exists in a given ontology
 
@@ -270,7 +273,7 @@ class OntologyManager(object, metaclass=Singleton):
         """
         return getattr(ontology, class_name) if ontology and hasattr(ontology, class_name) else None
 
-    def get_ontology_class(self, class_name: str) -> Type[owlready2.Thing]:
+    def get_ontology_class(self, class_name: str) -> Type[owlready2.Thing] | None:
         """
         Get an ontology class by name
 
@@ -334,7 +337,7 @@ class OntologyManager(object, metaclass=Singleton):
                                        ontology_property_parent_class: Optional[Type[
                                            owlready2.Property]] = owlready2.ObjectProperty if owlready2 else None,
                                        ontology_inverse_property_parent_class: Optional[Type[
-                                           owlready2.Property]] = owlready2.ObjectProperty if owlready2 else None):
+                                           owlready2.Property]] = owlready2.ObjectProperty if owlready2 else None) -> None:
         """
         Dynamically create ontology triple classes under same namespace with the main ontology,
         as known as {subject, predicate, object}, with the relations among them
@@ -375,7 +378,7 @@ class OntologyManager(object, metaclass=Singleton):
     def create_ontology_linked_designator(self, designator_name: str, designator_class: Type[DesignatorDescription],
                                           ontology_concept_name: str,
                                           ontology_parent_class: Optional[Type[owlready2.Thing]] = None) \
-            -> DesignatorDescription:
+            -> DesignatorDescription | None:
         """
         Create an object designator linked to a given ontology concept
 
@@ -420,7 +423,7 @@ class OntologyManager(object, metaclass=Singleton):
 
     @staticmethod
     def set_ontology_concept_designator_connection(designator: DesignatorDescription,
-                                                   ontology_concept_holder: OntologyConceptHolder):
+                                                   ontology_concept_holder: OntologyConceptHolder) -> None:
         """
         Set two-way connection between a designator and an ontology concept
 
@@ -436,13 +439,14 @@ class OntologyManager(object, metaclass=Singleton):
     @staticmethod
     def set_ontology_relation(subject_designator: DesignatorDescription,
                               object_designator: DesignatorDescription,
-                              predicate_name: str):
+                              predicate_name: str) -> bool:
         """
         Set ontology relation between subject and object designators
 
         :param subject_designator: An object designator as the ontology subject
         :param object_designator: An object designator as the ontology object
         :param predicate_name: Name of the predicate
+        :return: True if the relation is set, False otherwise
         """
         for subject_concept_holder in subject_designator.ontology_concept_holders:
             subject_concept = subject_concept_holder.ontology_concept
@@ -452,8 +456,10 @@ class OntologyManager(object, metaclass=Singleton):
                 for holder in object_designator.ontology_concept_holders:
                     if holder.ontology_concept.name not in object_concepts_names:
                         object_concepts_list.append(holder.ontology_concept)
+                return True
             else:
                 rospy.logerr(f"Ontology concept [{subject_concept.name}] has no predicate named [{predicate_name}]")
+                return False
 
     @staticmethod
     def get_designators_by_subject_predicate(subject: DesignatorDescription,
@@ -493,4 +499,4 @@ class OntologyManager(object, metaclass=Singleton):
             for ontology_individual in ontology_class.instances():
                 destroy_entity(ontology_individual)
             OntologyConceptHolderStore().remove_ontology_concept(ontology_class.name)
-            destroy_entity(ontology_class)
+        destroy_entity(ontology_class)
