@@ -33,18 +33,23 @@ class OntologyConceptHolderStore(object, metaclass=Singleton):
             return
         self.__all_ontology_concept_holders: Dict[str, OntologyConceptHolder] = {}
 
-    def add_ontology_concept_holder(self, ontology_concept_name: str, ontology_concept_holder: OntologyConceptHolder):
+    def add_ontology_concept_holder(self, ontology_concept_name: str, ontology_concept_holder: OntologyConceptHolder)\
+            -> bool:
         if ontology_concept_name in self.__all_ontology_concept_holders:
             rospy.logerr(f"OntologyConceptHolder for `{ontology_concept_name}` was already created!")
+            return False
         else:
             self.__all_ontology_concept_holders.setdefault(ontology_concept_name, ontology_concept_holder)
+            return True
 
-    def remove_ontology_concept(self, ontology_concept_name: str):
+    def remove_ontology_concept(self, ontology_concept_name: str) -> bool:
         """
         Remove an ontology concept from the store
         """
         if ontology_concept_name in self.__all_ontology_concept_holders:
             del self.__all_ontology_concept_holders[ontology_concept_name]
+            return True
+        return False
 
     def get_ontology_concepts_by_class(self, ontology_concept_class: Type[owlready2.Thing]) -> List[owlready2.Thing]:
         """
@@ -111,6 +116,8 @@ class OntologyConceptHolder(object):
         List of designators associated with this ontology concept
     resolve: Callable
         A callable used to resolve the designators to whatever of interest, like designators or their resolving results
+    concept_holder_store: OntologyConceptHolder
+        The store for all OntologyConceptHolder instances
     """
 
     def __init__(self, ontology_concept: owlready2.Thing):
