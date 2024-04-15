@@ -6,6 +6,13 @@ class PlanFailure(Exception):
         Exception.__init__(self, *args, **kwargs)
 
 
+class KnowledgeNotAvailable(PlanFailure):
+    """Thrown when a knowledge source can not provide the information for a query."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
 class NotALanguageExpression(PlanFailure):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
