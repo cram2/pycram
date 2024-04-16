@@ -2,9 +2,10 @@ import atexit
 import threading
 import time
 
-from geometry_msgs.msg import Vector3
+from geometry_msgs.msg import Vector3, Pose, Quaternion, Point
 from std_msgs.msg import ColorRGBA
 
+from pycram.datastructures.enums import AxisIdentifier
 from pycram.world import World
 from visualization_msgs.msg import MarkerArray, Marker
 import rospy
@@ -107,3 +108,214 @@ class VizMarkerPublisher:
         """
         self.kill_event.set()
         self.thread.join()
+
+
+class ManualMarkerPublisher:
+    """
+    Class to manually add and remove marker of objects and poses.
+    """
+
+    def __init__(self, topic_name='/pycram/manual_marker', interval=0.1):
+        """
+        The Publisher creates an Array of Visualization marker with a marker for a pose or object.
+        This Array is published with a rate of interval.
+
+        :param topic_name: Name of the marker topic
+        :param interval: Interval at which the marker should be published
+        """
+        self.start_time = None
+        self.marker_array_pub = rospy.Publisher(topic_name, MarkerArray, queue_size=10)
+
+        self.marker_array = MarkerArray()
+        self.marker_overview = {}
+        self.current_id = 0
+
+        self.bw_object = None
+        self.color = None
+        self.pose = None
+        self.name = None
+        self.interval = interval
+
+    def publish(self, pose: Pose, color=None, bw_object=None, name=None):
+        """
+        Publish a pose or an object into the MarkerArray.
+        Priorities to add an object if possible
+
+        :param pose: Pose of the marker
+        :param color: Color of the marker if no object is given
+        :param bw_object: Object to add as a marker
+        :param name: Name of the marker
+        """
+
+        if color is None:
+            color = [1, 0, 1, 1]
+        self.color = color
+        self.name = name
+        self.pose = pose
+        self.bw_object = bw_object
+
+        self.start_time = time.time()
+        thread = threading.Thread(target=self._publish)
+        thread.start()
+        thread.join()
+
+    def _publish(self):
+        """
+        Publish the marker into the MarkerArray
+        """
+        stop_thread = False
+        duration = 2
+
+        while not stop_thread:
+            if time.time() - self.start_time > duration:
+                stop_thread = True
+            if self.bw_object is None:
+                self._publish_pose(name=self.name, pose=self.pose, color=self.color)
+            else:
+                self._publish_object(name=self.name, pose=self.pose, bw_object=self.bw_object)
+
+            rospy.sleep(self.interval)
+
+    def _publish_pose(self, name, pose, color=None):
+        """
+        Publish a Pose as a marker
+
+        :param name: Name of the marker
+        :param pose: Pose of the marker
+        :param color: Color of the marker
+        """
+
+        if name is None:
+            name = 'pose_marker'
+
+        if name in self.marker_overview.keys():
+            self._update_marker(self.marker_overview[name], new_pose=pose)
+            return
+
+        color_rgba = ColorRGBA(*color)
+        self.create_marker(name=name, marker_type=Marker.ARROW, marker_pose=pose,
+                           marker_scales=(0.05, 0.05, 0.05), color_rgba=color_rgba)
+        self.marker_array_pub.publish(self.marker_array)
+        rospy.logwarn("Marker array published")
+
+    def _publish_object(self, name, pose, bw_object):
+        """
+        Publish an Object as a marker
+
+        :param name: Name of the marker
+        :param pose: Pose of the marker
+        :param bw_object: Bulletworld object for the marker
+        """
+
+        bw_real = bw_object.resolve()
+
+        if name is None:
+            name = bw_real.name
+
+        if name in self.marker_overview.keys():
+            self._update_marker(self.marker_overview[name], new_pose=pose)
+            return
+
+        path = bw_real.bullet_world_object.urdf_object.links[0].visual.geometry.filename
+
+        self._make_marker_array(name=name, marker_type=Marker.MESH_RESOURCE, marker_pose=pose,
+                                path_to_resource=path)
+
+        self.marker_array_pub.publish(self.marker_array)
+
+    def _make_marker_array(self, name, marker_type, marker_pose: Pose, marker_scales=(1.0, 1.0, 1.0),
+                           color_rgba=ColorRGBA(*[1.0, 1.0, 1.0, 1.0]), path_to_resource=None):
+        """
+        Create a Marker and add it to the MarkerArray
+
+        :param name: Name of the Marker
+        :param marker_type: Type of the marker to create
+        :param marker_pose: Pose of the marker
+        :param marker_scales: individual scaling of the markers axes
+        :param color_rgba: Color of the marker as RGBA
+        :param path_to_resource: Path to the resource of a Bulletworld object
+        """
+
+        frame_id = marker_pose.header.frame_id
+        new_marker = Marker()
+        new_marker.id = self.current_id
+        new_marker.header.frame_id = frame_id
+        new_marker.ns = name
+        new_marker.header.stamp = rospy.Time.now()
+        new_marker.type = marker_type
+        new_marker.action = Marker.ADD
+        new_marker.pose.position.x = marker_pose.pose.position.x
+        new_marker.pose.position.y = marker_pose.pose.position.y
+        new_marker.pose.position.z = marker_pose.pose.position.z
+        new_marker.pose.orientation = Quaternion(0.0, 0.0, 0.0, 1.0)
+        new_marker.scale.x = marker_scales[0]
+        new_marker.scale.y = marker_scales[1]
+        new_marker.scale.z = marker_scales[2]
+        new_marker.color.a = color_rgba.a
+        new_marker.color.r = color_rgba.r
+        new_marker.color.g = color_rgba.g
+        new_marker.color.b = color_rgba.b
+
+        if path_to_resource is not None:
+            new_marker.mesh_resource = 'file://' + path_to_resource
+
+        self.marker_array.markers.append(new_marker)
+        self.marker_overview[name] = new_marker.id
+        self.current_id += 1
+
+    def _update_marker(self, marker_id, new_pose):
+        """
+        Update an existing marker to a new pose
+
+        :param marker_id: id of the marker that should be updated
+        :param new_pose: Pose where the updated marker is set
+        """
+
+        # Find the marker with the specified ID
+        for marker in self.marker_array.markers:
+            if marker.id == marker_id:
+                # Update successful
+                marker.pose = new_pose
+                rospy.logdebug(f"Marker {marker_id} updated")
+                self.marker_array_pub.publish(self.marker_array)
+                return True
+
+        # Update was not successful
+        rospy.logwarn(f"Marker {marker_id} not found for update")
+        return False
+
+    def remove_marker(self, bw_object=None, name=None):
+        """
+        Remove a marker by object or name
+
+        :param bw_object: Object which marker should be removed
+        :param name: Name of object that should be removed
+        """
+
+        if bw_object is not None:
+            bw_real = bw_object.resolve()
+            name = bw_real.name
+
+        if name is None:
+            rospy.logerr('No name for object given, cannot remove marker')
+            return
+
+        marker_id = self.marker_overview.pop(name)
+
+        for marker in self.marker_array.markers:
+            if marker.id == marker_id:
+                marker.action = Marker.DELETE
+
+        self.marker_array_pub.publish(self.marker_array)
+        self.marker_array.markers.pop(marker_id)
+        self.marker_array_pub.publish(self.marker_array)
+
+    def clear_all_marker(self):
+        """
+        Clear all existing markers
+        """
+        for marker in self.marker_array.markers:
+            marker.action = Marker.DELETE
+
+        self.marker_overview = {}
+        self.marker_array_pub.publish(self.marker_array)
