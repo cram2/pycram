@@ -21,7 +21,7 @@ try:
     from giskard_msgs.msg import WorldBody, MoveResult, CollisionEntry
     from giskard_msgs.srv import UpdateWorldRequest, UpdateWorld, UpdateWorldResponse, RegisterGroupResponse
 except ModuleNotFoundError as e:
-    rospy.logwarn("Failed to import Giskard messages")
+    rospy.logwarn("Unable to import Giskard messages. Real robot not available")
 
 giskard_wrapper = None
 giskard_update_service = None
