@@ -1,4 +1,6 @@
-from typing_extensions import List, Union
+import rosnode
+import tf
+from typing_extensions import List, Union, Tuple, Dict
 
 import rospy
 from moveit_msgs.msg import PositionIKRequest
@@ -6,12 +8,14 @@ from moveit_msgs.msg import RobotState
 from moveit_msgs.srv import GetPositionIK
 from sensor_msgs.msg import JointState
 
-from pycram.world_concepts.world_object import Object
+from ..world import World, UseProspectionWorld
+from ..world_concepts.world_object import Object
 from ..helper import calculate_wrist_tool_offset, _apply_ik
-from pycram.local_transformer import LocalTransformer
-from pycram.datastructures.pose import Pose
+from ..local_transformer import LocalTransformer
+from ..datastructures.pose import Pose
 from ..robot_descriptions import robot_description
 from ..plan_failures import IKError
+from ..external_interfaces.giskard import projection_cartisian_goal, achieve_cartesian_goal
 
 
 def _make_request_msg(root_link: str, tip_link: str, target_pose: Pose, robot_object: Object,
@@ -70,6 +74,7 @@ def call_ik(root_link: str, tip_link: str, target_pose: Pose, robot_object: Obje
     else:
         ik_service = "/kdl_ik_service/get_ik"
 
+    rospy.loginfo_once(f"Waiting for IK service: {ik_service}")
     rospy.wait_for_service(ik_service)
 
     req = _make_request_msg(root_link, tip_link, target_pose, robot_object, joints)
@@ -145,6 +150,12 @@ def try_to_reach(pose_or_object: Union[Pose, Object], prospection_robot: Object,
 
 
 def request_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str) -> List[float]:
+    if "/giskard" not in rosnode.get_node_names():
+        return request_kdl_ik(target_pose, robot, joints, gripper)
+    return request_giskard_ik(target_pose, robot, joints, gripper)
+
+
+def request_kdl_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str) -> List[float]:
     """
     Top-level method to request ik solution for a given pose. Before calling the ik service the links directly before
     and after the joint chain will be queried and the target_pose will be transformed into the frame of the root_link.
@@ -170,3 +181,44 @@ def request_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str
     inv = call_ik(base_link, end_effector, target_diff, robot, joints)
 
     return inv
+
+
+def request_giskard_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str) -> Tuple[Pose, Dict[str, float]]:
+    """
+    Calls giskard in projection mode and queries the ik solution for a full body ik solution.
+
+    :param target_pose: Pose at which the end effector should be moved.
+    :param robot: Robot object which should be used.
+    :param joints: List of joints that should be used in computation.
+    :param gripper: Name of the tool frame which should grasp, this should be at the end of the given joint chain.
+    :return: A list of joint values.
+    """
+    local_transformer = LocalTransformer()
+    target_map = local_transformer.transform_pose(target_pose, "map")
+
+    result = projection_cartisian_goal(target_map, gripper, "map")
+    last_point = result.trajectory.points[-1]
+    joint_names = result.trajectory.joint_names
+
+    joint_states = dict(zip(joint_names, last_point.positions))
+    prospection_robot = World.current_world.get_prospection_object_for_object(robot)
+
+    orientation = list(tf.transformations.quaternion_from_euler(0, 0, joint_states["brumbrum_yaw"], axes="sxyz"))
+    pose = Pose([joint_states["brumbrum_x"], joint_states["brumbrum_y"], 0], orientation)
+
+    robot_joint_states = {}
+    for joint_name, state in joint_states.items():
+        if joint_name in robot.joints.keys():
+            robot_joint_states[joint_name] = state
+
+    with UseProspectionWorld():
+        prospection_robot.set_joint_positions(robot_joint_states)
+        prospection_robot.set_pose(pose)
+
+        tip_pose = prospection_robot.get_link_pose(gripper)
+        dist = tip_pose.dist(target_map)
+
+        if dist > 0.01:
+            raise IKError(target_pose, "map")
+        return pose, robot_joint_states
+
