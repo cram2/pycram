@@ -1,54 +1,42 @@
-from ...external_interfaces.giskard import achieve_cartesian_goal
+import rospy
+
 from ...designators.location_designator import CostmapLocation
-from pycram.world import UseProspectionWorld, World
-from pycram.datastructures.pose import Pose
+from ...external_interfaces.ik import request_giskard_ik
+from ...robot_description import ManipulatorDescription
+from ...world import UseProspectionWorld, World
+from ...datastructures.pose import Pose
 from ...robot_descriptions import robot_description
-from pycram.pose_generator_and_validator import reachability_validator
+from ...pose_generator_and_validator import reachability_validator
+from ...local_transformer import LocalTransformer
+from ...external_interfaces.giskard import projection_cartisian_goal
+from ...plan_failures import IKError
 from typing_extensions import Tuple, Dict
 
 import tf
 
 
 class GiskardLocation(CostmapLocation):
+    """'
+    Specialization version of the CostmapLocation which uses Giskard to solve for a full-body IK solution. This
+    designator is especially useful for robots which lack a degree of freedom and therefore need to use the base to
+    manipulate the environment effectively.
+    """
 
     def __iter__(self) -> CostmapLocation.Location:
         """
-        Resolves a CostmapLocation for reachability to a specific Location using Giskard. Since Giskard is able to perform
-        full body IK solving we can use this to get the Pose of a robot at which it is able to reach a certain point.
-        This resolver only supports reachable_for and not visible_for
+        Uses Giskard to perform full body ik solving to get the pose of a robot at which it is able to reach a certain point.
 
-        :param desig: A CostmapLocation Designator description
-        :return: An instance of CostmapLocation.Location with a pose from which the robot can reach the target
+        :yield: An instance of CostmapLocation.Location with a pose from which the robot can reach the target
         """
-        if self.reachable_for:
-            pose_right, end_config_right = self._get_reachable_pose_for_arm(self.target,
-                                                                            robot_description.get_tool_frame("right"))
-            pose_left, end_config_left = self._get_reachable_pose_for_arm(self.target,
-                                                                          robot_description.get_tool_frame("left"))
+        local_transformer = LocalTransformer()
+        target_map = local_transformer.transform_pose(self.target, "map")
 
-            test_robot = World.current_world.get_prospection_object_for_object(World.robot)
-            with UseProspectionWorld():
-                valid, arms = reachability_validator(pose_right, test_robot, self.target, {})
-                if valid:
-                    yield CostmapLocation.Location(pose_right, arms)
-                valid, arms = reachability_validator(pose_left, test_robot, self.target, {})
-                if valid:
-                    yield self.Location(pose_left, arms)
+        manipulator_descs = list(
+            filter(lambda chain: isinstance(chain[1], ManipulatorDescription), robot_description.chains.items()))
+        for name, chain in manipulator_descs:
+            try:
+                pose, joint_states = request_giskard_ik(target_map, World.robot, chain.tool_frame)
+                yield self.Location(pose, chain.name)
+            except IKError as e:
+                pass
 
-    def _get_reachable_pose_for_arm(self, target: Pose, end_effector_link: str) -> Tuple[Pose, Dict]:
-        """
-        Calls Giskard to perform full body ik solving between the map and the given end effector link. The end joint
-        configuration of the robot as well as its end pose are then returned.
-
-        :param target: The pose which the robots end effector should reach
-        :param end_effector_link: The name of the end effector which should reach the target
-        :return: The end pose of the robot as well as its final joint configuration
-        """
-        giskard_result = achieve_cartesian_goal(target, end_effector_link, "map")
-        joints = giskard_result.trajectory.joint_names
-        trajectory_points = giskard_result.trajectory.points
-
-        end_config = dict(zip(joints, trajectory_points[-1].positions))
-        orientation = list(tf.transformations.quaternion_from_euler(0, 0, end_config["yaw"], axes="sxyz"))
-        pose = Pose([end_config["x"], end_config["y"], 0], orientation)
-        return pose, end_config

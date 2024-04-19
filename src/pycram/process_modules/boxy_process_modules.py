@@ -196,7 +196,7 @@ def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
     joints = robot_description.chains[arm].joints
 
     inv = request_ik(target, robot, joints, gripper)
-    helper._apply_ik(robot, inv, joints)
+    helper._apply_ik(robot, inv)
 
 
 class BoxyManager(ProcessModuleManager):

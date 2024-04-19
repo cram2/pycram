@@ -205,7 +205,7 @@ def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
     joints = robot_description.chains[arm].joints
 
     inv = request_ik(target, robot, joints, gripper)
-    _apply_ik(robot, inv, joints)
+    _apply_ik(robot, inv)
 
 
 ###########################################################

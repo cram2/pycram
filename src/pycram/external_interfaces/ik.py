@@ -149,13 +149,23 @@ def try_to_reach(pose_or_object: Union[Pose, Object], prospection_robot: Object,
     return input_pose
 
 
-def request_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str) -> List[float]:
+def request_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str) -> Tuple[Pose, Dict[str, float]]:
+    """
+    Top-level method to request ik solution for a given pose. This method will check if the giskard node is running
+    and if so will call the giskard service. If the giskard node is not running the kdl_ik_service will be called.
+
+    :param target_pose: Pose of the end-effector for which an ik solution should be found
+    :param robot: The robot object which should be used
+    :param joints: A list of joints that should be used in computation, this is only relevant for the kdl_ik_service
+    :param gripper: Name of the tool frame which should grasp, this should be at the end of the given joint chain
+    :return: A Pose at which the robt should stand as well as a dictionary of joint values
+    """
     if "/giskard" not in rosnode.get_node_names():
-        return request_kdl_ik(target_pose, robot, joints, gripper)
-    return request_giskard_ik(target_pose, robot, joints, gripper)
+        return robot.pose, request_kdl_ik(target_pose, robot, joints, gripper)
+    return request_giskard_ik(target_pose, robot, gripper)
 
 
-def request_kdl_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str) -> List[float]:
+def request_kdl_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str) -> Dict[str, float]:
     """
     Top-level method to request ik solution for a given pose. Before calling the ik service the links directly before
     and after the joint chain will be queried and the target_pose will be transformed into the frame of the root_link.
@@ -180,19 +190,19 @@ def request_kdl_ik(target_pose: Pose, robot: Object, joints: List[str], gripper:
 
     inv = call_ik(base_link, end_effector, target_diff, robot, joints)
 
-    return inv
+    return dict(zip(joints, inv))
 
 
-def request_giskard_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str) -> Tuple[Pose, Dict[str, float]]:
+def request_giskard_ik(target_pose: Pose, robot: Object, gripper: str) -> Tuple[Pose, Dict[str, float]]:
     """
     Calls giskard in projection mode and queries the ik solution for a full body ik solution.
 
     :param target_pose: Pose at which the end effector should be moved.
     :param robot: Robot object which should be used.
-    :param joints: List of joints that should be used in computation.
     :param gripper: Name of the tool frame which should grasp, this should be at the end of the given joint chain.
     :return: A list of joint values.
     """
+    rospy.loginfo_once(f"Using Giskard for full body IK")
     local_transformer = LocalTransformer()
     target_map = local_transformer.transform_pose(target_pose, "map")
 
