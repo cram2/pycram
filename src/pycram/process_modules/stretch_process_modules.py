@@ -9,6 +9,7 @@ from ..external_interfaces import giskard
 from .default_process_modules import *
 from ..world import World
 from ..designators.motion_designator import *
+from ..external_interfaces.ik import request_giskard_ik
 
 
 class StretchNavigate(DefaultNavigation):
@@ -127,10 +128,10 @@ class StretchClose(ProcessModule):
 def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
     gripper = robot_description.get_tool_frame(arm)
 
-    joints = robot_description.chains[arm].joints
-
-    inv = request_ik(target, robot, joints, gripper)
-    _apply_ik(robot, inv, joints)
+    # inv = request_ik(target, robot, joints, gripper)
+    pose, joint_states = request_giskard_ik(target, robot, gripper)
+    robot.set_pose(pose)
+    robot.set_joint_positions(joint_states)
 
 
 ###########################################################

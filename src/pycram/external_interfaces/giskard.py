@@ -24,7 +24,7 @@ try:
 except ModuleNotFoundError as e:
     rospy.logwarn("Failed to import Giskard messages")
 
-giskard_wrapper = None
+giskard_wrapper: GiskardWrapper = None
 giskard_update_service = None
 is_init = False
 
@@ -98,7 +98,7 @@ def initial_adding_objects() -> None:
     """
     groups = giskard_wrapper.get_group_names()
     for obj in World.current_world.objects:
-        if obj is World.robot:
+        if obj is World.robot or obj is World.current_world.get_prospection_object_for_object(World.robot):
             continue
         name = obj.name + "_" + str(obj.id)
         if name not in groups:
