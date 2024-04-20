@@ -1,4 +1,5 @@
 {
+  "name": "PyCRAM vscode devcontainer",
   "image": "pycram/pycram:dev",
   "features": {
     "ghcr.io/devcontainers/features/git:1": {},
