@@ -1,0 +1,2150 @@
+#usda 1.0
+(
+    defaultPrim = "red_apple"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Xform "red_apple" (
+    prepend apiSchemas = ["MujocoBodyAPI"]
+)
+{
+    point3f mujoco:body:pos = (0, 0, 0)
+    quatf mujoco:body:quat = (1, 0, 0, 0)
+
+    def Xform "apple_stalk" (
+        prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsMassAPI", "UrdfLinkInertialAPI", "MujocoBodyInertialAPI", "MujocoBodyAPI"]
+    )
+    {
+        float3 mujoco:body:inertial:diaginertia = (1.837902e-11, 2.4994737e-8, 2.500257e-8)
+        float mujoco:body:inertial:mass = 0.000035406298
+        point3f mujoco:body:inertial:pos = (3.0206952e-9, 0.00018739681, 0.025003446)
+        quatf mujoco:body:inertial:quat = (0.7071051, -0.0015771886, -0.707105, 0.0015790637)
+        point3f mujoco:body:pos = (0, 0, 0)
+        quatf mujoco:body:quat = (1, 0, 0, 0)
+        point3f physics:centerOfMass = (3.0206952e-9, 0.00018739681, 0.025003446)
+        float3 physics:diagonalInertia = (1.837902e-11, 2.4994737e-8, 2.500257e-8)
+        float physics:mass = 0.000035406298
+        quatf physics:principalAxes = (0.7071051, -0.0015771886, -0.707105, 0.0015790637)
+        bool physics:rigidBodyEnabled = 1
+        float urdf:link:inertial:inertia:ixx = 1.837902e-11
+        float urdf:link:inertial:inertia:iyy = 2.4994737e-8
+        float urdf:link:inertial:inertia:izz = 2.500257e-8
+        float urdf:link:inertial:mass = 0.000035406298
+        float3 urdf:link:inertial:origin:rpy = (-1.5707573, -1.5663327, 1.5707599)
+        point3f urdf:link:inertial:origin:xyz = (3.0206952e-9, 0.00018739681, 0.025003446)
+
+        def Mesh "AppleStalk" (
+            prepend apiSchemas = ["MaterialBindingAPI", "UrdfLinkVisualAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleStalk.usda@</AppleStalk>
+        )
+        {
+            rel material:binding = </red_apple/apple_stalk/AppleStalk/Materials/M_AppleStalk>
+            rel mujoco:geom:material = </mujoco/asset/materials/M_AppleStalk>
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleStalk>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/obj/AppleStalk.obj@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            float3 urdf:visual:origin:rpy = (0, 0, 0)
+            point3f urdf:visual:origin:xyz = (0, 0, 0)
+
+            def Scope "Materials"
+            {
+                def Material "M_AppleStalk" (
+                    prepend references = @./red_apple/materials/usd/M_AppleStalk.usda@</M_AppleStalk>
+                )
+                {
+                }
+            }
+        }
+
+        def Mesh "AppleStalk_001" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleStalk_001.usda@</AppleStalk_001>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleStalk_001>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleStalk_001.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleStalk_002" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleStalk_002.usda@</AppleStalk_002>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleStalk_002>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleStalk_002.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+    }
+
+    def Xform "apple_peel" (
+        prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsMassAPI", "UrdfLinkInertialAPI", "MujocoBodyInertialAPI", "MujocoBodyAPI"]
+    )
+    {
+        float3 mujoco:body:inertial:diaginertia = (0.0000012347762, 0.0000012760066, 0.000001276009)
+        float mujoco:body:inertial:mass = 0.0015162393
+        point3f mujoco:body:inertial:pos = (2.4516245e-7, 6.2307116e-8, -0.0029049267)
+        quatf mujoco:body:inertial:quat = (0.6638002, -0.24362272, 0.6638486, 0.24356173)
+        point3f mujoco:body:pos = (0, 0, 0)
+        quatf mujoco:body:quat = (1, 0, 0, 0)
+        point3f physics:centerOfMass = (2.4516245e-7, 6.2307116e-8, -0.0029049267)
+        float3 physics:diagonalInertia = (0.0000012347762, 0.0000012760066, 0.000001276009)
+        float physics:mass = 0.0015162393
+        quatf physics:principalAxes = (0.6638002, -0.24362272, 0.6638486, 0.24356173)
+        bool physics:rigidBodyEnabled = 1
+        float urdf:link:inertial:inertia:ixx = 0.0000012347762
+        float urdf:link:inertial:inertia:iyy = 0.0000012760066
+        float urdf:link:inertial:inertia:izz = 0.000001276009
+        float urdf:link:inertial:mass = 0.0015162393
+        float3 urdf:link:inertial:origin:rpy = (-2.593289, 1.5706862, -1.889895)
+        point3f urdf:link:inertial:origin:xyz = (2.4516245e-7, 6.2307116e-8, -0.0029049267)
+
+        def Mesh "ApplePeel" (
+            prepend apiSchemas = ["MaterialBindingAPI", "UrdfLinkVisualAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/ApplePeel.usda@</ApplePeel>
+        )
+        {
+            rel material:binding = </red_apple/apple_peel/ApplePeel/Materials/M_ApplePeel>
+            rel mujoco:geom:material = </mujoco/asset/materials/M_ApplePeel>
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/ApplePeel>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/obj/ApplePeel.obj@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            float3 urdf:visual:origin:rpy = (0, 0, 0)
+            point3f urdf:visual:origin:xyz = (0, 0, 0)
+
+            def Scope "Materials"
+            {
+                def Material "M_ApplePeel" (
+                    prepend references = @./red_apple/materials/usd/M_ApplePeel.usda@</M_ApplePeel>
+                )
+                {
+                }
+            }
+        }
+
+        def Mesh "ApplePeel_001" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/ApplePeel_001.usda@</ApplePeel_001>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/ApplePeel_001>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/ApplePeel_001.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "ApplePeel_002" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/ApplePeel_002.usda@</ApplePeel_002>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/ApplePeel_002>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/ApplePeel_002.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "ApplePeel_003" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/ApplePeel_003.usda@</ApplePeel_003>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/ApplePeel_003>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/ApplePeel_003.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "ApplePeel_004" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/ApplePeel_004.usda@</ApplePeel_004>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/ApplePeel_004>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/ApplePeel_004.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+    }
+
+    def Xform "apple_seed" (
+        prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsMassAPI", "UrdfLinkInertialAPI", "MujocoBodyInertialAPI", "MujocoBodyAPI"]
+    )
+    {
+        float3 mujoco:body:inertial:diaginertia = (5.545102e-9, 5.5451066e-9, 6.824701e-9)
+        float mujoco:body:inertial:mass = 0.00022019586
+        point3f mujoco:body:inertial:pos = (1.0903399e-9, -1.7177891e-9, -0.0027028325)
+        quatf mujoco:body:inertial:quat = (0.2573159, -2.1909754e-7, -3.8339246e-7, 0.9663273)
+        point3f mujoco:body:pos = (0, 0, 0)
+        quatf mujoco:body:quat = (1, 0, 0, 0)
+        point3f physics:centerOfMass = (1.0903399e-9, -1.7177891e-9, -0.0027028325)
+        float3 physics:diagonalInertia = (5.545102e-9, 5.5451066e-9, 6.824701e-9)
+        float physics:mass = 0.00022019586
+        quatf physics:principalAxes = (0.2573159, -2.1909754e-7, -3.8339246e-7, 0.9663273)
+        bool physics:rigidBodyEnabled = 1
+        float urdf:link:inertial:inertia:ixx = 5.545102e-9
+        float urdf:link:inertial:inertia:iyy = 5.5451066e-9
+        float urdf:link:inertial:inertia:izz = 6.824701e-9
+        float urdf:link:inertial:mass = 0.00022019586
+        float3 urdf:link:inertial:origin:rpy = (-8.537198e-7, 2.2613393e-7, 2.6211054)
+        point3f urdf:link:inertial:origin:xyz = (1.0903399e-9, -1.7177891e-9, -0.0027028325)
+
+        def Mesh "AppleSeed" (
+            prepend apiSchemas = ["MaterialBindingAPI", "UrdfLinkVisualAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleSeed.usda@</AppleSeed>
+        )
+        {
+            rel material:binding = </red_apple/apple_seed/AppleSeed/Materials/M_AppleSeed>
+            rel mujoco:geom:material = </mujoco/asset/materials/M_AppleSeed>
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleSeed>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/obj/AppleSeed.obj@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            float3 urdf:visual:origin:rpy = (0, 0, 0)
+            point3f urdf:visual:origin:xyz = (0, 0, 0)
+
+            def Scope "Materials"
+            {
+                def Material "M_AppleSeed" (
+                    prepend references = @./red_apple/materials/usd/M_AppleSeed.usda@</M_AppleSeed>
+                )
+                {
+                }
+            }
+        }
+
+        def Mesh "AppleSeed_001" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleSeed_001.usda@</AppleSeed_001>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleSeed_001>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleSeed_001.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleSeed_002" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleSeed_002.usda@</AppleSeed_002>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleSeed_002>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleSeed_002.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleSeed_003" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleSeed_003.usda@</AppleSeed_003>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleSeed_003>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleSeed_003.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleSeed_004" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleSeed_004.usda@</AppleSeed_004>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleSeed_004>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleSeed_004.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+    }
+
+    def Xform "apple_caylx" (
+        prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsMassAPI", "UrdfLinkInertialAPI", "MujocoBodyInertialAPI", "MujocoBodyAPI"]
+    )
+    {
+        float3 mujoco:body:inertial:diaginertia = (1.0677496e-12, 4.9290916e-10, 4.9290927e-10)
+        float mujoco:body:inertial:mass = 3.982466e-7
+        point3f mujoco:body:inertial:pos = (8.114677e-8, 0.0000011141786, -0.035159845)
+        quatf mujoco:body:inertial:quat = (-0.08026134, 0.7025361, 0.08023912, 0.7025403)
+        point3f mujoco:body:pos = (0, 0, 0)
+        quatf mujoco:body:quat = (1, 0, 0, 0)
+        point3f physics:centerOfMass = (8.114677e-8, 0.0000011141786, -0.035159845)
+        float3 physics:diagonalInertia = (1.0677496e-12, 4.9290916e-10, 4.9290927e-10)
+        float physics:mass = 3.982466e-7
+        quatf physics:principalAxes = (-0.08026134, 0.7025361, 0.08023912, 0.7025403)
+        bool physics:rigidBodyEnabled = 1
+        float urdf:link:inertial:inertia:ixx = 1.0677496e-12
+        float urdf:link:inertial:inertia:iyy = 4.9290916e-10
+        float urdf:link:inertial:inertia:izz = 4.9290927e-10
+        float urdf:link:inertial:mass = 3.982466e-7
+        float3 urdf:link:inertial:origin:rpy = (-1.2714897, -1.5707643, -1.6426309)
+        point3f urdf:link:inertial:origin:xyz = (8.114677e-8, 0.0000011141786, -0.035159845)
+
+        def Mesh "AppleCaylx" (
+            prepend apiSchemas = ["MaterialBindingAPI", "UrdfLinkVisualAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx.usda@</AppleCaylx>
+        )
+        {
+            rel material:binding = </red_apple/apple_caylx/AppleCaylx/Materials/M_AppleCaylx>
+            rel mujoco:geom:material = </mujoco/asset/materials/M_AppleCaylx>
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/obj/AppleCaylx.obj@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            float3 urdf:visual:origin:rpy = (0, 0, 0)
+            point3f urdf:visual:origin:xyz = (0, 0, 0)
+
+            def Scope "Materials"
+            {
+                def Material "M_AppleCaylx" (
+                    prepend references = @./red_apple/materials/usd/M_AppleCaylx.usda@</M_AppleCaylx>
+                )
+                {
+                }
+            }
+        }
+
+        def Mesh "AppleCaylx_001" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_001.usda@</AppleCaylx_001>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_001>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_001.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_002" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_002.usda@</AppleCaylx_002>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_002>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_002.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_003" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_003.usda@</AppleCaylx_003>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_003>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_003.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_004" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_004.usda@</AppleCaylx_004>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_004>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_004.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_005" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_005.usda@</AppleCaylx_005>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_005>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_005.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_006" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_006.usda@</AppleCaylx_006>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_006>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_006.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_007" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_007.usda@</AppleCaylx_007>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_007>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_007.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_008" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_008.usda@</AppleCaylx_008>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_008>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_008.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_009" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_009.usda@</AppleCaylx_009>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_009>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_009.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_010" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_010.usda@</AppleCaylx_010>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_010>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_010.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_011" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_011.usda@</AppleCaylx_011>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_011>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_011.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_012" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_012.usda@</AppleCaylx_012>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_012>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_012.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_013" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_013.usda@</AppleCaylx_013>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_013>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_013.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_014" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_014.usda@</AppleCaylx_014>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_014>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_014.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_015" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_015.usda@</AppleCaylx_015>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_015>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_015.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_016" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_016.usda@</AppleCaylx_016>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_016>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_016.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_017" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_017.usda@</AppleCaylx_017>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_017>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_017.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_018" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_018.usda@</AppleCaylx_018>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_018>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_018.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_019" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_019.usda@</AppleCaylx_019>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_019>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_019.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_020" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_020.usda@</AppleCaylx_020>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_020>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_020.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_021" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_021.usda@</AppleCaylx_021>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_021>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_021.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_022" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_022.usda@</AppleCaylx_022>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_022>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_022.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_023" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_023.usda@</AppleCaylx_023>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_023>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_023.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_024" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_024.usda@</AppleCaylx_024>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_024>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_024.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_025" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_025.usda@</AppleCaylx_025>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_025>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_025.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_026" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_026.usda@</AppleCaylx_026>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_026>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_026.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_027" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_027.usda@</AppleCaylx_027>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_027>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_027.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_028" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_028.usda@</AppleCaylx_028>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_028>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_028.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_029" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_029.usda@</AppleCaylx_029>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_029>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_029.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_030" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_030.usda@</AppleCaylx_030>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_030>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_030.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_031" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_031.usda@</AppleCaylx_031>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_031>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_031.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_032" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_032.usda@</AppleCaylx_032>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_032>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_032.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_033" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_033.usda@</AppleCaylx_033>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_033>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_033.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_034" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_034.usda@</AppleCaylx_034>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_034>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_034.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_035" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_035.usda@</AppleCaylx_035>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_035>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_035.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_036" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_036.usda@</AppleCaylx_036>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_036>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_036.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_037" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_037.usda@</AppleCaylx_037>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_037>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_037.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_038" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_038.usda@</AppleCaylx_038>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_038>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_038.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_039" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_039.usda@</AppleCaylx_039>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_039>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_039.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_040" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_040.usda@</AppleCaylx_040>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_040>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_040.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_041" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_041.usda@</AppleCaylx_041>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_041>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_041.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_042" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_042.usda@</AppleCaylx_042>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_042>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_042.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_043" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_043.usda@</AppleCaylx_043>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_043>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_043.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_044" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_044.usda@</AppleCaylx_044>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_044>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_044.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_045" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_045.usda@</AppleCaylx_045>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_045>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_045.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_046" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_046.usda@</AppleCaylx_046>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_046>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_046.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_047" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_047.usda@</AppleCaylx_047>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_047>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_047.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_048" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_048.usda@</AppleCaylx_048>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_048>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_048.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_049" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_049.usda@</AppleCaylx_049>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_049>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_049.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_050" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_050.usda@</AppleCaylx_050>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_050>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_050.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_051" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_051.usda@</AppleCaylx_051>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_051>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_051.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_052" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_052.usda@</AppleCaylx_052>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_052>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_052.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_053" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_053.usda@</AppleCaylx_053>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_053>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_053.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_054" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_054.usda@</AppleCaylx_054>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_054>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_054.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_055" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_055.usda@</AppleCaylx_055>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_055>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_055.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_056" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_056.usda@</AppleCaylx_056>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_056>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_056.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_057" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_057.usda@</AppleCaylx_057>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_057>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_057.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_058" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_058.usda@</AppleCaylx_058>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_058>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_058.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_059" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_059.usda@</AppleCaylx_059>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_059>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_059.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_060" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_060.usda@</AppleCaylx_060>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_060>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_060.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+
+        def Mesh "AppleCaylx_061" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI", "UrdfLinkCollisionAPI", "UrdfGeometryMeshAPI", "MujocoGeomAPI"]
+            prepend references = @./red_apple/meshes/usd/AppleCaylx_061.usda@</AppleCaylx_061>
+        )
+        {
+            rel mujoco:geom:mesh = </mujoco/asset/meshes/AppleCaylx_061>
+            point3f mujoco:geom:pos = (0, 0, 0)
+            quatf mujoco:geom:quat = (1, 0, 0, 0)
+            vector3f mujoco:geom:size = (1, 1, 1)
+            uniform token mujoco:geom:type = "mesh"
+            uniform token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 1
+            float[] primvars:displayOpacity = [0]
+            float3 urdf:collision:origin:rpy = (0, 0, 0)
+            point3f urdf:collision:origin:xyz = (0, 0, 0)
+            asset urdf:geometry:mesh:filename = @./red_apple/meshes/stl/AppleCaylx_061.stl@
+            float3 urdf:geometry:mesh:scale = (1, 1, 1)
+            token visibility = "invisible"
+        }
+    }
+}
+
+def Urdf "urdf"
+{
+    string urdf:name = "red_apple"
+}
+
+def Mujoco "mujoco"
+{
+    string mujoco:model = "red_apple"
+
+    def MujocoAsset "asset"
+    {
+        def MujocoMesh "meshes"
+        {
+            def MujocoMesh "AppleStalk"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleStalk.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleStalk_001"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleStalk_001.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleStalk_002"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleStalk_002.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "ApplePeel"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/obj/ApplePeel.obj@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "ApplePeel_001"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/ApplePeel_001.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "ApplePeel_002"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/ApplePeel_002.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "ApplePeel_003"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/ApplePeel_003.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "ApplePeel_004"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/ApplePeel_004.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleSeed"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/obj/AppleSeed.obj@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleSeed_001"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleSeed_001.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleSeed_002"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleSeed_002.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleSeed_003"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleSeed_003.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleSeed_004"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleSeed_004.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/obj/AppleCaylx.obj@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_001"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_001.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_002"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_002.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_003"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_003.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_004"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_004.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_005"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_005.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_006"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_006.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_007"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_007.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_008"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_008.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_009"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_009.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_010"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_010.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_011"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_011.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_012"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_012.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_013"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_013.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_014"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_014.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_015"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_015.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_016"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_016.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_017"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_017.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_018"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_018.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_019"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_019.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_020"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_020.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_021"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_021.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_022"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_022.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_023"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_023.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_024"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_024.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_025"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_025.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_026"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_026.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_027"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_027.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_028"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_028.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_029"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_029.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_030"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_030.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_031"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_031.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_032"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_032.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_033"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_033.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_034"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_034.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_035"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_035.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_036"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_036.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_037"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_037.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_038"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_038.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_039"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_039.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_040"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_040.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_041"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_041.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_042"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_042.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_043"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_043.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_044"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_044.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_045"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_045.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_046"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_046.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_047"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_047.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_048"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_048.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_049"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_049.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_050"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_050.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_051"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_051.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_052"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_052.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_053"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_053.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_054"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_054.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_055"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_055.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_056"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_056.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_057"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_057.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_058"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_058.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_059"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_059.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_060"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_060.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+
+            def MujocoMesh "AppleCaylx_061"
+            {
+                asset mujoco:mesh:file = @red_apple/meshes/stl/AppleCaylx_061.stl@
+                float3 mujoco:mesh:scale = (1, 1, 1)
+            }
+        }
+
+        def MujocoMaterial "materials"
+        {
+            def MujocoMaterial "M_AppleStalk"
+            {
+                float mujoco:material:emission = 0
+                color4f mujoco:material:rgba = (0.8621, 0.8343, 0.7662, 1)
+            }
+
+            def MujocoMaterial "M_ApplePeel"
+            {
+                rel mujoco:material:texture = </mujoco/asset/textures/T_ApplePeel>
+            }
+
+            def MujocoMaterial "M_AppleSeed"
+            {
+                rel mujoco:material:texture = </mujoco/asset/textures/T_AppleSeed>
+            }
+
+            def MujocoMaterial "M_AppleCaylx"
+            {
+                rel mujoco:material:texture = </mujoco/asset/textures/T_AppleCaylx>
+            }
+        }
+
+        def MujocoTexture "textures"
+        {
+            def MujocoTexture "T_ApplePeel"
+            {
+                asset mujoco:texture:file = @T_ApplePeel.png@
+                string mujoco:texture:type = "2d"
+            }
+
+            def MujocoTexture "T_AppleSeed"
+            {
+                asset mujoco:texture:file = @T_AppleSeed.png@
+                string mujoco:texture:type = "2d"
+            }
+
+            def MujocoTexture "T_AppleCaylx"
+            {
+                asset mujoco:texture:file = @T_AppleCaylx.png@
+                string mujoco:texture:type = "2d"
+            }
+        }
+    }
+
+    def MujocoEquality "equality"
+    {
+    }
+}
+

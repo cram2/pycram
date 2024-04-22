@@ -1,0 +1,366 @@
+<?xml version="1.0" ?>
+<robot name="iai-kitchen" version="1.0">
+  <material name="table_grey">
+    <color rgba="0.8 0.8 0.8 1.0"/>
+  </material>
+  <material name="round_table_grey">
+    <color rgba="0.8 0.8 0.8 1.0"/>
+  </material>
+  <material name="wall_red">
+    <color rgba="0.75 0.22 0.17 1.0"/>
+  </material>
+  <material name="shelf_blue">
+    <color rgba="0.59 0.88 0.9 1.0"/>
+  </material>
+  <material name="shelf_door_green">
+    <color rgba="0.64 0.87 0.82 1.0"/>
+  </material>
+  <material name="shelf_openable_handle_red">
+    <color rgba="0.74 0.25 0.25 1.0"/>
+  </material>
+  <material name="door_green">
+    <color rgba="0.0 0.31 0.22 1.0"/>
+  </material>
+  <material name="hinge_red">
+    <color rgba="0.74 0.25 0.25 1.0"/>
+  </material>
+  <material name="handle_blue">
+    <color rgba="0.3 0.5 0.78 1.0"/>
+  </material>
+  <material name="bucket_grey">
+    <color rgba="0.8 0.8 0.8 1.0"/>
+  </material>
+  <material name="white">
+    <color rgba="1.0 1.0 1.0 1.0"/>
+  </material>
+  <material name="orange">
+    <color rgba="1.0 0.7 0.0 1.0"/>
+  </material>
+  <material name="handle_white">
+    <color rgba="1.0 1.0 1.0 1.0"/>
+  </material>
+  <material name="bottom_white">
+    <color rgba="1.0 1.0 1.0 1.0"/>
+  </material>
+  <material name="frame_wood">
+    <color rgba="0.68 0.63 0.47 1.0"/>
+  </material>
+  <material name="handle_grey">
+    <color rgba="0.7 0.7 0.7 1.0"/>
+  </material>
+  <link name="table_kitchen_counter:{'name': 'table_kitchen_counter', 'knowledge_role': 'table', 'parent': 'urdf_offset', 'width': 2.45, 'height': 0.85, 'depth': 0.76, 'z_rot': -1.56, 'x_pos': 3.08, 'y_pos': 0.8}:table_center">
+    <visual>
+      <origin xyz="0.0 0.0 -0.425" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.76 2.45 0.85"/>
+      </geometry>
+      <material name="table_grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 -0.425" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.76 2.45 0.85"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="table_kitchen_counter:{'name': 'table_kitchen_counter', 'knowledge_role': 'table', 'parent': 'urdf_offset', 'width': 2.45, 'height': 0.85, 'depth': 0.76, 'z_rot': -1.56, 'x_pos': 3.08, 'y_pos': 0.8}:table_origin"/>
+  <link name="table_kitchen_counter:{'name': 'table_kitchen_counter', 'knowledge_role': 'table', 'parent': 'urdf_offset', 'width': 2.45, 'height': 0.85, 'depth': 0.76, 'z_rot': -1.56, 'x_pos': 3.08, 'y_pos': 0.8}:table_front_edge_center"/>
+  <joint name="table_kitchen_counter:{'name': 'table_kitchen_counter', 'knowledge_role': 'table', 'parent': 'urdf_offset', 'width': 2.45, 'height': 0.85, 'depth': 0.76, 'z_rot': -1.56, 'x_pos': 3.08, 'y_pos': 0.8}:table_origin_joint" type="fixed">
+    <origin xyz="3.08 0.8 0.0" rpy="0.0 0.0 -1.56"/>
+    <parent link="urdf_offset"/>
+    <child link="table_kitchen_counter:{'name': 'table_kitchen_counter', 'knowledge_role': 'table', 'parent': 'urdf_offset', 'width': 2.45, 'height': 0.85, 'depth': 0.76, 'z_rot': -1.56, 'x_pos': 3.08, 'y_pos': 0.8}:table_origin"/>
+  </joint>
+  <joint name="table_kitchen_counter:{'name': 'table_kitchen_counter', 'knowledge_role': 'table', 'parent': 'urdf_offset', 'width': 2.45, 'height': 0.85, 'depth': 0.76, 'z_rot': -1.56, 'x_pos': 3.08, 'y_pos': 0.8}:center_joint" type="fixed">
+    <origin xyz="0.38 1.225 0.85" rpy="0.0 0.0 0.0"/>
+    <parent link="table_kitchen_counter:{'name': 'table_kitchen_counter', 'knowledge_role': 'table', 'parent': 'urdf_offset', 'width': 2.45, 'height': 0.85, 'depth': 0.76, 'z_rot': -1.56, 'x_pos': 3.08, 'y_pos': 0.8}:table_origin"/>
+    <child link="table_kitchen_counter:{'name': 'table_kitchen_counter', 'knowledge_role': 'table', 'parent': 'urdf_offset', 'width': 2.45, 'height': 0.85, 'depth': 0.76, 'z_rot': -1.56, 'x_pos': 3.08, 'y_pos': 0.8}:table_center"/>
+  </joint>
+  <joint name="table_kitchen_counter:{'name': 'table_kitchen_counter', 'knowledge_role': 'table', 'parent': 'urdf_offset', 'width': 2.45, 'height': 0.85, 'depth': 0.76, 'z_rot': -1.56, 'x_pos': 3.08, 'y_pos': 0.8}:table_front_edge_center_joint" type="fixed">
+    <origin xyz="0.0 1.225 0.85" rpy="0.0 0.0 0.0"/>
+    <parent link="table_kitchen_counter:{'name': 'table_kitchen_counter', 'knowledge_role': 'table', 'parent': 'urdf_offset', 'width': 2.45, 'height': 0.85, 'depth': 0.76, 'z_rot': -1.56, 'x_pos': 3.08, 'y_pos': 0.8}:table_origin"/>
+    <child link="table_kitchen_counter:{'name': 'table_kitchen_counter', 'knowledge_role': 'table', 'parent': 'urdf_offset', 'width': 2.45, 'height': 0.85, 'depth': 0.76, 'z_rot': -1.56, 'x_pos': 3.08, 'y_pos': 0.8}:table_front_edge_center"/>
+  </joint>
+  <link name="long_table:{'name': 'long_table', 'knowledge_role': 'table', 'parent': 'urdf_offset', 'width': 1.17, 'height': 0.735, 'depth': 0.73, 'z_rot': 3.15, 'x_pos': 5.5, 'y_pos': 2.8}:table_center">
+    <visual>
+      <origin xyz="0.0 0.0 -0.3675" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.73 1.17 0.735"/>
+      </geometry>
+      <material name="table_grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 -0.3675" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.73 1.17 0.735"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="long_table:{'name': 'long_table', 'knowledge_role': 'table', 'parent': 'urdf_offset', 'width': 1.17, 'height': 0.735, 'depth': 0.73, 'z_rot': 3.15, 'x_pos': 5.5, 'y_pos': 2.8}:table_origin"/>
+  <link name="long_table:{'name': 'long_table', 'knowledge_role': 'table', 'parent': 'urdf_offset', 'width': 1.17, 'height': 0.735, 'depth': 0.73, 'z_rot': 3.15, 'x_pos': 5.5, 'y_pos': 2.8}:table_front_edge_center"/>
+  <joint name="long_table:{'name': 'long_table', 'knowledge_role': 'table', 'parent': 'urdf_offset', 'width': 1.17, 'height': 0.735, 'depth': 0.73, 'z_rot': 3.15, 'x_pos': 5.5, 'y_pos': 2.8}:table_origin_joint" type="fixed">
+    <origin xyz="5.5 2.8 0.0" rpy="0.0 0.0 3.15"/>
+    <parent link="urdf_offset"/>
+    <child link="long_table:{'name': 'long_table', 'knowledge_role': 'table', 'parent': 'urdf_offset', 'width': 1.17, 'height': 0.735, 'depth': 0.73, 'z_rot': 3.15, 'x_pos': 5.5, 'y_pos': 2.8}:table_origin"/>
+  </joint>
+  <joint name="long_table:{'name': 'long_table', 'knowledge_role': 'table', 'parent': 'urdf_offset', 'width': 1.17, 'height': 0.735, 'depth': 0.73, 'z_rot': 3.15, 'x_pos': 5.5, 'y_pos': 2.8}:center_joint" type="fixed">
+    <origin xyz="0.365 0.585 0.735" rpy="0.0 0.0 0.0"/>
+    <parent link="long_table:{'name': 'long_table', 'knowledge_role': 'table', 'parent': 'urdf_offset', 'width': 1.17, 'height': 0.735, 'depth': 0.73, 'z_rot': 3.15, 'x_pos': 5.5, 'y_pos': 2.8}:table_origin"/>
+    <child link="long_table:{'name': 'long_table', 'knowledge_role': 'table', 'parent': 'urdf_offset', 'width': 1.17, 'height': 0.735, 'depth': 0.73, 'z_rot': 3.15, 'x_pos': 5.5, 'y_pos': 2.8}:table_center"/>
+  </joint>
+  <joint name="long_table:{'name': 'long_table', 'knowledge_role': 'table', 'parent': 'urdf_offset', 'width': 1.17, 'height': 0.735, 'depth': 0.73, 'z_rot': 3.15, 'x_pos': 5.5, 'y_pos': 2.8}:table_front_edge_center_joint" type="fixed">
+    <origin xyz="0.0 0.585 0.735" rpy="0.0 0.0 0.0"/>
+    <parent link="long_table:{'name': 'long_table', 'knowledge_role': 'table', 'parent': 'urdf_offset', 'width': 1.17, 'height': 0.735, 'depth': 0.73, 'z_rot': 3.15, 'x_pos': 5.5, 'y_pos': 2.8}:table_origin"/>
+    <child link="long_table:{'name': 'long_table', 'knowledge_role': 'table', 'parent': 'urdf_offset', 'width': 1.17, 'height': 0.735, 'depth': 0.73, 'z_rot': 3.15, 'x_pos': 5.5, 'y_pos': 2.8}:table_front_edge_center"/>
+  </joint>
+  <link name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_origin"/>
+  <link name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_center"/>
+  <link name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_base_center"/>
+  <joint name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_origin_joint" type="fixed">
+    <origin xyz="1.9 3.3 0.0" rpy="0.0 0.0 -1.56"/>
+    <parent link="urdf_offset"/>
+    <child link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_origin"/>
+  </joint>
+  <joint name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_center_joint" type="fixed">
+    <origin xyz="0.16 0.355 0.52" rpy="0.0 0.0 0.0"/>
+    <parent link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_origin"/>
+    <child link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_center"/>
+  </joint>
+  <joint name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_base_center_joint" type="fixed">
+    <origin xyz="0.16 0.355 0.0" rpy="0.0 0.0 0.0"/>
+    <parent link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_origin"/>
+    <child link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_base_center"/>
+  </joint>
+  <link name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_back">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.015 0.71 1.04"/>
+      </geometry>
+      <material name="shelf_blue"/>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.015 0.71 1.04"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_back:joint" type="fixed">
+    <origin xyz="0.32 0.355 0.52" rpy="0.0 0.0 0.0"/>
+    <parent link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_origin"/>
+    <child link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_back"/>
+  </joint>
+  <link name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_right_side">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.32 0.015 1.04"/>
+      </geometry>
+      <material name="shelf_blue"/>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.32 0.015 1.04"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_right_side:joint" type="fixed">
+    <origin xyz="0.16 0.0075 0.52" rpy="0.0 0.0 0.0"/>
+    <parent link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_origin"/>
+    <child link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_right_side"/>
+  </joint>
+  <link name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_left_side">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.32 0.015 1.04"/>
+      </geometry>
+      <material name="shelf_blue"/>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.32 0.015 1.04"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_left_side:joint" type="fixed">
+    <origin xyz="0.16 0.7025 0.52" rpy="0.0 0.0 0.0"/>
+    <parent link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_origin"/>
+    <child link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_left_side"/>
+  </joint>
+  <link name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_floor_0">
+    <visual>
+      <origin xyz="0.0 0.0 -0.02" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.32 0.71 0.04"/>
+      </geometry>
+      <material name="shelf_blue"/>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 -0.02" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.32 0.71 0.04"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_floor_0:joint" type="fixed">
+    <origin xyz="0.0 0.0 0.07" rpy="0.0 0.0 0.0"/>
+    <parent link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_base_center"/>
+    <child link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_floor_0"/>
+  </joint>
+  <link name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_floor_1">
+    <visual>
+      <origin xyz="0.0 0.0 -0.02" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.32 0.71 0.04"/>
+      </geometry>
+      <material name="shelf_blue"/>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 -0.02" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.32 0.71 0.04"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_floor_1:joint" type="fixed">
+    <origin xyz="0.0 0.0 0.46" rpy="0.0 0.0 0.0"/>
+    <parent link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_base_center"/>
+    <child link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_floor_1"/>
+  </joint>
+  <link name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_floor_2">
+    <visual>
+      <origin xyz="0.0 0.0 -0.02" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.32 0.71 0.04"/>
+      </geometry>
+      <material name="shelf_blue"/>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 -0.02" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.32 0.71 0.04"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_floor_2:joint" type="fixed">
+    <origin xyz="0.0 0.0 0.72" rpy="0.0 0.0 0.0"/>
+    <parent link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_base_center"/>
+    <child link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_floor_2"/>
+  </joint>
+  <link name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_floor_3">
+    <visual>
+      <origin xyz="0.0 0.0 -0.02" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.32 0.71 0.04"/>
+      </geometry>
+      <material name="shelf_blue"/>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 -0.02" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.32 0.71 0.04"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_floor_3:joint" type="fixed">
+    <origin xyz="0.0 0.0 1.04" rpy="0.0 0.0 0.0"/>
+    <parent link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_base_center"/>
+    <child link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_floor_3"/>
+  </joint>
+  <link name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_door_right">
+    <visual>
+      <origin xyz="0.0 0.16249999999999998 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.015 0.33999999999999997 1.04"/>
+      </geometry>
+      <material name="shelf_door_green"/>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.16249999999999998 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.015 0.33999999999999997 1.04"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_door_right:handle">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.02 0.01 0.084"/>
+      </geometry>
+      <material name="shelf_openable_handle_red"/>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.02 0.01 0.084"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_door_right:handle_joint" type="fixed">
+    <origin xyz="-0.025 0.305 0.317" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_door_right"/>
+    <child link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_door_right:handle"/>
+  </joint>
+  <joint name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_door_right:joint" type="revolute">
+    <origin xyz="-0.1525 0.015 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_right_side"/>
+    <child link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_door_right"/>
+    <limit effort="30.0" lower="0.0" upper="1.7" velocity="1.0"/>
+  </joint>
+  <link name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_door_left">
+    <visual>
+      <origin xyz="0.0 -0.16249999999999998 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.015 0.33999999999999997 1.04"/>
+      </geometry>
+      <material name="shelf_door_green"/>
+    </visual>
+    <collision>
+      <origin xyz="0.0 -0.16249999999999998 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.015 0.33999999999999997 1.04"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_door_left:handle">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.02 0.01 0.084"/>
+      </geometry>
+      <material name="shelf_openable_handle_red"/>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.02 0.01 0.084"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_door_left:handle_joint" type="fixed">
+    <origin xyz="-0.025 -0.305 0.317" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_door_left"/>
+    <child link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_door_left:handle"/>
+  </joint>
+  <joint name="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_door_left:joint" type="revolute">
+    <origin xyz="-0.1525 -0.015 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_left_side"/>
+    <child link="shelf:{'name': 'shelf', 'knowledge_role': 'shelf', 'parent': 'urdf_offset', 'width': 0.71, 'height': 1.04, 'depth': 0.32, 'z_rot': -1.56, 'x_pos': 1.9, 'y_pos': 3.3, 'floors_height': [0.07, 0.46, 0.72, 1.04], 'number_of_floors': 4, 'door': 'both', 'wall_thickness': 0.015, 'handle_from_bottom': 0.795, 'handle_from_side': 0.3, 'handle_height': 0.084, 'handle_width': 0.01, 'handle_depth': 0.02}:shelf_door_left"/>
+    <limit effort="30.0" lower="-1.7" upper="0.0" velocity="1.0"/>
+  </joint>
+  <link name="urdf_main"/>
+  <joint name="map_urdf_joint" type="fixed">
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <parent link="urdf_main"/>
+    <child link="urdf_offset"/>
+  </joint>
+  <link name="urdf_offset"/>
+</robot>

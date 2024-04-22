@@ -1,0 +1,993 @@
+<?xml version="1.0" ?>
+<robot name="stretch" version="1.0">
+  <link name="link_wrist_yaw_bottom">
+    <inertial>
+      <origin xyz="-0.012462 -0.032314 -0.021973" rpy="0.0 0.0 0.0"/>
+      <mass value="0.24284"/>
+      <inertia ixx="0.000194" ixy="3.4e-05" ixz="7e-06" iyy="0.000107" iyz="2e-05" izz="0.000229"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_wrist_yaw_bottom.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_wrist_yaw_bottom.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_wrist_yaw_bottom" type="fixed">
+    <origin xyz="0.0 0.0 0.0" rpy="-3.14159265358979 1.13367999021379e-14 1.57079632679489"/>
+    <axis xyz="0.0 0.0 0.0"/>
+    <parent link="link_wrist_yaw"/>
+    <child link="link_wrist_yaw_bottom"/>
+  </joint>
+  <link name="link_wrist_pitch">
+    <inertial>
+      <origin xyz="-0.006752 -0.01567 0.021672" rpy="0.0 0.0 0.0"/>
+      <mass value="0.208129"/>
+      <inertia ixx="8.5e-05" ixy="1.6e-05" ixz="5e-06" iyy="8.4e-05" iyz="4e-06" izz="0.000105"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_wrist_pitch.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_wrist_pitch.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_wrist_pitch" type="revolute">
+    <origin xyz="0.0 -0.0195500000000002 -0.0247499999999984" rpy="1.5707963267949 -8.12895570882604e-15 -3.14159265358979"/>
+    <axis xyz="0.0 0.0 -1.0"/>
+    <parent link="link_wrist_yaw_bottom"/>
+    <child link="link_wrist_pitch"/>
+    <limit effort="100.0" lower="-1.57" upper="0.56" velocity="1.0"/>
+  </joint>
+  <link name="link_wrist_roll">
+    <inertial>
+      <origin xyz="6e-05 -3.1e-05 0.006242" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01528"/>
+      <inertia ixx="1e-06" ixy="0.0" ixz="0.0" iyy="9.5e-07" iyz="0.0" izz="1.39e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_wrist_roll.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_wrist_roll.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_wrist_roll" type="revolute">
+    <origin xyz="-0.0188587444076125 -0.0239999999998942 0.01955" rpy="3.14159265358979 1.5707963267949 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="link_wrist_pitch"/>
+    <child link="link_wrist_roll"/>
+    <limit effort="100.0" lower="-3.14" upper="3.14" velocity="1.0"/>
+  </joint>
+  <link name="link_straight_gripper">
+    <inertial>
+      <origin xyz="0.002409 -0.011138 0.028861" rpy="0.0 0.0 0.0"/>
+      <mass value="0.147853"/>
+      <inertia ixx="9.5e-07" ixy="-4e-06" ixz="-1e-06" iyy="0.000119" iyz="6e-06" izz="5.9e-05"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_straight_gripper.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_straight_gripper.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_straight_gripper" type="fixed">
+    <origin xyz="0.0 0.0 0.0155" rpy="3.54987407349455e-30 3.24021254484265e-20 -3.14159265358979"/>
+    <axis xyz="0.0 0.0 0.0"/>
+    <parent link="link_wrist_roll"/>
+    <child link="link_straight_gripper"/>
+  </joint>
+  <link name="link_gripper_finger_right">
+    <inertial>
+      <origin xyz="-0.093921 -0.011351 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.06"/>
+      <inertia ixx="1.1e-05" ixy="3.6e-05" ixz="0.0" iyy="0.000213" iyz="0.0" izz="0.000223"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_gripper_finger_right.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_gripper_finger_right.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_gripper_finger_right" type="revolute">
+    <origin xyz="-0.018599 0.003 0.033689" rpy="1.5708 1.5708 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="link_straight_gripper"/>
+    <child link="link_gripper_finger_right"/>
+    <limit effort="100.0" lower="-0.6" upper="0.6" velocity="1.0"/>
+  </joint>
+  <link name="link_gripper_fingertip_right">
+    <inertial>
+      <origin xyz="0.0 0.0 0.008126" rpy="0.0 0.0 0.0"/>
+      <mass value="0.003822"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="1e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_gripper_fingertip_right.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.250980392156863 0.250980392156863 0.250980392156863 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_gripper_fingertip_right.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_gripper_fingertip_right" type="fixed">
+    <origin xyz="-0.190596948563868 -0.015 0.0" rpy="-1.57079632679483 -3.43320051448326e-14 0.540456056432235"/>
+    <axis xyz="0.0 0.0 0.0"/>
+    <parent link="link_gripper_finger_right"/>
+    <child link="link_gripper_fingertip_right"/>
+  </joint>
+  <link name="link_gripper_finger_left">
+    <inertial>
+      <origin xyz="0.094071 0.011377 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.06"/>
+      <inertia ixx="1.1e-05" ixy="3.6e-05" ixz="0.0" iyy="0.000214" iyz="0.0" izz="0.000224"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="3.141592653589793 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_gripper_finger_left.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="1.5707963267948966 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_gripper_finger_left.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_gripper_finger_left" type="revolute">
+    <origin xyz="0.018599 0.003 0.033689" rpy="1.5708 -1.5708 0.0"/>
+    <axis xyz="0.0 0.0 -1.0"/>
+    <parent link="link_straight_gripper"/>
+    <child link="link_gripper_finger_left"/>
+    <limit effort="100.0" lower="-0.6" upper="0.6" velocity="1.0"/>
+  </joint>
+  <link name="link_gripper_fingertip_left">
+    <inertial>
+      <origin xyz="0.0 0.0 0.008126" rpy="0.0 0.0 0.0"/>
+      <mass value="0.003822"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="1e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_gripper_fingertip_left.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.250980392156863 0.250980392156863 0.250980392156863 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_gripper_fingertip_left.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_gripper_fingertip_left" type="fixed">
+    <origin xyz="0.190596948563868 -0.015 0.0" rpy="1.57079632679496 4.51275387511463e-14 2.60113659715756"/>
+    <axis xyz="0.0 0.0 0.0"/>
+    <parent link="link_gripper_finger_left"/>
+    <child link="link_gripper_fingertip_left"/>
+  </joint>
+  <link name="link_grasp_center"/>
+  <joint name="joint_grasp_center" type="fixed">
+    <origin xyz="0.0 0.0 0.23" rpy="-1.5707963267949 -1.5707963267949 0.0"/>
+    <parent link="link_straight_gripper"/>
+    <child link="link_grasp_center"/>
+  </joint>
+  <link name="base_link">
+    <inertial>
+      <origin xyz="-0.11587 0.0019426 0.093621" rpy="0.0 0.0 0.0"/>
+      <mass value="1.1912"/>
+      <inertia ixx="0.0034667" ixy="-5.0568e-06" ixz="0.00042861" iyy="0.0052744" iyz="-5.766e-05" izz="0.0047945"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/base_link.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/base_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="link_right_wheel">
+    <inertial>
+      <origin xyz="1.1719e-11 2.0783e-11 0.037544" rpy="0.0 0.0 0.0"/>
+      <mass value="0.0042721"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_right_wheel.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_right_wheel.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_right_wheel" type="continuous">
+    <origin xyz="0.0 -0.17035 0.0508" rpy="-1.5708 1.2717e-16 4.8006e-17"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="base_link"/>
+    <child link="link_right_wheel"/>
+    <dynamics damping="21.75" friction="10.48"/>
+  </joint>
+  <link name="link_left_wheel">
+    <inertial>
+      <origin xyz="-2.0783e-11 -1.1719e-11 -0.037544" rpy="0.0 0.0 0.0"/>
+      <mass value="0.0042721"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_left_wheel.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_left_wheel.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_left_wheel" type="continuous">
+    <origin xyz="0.0 0.17035 0.0508" rpy="-1.5708 2.6317e-16 -8.2057e-19"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="base_link"/>
+    <child link="link_left_wheel"/>
+    <dynamics damping="21.75" friction="10.48"/>
+  </joint>
+  <link name="caster_link">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.032"/>
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/omni_wheel_m.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1.0"/>
+      </material>
+    </visual>
+  </link>
+  <joint name="caster_joint" type="fixed">
+    <origin xyz="-0.245 0.0 0.032" rpy="-1.5707963267948966 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="base_link"/>
+    <child link="caster_link"/>
+  </joint>
+  <link name="link_mast">
+    <inertial>
+      <origin xyz="2.0817e-17 0.7075 -2.7756e-17" rpy="0.0 0.0 0.0"/>
+      <mass value="1.8285"/>
+      <inertia ixx="0.0709854511954588" ixy="-0.00433428742758457" ixz="-0.000186110788697573" iyy="0.000437922053342648" iyz="-0.00288788257713431" izz="0.071104808501661"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_mast.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_mast.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_mast" type="fixed">
+    <origin xyz="-0.06647627777956927 0.13686815294798188 0.02476215878246698" rpy="1.5835422401336123 0.009918315177623871 -0.001695598806231402"/>
+    <axis xyz="0.0 0.0 0.0"/>
+    <parent link="base_link"/>
+    <child link="link_mast"/>
+  </joint>
+  <link name="link_lift">
+    <inertial>
+      <origin xyz="-0.031727 0.038403 0.013361" rpy="0.0 0.0 0.0"/>
+      <mass value="0.27218"/>
+      <inertia ixx="0.00052571" ixy="0.00014899" ixz="-1.9258e-05" iyy="0.00030679" iyz="-6.2451e-06" izz="0.00037324"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_lift.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_lift.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_lift" type="prismatic">
+    <origin xyz="-0.037385 0.1666 0.0" rpy="-1.5708 1.5708 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="link_mast"/>
+    <child link="link_lift"/>
+    <limit effort="100.0" lower="0.0" upper="1.1" velocity="1.0"/>
+  </joint>
+  <link name="link_arm_l4">
+    <inertial>
+      <origin xyz="-1.0146e-06 -1.9719e-05 -0.094738" rpy="0.0 0.0 0.0"/>
+      <mass value="0.068095"/>
+      <inertia ixx="0.0001256" ixy="-5.6914e-12" ixz="6.0647e-09" iyy="0.0001256" iyz="1.1787e-07" izz="1.1091e-10"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_arm_l4.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_arm_l4.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_arm_l4" type="fixed">
+    <origin xyz="-0.24976370113857183 -0.0038350045015007497 -0.0018596582600665607" rpy="1.576330969843221 0.0029295139899749856 -1.5981368109983811"/>
+    <axis xyz="0.0 0.0 0.0"/>
+    <parent link="link_lift"/>
+    <child link="link_arm_l4"/>
+  </joint>
+  <link name="link_arm_l3">
+    <inertial>
+      <origin xyz="-5.13853606326845e-07 -1.99844969271112e-05 -0.0971104963726614" rpy="0.0 0.0 0.0"/>
+      <mass value="0.0628927381893134"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_arm_l3.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_arm_l3.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_arm_l3" type="prismatic">
+    <origin xyz="0.0 0.0 0.013" rpy="7.68831233799385e-30 2.36716479416092e-30 2.29652732251143e-17"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="link_arm_l4"/>
+    <child link="link_arm_l3"/>
+    <limit effort="100.0" lower="0.0" upper="0.13" velocity="1.0"/>
+  </joint>
+  <link name="link_arm_l2">
+    <inertial>
+      <origin xyz="-5.17421949435687e-07 -2.02045301450349e-05 -0.0968815475684904" rpy="0.0 0.0 0.0"/>
+      <mass value="0.0571386353275368"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_arm_l2.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_arm_l2.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_arm_l2" type="prismatic">
+    <origin xyz="0.0 0.0 0.013" rpy="0.0 1.57655765344625e-30 -1.66533453693773e-16"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="link_arm_l3"/>
+    <child link="link_arm_l2"/>
+    <limit effort="100.0" lower="0.0" upper="0.13" velocity="1.0"/>
+  </joint>
+  <link name="link_arm_l1">
+    <inertial>
+      <origin xyz="-5.257e-07 -2.0482e-05 -0.096543" rpy="0.0 0.0 0.0"/>
+      <mass value="0.051382"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_arm_l1.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_arm_l1.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_arm_l1" type="prismatic">
+    <origin xyz="0.0 0.0 0.0129999999999981" rpy="-7.63746778746202e-30 -7.88860905221012e-31 1.11022302462516e-16"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="link_arm_l2"/>
+    <child link="link_arm_l1"/>
+    <limit effort="100.0" lower="0.0" upper="0.13" velocity="1.0"/>
+  </joint>
+  <link name="link_arm_l0">
+    <inertial>
+      <origin xyz="0.0270582141286185 -0.00189876414654466 -0.0377809018481181" rpy="0.0 0.0 0.0"/>
+      <mass value="0.085003260946398"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_arm_l0.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_arm_l0.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_arm_l0" type="prismatic">
+    <origin xyz="0.0 0.0 -0.0137499999991968" rpy="7.63746778746202e-30 -3.80121128864402e-15 2.62707547767438e-15"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="link_arm_l1"/>
+    <child link="link_arm_l0"/>
+    <limit effort="100.0" lower="0.0" upper="0.13" velocity="1.0"/>
+  </joint>
+  <link name="link_wrist_yaw">
+    <inertial>
+      <origin xyz="2.20122392535771e-11 2.9317167880849e-05 -0.018966592644729" rpy="0.0 0.0 0.0"/>
+      <mass value="0.0404746907425003"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_wrist_yaw.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.898039215686275 0.917647058823529 0.929411764705882 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_wrist_yaw.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_wrist_yaw" type="revolute">
+    <origin xyz="0.0830000000000654 -0.0307500000000129 0.0" rpy="1.5708 4.2595e-14 2.6415e-15"/>
+    <axis xyz="0.0 0.0 -1.0"/>
+    <parent link="link_arm_l0"/>
+    <child link="link_wrist_yaw"/>
+    <limit effort="100.0" lower="-1.75" upper="4.0" velocity="1.0"/>
+  </joint>
+  <link name="link_head">
+    <inertial>
+      <origin xyz="0.0406850995527703 0.0396956343318414 0.0226500246461012" rpy="0.0 0.0 0.0"/>
+      <mass value="0.133027236718691"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_head.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_head.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_head" type="fixed">
+    <origin xyz="0.0 1.33 0.0" rpy="1.5707963267949 -1.5707963267949 3.1416"/>
+    <axis xyz="0.0 0.0 0.0"/>
+    <parent link="link_mast"/>
+    <child link="link_head"/>
+  </joint>
+  <link name="link_head_pan">
+    <inertial>
+      <origin xyz="-0.000326562615178591 0.00850012613776489 0.000130487222982367" rpy="0.0 0.0 0.0"/>
+      <mass value="0.0273764496535409"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_head_pan.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_head_pan.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_head_pan" type="revolute">
+    <origin xyz="0.13034914529901984 0.07720989078406804 -0.009943382462533366" rpy="-0.006540305695066827 0.005914541231504256 1.5775160215215478"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="link_head"/>
+    <child link="link_head_pan"/>
+    <limit effort="100.0" lower="-3.9" upper="1.5" velocity="1.0"/>
+  </joint>
+  <link name="link_head_tilt">
+    <inertial>
+      <origin xyz="0.00704566394917504 -0.0212256210929691 0.0302058990060359" rpy="0.0 0.0 0.0"/>
+      <mass value="0.090217113313934"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_head_tilt.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_head_tilt.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_head_tilt" type="revolute">
+    <origin xyz="-0.0022608566011374713 0.0307623849887207 -0.06164750121121569" rpy="1.6137456215249617 0.0264597080068929 -0.025133837247576386"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="link_head_pan"/>
+    <child link="link_head_tilt"/>
+    <limit effort="100.0" lower="-1.53" upper="0.79" velocity="1.0"/>
+  </joint>
+  <link name="link_aruco_right_base">
+    <inertial>
+      <origin xyz="1.3878e-17 0.0 -0.000125" rpy="0.0 0.0 0.0"/>
+      <mass value="3.59999999990368e-06"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_aruco_right_base.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_aruco_right_base.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_aruco_right_base" type="fixed">
+    <origin xyz="-0.0015028 -0.1304972 0.1597482" rpy="0.0 0.0 -1.5707963267949"/>
+    <axis xyz="0.0 0.0 0.0"/>
+    <parent link="base_link"/>
+    <child link="link_aruco_right_base"/>
+  </joint>
+  <link name="link_aruco_left_base">
+    <inertial>
+      <origin xyz="2.7756e-17 0.0 -0.000125" rpy="0.0 0.0 0.0"/>
+      <mass value="3.59999999990368e-06"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_aruco_left_base.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_aruco_left_base.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_aruco_left_base" type="fixed">
+    <origin xyz="-0.00500000000000014 0.1304972 0.1597482" rpy="0.0 0.0 -1.5707963267949"/>
+    <axis xyz="0.0 0.0 0.0"/>
+    <parent link="base_link"/>
+    <child link="link_aruco_left_base"/>
+  </joint>
+  <link name="link_aruco_shoulder">
+    <inertial>
+      <origin xyz="-2.77555756156289e-17 2.56739074444567e-16 -0.000125000000000042" rpy="0.0 0.0 0.0"/>
+      <mass value="0.0"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_aruco_shoulder.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_aruco_shoulder.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_aruco_shoulder" type="fixed">
+    <origin xyz="-0.0133768876375287 0.0558540528812078 0.0861368272417975" rpy="-1.53998860117704e-29 3.55962409571165e-15 0.0"/>
+    <axis xyz="0.0 0.0 0.0"/>
+    <parent link="link_lift"/>
+    <child link="link_aruco_shoulder"/>
+  </joint>
+  <link name="link_aruco_top_wrist">
+    <inertial>
+      <origin xyz="-1.3531e-15 -3.4972e-15 -0.000125" rpy="0.0 0.0 0.0"/>
+      <mass value="0.0"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_aruco_top_wrist.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_aruco_top_wrist.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_aruco_top_wrist" type="fixed">
+    <origin xyz="0.0472500000000019 0.0292850000000015 0.0" rpy="1.5707963267949 -8.03728587323464e-15 3.14159265358979"/>
+    <axis xyz="0.0 0.0 0.0"/>
+    <parent link="link_arm_l0"/>
+    <child link="link_aruco_top_wrist"/>
+  </joint>
+  <link name="link_aruco_inner_wrist">
+    <inertial>
+      <origin xyz="8.32667268468867e-17 1.77635683940025e-15 -0.000125000000000264" rpy="0.0 0.0 0.0"/>
+      <mass value="0.0"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_aruco_inner_wrist.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/link_aruco_inner_wrist.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_aruco_inner_wrist" type="fixed">
+    <origin xyz="0.0472499999999947 -0.0119000000000034 -0.0272499999991938" rpy="3.14159265358979 4.23377442363088e-14 3.14159265358979"/>
+    <axis xyz="0.0 0.0 0.0"/>
+    <parent link="link_arm_l0"/>
+    <child link="link_aruco_inner_wrist"/>
+  </joint>
+  <material name="aluminum">
+    <color rgba="0.5 0.5 0.5 1.0"/>
+  </material>
+  <material name="plastic">
+    <color rgba="0.1 0.1 0.1 1.0"/>
+  </material>
+  <joint name="camera_joint" type="fixed">
+    <origin xyz="0.025518771292122495 -0.010053319210363395 0.01844042865675001" rpy="0.0012927647205987253 -0.049412987457166935 0.0012120493497760406"/>
+    <parent link="link_head_tilt"/>
+    <child link="camera_bottom_screw_frame"/>
+  </joint>
+  <link name="camera_bottom_screw_frame"/>
+  <joint name="camera_link_joint" type="fixed">
+    <origin xyz="0.010600000000000002 0.0175 0.0125" rpy="0.0 0.0 0.0"/>
+    <parent link="camera_bottom_screw_frame"/>
+    <child link="camera_link"/>
+  </joint>
+  <link name="camera_link">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+      <mass value="0.072"/>
+      <inertia ixx="0.003881243" ixy="0.0" ixz="0.0" iyy="0.00049894" iyz="0.0" izz="0.003879257"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0043 -0.0175 0.0" rpy="1.5707963267948966 0.0 1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://realsense2_description/meshes/d435.dae"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.0 -0.0175 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.02505 0.09 0.025"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="camera_depth_joint" type="fixed">
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <parent link="camera_link"/>
+    <child link="camera_depth_frame"/>
+  </joint>
+  <link name="camera_depth_frame"/>
+  <joint name="camera_depth_optical_joint" type="fixed">
+    <origin xyz="0.0 0.0 0.0" rpy="-1.5707963267948966 0.0 -1.5707963267948966"/>
+    <parent link="camera_depth_frame"/>
+    <child link="camera_depth_optical_frame"/>
+  </joint>
+  <link name="camera_depth_optical_frame"/>
+  <joint name="camera_infra1_joint" type="fixed">
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <parent link="camera_link"/>
+    <child link="camera_infra1_frame"/>
+  </joint>
+  <link name="camera_infra1_frame"/>
+  <joint name="camera_infra1_optical_joint" type="fixed">
+    <origin xyz="0.0 0.0 0.0" rpy="-1.5707963267948966 0.0 -1.5707963267948966"/>
+    <parent link="camera_infra1_frame"/>
+    <child link="camera_infra1_optical_frame"/>
+  </joint>
+  <link name="camera_infra1_optical_frame"/>
+  <joint name="camera_infra2_joint" type="fixed">
+    <origin xyz="0.0 -0.05 0.0" rpy="0.0 0.0 0.0"/>
+    <parent link="camera_link"/>
+    <child link="camera_infra2_frame"/>
+  </joint>
+  <link name="camera_infra2_frame"/>
+  <joint name="camera_infra2_optical_joint" type="fixed">
+    <origin xyz="0.0 0.0 0.0" rpy="-1.5707963267948966 0.0 -1.5707963267948966"/>
+    <parent link="camera_infra2_frame"/>
+    <child link="camera_infra2_optical_frame"/>
+  </joint>
+  <link name="camera_infra2_optical_frame"/>
+  <joint name="camera_color_joint" type="fixed">
+    <origin xyz="0.0 0.015 0.0" rpy="0.0 0.0 0.0"/>
+    <parent link="camera_link"/>
+    <child link="camera_color_frame"/>
+  </joint>
+  <link name="camera_color_frame"/>
+  <joint name="camera_color_optical_joint" type="fixed">
+    <origin xyz="0.0 0.0 0.0" rpy="-1.5707963267948966 0.0 -1.5707963267948966"/>
+    <parent link="camera_color_frame"/>
+    <child link="camera_color_optical_frame"/>
+  </joint>
+  <link name="camera_color_optical_frame"/>
+  <link name="camera_accel_frame"/>
+  <link name="camera_accel_optical_frame"/>
+  <link name="camera_gyro_frame"/>
+  <link name="camera_gyro_optical_frame"/>
+  <joint name="camera_accel_joint" type="fixed">
+    <origin xyz="-0.01174 -0.00552 0.0051" rpy="0.0 0.0 0.0"/>
+    <parent link="camera_link"/>
+    <child link="camera_accel_frame"/>
+  </joint>
+  <joint name="camera_accel_optical_joint" type="fixed">
+    <origin xyz="0.0 0.0 0.0" rpy="-1.5707963267948966 0.0 -1.5707963267948966"/>
+    <parent link="camera_accel_frame"/>
+    <child link="camera_accel_optical_frame"/>
+  </joint>
+  <joint name="camera_gyro_joint" type="fixed">
+    <origin xyz="-0.01174 -0.00552 0.0051" rpy="0.0 0.0 0.0"/>
+    <parent link="camera_link"/>
+    <child link="camera_gyro_frame"/>
+  </joint>
+  <joint name="camera_gyro_optical_joint" type="fixed">
+    <origin xyz="0.0 0.0 0.0" rpy="-1.5707963267948966 0.0 -1.5707963267948966"/>
+    <parent link="camera_gyro_frame"/>
+    <child link="camera_gyro_optical_frame"/>
+  </joint>
+  <link name="laser">
+    <inertial>
+      <origin xyz="0.0 0.0 -0.000755956127492408" rpy="0.0 0.0 0.0"/>
+      <mass value="0.0749979022894495"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/laser.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.250980392156863 0.250980392156863 0.250980392156863 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/laser.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_laser" type="fixed">
+    <origin xyz="0.004 0.0 0.1664" rpy="0.0 0.0 3.1416"/>
+    <axis xyz="0.0 0.0 0.0"/>
+    <parent link="base_link"/>
+    <child link="laser"/>
+  </joint>
+  <link name="base_imu">
+    <inertial>
+      <origin xyz="0.00300349280517617 0.00149777182047641 -0.00193103885249443" rpy="0.0 0.0 0.0"/>
+      <mass value="0.000901473198307758"/>
+      <inertia ixx="2.83324000746358e-08" ixy="-2.10106175504755e-10" ixz="1.86717014516205e-10" iyy="5.35315990744214e-08" iyz="9.31114208976591e-11" izz="8.13221670783358e-08"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/base_imu.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.0 0.772549019607843 0.207843137254902 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/base_imu.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_base_imu" type="fixed">
+    <origin xyz="-0.12838 0.0031592 0.1474" rpy="-3.1416 0.0 -1.5708"/>
+    <axis xyz="0.0 0.0 0.0"/>
+    <parent link="base_link"/>
+    <child link="base_imu"/>
+  </joint>
+  <link name="respeaker_base">
+    <inertial>
+      <origin xyz="-0.003809 -0.0023075 -0.012854" rpy="0.0 0.0 0.0"/>
+      <mass value="0.015643"/>
+      <inertia ixx="1.0075e-06" ixy="-5.4396e-08" ixz="-2.8652e-07" iyy="1.0569e-06" iyz="-1.8463e-07" izz="1.1947e-07"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/respeaker_base.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://stretch_description/meshes/respeaker_base.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint_respeaker" type="fixed">
+    <origin xyz="0.0 1.37236408874452 0.00303065898329655" rpy="-1.5707963267949 -0.698131700797725 4.93295812652799e-16"/>
+    <axis xyz="0.0 0.0 0.0"/>
+    <parent link="link_mast"/>
+    <child link="respeaker_base"/>
+  </joint>
+</robot>

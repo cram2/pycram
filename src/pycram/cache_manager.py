@@ -1,5 +1,6 @@
 import os
 import pathlib
+from typing import Optional
 
 from typing_extensions import List, TYPE_CHECKING
 
@@ -8,7 +9,6 @@ if TYPE_CHECKING:
 
 
 class CacheManager:
-
     """
     The CacheManager is responsible for caching object description files and managing the cache directory.
     """
@@ -89,12 +89,33 @@ class CacheManager:
 
         name = path_object.name
         for data_dir in self.data_directory:
-            for file in os.listdir(data_dir):
-                if file == name:
-                    return data_dir + f"/{name}"
+            found_file = self.look_for_file_recursively(path_object, data_dir)
+            if found_file is not None:
+                return found_file
 
         raise FileNotFoundError(
             f"File {name} could not be found in the resource directory {self.data_directory}")
+
+    def look_for_file_recursively(self, path_object: pathlib, data_dir: str) -> Optional[str]:
+        """
+        Looks for a file in the data directory including all subdirectories of the data directory.
+        If the file is not found in the data directory, this method raises a FileNotFoundError
+
+        :param path_object: The pathlib object of the file to look for
+        :data_dir: The current directory to look for files
+        """
+
+        name = path_object.name
+
+        for file in os.listdir(data_dir):
+            if file == name:
+                return data_dir + f"/{name}"
+
+            subpath = os.path.join(data_dir, file)
+            if os.path.isdir(subpath):
+                found_file = self.look_for_file_recursively(path_object, subpath)
+                if found_file is not None:
+                    return found_file
 
     def create_cache_dir_if_not_exists(self):
         """

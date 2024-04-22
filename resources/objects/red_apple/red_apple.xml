@@ -1,0 +1,188 @@
+<?xml version="1.0" ?>
+<mujoco model="red_apple">
+	<compiler meshdir="red_apple/meshes" texturedir="red_apple/textures" angle="radian" autolimits="true" balanceinertia="true" boundmass="0.000001" boundinertia="0.000001"/>
+	<default>
+		<default class="visual">
+			<geom contype="0" conaffinity="0"/>
+		</default>
+		<default class="collision">
+			<geom rgba="1.0 0.0 0.0 0.0"/>
+		</default>
+	</default>
+	<asset>
+		<mesh name="AppleStalk" file="stl/AppleStalk.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleStalk_001" file="stl/AppleStalk_001.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleStalk_002" file="stl/AppleStalk_002.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="ApplePeel" file="obj/ApplePeel.obj" scale="1.0 1.0 1.0"/>
+		<mesh name="ApplePeel_001" file="stl/ApplePeel_001.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="ApplePeel_002" file="stl/ApplePeel_002.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="ApplePeel_003" file="stl/ApplePeel_003.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="ApplePeel_004" file="stl/ApplePeel_004.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleSeed" file="obj/AppleSeed.obj" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleSeed_001" file="stl/AppleSeed_001.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleSeed_002" file="stl/AppleSeed_002.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleSeed_003" file="stl/AppleSeed_003.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleSeed_004" file="stl/AppleSeed_004.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx" file="obj/AppleCaylx.obj" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_001" file="stl/AppleCaylx_001.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_002" file="stl/AppleCaylx_002.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_003" file="stl/AppleCaylx_003.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_004" file="stl/AppleCaylx_004.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_005" file="stl/AppleCaylx_005.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_006" file="stl/AppleCaylx_006.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_007" file="stl/AppleCaylx_007.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_008" file="stl/AppleCaylx_008.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_009" file="stl/AppleCaylx_009.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_010" file="stl/AppleCaylx_010.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_011" file="stl/AppleCaylx_011.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_012" file="stl/AppleCaylx_012.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_013" file="stl/AppleCaylx_013.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_014" file="stl/AppleCaylx_014.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_015" file="stl/AppleCaylx_015.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_016" file="stl/AppleCaylx_016.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_017" file="stl/AppleCaylx_017.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_018" file="stl/AppleCaylx_018.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_019" file="stl/AppleCaylx_019.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_020" file="stl/AppleCaylx_020.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_021" file="stl/AppleCaylx_021.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_022" file="stl/AppleCaylx_022.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_023" file="stl/AppleCaylx_023.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_024" file="stl/AppleCaylx_024.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_025" file="stl/AppleCaylx_025.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_026" file="stl/AppleCaylx_026.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_027" file="stl/AppleCaylx_027.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_028" file="stl/AppleCaylx_028.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_029" file="stl/AppleCaylx_029.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_030" file="stl/AppleCaylx_030.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_031" file="stl/AppleCaylx_031.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_032" file="stl/AppleCaylx_032.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_033" file="stl/AppleCaylx_033.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_034" file="stl/AppleCaylx_034.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_035" file="stl/AppleCaylx_035.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_036" file="stl/AppleCaylx_036.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_037" file="stl/AppleCaylx_037.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_038" file="stl/AppleCaylx_038.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_039" file="stl/AppleCaylx_039.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_040" file="stl/AppleCaylx_040.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_041" file="stl/AppleCaylx_041.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_042" file="stl/AppleCaylx_042.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_043" file="stl/AppleCaylx_043.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_044" file="stl/AppleCaylx_044.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_045" file="stl/AppleCaylx_045.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_046" file="stl/AppleCaylx_046.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_047" file="stl/AppleCaylx_047.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_048" file="stl/AppleCaylx_048.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_049" file="stl/AppleCaylx_049.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_050" file="stl/AppleCaylx_050.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_051" file="stl/AppleCaylx_051.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_052" file="stl/AppleCaylx_052.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_053" file="stl/AppleCaylx_053.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_054" file="stl/AppleCaylx_054.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_055" file="stl/AppleCaylx_055.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_056" file="stl/AppleCaylx_056.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_057" file="stl/AppleCaylx_057.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_058" file="stl/AppleCaylx_058.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_059" file="stl/AppleCaylx_059.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_060" file="stl/AppleCaylx_060.stl" scale="1.0 1.0 1.0"/>
+		<mesh name="AppleCaylx_061" file="stl/AppleCaylx_061.stl" scale="1.0 1.0 1.0"/>
+		<material name="M_AppleStalk" rgba="0.8621000051498413 0.8342999815940857 0.7662000060081482 1.0" emission="0.0"/>
+		<material name="M_ApplePeel" texture="T_ApplePeel"/>
+		<material name="M_AppleSeed" texture="T_AppleSeed"/>
+		<material name="M_AppleCaylx" texture="T_AppleCaylx"/>
+		<texture name="T_ApplePeel" type="2d" file="T_ApplePeel.png"/>
+		<texture name="T_AppleSeed" type="2d" file="T_AppleSeed.png"/>
+		<texture name="T_AppleCaylx" type="2d" file="T_AppleCaylx.png"/>
+	</asset>
+	<worldbody>
+		<body name="red_apple" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+			<body name="apple_stalk" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+				<inertial mass="3.540629768394865e-05" pos="3.0206952494893358e-09 0.00018739681399893016 0.025003446266055107" quat="0.7071051001548767 -0.001577188610099256 -0.7071049809455872 0.0015790637116879225" diaginertia="1.837902052770346e-11 2.4994736946837293e-08 2.5002570680499048e-08"/>
+				<geom name="AppleStalk" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleStalk" material="M_AppleStalk" class="visual"/>
+				<geom name="AppleStalk_001" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleStalk_001" class="collision"/>
+				<geom name="AppleStalk_002" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleStalk_002" class="collision"/>
+			</body>
+			<body name="apple_seed" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+				<inertial mass="0.00022019585594534874" pos="1.0903399294548421e-09 -1.7177891331598971e-09 -0.002702832454815507" quat="0.25731590390205383 -2.19097543663338e-07 -3.833924608898087e-07 0.9663273096084595" diaginertia="5.545102155224413e-09 5.545106596116511e-09 6.824700804486383e-09"/>
+				<geom name="AppleSeed" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleSeed" material="M_AppleSeed" class="visual"/>
+				<geom name="AppleSeed_001" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleSeed_001" class="collision"/>
+				<geom name="AppleSeed_002" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleSeed_002" class="collision"/>
+				<geom name="AppleSeed_003" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleSeed_003" class="collision"/>
+				<geom name="AppleSeed_004" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleSeed_004" class="collision"/>
+			</body>
+			<body name="apple_peel" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+				<inertial mass="0.0015162392519414425" pos="2.4516245389349933e-07 6.230711591115323e-08 -0.002904926659539342" quat="0.6638001799583435 -0.24362272024154663 0.6638485789299011 0.2435617297887802" diaginertia="1.2347761639830424e-06 1.2760066283590277e-06 1.2760090157826198e-06"/>
+				<geom name="ApplePeel" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="ApplePeel" material="M_ApplePeel" class="visual"/>
+				<geom name="ApplePeel_001" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="ApplePeel_001" class="collision"/>
+				<geom name="ApplePeel_002" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="ApplePeel_002" class="collision"/>
+				<geom name="ApplePeel_003" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="ApplePeel_003" class="collision"/>
+				<geom name="ApplePeel_004" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="ApplePeel_004" class="collision"/>
+			</body>
+			<body name="apple_caylx" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0">
+				<inertial mass="3.982466125762585e-07" pos="8.114677285675498e-08 1.1141786444568424e-06 -0.035159844905138016" quat="-0.08026134222745895 0.7025361061096191 0.08023911714553833 0.7025402784347534" diaginertia="1.0677496213584714e-12 4.929091579342071e-10 4.929092689565095e-10"/>
+				<geom name="AppleCaylx" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx" material="M_AppleCaylx" class="visual"/>
+				<geom name="AppleCaylx_001" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_001" class="collision"/>
+				<geom name="AppleCaylx_002" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_002" class="collision"/>
+				<geom name="AppleCaylx_003" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_003" class="collision"/>
+				<geom name="AppleCaylx_004" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_004" class="collision"/>
+				<geom name="AppleCaylx_005" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_005" class="collision"/>
+				<geom name="AppleCaylx_006" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_006" class="collision"/>
+				<geom name="AppleCaylx_007" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_007" class="collision"/>
+				<geom name="AppleCaylx_008" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_008" class="collision"/>
+				<geom name="AppleCaylx_009" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_009" class="collision"/>
+				<geom name="AppleCaylx_010" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_010" class="collision"/>
+				<geom name="AppleCaylx_011" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_011" class="collision"/>
+				<geom name="AppleCaylx_012" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_012" class="collision"/>
+				<geom name="AppleCaylx_013" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_013" class="collision"/>
+				<geom name="AppleCaylx_014" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_014" class="collision"/>
+				<geom name="AppleCaylx_015" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_015" class="collision"/>
+				<geom name="AppleCaylx_016" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_016" class="collision"/>
+				<geom name="AppleCaylx_017" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_017" class="collision"/>
+				<geom name="AppleCaylx_018" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_018" class="collision"/>
+				<geom name="AppleCaylx_019" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_019" class="collision"/>
+				<geom name="AppleCaylx_020" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_020" class="collision"/>
+				<geom name="AppleCaylx_021" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_021" class="collision"/>
+				<geom name="AppleCaylx_022" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_022" class="collision"/>
+				<geom name="AppleCaylx_023" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_023" class="collision"/>
+				<geom name="AppleCaylx_024" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_024" class="collision"/>
+				<geom name="AppleCaylx_025" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_025" class="collision"/>
+				<geom name="AppleCaylx_026" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_026" class="collision"/>
+				<geom name="AppleCaylx_027" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_027" class="collision"/>
+				<geom name="AppleCaylx_028" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_028" class="collision"/>
+				<geom name="AppleCaylx_029" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_029" class="collision"/>
+				<geom name="AppleCaylx_030" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_030" class="collision"/>
+				<geom name="AppleCaylx_031" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_031" class="collision"/>
+				<geom name="AppleCaylx_032" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_032" class="collision"/>
+				<geom name="AppleCaylx_033" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_033" class="collision"/>
+				<geom name="AppleCaylx_034" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_034" class="collision"/>
+				<geom name="AppleCaylx_035" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_035" class="collision"/>
+				<geom name="AppleCaylx_036" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_036" class="collision"/>
+				<geom name="AppleCaylx_037" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_037" class="collision"/>
+				<geom name="AppleCaylx_038" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_038" class="collision"/>
+				<geom name="AppleCaylx_039" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_039" class="collision"/>
+				<geom name="AppleCaylx_040" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_040" class="collision"/>
+				<geom name="AppleCaylx_041" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_041" class="collision"/>
+				<geom name="AppleCaylx_042" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_042" class="collision"/>
+				<geom name="AppleCaylx_043" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_043" class="collision"/>
+				<geom name="AppleCaylx_044" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_044" class="collision"/>
+				<geom name="AppleCaylx_045" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_045" class="collision"/>
+				<geom name="AppleCaylx_046" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_046" class="collision"/>
+				<geom name="AppleCaylx_047" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_047" class="collision"/>
+				<geom name="AppleCaylx_048" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_048" class="collision"/>
+				<geom name="AppleCaylx_049" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_049" class="collision"/>
+				<geom name="AppleCaylx_050" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_050" class="collision"/>
+				<geom name="AppleCaylx_051" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_051" class="collision"/>
+				<geom name="AppleCaylx_052" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_052" class="collision"/>
+				<geom name="AppleCaylx_053" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_053" class="collision"/>
+				<geom name="AppleCaylx_054" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_054" class="collision"/>
+				<geom name="AppleCaylx_055" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_055" class="collision"/>
+				<geom name="AppleCaylx_056" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_056" class="collision"/>
+				<geom name="AppleCaylx_057" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_057" class="collision"/>
+				<geom name="AppleCaylx_058" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_058" class="collision"/>
+				<geom name="AppleCaylx_059" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_059" class="collision"/>
+				<geom name="AppleCaylx_060" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_060" class="collision"/>
+				<geom name="AppleCaylx_061" type="mesh" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" mesh="AppleCaylx_061" class="collision"/>
+			</body>
+		</body>
+	</worldbody>
+	<equality/>
+</mujoco>

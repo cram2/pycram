@@ -258,7 +258,7 @@ class RobotDescription:
         self.torso_joint: str = torso_joint
 
         rospack = rospkg.RosPack()
-        filename = rospack.get_path('pycram') + '/resources/' + name + '.urdf'
+        filename = rospack.get_path('pycram') + '/resources/robots/' + name + '.urdf'
         with open(filename) as f:
             # with utils.suppress_stdout_stderr():
             self.robot_urdf = URDF.from_xml_string(f.read())

@@ -1,0 +1,1797 @@
+<?xml version="1.0" ?>
+<robot name="Armar6">
+  <link name="world"/>
+  <joint name="platform_joint" type="fixed">
+    <parent link="world"/>
+    <child link="platform"/>
+    <origin rpy="0 0 -1.5707963267948966" xyz="0 0 0"/>
+  </joint>
+  <link name="platform">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="100"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/platform.obj"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/platform.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="torso_joint" type="prismatic">
+    <parent link="platform"/>
+    <child link="torso"/>
+    <origin rpy="0 0 0" xyz="0 0 1.195"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="1000" lower="-0.365" upper="0" velocity="0.15"/>
+    <dynamics damping="0.5"/>
+  </joint>
+  <link name="torso">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0.0711"/>
+      <mass value="9.7089"/>
+      <inertia ixx="0.064445" ixy="0" ixz="0.000181" iyy="0.070569" iyz="-0.000044" izz="0.182479"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/torso.obj"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/torso.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- NECK -->
+
+  <joint name="lower_neck_joint" type="fixed">
+    <parent link="torso"/>
+    <child link="lower_neck"/>
+    <origin rpy="0 0 1.5707963267948966" xyz="0 0 0.3685"/>
+  </joint>
+  <link name="lower_neck">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 -0.114"/>
+      <mass value="0.671"/>
+      <inertia ixx="2.9368849e-03" ixy="-9.8073037e-07" ixz="3.4807663e-07" iyy="3.0522742e-03" iyz="1.7456971e-07" izz="4.3647786e-03"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/lower_neck.obj"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/lower_neck.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="neck_1_yaw" type="revolute">
+    <parent link="lower_neck"/>
+    <child link="middle_neck"/>
+    <limit effort="100" lower="-1.0" upper="1.0" velocity="3.1415"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="0.00000 0.00000 1.00000"/>
+  </joint>
+  <link name="middle_neck">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0.304"/>
+      <inertia ixx="8.3637709e-04" ixy="7.3326556e-05" ixz="3.2956579e-07" iyy="7.6398772e-04" iyz="3.8719866e-07" izz="1.0940196e-03"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/middle_neck.obj"/>
+      </geometry>
+      <material name="armar_green">
+        <color rgba="0.039215686 0.447058824 0.4 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/middle_neck.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="neck_2_pitch" type="revolute">
+    <parent link="middle_neck"/>
+    <child link="upper_neck"/>
+    <limit effort="100" lower="-0.8" upper="0.8" velocity="3.1415"/>
+    <origin rpy="1.5707963267948966 0 1.5707963267948966" xyz="0 0 0"/>
+    <axis xyz="1.00000 0.00000 0.00000"/>
+  </joint>
+  <link name="upper_neck">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0.129 0.088"/>
+      <mass value="3.307"/>
+      <inertia ixx="4.2049627e-02" ixy="2.1679760e-04" ixz="1.5039253e-04" iyy="3.7165600e-04" iyz="-1.2902959e-02" izz="3.8875838e-02"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/upper_neck.obj"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/upper_neck.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- CAMERA -->
+
+  <joint name="depth_camera_joint" type="fixed">
+		<parent link="upper_neck"/>
+		<child link="DepthCamera"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 0.00000 -3.14159" xyz="0.03300 0.24780 0.19300"/>
+		<axis xyz="0.00000 0.00000 0.00000"/>
+	</joint>
+  <link name="DepthCamera">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00010"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+	</link>
+	<joint name="flea_cameras_joint" type="fixed">
+		<parent link="upper_neck"/>
+		<child link="FleaCamerasCenter"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 0.00000 -3.14159" xyz="0.00000 0.17300 0.12300"/>
+		<axis xyz="0.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="FleaCamerasCenter">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00010"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+	</link>
+	<joint name="robotception_camera_link" type="fixed">
+		<parent link="upper_neck"/>
+		<child link="Roboception"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.17300 0.16050"/>
+		<axis xyz="0.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Roboception">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00010"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+	</link>
+
+  <!-- ARM -->
+  <!-- left arm -->
+
+  <joint name="arm_cla_joint_r0" type="fixed">
+    <parent link="torso"/>
+    <child link="arm_cla_r0"/>
+    <origin rpy="0 0 1.5707963267948966" xyz="-0.09 0.0 0.1"/>
+  </joint>
+  <link name="arm_cla_r0">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="0.005094" ixy="0" ixz="0" iyy="0.00445008" iyz="0" izz="0.0032066"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/arml_cla.obj" scale="1.016 1.016 1.016"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/arml_cla.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="arm_t12_joint_r0" type="revolute">
+    <parent link="arm_cla_r0"/>
+    <child link="arm_t12_r0"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="240" lower="-1.3962634016" upper="1.3962634016" velocity="1.710422666954443"/>
+    <dynamics damping="0.5"/>
+  </joint>
+  <link name="arm_t12_r0">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0 0.1419 0.0283"/>
+      <mass value="3.5488"/>
+      <inertia ixx="0.018383" ixy="0.000021" ixz="0.000211" iyy="0.014306" iyz="-0.002042" izz="0.010714"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/arml_t12.obj"/>
+      </geometry>
+      <material name="armar_green">
+        <color rgba="0.039215686 0.447058824 0.4 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/arml_t12.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="arm_t23_joint_r0" type="continuous">
+    <parent link="arm_t12_r0"/>
+    <child link="arm_t23_r0"/>
+    <origin rpy="-1.3089971 0 0" xyz="0 0.289777748 0.077645714"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="200" velocity="1.710422666954443"/>
+    <dynamics damping="0.5"/>
+  </joint>
+  <link name="arm_t23_r0">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.00015 -0.0036 0.0211"/>
+      <mass value="3.03804"/>
+      <inertia ixx="0.009401" ixy="-0.000018" ixz="-0.000003" iyy="0.012958" iyz="-0.000054" izz="0.013138"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/arml_t23.obj"/>
+      </geometry>
+      <material name="armar_green">
+        <color rgba="0.039215686 0.447058824 0.4 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/arml_t23.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="arm_t34_joint_r0" type="revolute">
+    <parent link="arm_t23_r0"/>
+    <child link="arm_t34_r0"/>
+    <origin rpy="1.5707963 1.3089969 1.5707963" xyz="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="200" lower="-0.24" upper="3.1" velocity="1.710422666954443"/>
+    <dynamics damping="0.5"/>
+  </joint>
+  <link name="arm_t34_r0">
+    <inertial>
+      <origin rpy="0 0 0" xyz="-0.01285 0.11 0.00467"/>
+      <mass value="3.46206"/>
+      <inertia ixx="0.015225" ixy="0.000148" ixz="0.000739" iyy="0.011775" iyz="0.000467" izz="0.009438"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/arml_t34.obj"/>
+      </geometry>
+      <material name="armar_green">
+        <color rgba="0.039215686 0.447058824 0.4 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/arml_t34.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="arm_t45_joint_r0" type="continuous">
+    <parent link="arm_t34_r0"/>
+    <child link="arm_t45_r0"/>
+    <origin rpy="-1.5707963 0 0" xyz="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="200" velocity="1.710422666954443"/>
+    <dynamics damping="0.5"/>
+  </joint>
+  <link name="arm_t45_r0">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0163 -0.0332 0.315"/>
+      <mass value="3.31477"/>
+      <inertia ixx="0.018629" ixy="0.000853" ixz="-0.00045" iyy="0.011775" iyz="0.004029" izz="0.017761"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/arml_t45.obj"/>
+      </geometry>
+      <material name="armar_green">
+        <color rgba="0.039215686 0.447058824 0.4 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/arml_t45.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="arm_t56_joint_r0" type="revolute">
+    <parent link="arm_t45_r0"/>
+    <child link="arm_t56_r0"/>
+    <origin rpy="0 1.5707963 0" xyz="0 -0.055 0.409"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="200" lower="0" upper="2.51" velocity="1.710422666954443"/>
+    <dynamics damping="0.5"/>
+  </joint>
+  <link name="arm_t56_r0">
+    <inertial>
+      <origin rpy="0 0 0" xyz="-0.09107 0.00476 -0.00899"/>
+      <mass value="2.63888"/>
+      <inertia ixx="0.007551" ixy="0.000371" ixz="0.000125" iyy="0.009482" iyz="0.000003" izz="0.011298"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/arml_t56.obj"/>
+      </geometry>
+      <material name="armar_green">
+        <color rgba="0.039215686 0.447058824 0.4 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/arml_t56.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="arm_t67_joint_r0" type="continuous">
+    <parent link="arm_t56_r0"/>
+    <child link="arm_t67_r0"/>
+    <origin rpy="0 -1.5707963 0" xyz="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="200" velocity="1.710422666954443"/>
+    <dynamics damping="0.5"/>
+  </joint>
+  <link name="arm_t67_r0">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.00107 0.01939 0.25303"/>
+      <mass value="2.71787"/>
+      <inertia ixx="0.011854" ixy="0.000068" ixz="0.000083" iyy="0.007149" iyz="-0.00184" izz="0.0095"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/arml_t67.obj"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/arml_t67.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="arm_t78_joint_r0" type="revolute">
+    <parent link="arm_t67_r0"/>
+    <child link="arm_t78_r0"/>
+    <origin rpy="1.5707963 0 0" xyz="0 0 0.364"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="200" lower="-0.64" upper="0.64" velocity="1.710422666954443"/>
+    <dynamics damping="0.5"/>
+  </joint>
+  <link name="arm_t78_r0">
+    <inertial>
+      <origin rpy="0 0 0" xyz="-0.00657 -0.00467 0.01181"/>
+      <mass value="1.62346"/>
+      <inertia ixx="0.001552" ixy="0.000014" ixz="-0.000018" iyy="0.001959" iyz="0.000002" izz="0.002392"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/arml_t78.obj"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/arml_t78.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="arm_t8_joint_r0" type="revolute">
+    <parent link="arm_t78_r0"/>
+    <child link="arm_t8_r0"/>
+    <origin rpy="-1.5707963 1.5707963 0" xyz="0 0 0.0"/>
+    <axis xyz="0 -1 0"/>
+    <limit effort="200" lower="-1.52" upper="1.52" velocity="1.710422666954443"/>
+    <dynamics damping="0.5"/>
+  </joint>
+  <link name="arm_t8_r0">
+    <inertial>
+      <origin rpy="0 0 0" xyz="-0.0120 0.0267 0.094"/>
+      <mass value="0.528074"/>
+      <inertia ixx="0.002188" ixy="0.000007" ixz="-0.000004" iyy="0.001519" iyz="0.000256" izz="0.001176"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/arml_t8.obj"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/arml_t8.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- right arm -->
+
+  <joint name="arm_cla_joint_r1" type="fixed">
+    <parent link="torso"/>
+    <child link="arm_cla_r1"/>
+    <origin rpy="0 0 -1.5707963267948966" xyz="0.09 0.0 0.1"/>
+  </joint>
+  <link name="arm_cla_r1">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="0.005094" ixy="0" ixz="0" iyy="0.00445008" iyz="0" izz="0.0032066"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/arml_cla.obj" scale="1.016 1.016 1.016"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/arml_cla.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="arm_t12_joint_r1" type="revolute">
+    <parent link="arm_cla_r1"/>
+    <child link="arm_t12_r1"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="240" lower="-1.3962634016" upper="1.3962634016" velocity="1.710422666954443"/>
+    <dynamics damping="0.5"/>
+  </joint>
+  <link name="arm_t12_r1">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0 0.1419 0.0283"/>
+      <mass value="3.5488"/>
+      <inertia ixx="0.018383" ixy="0.000021" ixz="0.000211" iyy="0.014306" iyz="-0.002042" izz="0.010714"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/arml_t12.obj"/>
+      </geometry>
+      <material name="armar_green">
+        <color rgba="0.039215686 0.447058824 0.4 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/arml_t12.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="arm_t23_joint_r1" type="continuous">
+    <parent link="arm_t12_r1"/>
+    <child link="arm_t23_r1"/>
+    <origin rpy="-1.3089971 0 0" xyz="0 0.289777748 0.077645714"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="200" velocity="1.710422666954443"/>
+    <dynamics damping="0.5"/>
+  </joint>
+  <link name="arm_t23_r1">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.00015 -0.0036 0.0211"/>
+      <mass value="3.03804"/>
+      <inertia ixx="0.009401" ixy="-0.000018" ixz="-0.000003" iyy="0.012958" iyz="-0.000054" izz="0.013138"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/arml_t23.obj"/>
+      </geometry>
+      <material name="armar_green">
+        <color rgba="0.039215686 0.447058824 0.4 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/arml_t23.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="arm_t34_joint_r1" type="revolute">
+    <parent link="arm_t23_r1"/>
+    <child link="arm_t34_r1"/>
+    <origin rpy="1.5707963 1.3089969 1.5707963" xyz="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="200" lower="-0.24" upper="3.1" velocity="1.710422666954443"/>
+    <dynamics damping="0.5"/>
+  </joint>
+  <link name="arm_t34_r1">
+    <inertial>
+      <origin rpy="0 0 0" xyz="-0.01285 0.11 0.00467"/>
+      <mass value="3.46206"/>
+      <inertia ixx="0.015225" ixy="0.000148" ixz="0.000739" iyy="0.011775" iyz="0.000467" izz="0.009438"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/arml_t34.obj"/>
+      </geometry>
+      <material name="armar_green">
+        <color rgba="0.039215686 0.447058824 0.4 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/arml_t34.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="arm_t45_joint_r1" type="continuous">
+    <parent link="arm_t34_r1"/>
+    <child link="arm_t45_r1"/>
+    <origin rpy="-1.5707963 0 0" xyz="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="200" velocity="1.710422666954443"/>
+    <dynamics damping="0.5"/>
+  </joint>
+  <link name="arm_t45_r1">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0163 -0.0332 0.315"/>
+      <mass value="3.31477"/>
+      <inertia ixx="0.018629" ixy="0.000853" ixz="-0.00045" iyy="0.011775" iyz="0.004029" izz="0.017761"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/arml_t45.obj"/>
+      </geometry>
+      <material name="armar_green">
+        <color rgba="0.039215686 0.447058824 0.4 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/arml_t45.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="arm_t56_joint_r1" type="revolute">
+    <parent link="arm_t45_r1"/>
+    <child link="arm_t56_r1"/>
+    <origin rpy="0 1.5707963 0" xyz="0 -0.055 0.409"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="200" lower="0" upper="2.51" velocity="1.710422666954443"/>
+    <dynamics damping="0.5"/>
+  </joint>
+  <link name="arm_t56_r1">
+    <inertial>
+      <origin rpy="0 0 0" xyz="-0.09107 0.00476 -0.00899"/>
+      <mass value="2.63888"/>
+      <inertia ixx="0.007551" ixy="0.000371" ixz="0.000125" iyy="0.009482" iyz="0.000003" izz="0.011298"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/arml_t56.obj"/>
+      </geometry>
+      <material name="armar_green">
+        <color rgba="0.039215686 0.447058824 0.4 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/arml_t56.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="arm_t67_joint_r1" type="continuous">
+    <parent link="arm_t56_r1"/>
+    <child link="arm_t67_r1"/>
+    <origin rpy="0 -1.5707963 0" xyz="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="200" velocity="1.710422666954443"/>
+    <dynamics damping="0.5"/>
+  </joint>
+  <link name="arm_t67_r1">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.00107 0.01939 0.25303"/>
+      <mass value="2.71787"/>
+      <inertia ixx="0.011854" ixy="0.000068" ixz="0.000083" iyy="0.007149" iyz="-0.00184" izz="0.0095"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/arml_t67.obj"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/arml_t67.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="arm_t78_joint_r1" type="revolute">
+    <parent link="arm_t67_r1"/>
+    <child link="arm_t78_r1"/>
+    <origin rpy="1.5707963 0 0" xyz="0 0 0.364"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="200" lower="-0.64" upper="0.64" velocity="1.710422666954443"/>
+    <dynamics damping="0.5"/>
+  </joint>
+  <link name="arm_t78_r1">
+    <inertial>
+      <origin rpy="0 0 0" xyz="-0.00657 -0.00467 0.01181"/>
+      <mass value="1.62346"/>
+      <inertia ixx="0.001552" ixy="0.000014" ixz="-0.000018" iyy="0.001959" iyz="0.000002" izz="0.002392"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/arml_t78.obj"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/arml_t78.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="arm_t8_joint_r1" type="revolute">
+    <parent link="arm_t78_r1"/>
+    <child link="arm_t8_r1"/>
+    <origin rpy="-1.5707963 1.5707963 0" xyz="0 0 0.0"/>
+    <axis xyz="0 -1 0"/>
+    <limit effort="200" lower="-1.52" upper="1.52" velocity="1.710422666954443"/>
+    <dynamics damping="0.5"/>
+  </joint>
+  <link name="arm_t8_r1">
+    <inertial>
+      <origin rpy="0 0 0" xyz="-0.0120 0.0267 0.094"/>
+      <mass value="0.528074"/>
+      <inertia ixx="0.002188" ixy="0.000007" ixz="-0.000004" iyy="0.001519" iyz="0.000256" izz="0.001176"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/visual/arml_t8.obj"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://armar6_description/meshes/collision/arml_t8.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- HANDS -->
+  <!-- left hand -->
+
+  <!-- welded left hand commenting out -->
+  <!-- <joint name="hand_fixed_joint_r0" type="fixed"> -->
+  <!--   <parent link="arm_t8_r0"/> -->
+  <!--   <child link="hand_fixed_r0"/> -->
+  <!--   <origin rpy="0 0 0" xyz="-0.022 0 0.2645"/> -->
+  <!-- </joint> -->
+  <!-- <link name="hand_fixed_r0"> -->
+  <!--   <inertial> -->
+  <!--     <origin rpy="0 0 0" xyz="0.015 0.0 -0.025"/> -->
+  <!--     <mass value="0.985765"/> -->
+  <!--     <inertia ixx="0.0074021" ixy="0" ixz="0" iyy="0.008008" iyz="0" izz="0.0032670"/> -->
+  <!--   </inertial> -->
+  <!--   <visual> -->
+  <!--     <origin rpy="0 0 0" xyz="0 0 0"/> -->
+  <!--     <geometry> -->
+  <!--       <mesh filename="package://armar6_description/meshes/visual/left_hand_fixed.obj"/> -->
+  <!--     </geometry> -->
+  <!--     <material name="armar_metal"> -->
+  <!--       <color rgba="0.251 0.251 0.251 1"/> -->
+  <!--     </material> -->
+  <!--   </visual> -->
+  <!--   <collision> -->
+  <!--     <origin rpy="0 0 0" xyz="0 0 0"/> -->
+  <!--     <geometry> -->
+  <!--       <mesh filename="package://armar6_description/meshes/collision/left_hand_fixed.obj"/> -->
+  <!--     </geometry> -->
+  <!--   </collision> -->
+  <!-- </link> -->
+
+	<joint name="hand_joint" type="fixed">
+		<parent link="arm_t8_r0"/>
+		<child link="Hand L Palm"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -1.57080 -1.57080" xyz="0.00000 0.00000 0.14000"/>
+	</joint>
+	<!-- <link name="HandL_Base~Hand L Root"> -->
+	<!-- 	<inertial> -->
+	<!-- 		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/> -->
+	<!-- 		<mass value="0.00010"/> -->
+	<!-- 		<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/> -->
+	<!-- 	</inertial> -->
+	<!-- </link> -->
+	<!-- <joint name="jointfix_17_26" type="fixed"> -->
+	<!-- 	<parent link="HandL_Base~Hand L Root"/> -->
+	<!-- 	<child link="Hand L Palm"/> -->
+	<!-- 	<dynamics damping="1.0" friction="0.0001"/> -->
+	<!-- 	<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/> -->
+	<!-- </joint> -->
+	<link name="Hand L Palm">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/palm_l.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_27_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/palm_l.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Index L 1 Joint" type="revolute">
+		<parent link="Hand L Palm"/>
+		<child link="Index L 1"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="-1.57081 1.48348 -0.00001" xyz="0.14531 -0.00000 0.03922"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Index L 1">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/index_prox.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_29_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/index_prox.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Index L 2 Joint" type="revolute">
+		<parent link="Index L 1"/>
+		<child link="Index L 2"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 -0.05595 -0.00000"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Index L 2">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/index_inter.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_31_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/index_inter.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Index L 3 Joint" type="revolute">
+		<parent link="Index L 2"/>
+		<child link="Index L 3"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 -0.03197 -0.00000"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Index L 3">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="3.14159 -0.00000 -3.14159" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/index_dist.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_33_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="3.14159 -0.00000 -3.14159" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/index_dist.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<!-- <joint name="LeftHandFingers" type="fixed"> -->
+	<!-- 	<parent link="Hand L Palm"/> -->
+	<!-- 	<child link="LeftHandFingers"/> -->
+  <!--   <limit effort="100" lower="-1000" upper="1000" velocity="3.1415"/> -->
+	<!-- 	<dynamics damping="1.0" friction="0.0001"/> -->
+	<!-- 	<origin rpy="-1.57080 1.16969 0.00000" xyz="0.13032 0.00000 0.05530"/> -->
+	<!-- 	<axis xyz="1.00000 0.00000 0.00000"/> -->
+	<!-- </joint> -->
+	<!-- <link name="LeftHandFingers"> -->
+	<!-- 	<inertial> -->
+	<!-- 		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/> -->
+	<!-- 		<mass value="0.00010"/> -->
+	<!-- 		<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/> -->
+	<!-- 	</inertial> -->
+	<!-- </link> -->
+	<joint name="left_tool_frame_joint" type="fixed">
+	 	<parent link="Hand L Palm"/>
+		<child link="left_tool_frame"/>
+    <limit effort="100" lower="-1000" upper="1000" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin xyz="0.15 -0.07 0.01" rpy="1.57 0 0.7854"/>
+	</joint>
+	<link name="left_tool_frame">
+		<inertial>
+	 		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+	 		<mass value="0.00010"/>
+	 		<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+	  </inertial>
+	</link>
+	<joint name="Middle L 1 Joint" type="revolute">
+		<parent link="Hand L Palm"/>
+		<child link="Middle L 1"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 1.57080 -4.71239" xyz="0.15172 0.00000 0.00750"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Middle L 1">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/middle_prox.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_39_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/middle_prox.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Middle L 2 Joint" type="revolute">
+		<parent link="Middle L 1"/>
+		<child link="Middle L 2"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 -0.06000 0.00000"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Middle L 2">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/middle_inter.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_41_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/middle_inter.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Middle L 3 Joint" type="revolute">
+		<parent link="Middle L 2"/>
+		<child link="Middle L 3"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 -0.03900 0.00000"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Middle L 3">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="3.14159 -0.00000 -3.14159" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/middle_dist.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_43_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="3.14159 -0.00000 -3.14159" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/middle_dist.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Pinky L 1 Joint" type="revolute">
+		<parent link="Hand L Palm"/>
+		<child link="Pinky L 1"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="1.57080 1.16969 3.14159" xyz="0.13032 -0.00000 -0.05530"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Pinky L 1">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/pinky_prox.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_45_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/pinky_prox.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Pinky L 2 Joint" type="revolute">
+		<parent link="Pinky L 1"/>
+		<child link="Pinky L 2"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="-0.00000 -0.04610 0.00000"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Pinky L 2">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/pinky_inter.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_47_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/pinky_inter.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Pinky L 3 Joint" type="revolute">
+		<parent link="Pinky L 2"/>
+		<child link="Pinky L 3"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="-0.00000 -0.02706 0.00000"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Pinky L 3">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="-3.14159 -0.00000 3.14159" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/pinky_dist.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_49_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="-3.14159 -0.00000 3.14159" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/pinky_dist.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Ring L 1 Joint" type="revolute">
+		<parent link="Hand L Palm"/>
+		<child link="Ring L 1"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="1.57080 1.39616 3.14159" xyz="0.14652 0.00000 -0.02630"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Ring L 1">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/ring_prox.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_51_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/ring_prox.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Ring L 2 Joint" type="revolute">
+		<parent link="Ring L 1"/>
+		<child link="Ring L 2"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 -0.05506 0.00000"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Ring L 2">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/ring_inter.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_53_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/ring_inter.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Ring L 3 Joint" type="revolute">
+		<parent link="Ring L 2"/>
+		<child link="Ring L 3"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 -0.03704 0.00000"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Ring L 3">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="1.57080 -0.00000 -3.14159" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/ring_dist.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_55_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="1.57080 -0.00000 -3.14159" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/ring_dist.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Thumb L 1 Joint" type="revolute">
+		<parent link="Hand L Palm"/>
+		<child link="Thumb L 1"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="-0.22370 -1.18631 0.20756" xyz="0.08111 -0.04691 0.03950"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Thumb L 1">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/thumb_prox.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_57_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/thumb_prox.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Thumb L 2 Joint" type="revolute">
+		<parent link="Thumb L 1"/>
+		<child link="Thumb L 2"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00002 -0.04408 -0.00005"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Thumb L 2">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="3.14159 -0.00000 -3.14159" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/thumb_dist.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_59_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="3.14159 -0.00000 -3.14159" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/thumb_dist.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+
+  <!-- right hand -->
+
+  <!-- welded right hand commenting out -->
+  <!-- <joint name="hand_fixed_joint_r1" type="fixed"> -->
+  <!--   <parent link="arm_t8_r1"/> -->
+  <!--   <child link="hand_fixed_r1"/> -->
+  <!--   <origin rpy="0 0 0" xyz="-0.022 0 0.2645"/> -->
+  <!-- </joint> -->
+  <!-- <link name="hand_fixed_r1"> -->
+  <!--   <inertial> -->
+  <!--     <origin rpy="0 0 0" xyz="0.015 0.0 -0.025"/> -->
+  <!--     <mass value="0.985765"/> -->
+  <!--     <inertia ixx="0.007464023" ixy="0" ixz="0" iyy="0.0081043" iyz="0" izz="0.0033194"/> -->
+  <!--   </inertial> -->
+  <!--   <visual> -->
+  <!--     <origin rpy="0 0 0" xyz="0 0 0"/> -->
+  <!--     <geometry> -->
+  <!--       <mesh filename="package://armar6_description/meshes/visual/right_hand_fixed.obj"/> -->
+  <!--     </geometry> -->
+  <!--     <material name="armar_metal"> -->
+  <!--       <color rgba="0.251 0.251 0.251 1"/> -->
+  <!--     </material> -->
+  <!--   </visual> -->
+  <!--   <collision> -->
+  <!--     <origin rpy="0 0 0" xyz="0 0 0"/> -->
+  <!--     <geometry> -->
+  <!--       <mesh filename="package://armar6_description/meshes/collision/right_hand_fixed.obj"/> -->
+  <!--     </geometry> -->
+  <!--   </collision> -->
+  <!-- </link> -->
+
+	<joint name="jointfix_46_76" type="fixed">
+		<parent link="arm_t8_r1"/>
+		<child link="Hand R Palm"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -1.57080 1.57080" xyz="0.00000 0.00000 0.14000"/>
+		<axis xyz="0.00000 0.00000 0.00000"/>
+	</joint>
+	<!-- <link name="HandR_Base~Hand R Root"> -->
+	<!-- 	<inertial> -->
+	<!-- 		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/> -->
+	<!-- 		<mass value="0.00010"/> -->
+	<!-- 		<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/> -->
+	<!-- 	</inertial> -->
+	<!-- </link> -->
+	<!-- <joint name="jointfix_28_78" type="fixed"> -->
+	<!-- 	<parent link="HandR_Base~Hand R Root"/> -->
+	<!-- 	<child link="Hand R Col"/> -->
+	<!-- 	<dynamics damping="1.0" friction="0.0001"/> -->
+	<!-- 	<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/> -->
+	<!-- 	<axis xyz="0.00000 0.00000 0.00000"/> -->
+	<!-- </joint> -->
+	<!-- <link name="Hand R Col"> -->
+	<!-- 	<inertial> -->
+	<!-- 		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.10000 0.01000 -0.00200"/> -->
+	<!-- 		<mass value="0.92710"/> -->
+	<!-- 		<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/> -->
+	<!-- 	</inertial> -->
+	<!-- </link> -->
+	<!-- <joint name="jointfix_45_78" type="fixed"> -->
+	<!-- 	<parent link="HandR_Base~Hand R Root"/> -->
+	<!-- 	<child link="Hand R Palm"/> -->
+	<!-- 	<dynamics damping="1.0" friction="0.0001"/> -->
+	<!-- 	<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/> -->
+	<!-- 	<axis xyz="0.00000 0.00000 0.00000"/> -->
+	<!-- </joint> -->
+	<link name="Hand R Palm">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/palm_r.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_79_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/palm_r.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Index R 1 Joint" type="revolute">
+		<parent link="Hand R Palm"/>
+		<child link="Index R 1"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="1.57081 1.48348 -3.14158" xyz="0.14531 0.00000 -0.03922"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Index R 1">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/index_prox.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_81_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/index_prox.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Index R 2 Joint" type="revolute">
+		<parent link="Index R 1"/>
+		<child link="Index R 2"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 -0.05595 -0.00000"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Index R 2">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/index_inter.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_83_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/index_inter.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Index R 3 Joint" type="revolute">
+		<parent link="Index R 2"/>
+		<child link="Index R 3"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 -0.03197 -0.00000"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Index R 3">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="3.14159 -0.00000 -3.14159" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/index_dist.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_85_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="3.14159 -0.00000 -3.14159" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/index_dist.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Middle R 1 Joint" type="revolute">
+		<parent link="Hand R Palm"/>
+		<child link="Middle R 1"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 1.57080 -4.71239" xyz="0.15172 0.00000 -0.00750"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Middle R 1">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/middle_prox.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_87_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/middle_prox.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Middle R 2 Joint" type="revolute">
+		<parent link="Middle R 1"/>
+		<child link="Middle R 2"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 -0.06000 0.00000"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Middle R 2">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/middle_inter.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_89_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/middle_inter.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Middle R 3 Joint" type="revolute">
+		<parent link="Middle R 2"/>
+		<child link="Middle R 3"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 -0.03900 0.00000"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Middle R 3">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="3.14159 -0.00000 3.14159" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/middle_dist.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_91_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="3.14159 -0.00000 3.14159" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/middle_dist.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Pinky R 1 Joint" type="revolute">
+		<parent link="Hand R Palm"/>
+		<child link="Pinky R 1"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="-1.57080 1.16969 0.00000" xyz="0.13032 0.00000 0.05530"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Pinky R 1">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/pinky_prox.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_93_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/pinky_prox.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Pinky R 2 Joint" type="revolute">
+		<parent link="Pinky R 1"/>
+		<child link="Pinky R 2"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 -0.04610 0.00000"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Pinky R 2">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/pinky_inter.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_95_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/pinky_inter.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Pinky R 3 Joint" type="revolute">
+		<parent link="Pinky R 2"/>
+		<child link="Pinky R 3"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 -0.02706 -0.00000"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Pinky R 3">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="3.14159 -0.00000 -3.14159" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/pinky_dist.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_97_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="3.14159 -0.00000 -3.14159" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/pinky_dist.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<!-- <joint name="RightHandFingers" type="fixed"> -->
+	<!-- 	<parent link="Hand R Palm"/> -->
+	<!-- 	<child link="RightHandFingers"/> -->
+  <!--   <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/> -->
+	<!-- 	<dynamics damping="1.0" friction="0.0001"/> -->
+	<!-- 	<origin rpy="-1.57080 1.16969 0.00000" xyz="0.13032 0.00000 0.05530"/> -->
+	<!-- 	<axis xyz="1.00000 0.00000 0.00000"/> -->
+	<!-- </joint> -->
+	<!-- <link name="RightHandFingers"> -->
+	<!-- 	<inertial> -->
+	<!-- 		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/> -->
+	<!-- 		<mass value="0.00010"/> -->
+	<!-- 		<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/> -->
+	<!-- 	</inertial> -->
+	<!-- </link> -->
+	<joint name="right_tool_frame_joint" type="fixed">
+	 	<parent link="Hand R Palm"/>
+		<child link="right_tool_frame"/>
+    <limit effort="100" lower="-1000" upper="1000" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin xyz="0.15 -0.07 -0.01" rpy="1.57 0 0.7854"/>
+	</joint>
+	<link name="right_tool_frame">
+		<inertial>
+	 		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+	 		<mass value="0.00010"/>
+	 		<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+	  </inertial>
+	</link>
+	<joint name="Ring R 1 Joint" type="revolute">
+		<parent link="Hand R Palm"/>
+		<child link="Ring R 1"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="-1.57080 1.39616 0.00000" xyz="0.14652 0.00000 0.02630"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Ring R 1">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/ring_prox.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_103_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/ring_prox.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Ring R 2 Joint" type="revolute">
+		<parent link="Ring R 1"/>
+		<child link="Ring R 2"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 -0.05506 0.00000"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Ring R 2">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/ring_inter.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_105_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/ring_inter.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Ring R 3 Joint" type="revolute">
+		<parent link="Ring R 2"/>
+		<child link="Ring R 3"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="-0.00000 -0.03704 0.00000"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Ring R 3">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="1.57080 -0.00000 -3.14159" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/ring_dist.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_107_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="1.57080 -0.00000 -3.14159" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/ring_dist.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Thumb R 1 Joint" type="revolute">
+		<parent link="Hand R Palm"/>
+		<child link="Thumb R 1"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="2.91903 -1.18743 -2.93505" xyz="0.08111 -0.04691 -0.03950"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Thumb R 1">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/thumb_prox.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_109_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/thumb_prox.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="Thumb R 2 Joint" type="revolute">
+		<parent link="Thumb R 1"/>
+		<child link="Thumb R 2"/>
+    <limit effort="100" lower="0" upper="1.57" velocity="3.1415"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="-0.00002 -0.04408 -0.00005"/>
+		<axis xyz="1.00000 0.00000 0.00000"/>
+	</joint>
+	<link name="Thumb R 2">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="3.14159 -0.00000 3.14159" xyz="0.00002 0.00000 -0.00003"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/thumb_dist.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="mat_111_0">
+				<color rgba="1.00000 1.00000 1.00000 1.00000" />
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="3.14159 -0.00000 3.14159" xyz="0.00002 0.00000 -0.00003"/>
+			<geometry>
+				<mesh filename="package://armar6_description/mesh/stl/visual/hand_v3/thumb_dist.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+		</collision>
+	</link>
+
+</robot>
