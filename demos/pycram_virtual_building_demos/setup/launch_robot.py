@@ -6,7 +6,7 @@ import rospkg
 
 def launch_pr2():
     """
-    Method to launch PR2
+    Method to launch PR2 on the parameter server and start the ik service
     """
     # name = 'pr2'
     # urdf = 'pr2.urdf'
@@ -31,7 +31,8 @@ def launch_pr2():
 
 def launch_robot(launch_file, package='pycram', launch_folder='/launch/'):
     """
-    General method to launch a specified file in given parameters
+    General method to start a specified launch file with given parameters.
+    Default location for launch files here is in the folder 'launch' inside the pycram package
 
     :param launch_file: File name of the launch file
     :param package: Name of the package
