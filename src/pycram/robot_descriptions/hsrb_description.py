@@ -24,7 +24,7 @@ class HSRBDescription(RobotDescription):
         # Neck
         neck_links = ["head_pan_link", "head_tilt_link"]
         neck_joints = ["head_pan_joint", "head_tilt_joint"]
-        neck_forward = {"forward": [0.0, 0.0], "down": [0.0, 0, 0]}
+        neck_forward = {"forward": [0.0, 0.0], "down": [0.0, 0, -0.7]}
         neck_chain = ChainDescription("neck", neck_joints, neck_links, static_joint_states=neck_forward)
         self.add_chain("neck", neck_chain)
         # Arm
