@@ -40,7 +40,7 @@ class HSRBDescription(RobotDescription):
         arm_chain = ChainDescription("left", arm_joints, arm_links, static_joint_states=arm_carry)
         arm_inter = InteractionDescription(arm_chain, "wrist_roll_link")
         arm_manip = ManipulatorDescription(arm_inter, tool_frame="hand_gripper_tool_frame", gripper_description=gripper)
-
+        self.add_chain("left", arm_manip)
         self.add_static_gripper_chains("left", {"open": [0.3], "close": [0.0]})
         self.grasps = GraspingDescription(
             {"front": [-1, 0, -1, 0],
