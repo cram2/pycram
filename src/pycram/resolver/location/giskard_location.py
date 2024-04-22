@@ -4,15 +4,9 @@ from ...designators.location_designator import CostmapLocation
 from ...external_interfaces.ik import request_giskard_ik
 from ...robot_description import ManipulatorDescription
 from ...world import UseProspectionWorld, World
-from ...datastructures.pose import Pose
 from ...robot_descriptions import robot_description
-from ...pose_generator_and_validator import reachability_validator
 from ...local_transformer import LocalTransformer
-from ...external_interfaces.giskard import projection_cartisian_goal
 from ...plan_failures import IKError
-from typing_extensions import Tuple, Dict
-
-import tf
 
 
 class GiskardLocation(CostmapLocation):
