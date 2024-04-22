@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>me</name>
+  <version>100.1.0</version>
+  <description>tmp</description>
+  <license>Apache 2</license>
+  <maintainer email="me@me.me">me</maintainer>
+    
+</package>
