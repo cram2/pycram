@@ -289,6 +289,15 @@ class World(StateEntity, ABC):
         """
         return list(filter(lambda obj: obj.id == obj_id, self.objects))[0]
 
+    def get_all_objets_except_robot_envi(self) -> List[Object]:
+        """
+        Returns a list of all Objects except robot and environment.
+
+        :return: A list of all Objects except robot and environment.
+        """
+        return list(filter
+                    (lambda obj: (obj.type != ObjectType.ROBOT and obj.type != ObjectType.ENVIRONMENT), self.objects))
+
     @abstractmethod
     def remove_object_from_simulator(self, obj: Object) -> None:
         """

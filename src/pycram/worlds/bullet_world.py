@@ -238,6 +238,22 @@ class BulletWorld(World):
             p.removeBody(vis_id, physicsClientId=self.id)
         self.vis_axis = []
 
+    def add_rigid_box(self, pose, half_extents, color):
+        """
+        Creates a visual and collision box in the BulletWorld.
+
+        :param pose: Pose object with position and orientation where the box should be spawned.
+        :param half_extents: A tuple of three floats representing half the size of the box in each dimension.
+        :param color: A tuple of four floats representing the RGBA color of the box.
+        """
+
+        vis_shape = p.createVisualShape(p.GEOM_BOX, halfExtents=half_extents, rgbaColor=color)
+        col_shape = p.createCollisionShape(p.GEOM_BOX, halfExtents=half_extents)
+        obj = p.createMultiBody(baseMass=1.0, baseCollisionShapeIndex=col_shape, baseVisualShapeIndex=vis_shape,
+                                basePosition=pose.position, baseOrientation=pose.orientation)
+
+        return obj
+
     def ray_test(self, from_position: List[float], to_position: List[float]) -> int:
         res = p.rayTest(from_position, to_position, physicsClientId=self.id)
         return res[0][0]
