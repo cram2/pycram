@@ -1,7 +1,7 @@
 import dataclasses
 from typing_extensions import List, Optional, Callable
 import sqlalchemy.orm
-from pycram.world import World
+from pycram.datastructures.world import World
 from pycram.world_concepts.world_object import Object as WorldObject
 from ..designator import ObjectDesignatorDescription
 from ..orm.base import ProcessMetaData
@@ -67,7 +67,7 @@ class ObjectPart(ObjectDesignatorDescription):
         :param names: Possible names for the part
         :param part_of: Parent object of which the part should be described
         :param type: Type of the part
-        :param resolver: An alternative resolver to resolve the input parameter to an object designator
+        :param resolver: An alternative specialized_designators to resolve the input parameter to an object designator
         """
         super().__init__(names, type, resolver)
 
@@ -80,7 +80,7 @@ class ObjectPart(ObjectDesignatorDescription):
 
     def ground(self) -> Object:
         """
-        Default resolver, returns the first result of the iterator of this instance.
+        Default specialized_designators, returns the first result of the iterator of this instance.
 
         :return: A resolved object designator
         """
@@ -101,7 +101,7 @@ class ObjectPart(ObjectDesignatorDescription):
 class LocatedObject(ObjectDesignatorDescription):
     """
     Description for KnowRob located objects.
-    **Currently has no resolver**
+    **Currently has no specialized_designators**
     """
 
     @dataclasses.dataclass
@@ -124,7 +124,7 @@ class LocatedObject(ObjectDesignatorDescription):
         :param types: List of possible types describing the object
         :param reference_frames: Frame of reference in which the object position should be
         :param timestamps: Timestamps for which positions should be returned
-        :param resolver: An alternative resolver that resolves the input parameter to an object designator.
+        :param resolver: An alternative specialized_designators that resolves the input parameter to an object designator.
         """
         super(LocatedObject, self).__init__(names, types, resolver)
         self.reference_frames: List[str] = reference_frames
@@ -134,7 +134,7 @@ class LocatedObject(ObjectDesignatorDescription):
 class RealObject(ObjectDesignatorDescription):
     """
     Object designator representing an object in the real world, when resolving this object designator description ]
-    RoboKudo is queried to perceive an object fitting the given criteria. Afterward the resolver tries to match
+    RoboKudo is queried to perceive an object fitting the given criteria. Afterward the specialized_designators tries to match
     the found object to an Object in the World.
     """
 

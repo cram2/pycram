@@ -8,7 +8,7 @@ import rosnode
 from ..designator import ObjectDesignatorDescription
 from pycram.datastructures.pose import Pose
 from pycram.local_transformer import LocalTransformer
-from pycram.world import World
+from pycram.datastructures.world import World
 from pycram.datastructures.enums import ObjectType
 
 try:

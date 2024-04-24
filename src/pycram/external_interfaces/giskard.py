@@ -7,7 +7,7 @@ import rosnode
 
 from pycram.datastructures.pose import Pose
 from ..robot_descriptions import robot_description
-from pycram.world import World
+from pycram.datastructures.world import World
 from pycram.datastructures.dataclasses import MeshVisualShape
 from pycram.world_concepts.world_object import Object
 from ..robot_description import ManipulatorDescription

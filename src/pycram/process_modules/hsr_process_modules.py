@@ -7,13 +7,14 @@ from ..datastructures.enums import JointType
 from ..robot_descriptions import robot_description
 from ..process_module import ProcessModule
 from ..datastructures.pose import Point
-from ..helper import _apply_ik
+from ..utils import _apply_ik
 from ..external_interfaces.ik import request_ik
 from .. import world_reasoning as btr
 from ..local_transformer import LocalTransformer
 from ..designators.motion_designator import *
 from ..external_interfaces import giskard
-
+from ..world_concepts.world_object import Object
+from ..datastructures.world import World
 
 
 def calculate_and_apply_ik(robot, gripper: str, target_position: Point, max_iterations: Optional[int] = None):

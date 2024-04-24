@@ -5,7 +5,7 @@ import time
 from geometry_msgs.msg import Vector3
 from std_msgs.msg import ColorRGBA
 
-from pycram.world import World
+from pycram.datastructures.world import World
 from visualization_msgs.msg import MarkerArray, Marker
 import rospy
 

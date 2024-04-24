@@ -104,7 +104,7 @@ base = declarative_base(metadata=Base.metadata)
 
 class PickUpWithContextView(base):
     """
-    View for pickup actions with context.
+    View for pickup performables with context.
     """
 
     __robot_position: Position = sqlalchemy.orm.aliased(Position, flat=True)
