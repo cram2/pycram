@@ -7,15 +7,14 @@ from typing_extensions import TYPE_CHECKING
 
 import datetime
 import inspect
-import json
 import logging
-from typing_extensions import List, Dict, Optional, Callable
+from typing_extensions import List, Optional, Callable
 
 import anytree
 import sqlalchemy.orm.session
 import tqdm
 
-from .world import World
+from pycram.datastructures.world import World
 from .orm.task import TaskTreeNode as ORMTaskTreeNode
 from .orm.base import ProcessMetaData
 from .plan_failures import PlanFailure
@@ -23,7 +22,7 @@ from .datastructures.enums import TaskStatus
 from .datastructures.dataclasses import Color
 
 if TYPE_CHECKING:
-    from .designators.actions import Action
+    from .designators.performables import Action
 
 
 class NoOperation:

@@ -5,7 +5,7 @@ import time
 
 from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import JointState
-from pycram.world import World
+from pycram.datastructures.world import World
 from ..robot_descriptions import robot_description
 from pycram.datastructures.pose import Pose
 

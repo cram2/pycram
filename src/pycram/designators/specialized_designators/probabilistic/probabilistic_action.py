@@ -9,27 +9,26 @@ from random_events.events import Event, ComplexEvent
 from random_events.variables import Symbolic, Continuous
 import tqdm
 from typing_extensions import Optional, List, Iterator
-from ...world import World
-from ...costmaps import OccupancyCostmap, VisibilityCostmap
-from ...designator import ActionDesignatorDescription, ObjectDesignatorDescription
-from ...designators.actions.actions import MoveAndPickUpPerformable, ActionAbstract
-from ...datastructures.enums import Arms, Grasp, TaskStatus
-from ...local_transformer import LocalTransformer
-from ...orm.task import TaskTreeNode
-from ...orm.views import PickUpWithContextView
-from ...plan_failures import ObjectUnreachable, PlanFailure
-from ...datastructures.pose import Pose
+from pycram.datastructures.world import World
+from pycram.costmaps import OccupancyCostmap, VisibilityCostmap
+from pycram.designator import ActionDesignatorDescription, ObjectDesignatorDescription
+from pycram.designators.performables.actions import MoveAndPickUpPerformable, ActionAbstract
+from pycram.datastructures.enums import Arms, Grasp, TaskStatus
+from pycram.local_transformer import LocalTransformer
+from pycram.orm.views import PickUpWithContextView
+from pycram.plan_failures import ObjectUnreachable, PlanFailure
+from pycram.datastructures.pose import Pose
 
 
 class ProbabilisticAction:
     """
-    Abstract class for probabilistic actions.
+    Abstract class for probabilistic performables.
     """
 
     @dataclass
     class Variables:
         """
-        Variables for probabilistic actions.
+        Variables for probabilistic performables.
 
         This inner class serves the purpose to define the variables that are used in a model and make them easily
         accessible for the user. The user can access the variables by using the dot notation, e.g. `self.variables.x`.
@@ -235,7 +234,7 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
 
     def iter_with_mode(self) -> Iterator[MoveAndPickUpPerformable]:
         """
-        Generate actions by sampling from the mode of the policy conditioned on visibility and occupancy.
+        Generate performables by sampling from the mode of the policy conditioned on visibility and occupancy.
         """
         model = self.ground_model()
         modes, _ = model.mode()
@@ -248,7 +247,7 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
 
     def __iter__(self) -> Iterator[MoveAndPickUpPerformable]:
         """
-        Generate actions by sampling from the policy conditioned on visibility and occupancy.
+        Generate performables by sampling from the policy conditioned on visibility and occupancy.
         """
         model = self.ground_model(self.policy, self.events_from_occupancy_and_visibility_costmap())
         samples = model.sample(self.sample_amount)
@@ -263,7 +262,7 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
 
     def iterate_without_occupancy_costmap(self) -> Iterator[MoveAndPickUpPerformable]:
         """
-        Generate actions by sampling from the policy without conditioning on visibility and occupancy.
+        Generate performables by sampling from the policy without conditioning on visibility and occupancy.
         """
         samples = self.policy.sample(self.sample_amount)
         for sample in samples:

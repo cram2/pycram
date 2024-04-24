@@ -1,13 +1,12 @@
-from threading import Lock
 from typing import Any
 
 import rospy
 
 from ..external_interfaces.robokudo import query
-from ..helper import _apply_ik
+from ..utils import _apply_ik
 from ..external_interfaces import giskard
 from .default_process_modules import *
-from ..world import World
+from pycram.datastructures.world import World
 from ..designators.motion_designator import *
 
 

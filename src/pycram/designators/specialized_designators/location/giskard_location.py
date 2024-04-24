@@ -1,8 +1,8 @@
-from ...external_interfaces.giskard import achieve_cartesian_goal
-from ...designators.location_designator import CostmapLocation
-from pycram.world import UseProspectionWorld, World
+from pycram.external_interfaces.giskard import achieve_cartesian_goal
+from pycram.designators.location_designator import CostmapLocation
+from pycram.datastructures.world import UseProspectionWorld, World
 from pycram.datastructures.pose import Pose
-from ...robot_descriptions import robot_description
+from pycram.robot_descriptions import robot_description
 from pycram.pose_generator_and_validator import reachability_validator
 from typing_extensions import Tuple, Dict
 
@@ -15,7 +15,7 @@ class GiskardLocation(CostmapLocation):
         """
         Resolves a CostmapLocation for reachability to a specific Location using Giskard. Since Giskard is able to perform
         full body IK solving we can use this to get the Pose of a robot at which it is able to reach a certain point.
-        This resolver only supports reachable_for and not visible_for
+        This specialized_designators only supports reachable_for and not visible_for
 
         :param desig: A CostmapLocation Designator description
         :return: An instance of CostmapLocation.Location with a pose from which the robot can reach the target
