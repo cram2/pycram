@@ -144,7 +144,7 @@ class BulletWorldTest(BulletWorldTestCase):
         self.assertTrue("test" in self.world.data_directory)
 
     def test_no_prospection_object_found_for_given_object(self):
-        milk_2 = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+        milk_2 = Object("milk2", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
         time.sleep(0.05)
         try:
             prospection_milk_2 = self.world.get_prospection_object_for_object(milk_2)
@@ -156,7 +156,7 @@ class BulletWorldTest(BulletWorldTestCase):
             self.assertTrue(True)
 
     def test_no_object_found_for_given_prospection_object(self):
-        milk_2 = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+        milk_2 = Object("milk2", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
         time.sleep(0.05)
         prospection_milk = self.world.get_prospection_object_for_object(milk_2)
         self.assertTrue(self.world.get_object_for_prospection_object(prospection_milk) == milk_2)
