@@ -6,7 +6,7 @@ from sqlalchemy.ext.compiler import compiles
 from pycram.orm.action_designator import PickUpAction
 from pycram.orm.base import Position, RobotState, Pose, Base, Quaternion
 from pycram.orm.object_designator import Object
-from pycram.orm.task import TaskTreeNode
+from pycram.orm.tasktree import TaskTreeNode
 
 
 class CreateView(ExecutableDDLElement):

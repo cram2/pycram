@@ -15,7 +15,7 @@ import sqlalchemy.orm.session
 import tqdm
 
 from pycram.datastructures.world import World
-from .orm.task import TaskTreeNode as ORMTaskTreeNode
+from .orm.tasktree import TaskTreeNode as ORMTaskTreeNode
 from .orm.base import ProcessMetaData
 from .plan_failures import PlanFailure
 from .datastructures.enums import TaskStatus
