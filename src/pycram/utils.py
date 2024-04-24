@@ -51,31 +51,6 @@ def _apply_ik(robot: 'pycram.world_concepts.WorldObject', joint_poses: List[floa
     #     robot.set_joint_state(joints[i], joint_poses[i])
 
 
-# def calculate_wrist_tool_offset(wrist_frame: str, tool_frame: str, robot: WorldObject) -> Transform:
-#     return robot.get_transform_between_links(wrist_frame, tool_frame)
-
-
-# def transform(pose: List[float],
-#               transformation: List[float],
-#               local_coords=False):  # TODO: if pose is a list of position and orientation calculate new pose w/ orientation too
-#     input_has_rotation = len(pose) == 7
-#     transformation_has_rotation = len(transformation) == 7
-#     pose_tf = transform_from_pq(
-#         np.concatenate((pose[:3], quaternion_wxyz_from_xyzw(pose[3:])))) if input_has_rotation else transform_from(
-#         np.eye(3), pose)
-#     transformation_tf = transform_from_pq(np.concatenate((transformation[:3], quaternion_wxyz_from_xyzw(
-#         transformation[3:])))) if transformation_has_rotation else transform_from(np.eye(3), transformation)
-#     if local_coords:
-#         res = pose_tf @ transformation_tf
-#     else:
-#         res = transformation_tf @ pose_tf
-#     res = pq_from_transform(res)
-#     res[3:] = quaternion_xyzw_from_wxyz(res[3:])
-#     if not input_has_rotation:
-#         return res[:3].tolist()
-#     return res.tolist()
-
-
 class GeneratorList:
     """Implementation of generator list wrappers.
 
