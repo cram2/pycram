@@ -96,12 +96,6 @@ class CacheManager:
                     print(f"Found file {name} in {file_path}")
                     return str(file_path)
 
-        # name = path_object.name
-        # for data_dir in self.data_directory:
-        #     for file in os.listdir(data_dir):
-        #         if file == name:
-        #             return data_dir + f"/{name}"
-
         raise FileNotFoundError(
             f"File {name} could not be found in the resource directory {self.data_directory}")
 
