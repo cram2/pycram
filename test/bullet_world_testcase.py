@@ -1,7 +1,7 @@
 import time
 import unittest
 
-import pycram.task
+import pycram.tasktree
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.pose import Pose
@@ -38,7 +38,7 @@ class BulletWorldTestCase(unittest.TestCase):
     # Tests in here would not be properly executed in the CI
 
     def tearDown(self):
-        pycram.task.reset_tree()
+        pycram.tasktree.reset_tree()
         time.sleep(0.05)
         self.world.reset_world()
 
@@ -63,6 +63,7 @@ class BulletWorldGUITestCase(unittest.TestCase):
         cls.cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl",
                             ObjectDescription, pose=Pose([1.3, 0.7, 0.95]))
         ProcessModule.execution_delay = False
+        cls.viz_marker_publisher = VizMarkerPublisher()
 
     def setUp(self):
         self.world.reset_world()
