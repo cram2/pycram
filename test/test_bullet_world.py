@@ -169,6 +169,71 @@ class BulletWorldTest(BulletWorldTestCase):
             self.assertTrue(True)
         time.sleep(0.05)
 
+    def test_real_object_position_does_not_change_with_prospection_object(self):
+        milk_2_pos = [1.3, 1, 0.9]
+        milk_2 = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose(milk_2_pos))
+        time.sleep(0.05)
+        milk_2_pos = milk_2.get_position()
+        prospection_milk = self.world.get_prospection_object_for_object(milk_2)
+        prospection_milk_pos = prospection_milk.get_position()
+        self.assertTrue(prospection_milk_pos == milk_2_pos)
+
+        # Assert that when prospection object is moved, the real object is not moved
+        prospection_milk_pos.x += 1
+        prospection_milk.set_position(prospection_milk_pos)
+        self.assertTrue(prospection_milk.get_position() != milk_2.get_position())
+        self.world.remove_object(milk_2)
+
+    def test_prospection_object_position_does_not_change_with_real_object(self):
+        milk_2_pos = [1.3, 1, 0.9]
+        milk_2 = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose(milk_2_pos))
+        time.sleep(0.05)
+        milk_2_pos = milk_2.get_position()
+        prospection_milk = self.world.get_prospection_object_for_object(milk_2)
+        prospection_milk_pos = prospection_milk.get_position()
+        self.assertTrue(prospection_milk_pos == milk_2_pos)
+
+        # Assert that when real object is moved, the prospection object is not moved
+        milk_2_pos.x += 1
+        milk_2.set_position(milk_2_pos)
+        self.assertTrue(prospection_milk.get_position() != milk_2.get_position())
+        self.world.remove_object(milk_2)
+
+    def test_prospection_object_attachments_not_changed_with_real_object(self):
+        milk_2_pos = [1.3, 1, 0.9]
+        milk_2 = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose(milk_2_pos))
+        cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", pose=Pose([1.3, 0.7, 0.95]))
+        time.sleep(0.05)
+        milk_2.attach(cereal)
+        time.sleep(0.05)
+        prospection_milk = self.world.get_prospection_object_for_object(milk_2)
+        self.assertTrue(cereal not in prospection_milk.attachments)
+        prospection_cereal = self.world.get_prospection_object_for_object(cereal)
+        self.assertTrue(prospection_cereal in prospection_milk.attachments)
+
+        # Assert that when prospection object is moved, the real object is not moved
+        prospection_milk_pos = prospection_milk.get_position()
+        cereal_pos = cereal.get_position()
+        prospection_cereal_pos = prospection_cereal.get_position()
+
+        # Move prospection milk object
+        prospection_milk_pos.x += 1
+        prospection_milk.set_position(prospection_milk_pos)
+
+        # Prospection Cereal object should move with prospection milk object
+        assumed_prospection_cereal_pos = prospection_cereal_pos
+        assumed_prospection_cereal_pos.x += 1
+        new_prospection_cereal_pos = prospection_cereal.get_position()
+        self.assertTrue(new_prospection_cereal_pos == assumed_prospection_cereal_pos)
+
+        # Real cereal object should not move
+        new_cereal_pos = cereal.get_position()
+        assumed_cereal_pos = cereal_pos
+        self.assertTrue(new_cereal_pos == assumed_cereal_pos)
+
+        self.world.remove_object(milk_2)
+        self.world.remove_object(cereal)
+
     def test_add_vis_axis(self):
         self.world.add_vis_axis(self.robot.get_link_pose(robot_description.get_camera_frame()))
         self.assertTrue(len(self.world.vis_axis) == 1)
