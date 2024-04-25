@@ -558,9 +558,26 @@ class Object(WorldEntity):
     def current_state(self, state: ObjectState) -> None:
         if self.get_pose().dist(state.pose) != 0.0:
             self.set_pose(state.pose, base=False, set_attachments=False)
-        self.attachments = state.attachments
+
+        self.set_attachments(state.attachments)
         self.link_states = state.link_states
         self.joint_states = state.joint_states
+
+    def set_attachments(self, attachments: Dict[Object, Attachment]) -> None:
+        """
+        Sets the attachments of this object to the given attachments.
+        :param attachments: A dictionary with the object as key and the attachment as value.
+        """
+        for obj, attachment in attachments.items():
+            if self.world.is_prospection_world and not obj.world.is_prospection_world:
+                obj = self.world.get_prospection_object_for_object(obj)
+            if obj in self.attachments:
+                if self.attachments[obj] != attachment:
+                    self.detach(obj)
+                else:
+                    continue
+            self.attach(obj, attachment.parent_link.name, attachment.child_link.name,
+                        attachment.bidirectional)
 
     @property
     def link_states(self) -> Dict[int, LinkState]:
@@ -968,6 +985,17 @@ class Object(WorldEntity):
         base_length = np.absolute(aabb.min_y - aabb.max_y)
         return Pose([aabb.min_x + base_width / 2, aabb.min_y + base_length / 2, aabb.min_z],
                     self.get_orientation_as_list())
+
+    def copy_to_prospection(self) -> Object:
+        """
+        Copies this object to the prospection world.
+
+        :return: The copied object in the prospection world.
+        """
+        obj = Object(self.name, self.obj_type, self.path, type(self.description), self.get_pose(),
+                     self.world.prospection_world, self.color)
+        obj.current_state = self.current_state
+        return obj
 
     def __copy__(self) -> Object:
         """
