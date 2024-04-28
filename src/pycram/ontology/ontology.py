@@ -108,7 +108,7 @@ class OntologyManager(object, metaclass=Singleton):
         rospy.loginfo(f"Direct Instances: {list(ontology_class.direct_instances())}")
         rospy.loginfo(f"Inverse Restrictions: {list(ontology_class.inverse_restrictions())}")
 
-    def load_ontology(self, ontology_iri) -> tuple[owlready2.Ontology, owlready2.Namespace] | None:
+    def load_ontology(self, ontology_iri) -> tuple[owlready2.Ontology, owlready2.Namespace]:
         """
         Load an ontology from an IRI
         :param ontology_iri: An ontology IRI
@@ -127,10 +127,9 @@ class OntologyManager(object, metaclass=Singleton):
                 rospy.loginfo(ontology__.base_iri)
 
             self.browse_ontologies(ontology, condition=None, func=lambda ontology__: fetch_ontology(ontology__))
-            return ontology, ontology_namespace
         else:
             rospy.logerr(f"Ontology [{ontology.base_iri}]\'s name: {ontology.name} failed being loaded")
-            return None
+        return ontology, ontology_namespace
 
     def initialized(self) -> bool:
         return hasattr(self, "main_ontology") and self.main_ontology.loaded
