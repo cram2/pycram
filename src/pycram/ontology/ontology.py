@@ -88,8 +88,8 @@ class OntologyManager(object, metaclass=Singleton):
 
         self.main_ontology, self.main_ontology_namespace = self.load_ontology(main_ontology_iri)
         if self.main_ontology.loaded:
-            self.soma = self.ontologies[SOMA_ONTOLOGY_NAMESPACE]
-            self.dul = self.ontologies[DUL_ONTOLOGY_NAMESPACE]
+            self.soma = self.ontologies.get(SOMA_ONTOLOGY_NAMESPACE)
+            self.dul = self.ontologies.get(DUL_ONTOLOGY_NAMESPACE)
 
     @staticmethod
     def print_ontology_class(ontology_class):
