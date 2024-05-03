@@ -12,7 +12,7 @@ urdf-parser-py~=0.0.3
 graphviz
 anytree>=2.8.0
 SQLAlchemy>=2.0.9
-tqdm==4.66.1
+tqdm==4.66.3
 psutil==5.9.7
 lxml==4.9.1
 typing_extensions==4.9.0
