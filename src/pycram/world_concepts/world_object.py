@@ -668,7 +668,7 @@ class Object(WorldEntity):
                 child.set_pose(link_to_object.to_pose(), set_attachments=False)
                 child._set_attached_objects_poses(already_moved_objects + [self])
 
-    def set_position(self, position: Union[Pose, Point], base=False) -> None:
+    def set_position(self, position: Union[Pose, Point, List], base=False) -> None:
         """
         Sets this Object to the given position, if base is true the bottom of the Object will be placed at the position
         instead of the origin in the center of the Object. The given position can either be a Pose,
