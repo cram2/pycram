@@ -132,7 +132,7 @@ class BulletWorldTest(BulletWorldTestCase):
         self.assertTrue(self.collision_called)
 
     def test_equal_world_states(self):
-        time.sleep(2)
+        time.sleep(2.5)
         self.robot.set_pose(Pose([1, 0, 0], [0, 0, 0, 1]))
         self.assertFalse(self.world.world_sync.check_for_equal())
         self.world.prospection_world.object_states = self.world.current_state.object_states
@@ -144,7 +144,7 @@ class BulletWorldTest(BulletWorldTestCase):
         self.assertTrue("test" in self.world.data_directory)
 
     def test_no_prospection_object_found_for_given_object(self):
-        milk_2 = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+        milk_2 = Object("milk_2", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
         time.sleep(0.05)
         try:
             prospection_milk_2 = self.world.get_prospection_object_for_object(milk_2)
@@ -156,7 +156,7 @@ class BulletWorldTest(BulletWorldTestCase):
             self.assertTrue(True)
 
     def test_no_object_found_for_given_prospection_object(self):
-        milk_2 = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+        milk_2 = Object("milk_2", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
         time.sleep(0.05)
         prospection_milk = self.world.get_prospection_object_for_object(milk_2)
         self.assertTrue(self.world.get_object_for_prospection_object(prospection_milk) == milk_2)
@@ -168,6 +168,36 @@ class BulletWorldTest(BulletWorldTestCase):
         except ValueError as e:
             self.assertTrue(True)
         time.sleep(0.05)
+
+    def test_real_object_position_does_not_change_with_prospection_object(self):
+        milk_2_pos = [1.3, 1, 0.9]
+        milk_2 = Object("milk_2", ObjectType.MILK, "milk.stl", pose=Pose(milk_2_pos))
+        time.sleep(0.05)
+        milk_2_pos = milk_2.get_position()
+        prospection_milk = self.world.get_prospection_object_for_object(milk_2)
+        prospection_milk_pos = prospection_milk.get_position()
+        self.assertTrue(prospection_milk_pos == milk_2_pos)
+
+        # Assert that when prospection object is moved, the real object is not moved
+        prospection_milk_pos.x += 1
+        prospection_milk.set_position(prospection_milk_pos)
+        self.assertTrue(prospection_milk.get_position() != milk_2.get_position())
+        self.world.remove_object(milk_2)
+
+    def test_prospection_object_position_does_not_change_with_real_object(self):
+        milk_2_pos = [1.3, 1, 0.9]
+        milk_2 = Object("milk_2", ObjectType.MILK, "milk.stl", pose=Pose(milk_2_pos))
+        time.sleep(0.05)
+        milk_2_pos = milk_2.get_position()
+        prospection_milk = self.world.get_prospection_object_for_object(milk_2)
+        prospection_milk_pos = prospection_milk.get_position()
+        self.assertTrue(prospection_milk_pos == milk_2_pos)
+
+        # Assert that when real object is moved, the prospection object is not moved
+        milk_2_pos.x += 1
+        milk_2.set_position(milk_2_pos)
+        self.assertTrue(prospection_milk.get_position() != milk_2.get_position())
+        self.world.remove_object(milk_2)
 
     def test_add_vis_axis(self):
         self.world.add_vis_axis(self.robot.get_link_pose(robot_description.get_camera_frame()))
