@@ -466,7 +466,7 @@ def achieve_close_container_goal(tip_link: str, environment_link: str) -> 'MoveR
 
 
 @init_giskard_interface
-def projection_cartisian_goal(goal_pose: Pose, tip_link: str, root_link: str) -> 'MoveResult':
+def projection_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str) -> 'MoveResult':
     """
     Tries to move the tip_link to the position defined by goal_pose using the chain defined by tip_link and root_link.
     The goal_pose is projected to the closest point on the robot's workspace.
@@ -478,6 +478,46 @@ def projection_cartisian_goal(goal_pose: Pose, tip_link: str, root_link: str) ->
     """
     sync_worlds()
     giskard_wrapper.set_cart_goal(_pose_to_pose_stamped(goal_pose), tip_link, root_link)
+    return giskard_wrapper.projection()
+
+
+@init_giskard_interface
+def projection_cartesian_goal_with_approach(approach_pose: Pose, goal_pose: Pose, tip_link: str, root_link: str,
+                                            robot_base_link: str) -> 'MoveResult':
+    """
+    Tries to achieve the goal_pose using the chain defined by tip_link and root_link. The approach_pose is used to drive
+    the robot to a pose close the actual goal pose, the robot_base_link is used to define the base link of the robot.
+
+    :param approach_pose: Pose near the goal_pose
+    :param goal_pose: Pose to which the tip_link should be moved
+    :param tip_link: The link which should be moved to goal_pose, usually the tool frame
+    :param root_link: The start of the link chain which should be used for planning
+    :param robot_base_link: The base link of the robot
+    :return: A trajectory calculated to move the tip_link to the goal_pose
+    """
+    sync_worlds()
+    giskard_wrapper.allow_all_collisions()
+    giskard_wrapper.set_cart_goal(_pose_to_pose_stamped(approach_pose), robot_base_link, "map")
+    giskard_wrapper.projection()
+    giskard_wrapper.avoid_all_collisions()
+    giskard_wrapper.set_cart_goal(_pose_to_pose_stamped(goal_pose), tip_link, root_link)
+    return giskard_wrapper.projection()
+
+
+@init_giskard_interface
+def projection_joint_goal(goal_poses: Dict[str, float], allow_collisions: bool = False) -> 'MoveResult':
+    """
+    Tries to achieve the joint goal defined by goal_poses, the goal_poses are projected to the closest point on the
+    robot's workspace.
+
+    :param goal_poses: Dictionary with joint names and position goals
+    :param allow_collisions: If all collisions should be allowed for this goal
+    :return: MoveResult message for this goal
+    """
+    sync_worlds()
+    if allow_collisions:
+        giskard_wrapper.allow_all_collisions()
+    giskard_wrapper.set_joint_goal(goal_poses)
     return giskard_wrapper.projection()
 
 
