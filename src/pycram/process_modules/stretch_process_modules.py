@@ -36,11 +36,11 @@ class StretchMoveHead(ProcessModule):
         new_tilt = np.arctan2(-pose_in_tilt.position.y,
                               pose_in_tilt.position.z ** 2 + pose_in_tilt.position.x ** 2) * -1
 
-        current_pan = robot.get_joint_state("joint_head_pan")
-        current_tilt = robot.get_joint_state("joint_head_tilt")
+        current_pan = robot.get_joint_position("joint_head_pan")
+        current_tilt = robot.get_joint_position("joint_head_tilt")
 
-        robot.set_joint_state("joint_head_pan", new_pan + current_pan)
-        robot.set_joint_state("joint_head_tilt", new_tilt + current_tilt)
+        robot.set_joint_position("joint_head_pan", new_pan + current_pan)
+        robot.set_joint_position("joint_head_tilt", new_tilt + current_tilt)
 
 
 class StretchMoveGripper(DefaultMoveGripper):
@@ -164,10 +164,11 @@ class StretchMoveHeadReal(ProcessModule):
         pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame("head_tilt_link"))
 
         new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
-        new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2) * -1
+        new_tilt = np.arctan2(-pose_in_tilt.position.y,
+                              pose_in_tilt.position.z ** 2 + pose_in_tilt.position.x ** 2) * -1
 
-        current_pan = robot.get_joint_state("head_pan_joint")
-        current_tilt = robot.get_joint_state("head_tilt_joint")
+        current_pan = robot.get_joint_position("joint_head_pan")
+        current_tilt = robot.get_joint_position("joint_head_tilt")
 
         giskard.avoid_all_collisions()
         giskard.achieve_joint_goal({"head_pan_joint": new_pan + current_pan,
