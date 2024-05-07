@@ -40,9 +40,6 @@ class GiskardLocation(CostmapLocation):
         for maybe_pose in PoseGenerator(near_costmap, 200):
             for name, chain in manipulator_descs:
                 projection_joint_goal(robot_description.get_static_joint_chain(chain.name, "park"), allow_collisions=True)
-                time.sleep(5)
-                reachable_arms = []
-                reachable = False
 
                 trajectory = projection_cartesian_goal_with_approach(maybe_pose, self.target, chain.tool_frame,
                                                                      "map", robot_description.base_link)
@@ -64,7 +61,7 @@ class GiskardLocation(CostmapLocation):
                     prospection_robot.set_joint_positions(robot_joint_states)
                     prospection_robot.set_pose(pose)
                     gripper_pose = prospection_robot.get_link_pose(chain.tool_frame)
-                    print(gripper_pose.dist(self.target))
+
                     if gripper_pose.dist(self.target) <= 0.02:
                         yield CostmapLocation.Location(pose, [name])
 
