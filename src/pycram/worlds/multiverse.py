@@ -2,7 +2,6 @@ import logging
 import os
 from time import time
 
-import rospy
 from typing_extensions import List, Dict, Optional
 
 from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color
@@ -111,6 +110,8 @@ class Multiverse(MultiverseSocket, World):
         self.simulation: str = simulation
         self._make_sure_multiverse_resources_are_added()
         self.last_object_id: int = -1
+        self.last_constraint_id: int = -1
+        self.constraints: Dict[int, Constraint] = {}
         self.object_name_to_id: Dict[str, int] = {}
         self.object_id_to_name: Dict[int, str] = {}
         self.time_start = time()
@@ -266,11 +267,48 @@ class Multiverse(MultiverseSocket, World):
         self.send_and_receive_data()
 
     def add_constraint(self, constraint: Constraint) -> int:
-        logging.warning("add_constraint is not implemented in Multiverse")
-        return 0
+        if constraint.type != JointType.FIXED:
+            logging.error("Only fixed constraints are supported in Multiverse")
+            raise ValueError
+        constraint_id = self.last_constraint_id + 1
+        self._add_api_request("attach", constraint.parent_link.name, constraint.child_link.name)
+        self._send_api_request()
+        self.constraints[constraint_id] = constraint
+        return constraint_id
 
     def remove_constraint(self, constraint_id) -> None:
-        logging.warning("remove_constraint is not implemented in Multiverse")
+        constraint = self.constraints.pop(constraint_id)
+        self._add_api_request("detach", constraint.parent_link.name, constraint.child_link.name)
+        self._send_api_request()
+
+    def _init_api_callback(self):
+        """
+        Initialize the API callback in the request metadata.
+        """
+        self.request_meta_data["send"] = {}
+        self.request_meta_data["receive"] = {}
+        self.request_meta_data["api_callbacks"] = {self.simulation: []}
+        self.set_simulation_in_request_meta_data()
+
+    def _add_api_request(self, api_name: str, *params):
+        """
+        Add an API request to the request metadata.
+        param api_name: The name of the API.
+        param params: The parameters of the API.
+        """
+        if "api_callbacks" not in self.request_meta_data:
+            self._init_api_callback()
+        self.request_meta_data["api_callbacks"][self.simulation].append({api_name: list(params)})
+
+    def _send_api_request(self):
+        """
+        Send the API request to the server.
+        """
+        if "api_callbacks" not in self.request_meta_data:
+            logging.error("No API request to send")
+            raise ValueError
+        self.send_and_receive_meta_data()
+        self.request_meta_data.pop("api_callbacks")
 
     def perform_collision_detection(self) -> None:
         logging.warning("perform_collision_detection is not implemented in Multiverse")
