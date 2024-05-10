@@ -2,23 +2,22 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Iterable
 
 import numpy as np
 import rospy
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
+from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
+                                          AxisAlignedBoundingBox, VisualShape)
+from ..datastructures.enums import ObjectType, JointType
+from ..datastructures.pose import Pose, Transform
 from ..description import ObjectDescription, LinkDescription
+from ..local_transformer import LocalTransformer
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..robot_descriptions import robot_description
 from ..world import WorldEntity, World
 from ..world_concepts.constraints import Attachment
-from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
-                                               AxisAlignedBoundingBox, VisualShape)
-from ..datastructures.enums import ObjectType, JointType
-from ..local_transformer import LocalTransformer
-from ..datastructures.pose import Pose, Transform
 
 Link = ObjectDescription.Link
 
@@ -48,7 +47,8 @@ class Object(WorldEntity):
 
         :param name: The name of the object
         :param obj_type: The type of the object as an ObjectType enum.
-        :param path: The path to the source file, if only a filename is provided then the resources directories will be searched.
+        :param path: The path to the source file, if only a filename is provided then the resources directories will be
+         searched.
         :param description: The ObjectDescription of the object, this contains the joints and links of the object.
         :param pose: The pose at which the Object should be spawned
         :param world: The World in which the object should be spawned, if no world is specified the :py:attr:`~World.current_world` will be used.
@@ -103,7 +103,7 @@ class Object(WorldEntity):
     def pose(self, pose: Pose):
         self.set_pose(pose)
 
-    def _load_object_and_get_id(self, path: Optional[str] = None,
+    def _load_object_and_get_id(self, path: str,
                                 ignore_cached_files: Optional[bool] = False) -> Tuple[int, Union[str, None]]:
         """
         Loads an object to the given World with the given position and orientation. The rgba_color will only be
@@ -114,23 +114,21 @@ class Object(WorldEntity):
         This new file will have resolved mesh file paths, meaning there will be no references
         to ROS packges instead there will be absolute file paths.
 
-        :param path: The path to the description file, if None then no file will be loaded, this is useful when the PyCRAM is not responsible for loading the file but another system is.
+        :param path: The path to the description file.
         :param ignore_cached_files: Whether to ignore files in the cache directory.
         :return: The unique id of the object and the path of the file that was loaded.
         """
-        if path is not None:
-            try:
-                self.path = self.world.update_cache_dir_with_object(path, ignore_cached_files, self)
-            except FileNotFoundError as e:
-                logging.error("Could not generate description from file.")
-                raise e
-
-        else:
-            self.path = self.name
+        try:
+            self.path = self.world.update_cache_dir_with_object(path, ignore_cached_files, self)
+        except FileNotFoundError as e:
+            logging.error("Could not generate description from file.")
+            raise e
 
         try:
-            obj_id = self.world.load_object_and_get_id(self, Pose(self.get_position_as_list(),
-                                                                  self.get_orientation_as_list()))
+            if not self.world.handle_spawning:
+                path = self.name
+            obj_id = self.world.load_object_and_get_id(path, Pose(self.get_position_as_list(),
+                                                                       self.get_orientation_as_list()))
             return obj_id, self.path
 
         except Exception as e:
@@ -154,7 +152,7 @@ class Object(WorldEntity):
         """
         n_links = len(self.link_names)
         self.link_name_to_id: Dict[str, int] = dict(zip(self.link_names, range(n_links)))
-        self.link_name_to_id[self.description.get_root()] = -1
+        self.link_name_to_id[self.root_link_name] = -1
         self.link_id_to_name: Dict[int, str] = dict(zip(self.link_name_to_id.values(), self.link_name_to_id.keys()))
 
     def _init_links_and_update_transforms(self) -> None:
@@ -165,7 +163,7 @@ class Object(WorldEntity):
         self.links = {}
         for link_name, link_id in self.link_name_to_id.items():
             link_description = self.description.get_link_by_name(link_name)
-            if link_name == self.description.get_root():
+            if link_name == self.root_link_name:
                 self.links[link_name] = self.description.RootLink(self)
             else:
                 self.links[link_name] = self.description.Link(link_id, link_description, self)
@@ -648,6 +646,8 @@ class Object(WorldEntity):
 
         :param already_moved_objects: A list of Objects that were already moved, these will be excluded to prevent loops in the update.
         """
+        if not self.world.set_attached_objects_poses:
+            return
 
         if already_moved_objects is None:
             already_moved_objects = []
@@ -743,7 +743,16 @@ class Object(WorldEntity):
 
         :return: The root link of this object.
         """
-        return self.links[self.description.get_root()]
+        return self.links[self.root_link_name]
+
+    @property
+    def tip_link(self) -> ObjectDescription.Link:
+        """
+        Returns the tip link of this object.
+
+        :return: The tip link of this object.
+        """
+        return self.links[self.tip_link_name]
 
     @property
     def root_link_name(self) -> str:
@@ -754,13 +763,22 @@ class Object(WorldEntity):
         """
         return self.description.get_root()
 
+    @property
+    def tip_link_name(self) -> str:
+        """
+        Returns the name of the tip link of this object.
+
+        :return: The name of the tip link of this object.
+        """
+        return self.description.get_tip()
+
     def get_root_link_id(self) -> int:
         """
         Returns the unique id of the root link of this object.
 
         :return: The unique id of the root link of this object.
         """
-        return self.get_link_id(self.description.get_root())
+        return self.get_link_id(self.root_link_name)
 
     def get_link_id(self, link_name: str) -> int:
         """
@@ -885,7 +903,7 @@ class Object(WorldEntity):
         :param joint_type: Joint type that should be searched for
         :return: Name of the first joint which has the given type
         """
-        chain = self.description.get_chain(self.description.get_root(), link_name)
+        chain = self.description.get_chain(self.root_link_name, link_name)
         reversed_chain = reversed(chain)
         container_joint = None
         for element in reversed_chain:

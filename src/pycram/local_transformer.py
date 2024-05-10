@@ -77,7 +77,8 @@ class LocalTransformer(TransformerROS):
         copy_pose.header.stamp = rospy.Time(0)
         if not self.canTransform(target_frame, pose.frame, rospy.Time(0)):
             rospy.logerr(
-                f"Can not transform pose: \n {pose}\n to frame: {target_frame}.\n Maybe try calling 'update_transforms_for_object'")
+                f"Can not transform pose: \n {pose}\n to frame: {target_frame}."
+                f"\n Maybe try calling 'update_transforms_for_object'")
             return
         new_pose = super().transformPose(target_frame, copy_pose)
 

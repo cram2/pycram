@@ -8,6 +8,7 @@ from typing_extensions import Optional
 
 from pycram.datastructures.enums import ObjectType
 from pycram.datastructures.pose import Pose
+from pycram.world import UseProspectionWorld
 from pycram.world_concepts.world_object import Object
 from pycram.worlds.multiverse import Multiverse
 
@@ -123,22 +124,25 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def test_set_robot_position(self):
         if self.multiverse.robot is None:
             self.spawn_robot()
-        self.multiverse.robot.set_position([0, 0, 1])
-        self.assertEqual(self.multiverse.robot.get_position_as_list(), [0, 0, 1])
+        new_position = [1, 1, 0]
+        self.multiverse.robot.set_position(new_position)
+        self.assertEqual(self.multiverse.robot.get_position_as_list(), new_position)
 
     def test_attach(self):
-        if self.multiverse.robot is None:
-            self.spawn_robot()
-        self.multiverse.robot.attach(self.big_bowl)
-        self.assertTrue(self.big_bowl in self.multiverse.robot.attachments)
-        bowl_position = self.big_bowl.get_position_as_list()
-        robot_position = self.multiverse.robot.get_position_as_list()
-        robot_position[0] += 1
-        self.multiverse.robot.set_position(robot_position)
-        new_bowl_position = self.big_bowl.get_position_as_list()
-        estimated_bowl_position = bowl_position
-        estimated_bowl_position[0] += 1
-        self.assertAlmostEqual(new_bowl_position[0], estimated_bowl_position[0])
+        with UseProspectionWorld():
+            if self.multiverse.robot is None:
+                robot = self.spawn_robot()
+            robot.attach(self.big_bowl)
+            self.assertTrue(self.big_bowl in robot.attachments)
+            bowl_position = self.big_bowl.get_position_as_list()
+            robot_position = robot.get_position_as_list()
+            robot_position[0] += 1
+            time.sleep(2)
+            robot.set_position(robot_position)
+            new_bowl_position = self.big_bowl.get_position_as_list()
+            estimated_bowl_position = bowl_position
+            estimated_bowl_position[0] += 1
+            self.assertAlmostEqual(new_bowl_position[0], estimated_bowl_position[0])
 
     @staticmethod
     def spawn_milk() -> Object:
@@ -147,5 +151,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     @staticmethod
     def spawn_robot() -> Object:
-        return Object("panda", ObjectType.ROBOT, "panda.urdf",
-                      pose=Pose([0, 0, 3], [0, 0, 0, 1]))
+        robot = Object("panda", ObjectType.ROBOT, "panda.urdf",
+                      pose=Pose([1, 0, 3], [0, 0, 0, 1]))
+        time.sleep(2)
+        return robot
