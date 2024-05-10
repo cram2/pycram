@@ -113,7 +113,7 @@ class Multiverse(MultiverseSocket, World):
         self.handle_spawning = False
         self.last_object_id: int = -1
         self.last_constraint_id: int = -1
-        self.constraints: Dict[int, Constraint] = {}
+        self.constraints: Dict[int, Dict[str, str]] = {}
         self.object_name_to_id: Dict[str, int] = {}
         self.object_id_to_name: Dict[int, str] = {}
         self.time_start = time()
@@ -277,26 +277,56 @@ class Multiverse(MultiverseSocket, World):
             logging.error("Only fixed constraints are supported in Multiverse")
             raise ValueError
         constraint_id = self.last_constraint_id + 1
-        self._add_api_request("attach", constraint.parent_link.name,
-                              constraint.child_link.name, self._get_attachment_pose_as_string(constraint))
+        parent_link_name = self.get_link_name_from_constraint_link(constraint.parent_link)
+        child_link_name = self.get_link_name_from_constraint_link(constraint.child_link)
+        self._add_api_request("attach", parent_link_name,
+                              child_link_name, self._get_attachment_pose_as_string(constraint))
         self._send_api_request()
-        self.constraints[constraint_id] = constraint
+        self.constraints[constraint_id] = {'parent_link': parent_link_name,
+                                           'child_link': child_link_name}
         return constraint_id
 
     def remove_constraint(self, constraint_id) -> None:
         constraint = self.constraints.pop(constraint_id)
-        self._add_api_request("detach", constraint.parent_link.name,
-                              constraint.child_link.name)
+        self._add_api_request("detach", constraint['parent_link'], constraint['child_link'])
         self._send_api_request()
 
+    def get_link_name_from_constraint_link(self, link: Link) -> str:
+        """
+        Get the link name from the constraint link, if the link belongs to a one link object, return the object name.
+        param link: The link.
+        return: The link name.
+        """
+        return link.name if not self.is_one_link_object(link.object) else link.object.name
+
+    @staticmethod
+    def is_one_link_object(obj: Object) -> bool:
+        """
+        Check if the object has only one link.
+        param obj: The object.
+        return: True if the object has only one link, False otherwise.
+        """
+        return len(obj.links) == 1
+
     def _get_attachment_pose_as_string(self, constraint: Constraint) -> str:
+        """
+        Get the attachment pose as a string.
+        param constraint: The constraint.
+        return: The attachment pose as a string.
+        """
         self.check_object_exists_and_issue_warning_if_not(constraint.parent_link.object)
         self.check_object_exists_and_issue_warning_if_not(constraint.child_link.object)
         pose = constraint.child_link.get_pose_wrt_link(constraint.parent_link)
+        print(pose)
         return self._pose_to_string(pose)
 
     @staticmethod
     def _pose_to_string(pose: Pose) -> str:
+        """
+        Convert the pose to a string.
+        param pose: The pose.
+        return: The pose as a string.
+        """
         return f"{pose.position.x} {pose.position.y} {pose.position.z} {pose.orientation.w} {pose.orientation.x} " \
                   f"{pose.orientation.y} {pose.orientation.z}"
 
@@ -328,6 +358,8 @@ class Multiverse(MultiverseSocket, World):
             raise ValueError
         self.send_and_receive_meta_data()
         self.request_meta_data.pop("api_callbacks")
+        print(self.response_meta_data)
+
 
     def perform_collision_detection(self) -> None:
         logging.warning("perform_collision_detection is not implemented in Multiverse")

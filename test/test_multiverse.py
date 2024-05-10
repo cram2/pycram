@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 import time
 import unittest
-from unittest import skip
 
 import psutil
-from typing_extensions import Optional
+from typing_extensions import Optional, List
 
 from pycram.datastructures.enums import ObjectType
 from pycram.datastructures.pose import Pose
@@ -99,14 +98,14 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         step = 1.57
         i = 0
         while True:
-            robot.set_joint_position("joint1", original_joint_position - step*i)
+            robot.set_joint_position("joint1", original_joint_position - step * i)
             robot.joints["joint1"]._update_position()
             joint_position = robot.get_joint_position("joint1")
-            if joint_position <= original_joint_position-1.57:
+            if joint_position <= original_joint_position - 1.57:
                 break
             i += 1
             # time.sleep(0.1)
-        self.assertAlmostEqual(joint_position, original_joint_position-1.57)
+        self.assertAlmostEqual(joint_position, original_joint_position - 1.57)
 
     def test_spawn_robot(self):
         robot = self.spawn_robot()
@@ -120,6 +119,15 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assertTrue(self.multiverse.robot in self.multiverse.objects)
         self.multiverse.robot.remove()
         self.assertTrue(self.multiverse.robot not in self.multiverse.objects)
+
+    @unittest.skip("Not implemented feature yet.")
+    def test_respawmn_robot(self):
+        self.spawn_robot()
+        self.assertTrue(self.multiverse.robot in self.multiverse.objects)
+        self.multiverse.robot.remove()
+        self.assertTrue(self.multiverse.robot not in self.multiverse.objects)
+        self.spawn_robot(position=[0, 0, 1])
+        self.assertTrue(self.multiverse.robot in self.multiverse.objects)
 
     def test_set_robot_position(self):
         if self.multiverse.robot is None:
@@ -135,13 +143,13 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             robot.attach(self.big_bowl)
             self.assertTrue(self.big_bowl in robot.attachments)
             bowl_position = self.big_bowl.get_position_as_list()
+            robot.update_pose()
             robot_position = robot.get_position_as_list()
-            robot_position[0] += 1
-            time.sleep(2)
+            robot_position[2] += 3
             robot.set_position(robot_position)
             new_bowl_position = self.big_bowl.get_position_as_list()
             estimated_bowl_position = bowl_position
-            estimated_bowl_position[0] += 1
+            estimated_bowl_position[2] += 3
             self.assertAlmostEqual(new_bowl_position[0], estimated_bowl_position[0])
 
     @staticmethod
@@ -150,8 +158,10 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
                       pose=Pose([0, 0, 2], [0, 0, 0, 1]))
 
     @staticmethod
-    def spawn_robot() -> Object:
+    def spawn_robot(position: Optional[List[float]] = None) -> Object:
+        if position is None:
+            position = [0, 0, 0]
         robot = Object("panda", ObjectType.ROBOT, "panda.urdf",
-                      pose=Pose([1, 0, 3], [0, 0, 0, 1]))
+                       pose=Pose(position, [0, 0, 0, 1]))
         time.sleep(2)
         return robot
