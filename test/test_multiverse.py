@@ -126,6 +126,20 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.multiverse.robot.set_position([0, 0, 1])
         self.assertEqual(self.multiverse.robot.get_position_as_list(), [0, 0, 1])
 
+    def test_attach(self):
+        if self.multiverse.robot is None:
+            self.spawn_robot()
+        self.multiverse.robot.attach(self.big_bowl)
+        self.assertTrue(self.big_bowl in self.multiverse.robot.attachments)
+        bowl_position = self.big_bowl.get_position_as_list()
+        robot_position = self.multiverse.robot.get_position_as_list()
+        robot_position[0] += 1
+        self.multiverse.robot.set_position(robot_position)
+        new_bowl_position = self.big_bowl.get_position_as_list()
+        estimated_bowl_position = bowl_position
+        estimated_bowl_position[0] += 1
+        self.assertAlmostEqual(new_bowl_position[0], estimated_bowl_position[0])
+
     @staticmethod
     def spawn_milk() -> Object:
         return Object("milk_box", ObjectType.MILK, "milk_box.urdf",
