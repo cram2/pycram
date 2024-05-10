@@ -317,7 +317,6 @@ class Multiverse(MultiverseSocket, World):
         self.check_object_exists_and_issue_warning_if_not(constraint.parent_link.object)
         self.check_object_exists_and_issue_warning_if_not(constraint.child_link.object)
         pose = constraint.child_link.get_pose_wrt_link(constraint.parent_link)
-        print(pose)
         return self._pose_to_string(pose)
 
     @staticmethod
@@ -358,8 +357,6 @@ class Multiverse(MultiverseSocket, World):
             raise ValueError
         self.send_and_receive_meta_data()
         self.request_meta_data.pop("api_callbacks")
-        print(self.response_meta_data)
-
 
     def perform_collision_detection(self) -> None:
         logging.warning("perform_collision_detection is not implemented in Multiverse")
