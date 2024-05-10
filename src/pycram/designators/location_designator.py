@@ -2,17 +2,16 @@ import dataclasses
 from typing_extensions import List, Union, Iterable, Optional, Callable
 
 from .object_designator import ObjectDesignatorDescription, ObjectPart
-from pycram.world import World, UseProspectionWorld
-from pycram.world_reasoning import link_pose_for_joint_config
+from ..world import World, UseProspectionWorld
+from ..world_reasoning import link_pose_for_joint_config
 from ..designator import DesignatorError, LocationDesignatorDescription
-from pycram.world_concepts.costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
+from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
 from ..robot_descriptions import robot_description
-from pycram.datastructures.enums import JointType
+from ..datastructures.enums import JointType
 from ..helper import transform
-from pycram.pose_generator_and_validator import pose_generator, visibility_validator, reachability_validator, \
-    generate_orientation
+from ..pose_generator_and_validator import PoseGenerator, visibility_validator, reachability_validator
 from ..robot_description import ManipulatorDescription
-from pycram.datastructures.pose import Pose
+from ..datastructures.pose import Pose
 
 
 class Location(LocationDesignatorDescription):
@@ -166,7 +165,7 @@ class CostmapLocation(LocationDesignatorDescription):
         ground_pose = Pose(target_pose.position_as_list())
         ground_pose.position.z = 0
 
-        occupancy = OccupancyCostmap(0.4, False, 200, 0.02, ground_pose)
+        occupancy = OccupancyCostmap(0.32, False, 200, 0.02, ground_pose)
         final_map = occupancy
 
         if self.reachable_for:
@@ -181,8 +180,7 @@ class CostmapLocation(LocationDesignatorDescription):
             test_robot = World.current_world.get_prospection_object_for_object(robot_object)
 
         with UseProspectionWorld():
-
-            for maybe_pose in pose_generator(final_map, number_of_samples=600):
+            for maybe_pose in PoseGenerator(final_map, number_of_samples=600):
                 res = True
                 arms = None
                 if self.visible_for:
@@ -274,8 +272,8 @@ class AccessingLocation(LocationDesignatorDescription):
                                                self.handle.name)
 
         with UseProspectionWorld():
-            for maybe_pose in pose_generator(final_map, number_of_samples=600,
-                                             orientation_generator=lambda p, o: generate_orientation(p, half_pose)):
+            for maybe_pose in PoseGenerator(final_map, number_of_samples=600,
+                                             orientation_generator=lambda p, o: PoseGenerator.generate_orientation(p, half_pose)):
 
                 hand_links = []
                 for name, chain in robot_description.chains.items():
@@ -338,6 +336,6 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
         if self.for_object:
             min_p, max_p = self.for_object.world_object.get_axis_aligned_bounding_box().get_min_max_points()
             height_offset = (max_p.z - min_p.z) / 2
-        for maybe_pose in pose_generator(sem_costmap):
+        for maybe_pose in PoseGenerator(sem_costmap):
             maybe_pose.position.z += height_offset
             yield self.Location(maybe_pose)

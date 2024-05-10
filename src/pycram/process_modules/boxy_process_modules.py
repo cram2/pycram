@@ -1,42 +1,80 @@
 from threading import Lock
-
 import numpy as np
+from .. import world_reasoning as btr
+import pycram.helper as helper
+from ..designators.motion_designator import *
+from ..datastructures.enums import JointType
+from ..external_interfaces.ik import request_ik
 
-from pycram.world import World
-from ..designators.motion_designator import PlaceMotion
-from pycram.datastructures.local_transformer import LocalTransformer
+from ..world import World
+from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_descriptions import robot_description
-from ..process_modules.pr2_process_modules import (_park_arms, Pr2Navigation as BoxyNavigation,
-                                                   Pr2PickUp as BoxyPickUp, Pr2Detecting as BoxyDetecting,
-                                                   Pr2MoveTCP as BoxyMoveTCP, Pr2MoveArmJoints as BoxyMoveArmJoints,
-                                                   Pr2WorldStateDetecting as BoxyWorldStateDetecting, _move_arm_tcp)
 
 
-class BoxyPlace(ProcessModule):
+def _park_arms(arm):
     """
-    This process module places an object at the given position in world coordinate frame.
+    Defines the joint poses for the parking positions of the arms of Boxy and applies them to the
+    in the BulletWorld defined robot.
+    :return: None
     """
 
-    def _execute(self, desig: PlaceMotion.Motion):
-        """
+    robot = World.robot
+    if arm == "right":
+        for joint, pose in robot_description.get_static_joint_chain("right", "park").items():
+            robot.set_joint_state(joint, pose)
+    if arm == "left":
+        for joint, pose in robot_description.get_static_joint_chain("left", "park").items():
+            robot.set_joint_state(joint, pose)
 
-        :param desig: A PlaceMotion
-        :return:
-        """
-        obj = desig.object.world_object
+
+class BoxyNavigation(ProcessModule):
+    """
+    The process module to move the robot from one position to another.
+    """
+
+    def _execute(self, desig: MoveMotion):
         robot = World.robot
-        arm = desig.arm
+        robot.set_pose(desig.target)
 
-        # Transformations such that the target position is the position of the object and not the tcp
-        object_pose = obj.get_pose()
-        local_tf = LocalTransformer()
-        tcp_to_object = local_tf.transform_pose(object_pose,
-                                                robot.get_link_tf_frame(robot_description.get_tool_frame(arm)))
-        target_diff = desig.target.to_transform("target").inverse_times(tcp_to_object.to_transform("object")).to_pose()
 
-        _move_arm_tcp(target_diff, robot, arm)
-        robot.detach(obj)
+class BoxyOpen(ProcessModule):
+    """
+    Low-level implementation of opening a container in the simulation. Assumes the handle is already grasped.
+    """
+
+    def _execute(self, desig: OpeningMotion):
+        part_of_object = desig.object_part.bullet_world_object
+
+        container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
+
+        goal_pose = btr.link_pose_for_joint_config(part_of_object, {
+            container_joint: part_of_object.get_joint_limits(container_joint)[1] - 0.05}, desig.object_part.name)
+
+        _move_arm_tcp(goal_pose, World.robot, desig.arm)
+
+        desig.object_part.bullet_world_object.set_joint_state(container_joint,
+                                                              part_of_object.get_joint_limits(
+                                                                  container_joint)[1])
+
+
+class BoxyClose(ProcessModule):
+    """
+    Low-level implementation that lets the robot close a grasped container, in simulation
+    """
+    def _execute(self, desig: ClosingMotion):
+        part_of_object = desig.object_part.bullet_world_object
+
+        container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
+
+        goal_pose = btr.link_pose_for_joint_config(part_of_object, {
+            container_joint: part_of_object.get_joint_limits(container_joint)[0]}, desig.object_part.name)
+
+        _move_arm_tcp(goal_pose, World.robot, desig.arm)
+
+        desig.object_part.bullet_world_object.set_joint_state(container_joint,
+                                                              part_of_object.get_joint_limits(
+                                                                  container_joint)[0])
 
 
 class BoxyParkArms(ProcessModule):
@@ -95,13 +133,77 @@ class BoxyMoveGripper(ProcessModule):
         robot.set_joint_positions(robot_description.get_static_gripper_chain(gripper, motion))
 
 
+class BoxyDetecting(ProcessModule):
+    """
+    This process module tries to detect an object with the given type. To be detected the object has to be in
+    the field of view of the robot.
+    """
+
+    def _execute(self, desig):
+        robot = World.robot
+        object_type = desig.object_type
+        # Should be "wide_stereo_optical_frame"
+        cam_frame_name = robot_description.get_camera_frame()
+        # should be [0, 0, 1]
+        front_facing_axis = robot_description.front_facing_axis
+
+        objects = World.current_world.get_object_by_type(object_type)
+        for obj in objects:
+            if btr.visible(obj, robot.get_link_pose(cam_frame_name), front_facing_axis):
+                return obj
+
+
+class BoxyMoveTCP(ProcessModule):
+    """
+    This process moves the tool center point of either the right or the left arm.
+    """
+
+    def _execute(self, desig: MoveTCPMotion):
+        target = desig.target
+        robot = World.robot
+
+        _move_arm_tcp(target, robot, desig.arm)
+
+
+class BoxyMoveArmJoints(ProcessModule):
+    """
+    This process modules moves the joints of either the right or the left arm. The joint states can be given as
+    list that should be applied or a pre-defined position can be used, such as "parking"
+    """
+
+    def _execute(self, desig: MoveArmJointsMotion):
+
+        robot = World.robot
+        if desig.right_arm_poses:
+            robot.set_joint_positions(desig.right_arm_poses)
+        if desig.left_arm_poses:
+            robot.set_joint_positions(desig.left_arm_poses)
+
+
+class BoxyWorldStateDetecting(ProcessModule):
+    """
+    This process module detectes an object even if it is not in the field of view of the robot.
+    """
+
+    def _execute(self, desig: WorldStateDetectingMotion):
+        obj_type = desig.object_type
+        return list(filter(lambda obj: obj.type == obj_type, World.current_bullet_world.objects))[0]
+
+
+def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
+    gripper = robot_description.get_tool_frame(arm)
+
+    joints = robot_description.chains[arm].joints
+
+    inv = request_ik(target, robot, joints, gripper)
+    helper._apply_ik(robot, inv, joints)
+
+
 class BoxyManager(ProcessModuleManager):
 
     def __init__(self):
         super().__init__("boxy")
         self._navigate_lock = Lock()
-        self._pick_up_lock = Lock()
-        self._place_lock = Lock()
         self._looking_lock = Lock()
         self._detecting_lock = Lock()
         self._move_tcp_lock = Lock()
@@ -115,14 +217,6 @@ class BoxyManager(ProcessModuleManager):
     def navigate(self):
         if ProcessModuleManager.execution_type == "simulated":
             return BoxyNavigation(self._navigate_lock)
-
-    def pick_up(self):
-        if ProcessModuleManager.execution_type == "simulated":
-            return BoxyPickUp(self._pick_up_lock)
-
-    def place(self):
-        if ProcessModuleManager.execution_type == "simulated":
-            return BoxyPlace(self._place_lock)
 
     def looking(self):
         if ProcessModuleManager.execution_type == "simulated":

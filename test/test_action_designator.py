@@ -1,5 +1,8 @@
 import unittest
 from pycram.designators import action_designator, object_designator
+from pycram.designators.actions.actions import MoveTorsoActionPerformable, PickUpActionPerformable, \
+    NavigateActionPerformable, FaceAtPerformable
+from pycram.local_transformer import LocalTransformer
 from pycram.robot_descriptions import robot_description
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import Pose
@@ -60,8 +63,8 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         description = action_designator.PickUpAction(object_description, ["left"], ["front"])
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
-            action_designator.NavigateAction.Action(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
-            action_designator.MoveTorsoAction.Action(0.3).perform()
+            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            MoveTorsoActionPerformable(0.3).perform()
             description.resolve().perform()
         self.assertTrue(object_description.resolve().world_object in self.robot.attachments.keys())
 
@@ -70,9 +73,9 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], ["left"])
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
-            action_designator.NavigateAction.Action(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
-            action_designator.MoveTorsoAction.Action(0.3).perform()
-            action_designator.PickUpAction.Action(object_description.resolve(), "left", "front").perform()
+            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            MoveTorsoActionPerformable(0.3).perform()
+            PickUpActionPerformable(object_description.resolve(), "left", "front").perform()
             description.resolve().perform()
         self.assertFalse(object_description.resolve().world_object in self.robot.attachments.keys())
 
@@ -133,6 +136,12 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             np.array(self.robot.get_link_position_as_list(robot_description.get_tool_frame("right"))) -
             np.array(self.milk.get_position_as_list()))
         self.assertTrue(dist < 0.01)
+
+    def test_facing(self):
+        with simulated_robot:
+            FaceAtPerformable(self.milk.pose).perform()
+            milk_in_robot_frame = LocalTransformer().transform_to_object_frame(self.milk.pose, self.robot)
+            self.assertAlmostEqual(milk_in_robot_frame.position.y, 0.)
 
 
 if __name__ == '__main__':
