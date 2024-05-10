@@ -264,6 +264,18 @@ class ObjectDescription(AbstractObjectDescription):
         """
         return self.parsed_description.get_root()
 
+    def get_tip(self) -> str:
+        link = self.get_root()
+        while link in self.parsed_description.child_map:
+            children = self.parsed_description.child_map[link]
+            if len(children) > 1:
+                # Multiple children, can't decide which one to take (e.g. fingers of a hand)
+                break
+            else:
+                child = children[0][1]
+                link = child
+        return link
+
     def get_chain(self, start_link_name: str, end_link_name: str) -> List[str]:
         """
         :return: the chain of links from 'start_link_name' to 'end_link_name'.

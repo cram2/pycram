@@ -725,6 +725,12 @@ class ObjectDescription(EntityDescription):
         """
         pass
 
+    def get_tip(self) -> str:
+        """
+        :return: the name of the tip link of this object.
+        """
+        raise NotImplementedError
+
     @abstractmethod
     def get_chain(self, start_link_name: str, end_link_name: str) -> List[str]:
         """

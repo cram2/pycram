@@ -170,14 +170,15 @@ class World(StateEntity, ABC):
         self.objects: List[Object] = []
         # List of all Objects in the World
 
-
-
         self.mode: WorldMode = mode
         # The mode of the simulation, can be "GUI" or "DIRECT"
 
         self.coll_callbacks: Dict[Tuple[Object, Object], CollisionCallbacks] = {}
 
         self._init_events()
+
+        self.set_attached_objects_poses = True
+        self.handle_spawning = True
 
         self._current_state: Optional[WorldState] = None
 

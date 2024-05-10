@@ -109,6 +109,8 @@ class Multiverse(MultiverseSocket, World):
         World.__init__(self, mode, is_prospection, simulation_frequency)
         self.simulation: str = simulation
         self._make_sure_multiverse_resources_are_added()
+        self.set_attached_objects_poses = False
+        self.handle_spawning = False
         self.last_object_id: int = -1
         self.last_constraint_id: int = -1
         self.constraints: Dict[int, Constraint] = {}
@@ -116,6 +118,9 @@ class Multiverse(MultiverseSocket, World):
         self.object_id_to_name: Dict[int, str] = {}
         self.time_start = time()
         self.run()
+
+    def _init_world(self, mode: WorldMode):
+        pass
 
     def _make_sure_multiverse_resources_are_added(self):
         """
@@ -134,22 +139,23 @@ class Multiverse(MultiverseSocket, World):
             return "joint_rvalue"
         return self._joint_type_to_position_name[joint.type]
 
-    def load_object_and_get_id(self, obj: Object, pose: Optional[Pose] = None) -> int:
+    def load_object_and_get_id(self, name: Optional[str] = None,
+                               pose: Optional[Pose] = None) -> int:
         """
         Spawn the object in the simulator and return the object id. Object name has to be unique and has to be same as
         the name of the object in the description file.
-        param obj: The object to be loaded.
+        param name: The name of the object to be loaded.
         param pose: The pose of the object.
         """
         if pose is None:
             pose = Pose()
 
-        self._reset_body_pose(obj.name, pose)
+        self._reset_body_pose(name, pose)
 
         self.last_object_id += 1
 
-        self.object_name_to_id[obj.name] = self.last_object_id
-        self.object_id_to_name[self.last_object_id] = obj.name
+        self.object_name_to_id[name] = self.last_object_id
+        self.object_id_to_name[self.last_object_id] = name
 
         return self.last_object_id
 
@@ -271,15 +277,28 @@ class Multiverse(MultiverseSocket, World):
             logging.error("Only fixed constraints are supported in Multiverse")
             raise ValueError
         constraint_id = self.last_constraint_id + 1
-        self._add_api_request("attach", constraint.parent_link.name, constraint.child_link.name)
+        self._add_api_request("attach", constraint.parent_link.name,
+                              constraint.child_link.name, self._get_attachment_pose_as_string(constraint))
         self._send_api_request()
         self.constraints[constraint_id] = constraint
         return constraint_id
 
     def remove_constraint(self, constraint_id) -> None:
         constraint = self.constraints.pop(constraint_id)
-        self._add_api_request("detach", constraint.parent_link.name, constraint.child_link.name)
+        self._add_api_request("detach", constraint.parent_link.name,
+                              constraint.child_link.name)
         self._send_api_request()
+
+    def _get_attachment_pose_as_string(self, constraint: Constraint) -> str:
+        self.check_object_exists_and_issue_warning_if_not(constraint.parent_link.object)
+        self.check_object_exists_and_issue_warning_if_not(constraint.child_link.object)
+        pose = constraint.child_link.get_pose_wrt_link(constraint.parent_link)
+        return self._pose_to_string(pose)
+
+    @staticmethod
+    def _pose_to_string(pose: Pose) -> str:
+        return f"{pose.position.x} {pose.position.y} {pose.position.z} {pose.orientation.w} {pose.orientation.x} " \
+                  f"{pose.orientation.y} {pose.orientation.z}"
 
     def _init_api_callback(self):
         """
@@ -376,3 +395,7 @@ class Multiverse(MultiverseSocket, World):
 
     def set_gravity(self, gravity_vector: List[float]) -> None:
         logging.warning("set_gravity is not implemented in Multiverse")
+
+    def check_object_exists_and_issue_warning_if_not(self, object):
+        if object not in self.objects:
+            logging.warning(f"Object {object.name} does not exist in the simulator")
