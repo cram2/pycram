@@ -25,11 +25,11 @@ class BelieveObject(ObjectDesignatorDescription):
             return ORMBelieveObject(self.obj_type, self.name)
 
         def insert(self, session: sqlalchemy.orm.session.Session) -> ORMBelieveObject:
-            self_ = self.to_sql()
-            session.add(self_)
-            session.commit()
             metadata = ProcessMetaData().insert(session)
-            self_.process_metadata_id = metadata.id
+            self_ = self.to_sql()
+            self_.process_metadata = metadata
+            session.add(self_)
+
             return self_
 
 
@@ -48,14 +48,12 @@ class ObjectPart(ObjectDesignatorDescription):
             return ORMObjectPart(self.obj_type, self.name)
 
         def insert(self, session: sqlalchemy.orm.session.Session) -> ORMObjectPart:
-            obj = self.to_sql()
             metadata = ProcessMetaData().insert(session)
-            obj.process_metadata_id = metadata.id
             pose = self.part_pose.insert(session)
-            obj.pose_id = pose.id
-
+            obj = self.to_sql()
+            obj.process_metadata = metadata
+            obj.pose = pose
             session.add(obj)
-            session.commit()
 
             return obj
 

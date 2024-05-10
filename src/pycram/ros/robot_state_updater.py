@@ -14,6 +14,7 @@ class RobotStateUpdater:
     """
     Updates the robot in the World with information of the real robot published to ROS topics.
     Infos used to update the robot are:
+
         * The current pose of the robot
         * The current joint state of the robot
     """
@@ -47,8 +48,8 @@ class RobotStateUpdater:
     def _subscribe_joint_state(self, msg: JointState) -> None:
         """
         Sets the current joint configuration of the robot in the world to the configuration published on the
-         topic. Since this uses rospy.wait_for_message which can have errors when used with threads there might be an
-          attribute error in the rospy implementation.
+        topic. Since this uses rospy.wait_for_message which can have errors when used with threads there might be an
+        attribute error in the rospy implementation.
 
         :param msg: JointState message published to the topic.
         """

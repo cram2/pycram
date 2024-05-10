@@ -5,7 +5,6 @@ ProcessModule -- implementation of process modules.
 """
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
-
 import inspect
 import threading
 import time
@@ -14,9 +13,12 @@ from typing_extensions import Callable, Type, Any, Union
 
 import rospy
 
-from .designator import MotionDesignatorDescription
 from .language import Language
 from .robot_descriptions import robot_description
+from typing_extensions import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .designators.motion_designator import BaseMotion
 
 
 class ProcessModule:
@@ -38,14 +40,14 @@ class ProcessModule:
         """Create a new process module."""
         self._lock = lock
 
-    def _execute(self, designator: MotionDesignatorDescription.Motion) -> Any:
+    def _execute(self, designator: BaseMotion) -> Any:
         """
         Helper method for internal usage only.
         This method is to be overwritten instead of the execute method.
         """
         pass
 
-    def execute(self, designator: MotionDesignatorDescription.Motion) -> Any:
+    def execute(self, designator: BaseMotion) -> Any:
         """
         Execute the given designator. If there is already another process module of the same kind the `self._lock` will
         lock this thread until the execution of that process module is finished. This implicitly queues the execution of
@@ -79,6 +81,7 @@ class RealRobot:
 
     def __init__(self):
         self.pre: str = ""
+        self.pre_delay: bool = False
 
     def __enter__(self):
         """
@@ -87,6 +90,8 @@ class RealRobot:
         """
         self.pre = ProcessModuleManager.execution_type
         ProcessModuleManager.execution_type = "real"
+        self.pre_delay = ProcessModule.execution_delay
+        ProcessModule.execution_delay = False
 
     def __exit__(self, _type, value, traceback):
         """
@@ -94,6 +99,7 @@ class RealRobot:
         used one.
         """
         ProcessModuleManager.execution_type = self.pre
+        ProcessModule.execution_delay = self.pre_delay
 
     def __call__(self):
         return self

@@ -112,6 +112,7 @@ Then install the Python packages in the requirements.txt file
 
 Building your ROS workspace
 ===========================
+.. _build-ws:
 
 Building and sourcing your ROS workspace using catkin compiles all ROS packages and manages the appending to the
 respective PATH variables. This is necessary to be able to import PyCRAM via the Python import system and to find the
@@ -160,6 +161,7 @@ After installing pandoc, install sphinx on your device.
 
     sudo apt install python3-sphinx
 
+
 Install the requirements in your python interpreter.
 
 .. code-block:: shell
@@ -180,27 +182,67 @@ Show the index.
     firefox build/html/index.html
 
 
+
 Setting up PyCRAM with PyCharm
 ==============================
 
-Setting up PyCharm with packages that rely on rospy is non trivial. Follow this guide to get correct syntax highlighting
-for the PyCRAM project.
+Setting up PyCharm with packages that rely on rospy is non trivial. Follow this guide to get correct syntax highlighting for the PyCRAM project. 
+
+Install PyCharm Professional
+----------------------------
 
 First, `install PyCharm Professional <https://www.jetbrains.com/help/pycharm/installation-guide.html#standalone>`_.
 
-Next, if you have virtual environments that you want to use, you need to make sure that they have rospy available.
-If you create a new environment, make sure to include  `--system-site-packages` in your creation command.
-You can check by activating your environment and calling the import
+Create a JetBrains account and verify it for educational purpose. Now you can unlock the PyCharm Professional features in PyCharm.
+
+The next step will set up the virtual Python environment, so it can be used as a project interpreter in PyCharm. 
+
+
+Set up virtualenv
+-----------------
+.. _virtualenv:
+
+The virtualenvwrapper allows to manage virtual Python environments, where additional packages can be installed without the risk of breaking the system-wide Python configuration. Install `virtualenvwrapper <https://virtualenvwrapper.readthedocs.io/en/latest/>`_ via pip and set it up.
 
 .. code-block:: shell
 
-    workon your_env
+    sudo pip3 install virtualenvwrapper
+    echo "export WORKON_HOME=~/envs" >> ~/.bashrc
+    echo "source /usr/local/bin/virtualenvwrapper.sh" >> ~/.bashrc    
+    mkdir -p $WORKON_HOME
+    source ~/.bashrc
+
+Create a virtual env based on the workspaces libraries (see build-ws_) and add the `--system-site-packages` to get them properly. The env will be registered in `$WORKON_HOME`.
+
+.. code-block:: shell
+
+    source ~/workspace/ros/devel/setup.bash
+    mkvirtualenv pycram --system-site-packages
+    ls $WORKON_HOME
+
+
+Check if the ROS libraries are available in the virtual env.
+
+.. code-block:: shell
+
+    workon pycram
     python -c "import rospy"
 
-If this returns no errors, you can be sure that rospy is usable in your virtual environment. Next you have to build the
-ros workspace including pycram and source it as described in install-pycram_.
+If it complains about `python`, install the following, to set `python` to Python 3 by default.
 
-After that you have to start PyCharm from the terminal via
+.. code-block:: shell
+
+    sudo apt install python-is-python3  
+
+If it finds `python` but complains about missing packages, make sure that the workspace is sourced before creating the virtual env. Also remember to create the virtual env with the `--system-site-packages` flag.
+
+If this returns no errors, you can be sure that rospy is usable in your virtual environment. Next you have to build the
+ros workspace including pycram and source it as described in build-ws_.
+
+Configure PyCharm
+-----------------
+
+Always start PyCharm from the terminal via
 
 .. code-block:: shell
 
@@ -212,6 +254,7 @@ or
 
     ~/pycharm/bin/pycharm.sh
 
+
 Select **File | Open** and select the root folder of the PyCRAM package.
 Next go to **File | Settings | Project: pycram | Python Interpreter** and set up your virtual environment with rospy and
 the sourced workspace available as the python interpreter.
@@ -220,6 +263,7 @@ Finally, go to  **File | Settings | Project: pycram | Project Structure** and ma
 folder as Tests and the resources as Resources.
 
 To verify that it works, you can execute any Testcase.
+
 
 Using IPython as REPL
 =====================

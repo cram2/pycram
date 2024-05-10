@@ -157,14 +157,13 @@ class Language(NodeMixin):
         """
         Simplifies the language tree by merging which have a parent-child relation and are of the same type.
 
-        .. code-block:: python
+        .. code-block::
 
             <pycram.new_language.Parallel>
             ├── <pycram.new_language.Parallel>
             │   ├── <pycram.designators.action_designator.NavigateAction>
             │   └── <pycram.designators.action_designator.MoveTorsoAction>
             └── <pycram.designators.action_designator.DetectAction>
-
 
             would be simplified to:
 

@@ -33,8 +33,9 @@ class VizMarkerPublisher:
 
         self.thread = threading.Thread(target=self._publish)
         self.kill_event = threading.Event()
-        self.thread.start()
+        self.main_world = World.current_world if not World.current_world.is_prospection_world else World.current_world.world_sync.world
 
+        self.thread.start()
         atexit.register(self._stop_publishing)
 
     def _publish(self) -> None:
@@ -56,7 +57,7 @@ class VizMarkerPublisher:
         :return: An Array of Visualization Marker
         """
         marker_array = MarkerArray()
-        for obj in World.current_world.objects:
+        for obj in self.main_world.objects:
             if obj.name == "floor":
                 continue
             for link in obj.link_name_to_id.keys():

@@ -48,7 +48,7 @@ class ChainDescription:
         """
         for configuration, joint_states in static_joint_states.items():
             if not self.add_static_joint_chain(configuration, joint_states):
-                logger.error("(robot_description) Could not add all static_joint_states for the chain %s.", self.name)
+                rospy.logerr("(robot_description) Could not add all static_joint_states for the chain %s.", self.name)
                 break
 
     def add_static_joint_chain(self, configuration: str, static_joint_states: List[float]) -> Union[None, bool]:
@@ -68,10 +68,10 @@ class ChainDescription:
                     self.static_joint_states[configuration] = static_joint_states
                     return True
                 else:
-                    logger.warning("(robot_description) The chain %s already has static joint values "
+                    rospy.logwarn("(robot_description) The chain %s already has static joint values "
                             "for the config %s.", self.name, configuration)
             else:
-                logger.error("(robot_description) The number of the joint values does not equal the amount of the joints"
+                rospy.logerr("(robot_description) The number of the joint values does not equal the amount of the joints"
                        "for the chain %s.", self.name)
 
     def get_static_joint_chain(self, configuration: str) -> Union[None, Dict[str, float]]:
@@ -85,7 +85,7 @@ class ChainDescription:
         try:
             joint_values = self.static_joint_states[configuration]
         except KeyError:
-            logger.error("(robot_description) Configuration %s is unknown for the chain %s.", configuration, self.name)
+            rospy.logerr("(robot_description) Configuration %s is unknown for the chain %s.", configuration, self.name)
             return None
         return dict(zip(self.joints, joint_values))
 
@@ -260,8 +260,8 @@ class RobotDescription:
         rospack = rospkg.RosPack()
         filename = rospack.get_path('pycram') + '/resources/' + name + '.urdf'
         with open(filename) as f:
-            with utils.suppress_stdout_stderr():
-                self.robot_urdf = URDF.from_xml_string(f.read())
+            # with utils.suppress_stdout_stderr():
+            self.robot_urdf = URDF.from_xml_string(f.read())
 
     def _safely_access_chains(self, chain_name: str, verbose: Optional[bool] = True) -> Union[None, ChainDescription]:
         """
@@ -272,7 +272,7 @@ class RobotDescription:
             chain_description = self.chains[chain_name]
         except KeyError:
             if verbose:
-                logger.warning("(robot_description) Chain name %s is unknown.", chain_name)
+                rospy.logwarn("(robot_description) Chain name %s is unknown.", chain_name)
             return None
         return chain_description
 
@@ -295,10 +295,10 @@ class RobotDescription:
                 if type(chain_description) is description_type:
                     return chain_description
                 else:
-                    logger.error("(robot_description) The chain %s is not of type %s, but of type %s.",
+                    rospy.logerr("(robot_description) The chain %s is not of type %s, but of type %s.",
                            chain_name, description_type, type(chain_description))
         else:
-            logger.warning("(robot_description) Only subclasses of ChainDescription are allowed.")
+            rospy.logwarn("(robot_description) Only subclasses of ChainDescription are allowed.")
 
     def get_tool_frame(self, manipulator_name: str) -> Union[None, str]:
         """
@@ -310,7 +310,7 @@ class RobotDescription:
         if manipulator_description:
             return manipulator_description.tool_frame
         else:
-            logger.error("(robot_description) Could not get the tool frame of the manipulator %s.", manipulator_name)
+            rospy.logerr("(robot_description) Could not get the tool frame of the manipulator %s.", manipulator_name)
 
     def get_static_joint_chain(self, chain_name: str, configuration: str) -> Union[None, Dict[str, float]]:
         """
@@ -322,7 +322,7 @@ class RobotDescription:
         if chain_description:
             return chain_description.get_static_joint_chain(configuration)
         else:
-            logger.error("(robot_description) Could not get static joint chain called %s of the chain %s.",
+            rospy.logerr("(robot_description) Could not get static joint chain called %s of the chain %s.",
                    configuration, chain_name)
 
     def get_static_tf(self, base_link: str, target_link: str):
@@ -338,11 +338,11 @@ class RobotDescription:
         """
         if issubclass(type(chain_description), ChainDescription):
             if self._safely_access_chains(name, verbose=False):
-                logger.warning("(robot_description) Replacing the chain description of the name %s.", name)
+                rospy.logwarn("(robot_description) Replacing the chain description of the name %s.", name)
             self.chains[name] = chain_description
             return True
         else:
-            logger.error("(robot_description) Given chain_description object is no subclass of ChainDescription.")
+            rospy.logerr("(robot_description) Given chain_description object is no subclass of ChainDescription.")
 
     def add_chains(self, chains_dict: Dict[str, ChainDescription]) -> None:
         """
@@ -354,7 +354,7 @@ class RobotDescription:
         """
         for name, chain in chains_dict.items():
             if not self.add_chain(name, chain):
-                logger.error("(robot_description) Could not add the chain object of name %s.", name)
+                rospy.logerr("(robot_description) Could not add the chain object of name %s.", name)
                 break
 
     def add_camera(self, name: str, camera_description: CameraDescription) -> Union[None, bool]:
@@ -369,11 +369,11 @@ class RobotDescription:
             except KeyError:
                 found = False
             if found:
-                logger.warning("(robot_description) Replacing the camera description of the name %s.", name)
+                rospy.logwarn("(robot_description) Replacing the camera description of the name %s.", name)
             self.cameras[name] = camera_description
             return True
         else:
-            logger.error("(robot_description) Given camera_description object is not of type CameraDescription.")
+            rospy.logerr("(robot_description) Given camera_description object is not of type CameraDescription.")
 
     def add_cameras(self, cameras_dict: Dict[str, CameraDescription]) -> None:
         """
@@ -385,7 +385,7 @@ class RobotDescription:
         """
         for name, camera in cameras_dict.items():
             if not self.add_camera(name, camera):
-                logger.error("(robot_description) Could not add the camera object of name %s.", name)
+                rospy.logerr("(robot_description) Could not add the camera object of name %s.", name)
                 break
 
     def get_camera_frame(self, camera_name: str) -> Union[None, str]:
@@ -397,7 +397,7 @@ class RobotDescription:
         try:
             camera_description = self.cameras[camera_name]
         except KeyError:
-            logger.error("(robot_description) Camera name %s is unknown.", camera_name)
+            rospy.logerr("(robot_description) Camera name %s is unknown.", camera_name)
             return None
         return camera_description.frame
 
@@ -426,7 +426,7 @@ class RobotDescription:
         """
         for configuration, joint_states in static_joint_states.items():
             if not self.add_static_joint_chain(chain_name, configuration, joint_states):
-                logger.error("(robot_description) Could not add the static joint chain called %s for chain %s.",
+                rospy.logerr("(robot_description) Could not add the static joint chain called %s for chain %s.",
                        configuration, chain_name)
                 break
 
@@ -456,7 +456,7 @@ class RobotDescription:
         """
         for configuration, joint_states in static_joint_states.items():
             if not self.add_static_gripper_chain(manipulator_name, configuration, joint_states):
-                logger.error("(robot_description) Could not add static gripper chain called %s for manipulator chain %s.",
+                rospy.logerr("(robot_description) Could not add static gripper chain called %s for manipulator chain %s.",
                        configuration, manipulator_name)
                 break
 

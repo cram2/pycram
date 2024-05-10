@@ -11,13 +11,13 @@ import rospy
 from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict
 
-from pycram.datastructures.enums import ObjectType, WorldMode, JointType
-from pycram.datastructures.pose import Pose
-from pycram.object_descriptors.urdf import ObjectDescription
-from pycram.world import World
-from pycram.world_concepts.constraints import Constraint
-from pycram.datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape
-from pycram.world_concepts.world_object import Object
+from ..datastructures.enums import ObjectType, WorldMode, JointType
+from ..datastructures.pose import Pose
+from ..object_descriptors.urdf import ObjectDescription
+from ..world import World
+from ..world_concepts.constraints import Constraint
+from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape
+from ..world_concepts.world_object import Object
 
 Link = ObjectDescription.Link
 RootLink = ObjectDescription.RootLink
@@ -48,9 +48,6 @@ class BulletWorld(World):
         """
         super().__init__(mode=mode, is_prospection_world=is_prospection_world, simulation_frequency=sim_frequency)
 
-        self._gui_thread: Gui = Gui(self, mode)
-        self._gui_thread.start()
-
         # This disables file caching from PyBullet, since this would also cache
         # files that can not be loaded
         p.setPhysicsEngineParameter(enableFileCaching=0)
@@ -66,10 +63,15 @@ class BulletWorld(World):
             _ = Object("floor", ObjectType.ENVIRONMENT, "plane" + self.extension,
                        world=self)
 
-    def load_object_and_get_id(self, obj: Object, pose: Optional[Pose] = None) -> int:
+    def _init_world(self, mode: WorldMode):
+        self._gui_thread: Gui = Gui(self, mode)
+        self._gui_thread.start()
+        time.sleep(0.1)
+
+    def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[Pose] = None) -> int:
         if pose is None:
             pose = Pose()
-        return self._load_object_and_get_id(obj.path, pose)
+        return self._load_object_and_get_id(path, pose)
 
     def _load_object_and_get_id(self, path: str, pose: Pose) -> int:
         if path is None:
@@ -99,14 +101,14 @@ class BulletWorld(World):
     def remove_constraint(self, constraint_id):
         p.removeConstraint(constraint_id, physicsClientId=self.id)
 
-    def get_joint_position(self, joint: Joint) -> float:
+    def get_joint_position(self, joint: ObjectDescription.Joint) -> float:
         return p.getJointState(joint.object_id, joint.id, physicsClientId=self.id)[0]
 
     def get_object_joint_names(self, obj: Object) -> List[str]:
         return [p.getJointInfo(obj.id, i, physicsClientId=self.id)[1].decode('utf-8')
                 for i in range(self.get_object_number_of_joints(obj))]
 
-    def get_link_pose(self, link: Link) -> Pose:
+    def get_link_pose(self, link: ObjectDescription.Link) -> Pose:
         bullet_link_state = p.getLinkState(link.object_id, link.id, physicsClientId=self.id)
         return Pose(*bullet_link_state[4:6])
 
@@ -136,7 +138,7 @@ class BulletWorld(World):
         self.perform_collision_detection()
         return p.getContactPoints(obj1.id, obj2.id, physicsClientId=self.id)
 
-    def reset_joint_position(self, joint: Joint, joint_position: str) -> None:
+    def reset_joint_position(self, joint: ObjectDescription.Joint, joint_position: str) -> None:
         p.resetJointState(joint.object_id, joint.id, joint_position, physicsClientId=self.id)
 
     def reset_object_base_pose(self, obj: Object, pose: Pose) -> None:
@@ -149,10 +151,10 @@ class BulletWorld(World):
     def get_object_pose(self, obj: Object) -> Pose:
         return Pose(*p.getBasePositionAndOrientation(obj.id, physicsClientId=self.id))
 
-    def set_link_color(self, link: Link, rgba_color: Color):
+    def set_link_color(self, link: ObjectDescription.Link, rgba_color: Color):
         p.changeVisualShape(link.object_id, link.id, rgbaColor=rgba_color.get_rgba(), physicsClientId=self.id)
 
-    def get_link_color(self, link: Link) -> Color:
+    def get_link_color(self, link: ObjectDescription.Link) -> Color:
         return self.get_colors_of_object_links(link.object)[link.name]
 
     def get_colors_of_object_links(self, obj: Object) -> Dict[str, Color]:
@@ -166,7 +168,7 @@ class BulletWorld(World):
     def get_object_axis_aligned_bounding_box(self, obj: Object) -> AxisAlignedBoundingBox:
         return AxisAlignedBoundingBox.from_min_max(*p.getAABB(obj.id, physicsClientId=self.id))
 
-    def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
+    def get_link_axis_aligned_bounding_box(self, link: ObjectDescription.Link) -> AxisAlignedBoundingBox:
         return AxisAlignedBoundingBox.from_min_max(*p.getAABB(link.object_id, link.id, physicsClientId=self.id))
 
     def set_realtime(self, real_time: bool) -> None:
@@ -322,7 +324,7 @@ class BulletWorld(World):
 class Gui(threading.Thread):
     """
     For internal use only. Creates a new thread for the physics simulation that is active until closed by
-     :func:`~World.exit`
+    :func:`~World.exit`
     Also contains the code for controlling the camera.
     """
 
@@ -341,6 +343,11 @@ class Gui(threading.Thread):
             self.world.id = p.connect(p.DIRECT)
         else:
             self.world.id = p.connect(p.GUI)
+
+            # DISCLAIMER
+            # This camera control only works if the WorldMooe.GUI BulletWorld is the first one to be created. This is
+            # due to a bug in the function pybullet.getDebugVisualizerCamera() which only returns the information of
+            # the first created simulation.
 
             # Disable the side windows of the GUI
             p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0, physicsClientId=self.world.id)
@@ -378,18 +385,19 @@ class Gui(threading.Thread):
             # Loop to update the camera position based on keyboard events
             while p.isConnected(self.world.id):
                 # Monitor user input
-                keys = p.getKeyboardEvents()
-                mouse = p.getMouseEvents()
+                keys = p.getKeyboardEvents(self.world.id)
+                mouse = p.getMouseEvents(self.world.id)
 
                 # Get infos about the camera
                 width, height, dist = (p.getDebugVisualizerCamera()[0],
                                        p.getDebugVisualizerCamera()[1],
                                        p.getDebugVisualizerCamera()[10])
-                camera_target_position = p.getDebugVisualizerCamera()[11]
+                #print("width: ", width, "height: ", height, "dist: ", dist)
+                camera_target_position = p.getDebugVisualizerCamera(self.world.id)[11]
 
                 # Get vectors used for movement on x,y,z Vector
-                x_vec = [p.getDebugVisualizerCamera()[2][i] for i in [0, 4, 8]]
-                y_vec = [p.getDebugVisualizerCamera()[2][i] for i in [2, 6, 10]]
+                x_vec = [p.getDebugVisualizerCamera(self.world.id)[2][i] for i in [0, 4, 8]]
+                y_vec = [p.getDebugVisualizerCamera(self.world.id)[2][i] for i in [2, 6, 10]]
                 z_vec = (0, 0, 1)  # [p.getDebugVisualizerCamera()[2][i] for i in [1, 5, 9]]
 
                 # Check the mouse state
@@ -411,10 +419,10 @@ class Gui(threading.Thread):
                             mouse_state[2] = m[4]
 
                         # change visibility by clicking the mousewheel
-                        if m[4] == 6 and m[3] == 1 and visible == 1:
-                            visible = 0
-                        elif m[4] == 6 and visible == 0:
-                            visible = 1
+                        # if m[4] == 6 and m[3] == 1 and visible == 1:
+                        #     visible = 0
+                        # elif m[4] == 6 and visible == 0:
+                        #     visible = 1
 
                         # camera movement when the left mouse button is pressed
                         if mouse_state[0] == 3:
@@ -436,6 +444,7 @@ class Gui(threading.Thread):
                             elif mouse_y > old_mouse_y:
                                 camera_yaw -= (speed_y / 4) + 1
 
+                        # Camera movement when the middle mouse button is pressed
                         if mouse_state[1] == 3:
                             speed_x = abs(old_mouse_x - mouse_x)
                             factor = 0.05
@@ -529,10 +538,14 @@ class Gui(threading.Thread):
                                 dist -= dist * 0.02 * speed_mult
                         elif ord("-") in keys:
                             dist += dist * 0.02 * speed_mult
+                # print("dist: ", dist)
+                # print("camera_yaw: ", camera_yaw)
+                # print("camera_pitch: ", camera_pitch)
+                # print("camera_target_position: ", camera_target_position)
 
                 p.resetDebugVisualizerCamera(cameraDistance=dist, cameraYaw=camera_yaw, cameraPitch=camera_pitch,
-                                             cameraTargetPosition=camera_target_position)
+                                             cameraTargetPosition=camera_target_position, physicsClientId=self.world.id)
                 if visible == 0:
                     camera_target_position = (0.0, -50, 50)
-                p.resetBasePositionAndOrientation(sphere_uid, camera_target_position, [0, 0, 0, 1])
+                p.resetBasePositionAndOrientation(sphere_uid, camera_target_position, [0, 0, 0, 1], physicsClientId=self.world.id)
                 time.sleep(1. / 80.)

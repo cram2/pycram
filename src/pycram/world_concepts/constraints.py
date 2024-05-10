@@ -1,13 +1,14 @@
 from __future__ import annotations
 
+import numpy as np
 from geometry_msgs.msg import Point
 from typing_extensions import Union, List, Optional, TYPE_CHECKING
 
-from pycram.datastructures.enums import JointType
-from pycram.datastructures.pose import Transform, Pose
+from ..datastructures.enums import JointType
+from ..datastructures.pose import Transform, Pose
 
 if TYPE_CHECKING:
-    from pycram.description import Link
+    from ..description import Link
 
 
 class AbstractConstraint:
@@ -167,6 +168,7 @@ class Attachment(AbstractConstraint):
         """
         Creates an attachment between the parent object link and the child object link.
         This could be a bidirectional attachment, meaning that both objects will move when one moves.
+
         :param parent_link: The parent object link.
         :param child_link: The child object link.
         :param bidirectional: If true, both objects will move when one moves.
@@ -244,6 +246,7 @@ class Attachment(AbstractConstraint):
     def loose(self, loose: bool) -> None:
         """
         Sets the loose property of this attachment.
+
         :param loose: If true, then the child object will not move when parent moves.
         """
         self._loose = loose and not self.bidirectional
@@ -266,9 +269,13 @@ class Attachment(AbstractConstraint):
                           self.id)
 
     def __eq__(self, other):
-        return (self.parent_link == other.parent_link and self.child_link == other.child_link and
-                self.bidirectional == other.bidirectional and
-                self.parent_to_child_transform == other.parent_to_child_transform)
+        return (self.parent_link.name == other.parent_link.name
+                and self.child_link.name == other.child_link.name
+                and self.bidirectional == other.bidirectional
+                and np.allclose(self.parent_to_child_transform.translation_as_list(),
+                                other.parent_to_child_transform.translation_as_list(), rtol=0, atol=1e-4)
+                and np.allclose(self.parent_to_child_transform.rotation_as_list(),
+                                other.parent_to_child_transform.rotation_as_list(), rtol=0, atol=1e-4))
 
     def __hash__(self):
-        return hash((self.parent_link, self.child_link, self.bidirectional, self.parent_to_child_transform))
+        return hash((self.parent_link.name, self.child_link.name, self.bidirectional, self.parent_to_child_transform))

@@ -38,6 +38,13 @@
               textfile="$(find pycram)/resources/hsrb.urdf"/>
   </group>
 
+  <!-- stretch -->
+  <group if="$(eval robot == 'stretch')">
+    <param name="robot_description"
+              textfile="$(find pycram)/resources/stretch.urdf"/>
+  </group>
+
+
   <!-- Use Knowrob -->
   <group if="$(eval use_knowrob)">
       <include file="$(find knowrob)/launch/knowrob.launch"/>

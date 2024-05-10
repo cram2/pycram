@@ -77,11 +77,7 @@ with simulated_robot:
     pickup_arm = "left" if drawer_open_loc.arms[0] == "right" else "right"
     PickUpAction(spoon_desig, [pickup_arm], ["top"]).resolve().perform()
 
-    ParkArmsAction([Arms.BOTH]).resolve().perform()
-
-    close_loc = drawer_open_loc.pose
-    close_loc.position.y += 0.1
-    NavigateAction([close_loc]).resolve().perform()
+    ParkArmsAction([Arms.LEFT if pickup_arm == "left" else Arms.RIGHT]).resolve().perform()
 
     CloseAction(object_designator_description=handle_desig, arms=[drawer_open_loc.arms[0]]).resolve().perform()
 
