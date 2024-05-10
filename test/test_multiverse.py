@@ -136,7 +136,21 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.multiverse.robot.set_position(new_position)
         self.assertEqual(self.multiverse.robot.get_position_as_list(), new_position)
 
-    def test_attach(self):
+    def test_attach_object(self):
+        milk = self.spawn_milk()
+        milk.attach(self.big_bowl)
+        self.assertTrue(self.big_bowl in milk.attachments)
+        milk_position = milk.get_position_as_list()
+        milk_position[0] += 3
+        big_bowl_position = self.big_bowl.get_position_as_list()
+        estimated_bowl_position = big_bowl_position
+        estimated_bowl_position[0] += 3
+        milk.set_position(milk_position)
+        new_bowl_position = self.big_bowl.get_position_as_list()
+        self.assertAlmostEqual(new_bowl_position[2], estimated_bowl_position[2])
+
+    @unittest.skip("Needs mobile base robot")
+    def test_attach_with_robot(self):
         with UseProspectionWorld():
             if self.multiverse.robot is None:
                 robot = self.spawn_robot()
@@ -154,8 +168,10 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     @staticmethod
     def spawn_milk() -> Object:
-        return Object("milk_box", ObjectType.MILK, "milk_box.urdf",
+        milk = Object("milk_box", ObjectType.MILK, "milk_box.urdf",
                       pose=Pose([0, 0, 2], [0, 0, 0, 1]))
+        time.sleep(2)
+        return milk
 
     @staticmethod
     def spawn_robot(position: Optional[List[float]] = None) -> Object:
