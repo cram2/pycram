@@ -5,12 +5,13 @@ from typing import List, Optional, Tuple
 
 import rospy
 from geometry_msgs.msg import Vector3
-from pycram.datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, MeshVisualShape, SphereVisualShape
-from pycram.datastructures.pose import Pose, Transform
-from pycram.designator import ObjectDesignatorDescription
-from pycram.world import World
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
+
+from ..datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, MeshVisualShape, SphereVisualShape
+from ..datastructures.pose import Pose, Transform
+from ..designator import ObjectDesignatorDescription
+from ..world import World
 
 
 class VizMarkerPublisher:
