@@ -24,19 +24,21 @@ class GiskardLocation(CostmapLocation):
 
         :yield: An instance of CostmapLocation.Location with a pose from which the robot can reach the target
         """
+        if self.visible_for:
+            raise ValueError("GiskardLocation does not support the visible_for parameter")
         local_transformer = LocalTransformer()
         target_map = local_transformer.transform_pose(self.target, "map")
 
         manipulator_descs = list(
             filter(lambda chain: isinstance(chain[1], ManipulatorDescription), robot_description.chains.items()))
 
-        near_costmap = (OccupancyCostmap(0.35, False, 200, 0.02, self.target)
-                        + GaussianCostmap(200, 15, 0.02, self.target))
+        near_costmap = (OccupancyCostmap(0.35, False, 200, 0.02, target_map)
+                        + GaussianCostmap(200, 15, 0.02, target_map))
         for maybe_pose in PoseGenerator(near_costmap, 200):
             for name, chain in manipulator_descs:
                 projection_joint_goal(robot_description.get_static_joint_chain(chain.name, "park"), allow_collisions=True)
 
-                trajectory = projection_cartesian_goal_with_approach(maybe_pose, self.target, chain.tool_frame,
+                trajectory = projection_cartesian_goal_with_approach(maybe_pose, target_map, chain.tool_frame,
                                                                      "map", robot_description.base_link)
                 last_point_positions = trajectory.trajectory.points[-1].positions
                 last_point_names = trajectory.trajectory.joint_names
@@ -57,7 +59,7 @@ class GiskardLocation(CostmapLocation):
                     prospection_robot.set_pose(pose)
                     gripper_pose = prospection_robot.get_link_pose(chain.tool_frame)
 
-                    if gripper_pose.dist(self.target) <= 0.02:
+                    if gripper_pose.dist(target_map) <= 0.02:
                         yield CostmapLocation.Location(pose, [name])
 
 
