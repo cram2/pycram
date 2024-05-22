@@ -22,7 +22,7 @@ try:
     from giskard_msgs.msg import WorldBody, MoveResult, CollisionEntry
     from giskard_msgs.srv import UpdateWorldRequest, UpdateWorld, UpdateWorldResponse, RegisterGroupResponse
 except ModuleNotFoundError as e:
-    rospy.logwarn("Failed to import Giskard messages")
+    rospy.logwarn("Failed to import Giskard messages, the real robot will not be available")
 
 giskard_wrapper: GiskardWrapper = None
 giskard_update_service = None
@@ -219,51 +219,65 @@ def _manage_par_motion_goals(goal_func, *args) -> Optional['MoveResult']:
     :param args: Arguments for the ``goal_func`` function
     :return: MoveResult of the execution if there was an execution, True if a new motion goal was added to the giskard_wrapper and None in any other case
     """
+    # key is the instance of the parallel language element, value is a list of threads that should be executed in
+    # parallel
     for key, value in par_threads.items():
+        # if the current thread is in the list of threads that should be executed in parallel backup the current list
+        # of motion goals and monitors
         if threading.get_ident() in value:
-            tmp = giskard_wrapper.cmd_seq
+            tmp_goals = giskard_wrapper.motion_goals.get_goals()
+            tmp_monitors = giskard_wrapper.monitors.get_monitors()
 
             if key in par_motion_goal.keys():
-                giskard_wrapper.cmd_seq = par_motion_goal[key]
+                # giskard_wrapper.cmd_seq = par_motion_goal[key]
+                giskard_wrapper.motion_goals._goals = par_motion_goal[key][0]
+                giskard_wrapper.monitors._monitors = par_motion_goal[key][1]
             else:
-                giskard_wrapper.clear_cmds()
+                giskard_wrapper.clear_motion_goals_and_monitors()
 
             goal_func(*args)
 
             # Check if there are multiple constraints that use the same joint, if this is the case the
             used_joints = set()
-            for cmd in giskard_wrapper.cmd_seq:
-                for con in cmd.constraints:
-                    par_value_pair = json.loads(con.parameter_value_pair)
-                    if "tip_link" in par_value_pair.keys() and "root_link" in par_value_pair.keys():
-                        if par_value_pair["tip_link"] == robot_description.base_link:
-                            continue
-                        chain = World.robot.description.get_chain(par_value_pair["root_link"],
-                                                                  par_value_pair["tip_link"])
-                        if set(chain).intersection(used_joints) != set():
-                            giskard_wrapper.cmd_seq = tmp
-                            raise AttributeError(f"The joint(s) {set(chain).intersection(used_joints)} is used by multiple Designators")
-                        else:
-                            [used_joints.add(joint) for joint in chain]
+            for cmd in giskard_wrapper.motion_goals.get_goals():
+                par_value_pair = json.loads(cmd.kwargs)
+                if "tip_link" in par_value_pair.keys() and "root_link" in par_value_pair.keys():
+                    if par_value_pair["tip_link"] == robot_description.base_link:
+                        continue
+                    chain = World.robot.description.get_chain(par_value_pair["root_link"],
+                                                              par_value_pair["tip_link"])
+                    if set(chain).intersection(used_joints) != set():
+                        giskard_wrapper.motion_goals._goals = tmp_goals
+                        giskard_wrapper.monitors._monitors = tmp_monitors
+                        raise AttributeError(f"The joint(s) {set(chain).intersection(used_joints)} is used by multiple Designators")
+                    else:
+                        [used_joints.add(joint) for joint in chain]
 
-                    elif "goal_state" in par_value_pair.keys():
-                        if set(par_value_pair["goal_state"].keys()).intersection(used_joints) != set():
-                            giskard_wrapper.cmd_seq = tmp
-                            raise AttributeError(f"The joint(s) {set(par_value_pair['goal_state'].keys()).intersection(used_joints)} is used by multiple Designators")
-                        else:
-                            [used_joints.add(joint) for joint in par_value_pair["goal_state"].keys()]
+                elif "goal_state" in par_value_pair.keys():
+                    if set(par_value_pair["goal_state"].keys()).intersection(used_joints) != set():
+                        giskard_wrapper.motion_goals._goals = tmp_goals
+                        giskard_wrapper.monitors._monitors = tmp_monitors
+                        raise AttributeError(f"The joint(s) {set(par_value_pair['goal_state'].keys()).intersection(used_joints)} is used by multiple Designators")
+                    else:
+                        [used_joints.add(joint) for joint in par_value_pair["goal_state"].keys()]
 
             par_threads[key].remove(threading.get_ident())
+            # If this is the last thread that should be executed in parallel, execute the complete sequence of motion
+            # goals
             if len(par_threads[key]) == 0:
                 if key in par_motion_goal.keys():
                     del par_motion_goal[key]
                 del par_threads[key]
                 res = giskard_wrapper.execute()
-                giskard_wrapper.cmd_seq = tmp
+                giskard_wrapper.motion_goals._goals = tmp_goals
+                giskard_wrapper.monitors._monitors = tmp_monitors
                 return res
+            # If there are still threads that should be executed in parallel, save the current state of motion goals and
+            # monitors.
             else:
-                par_motion_goal[key] = giskard_wrapper.cmd_seq
-                giskard_wrapper.cmd_seq = tmp
+                par_motion_goal[key] = [giskard_wrapper.motion_goals.get_goals(), giskard_wrapper.monitors.get_monitors()]
+                giskard_wrapper.motion_goals._goals = tmp_goals
+                giskard_wrapper.monitors._monitors = tmp_monitors
                 return True
 
 
