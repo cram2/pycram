@@ -1,0 +1,23 @@
+{
+  "name": "PyCRAM vscode devcontainer",
+  "image": "pycram/pycram:dev",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/sshd:1": {}
+  },
+  "postStartCommand": {
+    "pip": "pip3 install ipykernel pyjpt",
+    "git": "git config --global --add safe.directory '*'",
+    "source setup": "./.devcontainer/script.sh"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-toolsai.jupyter",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  }
+}

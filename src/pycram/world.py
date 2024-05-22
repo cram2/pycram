@@ -1109,7 +1109,8 @@ class WorldSync(threading.Thread):
         prospection world. When there are entries in the adding or removing queue the corresponding objects will
         be added or removed in the same iteration.
 
-        :param wait_time_as_n_simulation_steps: The time in simulation steps to wait between each iteration of the syncing loop.
+        :param wait_time_as_n_simulation_steps: The time in simulation steps to wait between each iteration of
+         the syncing loop.
         """
         while not self.terminate:
             self.check_for_pause()

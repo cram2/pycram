@@ -5,7 +5,7 @@ import rospy
 
 from .boxy_description import BoxyDescription
 from .donbot_description import DonbotDescription
-from .hsr_description import HSRDescription
+from .hsrb_description import HSRBDescription
 from .pr2_description import PR2Description
 from .ur5_description import UR5Description
 from .tiago_description import TiagoDescription
@@ -56,8 +56,8 @@ def update_robot_description(robot_name=None, from_ros=None):
         description = PR2Description
     elif 'boxy' in robot:
         description = BoxyDescription
-    elif 'hsr' in robot:
-        description = HSRDescription
+    elif 'hsrb' in robot:
+        description = HSRBDescription
     elif "ur5_robotiq" in robot:
         description = UR5Description
     elif "tiago_dual" in robot:
