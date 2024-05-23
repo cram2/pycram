@@ -236,7 +236,8 @@ class Link(ObjectEntity, LinkDescription, ABC):
         """
         self.world.remove_constraint(self.constraint_ids[child_link])
         del self.constraint_ids[child_link]
-        del child_link.constraint_ids[self]
+        if self in child_link.constraint_ids.keys():
+            del child_link.constraint_ids[self]
 
     @property
     def is_root(self) -> bool:
