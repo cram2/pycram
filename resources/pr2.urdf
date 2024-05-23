@@ -668,11 +668,11 @@
   </gazebo>
   <joint name="torso_lift_joint" type="prismatic">
     <axis xyz="0 0 1"/>
-    <limit effort="1000" lower="0." upper="0.33" velocity="0.13"/>
+    <limit effort="10000" lower="0.0" upper="0.33" velocity="0.013"/>
     <!-- alpha tested velocity and effort limits -->
     <safety_controller k_position="100" k_velocity="2000000" soft_lower_limit="0.0115" soft_upper_limit="0.325"/>
     <calibration falling="0.00475"/>
-    <dynamics damping="20000000000.0"/>
+    <dynamics damping="20000.0"/>
     <origin rpy="0 0 0" xyz="-0.05 0 0.739675"/>
     <parent link="base_link"/>
     <child link="torso_lift_link"/>
