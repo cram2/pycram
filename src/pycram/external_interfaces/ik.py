@@ -195,7 +195,9 @@ def request_kdl_ik(target_pose: Pose, robot: Object, joints: List[str], gripper:
 
 def request_giskard_ik(target_pose: Pose, robot: Object, gripper: str) -> Tuple[Pose, Dict[str, float]]:
     """
-    Calls giskard in projection mode and queries the ik solution for a full body ik solution.
+    Calls giskard in projection mode and queries the ik solution for a full body ik solution. This method will
+    try to drive the robot directly to a pose from which the target_pose is reachable for the end effector. If there
+    are obstacles in the way this method will fail. In this case please use the GiskardLocation designator. 
 
     :param target_pose: Pose at which the end effector should be moved.
     :param robot: Robot object which should be used.
