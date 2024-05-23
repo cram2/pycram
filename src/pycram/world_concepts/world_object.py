@@ -125,10 +125,8 @@ class Object(WorldEntity):
             raise e
 
         try:
-            if not self.world.handle_spawning:
-                path = self.name
-            obj_id = self.world.load_object_and_get_id(path, Pose(self.get_position_as_list(),
-                                                                       self.get_orientation_as_list()))
+            path = self.path if self.world.handle_spawning else self.name
+            obj_id = self.world.load_object_and_get_id(path, self._current_pose)
             return obj_id, self.path
 
         except Exception as e:
@@ -474,6 +472,8 @@ class Object(WorldEntity):
 
         :return: The current pose of this object
         """
+        if self.world.update_poses_on_get:
+            self.update_pose()
         return self._current_pose
 
     def set_pose(self, pose: Pose, base: Optional[bool] = False, set_attachments: Optional[bool] = True) -> None:
@@ -502,6 +502,7 @@ class Object(WorldEntity):
         Updates the current pose of this object from the world, and updates the poses of all links.
         """
         self._current_pose = self.world.get_object_pose(self)
+        # TODO: Probably not needed, need to test
         self._update_all_links_poses()
         self.update_link_transforms()
 

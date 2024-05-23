@@ -141,13 +141,13 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         milk.attach(self.big_bowl)
         self.assertTrue(self.big_bowl in milk.attachments)
         milk_position = milk.get_position_as_list()
-        milk_position[0] += 3
+        milk_position[0] += 1
         big_bowl_position = self.big_bowl.get_position_as_list()
-        estimated_bowl_position = big_bowl_position
-        estimated_bowl_position[0] += 3
+        estimated_bowl_position = big_bowl_position.copy()
+        estimated_bowl_position[0] += 1
         milk.set_position(milk_position)
         new_bowl_position = self.big_bowl.get_position_as_list()
-        self.assertAlmostEqual(new_bowl_position[2], estimated_bowl_position[2])
+        self.assertAlmostEqual(new_bowl_position[0], estimated_bowl_position[0])
 
     @unittest.skip("Needs mobile base robot")
     def test_attach_with_robot(self):

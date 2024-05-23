@@ -339,6 +339,8 @@ class Link(ObjectEntity, LinkDescription, ABC):
 
         :return: A Pose object containing the pose of the link relative to the world frame.
         """
+        if self.world.update_poses_on_get:
+            self._update_pose()
         return self._current_pose
 
     @property
@@ -415,7 +417,7 @@ class RootLink(Link, ABC):
         return self.object.tf_frame
 
     def _update_pose(self) -> None:
-        self._current_pose = self.object.get_pose()
+        self._current_pose = self.world.get_object_pose(self.object)
 
     def __copy__(self):
         return RootLink(self.object)
@@ -475,6 +477,8 @@ class Joint(ObjectEntity, JointDescription, ABC):
 
     @property
     def position(self) -> float:
+        if self.world.update_poses_on_get:
+            self._update_position()
         return self._current_position
 
     def reset_position(self, position: float) -> None:
