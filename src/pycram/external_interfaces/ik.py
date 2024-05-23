@@ -134,6 +134,14 @@ def apply_grasp_orientation_to_pose(grasp: str, pose: Pose) -> Pose:
 
 def try_to_reach(pose_or_object: Union[Pose, Object], prospection_robot: Object,
                  gripper_name: str) -> Union[Pose, None]:
+    """
+    Tries to reach a given position with a given robot. This is done by calculating the inverse kinematics.
+
+    :param pose_or_object: The position and rotation or Object for which reachability should be checked.
+    :param prospection_robot: The robot that should be used to check for reachability, should be the one in the prospection world
+    :param gripper_name: Name of the gripper tool frame
+    :return: The pose at which the robot should stand or None if the target is not reachable
+    """
     input_pose = pose_or_object.get_pose() if isinstance(pose_or_object, Object) else pose_or_object
 
     arm = "left" if gripper_name == robot_description.get_tool_frame("left") else "right"
@@ -144,7 +152,7 @@ def try_to_reach(pose_or_object: Union[Pose, Object], prospection_robot: Object,
     except IKError as e:
         rospy.logerr(f"Pose is not reachable: {e}")
         return None
-    _apply_ik(prospection_robot, inv, joints)
+    _apply_ik(prospection_robot, inv)
 
     return input_pose
 
@@ -197,7 +205,7 @@ def request_giskard_ik(target_pose: Pose, robot: Object, gripper: str) -> Tuple[
     """
     Calls giskard in projection mode and queries the ik solution for a full body ik solution. This method will
     try to drive the robot directly to a pose from which the target_pose is reachable for the end effector. If there
-    are obstacles in the way this method will fail. In this case please use the GiskardLocation designator. 
+    are obstacles in the way this method will fail. In this case please use the GiskardLocation designator.
 
     :param target_pose: Pose at which the end effector should be moved.
     :param robot: Robot object which should be used.
