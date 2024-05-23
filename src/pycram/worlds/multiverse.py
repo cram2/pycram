@@ -111,6 +111,7 @@ class Multiverse(MultiverseSocket, World):
         self._make_sure_multiverse_resources_are_added()
         self.set_attached_objects_poses = False
         self.handle_spawning = False
+        self.update_poses_on_get = True
         self.last_object_id: int = -1
         self.last_constraint_id: int = -1
         self.constraints: Dict[int, Dict[str, str]] = {}

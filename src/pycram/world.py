@@ -179,6 +179,7 @@ class World(StateEntity, ABC):
 
         self.set_attached_objects_poses = True
         self.handle_spawning = True
+        self.update_poses_on_get = False
 
         self._current_state: Optional[WorldState] = None
 
