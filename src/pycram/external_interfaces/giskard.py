@@ -6,11 +6,11 @@ import rospy
 import sys
 import rosnode
 
-from pycram.datastructures.pose import Pose
+from ..datastructures.pose import Pose
 from ..robot_descriptions import robot_description
-from pycram.world import World
-from pycram.datastructures.dataclasses import MeshVisualShape
-from pycram.world_concepts.world_object import Object
+from ..world import World
+from ..datastructures.dataclasses import MeshVisualShape
+from ..world_concepts.world_object import Object
 from ..robot_description import ManipulatorDescription
 
 from typing_extensions import List, Dict, Callable, Optional
@@ -24,7 +24,7 @@ try:
 except ModuleNotFoundError as e:
     rospy.logwarn("Failed to import Giskard messages, the real robot will not be available")
 
-giskard_wrapper: GiskardWrapper = None
+giskard_wrapper = None
 giskard_update_service = None
 is_init = False
 
@@ -69,6 +69,7 @@ def init_giskard_interface(func: Callable) -> Callable:
         elif is_init and "/giskard" not in rosnode.get_node_names():
             rospy.logwarn("Giskard node is not available anymore, could not initialize giskard interface")
             is_init = False
+            giskard_wrapper = None
             return
 
         if "giskard_msgs" not in sys.modules:
