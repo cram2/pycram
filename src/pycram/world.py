@@ -15,15 +15,15 @@ from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKI
 from typing_extensions import Union
 
 from .cache_manager import CacheManager
-from .datastructures.enums import JointType, ObjectType, WorldMode
-from .world_concepts.event import Event
-from .local_transformer import LocalTransformer
-from .datastructures.pose import Pose, Transform
-from .world_concepts.constraints import Constraint
 from .datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
-                                               MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape, SphereVisualShape,
-                                               CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
-                                               ObjectState, State, WorldState)
+                                         MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape, SphereVisualShape,
+                                         CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
+                                         ObjectState, State, WorldState)
+from .datastructures.enums import JointType, ObjectType, WorldMode
+from .datastructures.pose import Pose, Transform
+from .local_transformer import LocalTransformer
+from .world_concepts.constraints import Constraint
+from .world_concepts.event import Event
 
 if TYPE_CHECKING:
     from .world_concepts.world_object import Object
@@ -471,6 +471,30 @@ class World(StateEntity, ABC):
         :return: A list of all contact points between the two objects.
         """
         pass
+
+    def get_object_closest_points(self, obj: Object, max_distance: float) -> List:
+        """
+        Returns the closest points of this object with all other objects in the world.
+
+        :param obj: The object.
+        :param max_distance: The maximum distance between the points.
+        :return: A list of the closest points.
+        """
+        closest_points = [self.get_closest_points_between_objects(obj, other_obj, max_distance) for other_obj in
+                          self.objects
+                          if other_obj != obj]
+        return [point for points in closest_points for point in points if len(point) > 0]
+
+    def get_closest_points_between_objects(self, object_a: Object, object_b: Object, max_distance: float) -> List:
+        """
+        Returns the closest points between two objects.
+
+        :param object_a: The first object.
+        :param object_b: The second object.
+        :param max_distance: The maximum distance between the points.
+        :return: A list of the closest points.
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def reset_joint_position(self, joint: Joint, joint_position: float) -> None:
