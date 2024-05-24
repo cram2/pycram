@@ -950,6 +950,25 @@ class Object(WorldEntity):
         self.world.restore_state(state_id)
         return contact_points
 
+    def closest_points(self, max_distance: float) -> List:
+        """
+        Returns a list of closest points between this Object and other Objects.
+
+        :param max_distance: The maximum distance between the closest points
+        :return: A list of closest points between this Object and other Objects
+        """
+        return self.world.get_object_closest_points(self, max_distance)
+
+    def closest_points_with_obj(self, other_object: Object, max_distance: float) -> List:
+        """
+        Returns a list of closest points between this Object and another Object.
+
+        :param other_object: The other object
+        :param max_distance: The maximum distance between the closest points
+        :return: A list of closest points between this Object and the other Object
+        """
+        return self.world.get_closest_points_between_objects(self, other_object, max_distance)
+
     def set_color(self, rgba_color: Color) -> None:
         """
         Changes the color of this object, the color has to be given as a list

@@ -138,6 +138,9 @@ class BulletWorld(World):
         self.perform_collision_detection()
         return p.getContactPoints(obj1.id, obj2.id, physicsClientId=self.id)
 
+    def get_closest_points_between_objects(self, obj_a: Object, obj_b: Object, distance: float) -> List:
+        return p.getClosestPoints(obj_a.id, obj_b.id, distance, physicsClientId=self.id)
+
     def reset_joint_position(self, joint: ObjectDescription.Joint, joint_position: str) -> None:
         p.resetJointState(joint.object_id, joint.id, joint_position, physicsClientId=self.id)
 
