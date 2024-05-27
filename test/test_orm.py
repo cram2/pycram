@@ -1,3 +1,4 @@
+import os
 import unittest
 from sqlalchemy import select
 import sqlalchemy.orm
@@ -19,6 +20,7 @@ from pycram.datastructures.enums import ObjectType
 from pycram.datastructures.pose import Pose
 from pycram.process_module import simulated_robot
 from pycram.task import with_tree
+from pycram.orm.views import PickUpWithContextView
 
 
 class DatabaseTestCaseMixin(BulletWorldTestCase):
@@ -45,8 +47,6 @@ class DatabaseTestCaseMixin(BulletWorldTestCase):
 
 class ORMTestSchemaTestCase(DatabaseTestCaseMixin, unittest.TestCase):
     def test_schema_creation(self):
-        pycram.orm.base.Base.metadata.create_all(self.engine)
-        self.session.commit()
         tables = list(pycram.orm.base.Base.metadata.tables.keys())
         self.assertTrue("Position" in tables)
         self.assertTrue("Quaternion" in tables)
@@ -210,9 +210,9 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
         pycram.orm.base.ProcessMetaData().description = "parkArmsAction_test"
         pycram.task.task_tree.root.insert(self.session)
         result = self.session.scalars(select(pycram.orm.action_designator.ParkArmsAction)).all()
-        self.assertTrue(all([result[i+1].dtype is not pycram.orm.action_designator.Action.dtype
+        self.assertTrue(all([result[i + 1].dtype is not pycram.orm.action_designator.Action.dtype
                              if result[i].dtype is pycram.orm.action_designator.ParkArmsAction.dtype else None
-                             for i in range(len(result)-1)]))
+                             for i in range(len(result) - 1)]))
 
     def test_transportAction(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
@@ -272,6 +272,62 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
         self.assertTrue(close_result is not None)
         self.assertEqual(close_result[0].object.name, "handle_cab10_t")
         apartment.remove()
+
+
+class ViewsSchemaTest(DatabaseTestCaseMixin):
+    def test_view_creation(self):
+        pycram.orm.base.ProcessMetaData().description = "view_creation_test"
+        pycram.task.task_tree.root.insert(self.session)
+        view = PickUpWithContextView
+        self.assertEqual(len(view.__table__.columns), 12)
+        self.assertEqual(view.__table__.name, "PickUpWithContextView")
+        self.assertEqual(view.__table__.columns[0].name, "id")
+        self.assertEqual(view.__table__.columns[1].name, "arm")
+        self.assertEqual(view.__table__.columns[2].name, "grasp")
+        self.assertEqual(view.__table__.columns[3].name, "torso_height")
+        self.assertEqual(view.__table__.columns[4].name, "relative_x")
+        self.assertEqual(view.__table__.columns[5].name, "relative_y")
+        self.assertEqual(view.__table__.columns[6].name, "quaternion_x")
+        self.assertEqual(view.__table__.columns[7].name, "quaternion_y")
+        self.assertEqual(view.__table__.columns[8].name, "quaternion_z")
+        self.assertEqual(view.__table__.columns[9].name, "quaternion_w")
+        self.assertEqual(view.__table__.columns[10].name, "obj_type")
+        self.assertEqual(view.__table__.columns[11].name, "status")
+
+    def test_pickUpWithContextView(self):
+        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], ["left"])
+        self.assertEqual(description.ground().object_designator.name, "milk")
+        with simulated_robot:
+            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            MoveTorsoActionPerformable(0.3).perform()
+            PickUpActionPerformable(object_description.resolve(), "left", "front").perform()
+            description.resolve().perform()
+        pycram.orm.base.ProcessMetaData().description = "pickUpWithContextView_test"
+        pycram.task.task_tree.root.insert(self.session)
+        result = self.session.scalars(select(PickUpWithContextView)).first()
+        self.assertEqual(result.arm, "left")
+        self.assertEqual(result.grasp, "front")
+        self.assertEqual(result.torso_height, 0.3)
+        self.assertAlmostEqual(result.relative_x, -0.7, 6)
+        self.assertAlmostEqual(result.relative_y, -0.6, 6)
+        self.assertEqual(result.quaternion_x, 0)
+        self.assertEqual(result.quaternion_w, 1)
+
+    def test_pickUpWithContextView_conditions(self):
+        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], ["left"])
+        self.assertEqual(description.ground().object_designator.name, "milk")
+        with simulated_robot:
+            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            MoveTorsoActionPerformable(0.3).perform()
+            PickUpActionPerformable(object_description.resolve(), "left", "front").perform()
+            description.resolve().perform()
+        pycram.orm.base.ProcessMetaData().description = "pickUpWithContextView_conditions_test"
+        pycram.task.task_tree.root.insert(self.session)
+        result = self.session.scalars(select(PickUpWithContextView)
+                                      .where(PickUpWithContextView.arm == "right")).all()
+        self.assertEqual(result, [])
 
 
 if __name__ == '__main__':

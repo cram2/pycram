@@ -1,0 +1,72 @@
+{
+  "globalOptions": {
+    "background": "#111111",
+    "colladaLoader": "collada2",
+    "fixedFrame": "simulated/map"
+  },
+  "viewerOptions": {
+    "camera": {
+      "position": {
+        "x": 8.8,
+        "y": 4.5,
+        "z": 2.7
+      }
+    },
+    "cameraControls": {
+      "center": {
+        "x": 1,
+        "y": 2.5,
+        "z": 0
+      }
+    },
+    "directionalLight": {
+      "position": {
+        "x": -3,
+        "y": -3,
+        "z": 5
+      }
+    }
+  },
+  "sidebarOpened": false,
+  "displays": [
+    {
+      "isShown": true,
+      "name": "Grid",
+      "options": {
+        "cellSize": "1",
+        "color": "#eeeeee",
+        "numCells": "20"
+      },
+      "type": "grid"
+    },
+    {
+      "isShown": false,
+      "name": "Robot model",
+      "options": {
+        "param": "robot_description",
+        "tfPrefix": "simulated/pr2"
+      },
+      "type": "urdf"
+    },
+    {
+      "isShown": false,
+      "name": "Kitchen model",
+      "options": {
+        "param": "kitchen_description",
+        "tfPrefix": "simulated/environment"
+      },
+      "type": "urdf"
+    },
+     
+      {
+      "isShown": true,
+      "name": "Marker array",
+      "options": {
+        "topic": "/pycram/viz_marker"
+      },
+      "type": "markerArray"
+    }
+
+  
+  ]
+}
