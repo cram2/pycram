@@ -7,7 +7,7 @@ Classes:
 GeneratorList -- implementation of generator list wrappers.
 """
 from inspect import isgeneratorfunction
-from typing_extensions import List, Tuple, Callable
+from typing_extensions import List, Tuple, Callable, Dict
 
 import numpy as np
 from pytransform3d.rotations import quaternion_wxyz_from_xyzw, quaternion_xyzw_from_wxyz
@@ -37,21 +37,17 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
-def _apply_ik(robot: WorldObject, joint_poses: List[float], joints: List[str]) -> None:
+def _apply_ik(robot: WorldObject, pose_and_joint_poses: Tuple[Pose, Dict[str, float]]) -> None:
     """
     Apllies a list of joint poses calculated by an inverse kinematics solver to a robot
 
     :param robot: The robot the joint poses should be applied on
-    :param joint_poses: The joint poses to be applied
-    :param gripper: specifies the gripper for which the ik solution should be applied
+    :param pose_and_joint_poses: The base pose and joint states as returned by the ik solver
     :return: None
     """
-    # arm ="left" if gripper == robot_description.get_tool_frame("left") else "right"
-    # ik_joints = [robot_description.torso_joint] + robot_description._safely_access_chains(arm).joints
-    # ik_joints = robot_description._safely_access_chains(arm).joints
-    robot.set_joint_positions(dict(zip(joints, joint_poses)))
-    # for i in range(0, len(joints)):
-    #     robot.set_joint_state(joints[i], joint_poses[i])
+    pose, joint_states = pose_and_joint_poses
+    robot.set_pose(pose)
+    robot.set_joint_positions(joint_states)
 
 
 def calculate_wrist_tool_offset(wrist_frame: str, tool_frame: str, robot: WorldObject) -> Transform:
