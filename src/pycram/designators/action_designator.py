@@ -2,11 +2,12 @@ import itertools
 from typing_extensions import List, Union, Callable, Optional
 from typing_extensions import Any, Union
 
+import rospy
 try:
-    import owlready2
     from owlready2 import *
 except ImportError:
     owlready2 = None
+    rospy.logwarn("owlready2 is not installed!")
 
 from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
 from ..datastructures.enums import Arms

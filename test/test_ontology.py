@@ -3,13 +3,12 @@ from __future__ import annotations
 import unittest
 import logging
 from pathlib import Path
-from typing import Type
+from typing import Type, Optional
 
 from pycram.designator import ObjectDesignatorDescription
 
 import rospy
 try:
-    import owlready2
     from owlready2 import *
 except ImportError:
     owlready2 = None
@@ -21,9 +20,9 @@ from pycram.ontology.ontology_common import OntologyConceptHolderStore, Ontology
 
 class TestOntologyManager(unittest.TestCase):
     ontology_manager: OntologyManager
-    main_ontology: owlready2.Ontology | None
-    soma: owlready2.Ontology | None
-    dul: owlready2.Ontology | None
+    main_ontology: Optional[owlready2.Ontology]
+    soma: Optional[owlready2.Ontology]
+    dul: Optional[owlready2.Ontology]
 
     @classmethod
     def setUpClass(cls):
