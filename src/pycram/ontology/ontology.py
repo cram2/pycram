@@ -8,7 +8,6 @@ from typing import Callable, Dict, List, Optional, Type
 import rospy
 
 try:
-    import owlready2
     from owlready2 import *
 except ImportError:
     owlready2 = None
@@ -361,33 +360,35 @@ class OntologyManager(object, metaclass=Singleton):
             ontology_inverse_predicate.inverse_property = ontology_predicate_class
             ontology_inverse_predicate.python_name = inverse_predicate_name
 
-    def create_ontology_linked_designator(self, designator_name: str, designator_class: Type[DesignatorDescription],
+    def create_ontology_linked_designator(self, designator_class: Type[DesignatorDescription],
                                           ontology_concept_name: str,
+                                          object_name: Optional[str] = "",
                                           ontology_parent_class: Optional[Type[owlready2.Thing]] = None) \
             -> Optional[DesignatorDescription]:
         """
-        Create an object designator linked to a given ontology concept
+        Create a designator linked to a given ontology concept
 
-        :param designator_name: Designator name
-        :param designator_class: Designator class
+        :param designator_class: A given designator class
         :param ontology_concept_name: Ontology concept name
+        :param object_name: Name of object in case of the designator to be created is an Object Designator
         :param ontology_parent_class: Parent ontology class from which the class of designator inherits
-        :return: An object designator associated with an ontology concept
+        :return: A designator associated with an ontology concept
         """
         ontology_concept_class = self.create_ontology_concept_class(ontology_concept_name, ontology_parent_class)
-        return self.create_ontology_linked_designator_by_concept(designator_name, designator_class,
-                                                                 ontology_concept_class)
+        return self.create_ontology_linked_designator_by_concept(designator_class=designator_class,
+                                                                 ontology_concept_class=ontology_concept_class,
+                                                                 object_name=object_name)
 
-    def create_ontology_linked_designator_by_concept(self, object_name: str,
-                                                     designator_class: Type[DesignatorDescription],
-                                                     ontology_concept_class: Type[owlready2.Thing]) \
+    def create_ontology_linked_designator_by_concept(self, designator_class: Type[DesignatorDescription],
+                                                     ontology_concept_class: Type[owlready2.Thing],
+                                                     object_name: Optional[str] = "") \
             -> Optional[DesignatorDescription]:
         """
         Create a designator that belongs to a given ontology concept class
 
-        :param object_name: Name of object in case of the designator to be created is an Object Designator
         :param designator_class: A given designator class
         :param ontology_concept_class: An ontology concept class with which the output designator is associated
+        :param object_name: Name of object in case of the designator to be created is an Object Designator
         :return: An object designator associated with the given ontology concept class if created successfully (not already exists), None otherwise
         """
         ontology_concept_name = f'{object_name}_concept'
@@ -396,8 +397,15 @@ class OntologyManager(object, metaclass=Singleton):
             return None
 
         # Create a designator of `designator_class`
-        designator = designator_class(names=[object_name]) if issubclass(designator_class, ObjectDesignatorDescription) \
-                                                              else designator_class()
+        is_object_designator = issubclass(designator_class, ObjectDesignatorDescription)
+        if is_object_designator:
+            if not object_name:
+                rospy.logerr(
+                    f"An empty object name was given as creating its Object designator for ontology concept class [{ontology_concept_class.name}]")
+                return None
+            designator = designator_class(names=[object_name])
+        else:
+            designator = designator_class()
 
         # Link designator with an ontology concept of `ontology_concept_class`
         ontology_concept_holder = OntologyConceptHolderStore().get_ontology_concept_holder_by_name(ontology_concept_name)
@@ -475,9 +483,9 @@ class OntologyManager(object, metaclass=Singleton):
         """
         object_type_name = object_type.name.lower()
         object_designator = \
-            self.create_ontology_linked_designator_by_concept(object_type_name,
-                                                              ObjectDesignatorDescription,
-                                                              ontology_concept_class)
+            self.create_ontology_linked_designator_by_concept(designator_class=ObjectDesignatorDescription,
+                                                              ontology_concept_class=ontology_concept_class,
+                                                              object_name=object_type_name)
         object_designator.types = [object_type_name]
         return object_designator
 
