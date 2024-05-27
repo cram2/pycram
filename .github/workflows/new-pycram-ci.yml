@@ -44,7 +44,7 @@ jobs:
           rm -rf /opt/ros/overlay_ws/src/pycram/* 
           cd /opt/ros/overlay_ws/src/pycram
           rm -rf .git .github .gitignore .gitmodules .readthedocs.yaml
-          mv /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros/src/pycram /opt/ros/overlay_ws/src
+          cp -r /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ros/src/pycram /opt/ros/overlay_ws/src
 
       - name: Remake workspace & start roscore
         run: |
