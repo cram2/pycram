@@ -109,7 +109,7 @@ class TestOntologyManager(unittest.TestCase):
                                                              ontology_inverse_property_parent_class=self.soma.isBearerAffordedBy)
 
         def create_ontology_handheld_object_designator(object_name: str, ontology_parent_class: Type[owlready2.Thing]):
-            return self.ontology_manager.create_ontology_linked_designator(designator_name=object_name,
+            return self.ontology_manager.create_ontology_linked_designator(object_name=object_name,
                                                                            designator_class=ObjectDesignatorDescription,
                                                                            ontology_concept_name=f"Onto{object_name}",
                                                                            ontology_parent_class=ontology_parent_class)
