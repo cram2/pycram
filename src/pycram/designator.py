@@ -5,20 +5,21 @@ from dataclasses import dataclass, field, fields
 from abc import ABC, abstractmethod
 from inspect import isgenerator, isgeneratorfunction
 
+import rospy
 try:
     import owlready2
 except ImportError:
     owlready2 = None
+    rospy.logwarn("owlready2 is not installed!")
 
 from sqlalchemy.orm.session import Session
-import rospy
 
 from .world import World
 from .world_concepts.world_object import Object as WorldObject
 from .helper import GeneratorList, bcolors
 from threading import Lock
 from time import time
-from typing_extensions import Type, List, Dict, Any, Optional, Union, get_type_hints, Callable, Iterable
+from typing_extensions import Type, List, Dict, Any, Optional, Union, get_type_hints, Callable, Iterable, TYPE_CHECKING
 
 from .local_transformer import LocalTransformer
 from .language import Language
@@ -33,6 +34,10 @@ from .orm.object_designator import (Object as ORMObjectDesignator)
 
 from .orm.base import RobotState, ProcessMetaData
 from .task import with_tree
+
+if TYPE_CHECKING:
+    from .ontology.ontology_common import OntologyConceptHolder
+
 
 class DesignatorError(Exception):
     """Implementation of designator errors."""
@@ -327,8 +332,7 @@ class DesignatorDescription(ABC):
         """
         Create a Designator description.
 
-        :param resolver: The grounding method used for the description. The grounding method creates a location instance
-        that matches the description.
+        :param resolver: The grounding method used for the description. The grounding method creates a location instance that matches the description.
         :param ontology_concept_holders: A list of holders of ontology concepts that the designator is categorized as or associated with
         """
 
@@ -449,7 +453,7 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
 
             return action
 
-    def __init__(self, resolver=None, ontology_concept_holders: Optional[List[owlready2.Thing]] = None):
+    def __init__(self, resolver=None, ontology_concept_holders: Optional[List[OntologyConceptHolder]] = None):
         """
         Base of all action designator descriptions.
 
@@ -468,6 +472,7 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
     def init_ontology_concepts(self, ontology_concept_classes: Dict[str, Type[owlready2.Thing]]):
         """
         Initialize the ontology concept holders for this action designator
+
         :param ontology_concept_classes: The ontology concept classes that the action is categorized as or associated with
         :param ontology_concept_name: The name of the ontology concept instance to be created
         """
