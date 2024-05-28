@@ -9,15 +9,15 @@ from random_events.events import Event, ComplexEvent
 from random_events.variables import Symbolic, Continuous
 import tqdm
 from typing_extensions import Optional, List, Iterator
-from pycram.datastructures.world import World
-from pycram.costmaps import OccupancyCostmap, VisibilityCostmap
-from pycram.designator import ActionDesignatorDescription, ObjectDesignatorDescription
-from pycram.designators.performables.actions import MoveAndPickUpPerformable, ActionAbstract
-from pycram.datastructures.enums import Arms, Grasp, TaskStatus
-from pycram.local_transformer import LocalTransformer
-from pycram.orm.views import PickUpWithContextView
-from pycram.plan_failures import ObjectUnreachable, PlanFailure
-from pycram.datastructures.pose import Pose
+from ....datastructures.world import World
+from ....costmaps import OccupancyCostmap, VisibilityCostmap
+from ....designator import ActionDesignatorDescription, ObjectDesignatorDescription
+from ....designators.performables.actions import MoveAndPickUpPerformable, ActionAbstract
+from ....datastructures.enums import Arms, Grasp, TaskStatus
+from ....local_transformer import LocalTransformer
+from ....orm.views import PickUpWithContextView
+from ....plan_failures import ObjectUnreachable, PlanFailure
+from ....datastructures.pose import Pose
 
 
 class ProbabilisticAction:

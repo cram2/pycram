@@ -11,7 +11,7 @@ from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 from ..description import ObjectDescription, LinkDescription
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..robot_descriptions import robot_description
-from pycram.datastructures.world import WorldEntity, World
+from ..datastructures.world import WorldEntity, World
 from ..world_concepts.constraints import Attachment
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                                AxisAlignedBoundingBox, VisualShape)
