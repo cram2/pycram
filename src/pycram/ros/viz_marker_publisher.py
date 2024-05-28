@@ -11,7 +11,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 from ..datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, MeshVisualShape, SphereVisualShape
 from ..datastructures.pose import Pose, Transform
 from ..designator import ObjectDesignatorDescription
-from ..world import World
+from ..datastructures.world import World
 
 
 class VizMarkerPublisher:

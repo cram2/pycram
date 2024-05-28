@@ -3,9 +3,6 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 from .object_designator import ObjectDesignatorDescription, ObjectPart, RealObject
-from ..world import World
-from ..world_concepts.world_object import Object
-from ..designator import DesignatorError
 from ..orm.base import ProcessMetaData
 from ..plan_failures import PerceptionObjectNotFound
 from ..process_module import ProcessModuleManager
@@ -18,7 +15,7 @@ from ..datastructures.enums import ObjectType
 
 from typing_extensions import Dict, Optional, get_type_hints, get_args, get_origin
 from ..datastructures.pose import Pose
-from ..task import with_tree
+from ..tasktree import with_tree
 
 
 @dataclass

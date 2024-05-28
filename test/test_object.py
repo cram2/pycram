@@ -14,7 +14,7 @@ class TestObject(BulletWorldTestCase):
 
     def test_wrong_object_description_path(self):
         with self.assertRaises(FileNotFoundError):
-            milk = Object("milk2", ObjectType.MILK, "wrong_path.sk")
+            milk = Object("milk_not_found", ObjectType.MILK, "wrong_path.sk")
 
     def test_malformed_object_description(self):
         file_path = pathlib.Path(__file__).parent.resolve()

@@ -252,7 +252,7 @@ class XMLTester(unittest.TestCase):
 
     def setUp(self) -> None:
         rospack = rospkg.RosPack()
-        filename = rospack.get_path('pycram') + '/resources/' + 'pr2.urdf'
+        filename = rospack.get_path('pycram') + '/resources/robots/' + 'pr2.urdf'
         with open(filename, "r") as f:
             self.urdf_string = f.read()
 

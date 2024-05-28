@@ -173,7 +173,7 @@ class ProcessMetaData(_Base):
 
 
 class Designator(Base):
-    """ORM Class holding every performed action and motion serving as every actions and motions root."""
+    """ORM Class holding every performed action and motion serving as every performables and motions root."""
 
     @declared_attr
     def dtype(self) -> Mapped[str]:
