@@ -6,7 +6,7 @@ import rospy
 
 from geometry_msgs.msg import WrenchStamped
 from std_msgs.msg import Header
-from pycram.world import World
+from ..datastructures.world import World
 
 
 class ForceTorqueSensor:

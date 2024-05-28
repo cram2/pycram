@@ -1,0 +1,112 @@
+File pycram/bullet_world_reasoning.py: 2467 words, 364 lines
+File pycram/pose_generator_and_validator.py: 1205 words, 207 lines
+File pycram/test/__pycache__/test_giskard.cpython-38.pyc: 105 words, 3 lines (not NL-terminated)
+File pycram/test/_trial_temp/test.log: 9 words, 1 line
+File pycram/helper.py: 1106 words, 225 lines (not NL-terminated)
+File pycram/task.py: 1275 words, 302 lines
+File pycram/orm/task.py: 195 words, 34 lines
+File pycram/orm/utils.py: 1164 words, 186 lines
+File pycram/orm/action_designator.py: 575 words, 120 lines
+File pycram/orm/object_designator.py: 213 words, 55 lines
+File pycram/orm/base.py: 840 words, 232 lines
+File pycram/orm/motion_designator.py: 502 words, 122 lines
+File pycram/orm/__init__.py: 10 words, 1 line
+File pycram/enums.py: 126 words, 66 lines
+File pycram/process_modules/hsr_process_modules.py: 2676 words, 574 lines
+File pycram/process_modules/boxy_process_modules.py: 1142 words, 241 lines
+File pycram/process_modules/pr2_process_modules.py: 1989 words, 440 lines
+File pycram/process_modules/__init__.pyc: 75 words, 5 lines (not NL-terminated)
+File pycram/process_modules/donbot_process_modules.py: 1118 words, 239 lines
+File pycram/process_modules/__init__.py: 35 words, 11 lines
+File pycram/process_modules/default_process_modules.py: 1066 words, 237 lines
+File pycram/utils.py: 217 words, 35 lines
+File pycram/utils.pyc: 327 words, 13 lines (not NL-terminated)
+File pycram/designators/action_designator.py: 1821 words, 409 lines
+File pycram/designators/object_designator.py: 725 words, 177 lines
+File pycram/designators/actions/__pycache__/__init__.cpython-38.pyc: 26 words, 2 lines (not NL-terminated)
+File pycram/designators/actions/__pycache__/actions.cpython-38.pyc: 3445 words, 166 lines (not NL-terminated)
+File pycram/designators/actions/actions.py: 2299 words, 639 lines
+File pycram/designators/motion_designator.py: 1196 words, 398 lines
+File pycram/designators/location_designator.py: 1967 words, 345 lines
+File pycram/robot_descriptions/donbot_description.py: 599 words, 84 lines
+File pycram/robot_descriptions/ur5_description.py: 262 words, 42 lines
+File pycram/robot_descriptions/tiago_description.py: 699 words, 126 lines
+File pycram/robot_descriptions/__init__.py: 293 words, 73 lines
+File pycram/robot_descriptions/hsr_description.py: 381 words, 49 lines (not NL-terminated)
+File pycram/robot_descriptions/boxy_description.py: 878 words, 105 lines (not NL-terminated)
+File pycram/robot_descriptions/pr2_description.py: 788 words, 105 lines
+File pycram/external_interfaces/giskard.py: 3139 words, 625 lines
+File pycram/external_interfaces/robokudo.py: 647 words, 136 lines
+File pycram/external_interfaces/knowrob.py: 512 words, 126 lines
+File pycram/external_interfaces/ik.py: 897 words, 136 lines
+File pycram/failure_handling.py: 353 words, 93 lines
+File pycram/designator.py: 2775 words, 678 lines (not NL-terminated)
+File pycram/resolver/location/giskard_location.py: 387 words, 56 lines
+File pycram/resolver/location/__pycache__/jpt_location.cpython-38.pyc: 1633 words, 91 lines (not NL-terminated)
+File pycram/resolver/location/__pycache__/database_location.cpython-38.pyc: 831 words, 54 lines (not NL-terminated)
+File pycram/resolver/location/__pycache__/__init__.cpython-38.pyc: 26 words, 2 lines (not NL-terminated)
+File pycram/resolver/location/__pycache__/giskard_location.cpython-38.pyc: 545 words, 30 lines (not NL-terminated)
+File pycram/resolver/location/database_location.py: 617 words, 118 lines
+File pycram/resolver/location/jpt_location.py: 1236 words, 254 lines
+File pycram/resolver/__init__.py: 6 words, 1 line (not NL-terminated)
+File pycram/pose.py: 2617 words, 513 lines
+File pycram/costmaps.py: 5178 words, 758 lines
+File pycram/fluent.py: 1713 words, 392 lines
+File pycram/__init__.pyc: 207 words, 23 lines (not NL-terminated)
+File pycram/process_module.py: 1515 words, 360 lines
+File pycram/language.py: 2657 words, 540 lines
+File pycram/event.py: 284 words, 67 lines
+File pycram/robot_description.py: 2959 words, 513 lines
+File pycram/__init__.py: 168 words, 37 lines
+File pycram/local_transformer.py: 921 words, 160 lines
+File pycram/bullet_world.py: 10192 words, 1687 lines
+File pycram/ros/__pycache__/robot_state_updater.cpython-38.pyc: 592 words, 43 lines (not NL-terminated)
+File pycram/ros/__pycache__/force_torque_sensor.cpython-38.pyc: 550 words, 34 lines (not NL-terminated)
+File pycram/ros/__pycache__/viz_marker_publisher.cpython-38.pyc: 766 words, 47 lines (not NL-terminated)
+File pycram/ros/__pycache__/joint_state_publisher.cpython-38.pyc: 498 words, 31 lines (not NL-terminated)
+File pycram/ros/__pycache__/tf_broadcaster.cpython-38.pyc: 759 words, 52 lines (not NL-terminated)
+File pycram/ros/__pycache__/__init__.cpython-38.pyc: 25 words, 2 lines (not NL-terminated)
+File pycram/ros/tf_broadcaster.py: 532 words, 103 lines
+File pycram/ros/force_torque_sensor.py: 403 words, 80 lines
+File pycram/ros/robot_state_updater.py: 371 words, 71 lines
+File pycram/ros/joint_state_publisher.py: 314 words, 63 lines
+File pycram/ros/viz_marker_publisher.py: 572 words, 112 lines
+File pycram/plan_failures.py: 1151 words, 387 lines
+File pycram/knowrob/__pycache__/reasoning.cpython-38.pyc: 452 words, 25 lines
+File pycram/knowrob/__pycache__/__init__.cpython-38.pyc: 25 words, 2 lines (not NL-terminated)
+Total input: 76 files (76 new, 0 old), 82841 words
+
+pycram/__init__.pyc consists for 52 % of pycram/__init__.py material
+pycram/process_modules/boxy_process_modules.py consists for 39 % of pycram/process_modules/pr2_process_modules.py material
+pycram/process_modules/boxy_process_modules.py consists for 36 % of pycram/process_modules/donbot_process_modules.py material
+pycram/resolver/location/giskard_location.py consists for 38 % of pycram/resolver/location/__pycache__/giskard_location.cpython-38.pyc material
+pycram/process_modules/pr2_process_modules.py consists for 37 % of pycram/process_modules/default_process_modules.py material
+pycram/utils.py consists for 37 % of pycram/utils.pyc material
+pycram/process_modules/hsr_process_modules.py consists for 32 % of pycram/process_modules/pr2_process_modules.py material
+pycram/process_modules/hsr_process_modules.py consists for 10 % of pycram/process_modules/boxy_process_modules.py material
+pycram/process_modules/hsr_process_modules.py consists for 4 % of pycram/process_modules/donbot_process_modules.py material
+pycram/ros/__pycache__/robot_state_updater.cpython-38.pyc consists for 28 % of pycram/ros/robot_state_updater.py material
+pycram/ros/__pycache__/robot_state_updater.cpython-38.pyc consists for 6 % of pycram/ros/__pycache__/force_torque_sensor.cpython-38.pyc material
+pycram/process_modules/donbot_process_modules.py consists for 28 % of pycram/process_modules/default_process_modules.py material
+pycram/resolver/location/database_location.py consists for 28 % of pycram/resolver/location/jpt_location.py material
+pycram/robot_descriptions/tiago_description.py consists for 25 % of pycram/robot_descriptions/pr2_description.py material
+pycram/ros/__pycache__/joint_state_publisher.cpython-38.pyc consists for 18 % of pycram/ros/joint_state_publisher.py material
+pycram/ros/__pycache__/joint_state_publisher.cpython-38.pyc consists for 9 % of pycram/ros/__pycache__/tf_broadcaster.cpython-38.pyc material
+pycram/ros/__pycache__/tf_broadcaster.cpython-38.pyc consists for 18 % of pycram/ros/tf_broadcaster.py material
+pycram/ros/__pycache__/force_torque_sensor.cpython-38.pyc consists for 17 % of pycram/ros/force_torque_sensor.py material
+pycram/ros/__pycache__/force_torque_sensor.cpython-38.pyc consists for 14 % of pycram/ros/__pycache__/joint_state_publisher.cpython-38.pyc material
+pycram/ros/__pycache__/viz_marker_publisher.cpython-38.pyc consists for 14 % of pycram/ros/viz_marker_publisher.py material
+pycram/ros/__pycache__/viz_marker_publisher.cpython-38.pyc consists for 4 % of pycram/ros/__pycache__/joint_state_publisher.cpython-38.pyc material
+pycram/resolver/location/__pycache__/jpt_location.cpython-38.pyc consists for 12 % of pycram/resolver/location/jpt_location.py material
+pycram/resolver/location/__pycache__/jpt_location.cpython-38.pyc consists for 3 % of pycram/ros/__pycache__/robot_state_updater.cpython-38.pyc material
+pycram/robot_descriptions/donbot_description.py consists for 9 % of pycram/robot_descriptions/hsr_description.py material
+pycram/robot_descriptions/hsr_description.py consists for 8 % of pycram/robot_descriptions/boxy_description.py material
+pycram/ros/force_torque_sensor.py consists for 7 % of pycram/ros/joint_state_publisher.py material
+pycram/resolver/location/__pycache__/database_location.cpython-38.pyc consists for 7 % of pycram/resolver/location/database_location.py material
+pycram/external_interfaces/knowrob.py consists for 6 % of pycram/knowrob/__pycache__/reasoning.cpython-38.pyc material
+pycram/resolver/location/__pycache__/giskard_location.cpython-38.pyc consists for 5 % of pycram/ros/__pycache__/robot_state_updater.cpython-38.pyc material
+pycram/designators/motion_designator.py consists for 5 % of pycram/designator.py material
+pycram/resolver/location/jpt_location.py consists for 4 % of pycram/costmaps.py material
+pycram/robot_descriptions/boxy_description.py consists for 3 % of pycram/robot_descriptions/pr2_description.py material
+pycram/designators/actions/__pycache__/actions.cpython-38.pyc consists for 1 % of pycram/resolver/location/__pycache__/giskard_location.cpython-38.pyc material
+pycram/designators/actions/__pycache__/actions.cpython-38.pyc consists for 1 % of pycram/designators/actions/actions.py material

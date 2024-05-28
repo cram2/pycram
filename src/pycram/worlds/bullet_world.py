@@ -14,7 +14,7 @@ from typing_extensions import List, Optional, Dict
 from ..datastructures.enums import ObjectType, WorldMode, JointType
 from ..datastructures.pose import Pose
 from ..object_descriptors.urdf import ObjectDescription
-from ..world import World
+from ..datastructures.world import World
 from ..world_concepts.constraints import Constraint
 from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape
 from ..world_concepts.world_object import Object

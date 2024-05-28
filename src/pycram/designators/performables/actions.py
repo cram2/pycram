@@ -8,18 +8,17 @@ from ...designator import ActionDesignatorDescription
 from ..motion_designator import *
 from ...datastructures.pose import Pose
 from ...datastructures.enums import Arms, Grasp
-from ...task import with_tree
+from ...tasktree import with_tree
 from dataclasses import dataclass, field
 from ..location_designator import CostmapLocation
 from ..object_designator import BelieveObject
-# from ...bullet_world import BulletWorld
-from ...helper import multiply_quaternions
 from ...local_transformer import LocalTransformer
 from ...orm.base import Pose as ORMPose
 from ...orm.object_designator import Object as ORMObject
 from ...orm.action_designator import Action as ORMAction
 from ...plan_failures import ObjectUnfetchable, ReachabilityFailure
 from ...robot_descriptions import robot_description
+from ...datastructures.world import World
 from ...orm.action_designator import (ParkArmsAction as ORMParkArmsAction, NavigateAction as ORMNavigateAction,
                                       PickUpAction as ORMPickUpAction, PlaceAction as ORMPlaceAction,
                                       MoveTorsoAction as ORMMoveTorsoAction, SetGripperAction as ORMSetGripperAction,
@@ -31,7 +30,7 @@ from ...orm.action_designator import (ParkArmsAction as ORMParkArmsAction, Navig
 
 @dataclass
 class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC):
-    """Base class for performable actions."""
+    """Base class for performable performables."""
     orm_class: Type[ORMAction] = field(init=False, default=None)
     """
     The ORM class that is used to insert this action into the database. Must be overwritten by every action in order to
@@ -252,15 +251,18 @@ class PickUpActionPerformable(ActionAbstract):
         # Transform the adjusted pose to the map frame
         adjusted_oTm = object.local_transformer.transform_pose(adjusted_pose, "map")
         # multiplying the orientation therefore "rotating" it, to get the correct orientation of the gripper
-        ori = multiply_quaternions([adjusted_oTm.orientation.x, adjusted_oTm.orientation.y,
-                                    adjusted_oTm.orientation.z, adjusted_oTm.orientation.w],
-                                   grasp)
 
-        # Set the orientation of the object pose by grasp in MAP
-        adjusted_oTm.orientation.x = ori[0]
-        adjusted_oTm.orientation.y = ori[1]
-        adjusted_oTm.orientation.z = ori[2]
-        adjusted_oTm.orientation.w = ori[3]
+        adjusted_oTm.multiply_quaternions(grasp)
+
+        # ori = multiply_quaternions([adjusted_oTm.orientation.x, adjusted_oTm.orientation.y,
+        #                             adjusted_oTm.orientation.z, adjusted_oTm.orientation.w],
+        #                            grasp)
+        #
+        # # Set the orientation of the object pose by grasp in MAP
+        # adjusted_oTm.orientation.x = ori[0]
+        # adjusted_oTm.orientation.y = ori[1]
+        # adjusted_oTm.orientation.z = ori[2]
+        # adjusted_oTm.orientation.w = ori[3]
 
         # prepose depending on the gripper (its annoying we have to put pr2_1 here tbh
         # gripper_frame = "pr2_1/l_gripper_tool_frame" if self.arm == "left" else "pr2_1/r_gripper_tool_frame"

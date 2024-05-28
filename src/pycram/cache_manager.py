@@ -1,3 +1,4 @@
+import glob
 import os
 import pathlib
 
@@ -86,12 +87,14 @@ class CacheManager:
 
         :param path_object: The pathlib object of the file to look for.
         """
-
         name = path_object.name
         for data_dir in self.data_directory:
-            for file in os.listdir(data_dir):
-                if file == name:
-                    return data_dir + f"/{name}"
+            data_path = pathlib.Path(data_dir).joinpath("**")
+            for file in glob.glob(str(data_path), recursive=True):
+                file_path = pathlib.Path(file)
+                if file_path.name == name:
+                    print(f"Found file {name} in {file_path}")
+                    return str(file_path)
 
         raise FileNotFoundError(
             f"File {name} could not be found in the resource directory {self.data_directory}")
