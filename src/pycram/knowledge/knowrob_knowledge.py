@@ -1,15 +1,15 @@
 import rospy
 
-from ..datastructures.knowledge_source import KnowledgeSource
+from ..datastructures.knowledge_source import KnowledgeSource, QueryKnowledge, UpdateKnowledge
 import rosservice
 from ..designator import DesignatorDescription
 try:
     from rosprolog_client import Prolog
 except ModuleNotFoundError as e:
-    rospy.logwarn(f"Could not import Prolog client from package rosprolog_client")
+    rospy.logwarn(f"Could not import Prolog client from package rosprolog_client, Knowrob related features are not available.")
 
 
-class KnowrobKnowledge(KnowledgeSource):
+class KnowrobKnowledge(KnowledgeSource, QueryKnowledge, UpdateKnowledge):
 
     def __init__(self):
         super().__init__("Knowrob", 0)

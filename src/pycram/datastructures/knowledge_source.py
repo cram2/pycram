@@ -48,10 +48,12 @@ class KnowledgeSource(ABC):
     def __str__(self):
         return f"{self.name} - Priority:{self.priority}"
 
-    @abstractmethod
-    def query(self, designator):
-        raise NotImplementedError
+    # @abstractmethod
+    # def query(self, designator):
+    #     raise NotImplementedError
 
+
+class QueryKnowledge:
     def query_pose_for_object(self, designator: DesignatorDescription) -> DesignatorDescription:
         """
         Query the pose for an object from the knowledge source
@@ -73,4 +75,6 @@ class KnowledgeSource(ABC):
         raise KnowledgeNotAvailable(f"Grasp for object {designator} not available in {self.name}")
 
 
+class UpdateKnowledge:
+    pass
 
