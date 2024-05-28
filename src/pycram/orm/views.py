@@ -3,10 +3,10 @@ from typing_extensions import Union
 import sqlalchemy.orm
 from sqlalchemy import table, inspect, event, select, engine, MetaData, Select, TableClause, ExecutableDDLElement
 from sqlalchemy.ext.compiler import compiles
-from pycram.orm.action_designator import PickUpAction
-from pycram.orm.base import Position, RobotState, Pose, Base, Quaternion
-from pycram.orm.object_designator import Object
-from pycram.orm.tasktree import TaskTreeNode
+from .action_designator import PickUpAction
+from .base import Position, RobotState, Pose, Base, Quaternion
+from .object_designator import Object
+from .tasktree import TaskTreeNode
 
 
 class CreateView(ExecutableDDLElement):

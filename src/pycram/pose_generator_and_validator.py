@@ -1,7 +1,7 @@
 import tf
 import numpy as np
 
-from pycram.datastructures.world import World
+from .datastructures.world import World
 from .world_concepts.world_object import Object
 from .world_reasoning import contact
 from .costmaps import Costmap

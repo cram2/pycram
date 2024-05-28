@@ -5,12 +5,12 @@ import time
 from geometry_msgs.msg import Vector3
 from std_msgs.msg import ColorRGBA
 
-from pycram.datastructures.world import World
+from ..datastructures.world import World
 from visualization_msgs.msg import MarkerArray, Marker
 import rospy
 
-from pycram.datastructures.pose import Transform
-from pycram.datastructures.dataclasses import MeshVisualShape, CylinderVisualShape, BoxVisualShape, SphereVisualShape
+from ..datastructures.pose import Transform
+from ..datastructures.dataclasses import MeshVisualShape, CylinderVisualShape, BoxVisualShape, SphereVisualShape
 
 
 class VizMarkerPublisher:

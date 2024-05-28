@@ -14,13 +14,13 @@ from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING
 from typing_extensions import Union
 
-from pycram.cache_manager import CacheManager
-from pycram.datastructures.enums import JointType, ObjectType, WorldMode
-from pycram.world_concepts.event import Event
-from pycram.local_transformer import LocalTransformer
-from pycram.datastructures.pose import Pose, Transform
-from pycram.world_concepts.constraints import Constraint
-from pycram.datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
+from ..cache_manager import CacheManager
+from .enums import JointType, ObjectType, WorldMode
+from ..world_concepts.event import Event
+from ..local_transformer import LocalTransformer
+from .pose import Pose, Transform
+from ..world_concepts.constraints import Constraint
+from .dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
                                                MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape, SphereVisualShape,
                                                CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
                                                ObjectState, State, WorldState)

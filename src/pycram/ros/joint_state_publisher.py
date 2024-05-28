@@ -6,7 +6,7 @@ import rospy
 
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
-from pycram.datastructures.world import World
+from ..datastructures.world import World
 
 
 class JointStatePublisher:

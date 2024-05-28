@@ -6,7 +6,7 @@ from ..external_interfaces.robokudo import query
 from ..utils import _apply_ik
 from ..external_interfaces import giskard
 from .default_process_modules import *
-from pycram.datastructures.world import World
+from ..datastructures.world import World
 from ..designators.motion_designator import *
 
 

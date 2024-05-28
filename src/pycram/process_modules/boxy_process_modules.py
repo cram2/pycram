@@ -1,7 +1,7 @@
 from threading import Lock
 import numpy as np
 from .. import world_reasoning as btr
-import pycram.utils as helper
+from ..utils import _apply_ik
 from ..designators.motion_designator import *
 from ..datastructures.enums import JointType
 from ..external_interfaces.ik import request_ik
@@ -197,7 +197,7 @@ def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
     joints = robot_description.chains[arm].joints
 
     inv = request_ik(target, robot, joints, gripper)
-    helper._apply_ik(robot, inv, joints)
+    _apply_ik(robot, inv, joints)
 
 
 class BoxyManager(ProcessModuleManager):

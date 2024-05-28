@@ -2,7 +2,7 @@ import dataclasses
 from typing_extensions import List, Union, Iterable, Optional, Callable
 
 from .object_designator import ObjectDesignatorDescription, ObjectPart
-from pycram.datastructures.world import World, UseProspectionWorld
+from ..datastructures.world import World, UseProspectionWorld
 from ..local_transformer import LocalTransformer
 from ..world_reasoning import link_pose_for_joint_config
 from ..designator import DesignatorError, LocationDesignatorDescription
