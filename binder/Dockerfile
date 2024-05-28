@@ -7,11 +7,7 @@ WORKDIR ${PYCRAM_WS}/src/
 COPY --chown=${NB_USER}:users . pycram/
 RUN vcs import --input pycram/binder/pycram-http.rosinstall --recursive
 
-RUN pip install --requirement ${PYCRAM_WS}/src/pycram/requirements.txt --user 
-
-# Remove double numpy version 
-RUN pip uninstall numpy -y
-RUN pip install --upgrade pip
+RUN pip install --requirement ${PYCRAM_WS}/src/pycram/binder/requirements.txt --user 
 
 COPY --chown=${NB_USER}:users binder/me ${PYCRAM_WS}/src/me
 

@@ -1,54 +1,65 @@
-from ....external_interfaces.giskard import achieve_cartesian_goal
-from ....designators.location_designator import CostmapLocation
-from ....datastructures.world import UseProspectionWorld, World
-from ....datastructures.pose import Pose
-from ....robot_descriptions import robot_description
-from ....pose_generator_and_validator import reachability_validator
-from typing_extensions import Tuple, Dict
-
 import tf
+
+from ....datastructures.pose import Pose
+from ....designators.location_designator import CostmapLocation
+from ....external_interfaces.giskard import projection_cartesian_goal_with_approach, projection_joint_goal
+from ....robot_description import ManipulatorDescription
+from ....datastructures.world import UseProspectionWorld, World
+from ....robot_descriptions import robot_description
+from ....local_transformer import LocalTransformer
+from ....costmaps import OccupancyCostmap, GaussianCostmap
+from ....pose_generator_and_validator import PoseGenerator
 
 
 class GiskardLocation(CostmapLocation):
+    """'
+    Specialization version of the CostmapLocation which uses Giskard to solve for a full-body IK solution. This
+    designator is especially useful for robots which lack a degree of freedom and therefore need to use the base to
+    manipulate the environment effectively.
+    """
 
     def __iter__(self) -> CostmapLocation.Location:
         """
-        Resolves a CostmapLocation for reachability to a specific Location using Giskard. Since Giskard is able to perform
-        full body IK solving we can use this to get the Pose of a robot at which it is able to reach a certain point.
-        This specialized_designators only supports reachable_for and not visible_for
+        Uses Giskard to perform full body ik solving to get the pose of a robot at which it is able to reach a certain point.
 
-        :param desig: A CostmapLocation Designator description
-        :return: An instance of CostmapLocation.Location with a pose from which the robot can reach the target
+        :yield: An instance of CostmapLocation.Location with a pose from which the robot can reach the target
         """
-        if self.reachable_for:
-            pose_right, end_config_right = self._get_reachable_pose_for_arm(self.target,
-                                                                            robot_description.get_tool_frame("right"))
-            pose_left, end_config_left = self._get_reachable_pose_for_arm(self.target,
-                                                                          robot_description.get_tool_frame("left"))
+        if self.visible_for:
+            raise ValueError("GiskardLocation does not support the visible_for parameter")
+        local_transformer = LocalTransformer()
+        target_map = local_transformer.transform_pose(self.target, "map")
 
-            test_robot = World.current_world.get_prospection_object_for_object(World.robot)
-            with UseProspectionWorld():
-                valid, arms = reachability_validator(pose_right, test_robot, self.target, {})
-                if valid:
-                    yield CostmapLocation.Location(pose_right, arms)
-                valid, arms = reachability_validator(pose_left, test_robot, self.target, {})
-                if valid:
-                    yield self.Location(pose_left, arms)
+        manipulator_descs = list(
+            filter(lambda chain: isinstance(chain[1], ManipulatorDescription), robot_description.chains.items()))
 
-    def _get_reachable_pose_for_arm(self, target: Pose, end_effector_link: str) -> Tuple[Pose, Dict]:
-        """
-        Calls Giskard to perform full body ik solving between the map and the given end effector link. The end joint
-        configuration of the robot as well as its end pose are then returned.
+        near_costmap = (OccupancyCostmap(0.35, False, 200, 0.02, target_map)
+                        + GaussianCostmap(200, 15, 0.02, target_map))
+        for maybe_pose in PoseGenerator(near_costmap, 200):
+            for name, chain in manipulator_descs:
+                projection_joint_goal(robot_description.get_static_joint_chain(chain.name, "park"), allow_collisions=True)
 
-        :param target: The pose which the robots end effector should reach
-        :param end_effector_link: The name of the end effector which should reach the target
-        :return: The end pose of the robot as well as its final joint configuration
-        """
-        giskard_result = achieve_cartesian_goal(target, end_effector_link, "map")
-        joints = giskard_result.trajectory.joint_names
-        trajectory_points = giskard_result.trajectory.points
+                trajectory = projection_cartesian_goal_with_approach(maybe_pose, target_map, chain.tool_frame,
+                                                                     "map", robot_description.base_link)
+                last_point_positions = trajectory.trajectory.points[-1].positions
+                last_point_names = trajectory.trajectory.joint_names
+                last_joint_states = dict(zip(last_point_names, last_point_positions))
+                orientation = list(
+                    tf.transformations.quaternion_from_euler(0, 0, last_joint_states["brumbrum_yaw"], axes="sxyz"))
+                pose = Pose([last_joint_states["brumbrum_x"], last_joint_states["brumbrum_y"], 0], orientation)
 
-        end_config = dict(zip(joints, trajectory_points[-1].positions))
-        orientation = list(tf.transformations.quaternion_from_euler(0, 0, end_config["yaw"], axes="sxyz"))
-        pose = Pose([end_config["x"], end_config["y"], 0], orientation)
-        return pose, end_config
+                robot_joint_states = {}
+                for joint_name, state in last_joint_states.items():
+                    if joint_name in World.robot.joints.keys():
+                        robot_joint_states[joint_name] = state
+
+                prospection_robot = World.current_world.get_prospection_object_for_object(World.robot)
+
+                with UseProspectionWorld():
+                    prospection_robot.set_joint_positions(robot_joint_states)
+                    prospection_robot.set_pose(pose)
+                    gripper_pose = prospection_robot.get_link_pose(chain.tool_frame)
+
+                    if gripper_pose.dist(target_map) <= 0.02:
+                        yield CostmapLocation.Location(pose, [name])
+
+

@@ -26,8 +26,7 @@ def calculate_and_apply_ik(robot, gripper: str, target_position: Point, max_iter
     arm = "right" if gripper == robot_description.get_tool_frame("right") else "left"
     inv = request_ik(Pose(target_position_l, [0, 0, 0, 1]),
                      robot, robot_description.chains[arm].joints, gripper)
-    joints = robot_description.chains[arm].joints
-    _apply_ik(robot, inv, joints)
+    _apply_ik(robot, inv)
 
 
 def _park_arms(arm):
@@ -222,7 +221,7 @@ def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
     joints = robot_description.chains[arm].joints
 
     inv = request_ik(target, robot, joints, gripper)
-    _apply_ik(robot, inv, joints)
+    _apply_ik(robot, inv)
 
 
 ###########################################################
