@@ -8,9 +8,9 @@ from moveit_msgs.msg import RobotState
 from moveit_msgs.srv import GetPositionIK
 from sensor_msgs.msg import JointState
 
-from ..world import World, UseProspectionWorld
+from ..datastructures.world import World, UseProspectionWorld
 from ..world_concepts.world_object import Object
-from ..helper import calculate_wrist_tool_offset, _apply_ik
+from ..utils import _apply_ik
 from ..local_transformer import LocalTransformer
 from ..datastructures.pose import Pose
 from ..robot_descriptions import robot_description
@@ -193,8 +193,8 @@ def request_kdl_ik(target_pose: Pose, robot: Object, joints: List[str], gripper:
 
     target_torso = local_transformer.transform_pose(target_pose, robot.get_link_tf_frame(base_link))
 
-    diff = calculate_wrist_tool_offset(end_effector, gripper, robot)
-    target_diff = target_torso.to_transform("target").inverse_times(diff).to_pose()
+    wrist_tool_frame_offset = robot.get_transform_between_links(end_effector, gripper)
+    target_diff = target_torso.to_transform("target").inverse_times(wrist_tool_frame_offset).to_pose()
 
     inv = call_ik(base_link, end_effector, target_diff, robot, joints)
 

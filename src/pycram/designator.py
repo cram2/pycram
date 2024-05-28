@@ -14,9 +14,9 @@ except ImportError:
 
 from sqlalchemy.orm.session import Session
 
-from .world import World
+from .datastructures.world import World
 from .world_concepts.world_object import Object as WorldObject
-from .helper import GeneratorList, bcolors
+from .utils import GeneratorList, bcolors
 from threading import Lock
 from time import time
 from typing_extensions import Type, List, Dict, Any, Optional, Union, get_type_hints, Callable, Iterable, TYPE_CHECKING
@@ -33,7 +33,7 @@ from .orm.action_designator import (Action as ORMAction)
 from .orm.object_designator import (Object as ORMObjectDesignator)
 
 from .orm.base import RobotState, ProcessMetaData
-from .task import with_tree
+from .tasktree import with_tree
 
 if TYPE_CHECKING:
     from .ontology.ontology_common import OntologyConceptHolder
@@ -70,7 +70,7 @@ class Designator(ABC):
     Implementation of designators. DEPRECTAED SINCE DESIGNATOR DESCRIPTIONS ARE USED AS BASE CLASS
 
     Designators are objects containing sequences of key-value pairs. They can be resolved which means to generate real
-    parameters for executing actions from these pairs of key and value.
+    parameters for executing performables from these pairs of key and value.
 
     :ivar timestamp: The timestamp of creation of reference or None if still not referencing an object.
     """
@@ -325,7 +325,7 @@ class Designator(ABC):
 
 class DesignatorDescription(ABC):
     """
-    :ivar resolve: The resolver function to use for this designator, defaults to self.ground
+    :ivar resolve: The specialized_designators function to use for this designator, defaults to self.ground
     """
 
     def __init__(self, resolver: Optional[Callable] = None, ontology_concept_holders: Optional[List[OntologyConceptHolder]] = None):
@@ -486,7 +486,7 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
 
     def __iter__(self):
         """
-        Iterate through all possible actions fitting this description
+        Iterate through all possible performables fitting this description
 
         :yield: A resolved action designator
         """
@@ -662,7 +662,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
         :param names: A list of names that could describe the object
         :param types: A list of types that could represent the object
-        :param resolver: An alternative resolver that returns an object designator for the list of names and types
+        :param resolver: An alternative specialized_designators that returns an object designator for the list of names and types
         :param ontology_concept_holders: A list of ontology concepts that the object is categorized as or associated with
         """
         super().__init__(resolver, ontology_concept_holders)

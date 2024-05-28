@@ -1,6 +1,5 @@
 import itertools
-from typing_extensions import List, Union, Callable, Optional
-from typing_extensions import Any, Union
+from typing_extensions import Any, List, Union, Callable, Optional
 
 import rospy
 try:
@@ -12,13 +11,13 @@ except ImportError:
 from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
 from ..datastructures.enums import Arms
 from ..designator import ActionDesignatorDescription
-from .actions.actions import (ParkArmsActionPerformable, MoveTorsoActionPerformable,
-                                                SetGripperActionPerformable, GripActionPerformable,
-                                                PlaceActionPerformable, PickUpActionPerformable,
-                                                NavigateActionPerformable, TransportActionPerformable,
-                                                LookAtActionPerformable, DetectActionPerformable, OpenActionPerformable,
-                                                CloseActionPerformable, GraspingActionPerformable,
-                                                ReleaseActionPerformable)
+from .performables.actions import (ParkArmsActionPerformable, MoveTorsoActionPerformable,
+                                   SetGripperActionPerformable, GripActionPerformable,
+                                   PlaceActionPerformable, PickUpActionPerformable,
+                                   NavigateActionPerformable, TransportActionPerformable,
+                                   LookAtActionPerformable, DetectActionPerformable, OpenActionPerformable,
+                                   CloseActionPerformable, GraspingActionPerformable,
+                                   ReleaseActionPerformable)
 from ..datastructures.pose import Pose
 from ..ontology.ontology import OntologyConceptHolder
 
@@ -34,7 +33,7 @@ class MoveTorsoAction(ActionDesignatorDescription):
         Create a designator description to move the torso of the robot up and down.
 
         :param positions: List of possible positions of the robots torso, possible position is a float of height in metres
-        :param resolver: An optional resolver that returns a performable designator for a designator description.
+        :param resolver: An optional specialized_designators that returns a performable designator for a designator description.
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
         super().__init__(resolver, ontology_concept_holders)
@@ -73,7 +72,7 @@ class SetGripperAction(ActionDesignatorDescription):
 
         :param grippers: A list of possible grippers
         :param motions: A list of possible motions
-        :param resolver: An alternative resolver that returns a performable designator for a designator description
+        :param resolver: An alternative specialized_designators that returns a performable designator for a designator description
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
         super().__init__(resolver, ontology_concept_holders)
@@ -85,7 +84,7 @@ class SetGripperAction(ActionDesignatorDescription):
 
     def ground(self) -> SetGripperActionPerformable:
         """
-        Default resolver that returns a performable designator with the first element in the grippers and motions list.
+        Default specialized_designators that returns a performable designator with the first element in the grippers and motions list.
 
         :return: A performable designator
         """
@@ -155,7 +154,7 @@ class ParkArmsAction(ActionDesignatorDescription):
         Moves the arms in the pre-defined parking position. Arms are taken from pycram.enum.Arms
 
         :param arms: A list of possible arms, that could be used
-        :param resolver: An optional resolver that returns a performable designator from the designator description
+        :param resolver: An optional specialized_designators that returns a performable designator from the designator description
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
         super().__init__(resolver, ontology_concept_holders)
@@ -166,7 +165,7 @@ class ParkArmsAction(ActionDesignatorDescription):
 
     def ground(self) -> ParkArmsActionPerformable:
         """
-        Default resolver that returns a performable designator with the first element of the list of possible arms
+        Default specialized_designators that returns a performable designator with the first element of the list of possible arms
 
         :return: A performable designator
         """
@@ -187,7 +186,7 @@ class PickUpAction(ActionDesignatorDescription):
         :param object_designator_description: List of possible object designator
         :param arms: List of possible arms that could be used
         :param grasps: List of possible grasps for the object
-        :param resolver: An optional resolver that returns a performable designator with elements from the lists of possible paramter
+        :param resolver: An optional specialized_designators that returns a performable designator with elements from the lists of possible paramter
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
         super().__init__(resolver, ontology_concept_holders)
@@ -201,7 +200,7 @@ class PickUpAction(ActionDesignatorDescription):
 
     def ground(self) -> PickUpActionPerformable:
         """
-        Default resolver, returns a performable designator with the first entries from the lists of possible parameter.
+        Default specialized_designators, returns a performable designator with the first entries from the lists of possible parameter.
 
         :return: A performable designator
         """
@@ -242,7 +241,7 @@ class PlaceAction(ActionDesignatorDescription):
 
     def ground(self) -> PlaceActionPerformable:
         """
-        Default resolver that returns a performable designator with the first entries from the list of possible entries.
+        Default specialized_designators that returns a performable designator with the first entries from the list of possible entries.
 
         :return: A performable designator
         """
@@ -262,7 +261,7 @@ class NavigateAction(ActionDesignatorDescription):
         Navigates the robot to a location.
 
         :param target_locations: A list of possible target locations for the navigation.
-        :param resolver: An alternative resolver that creates a performable designator from the list of possible parameter
+        :param resolver: An alternative specialized_designators that creates a performable designator from the list of possible parameter
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
         super().__init__(resolver, ontology_concept_holders)
@@ -273,7 +272,7 @@ class NavigateAction(ActionDesignatorDescription):
 
     def ground(self) -> NavigateActionPerformable:
         """
-        Default resolver that returns a performable designator with the first entry of possible target locations.
+        Default specialized_designators that returns a performable designator with the first entry of possible target locations.
 
         :return: A performable designator
         """
@@ -295,7 +294,7 @@ class TransportAction(ActionDesignatorDescription):
         :param object_designator_description: Object designator description or a specified Object designator that should be transported
         :param arms: A List of possible arms that could be used for transporting
         :param target_locations: A list of possible target locations for the object to be placed
-        :param resolver: An alternative resolver that returns a performable designator for the list of possible parameter
+        :param resolver: An alternative specialized_designators that returns a performable designator for the list of possible parameter
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
         super().__init__(resolver, ontology_concept_holders)
@@ -309,7 +308,7 @@ class TransportAction(ActionDesignatorDescription):
 
     def ground(self) -> TransportActionPerformable:
         """
-        Default resolver that returns a performable designator with the first entries from the lists of possible parameter.
+        Default specialized_designators that returns a performable designator with the first entries from the lists of possible parameter.
 
         :return: A performable designator
         """
@@ -330,7 +329,7 @@ class LookAtAction(ActionDesignatorDescription):
         Moves the head of the robot such that it points towards the given target location.
 
         :param targets: A list of possible locations to look at
-        :param resolver: An alternative resolver that returns a performable designator for a list of possible target locations
+        :param resolver: An alternative specialized_designators that returns a performable designator for a list of possible target locations
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
         super().__init__(resolver, ontology_concept_holders)
@@ -341,7 +340,7 @@ class LookAtAction(ActionDesignatorDescription):
 
     def ground(self) -> LookAtActionPerformable:
         """
-        Default resolver that returns a performable designator with the first entry in the list of possible targets
+        Default specialized_designators that returns a performable designator with the first entry in the list of possible targets
 
         :return: A performable designator
         """
@@ -359,7 +358,7 @@ class DetectAction(ActionDesignatorDescription):
         Tries to detect an object in the field of view (FOV) of the robot.
 
         :param object_designator_description: Object designator describing the object
-        :param resolver: An alternative resolver
+        :param resolver: An alternative specialized_designators
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
         super().__init__(resolver, ontology_concept_holders)
@@ -371,7 +370,7 @@ class DetectAction(ActionDesignatorDescription):
 
     def ground(self) -> DetectActionPerformable:
         """
-        Default resolver that returns a performable designator with the resolved object description.
+        Default specialized_designators that returns a performable designator with the resolved object description.
 
         :return: A performable designator
         """
@@ -392,7 +391,7 @@ class OpenAction(ActionDesignatorDescription):
 
         :param object_designator_description: Object designator describing the handle that should be used to open
         :param arms: A list of possible arms that should be used
-        :param resolver: A alternative resolver that returns a performable designator for the lists of possible parameter.
+        :param resolver: A alternative specialized_designators that returns a performable designator for the lists of possible parameter.
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
         super().__init__(resolver, ontology_concept_holders)
@@ -404,7 +403,7 @@ class OpenAction(ActionDesignatorDescription):
 
     def ground(self) -> OpenActionPerformable:
         """
-        Default resolver that returns a performable designator with the resolved object description and the first entries
+        Default specialized_designators that returns a performable designator with the resolved object description and the first entries
         from the lists of possible parameter.
 
         :return: A performable designator
@@ -426,7 +425,7 @@ class CloseAction(ActionDesignatorDescription):
 
         :param object_designator_description: Object designator description of the handle that should be used
         :param arms: A list of possible arms to use
-        :param resolver: An alternative resolver that returns a performable designator for the list of possible parameter
+        :param resolver: An alternative specialized_designators that returns a performable designator for the list of possible parameter
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
         super().__init__(resolver, ontology_concept_holders)
@@ -438,7 +437,7 @@ class CloseAction(ActionDesignatorDescription):
 
     def ground(self) -> CloseActionPerformable:
         """
-        Default resolver that returns a performable designator with the resolved object designator and the first entry from
+        Default specialized_designators that returns a performable designator with the resolved object designator and the first entry from
         the list of possible arms.
 
         :return: A performable designator
@@ -459,7 +458,7 @@ class GraspingAction(ActionDesignatorDescription):
 
         :param arms: List of Arms that should be used for grasping
         :param object_description: Description of the object that should be grasped
-        :param resolver: An alternative resolver to get a specified designator from the designator description
+        :param resolver: An alternative specialized_designators to get a specified designator from the designator description
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
         super().__init__(resolver, ontology_concept_holders)
@@ -471,7 +470,7 @@ class GraspingAction(ActionDesignatorDescription):
 
     def ground(self) -> GraspingActionPerformable:
         """
-        Default resolver that takes the first element from the list of arms and the first solution for the object
+        Default specialized_designators that takes the first element from the list of arms and the first solution for the object
         designator description ond returns it.
 
         :return: A performable action designator that contains specific arguments

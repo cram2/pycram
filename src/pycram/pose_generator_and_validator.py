@@ -1,7 +1,7 @@
 import tf
 import numpy as np
 
-from .world import World
+from .datastructures.world import World
 from .world_concepts.world_object import Object
 from .world_reasoning import contact
 from .costmaps import Costmap
@@ -11,7 +11,7 @@ from .robot_description import ManipulatorDescription
 from .robot_descriptions import robot_description
 from .external_interfaces.ik import request_ik
 from .plan_failures import IKError
-from .helper import _apply_ik
+from .utils import _apply_ik
 from typing_extensions import Tuple, List, Union, Dict, Iterable
 
 
