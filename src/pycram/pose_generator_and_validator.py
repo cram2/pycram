@@ -201,13 +201,17 @@ def reachability_validator(pose: Pose,
         joint_state_before_ik = robot.get_positions_of_all_joints()
         try:
             # test the possible solution and apply it to the robot
-            resp = request_ik(target, robot, joints, tool_frame)
-            _apply_ik(robot, resp, joints)
+            pose, joint_states = request_ik(target, robot, joints, tool_frame)
+            robot.set_pose(pose)
+            robot.set_joint_positions(joint_states)
+            # _apply_ik(robot, resp, joints)
 
             in_contact = collision_check(robot, allowed_collision)
             if not in_contact:  # only check for retract pose if pose worked
-                resp = request_ik(retract_target_pose, robot, joints, tool_frame)
-                _apply_ik(robot, resp, joints)
+                pose, joint_states = request_ik(retract_target_pose, robot, joints, tool_frame)
+                robot.set_pose(pose)
+                robot.set_joint_positions(joint_states)
+                # _apply_ik(robot, resp, joints)
                 in_contact = collision_check(robot, allowed_collision)
             if not in_contact:
                 arms.append(name)

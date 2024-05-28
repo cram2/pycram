@@ -48,6 +48,8 @@ class ObjectType(Enum):
     """
     Enum for Object types to easier identify different objects
     """
+    METALMUG = auto()
+    PRINGLES = auto()
     MILK = auto()
     SPOON = auto()
     BOWL = auto()
@@ -56,6 +58,7 @@ class ObjectType(Enum):
     ROBOT = auto()
     ENVIRONMENT = auto()
     GENERIC_OBJECT = auto()
+    HUMAN = auto()
 
 
 class State(Enum):
@@ -86,3 +89,8 @@ class WorldMode(Enum):
     """
     GUI = "GUI"
     DIRECT = "DIRECT"
+
+class AxisIdentifier(Enum):
+    X = (1, 0, 0)
+    Y = (0, 1, 0)
+    Z = (0, 0, 1)

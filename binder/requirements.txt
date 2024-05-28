@@ -4,7 +4,7 @@ rospkg~=1.4.0
 roslibpy~=1.2.1
 # rospy~=1.14.11
 pathlib~=1.0.1
-numpy==1.24.3
+numpy>=1.21.1
 pytransform3d~=1.9.1
 # tf~=1.12.1
 # actionlib~=1.12.1
@@ -15,4 +15,4 @@ SQLAlchemy>=2.0.9
 tqdm==4.66.3
 psutil==5.9.7
 lxml==4.9.1
-typing_extensions==4.9.0
+rdflib==7.0.0
