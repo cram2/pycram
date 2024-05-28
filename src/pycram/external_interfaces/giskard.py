@@ -8,7 +8,7 @@ import rosnode
 
 from ..datastructures.pose import Pose
 from ..robot_descriptions import robot_description
-from ..world import World
+from ..datastructures.world import World
 from ..datastructures.dataclasses import MeshVisualShape
 from ..world_concepts.world_object import Object
 from ..robot_description import ManipulatorDescription

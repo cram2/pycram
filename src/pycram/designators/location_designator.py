@@ -2,13 +2,13 @@ import dataclasses
 from typing_extensions import List, Union, Iterable, Optional, Callable
 
 from .object_designator import ObjectDesignatorDescription, ObjectPart
-from ..world import World, UseProspectionWorld
+from ..datastructures.world import World, UseProspectionWorld
+from ..local_transformer import LocalTransformer
 from ..world_reasoning import link_pose_for_joint_config
 from ..designator import DesignatorError, LocationDesignatorDescription
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
 from ..robot_descriptions import robot_description
 from ..datastructures.enums import JointType
-from ..helper import transform
 from ..pose_generator_and_validator import PoseGenerator, visibility_validator, reachability_validator
 from ..robot_description import ManipulatorDescription
 from ..datastructures.pose import Pose
@@ -28,14 +28,14 @@ class Location(LocationDesignatorDescription):
         Basic location designator that represents a single pose.
 
         :param pose: The pose that should be represented by this location designator
-        :param resolver: An alternative resolver that returns a resolved location
+        :param resolver: An alternative specialized_designators that returns a resolved location
         """
         super().__init__(resolver)
         self.pose: Pose = pose
 
     def ground(self) -> Location:
         """
-        Default resolver which returns a resolved designator which contains the pose given in init.
+        Default specialized_designators which returns a resolved designator which contains the pose given in init.
 
         :return: A resolved designator
         """
@@ -66,7 +66,7 @@ class ObjectRelativeLocation(LocationDesignatorDescription):
 
         :param relative_pose: Pose that should be relative, in world coordinate frame
         :param reference_object: Object to which the pose should be relative
-        :param resolver: An alternative resolver that returns a resolved location for the input parameter
+        :param resolver: An alternative specialized_designators that returns a resolved location for the input parameter
         """
         super().__init__(resolver)
         self.relative_pose: Pose = relative_pose
@@ -74,7 +74,7 @@ class ObjectRelativeLocation(LocationDesignatorDescription):
 
     def ground(self) -> Location:
         """
-        Default resolver which returns a resolved location for description input. Resolved location is the first result
+        Default specialized_designators which returns a resolved location for description input. Resolved location is the first result
         of the iteration of this instance.
 
         :return: A resolved location
@@ -92,10 +92,9 @@ class ObjectRelativeLocation(LocationDesignatorDescription):
                 "Could not ground ObjectRelativeLocation: (Relative) pose and reference object must be given")
         # Fetch the object pose and yield the grounded description
         obj_grounded = self.reference_object.resolve()
-        obj_pose_world = obj_grounded.get_position_and_location()
-        obj_pose_world_flat = [i for sublist in obj_pose_world for i in sublist]
-        relative_pose_flat = [i for sublist in self.relative_pose for i in sublist]
-        pose = transform(obj_pose_world_flat, relative_pose_flat, local_coords=False)
+
+        lt = LocalTransformer()
+        pose = lt.transform_to_object_frame(self.relative_pose, obj_grounded)
 
         yield self.Location(self.relative_pose, pose, self.reference_object)
 
@@ -124,7 +123,7 @@ class CostmapLocation(LocationDesignatorDescription):
         :param reachable_for: Object for which the reachability should be calculated, usually a robot
         :param visible_for: Object for which the visibility should be calculated, usually a robot
         :param reachable_arm: An optional arm with which the target should be reached
-        :param resolver: An alternative resolver that returns a resolved location for the given input of this description
+        :param resolver: An alternative specialized_designators that returns a resolved location for the given input of this description
         """
         super().__init__(resolver)
         self.target: Union[Pose, ObjectDesignatorDescription.Object] = target
@@ -134,7 +133,7 @@ class CostmapLocation(LocationDesignatorDescription):
 
     def ground(self) -> Location:
         """
-        Default resolver which returns the first result from the iterator of this instance.
+        Default specialized_designators which returns the first result from the iterator of this instance.
 
         :return: A resolved location
         """
@@ -221,7 +220,7 @@ class AccessingLocation(LocationDesignatorDescription):
 
         :param handle_desig: ObjectPart designator for handle of the drawer
         :param robot: Object designator for the robot which should open the drawer
-        :param resolver: An alternative resolver to create the location
+        :param resolver: An alternative specialized_designators to create the location
         """
         super().__init__(resolver)
         self.handle: ObjectPart.Object = handle_desig
@@ -229,7 +228,7 @@ class AccessingLocation(LocationDesignatorDescription):
 
     def ground(self) -> Location:
         """
-        Default resolver for this location designator, just returns the first element from the iteration
+        Default specialized_designators for this location designator, just returns the first element from the iteration
 
         :return: A location designator for a pose from which the drawer can be opened
         """
@@ -308,7 +307,7 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
         :param urdf_link_name: Name of the urdf link for which a distribution should be calculated
         :param part_of: Object of which the urdf link is a part
         :param for_object: Optional object that should be placed at the found location
-        :param resolver: An alternative resolver that creates a resolved location for the input parameter of this description
+        :param resolver: An alternative specialized_designators that creates a resolved location for the input parameter of this description
         """
         super().__init__(resolver)
         self.urdf_link_name: str = urdf_link_name
@@ -317,7 +316,7 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
 
     def ground(self) -> Location:
         """
-        Default resolver which returns the first element of the iterator of this instance.
+        Default specialized_designators which returns the first element of the iterator of this instance.
 
         :return: A resolved location
         """

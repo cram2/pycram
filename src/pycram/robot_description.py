@@ -5,7 +5,6 @@ from copy import deepcopy
 from numbers import Number
 from typing_extensions import List, Optional, Dict, Union, Type
 from urdf_parser_py.urdf import URDF
-from . import utils
 
 
 logger = logging.getLogger(__name__)
@@ -258,7 +257,7 @@ class RobotDescription:
         self.torso_joint: str = torso_joint
 
         rospack = rospkg.RosPack()
-        filename = rospack.get_path('pycram') + '/resources/' + name + '.urdf'
+        filename = rospack.get_path('pycram') + '/resources/robots/' + name + '.urdf'
         with open(filename) as f:
             # with utils.suppress_stdout_stderr():
             self.robot_urdf = URDF.from_xml_string(f.read())

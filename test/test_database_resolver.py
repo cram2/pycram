@@ -1,14 +1,12 @@
 import os
-import time
 import unittest
 import sqlalchemy
 import sqlalchemy.orm
 import pycram.plan_failures
 from pycram.world_concepts.world_object import Object
-from pycram import task
-from pycram.world import World
+from pycram.datastructures.world import World
 from pycram.designators import action_designator
-from pycram.designators.actions.actions import MoveTorsoActionPerformable, PickUpActionPerformable, \
+from pycram.designators.performables.actions import MoveTorsoActionPerformable, PickUpActionPerformable, \
     NavigateActionPerformable, PlaceActionPerformable
 from pycram.orm.base import Base
 from pycram.designators.object_designator import ObjectDesignatorDescription
@@ -16,9 +14,9 @@ from pycram.process_module import ProcessModule
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import Pose
 from pycram.robot_descriptions import robot_description
-from pycram.task import with_tree
+from pycram.tasktree import with_tree
 from pycram.datastructures.enums import ObjectType, WorldMode
-from pycram.resolver.location.database_location import DatabaseCostmapLocation
+from pycram.designators.specialized_designators.location.database_location import DatabaseCostmapLocation
 from pycram.worlds.bullet_world import BulletWorld
 
 pycrorm_uri = os.getenv('PYCRORM_URI')

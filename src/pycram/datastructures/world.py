@@ -14,20 +14,20 @@ from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING
 from typing_extensions import Union
 
-from .cache_manager import CacheManager
-from .datastructures.enums import JointType, ObjectType, WorldMode
-from .world_concepts.event import Event
-from .local_transformer import LocalTransformer
-from .datastructures.pose import Pose, Transform
-from .world_concepts.constraints import Constraint
-from .datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
+from ..cache_manager import CacheManager
+from .enums import JointType, ObjectType, WorldMode
+from ..world_concepts.event import Event
+from ..local_transformer import LocalTransformer
+from .pose import Pose, Transform
+from ..world_concepts.constraints import Constraint
+from .dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
                                                MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape, SphereVisualShape,
                                                CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
                                                ObjectState, State, WorldState)
 
 if TYPE_CHECKING:
-    from .world_concepts.world_object import Object
-    from .description import Link, Joint
+    from ..world_concepts.world_object import Object
+    from ..description import Link, Joint
 
 
 class StateEntity:
@@ -127,7 +127,7 @@ class World(StateEntity, ABC):
      the URDF with the name of the URDF on the parameter server. 
     """
 
-    data_directory: List[str] = [os.path.join(os.path.dirname(__file__), '..', '..', 'resources')]
+    data_directory: List[str] = [os.path.join(os.path.dirname(__file__), '..', '..', '..', 'resources')]
     """
     Global reference for the data directories, this is used to search for the description files of the robot 
     and the objects.

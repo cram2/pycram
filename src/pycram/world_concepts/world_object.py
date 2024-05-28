@@ -11,7 +11,7 @@ from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 from ..description import ObjectDescription, LinkDescription
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..robot_descriptions import robot_description
-from ..world import WorldEntity, World
+from ..datastructures.world import WorldEntity, World
 from ..world_concepts.constraints import Attachment
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                                AxisAlignedBoundingBox, VisualShape)
@@ -59,7 +59,9 @@ class Object(WorldEntity):
 
         if pose is None:
             pose = Pose()
-
+        if name in [obj.name for obj in self.world.objects]:
+            rospy.logerr(f"An object with the name {name} already exists in the world.")
+            return None
         self.name: str = name
         self.obj_type: ObjectType = obj_type
         self.color: Color = color
@@ -75,7 +77,7 @@ class Object(WorldEntity):
         self.description.update_description_from_file(self.path)
 
         self.tf_frame = ((self.prospection_world_prefix if self.world.is_prospection_world else "")
-                         + f"{self.name}_{self.id}")
+                         + f"{self.name}")
 
         if robot_description is not None:
             if self.description.name == robot_description.name:
