@@ -10,7 +10,7 @@ from pycram.process_module import ProcessModule
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.ros.viz_marker_publisher import VizMarkerPublisher
-
+from pycram.ontology.ontology import OntologyManager, SOMA_ONTOLOGY_IRI
 
 class BulletWorldTestCase(unittest.TestCase):
 
@@ -29,6 +29,7 @@ class BulletWorldTestCase(unittest.TestCase):
                             ObjectDescription, pose=Pose([1.3, 0.7, 0.95]))
         ProcessModule.execution_delay = False
         cls.viz_marker_publisher = VizMarkerPublisher()
+        OntologyManager(SOMA_ONTOLOGY_IRI)
 
     def setUp(self):
         self.world.reset_world()

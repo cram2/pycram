@@ -5,15 +5,21 @@ from dataclasses import dataclass, field, fields
 from abc import ABC, abstractmethod
 from inspect import isgenerator, isgeneratorfunction
 
-from sqlalchemy.orm.session import Session
 import rospy
+try:
+    import owlready2
+except ImportError:
+    owlready2 = None
+    rospy.logwarn("owlready2 is not installed!")
+
+from sqlalchemy.orm.session import Session
 
 from .datastructures.world import World
 from .world_concepts.world_object import Object as WorldObject
 from .utils import GeneratorList, bcolors
 from threading import Lock
 from time import time
-from typing_extensions import List, Dict, Any, Optional, Union, Callable, Iterable
+from typing_extensions import Type, List, Dict, Any, Optional, Union, get_type_hints, Callable, Iterable, TYPE_CHECKING
 
 from .local_transformer import LocalTransformer
 from .language import Language
@@ -28,6 +34,9 @@ from .orm.object_designator import (Object as ORMObjectDesignator)
 
 from .orm.base import RobotState, ProcessMetaData
 from .tasktree import with_tree
+
+if TYPE_CHECKING:
+    from .ontology.ontology_common import OntologyConceptHolder
 
 
 class DesignatorError(Exception):
@@ -319,15 +328,17 @@ class DesignatorDescription(ABC):
     :ivar resolve: The specialized_designators function to use for this designator, defaults to self.ground
     """
 
-    def __init__(self, resolver: Optional[Callable] = None):
+    def __init__(self, resolver: Optional[Callable] = None, ontology_concept_holders: Optional[List[OntologyConceptHolder]] = None):
         """
         Create a Designator description.
 
         :param resolver: The grounding method used for the description. The grounding method creates a location instance that matches the description.
+        :param ontology_concept_holders: A list of holders of ontology concepts that the designator is categorized as or associated with
         """
 
         if resolver is None:
             self.resolve = self.ground
+        self.ontology_concept_holders = [] if ontology_concept_holders is None else ontology_concept_holders
 
     def make_dictionary(self, properties: List[str]):
         """
@@ -362,6 +373,11 @@ class DesignatorDescription(ABC):
     def copy(self) -> DesignatorDescription:
         return self
 
+    def get_default_ontology_concept(self) -> owlready2.Thing | None:
+        """
+        Returns the first element of ontology_concept_holders if there is, else None
+        """
+        return self.ontology_concept_holders[0].ontology_concept if self.ontology_concept_holders else None
 
 class ActionDesignatorDescription(DesignatorDescription, Language):
     """
@@ -437,13 +453,36 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
 
             return action
 
-    def __init__(self, resolver=None):
-        super().__init__(resolver)
+    def __init__(self, resolver=None, ontology_concept_holders: Optional[List[OntologyConceptHolder]] = None):
+        """
+        Base of all action designator descriptions.
+
+        :param resolver: An alternative resolver that returns an action designator
+        :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
+        """
+        super().__init__(resolver, ontology_concept_holders)
         Language.__init__(self)
+        from .ontology.ontology import OntologyManager
+        self.soma = OntologyManager().soma
 
     def ground(self) -> Action:
         """Fill all missing parameters and chose plan to execute. """
         raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
+
+    def init_ontology_concepts(self, ontology_concept_classes: Dict[str, Type[owlready2.Thing]]):
+        """
+        Initialize the ontology concept holders for this action designator
+
+        :param ontology_concept_classes: The ontology concept classes that the action is categorized as or associated with
+        :param ontology_concept_name: The name of the ontology concept instance to be created
+        """
+        from .ontology.ontology_common import OntologyConceptHolderStore, OntologyConceptHolder
+        if not self.ontology_concept_holders:
+            for concept_name, concept_class in ontology_concept_classes.items():
+                if concept_class:
+                    existing_holders = OntologyConceptHolderStore().get_ontology_concept_holders_by_class(concept_class)
+                    self.ontology_concept_holders.extend(existing_holders if existing_holders \
+                                                         else [OntologyConceptHolder(concept_class(concept_name))])
 
     def __iter__(self):
         """
@@ -470,8 +509,8 @@ class LocationDesignatorDescription(DesignatorDescription):
         The resolved pose of the location designator. Pose is inherited by all location designator.
         """
 
-    def __init__(self, resolver=None):
-        super().__init__(resolver)
+    def __init__(self, resolver=None, ontology_concept_holders: Optional[List[owlready2.Thing]] = None):
+        super().__init__(resolver, ontology_concept_holders)
 
     def ground(self) -> Location:
         """
@@ -617,15 +656,16 @@ class ObjectDesignatorDescription(DesignatorDescription):
             return pose
 
     def __init__(self, names: Optional[List[str]] = None, types: Optional[List[ObjectType]] = None,
-                 resolver: Optional[Callable] = None):
+                 resolver: Optional[Callable] = None, ontology_concept_holders: Optional[List[owlready2.Thing]] = None):
         """
         Base of all object designator descriptions. Every object designator has the name and type of the object.
 
         :param names: A list of names that could describe the object
         :param types: A list of types that could represent the object
         :param resolver: An alternative specialized_designators that returns an object designator for the list of names and types
+        :param ontology_concept_holders: A list of ontology concepts that the object is categorized as or associated with
         """
-        super().__init__(resolver)
+        super().__init__(resolver, ontology_concept_holders)
         self.types: Optional[List[ObjectType]] = types
         self.names: Optional[List[str]] = names
 
