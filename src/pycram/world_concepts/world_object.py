@@ -9,7 +9,7 @@ from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
-                                          AxisAlignedBoundingBox, VisualShape)
+                                          AxisAlignedBoundingBox, VisualShape, ClosestPoint)
 from ..datastructures.enums import ObjectType, JointType
 from ..datastructures.pose import Pose, Transform
 from ..description import ObjectDescription, LinkDescription
@@ -950,7 +950,7 @@ class Object(WorldEntity):
         self.world.restore_state(state_id)
         return contact_points
 
-    def closest_points(self, max_distance: float) -> List:
+    def closest_points(self, max_distance: float) -> List[ClosestPoint]:
         """
         Returns a list of closest points between this Object and other Objects.
 
@@ -959,7 +959,7 @@ class Object(WorldEntity):
         """
         return self.world.get_object_closest_points(self, max_distance)
 
-    def closest_points_with_obj(self, other_object: Object, max_distance: float) -> List:
+    def closest_points_with_obj(self, other_object: Object, max_distance: float) -> List[ClosestPoint]:
         """
         Returns a list of closest points between this Object and another Object.
 

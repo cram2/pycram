@@ -296,3 +296,27 @@ class ObjectState(State):
 class WorldState(State):
     simulator_state_id: int
     object_states: Dict[str, ObjectState]
+
+
+@dataclass
+class LateralFriction:
+    lateral_friction: float
+    lateral_friction_direction: List[float]
+
+
+@dataclass
+class ContactPoint:
+    link_a: Link
+    link_b: Link
+    position_on_object_a: Optional[List[float]] = None
+    position_on_object_b: Optional[List[float]] = None
+    normal_on_b: Optional[List[float]] = None  # normal on object b pointing towards object a
+    distance: Optional[float] = None
+    normal_force: Optional[List[float]] = None  # normal force applied during last step simulation
+    lateral_friction_1: Optional[LateralFriction] = None
+    lateral_friction_2: Optional[LateralFriction] = None
+
+
+@dataclass
+class ClosestPoint(ContactPoint):
+    pass
