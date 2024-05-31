@@ -11,12 +11,13 @@ import rospy
 from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict
 
+from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape, \
+    ClosestPoint, LateralFriction, ContactPoint
 from ..datastructures.enums import ObjectType, WorldMode, JointType
 from ..datastructures.pose import Pose
 from ..object_descriptors.urdf import ObjectDescription
 from ..world import World
 from ..world_concepts.constraints import Constraint
-from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape
 from ..world_concepts.world_object import Object
 
 Link = ObjectDescription.Link
@@ -125,21 +126,40 @@ class BulletWorld(World):
     def perform_collision_detection(self) -> None:
         p.performCollisionDetection(physicsClientId=self.id)
 
-    def get_object_contact_points(self, obj: Object) -> List:
+    def get_object_contact_points(self, obj: Object) -> List[ContactPoint]:
         """
         For a more detailed explanation of the
          returned list please look at:
          `PyBullet Doc <https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#>`_
         """
         self.perform_collision_detection()
-        return p.getContactPoints(obj.id, physicsClientId=self.id)
+        points_list = p.getContactPoints(obj.id, physicsClientId=self.id)
+        return [ContactPoint(**self.parse_points_list_to_args(point)) for point in points_list if len(point) > 0]
 
-    def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> List:
+    def get_contact_points_between_two_objects(self, obj_a: Object, obj_b: Object) -> List[ContactPoint]:
         self.perform_collision_detection()
-        return p.getContactPoints(obj1.id, obj2.id, physicsClientId=self.id)
+        points_list = p.getContactPoints(obj_a.id, obj_b.id, physicsClientId=self.id)
+        return [ContactPoint(**self.parse_points_list_to_args(point)) for point in points_list if len(point) > 0]
 
-    def get_closest_points_between_objects(self, obj_a: Object, obj_b: Object, distance: float) -> List:
-        return p.getClosestPoints(obj_a.id, obj_b.id, distance, physicsClientId=self.id)
+    def get_closest_points_between_objects(self, obj_a: Object, obj_b: Object, distance: float) -> List[ClosestPoint]:
+        points_list = p.getClosestPoints(obj_a.id, obj_b.id, distance, physicsClientId=self.id)
+        return [ClosestPoint(**self.parse_points_list_to_args(point)) for point in points_list if len(point) > 0]
+
+    @staticmethod
+    def parse_points_list_to_args(point: List) -> Dict:
+        """
+        Parses the list of points to a list of dictionaries with the keys as the names of the arguments of the
+        ContactPoint class.
+        """
+        return {"link_a": point[3],
+                "link_b": point[4],
+                "position_on_object_a": point[5],
+                "position_on_object_b": point[6],
+                "normal_on_b": point[7],
+                "distance": point[8],
+                "normal_force": point[9],
+                "lateral_friction_1": LateralFriction(point[10], point[11]),
+                "lateral_friction_2": LateralFriction(point[12], point[13])}
 
     def reset_joint_position(self, joint: ObjectDescription.Joint, joint_position: str) -> None:
         p.resetJointState(joint.object_id, joint.id, joint_position, physicsClientId=self.id)
@@ -395,7 +415,7 @@ class Gui(threading.Thread):
                 width, height, dist = (p.getDebugVisualizerCamera()[0],
                                        p.getDebugVisualizerCamera()[1],
                                        p.getDebugVisualizerCamera()[10])
-                #print("width: ", width, "height: ", height, "dist: ", dist)
+                # print("width: ", width, "height: ", height, "dist: ", dist)
                 camera_target_position = p.getDebugVisualizerCamera(self.world.id)[11]
 
                 # Get vectors used for movement on x,y,z Vector
@@ -550,5 +570,6 @@ class Gui(threading.Thread):
                                              cameraTargetPosition=camera_target_position, physicsClientId=self.world.id)
                 if visible == 0:
                     camera_target_position = (0.0, -50, 50)
-                p.resetBasePositionAndOrientation(sphere_uid, camera_target_position, [0, 0, 0, 1], physicsClientId=self.world.id)
+                p.resetBasePositionAndOrientation(sphere_uid, camera_target_position, [0, 0, 0, 1],
+                                                  physicsClientId=self.world.id)
                 time.sleep(1. / 80.)
