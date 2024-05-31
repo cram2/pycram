@@ -316,6 +316,12 @@ class ContactPoint:
     lateral_friction_1: Optional[LateralFriction] = None
     lateral_friction_2: Optional[LateralFriction] = None
 
+    def __str__(self):
+        return f"ContactPoint: {self.link_a.object.name} - {self.link_b.object.name}"
+
+    def __repr__(self):
+        return self.__str__()
+
 
 @dataclass
 class ClosestPoint(ContactPoint):

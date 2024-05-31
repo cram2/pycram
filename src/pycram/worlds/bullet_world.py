@@ -145,14 +145,13 @@ class BulletWorld(World):
         points_list = p.getClosestPoints(obj_a.id, obj_b.id, distance, physicsClientId=self.id)
         return [ClosestPoint(**self.parse_points_list_to_args(point)) for point in points_list if len(point) > 0]
 
-    @staticmethod
-    def parse_points_list_to_args(point: List) -> Dict:
+    def parse_points_list_to_args(self, point: List) -> Dict:
         """
         Parses the list of points to a list of dictionaries with the keys as the names of the arguments of the
         ContactPoint class.
         """
-        return {"link_a": point[3],
-                "link_b": point[4],
+        return {"link_a": self.get_object_by_id(point[1]).get_link_by_id(point[3]),
+                "link_b": self.get_object_by_id(point[2]).get_link_by_id(point[4]),
                 "position_on_object_a": point[5],
                 "position_on_object_b": point[6],
                 "normal_on_b": point[7],
