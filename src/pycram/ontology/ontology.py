@@ -30,7 +30,7 @@ class OntologyManager(object, metaclass=Singleton):
     Singleton class as the adapter accessing data of an OWL ontology, largely based on owlready2.
     """
 
-    def __init__(self, main_ontology_iri: str = "", ontology_search_path: str = ""):
+    def __init__(self, main_ontology_iri: str = None, ontology_search_path: str = ""):
         """
         Create the singleton object of OntologyManager class
 
@@ -51,26 +51,30 @@ class OntologyManager(object, metaclass=Singleton):
         #: The main ontology instance as the result of an ontology loading operation
         self.main_ontology: Optional[owlready2.Ontology] = None
 
-        #: The SOMA ontology instance, referencing :attr:`ontology` in case of ontology loading from `SOMA.owl`. Ref: http://www.ease-crc.org/ont/SOMA.owl
+        #: The SOMA ontology instance, referencing :attr:`ontology` in case of ontology loading from `SOMA.owl`.
+        # Ref: http://www.ease-crc.org/ont/SOMA.owl
         self.soma: Optional[owlready2.Ontology] = None
 
-        #: The DUL ontology instance, referencing :attr:`ontology` in case of ontology loading from `DUL.owl`. Ref: http://www.ease-crc.org/ont/DUL.owl
+        #: The DUL ontology instance, referencing :attr:`ontology` in case of ontology loading from `DUL.owl`.
+        # Ref: http://www.ease-crc.org/ont/DUL.owl
         self.dul: Optional[owlready2.Ontology] = None
 
-        #: Ontology world, the placeholder of triples stored by owlready2. Ref: https://owlready2.readthedocs.io/en/latest/world.html
+        #: Ontology world, the placeholder of triples stored by owlready2.
+        # Ref: https://owlready2.readthedocs.io/en/latest/world.html
         self.ontology_world: Optional[owlready2.World] = None
 
-        #: Ontology IRI (Internationalized Resource Identifier), either a URL to a remote OWL file or the full name path of a local one
-        self.main_ontology_iri: str = main_ontology_iri
+        # Ontology IRI (Internationalized Resource Identifier), either a URL to a remote OWL file or the full
+        # name path of a local one
+        self.main_ontology_iri: str = main_ontology_iri if main_ontology_iri else SOMA_HOME_ONTOLOGY_IRI
 
         #: Namespace of the main ontology
         self.main_ontology_namespace: Optional[owlready2.Namespace] = None
 
         # Create an ontology world with parallelized file parsing enabled
-        self.ontology_world = World(filename=f"{ontology_search_path}/{Path(main_ontology_iri).stem}.sqlite3",
+        self.ontology_world = World(filename=f"{ontology_search_path}/{Path(self.main_ontology_iri).stem}.sqlite3",
                                     exclusive=False, enable_thread_parallelism=True)
 
-        self.main_ontology, self.main_ontology_namespace = self.load_ontology(main_ontology_iri)
+        self.main_ontology, self.main_ontology_namespace = self.load_ontology(self.main_ontology_iri)
         if self.main_ontology.loaded:
             self.soma = self.ontologies.get(SOMA_ONTOLOGY_NAMESPACE)
             self.dul = self.ontologies.get(DUL_ONTOLOGY_NAMESPACE)
@@ -178,7 +182,8 @@ class OntologyManager(object, metaclass=Singleton):
             else f"{Path(self.ontology_world.filename).parent.absolute()}/{Path(self.main_ontology_iri).stem}.owl"
         save_to_same_file = is_current_ontology_local and (target_filename == current_ontology_filename)
         if save_to_same_file and not overwrite:
-            rospy.logerr(f"Ontologies cannot be saved to the originally loaded [{target_filename}] if not by overwriting")
+            rospy.logerr(
+                f"Ontologies cannot be saved to the originally loaded [{target_filename}] if not by overwriting")
             return False
         else:
             save_filename = target_filename if target_filename else current_ontology_filename
@@ -205,7 +210,7 @@ class OntologyManager(object, metaclass=Singleton):
 
         with self.main_ontology:
             return types.new_class(class_name, (owlready2.Thing, ontology_parent_concept_class,)
-                   if inspect.isclass(ontology_parent_concept_class) else (owlready2.Thing,))
+            if inspect.isclass(ontology_parent_concept_class) else (owlready2.Thing,))
 
     @staticmethod
     def create_ontology_property_class(class_name: str,
@@ -252,7 +257,8 @@ class OntologyManager(object, metaclass=Singleton):
         return out_classes
 
     @staticmethod
-    def get_ontology_class_by_ontology(ontology: owlready2.Ontology, class_name: str) -> Optional[Type[owlready2.Thing]]:
+    def get_ontology_class_by_ontology(ontology: owlready2.Ontology, class_name: str) -> Optional[
+        Type[owlready2.Thing]]:
         """
         Get an ontology class if it exists in a given ontology
 
@@ -395,7 +401,8 @@ class OntologyManager(object, metaclass=Singleton):
         """
         ontology_concept_name = f'{object_name}_concept'
         if len(OntologyConceptHolderStore().get_designators_of_ontology_concept(ontology_concept_name)) > 0:
-            rospy.logerr(f"A designator named [{object_name}] is already created for ontology concept [{ontology_concept_name}]")
+            rospy.logerr(
+                f"A designator named [{object_name}] is already created for ontology concept [{ontology_concept_name}]")
             return None
 
         # Create a designator of `designator_class`
@@ -410,7 +417,8 @@ class OntologyManager(object, metaclass=Singleton):
             designator = designator_class()
 
         # Link designator with an ontology concept of `ontology_concept_class`
-        ontology_concept_holder = OntologyConceptHolderStore().get_ontology_concept_holder_by_name(ontology_concept_name)
+        ontology_concept_holder = OntologyConceptHolderStore().get_ontology_concept_holder_by_name(
+            ontology_concept_name)
         if ontology_concept_holder is None:
             ontology_concept_holder = OntologyConceptHolder(ontology_concept_class(name=ontology_concept_name,
                                                                                    namespace=self.main_ontology))
