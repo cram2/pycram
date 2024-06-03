@@ -778,6 +778,7 @@ class World(StateEntity, ABC):
         :param obj: The object for which the corresponding object in the prospection World should be found.
         :return: The corresponding object in the prospection world.
         """
+        self.world_sync.add_obj_queue.join()
         try:
             return self.world_sync.object_mapping[obj]
         except KeyError:
