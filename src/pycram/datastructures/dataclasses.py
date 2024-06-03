@@ -323,6 +323,70 @@ class ContactPoint:
         return self.__str__()
 
 
-@dataclass
-class ClosestPoint(ContactPoint):
-    pass
+ClosestPoint = ContactPoint
+
+
+class ContactPointsList(list):
+
+    def get_normals_of_object(self, obj: Object) -> List[List[float]]:
+        """
+        Gets the normals of the object.
+        :param obj: An instance of the Object class that represents the object.
+        :return: A list of float vectors that represent the normals of the object.
+        """
+        return self.get_points_of_object(obj).get_normals()
+
+    def get_normals(self) -> List[List[float]]:
+        """
+        Gets the normals of the points.
+        :return: A list of float vectors that represent the normals of the contact points.
+        """
+        return [point.normal_on_b for point in self]
+
+    def get_points_of_object(self, obj: Object) -> 'ContactPointsList':
+        """
+        Gets the points of the object.
+        :param obj:
+        :return:
+        """
+        return ContactPointsList([point for point in self if point.link_b.object == obj])
+
+    def get_objects_that_got_removed(self, previous_points: 'ContactPointsList') -> List[Object]:
+        """
+        Returns the object that is not in the current points list but was in the initial points list.
+        :param previous_points: The initial points list.
+        :return: A list of Object instances that represent the objects that got removed.
+        """
+        initial_objects_in_contact = previous_points.get_objects_that_have_points()
+        current_objects_in_contact = self.get_objects_that_have_points()
+        return [obj for obj in initial_objects_in_contact if obj not in current_objects_in_contact]
+
+    def get_new_objects(self, previous_points: 'ContactPointsList') -> List[Object]:
+        """
+        Returns the object that is not in the initial points list but is in the current points list.
+        :param previous_points: The initial points list.
+        :return: A list of Object instances that represent the new objects.
+        """
+        initial_objects_in_contact = previous_points.get_objects_that_have_points()
+        current_objects_in_contact = self.get_objects_that_have_points()
+        return [obj for obj in current_objects_in_contact if obj not in initial_objects_in_contact]
+
+    def is_object_in_the_list(self, obj: Object) -> bool:
+        """
+        Checks if the object is one of the objects that have points in the list.
+        :param obj: An instance of the Object class that represents the object.
+        :return: True if the object is in the list, False otherwise.
+        """
+        return obj in self.get_objects_that_have_points()
+
+    def get_objects_that_have_points(self) -> List[Object]:
+        return [point.link_b.object for point in self]
+
+    def __str__(self):
+        return f"ContactPointsList: {len(self)} contact points"
+
+    def __repr__(self):
+        return self.__str__()
+
+
+ClosestPointsList = ContactPointsList

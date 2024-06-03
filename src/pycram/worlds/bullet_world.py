@@ -12,7 +12,7 @@ from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict
 
 from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape, \
-    ClosestPoint, LateralFriction, ContactPoint
+    ClosestPoint, LateralFriction, ContactPoint, ContactPointsList, ClosestPointsList
 from ..datastructures.enums import ObjectType, WorldMode, JointType
 from ..datastructures.pose import Pose
 from ..object_descriptors.urdf import ObjectDescription
@@ -126,7 +126,7 @@ class BulletWorld(World):
     def perform_collision_detection(self) -> None:
         p.performCollisionDetection(physicsClientId=self.id)
 
-    def get_object_contact_points(self, obj: Object) -> List[ContactPoint]:
+    def get_object_contact_points(self, obj: Object) -> ContactPointsList:
         """
         For a more detailed explanation of the
          returned list please look at:
@@ -134,16 +134,19 @@ class BulletWorld(World):
         """
         self.perform_collision_detection()
         points_list = p.getContactPoints(obj.id, physicsClientId=self.id)
-        return [ContactPoint(**self.parse_points_list_to_args(point)) for point in points_list if len(point) > 0]
+        return ContactPointsList([ContactPoint(**self.parse_points_list_to_args(point)) for point in points_list
+                                  if len(point) > 0])
 
-    def get_contact_points_between_two_objects(self, obj_a: Object, obj_b: Object) -> List[ContactPoint]:
+    def get_contact_points_between_two_objects(self, obj_a: Object, obj_b: Object) -> ContactPointsList:
         self.perform_collision_detection()
         points_list = p.getContactPoints(obj_a.id, obj_b.id, physicsClientId=self.id)
-        return [ContactPoint(**self.parse_points_list_to_args(point)) for point in points_list if len(point) > 0]
+        return ContactPointsList([ContactPoint(**self.parse_points_list_to_args(point)) for point in points_list
+                                  if len(point) > 0])
 
-    def get_closest_points_between_objects(self, obj_a: Object, obj_b: Object, distance: float) -> List[ClosestPoint]:
+    def get_closest_points_between_objects(self, obj_a: Object, obj_b: Object, distance: float) -> ClosestPointsList:
         points_list = p.getClosestPoints(obj_a.id, obj_b.id, distance, physicsClientId=self.id)
-        return [ClosestPoint(**self.parse_points_list_to_args(point)) for point in points_list if len(point) > 0]
+        return ClosestPointsList([ClosestPoint(**self.parse_points_list_to_args(point)) for point in points_list
+                                  if len(point) > 0])
 
     def parse_points_list_to_args(self, point: List) -> Dict:
         """

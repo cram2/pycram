@@ -4,7 +4,7 @@ from time import time
 
 from typing_extensions import List, Dict, Optional
 
-from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPoint
+from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPoint, ContactPointsList
 from ..datastructures.enums import WorldMode, JointType
 from ..datastructures.pose import Pose
 from ..description import Link, Joint
@@ -362,16 +362,16 @@ class Multiverse(MultiverseSocket, World):
     def perform_collision_detection(self) -> None:
         logging.warning("perform_collision_detection is not implemented in Multiverse")
 
-    def get_object_contact_points(self, obj: Object) -> List:
+    def get_object_contact_points(self, obj: Object) -> ContactPointsList:
         self.check_object_exists_and_issue_warning_if_not(obj)
         logging.warning("get_object_contact_points is not implemented in Multiverse")
         return []
 
-    def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> List[ContactPoint]:
+    def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> ContactPointsList:
         self.check_object_exists_and_issue_warning_if_not(obj1)
         self.check_object_exists_and_issue_warning_if_not(obj2)
         logging.warning("get_contact_points_between_two_objects is not implemented in Multiverse")
-        return []
+        return ContactPointsList([])
 
     def ray_test(self, from_position: List[float], to_position: List[float]) -> int:
         logging.error("ray_test is not implemented in Multiverse")
