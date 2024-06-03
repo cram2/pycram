@@ -6,6 +6,7 @@ import rospy
 import sys
 import rosnode
 
+from ..datastructures.enums import JointType
 from ..datastructures.pose import Pose
 from ..robot_descriptions import robot_description
 from ..datastructures.world import World
@@ -131,6 +132,15 @@ def sync_worlds() -> None:
     for obj in World.current_world.objects:
         if obj.name != robot_description.name and len(obj.link_name_to_id) != 1:
             world_object_names.add(obj.name + "_" + str(obj.id))
+        if obj.name == robot_description.name:
+            joint_config = obj.get_positions_of_all_joints()
+            non_fixed_joints = list(filter(lambda joint: joint.type != JointType.FIXED, obj.joints.values()))
+            joint_config_filtered = {joint.name: joint_config[joint.name] for joint in non_fixed_joints}
+
+            giskard_wrapper.motion_goals.set_seed_configuration(joint_config_filtered,
+                                                                robot_description.name)
+            giskard_wrapper.motion_goals.set_seed_odometry(_pose_to_pose_stamped(obj.get_pose()),
+                                                           robot_description.name)
 
     giskard_object_names = set(giskard_wrapper.get_group_names())
     robot_name = {robot_description.name}
@@ -250,7 +260,8 @@ def _manage_par_motion_goals(goal_func, *args) -> Optional['MoveResult']:
                     if set(chain).intersection(used_joints) != set():
                         giskard_wrapper.motion_goals._goals = tmp_goals
                         giskard_wrapper.monitors._monitors = tmp_monitors
-                        raise AttributeError(f"The joint(s) {set(chain).intersection(used_joints)} is used by multiple Designators")
+                        raise AttributeError(
+                            f"The joint(s) {set(chain).intersection(used_joints)} is used by multiple Designators")
                     else:
                         [used_joints.add(joint) for joint in chain]
 
@@ -258,7 +269,8 @@ def _manage_par_motion_goals(goal_func, *args) -> Optional['MoveResult']:
                     if set(par_value_pair["goal_state"].keys()).intersection(used_joints) != set():
                         giskard_wrapper.motion_goals._goals = tmp_goals
                         giskard_wrapper.monitors._monitors = tmp_monitors
-                        raise AttributeError(f"The joint(s) {set(par_value_pair['goal_state'].keys()).intersection(used_joints)} is used by multiple Designators")
+                        raise AttributeError(
+                            f"The joint(s) {set(par_value_pair['goal_state'].keys()).intersection(used_joints)} is used by multiple Designators")
                     else:
                         [used_joints.add(joint) for joint in par_value_pair["goal_state"].keys()]
 
@@ -276,7 +288,8 @@ def _manage_par_motion_goals(goal_func, *args) -> Optional['MoveResult']:
             # If there are still threads that should be executed in parallel, save the current state of motion goals and
             # monitors.
             else:
-                par_motion_goal[key] = [giskard_wrapper.motion_goals.get_goals(), giskard_wrapper.monitors.get_monitors()]
+                par_motion_goal[key] = [giskard_wrapper.motion_goals.get_goals(),
+                                        giskard_wrapper.monitors.get_monitors()]
                 giskard_wrapper.motion_goals._goals = tmp_goals
                 giskard_wrapper.monitors._monitors = tmp_monitors
                 return True
@@ -476,6 +489,7 @@ def achieve_close_container_goal(tip_link: str, environment_link: str) -> 'MoveR
 
     giskard_wrapper.set_close_container_goal(tip_link, environment_link)
     return giskard_wrapper.execute()
+
 
 # Projection Goals
 
