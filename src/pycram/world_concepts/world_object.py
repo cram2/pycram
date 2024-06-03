@@ -988,6 +988,15 @@ class Object(WorldEntity):
         return Pose([aabb.min_x + base_width / 2, aabb.min_y + base_length / 2, aabb.min_z],
                     self.get_orientation_as_list())
 
+    def get_joint_by_id(self, joint_id: int):
+        """
+        Returns the joint object with the given id.
+
+        :param joint_id: The unique id of the joint.
+        :return: The joint object.
+        """
+        return dict([(joint.id, joint) for joint in self.joints.values()])[joint_id]
+
     def copy_to_prospection(self) -> Object:
         """
         Copies this object to the prospection world.
