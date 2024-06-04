@@ -343,6 +343,14 @@ class ContactPointsList(list):
         """
         return [point.normal_on_b for point in self]
 
+    def get_links_in_contact_of_object(self, obj: Object) -> List[Link]:
+        """
+        Gets the links in contact of the object.
+        :param obj: An instance of the Object class that represents the object.
+        :return: A list of Link instances that represent the links in contact of the object.
+        """
+        return [point.link_b for point in self if point.link_b.object == obj]
+
     def get_points_of_object(self, obj: Object) -> 'ContactPointsList':
         """
         Gets the points of the object.
@@ -381,6 +389,9 @@ class ContactPointsList(list):
 
     def get_objects_that_have_points(self) -> List[Object]:
         return [point.link_b.object for point in self]
+
+    def get_names_of_objects_that_have_points(self) -> List[str]:
+        return [point.link_b.object.name for point in self]
 
     def __str__(self):
         return f"ContactPointsList: {len(self)} contact points"
