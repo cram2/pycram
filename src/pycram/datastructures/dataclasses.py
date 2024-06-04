@@ -401,3 +401,11 @@ class ContactPointsList(list):
 
 
 ClosestPointsList = ContactPointsList
+
+
+@dataclass
+class TextAnnotation:
+    text: str
+    position: List[float]
+    color: Color
+    id: int
