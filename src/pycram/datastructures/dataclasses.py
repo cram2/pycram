@@ -402,7 +402,6 @@ class ContactPointsList(list):
 
 ClosestPointsList = ContactPointsList
 
-
 @dataclass
 class TextAnnotation:
     text: str
