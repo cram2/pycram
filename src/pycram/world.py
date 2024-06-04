@@ -18,7 +18,8 @@ from .cache_manager import CacheManager
 from .datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
                                          MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape, SphereVisualShape,
                                          CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
-                                         ObjectState, State, WorldState, ContactPoint, ClosestPoint)
+                                         ObjectState, State, WorldState, ContactPoint, ClosestPoint, ClosestPointsList,
+                                         ContactPointsList)
 from .datastructures.enums import JointType, ObjectType, WorldMode
 from .datastructures.pose import Pose, Transform
 from .local_transformer import LocalTransformer
@@ -264,6 +265,14 @@ class World(StateEntity, ABC):
         """
         pass
 
+    def get_object_names(self) -> List[str]:
+        """
+        Returns the names of all objects in the World.
+
+        :return: A list of object names.
+        """
+        return [obj.name for obj in self.objects]
+
     def get_object_by_name(self, name: str) -> List[Object]:
         """
         Returns a list of all Objects in this World with the same name as the given one.
@@ -452,7 +461,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_object_contact_points(self, obj: Object) -> List[ContactPoint]:
+    def get_object_contact_points(self, obj: Object) -> ContactPointsList:
         """
         Returns a list of contact points of this Object with all other Objects.
 
@@ -462,7 +471,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> List[ContactPoint]:
+    def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> ContactPointsList:
         """
         Returns a list of contact points between obj_a and obj_b.
 
@@ -472,7 +481,7 @@ class World(StateEntity, ABC):
         """
         pass
 
-    def get_object_closest_points(self, obj: Object, max_distance: float) -> List[ClosestPoint]:
+    def get_object_closest_points(self, obj: Object, max_distance: float) -> ClosestPointsList:
         """
         Returns the closest points of this object with all other objects in the world.
 
@@ -483,10 +492,10 @@ class World(StateEntity, ABC):
         all_obj_closest_points = [self.get_closest_points_between_objects(obj, other_obj, max_distance) for other_obj in
                                   self.objects
                                   if other_obj != obj]
-        return [point for closest_points in all_obj_closest_points for point in closest_points]
+        return ClosestPointsList([point for closest_points in all_obj_closest_points for point in closest_points])
 
     def get_closest_points_between_objects(self, object_a: Object, object_b: Object, max_distance: float) \
-            -> List[ClosestPoint]:
+            -> ClosestPointsList:
         """
         Returns the closest points between two objects.
 
