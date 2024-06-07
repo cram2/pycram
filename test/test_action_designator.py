@@ -1,6 +1,6 @@
 import unittest
 from pycram.designators import action_designator, object_designator
-from pycram.designators.performables.actions import MoveTorsoActionPerformable, PickUpActionPerformable, \
+from pycram.designators.action_designator import MoveTorsoActionPerformable, PickUpActionPerformable, \
     NavigateActionPerformable, FaceAtPerformable
 from pycram.local_transformer import LocalTransformer
 from pycram.robot_descriptions import robot_description
