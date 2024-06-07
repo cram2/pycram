@@ -1,4 +1,4 @@
-from pycram.designators.performables.actions import MoveTorsoActionPerformable, PickUpActionPerformable, \
+from pycram.designators.action_designator import MoveTorsoActionPerformable, PickUpActionPerformable, \
     NavigateActionPerformable
 from pycram.datastructures.pose import Pose
 from pycram.process_module import simulated_robot

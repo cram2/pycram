@@ -6,6 +6,7 @@ import rospy
 import sys
 import rosnode
 
+from ..datastructures.enums import JointType
 from ..datastructures.pose import Pose
 from ..robot_descriptions import robot_description
 from ..datastructures.world import World
@@ -101,7 +102,7 @@ def initial_adding_objects() -> None:
     for obj in World.current_world.objects:
         if obj is World.robot or obj is World.current_world.get_prospection_object_for_object(World.robot):
             continue
-        name = obj.name + "_" + str(obj.id)
+        name = obj.name
         if name not in groups:
             spawn_object(obj)
 
@@ -113,7 +114,7 @@ def removing_of_objects() -> None:
     """
     groups = giskard_wrapper.get_group_names()
     object_names = list(
-        map(lambda obj: object_names.name + "_" + str(obj.id), World.current_world.objects))
+        map(lambda obj: object_names.name, World.current_world.objects))
     diff = list(set(groups) - set(object_names))
     for grp in diff:
         giskard_wrapper.remove_group(grp)
@@ -130,7 +131,16 @@ def sync_worlds() -> None:
     world_object_names = set()
     for obj in World.current_world.objects:
         if obj.name != robot_description.name and len(obj.link_name_to_id) != 1:
-            world_object_names.add(obj.name + "_" + str(obj.id))
+            world_object_names.add(obj.name)
+        if obj.name == robot_description.name:
+            joint_config = obj.get_positions_of_all_joints()
+            non_fixed_joints = list(filter(lambda joint: joint.type != JointType.FIXED, obj.joints.values()))
+            joint_config_filtered = {joint.name: joint_config[joint.name] for joint in non_fixed_joints}
+
+            giskard_wrapper.motion_goals.set_seed_configuration(joint_config_filtered,
+                                                                robot_description.name)
+            giskard_wrapper.motion_goals.set_seed_odometry(_pose_to_pose_stamped(obj.get_pose()),
+                                                           robot_description.name)
 
     giskard_object_names = set(giskard_wrapper.get_group_names())
     robot_name = {robot_description.name}
@@ -148,7 +158,7 @@ def update_pose(object: Object) -> 'UpdateWorldResponse':
     :param object: Object that should be updated
     :return: An UpdateWorldResponse
     """
-    return giskard_wrapper.update_group_pose(object.name + "_" + str(object.id), object.get_pose())
+    return giskard_wrapper.update_group_pose(object.name)
 
 
 @init_giskard_interface
@@ -162,9 +172,9 @@ def spawn_object(object: Object) -> None:
         geometry = object.get_link_geometry(object.root_link_name)
         if isinstance(geometry, MeshVisualShape):
             filename = geometry.file_name
-            spawn_mesh(object.name + "_" + str(object.id), filename, object.get_pose())
+            spawn_mesh(object.name, filename, object.get_pose())
     else:
-        spawn_urdf(object.name + "_" + str(object.id), object.path, object.get_pose())
+        spawn_urdf(object.name, object.path, object.get_pose())
 
 
 @init_giskard_interface
@@ -174,7 +184,7 @@ def remove_object(object: Object) -> 'UpdateWorldResponse':
 
     :param object: The World Object that should be removed
     """
-    return giskard_wrapper.remove_group(object.name + "_" + str(object.id))
+    return giskard_wrapper.remove_group(object.name)
 
 
 @init_giskard_interface
@@ -250,7 +260,8 @@ def _manage_par_motion_goals(goal_func, *args) -> Optional['MoveResult']:
                     if set(chain).intersection(used_joints) != set():
                         giskard_wrapper.motion_goals._goals = tmp_goals
                         giskard_wrapper.monitors._monitors = tmp_monitors
-                        raise AttributeError(f"The joint(s) {set(chain).intersection(used_joints)} is used by multiple Designators")
+                        raise AttributeError(
+                            f"The joint(s) {set(chain).intersection(used_joints)} is used by multiple Designators")
                     else:
                         [used_joints.add(joint) for joint in chain]
 
@@ -258,7 +269,8 @@ def _manage_par_motion_goals(goal_func, *args) -> Optional['MoveResult']:
                     if set(par_value_pair["goal_state"].keys()).intersection(used_joints) != set():
                         giskard_wrapper.motion_goals._goals = tmp_goals
                         giskard_wrapper.monitors._monitors = tmp_monitors
-                        raise AttributeError(f"The joint(s) {set(par_value_pair['goal_state'].keys()).intersection(used_joints)} is used by multiple Designators")
+                        raise AttributeError(
+                            f"The joint(s) {set(par_value_pair['goal_state'].keys()).intersection(used_joints)} is used by multiple Designators")
                     else:
                         [used_joints.add(joint) for joint in par_value_pair["goal_state"].keys()]
 
@@ -269,6 +281,7 @@ def _manage_par_motion_goals(goal_func, *args) -> Optional['MoveResult']:
                 if key in par_motion_goal.keys():
                     del par_motion_goal[key]
                 del par_threads[key]
+                # giskard_wrapper.add_default_end_motion_conditions()
                 res = giskard_wrapper.execute()
                 giskard_wrapper.motion_goals._goals = tmp_goals
                 giskard_wrapper.monitors._monitors = tmp_monitors
@@ -276,7 +289,8 @@ def _manage_par_motion_goals(goal_func, *args) -> Optional['MoveResult']:
             # If there are still threads that should be executed in parallel, save the current state of motion goals and
             # monitors.
             else:
-                par_motion_goal[key] = [giskard_wrapper.motion_goals.get_goals(), giskard_wrapper.monitors.get_monitors()]
+                par_motion_goal[key] = [giskard_wrapper.motion_goals.get_goals(),
+                                        giskard_wrapper.monitors.get_monitors()]
                 giskard_wrapper.motion_goals._goals = tmp_goals
                 giskard_wrapper.monitors._monitors = tmp_monitors
                 return True
@@ -298,6 +312,7 @@ def achieve_joint_goal(goal_poses: Dict[str, float]) -> 'MoveResult':
         return par_return
 
     giskard_wrapper.set_joint_goal(goal_poses)
+    # giskard_wrapper.add_default_end_motion_conditions()
     return giskard_wrapper.execute()
 
 
@@ -320,6 +335,7 @@ def achieve_cartesian_goal(goal_pose: Pose, tip_link: str, root_link: str) -> 'M
         return par_return
 
     giskard_wrapper.set_cart_goal(_pose_to_pose_stamped(goal_pose), tip_link, root_link)
+    # giskard_wrapper.add_default_end_motion_conditions()
     return giskard_wrapper.execute()
 
 
@@ -343,6 +359,7 @@ def achieve_straight_cartesian_goal(goal_pose: Pose, tip_link: str,
         return par_return
 
     giskard_wrapper.set_straight_cart_goal(_pose_to_pose_stamped(goal_pose), tip_link, root_link)
+    # giskard_wrapper.add_default_end_motion_conditions()
     return giskard_wrapper.execute()
 
 
@@ -365,6 +382,7 @@ def achieve_translation_goal(goal_point: List[float], tip_link: str, root_link: 
         return par_return
 
     giskard_wrapper.set_translation_goal(make_point_stamped(goal_point), tip_link, root_link)
+    # giskard_wrapper.add_default_end_motion_conditions()
     return giskard_wrapper.execute()
 
 
@@ -388,6 +406,7 @@ def achieve_straight_translation_goal(goal_point: List[float], tip_link: str, ro
         return par_return
 
     giskard_wrapper.set_straight_translation_goal(make_point_stamped(goal_point), tip_link, root_link)
+    # giskard_wrapper.add_default_end_motion_conditions()
     return giskard_wrapper.execute()
 
 
@@ -410,6 +429,7 @@ def achieve_rotation_goal(quat: List[float], tip_link: str, root_link: str) -> '
         return par_return
 
     giskard_wrapper.set_rotation_goal(make_quaternion_stamped(quat), tip_link, root_link)
+    # giskard_wrapper.add_default_end_motion_conditions()
     return giskard_wrapper.execute()
 
 
@@ -436,6 +456,7 @@ def achieve_align_planes_goal(goal_normal: List[float], tip_link: str, tip_norma
     giskard_wrapper.set_align_planes_goal(make_vector_stamped(goal_normal), tip_link,
                                           make_vector_stamped(tip_normal),
                                           root_link)
+    # giskard_wrapper.add_default_end_motion_conditions()
     return giskard_wrapper.execute()
 
 
@@ -455,6 +476,7 @@ def achieve_open_container_goal(tip_link: str, environment_link: str) -> 'MoveRe
     if par_return:
         return par_return
     giskard_wrapper.set_open_container_goal(tip_link, environment_link)
+    # giskard_wrapper.add_default_end_motion_conditions()
     return giskard_wrapper.execute()
 
 
@@ -475,7 +497,9 @@ def achieve_close_container_goal(tip_link: str, environment_link: str) -> 'MoveR
         return par_return
 
     giskard_wrapper.set_close_container_goal(tip_link, environment_link)
+    # giskard_wrapper.add_default_end_motion_conditions()
     return giskard_wrapper.execute()
+
 
 # Projection Goals
 
@@ -604,7 +628,7 @@ def avoid_collisions(object1: Object, object2: Object) -> None:
     :param object1: The first World Object
     :param object2: The second World Object
     """
-    giskard_wrapper.avoid_collision(-1, object1.name + "_" + str(object1.id), object2.name + "_" + str(object2.id))
+    giskard_wrapper.avoid_collision(-1, object1.name, object2.name)
 
 
 # Creating ROS messages
