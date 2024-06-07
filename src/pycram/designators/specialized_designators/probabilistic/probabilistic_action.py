@@ -12,7 +12,7 @@ from typing_extensions import Optional, List, Iterator
 from ....datastructures.world import World
 from ....costmaps import OccupancyCostmap, VisibilityCostmap
 from ....designator import ActionDesignatorDescription, ObjectDesignatorDescription
-from ....designators.performables.actions import MoveAndPickUpPerformable, ActionAbstract
+from ...action_designator import MoveAndPickUpPerformable, ActionAbstract
 from ....datastructures.enums import Arms, Grasp, TaskStatus
 from ....local_transformer import LocalTransformer
 from ....orm.views import PickUpWithContextView

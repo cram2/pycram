@@ -11,7 +11,7 @@ import pycram.tasktree
 from bullet_world_testcase import BulletWorldTestCase
 from pycram.world_concepts.world_object import Object
 from pycram.designators import action_designator, object_designator, motion_designator
-from pycram.designators.performables.actions import ParkArmsActionPerformable, MoveTorsoActionPerformable, \
+from pycram.designators.action_designator import ParkArmsActionPerformable, MoveTorsoActionPerformable, \
     SetGripperActionPerformable, PickUpActionPerformable, NavigateActionPerformable, TransportActionPerformable, \
     OpenActionPerformable, CloseActionPerformable, DetectActionPerformable, LookAtActionPerformable
 from pycram.designators.object_designator import BelieveObject
