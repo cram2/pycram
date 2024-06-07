@@ -10,12 +10,6 @@ if TYPE_CHECKING:
 
 from owlready2 import issubclass, Thing
 
-# try:
-#     from owlready2 import Namespace, issubclass, Thing
-# except ImportError:
-#     owlready2 = None
-#     rospy.logwarn("Could not import owlready2, OntologyConceptHolder will not be available!")
-
 
 class OntologyConceptHolderStore(object, metaclass=Singleton):
     """
@@ -26,9 +20,7 @@ class OntologyConceptHolderStore(object, metaclass=Singleton):
         """
         Initialize the OntologyConceptHolderStore
         """
-        # if owlready2 is None:
-        #     return
-        #: Dictionary of all ontology concept holders, keyed by concept names
+        # Dictionary of all ontology concept holders, keyed by concept names
         self.__all_ontology_concept_holders: Dict[str, OntologyConceptHolder] = {}
 
     def add_ontology_concept_holder(self, ontology_concept_name: str, ontology_concept_holder: OntologyConceptHolder)\
@@ -136,14 +128,12 @@ class OntologyConceptHolder(object):
 
         :param ontology_concept: An ontology concept instance
         """
-        # if owlready2 is None:
-        #     return
 
         #: An ontology concept, either dynamically created, or loaded from an ontology
         self.ontology_concept: Thing = ontology_concept
         #: List of designators associated with this ontology concept
         self.designators: List[DesignatorDescription] = []
-        #: A callable used to resolve the designators to whatever of interest, like designators or their resolving results
+        # A callable used to resolve the designators to whatever of interest, like designators or their resolving results
         self.resolve: Optional[Callable] = None
 
         #: The store for all OntologyConceptHolder instances

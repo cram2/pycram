@@ -28,20 +28,17 @@ class OntologyManager(object, metaclass=Singleton):
     Singleton class as the adapter accessing data of an OWL ontology, largely based on owlready2.
     """
 
-    def __init__(self, main_ontology_iri: str = None, ontology_search_path: str = ""):
+    def __init__(self, main_ontology_iri: Optional[str] = None, ontology_search_path: Optional[str] = None):
         """
         Create the singleton object of OntologyManager class
 
         :param main_ontology_iri: Ontology IRI (Internationalized Resource Identifier), either a URL to a remote OWL file or the full name path of a local one
         :param ontology_search_path: directory path from which a possibly existing ontology is searched. This is appended to `owlready2.onto_path`, a global variable containing a list of directories for searching local copies of ontologies (similarly to python `sys.path` for modules/packages). If not specified, the path is "$HOME/ontologies"
         """
-        #if owlready2:
         if not ontology_search_path:
             ontology_search_path = f"{Path.home()}/ontologies"
         Path(ontology_search_path).mkdir(parents=True, exist_ok=True)
         onto_path.append(ontology_search_path)
-        # else:
-        #     return
 
         #: A dictionary of OWL ontologies, keyed by ontology name (same as its namespace name), eg. 'SOMA'
         self.ontologies: Dict[str, Ontology] = {}
