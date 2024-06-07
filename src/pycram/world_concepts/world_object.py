@@ -8,7 +8,7 @@ import rospy
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
-from ..description import ObjectDescription, LinkDescription
+from ..description import ObjectDescription, LinkDescription, Joint
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..robot_descriptions import robot_description
 from ..datastructures.world import WorldEntity, World
@@ -987,6 +987,15 @@ class Object(WorldEntity):
         base_length = np.absolute(aabb.min_y - aabb.max_y)
         return Pose([aabb.min_x + base_width / 2, aabb.min_y + base_length / 2, aabb.min_z],
                     self.get_orientation_as_list())
+
+    def get_joint_by_id(self, joint_id: int) -> Joint:
+        """
+        Returns the joint object with the given id.
+
+        :param joint_id: The unique id of the joint.
+        :return: The joint object.
+        """
+        return dict([(joint.id, joint) for joint in self.joints.values()])[joint_id]
 
     def copy_to_prospection(self) -> Object:
         """

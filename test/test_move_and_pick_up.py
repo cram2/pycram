@@ -5,7 +5,7 @@ import numpy as np
 
 from pycram.designator import ObjectDesignatorDescription
 from pycram.datastructures.enums import ObjectType
-from pycram.designators.performables.actions import MoveTorsoActionPerformable
+from pycram.designators.action_designator import MoveTorsoActionPerformable
 from pycram.plan_failures import PlanFailure
 from pycram.process_module import simulated_robot
 from pycram.designators.specialized_designators.probabilistic.probabilistic_action import MoveAndPickUp, GaussianCostmapModel

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 from typing import Callable, Dict, List, Optional, Type, TYPE_CHECKING
 import rospy
 
@@ -7,11 +8,7 @@ from ..helper import Singleton
 if TYPE_CHECKING:
     from ..designator import DesignatorDescription
 
-try:
-    from owlready2 import *
-except ImportError:
-    owlready2 = None
-    rospy.logwarn("Could not import owlready2, OntologyConceptHolder will not be available!")
+from owlready2 import issubclass, Thing
 
 
 class OntologyConceptHolderStore(object, metaclass=Singleton):
@@ -23,9 +20,7 @@ class OntologyConceptHolderStore(object, metaclass=Singleton):
         """
         Initialize the OntologyConceptHolderStore
         """
-        if owlready2 is None:
-            return
-        #: Dictionary of all ontology concept holders, keyed by concept names
+        # Dictionary of all ontology concept holders, keyed by concept names
         self.__all_ontology_concept_holders: Dict[str, OntologyConceptHolder] = {}
 
     def add_ontology_concept_holder(self, ontology_concept_name: str, ontology_concept_holder: OntologyConceptHolder)\
@@ -55,7 +50,7 @@ class OntologyConceptHolderStore(object, metaclass=Singleton):
             return True
         return False
 
-    def get_ontology_concepts_by_class(self, ontology_concept_class: Type[owlready2.Thing]) -> List[owlready2.Thing]:
+    def get_ontology_concepts_by_class(self, ontology_concept_class: Type[Thing]) -> List[Thing]:
         """
         Get a list of ontology concepts for a given class
 
@@ -65,9 +60,9 @@ class OntologyConceptHolderStore(object, metaclass=Singleton):
         return list(itertools.chain(
             *[concept_holder.ontology_concept
               for concept_holder in self.__all_ontology_concept_holders.values()
-              if owlready2.issubclass(concept_holder.ontology_concept, ontology_concept_class)]))
+              if issubclass(concept_holder.ontology_concept, ontology_concept_class)]))
 
-    def get_ontology_concept_by_name(self, ontology_concept_name: str) -> Optional[owlready2.Thing]:
+    def get_ontology_concept_by_name(self, ontology_concept_name: str) -> Optional[Thing]:
         """
         Get the ontology concept of a given name if exists, otherwise None
 
@@ -77,7 +72,7 @@ class OntologyConceptHolderStore(object, metaclass=Singleton):
         concept_holder = self.__all_ontology_concept_holders.get(ontology_concept_name)
         return concept_holder.ontology_concept if concept_holder else None
 
-    def get_ontology_concept_holders_by_class(self, ontology_concept_class: Type[owlready2.Thing]) \
+    def get_ontology_concept_holders_by_class(self, ontology_concept_class: Type[Thing]) \
             -> List[OntologyConceptHolder]:
         """
         Get a list of ontology concept holders for a given ontology concept class
@@ -98,7 +93,7 @@ class OntologyConceptHolderStore(object, metaclass=Singleton):
         return self.__all_ontology_concept_holders.get(ontology_concept_name)
 
     @staticmethod
-    def get_ontology_concepts_of_designator(designator: DesignatorDescription) -> List[owlready2.Thing]:
+    def get_ontology_concepts_of_designator(designator: DesignatorDescription) -> List[Thing]:
         """
         Get the corresponding ontology concepts for a given designator
 
@@ -127,20 +122,18 @@ class OntologyConceptHolder(object):
     :ivar ontology_concept: An ontology concept, either dynamically created, or loaded from an ontology
     """
 
-    def __init__(self, ontology_concept: owlready2.Thing):
+    def __init__(self, ontology_concept: Thing):
         """
         Initialize a holder of a given ontology concept instance
 
         :param ontology_concept: An ontology concept instance
         """
-        if owlready2 is None:
-            return
 
         #: An ontology concept, either dynamically created, or loaded from an ontology
-        self.ontology_concept: owlready2.Thing = ontology_concept
+        self.ontology_concept: Thing = ontology_concept
         #: List of designators associated with this ontology concept
         self.designators: List[DesignatorDescription] = []
-        #: A callable used to resolve the designators to whatever of interest, like designators or their resolving results
+        # A callable used to resolve the designators to whatever of interest, like designators or their resolving results
         self.resolve: Optional[Callable] = None
 
         #: The store for all OntologyConceptHolder instances

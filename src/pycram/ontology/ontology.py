@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 import inspect
+import itertools
 import logging
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Type
 
 import rospy
 
-try:
-    from owlready2 import *
-except ImportError:
-    owlready2 = None
-    rospy.logwarn("Could not import owlready2, OntologyManager could not be initialized!")
+from owlready2 import (Namespace, Ontology, World as OntologyWorld, onto_path, Thing, get_namespace, Property,
+                       ObjectProperty, destroy_entity, types)
 
 from ..datastructures.enums import ObjectType
 from ..helper import Singleton
@@ -30,53 +28,55 @@ class OntologyManager(object, metaclass=Singleton):
     Singleton class as the adapter accessing data of an OWL ontology, largely based on owlready2.
     """
 
-    def __init__(self, main_ontology_iri: str = "", ontology_search_path: str = ""):
+    def __init__(self, main_ontology_iri: Optional[str] = None, ontology_search_path: Optional[str] = None):
         """
         Create the singleton object of OntologyManager class
 
         :param main_ontology_iri: Ontology IRI (Internationalized Resource Identifier), either a URL to a remote OWL file or the full name path of a local one
         :param ontology_search_path: directory path from which a possibly existing ontology is searched. This is appended to `owlready2.onto_path`, a global variable containing a list of directories for searching local copies of ontologies (similarly to python `sys.path` for modules/packages). If not specified, the path is "$HOME/ontologies"
         """
-        if owlready2:
-            if not ontology_search_path:
-                ontology_search_path = f"{Path.home()}/ontologies"
-            Path(ontology_search_path).mkdir(parents=True, exist_ok=True)
-            owlready2.onto_path.append(ontology_search_path)
-        else:
-            return
+        if not ontology_search_path:
+            ontology_search_path = f"{Path.home()}/ontologies"
+        Path(ontology_search_path).mkdir(parents=True, exist_ok=True)
+        onto_path.append(ontology_search_path)
 
         #: A dictionary of OWL ontologies, keyed by ontology name (same as its namespace name), eg. 'SOMA'
-        self.ontologies: Dict[str, owlready2.Ontology] = {}
+        self.ontologies: Dict[str, Ontology] = {}
 
         #: The main ontology instance as the result of an ontology loading operation
-        self.main_ontology: Optional[owlready2.Ontology] = None
+        self.main_ontology: Optional[Ontology] = None
 
-        #: The SOMA ontology instance, referencing :attr:`ontology` in case of ontology loading from `SOMA.owl`. Ref: http://www.ease-crc.org/ont/SOMA.owl
-        self.soma: Optional[owlready2.Ontology] = None
+        #: The SOMA ontology instance, referencing :attr:`ontology` in case of ontology loading from `SOMA.owl`.
+        # Ref: http://www.ease-crc.org/ont/SOMA.owl
+        self.soma: Optional[Ontology] = None
 
-        #: The DUL ontology instance, referencing :attr:`ontology` in case of ontology loading from `DUL.owl`. Ref: http://www.ease-crc.org/ont/DUL.owl
-        self.dul: Optional[owlready2.Ontology] = None
+        #: The DUL ontology instance, referencing :attr:`ontology` in case of ontology loading from `DUL.owl`.
+        # Ref: http://www.ease-crc.org/ont/DUL.owl
+        self.dul: Optional[Ontology] = None
 
-        #: Ontology world, the placeholder of triples stored by owlready2. Ref: https://owlready2.readthedocs.io/en/latest/world.html
-        self.ontology_world: Optional[owlready2.World] = None
+        #: Ontology world, the placeholder of triples stored by owlready2.
+        # Ref: https://owlready2.readthedocs.io/en/latest/world.html
+        self.ontology_world: Optional[OntologyWorld] = None
 
-        #: Ontology IRI (Internationalized Resource Identifier), either a URL to a remote OWL file or the full name path of a local one
-        self.main_ontology_iri: str = main_ontology_iri
+        # Ontology IRI (Internationalized Resource Identifier), either a URL to a remote OWL file or the full
+        # name path of a local one
+        self.main_ontology_iri: str = main_ontology_iri if main_ontology_iri else SOMA_HOME_ONTOLOGY_IRI
 
         #: Namespace of the main ontology
-        self.main_ontology_namespace: Optional[owlready2.Namespace] = None
+        self.main_ontology_namespace: Optional[Namespace] = None
 
         # Create an ontology world with parallelized file parsing enabled
-        self.ontology_world = World(filename=f"{ontology_search_path}/{Path(main_ontology_iri).stem}.sqlite3",
-                                    exclusive=False, enable_thread_parallelism=True)
+        self.ontology_world = OntologyWorld(
+            filename=f"{ontology_search_path}/{Path(self.main_ontology_iri).stem}.sqlite3",
+            exclusive=False, enable_thread_parallelism=True)
 
-        self.main_ontology, self.main_ontology_namespace = self.load_ontology(main_ontology_iri)
+        self.main_ontology, self.main_ontology_namespace = self.load_ontology(self.main_ontology_iri)
         if self.main_ontology.loaded:
             self.soma = self.ontologies.get(SOMA_ONTOLOGY_NAMESPACE)
             self.dul = self.ontologies.get(DUL_ONTOLOGY_NAMESPACE)
 
     @staticmethod
-    def print_ontology_class(ontology_class: Type[owlready2.Thing]):
+    def print_ontology_class(ontology_class: Type[Thing]):
         """
         Print information (ancestors, super classes, subclasses, properties, etc.) of an ontology class
 
@@ -94,7 +94,7 @@ class OntologyManager(object, metaclass=Singleton):
         rospy.loginfo(f"Direct Instances: {list(ontology_class.direct_instances())}")
         rospy.loginfo(f"Inverse Restrictions: {list(ontology_class.inverse_restrictions())}")
 
-    def load_ontology(self, ontology_iri: str) -> tuple[owlready2.Ontology, owlready2.Namespace]:
+    def load_ontology(self, ontology_iri: str) -> tuple[Ontology, Namespace]:
         """
         Load an ontology from an IRI
 
@@ -102,7 +102,7 @@ class OntologyManager(object, metaclass=Singleton):
         :return: A tuple including an ontology instance & its namespace
         """
         ontology = self.ontology_world.get_ontology(ontology_iri).load(reload_if_newer=True)
-        ontology_namespace = owlready2.get_namespace(ontology_iri)
+        ontology_namespace = get_namespace(ontology_iri)
         if ontology.loaded:
             rospy.loginfo(
                 f'Ontology [{ontology.base_iri}]\'s name: {ontology.name} has been loaded')
@@ -127,7 +127,7 @@ class OntologyManager(object, metaclass=Singleton):
         return hasattr(self, "main_ontology") and self.main_ontology.loaded
 
     @staticmethod
-    def browse_ontologies(ontology: owlready2.Ontology,
+    def browse_ontologies(ontology: Ontology,
                           condition: Optional[Callable] = None, func: Optional[Callable] = None, **kwargs) -> None:
         """
         Browse the loaded ontologies (including the main and imported ones), doing operations based on a condition.
@@ -178,7 +178,8 @@ class OntologyManager(object, metaclass=Singleton):
             else f"{Path(self.ontology_world.filename).parent.absolute()}/{Path(self.main_ontology_iri).stem}.owl"
         save_to_same_file = is_current_ontology_local and (target_filename == current_ontology_filename)
         if save_to_same_file and not overwrite:
-            rospy.logerr(f"Ontologies cannot be saved to the originally loaded [{target_filename}] if not by overwriting")
+            rospy.logerr(
+                f"Ontologies cannot be saved to the originally loaded [{target_filename}] if not by overwriting")
             return False
         else:
             save_filename = target_filename if target_filename else current_ontology_filename
@@ -190,8 +191,8 @@ class OntologyManager(object, metaclass=Singleton):
             return True
 
     def create_ontology_concept_class(self, class_name: str,
-                                      ontology_parent_concept_class: Optional[owlready2.Thing] = None) \
-            -> Type[owlready2.Thing]:
+                                      ontology_parent_concept_class: Optional[Thing] = None) \
+            -> Type[Thing]:
         """
         Create a new concept class in ontology
 
@@ -204,13 +205,13 @@ class OntologyManager(object, metaclass=Singleton):
             return ontology_concept_class
 
         with self.main_ontology:
-            return types.new_class(class_name, (owlready2.Thing, ontology_parent_concept_class,)
-                   if inspect.isclass(ontology_parent_concept_class) else (owlready2.Thing,))
+            return types.new_class(class_name, (Thing, ontology_parent_concept_class,)
+            if inspect.isclass(ontology_parent_concept_class) else (Thing,))
 
     @staticmethod
     def create_ontology_property_class(class_name: str,
-                                       ontology_parent_property_class: Optional[Type[owlready2.Property]] = None) \
-            -> Optional[Type[owlready2.Property]]:
+                                       ontology_parent_property_class: Optional[Type[Property]] = None) \
+            -> Optional[Type[Property]]:
         """
         Create a new property class in ontology
 
@@ -220,12 +221,12 @@ class OntologyManager(object, metaclass=Singleton):
         """
         parent_class = ontology_parent_property_class if (ontology_parent_property_class and
                                                           issubclass(ontology_parent_property_class,
-                                                                     owlready2.Property)) \
+                                                                     Property)) \
             else None
-        return types.new_class(class_name, (parent_class,) if parent_class else (owlready2.Property,))
+        return types.new_class(class_name, (parent_class,) if parent_class else (Property,))
 
     def get_ontology_classes_by_condition(self, condition: Callable, first_match_only=False, **kwargs) \
-            -> List[Type[owlready2.Thing]]:
+            -> List[Type[Thing]]:
         """
         Get an ontology class by a given condition
 
@@ -252,7 +253,8 @@ class OntologyManager(object, metaclass=Singleton):
         return out_classes
 
     @staticmethod
-    def get_ontology_class_by_ontology(ontology: owlready2.Ontology, class_name: str) -> Optional[Type[owlready2.Thing]]:
+    def get_ontology_class_by_ontology(ontology: Ontology, class_name: str) -> Optional[
+        Type[Thing]]:
         """
         Get an ontology class if it exists in a given ontology
 
@@ -261,7 +263,7 @@ class OntologyManager(object, metaclass=Singleton):
         """
         return getattr(ontology, class_name) if ontology and hasattr(ontology, class_name) else None
 
-    def get_ontology_class(self, class_name: str) -> Optional[Type[owlready2.Thing]]:
+    def get_ontology_class(self, class_name: str) -> Optional[Type[Thing]]:
         """
         Get an ontology class by name
 
@@ -269,7 +271,7 @@ class OntologyManager(object, metaclass=Singleton):
         :return: The ontology class of the given name if existing else None
         """
 
-        def is_matching_class_name(ontology_class: Type[owlready2.Thing], ontology_class_name: str):
+        def is_matching_class_name(ontology_class: Type[Thing], ontology_class_name: str):
             return ontology_class.name == ontology_class_name
 
         found_classes = self.get_ontology_classes_by_condition(condition=is_matching_class_name,
@@ -278,7 +280,7 @@ class OntologyManager(object, metaclass=Singleton):
         return found_classes[0] if len(found_classes) > 0 else None
 
     def get_ontology_classes_by_namespace(self, ontology_namespace: str) -> List[
-        Type[owlready2.Thing]]:
+        Type[Thing]]:
         """
         Get all ontologies classes by namespace
 
@@ -286,13 +288,13 @@ class OntologyManager(object, metaclass=Singleton):
         :return: A list of the ontology classes under the given namespace
         """
 
-        def is_matching_ontology_namespace(ontology_class: Type[owlready2.Thing], ontology_namespace_: str):
+        def is_matching_ontology_namespace(ontology_class: Type[Thing], ontology_namespace_: str):
             return ontology_class.namespace.name == ontology_namespace_
 
         return self.get_ontology_classes_by_condition(condition=is_matching_ontology_namespace,
                                                       ontology_namespace_=ontology_namespace)
 
-    def get_ontology_classes_by_subname(self, class_subname: str) -> List[Type[owlready2.Thing]]:
+    def get_ontology_classes_by_subname(self, class_subname: str) -> List[Type[Thing]]:
         """
         Get all ontologies classes by subname
 
@@ -300,14 +302,14 @@ class OntologyManager(object, metaclass=Singleton):
         :return: A list of the ontology classes of which the name contains the given subname
         """
 
-        def is_matching_class_subname(ontology_class: Type[owlready2.Thing], ontology_class_subname: str):
+        def is_matching_class_subname(ontology_class: Type[Thing], ontology_class_subname: str):
             return ontology_class_subname.lower() in ontology_class.name.lower()
 
         return self.get_ontology_classes_by_condition(condition=is_matching_class_subname,
                                                       ontology_class_subname=class_subname)
 
-    def get_ontology_descendant_classes(self, ancestor_class: Type[owlready2.Thing], class_subname: str = "") \
-            -> List[Type[owlready2.Thing]]:
+    def get_ontology_descendant_classes(self, ancestor_class: Type[Thing], class_subname: str = "") \
+            -> List[Type[Thing]]:
         """
         Get ontology descendant classes of an ancestor class given descendant class subname
 
@@ -320,12 +322,12 @@ class OntologyManager(object, metaclass=Singleton):
 
     def create_ontology_triple_classes(self, subject_class_name: str, object_class_name: str,
                                        predicate_name: str, inverse_predicate_name: str,
-                                       ontology_subject_parent_class: Optional[Type[owlready2.Thing]] = None,
-                                       ontology_object_parent_class: Optional[Type[owlready2.Thing]] = None,
+                                       ontology_subject_parent_class: Optional[Type[Thing]] = None,
+                                       ontology_object_parent_class: Optional[Type[Thing]] = None,
                                        ontology_property_parent_class: Optional[Type[
-                                           owlready2.Property]] = owlready2.ObjectProperty if owlready2 else None,
+                                           Property]] = ObjectProperty,
                                        ontology_inverse_property_parent_class: Optional[Type[
-                                           owlready2.Property]] = owlready2.ObjectProperty if owlready2 else None) -> None:
+                                           Property]] = ObjectProperty) -> None:
         """
         Dynamically create ontology triple classes under same namespace with the main ontology,
         as known as {subject, predicate, object}, with the relations among them
@@ -365,7 +367,7 @@ class OntologyManager(object, metaclass=Singleton):
     def create_ontology_linked_designator(self, designator_class: Type[DesignatorDescription],
                                           ontology_concept_name: str,
                                           object_name: Optional[str] = "",
-                                          ontology_parent_class: Optional[Type[owlready2.Thing]] = None) \
+                                          ontology_parent_class: Optional[Type[Thing]] = None) \
             -> Optional[DesignatorDescription]:
         """
         Create a designator linked to a given ontology concept
@@ -382,7 +384,7 @@ class OntologyManager(object, metaclass=Singleton):
                                                                  object_name=object_name)
 
     def create_ontology_linked_designator_by_concept(self, designator_class: Type[DesignatorDescription],
-                                                     ontology_concept_class: Type[owlready2.Thing],
+                                                     ontology_concept_class: Type[Thing],
                                                      object_name: Optional[str] = "") \
             -> Optional[DesignatorDescription]:
         """
@@ -395,7 +397,8 @@ class OntologyManager(object, metaclass=Singleton):
         """
         ontology_concept_name = f'{object_name}_concept'
         if len(OntologyConceptHolderStore().get_designators_of_ontology_concept(ontology_concept_name)) > 0:
-            rospy.logerr(f"A designator named [{object_name}] is already created for ontology concept [{ontology_concept_name}]")
+            rospy.logerr(
+                f"A designator named [{object_name}] is already created for ontology concept [{ontology_concept_name}]")
             return None
 
         # Create a designator of `designator_class`
@@ -410,7 +413,8 @@ class OntologyManager(object, metaclass=Singleton):
             designator = designator_class()
 
         # Link designator with an ontology concept of `ontology_concept_class`
-        ontology_concept_holder = OntologyConceptHolderStore().get_ontology_concept_holder_by_name(ontology_concept_name)
+        ontology_concept_holder = OntologyConceptHolderStore().get_ontology_concept_holder_by_name(
+            ontology_concept_name)
         if ontology_concept_holder is None:
             ontology_concept_holder = OntologyConceptHolder(ontology_concept_class(name=ontology_concept_name,
                                                                                    namespace=self.main_ontology))
@@ -474,7 +478,7 @@ class OntologyManager(object, metaclass=Singleton):
               if hasattr(subject_concept_holder.ontology_concept, predicate_name)]))
 
     def create_ontology_object_designator_from_type(self, object_type: ObjectType,
-                                                    ontology_concept_class: Type[owlready2.Thing]) \
+                                                    ontology_concept_class: Type[Thing]) \
             -> Optional[ObjectDesignatorDescription]:
         """
         Create an object designator associated with an ontology concept class from a given object type

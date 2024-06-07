@@ -6,7 +6,7 @@ import pycram.plan_failures
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.world import World
 from pycram.designators import action_designator
-from pycram.designators.performables.actions import MoveTorsoActionPerformable, PickUpActionPerformable, \
+from pycram.designators.action_designator import MoveTorsoActionPerformable, PickUpActionPerformable, \
     NavigateActionPerformable, PlaceActionPerformable
 from pycram.orm.base import Base
 from pycram.designators.object_designator import ObjectDesignatorDescription
