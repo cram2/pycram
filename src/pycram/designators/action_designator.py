@@ -505,9 +505,9 @@ class GraspingAction(ActionDesignatorDescription):
         return GraspingActionPerformable(self.arms[0], self.object_description.resolve())
 
 
-# ----------------------------------------------
-# ---------------- Performables ----------------
-# ----------------------------------------------
+# ----------------------------------------------------------------------------
+# ---------------- Performables ----------------------------------------------
+# ----------------------------------------------------------------------------
 
 
 @dataclass
@@ -719,8 +719,6 @@ class PickUpActionPerformable(ActionAbstract):
     def perform(self) -> None:
         # Store the object's data copy at execution
         self.object_at_execution = self.object_designator.frozen_copy()
-        print(type(World))
-        print(World)
         robot = World.robot
         # Retrieve object and robot from designators
         object = self.object_designator.world_object
@@ -737,16 +735,6 @@ class PickUpActionPerformable(ActionAbstract):
         # multiplying the orientation therefore "rotating" it, to get the correct orientation of the gripper
 
         adjusted_oTm.multiply_quaternions(grasp)
-
-        # ori = multiply_quaternions([adjusted_oTm.orientation.x, adjusted_oTm.orientation.y,
-        #                             adjusted_oTm.orientation.z, adjusted_oTm.orientation.w],
-        #                            grasp)
-        #
-        # # Set the orientation of the object pose by grasp in MAP
-        # adjusted_oTm.orientation.x = ori[0]
-        # adjusted_oTm.orientation.y = ori[1]
-        # adjusted_oTm.orientation.z = ori[2]
-        # adjusted_oTm.orientation.w = ori[3]
 
         # prepose depending on the gripper (its annoying we have to put pr2_1 here tbh
         # gripper_frame = "pr2_1/l_gripper_tool_frame" if self.arm == "left" else "pr2_1/r_gripper_tool_frame"

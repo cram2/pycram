@@ -8,7 +8,7 @@ import rospy
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
-from ..description import ObjectDescription, LinkDescription
+from ..description import ObjectDescription, LinkDescription, Joint
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..robot_descriptions import robot_description
 from ..datastructures.world import WorldEntity, World
@@ -988,7 +988,7 @@ class Object(WorldEntity):
         return Pose([aabb.min_x + base_width / 2, aabb.min_y + base_length / 2, aabb.min_z],
                     self.get_orientation_as_list())
 
-    def get_joint_by_id(self, joint_id: int):
+    def get_joint_by_id(self, joint_id: int) -> Joint:
         """
         Returns the joint object with the given id.
 
