@@ -3,13 +3,18 @@ from __future__ import annotations
 import inspect
 import itertools
 import logging
-from pathlib import Path
-from typing import Callable, Dict, List, Optional, Type
 
+from pathlib import Path
+from typing import Callable, Dict, List, Optional, Type, Tuple, Union
+
+import owlready2
 import rospy
 
-from owlready2 import (Namespace, Ontology, World as OntologyWorld, onto_path, Thing, get_namespace, Property,
-                       ObjectProperty, destroy_entity, types)
+from owlready2 import (Namespace, Ontology, World as OntologyWorld, Thing, EntityClass, Imp,
+                       Property, ObjectProperty, OwlReadyError, types,
+                       onto_path, default_world, get_namespace, get_ontology, destroy_entity,
+                       sync_reasoner_pellet, sync_reasoner_hermit)
+from owlready2.class_construct import GeneralClassAxiom
 
 from ..datastructures.enums import ObjectType
 from ..helper import Singleton
@@ -28,12 +33,14 @@ class OntologyManager(object, metaclass=Singleton):
     Singleton class as the adapter accessing data of an OWL ontology, largely based on owlready2.
     """
 
-    def __init__(self, main_ontology_iri: Optional[str] = None, ontology_search_path: Optional[str] = None):
+    def __init__(self, main_ontology_iri: Optional[str] = None, ontology_search_path: Optional[str] = None,
+                 use_global_default_world: bool = True):
         """
         Create the singleton object of OntologyManager class
 
         :param main_ontology_iri: Ontology IRI (Internationalized Resource Identifier), either a URL to a remote OWL file or the full name path of a local one
         :param ontology_search_path: directory path from which a possibly existing ontology is searched. This is appended to `owlready2.onto_path`, a global variable containing a list of directories for searching local copies of ontologies (similarly to python `sys.path` for modules/packages). If not specified, the path is "$HOME/ontologies"
+        :param use_global_default_world: whether or not using the owlready2-provided global default persistent world
         """
         if not ontology_search_path:
             ontology_search_path = f"{Path.home()}/ontologies"
@@ -43,20 +50,20 @@ class OntologyManager(object, metaclass=Singleton):
         #: A dictionary of OWL ontologies, keyed by ontology name (same as its namespace name), eg. 'SOMA'
         self.ontologies: Dict[str, Ontology] = {}
 
-        #: The main ontology instance as the result of an ontology loading operation
+        #: The main ontology instance created by Ontology Manager at initialization as the result of loading from `main_ontology_iri`
         self.main_ontology: Optional[Ontology] = None
 
-        #: The SOMA ontology instance, referencing :attr:`ontology` in case of ontology loading from `SOMA.owl`.
+        #: The SOMA ontology instance, referencing :attr:`main_ontology` in case of ontology loading from `SOMA.owl`.
         # Ref: http://www.ease-crc.org/ont/SOMA.owl
         self.soma: Optional[Ontology] = None
 
-        #: The DUL ontology instance, referencing :attr:`ontology` in case of ontology loading from `DUL.owl`.
+        #: The DUL ontology instance, referencing :attr:`main_ontology` in case of ontology loading from `DUL.owl`.
         # Ref: http://www.ease-crc.org/ont/DUL.owl
         self.dul: Optional[Ontology] = None
 
-        #: Ontology world, the placeholder of triples stored by owlready2.
+        #: The main ontology world, the placeholder of triples created in :attr:`main_ontology`.
         # Ref: https://owlready2.readthedocs.io/en/latest/world.html
-        self.ontology_world: Optional[OntologyWorld] = None
+        self.main_ontology_world: Optional[OntologyWorld] = None
 
         # Ontology IRI (Internationalized Resource Identifier), either a URL to a remote OWL file or the full
         # name path of a local one
@@ -65,11 +72,10 @@ class OntologyManager(object, metaclass=Singleton):
         #: Namespace of the main ontology
         self.main_ontology_namespace: Optional[Namespace] = None
 
-        # Create an ontology world with parallelized file parsing enabled
-        self.ontology_world = OntologyWorld(
-            filename=f"{ontology_search_path}/{Path(self.main_ontology_iri).stem}.sqlite3",
-            exclusive=False, enable_thread_parallelism=True)
+        # Create the main ontology world with parallelized file parsing enabled
+        self.main_ontology_world = self.create_ontology_world(use_global_default_world=use_global_default_world)
 
+        # Load ontologies from `main_ontology_iri` to `main_ontology_world`
         self.main_ontology, self.main_ontology_namespace = self.load_ontology(self.main_ontology_iri)
         if self.main_ontology.loaded:
             self.soma = self.ontologies.get(SOMA_ONTOLOGY_NAMESPACE)
@@ -84,24 +90,80 @@ class OntologyManager(object, metaclass=Singleton):
         """
         if ontology_class is None:
             return
-        rospy.loginfo("-------------------")
         rospy.loginfo(f"{ontology_class} {type(ontology_class)}")
+        rospy.loginfo(f"Defined class: {ontology_class.get_defined_class()}")
         rospy.loginfo(f"Super classes: {ontology_class.is_a}")
-        rospy.loginfo(f"Ancestors: {ontology_class.ancestors()}")
+        rospy.loginfo(f"Equivalent to: {EntityClass.get_equivalent_to(ontology_class)}")
+        rospy.loginfo(f"Indirectly equivalent to: {ontology_class.get_indirect_equivalent_to()}")
+        rospy.loginfo(f"Ancestors: {list(ontology_class.ancestors())}")
         rospy.loginfo(f"Subclasses: {list(ontology_class.subclasses())}")
+        rospy.loginfo(f"Disjoint unions: {ontology_class.get_disjoint_unions()}")
         rospy.loginfo(f"Properties: {list(ontology_class.get_class_properties())}")
+        rospy.loginfo(f"Indirect Properties: {list(ontology_class.INDIRECT_get_class_properties())}")
         rospy.loginfo(f"Instances: {list(ontology_class.instances())}")
         rospy.loginfo(f"Direct Instances: {list(ontology_class.direct_instances())}")
         rospy.loginfo(f"Inverse Restrictions: {list(ontology_class.inverse_restrictions())}")
+        rospy.loginfo("-------------------")
 
-    def load_ontology(self, ontology_iri: str) -> tuple[Ontology, Namespace]:
+    @staticmethod
+    def print_ontology_property(ontology_property: Property):
+        """
+        Print information (subjects, objects, relations, etc.) of an ontology property
+
+        :param ontology_property: An ontology property
+        """
+        if ontology_property is None:
+            return
+        property_class = type(ontology_property)
+        rospy.loginfo(f"{ontology_property} {property_class}")
+        rospy.loginfo(f"Relations: {list(ontology_property.get_relations())}")
+        rospy.loginfo(f"Domain: {ontology_property.get_domain()}")
+        rospy.loginfo(f"Range: {ontology_property.get_range()}")
+        if hasattr(property_class, "_equivalent_to"):
+            rospy.loginfo(f"Equivalent classes: {EntityClass.get_equivalent_to(property_class)}")
+        if hasattr(property_class, "_indirect"):
+            rospy.loginfo(f"Indirectly equivalent classes: {EntityClass.get_indirect_equivalent_to(property_class)}")
+        rospy.loginfo(f"Property chain: {ontology_property.get_property_chain()}")
+        rospy.loginfo(f"Class property type: {ontology_property.get_class_property_type()}")
+        rospy.loginfo("-------------------")
+
+    @staticmethod
+    def create_ontology_world(use_global_default_world: bool = False) -> OntologyWorld:
+        """
+        Either reuse the owlready2-provided global default ontology world or create a new one
+
+        :param use_global_default_world: whether or not using the owlready2-provided global default persistent world
+        :return: owlready2-provided global default ontology world or a newly created ontology world
+        """
+        world = default_world
+        if use_global_default_world:
+            world.set_backend(exclusive=False, enable_thread_parallelism=True)
+        else:
+            world = OntologyWorld(exclusive=False, enable_thread_parallelism=True)
+        return world
+
+    def load_ontology(self, ontology_iri: str) -> tuple[Optional[Ontology], Optional[Namespace]]:
         """
         Load an ontology from an IRI
 
         :param ontology_iri: An ontology IRI
         :return: A tuple including an ontology instance & its namespace
         """
-        ontology = self.ontology_world.get_ontology(ontology_iri).load(reload_if_newer=True)
+        if not ontology_iri:
+            rospy.logerr("Ontology IRI is empty")
+            return None, None
+
+        # If `ontology_iri` is a local path -> create an empty ontology file if not existing
+        if not (ontology_iri.startswith("http:") or ontology_iri.startswith("https:")) \
+                and not Path(ontology_iri).exists():
+            with open(ontology_iri, 'w'):
+                pass
+
+        # Load ontology from `ontology_iri`
+        if self.main_ontology_world:
+            ontology = self.main_ontology_world.get_ontology(ontology_iri).load(reload_if_newer=True)
+        else:
+            ontology = get_ontology(ontology_iri).load(reload_if_newer=True)
         ontology_namespace = get_namespace(ontology_iri)
         if ontology.loaded:
             rospy.loginfo(
@@ -161,21 +223,17 @@ class OntologyManager(object, metaclass=Singleton):
 
     def save(self, target_filename: str = "", overwrite: bool = False) -> bool:
         """
-        Save the current ontology to disk
+        Save :attr:`main_ontology` to a file on disk, also caching :attr:`main_ontology_world` to a sqlite3 file
 
         :param target_filename: full name path of a file which the ontologies are saved into.
         :param overwrite: overwrite an existing file if it exists. If empty, they are saved to the same original OWL file from which the main ontology was loaded, or a file at the same folder with ontology search path specified at constructor if it was loaded from a remote IRI.
         :return: True if the ontology was successfully saved, False otherwise
         """
 
-        # Commit the whole graph data of the current ontology world, saving it into SQLite3, to be reused the next time
-        # the ontologies are loaded
-        self.ontology_world.save()
-
         # Save ontologies to OWL
         is_current_ontology_local = Path(self.main_ontology_iri).exists()
         current_ontology_filename = self.main_ontology_iri if is_current_ontology_local \
-            else f"{Path(self.ontology_world.filename).parent.absolute()}/{Path(self.main_ontology_iri).stem}.owl"
+            else f"{Path(self.main_ontology_world.filename).parent.absolute()}/{Path(self.main_ontology_iri).stem}.owl"
         save_to_same_file = is_current_ontology_local and (target_filename == current_ontology_filename)
         if save_to_same_file and not overwrite:
             rospy.logerr(
@@ -185,45 +243,70 @@ class OntologyManager(object, metaclass=Singleton):
             save_filename = target_filename if target_filename else current_ontology_filename
             self.main_ontology.save(save_filename)
             if save_to_same_file and overwrite:
-                rospy.logwarn(f"Ontologies have been overwritten to {save_filename}")
+                rospy.logwarn(f"Main ontology {self.main_ontology.name} has been overwritten to {save_filename}")
             else:
-                rospy.loginfo(f"Ontologies have been saved to {save_filename}")
+                rospy.loginfo(f"Main ontology {self.main_ontology.name} has been saved to {save_filename}")
+
+            # Commit the whole graph data of the current ontology world, saving it into SQLite3, to be reused the next time
+            # the ontologies are loaded
+            main_ontology_sql_filename = f"{onto_path[0]}/{Path(save_filename).stem}.sqlite3"
+            self.main_ontology_world.save(file=main_ontology_sql_filename)
+            if Path(main_ontology_sql_filename).is_file():
+                rospy.loginfo(
+                    f"Main ontology world for {self.main_ontology.name} has been cached and saved to SQL: {main_ontology_sql_filename}")
+            else:
+                rospy.logwarn(f"Failed caching main ontology world for {self.main_ontology.name} to SQL")
             return True
 
     def create_ontology_concept_class(self, class_name: str,
-                                      ontology_parent_concept_class: Optional[Thing] = None) \
-            -> Type[Thing]:
+                                      ontology_parent_concept_class: Optional[Thing] = None,
+                                      ontology: Optional[Ontology] = None) \
+            -> Optional[Type[Thing]]:
         """
-        Create a new concept class in ontology
+        Create a new concept class in a given ontology
 
         :param class_name: A given name to the new class
         :param ontology_parent_concept_class: An optional parent ontology class of the new class
+        :param ontology: an owlready2.Ontology in which the concept class is created
         :return: The created ontology class
         """
-        ontology_concept_class = self.get_ontology_class_by_ontology(self.main_ontology, class_name)
+        ontology = ontology if ontology else self.main_ontology
+        ontology_concept_class = self.get_ontology_class_by_ontology(ontology, class_name)
         if ontology_concept_class:
             return ontology_concept_class
 
-        with self.main_ontology:
+        if getattr(ontology, class_name):
+            rospy.logerr(f"Ontology concept class {ontology.name}.{class_name} already exists")
+            return None
+
+        with ontology:
             return types.new_class(class_name, (Thing, ontology_parent_concept_class,)
             if inspect.isclass(ontology_parent_concept_class) else (Thing,))
 
-    @staticmethod
-    def create_ontology_property_class(class_name: str,
-                                       ontology_parent_property_class: Optional[Type[Property]] = None) \
+    def create_ontology_property_class(self, class_name: str,
+                                       ontology_parent_property_class: Optional[Type[Property]] = None,
+                                       ontology: Optional[Ontology] = None) \
             -> Optional[Type[Property]]:
         """
-        Create a new property class in ontology
+        Create a new property class in a given ontology
 
         :param class_name: A given name to the new class
         :param ontology_parent_property_class: An optional parent ontology property class of the new class
+        :param ontology: an owlready2.Ontology in which the concept class is created
         :return: The created ontology class
         """
+        ontology = ontology if ontology else self.main_ontology
         parent_class = ontology_parent_property_class if (ontology_parent_property_class and
                                                           issubclass(ontology_parent_property_class,
                                                                      Property)) \
             else None
-        return types.new_class(class_name, (parent_class,) if parent_class else (Property,))
+
+        if getattr(ontology, class_name):
+            rospy.logerr(f"Ontology property class {ontology.name}.{class_name} already exists")
+            return None
+
+        with ontology:
+            return types.new_class(class_name, (parent_class,) if parent_class else (Property,))
 
     def get_ontology_classes_by_condition(self, condition: Callable, first_match_only=False, **kwargs) \
             -> List[Type[Thing]]:
@@ -253,12 +336,12 @@ class OntologyManager(object, metaclass=Singleton):
         return out_classes
 
     @staticmethod
-    def get_ontology_class_by_ontology(ontology: Ontology, class_name: str) -> Optional[
-        Type[Thing]]:
+    def get_ontology_class_by_ontology(ontology: Ontology, class_name: str) -> Optional[Type[Thing]]:
         """
         Get an ontology class if it exists in a given ontology
 
         :param ontology: an ontology instance
+        :param class_name: name of the searched-for ontology class
         :return: The ontology class if it exists under the namespace of the given ontology, None otherwise
         """
         return getattr(ontology, class_name) if ontology and hasattr(ontology, class_name) else None
@@ -279,8 +362,7 @@ class OntologyManager(object, metaclass=Singleton):
                                                                first_match_only=True)
         return found_classes[0] if len(found_classes) > 0 else None
 
-    def get_ontology_classes_by_namespace(self, ontology_namespace: str) -> List[
-        Type[Thing]]:
+    def get_ontology_classes_by_namespace(self, ontology_namespace: str) -> List[Type[Thing]]:
         """
         Get all ontologies classes by namespace
 
@@ -320,53 +402,102 @@ class OntologyManager(object, metaclass=Singleton):
                 if (class_subname.lower() in ontology_class.name.lower()) and
                 (ancestor_class in ontology_class.ancestors())]
 
+    def get_ontology_general_class_axioms(self, ontology: Ontology) -> List[GeneralClassAxiom]:
+        """
+        Get general class axioms of an ontology
+        Ref: https://owlready2.readthedocs.io/en/latest/general_class_axioms.html
+
+        :param ontology: an ontology instance
+        :return: A list of ontology axioms in the ontology
+        """
+        ontology = ontology if ontology else self.main_ontology
+        return list(ontology.general_class_axioms())
+
     def create_ontology_triple_classes(self, subject_class_name: str, object_class_name: str,
-                                       predicate_name: str, inverse_predicate_name: str,
+                                       predicate_class_name: str, inverse_predicate_class_name: Optional[str] = None,
+                                       predicate_python_attribute_name: Optional[str] = None,
+                                       inverse_predicate_python_attribute_name: Optional[str] = None,
                                        ontology_subject_parent_class: Optional[Type[Thing]] = None,
-                                       ontology_object_parent_class: Optional[Type[Thing]] = None,
-                                       ontology_property_parent_class: Optional[Type[
-                                           Property]] = ObjectProperty,
-                                       ontology_inverse_property_parent_class: Optional[Type[
-                                           Property]] = ObjectProperty) -> None:
+                                       ontology_object_parent_class: Optional[Type[Union[Thing, object]]] = None,
+                                       ontology_property_parent_class: Type[Property] = ObjectProperty,
+                                       ontology_inverse_property_parent_class: Type[Property] = ObjectProperty,
+                                       ontology: Optional[Ontology] = None) -> bool:
         """
         Dynamically create ontology triple classes under same namespace with the main ontology,
         as known as {subject, predicate, object}, with the relations among them
 
         :param subject_class_name: name of the subject class
         :param object_class_name: name of the object class
-        :param predicate_name: name of predicate class, also used as a Python attribute of the subject class to query object instances
-        :param inverse_predicate_name: name of inverse predicate
+        :param predicate_class_name: name of predicate class, also used as a Python attribute of the subject class to query object instances
+        :param predicate_python_attribute_name: python attribute name designated for the predicate instance
+        :param inverse_predicate_class_name: name of inverse predicate
+        :param inverse_predicate_python_attribute_name: python attribute name designated for the inverse predicate instance
         :param ontology_subject_parent_class: a parent class of the subject class
         :param ontology_object_parent_class: a parent class of the object class
         :param ontology_property_parent_class: a parent ontology property class, default: owlready2.ObjectProperty
         :param ontology_inverse_property_parent_class: a parent ontology inverse property class, default: owlready2.ObjectProperty
+        :param ontology: an owlready2.Ontology in which triples are created
+        :return: True if the ontology triple classes are created successfully
         """
 
+        if not predicate_python_attribute_name:
+            predicate_python_attribute_name = predicate_class_name
+        if not inverse_predicate_python_attribute_name:
+            inverse_predicate_python_attribute_name = inverse_predicate_class_name
+        ontology = ontology if ontology else self.main_ontology
+
         # This context manager ensures all classes created here-in share the same namepsace with `self.main_ontology`
-        with self.main_ontology:
+        with ontology:
             # Subject
             ontology_subject_class = self.create_ontology_concept_class(subject_class_name,
-                                                                        ontology_subject_parent_class)
+                                                                        ontology_subject_parent_class,
+                                                                        ontology=ontology)
+            if not ontology_subject_class:
+                rospy.logerr(f"{ontology.name}: Failed creating ontology subject class named {subject_class_name}")
+                return False
 
             # Object
-            ontology_object_class = self.create_ontology_concept_class(object_class_name, ontology_object_parent_class)
+            if not ontology_object_parent_class or issubclass(ontology_object_parent_class, Thing):
+                ontology_object_class = self.create_ontology_concept_class(object_class_name,
+                                                                           ontology_object_parent_class,
+                                                                           ontology=ontology) \
+                    if (object_class_name != subject_class_name) else ontology_subject_class
+            else:
+                ontology_object_class = ontology_object_parent_class
+
+            if not ontology_object_class:
+                rospy.logerr(f"{ontology.name}: Failed creating ontology object class named {object_class_name}")
+                return False
 
             # Predicate
-            ontology_predicate_class = self.create_ontology_property_class("OntologyPredicate",
-                                                                           ontology_property_parent_class)
+            ontology_predicate_class = self.create_ontology_property_class(predicate_class_name,
+                                                                           ontology_property_parent_class,
+                                                                           ontology=ontology)
+            if not ontology_predicate_class:
+                rospy.logerr(f"{ontology.name}: Failed creating ontology predicate class named {predicate_class_name}")
+                return False
             ontology_predicate_class.domain = [ontology_subject_class]
             ontology_predicate_class.range = [ontology_object_class]
-            ontology_predicate_class.python_name = predicate_name
+            ontology_predicate_class.python_name = predicate_python_attribute_name
 
             # Inverse Predicate
-            ontology_inverse_predicate = self.create_ontology_property_class("OntologyInversePredicate",
-                                                                             ontology_inverse_property_parent_class)
-            ontology_inverse_predicate.inverse_property = ontology_predicate_class
-            ontology_inverse_predicate.python_name = inverse_predicate_name
+            if inverse_predicate_class_name:
+                ontology_inverse_predicate_class = self.create_ontology_property_class(inverse_predicate_class_name,
+                                                                                       ontology_inverse_property_parent_class,
+                                                                                       ontology=ontology)
+                if not ontology_inverse_predicate_class:
+                    rospy.logerr(
+                        f"{ontology.name}: Failed creating ontology inverse-predicate class named {inverse_predicate_class_name}")
+                    return False
+                ontology_inverse_predicate_class.inverse_property = ontology_predicate_class
+                ontology_inverse_predicate_class.domain = [ontology_object_class]
+                ontology_inverse_predicate_class.range = [ontology_subject_class]
+                ontology_inverse_predicate_class.python_name = inverse_predicate_python_attribute_name
+        return True
 
     def create_ontology_linked_designator(self, designator_class: Type[DesignatorDescription],
                                           ontology_concept_name: str,
-                                          object_name: Optional[str] = "",
+                                          object_name: str,
                                           ontology_parent_class: Optional[Type[Thing]] = None) \
             -> Optional[DesignatorDescription]:
         """
@@ -385,7 +516,7 @@ class OntologyManager(object, metaclass=Singleton):
 
     def create_ontology_linked_designator_by_concept(self, designator_class: Type[DesignatorDescription],
                                                      ontology_concept_class: Type[Thing],
-                                                     object_name: Optional[str] = "") \
+                                                     object_name: str) \
             -> Optional[DesignatorDescription]:
         """
         Create a designator that belongs to a given ontology concept class
@@ -508,3 +639,100 @@ class OntologyManager(object, metaclass=Singleton):
                 destroy_entity(ontology_individual)
             OntologyConceptHolderStore().remove_ontology_concept(ontology_class.name)
         destroy_entity(ontology_class)
+
+    def create_rule_reflexivity(self, ontology_concept_class_name: str,
+                                predicate_name: str,
+                                ontology: Optional[Ontology] = None) -> Imp:
+        """
+        Create the rule of reflexivity for a given ontology concept class.
+        Same effect is obtained by creating a dynamic ontology predicate class, subclassing owlready2.ReflexiveProperty.
+        Ref: https://en.wikipedia.org/wiki/Reflexive_relation
+
+        :param ontology_concept_class_name: Name of the ontology concept class having the relation defined
+        :param predicate_name: Name of the ontology predicate signifying the reflexive relation
+        :param ontology: The ontology for which the rule is created
+        :return: Rule of transitivity
+        """
+        ontology = ontology if ontology else self.main_ontology
+        with ontology:
+            rule = Imp()
+            rule.set_as_rule(f"""{ontology_concept_class_name}(?a)
+                                 -> {predicate_name}(?a, ?a)""")
+            return rule
+
+    def create_rule_symmetry(self, ontology_concept_class_name: str,
+                             predicate_name: str,
+                             ontology: Optional[Ontology] = None) -> Imp:
+        """
+        Create the rule of transitivity for a given ontology concept class.
+        Same effect is obtained by creating a dynamic ontology predicate class, subclassing owlready2.SymmetricProperty.
+        Ref: https://en.wikipedia.org/wiki/Symmetric_relation
+
+        :param ontology_concept_class_name: Name of the ontology concept class having the relation defined
+        :param predicate_name: Name of the ontology predicate signifying the symmetric relation
+        :param ontology: The ontology for which the rule is created
+        :return: Rule of symmetry
+        """
+        ontology = ontology if ontology else self.main_ontology
+        with ontology:
+            rule = Imp()
+            rule.set_as_rule(f"""{ontology_concept_class_name}(?a), {ontology_concept_class_name}(?b),
+                                 {predicate_name}(?a, ?b)
+                                 -> {predicate_name}(?b, ?a)""")
+            return rule
+
+    def create_rule_transitivity(self, ontology_concept_class_name: str,
+                                 predicate_name: str,
+                                 ontology: Optional[Ontology] = None) -> Imp:
+        """
+        Create the rule of transitivity for a given ontology concept class.
+        Same effect is obtained by creating a dynamic ontology predicate class, subclassing owlready2.TransitiveProperty.
+        Ref:
+        - https://en.wikipedia.org/wiki/Transitive_relation
+        - https://owlready2.readthedocs.io/en/latest/properties.html#obtaining-indirect-relations-considering-subproperty-transitivity-etc
+
+        :param ontology_concept_class_name: Name of the ontology concept class having the relation defined
+        :param predicate_name: Name of the ontology predicate signifying the transitive relation
+        :param ontology: The ontology for which the rule is created
+        :return: Rule of transitivity
+        """
+        ontology = ontology if ontology else self.main_ontology
+        with ontology:
+            rule = Imp()
+            rule.set_as_rule(
+                f"""{ontology_concept_class_name}(?a), {ontology_concept_class_name}(?b), {ontology_concept_class_name}(?c),
+                                 {predicate_name}(?a, ?b),
+                                 {predicate_name}(?b, ?c)
+                                 -> {predicate_name}(?a, ?c)""")
+            return rule
+
+    def reason(self, world: OntologyWorld = None, use_pellet_reasoner: bool = True) -> bool:
+        """
+        Run the reasoning with Pellet or HermiT reasoner on :attr:`main_ontology`, the two currently supported by owlready2
+        - By default, the reasoning works on `owlready2.default_world`
+        - The reasoning also automatically save ontologies to a temporary sqlite3 file
+        Ref:
+        - https://owlready2.readthedocs.io/en/latest/reasoning.html
+        - https://owlready2.readthedocs.io/en/latest/rule.html
+        - https://www.researchgate.net/publication/200758993_Benchmarking_OWL_reasoners
+        - https://www.researchgate.net/publication/345959058_OWL2Bench_A_Benchmark_for_OWL_2_Reasoners
+
+        :param world: An owlready2.World to reason about. If None, use :attr:`main_ontology_world`
+        :param use_pellet_reasoner: Use Pellet reasoner, otherwise HermiT
+        :return: True if the reasoning was successful, otherwise False
+        """
+        reasoner_name = None
+        reasoning_world = world if world else self.main_ontology_world
+        try:
+            if use_pellet_reasoner:
+                reasoner_name = "Pellet"
+                sync_reasoner_pellet(x=reasoning_world, infer_property_values=True,
+                                     infer_data_property_values=True)
+            else:
+                reasoner_name = "HermiT"
+                sync_reasoner_hermit(x=reasoning_world, infer_property_values=True)
+        except OwlReadyError as error:
+            rospy.logerr(f"{reasoner_name} reasoning failed: {error}")
+            return False
+        rospy.loginfo(f"{reasoner_name} reasoning finishes!")
+        return True
