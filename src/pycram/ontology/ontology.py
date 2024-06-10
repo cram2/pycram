@@ -275,7 +275,7 @@ class OntologyManager(object, metaclass=Singleton):
         if ontology_concept_class:
             return ontology_concept_class
 
-        if getattr(ontology, class_name):
+        if getattr(ontology, class_name, None):
             rospy.logerr(f"Ontology concept class {ontology.name}.{class_name} already exists")
             return None
 
@@ -301,7 +301,7 @@ class OntologyManager(object, metaclass=Singleton):
                                                                      Property)) \
             else None
 
-        if getattr(ontology, class_name):
+        if getattr(ontology, class_name, None):
             rospy.logerr(f"Ontology property class {ontology.name}.{class_name} already exists")
             return None
 
@@ -344,7 +344,7 @@ class OntologyManager(object, metaclass=Singleton):
         :param class_name: name of the searched-for ontology class
         :return: The ontology class if it exists under the namespace of the given ontology, None otherwise
         """
-        return getattr(ontology, class_name) if ontology and hasattr(ontology, class_name) else None
+        return getattr(ontology, class_name, None) if ontology else None
 
     def get_ontology_class(self, class_name: str) -> Optional[Type[Thing]]:
         """
@@ -605,8 +605,7 @@ class OntologyManager(object, metaclass=Singleton):
         return list(itertools.chain(
             *[OntologyConceptHolderStore().get_designators_of_ontology_concept(object_concept.name)
               for subject_concept_holder in subject.ontology_concept_holders
-              for object_concept in getattr(subject_concept_holder.ontology_concept, predicate_name)
-              if hasattr(subject_concept_holder.ontology_concept, predicate_name)]))
+              for object_concept in getattr(subject_concept_holder.ontology_concept, predicate_name, [])]))
 
     def create_ontology_object_designator_from_type(self, object_type: ObjectType,
                                                     ontology_concept_class: Type[Thing]) \
