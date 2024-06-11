@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os.path
 import unittest
 import logging
 from pathlib import Path
@@ -15,8 +16,9 @@ except ImportError:
     owlready2 = None
     rospy.logwarn("Could not import owlready2, Ontology unit-tests could not run!")
 
-from pycram.ontology.ontology import OntologyManager, SOMA_ONTOLOGY_IRI
-from pycram.ontology.ontology_common import OntologyConceptHolderStore, OntologyConceptHolder
+from pycram.ontology.ontology import OntologyManager, SOMA_HOME_ONTOLOGY_IRI, SOMA_ONTOLOGY_IRI
+from pycram.ontology.ontology_common import (OntologyConceptHolderStore, OntologyConceptHolder,
+                                             ONTOLOGY_SQL_BACKEND_FILE_EXTENSION, ONTOLOGY_OWL_FILE_EXTENSION)
 
 
 class TestOntologyManager(unittest.TestCase):
@@ -39,9 +41,9 @@ class TestOntologyManager(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        save_dir = Path(f"{Path.home()}/ontologies")
-        owl_filepath = f"{save_dir}/{Path(cls.ontology_manager.main_ontology_iri).stem}.owl"
-        sql_filepath = f"{save_dir}/{Path(owl_filepath).stem}.sqlite3"
+        save_dir = cls.ontology_manager.get_main_ontology_dir()
+        owl_filepath = f"{save_dir}/{Path(cls.ontology_manager.main_ontology_iri).stem}{ONTOLOGY_OWL_FILE_EXTENSION}"
+        sql_filepath = f"{save_dir}/{Path(owl_filepath).stem}{ONTOLOGY_SQL_BACKEND_FILE_EXTENSION}"
         os.remove(owl_filepath)
         cls.remove_sql_file(sql_filepath)
 
@@ -59,15 +61,34 @@ class TestOntologyManager(unittest.TestCase):
             self.assertTrue(self.ontology_manager.initialized())
 
     def test_ontology_world(self):
-        if owlready2:
-            self.assertIsNotNone(self.ontology_manager.main_ontology_world)
-            extra_world = self.ontology_manager.create_ontology_world()
-            self.assertIsNotNone(extra_world)
-            extra_world_sql_filepath = f"{onto_path[0]}/extra_world.sqlite3"
-            extra_world.save(file=extra_world_sql_filepath)
-            world_saved_to_sql = Path(extra_world_sql_filepath).is_file()
-            self.remove_sql_file(extra_world_sql_filepath)
-            self.assertTrue(world_saved_to_sql)
+        if not owlready2:
+            return
+        # Main ontology world as the global default world
+        main_world = self.ontology_manager.main_ontology_world
+        self.assertIsNotNone(main_world)
+        self.assertTrue(main_world is owlready2.default_world)
+
+        # Extra world with memory backend
+        extra_memory_world = self.ontology_manager.create_ontology_world(use_global_default_world=False)
+        self.assertIsNotNone(extra_memory_world)
+        self.assertTrue(extra_memory_world != owlready2.default_world)
+
+        # Extra world with SQL backend from a non-existing SQL file
+        extra_world_sql_filename = f"{self.ontology_manager.get_main_ontology_dir()}/extra_world{ONTOLOGY_SQL_BACKEND_FILE_EXTENSION}"
+        extra_sql_world = self.ontology_manager.create_ontology_world(use_global_default_world=False,
+                                                                      sql_backend_filename=extra_world_sql_filename)
+        self.assertIsNotNone(extra_sql_world)
+        # Save it at [extra_world_sql_filename]
+        extra_sql_world.save()
+        self.assertTrue(os.path.isfile(extra_world_sql_filename))
+
+        # Extra world with SQL backend from an existing SQL file
+        extra_sql_world_2 = self.ontology_manager.create_ontology_world(use_global_default_world=False,
+                                                                        sql_backend_filename=extra_world_sql_filename)
+        self.assertIsNotNone(extra_sql_world_2)
+
+        # Remove SQL file finally
+        self.remove_sql_file(extra_world_sql_filename)
 
     def test_ontology_concept_holder(self):
         if not owlready2:
@@ -83,7 +104,8 @@ class TestOntologyManager(unittest.TestCase):
             return
         self.assertIsNotNone(self.main_ontology)
         self.assertTrue(self.main_ontology.loaded)
-        if self.ontology_manager.main_ontology_iri is SOMA_ONTOLOGY_IRI:
+        if self.ontology_manager.main_ontology_iri is SOMA_ONTOLOGY_IRI or \
+                self.ontology_manager.main_ontology_iri is SOMA_HOME_ONTOLOGY_IRI:
             self.assertIsNotNone(self.soma)
             self.assertTrue(self.soma.loaded)
             self.assertIsNotNone(self.dul)
@@ -124,17 +146,18 @@ class TestOntologyManager(unittest.TestCase):
         PLACEABLE_ON_PREDICATE_NAME = "placeable_on"
         HOLD_OBJ_PREDICATE_NAME = "hold_obj"
         self.assertTrue(
-            self.ontology_manager.create_ontology_triple_classes(ontology_subject_parent_class=self.soma.Container if self.soma else None,
-                                                                 subject_class_name="OntologyPlaceHolderObject",
-                                                                 ontology_object_parent_class=self.dul.PhysicalObject
-                                                                 if self.dul else None,
-                                                                 object_class_name="OntologyHandheldObject",
-                                                                 predicate_class_name=PLACEABLE_ON_PREDICATE_NAME,
-                                                                 inverse_predicate_class_name=HOLD_OBJ_PREDICATE_NAME,
-                                                                 ontology_property_parent_class=self.soma.affordsBearer
-                                                                 if self.soma else None,
-                                                                 ontology_inverse_property_parent_class=self.soma.isBearerAffordedBy
-                                                                 if self.soma else None))
+            self.ontology_manager.create_ontology_triple_classes(
+                ontology_subject_parent_class=self.soma.Container if self.soma else None,
+                subject_class_name="OntologyPlaceHolderObject",
+                ontology_object_parent_class=self.dul.PhysicalObject
+                if self.dul else None,
+                object_class_name="OntologyHandheldObject",
+                predicate_class_name=PLACEABLE_ON_PREDICATE_NAME,
+                inverse_predicate_class_name=HOLD_OBJ_PREDICATE_NAME,
+                ontology_property_parent_class=self.soma.affordsBearer
+                if self.soma else None,
+                ontology_inverse_property_parent_class=self.soma.isBearerAffordedBy
+                if self.soma else None))
 
         def create_ontology_handheld_object_designator(object_name: str, ontology_parent_class: Type[owlready2.Thing]):
             return self.ontology_manager.create_ontology_linked_designator(object_name=object_name,
@@ -179,17 +202,18 @@ class TestOntologyManager(unittest.TestCase):
         self.assertIsNone(self.ontology_manager.get_ontology_class(concept_class_name))
         self.assertFalse(OntologyConceptHolderStore().get_ontology_concepts_by_class(dynamic_ontology_concept_class))
 
+    #@unittest.skip("owlready2 reasoning requires Java runtime, which is available only for CI running on master/dev")
     def test_ontology_reasoning(self):
         if not owlready2:
             return
 
-        REASONING_TEST_ONTOLOGY_IRI = "reasoning_test.owl"
+        REASONING_TEST_ONTOLOGY_IRI = f"reasoning_test{ONTOLOGY_OWL_FILE_EXTENSION}"
         ENTITY_CONCEPT_NAME = "Entity"
         CAN_TRANSPORT_PREDICATE_NAME = "can_transport"
         TRANSPORTABLE_BY_PREDICATE_NAME = "transportable_by"
         CORESIDE_PREDICATE_NAME = "coreside"
 
-        # Create a test world for reasoning
+        # Create a test world (with memory SQL backend) for reasoning
         reasoning_world = self.ontology_manager.create_ontology_world()
         reasoning_ontology = reasoning_world.get_ontology(REASONING_TEST_ONTOLOGY_IRI)
 
@@ -249,7 +273,6 @@ class TestOntologyManager(unittest.TestCase):
 
             # Reason on [reasoning_world]
             self.ontology_manager.reason(world=reasoning_world)
-            self.remove_sql_file(sql_filepath=f"{onto_path[0]}/{Path(reasoning_ontology.name).stem}.sqlite3")
 
             # Test reflexivity
             for entity in entities:
@@ -270,11 +293,10 @@ class TestOntologyManager(unittest.TestCase):
         if not owlready2:
             return
 
-        save_dir = Path(f"{Path.home()}/ontologies")
-        save_dir.mkdir(parents=True, exist_ok=True)
-        owl_filepath = f"{save_dir}/{Path(self.ontology_manager.main_ontology_iri).stem}.owl"
-        sql_filepath = f"{save_dir}/{Path(owl_filepath).stem}.sqlite3"
-        self.ontology_manager.save(owl_filepath)
+        save_dir = self.ontology_manager.get_main_ontology_dir()
+        owl_filepath = f"{save_dir}/{Path(self.ontology_manager.main_ontology_iri).stem}{ONTOLOGY_OWL_FILE_EXTENSION}"
+        sql_filepath = f"{save_dir}/{Path(owl_filepath).stem}{ONTOLOGY_SQL_BACKEND_FILE_EXTENSION}"
+        self.assertTrue(self.ontology_manager.save(owl_filepath))
         self.assertTrue(Path(owl_filepath).is_file())
         self.assertTrue(Path(sql_filepath).is_file())
 

@@ -55,10 +55,6 @@ jobs:
           source /opt/ros/overlay_ws/devel/setup.bash 
           roslaunch pycram ik_and_description.launch &
 
-      - name: Verify Java installation
-        run: |
-          java -version
-
       - name: Install python dependencies
         run: |
           pip3 install --upgrade pip --root-user-action=ignore
