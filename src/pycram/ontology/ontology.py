@@ -446,7 +446,7 @@ class OntologyManager(object, metaclass=Singleton):
                 if (class_subname.lower() in ontology_class.name.lower()) and
                 (ancestor_class in ontology_class.ancestors())]
 
-    def get_ontology_general_class_axioms(self, ontology: Ontology) -> List[GeneralClassAxiom]:
+    def get_ontology_general_class_axioms(self, ontology: Optional[Ontology] = None) -> List[GeneralClassAxiom]:
         """
         Get general class axioms of an ontology
         Ref: https://owlready2.readthedocs.io/en/latest/general_class_axioms.html
