@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 import itertools
 import logging
+import os.path
 
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Type, Tuple, Union
@@ -20,7 +21,8 @@ from ..datastructures.enums import ObjectType
 from ..helper import Singleton
 from ..designator import DesignatorDescription, ObjectDesignatorDescription
 
-from ..ontology.ontology_common import OntologyConceptHolderStore, OntologyConceptHolder
+from ..ontology.ontology_common import (OntologyConceptHolderStore, OntologyConceptHolder,
+                                        ONTOLOGY_SQL_BACKEND_FILE_EXTENSION)
 
 SOMA_HOME_ONTOLOGY_IRI = "http://www.ease-crc.org/ont/SOMA-HOME.owl"
 SOMA_ONTOLOGY_IRI = "http://www.ease-crc.org/ont/SOMA.owl"
@@ -65,17 +67,23 @@ class OntologyManager(object, metaclass=Singleton):
         # Ref: https://owlready2.readthedocs.io/en/latest/world.html
         self.main_ontology_world: Optional[OntologyWorld] = None
 
-        # Ontology IRI (Internationalized Resource Identifier), either a URL to a remote OWL file or the full
-        # name path of a local one
+        #: Ontology IRI (Internationalized Resource Identifier), either a URL to a remote OWL file or the full name path of a local one
+        # Ref: https://owlready2.readthedocs.io/en/latest/onto.html
         self.main_ontology_iri: str = main_ontology_iri if main_ontology_iri else SOMA_HOME_ONTOLOGY_IRI
 
         #: Namespace of the main ontology
         self.main_ontology_namespace: Optional[Namespace] = None
 
-        # Create the main ontology world with parallelized file parsing enabled
-        self.main_ontology_world = self.create_ontology_world(use_global_default_world=use_global_default_world)
+        # Create the main ontology world holding triples, of which a sqlite3 file path, of same name with `main_ontology` &
+        # at the same folder with `main_ontology_iri` (if it is a local abosulte path), is automatically registered as cache of the world
+        self.main_ontology_world = self.create_ontology_world(
+            sql_backend_filename=os.path.join(self.get_main_ontology_dir(),
+                                              f"{Path(self.main_ontology_iri).stem}{ONTOLOGY_SQL_BACKEND_FILE_EXTENSION}"),
+            use_global_default_world=use_global_default_world)
 
         # Load ontologies from `main_ontology_iri` to `main_ontology_world`
+        # If `main_ontology_iri` is a remote URL, Owlready2 first searches for a local copy of the OWL file (from `onto_path`),
+        # if not found, tries to download it from the Internet.
         self.main_ontology, self.main_ontology_namespace = self.load_ontology(self.main_ontology_iri)
         if self.main_ontology.loaded:
             self.soma = self.ontologies.get(SOMA_ONTOLOGY_NAMESPACE)
@@ -128,18 +136,55 @@ class OntologyManager(object, metaclass=Singleton):
         rospy.loginfo("-------------------")
 
     @staticmethod
-    def create_ontology_world(use_global_default_world: bool = False) -> OntologyWorld:
+    def get_default_ontology_search_path() -> Optional[str]:
+        """
+        Get the first ontology search path from owlready2.onto_path
+
+        :return: the path to the ontology search path if existing, otherwise None
+        """
+        if onto_path:
+            return onto_path[0]
+        else:
+            rospy.logerr("No ontology search path has been configured!")
+            return None
+
+    def get_main_ontology_dir(self) -> Optional[str]:
+        """
+        Get path to the directory of :attr:`main_ontology_iri` if it is a local absolute path,
+        otherwise path to the default ontology search directory
+
+        :return: the path to the directory of the main ontology IRI
+        """
+        return os.path.dirname(self.main_ontology_iri) if os.path.isabs(
+            self.main_ontology_iri) else self.get_default_ontology_search_path()
+
+    @staticmethod
+    def create_ontology_world(use_global_default_world: bool = False,
+                              sql_backend_filename: Optional[str] = None) -> OntologyWorld:
         """
         Either reuse the owlready2-provided global default ontology world or create a new one
 
         :param use_global_default_world: whether or not using the owlready2-provided global default persistent world
+        :param sql_backend_filename: a full file path (no need to already exist) being used as SQL backend for the ontology world. If None, memory is used instead
         :return: owlready2-provided global default ontology world or a newly created ontology world
         """
         world = default_world
+        sql_backend_path_valid = sql_backend_filename and os.path.isabs(sql_backend_filename)
+        sql_backend_name = sql_backend_filename if sql_backend_path_valid else "memory"
         if use_global_default_world:
-            world.set_backend(exclusive=False, enable_thread_parallelism=True)
+            # Reuse default world
+            if sql_backend_path_valid:
+                world.set_backend(filename=sql_backend_filename, exclusive=False, enable_thread_parallelism=True)
+            else:
+                world.set_backend(exclusive=False, enable_thread_parallelism=True)
+            rospy.loginfo(f"Using global default ontology world with SQL backend: {sql_backend_name}")
         else:
-            world = OntologyWorld(exclusive=False, enable_thread_parallelism=True)
+            # Create a new world with parallelized file parsing enabled
+            if sql_backend_path_valid:
+                world = OntologyWorld(filename=sql_backend_filename, exclusive=False, enable_thread_parallelism=True)
+            else:
+                world = OntologyWorld(exclusive=False, enable_thread_parallelism=True)
+            rospy.loginfo(f"Created a new ontology world with SQL backend: {sql_backend_name}")
         return world
 
     def load_ontology(self, ontology_iri: str) -> tuple[Optional[Ontology], Optional[Namespace]]:
@@ -221,7 +266,7 @@ class OntologyManager(object, metaclass=Singleton):
                     func(sub_onto, **kwargs)
                     break
 
-    def save(self, target_filename: str = "", overwrite: bool = False) -> bool:
+    def save(self, target_filename: Optional[str] = None, overwrite: bool = False) -> bool:
         """
         Save :attr:`main_ontology` to a file on disk, also caching :attr:`main_ontology_world` to a sqlite3 file
 
@@ -231,9 +276,9 @@ class OntologyManager(object, metaclass=Singleton):
         """
 
         # Save ontologies to OWL
-        is_current_ontology_local = Path(self.main_ontology_iri).exists()
+        is_current_ontology_local = os.path.isfile(self.main_ontology_iri)
         current_ontology_filename = self.main_ontology_iri if is_current_ontology_local \
-            else f"{Path(self.main_ontology_world.filename).parent.absolute()}/{Path(self.main_ontology_iri).stem}.owl"
+            else f"{self.get_main_ontology_dir()}/{Path(self.main_ontology_iri).name}"
         save_to_same_file = is_current_ontology_local and (target_filename == current_ontology_filename)
         if save_to_same_file and not overwrite:
             rospy.logerr(
@@ -249,13 +294,12 @@ class OntologyManager(object, metaclass=Singleton):
 
             # Commit the whole graph data of the current ontology world, saving it into SQLite3, to be reused the next time
             # the ontologies are loaded
-            main_ontology_sql_filename = f"{onto_path[0]}/{Path(save_filename).stem}.sqlite3"
-            self.main_ontology_world.save(file=main_ontology_sql_filename)
-            if Path(main_ontology_sql_filename).is_file():
+            main_ontology_sql_filename = self.main_ontology_world.filename
+            self.main_ontology_world.save()
+            if os.path.isfile(main_ontology_sql_filename):
                 rospy.loginfo(
                     f"Main ontology world for {self.main_ontology.name} has been cached and saved to SQL: {main_ontology_sql_filename}")
-            else:
-                rospy.logwarn(f"Failed caching main ontology world for {self.main_ontology.name} to SQL")
+            #else: it could be using memory cache as SQL backend
             return True
 
     def create_ontology_concept_class(self, class_name: str,
@@ -707,9 +751,10 @@ class OntologyManager(object, metaclass=Singleton):
 
     def reason(self, world: OntologyWorld = None, use_pellet_reasoner: bool = True) -> bool:
         """
-        Run the reasoning with Pellet or HermiT reasoner on :attr:`main_ontology`, the two currently supported by owlready2
+        Run the reasoning on a given ontology world or :attr:`main_ontology_world` with Pellet or HermiT reasoner,
+        the two currently supported by owlready2
         - By default, the reasoning works on `owlready2.default_world`
-        - The reasoning also automatically save ontologies to a temporary sqlite3 file
+        - The reasoning also automatically save ontologies (to either in-memory cache or a temporary sqlite3 file)
         Ref:
         - https://owlready2.readthedocs.io/en/latest/reasoning.html
         - https://owlready2.readthedocs.io/en/latest/rule.html
