@@ -7,7 +7,7 @@ from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
 from .datastructures.pose import Pose, Transform
 from .robot_descriptions import robot_description
 from .world_concepts.world_object import Object
-from .world import World, UseProspectionWorld
+from .datastructures.world import World, UseProspectionWorld
 
 
 def stable(obj: Object) -> bool:

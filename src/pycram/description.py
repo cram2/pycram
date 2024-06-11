@@ -11,7 +11,7 @@ from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHEC
 from .datastructures.enums import JointType
 from .local_transformer import LocalTransformer
 from .datastructures.pose import Pose, Transform
-from .world import WorldEntity
+from .datastructures.world import WorldEntity
 from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape
 
 if TYPE_CHECKING:
@@ -236,7 +236,8 @@ class Link(ObjectEntity, LinkDescription, ABC):
         """
         self.world.remove_constraint(self.constraint_ids[child_link])
         del self.constraint_ids[child_link]
-        del child_link.constraint_ids[self]
+        if self in child_link.constraint_ids.keys():
+            del child_link.constraint_ids[self]
 
     @property
     def is_root(self) -> bool:

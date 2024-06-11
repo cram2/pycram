@@ -3,8 +3,8 @@ import rospy
 import threading
 import atexit
 
-from pycram.datastructures.pose import Pose
-from pycram.world import World
+from ..datastructures.pose import Pose
+from ..datastructures.world import World
 from tf2_msgs.msg import TFMessage
 
 

@@ -1,18 +1,15 @@
 import random
 import unittest
-import time
 
 import numpy as np
-from random_events.events import Event
 
 from pycram.designator import ObjectDesignatorDescription
 from pycram.datastructures.enums import ObjectType
-from pycram.designators.actions.actions import MoveTorsoActionPerformable
+from pycram.designators.action_designator import MoveTorsoActionPerformable
 from pycram.plan_failures import PlanFailure
 from pycram.process_module import simulated_robot
-from pycram.resolver.probabilistic.probabilistic_action import MoveAndPickUp, GaussianCostmapModel
+from pycram.designators.specialized_designators.probabilistic.probabilistic_action import MoveAndPickUp, GaussianCostmapModel
 from bullet_world_testcase import BulletWorldTestCase
-import plotly.graph_objects as go
 
 
 class GaussianCostmapModelTestCase(unittest.TestCase):

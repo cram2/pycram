@@ -8,10 +8,10 @@ import rospy
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
-from ..description import ObjectDescription, LinkDescription
+from ..description import ObjectDescription, LinkDescription, Joint
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..robot_descriptions import robot_description
-from ..world import WorldEntity, World
+from ..datastructures.world import WorldEntity, World
 from ..world_concepts.constraints import Attachment
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                                AxisAlignedBoundingBox, VisualShape)
@@ -59,7 +59,9 @@ class Object(WorldEntity):
 
         if pose is None:
             pose = Pose()
-
+        if name in [obj.name for obj in self.world.objects]:
+            rospy.logerr(f"An object with the name {name} already exists in the world.")
+            return None
         self.name: str = name
         self.obj_type: ObjectType = obj_type
         self.color: Color = color
@@ -75,7 +77,7 @@ class Object(WorldEntity):
         self.description.update_description_from_file(self.path)
 
         self.tf_frame = ((self.prospection_world_prefix if self.world.is_prospection_world else "")
-                         + f"{self.name}_{self.id}")
+                         + f"{self.name}")
 
         if robot_description is not None:
             if self.description.name == robot_description.name:
@@ -558,9 +560,26 @@ class Object(WorldEntity):
     def current_state(self, state: ObjectState) -> None:
         if self.get_pose().dist(state.pose) != 0.0:
             self.set_pose(state.pose, base=False, set_attachments=False)
-        self.attachments = state.attachments
+
+        self.set_attachments(state.attachments)
         self.link_states = state.link_states
         self.joint_states = state.joint_states
+
+    def set_attachments(self, attachments: Dict[Object, Attachment]) -> None:
+        """
+        Sets the attachments of this object to the given attachments.
+        :param attachments: A dictionary with the object as key and the attachment as value.
+        """
+        for obj, attachment in attachments.items():
+            if self.world.is_prospection_world and not obj.world.is_prospection_world:
+                obj = self.world.get_prospection_object_for_object(obj)
+            if obj in self.attachments:
+                if self.attachments[obj] != attachment:
+                    self.detach(obj)
+                else:
+                    continue
+            self.attach(obj, attachment.parent_link.name, attachment.child_link.name,
+                        attachment.bidirectional)
 
     @property
     def link_states(self) -> Dict[int, LinkState]:
@@ -651,7 +670,7 @@ class Object(WorldEntity):
                 child.set_pose(link_to_object.to_pose(), set_attachments=False)
                 child._set_attached_objects_poses(already_moved_objects + [self])
 
-    def set_position(self, position: Union[Pose, Point], base=False) -> None:
+    def set_position(self, position: Union[Pose, Point, List], base=False) -> None:
         """
         Sets this Object to the given position, if base is true the bottom of the Object will be placed at the position
         instead of the origin in the center of the Object. The given position can either be a Pose,
@@ -968,6 +987,26 @@ class Object(WorldEntity):
         base_length = np.absolute(aabb.min_y - aabb.max_y)
         return Pose([aabb.min_x + base_width / 2, aabb.min_y + base_length / 2, aabb.min_z],
                     self.get_orientation_as_list())
+
+    def get_joint_by_id(self, joint_id: int) -> Joint:
+        """
+        Returns the joint object with the given id.
+
+        :param joint_id: The unique id of the joint.
+        :return: The joint object.
+        """
+        return dict([(joint.id, joint) for joint in self.joints.values()])[joint_id]
+
+    def copy_to_prospection(self) -> Object:
+        """
+        Copies this object to the prospection world.
+
+        :return: The copied object in the prospection world.
+        """
+        obj = Object(self.name, self.obj_type, self.path, type(self.description), self.get_pose(),
+                     self.world.prospection_world, self.color)
+        obj.current_state = self.current_state
+        return obj
 
     def __copy__(self) -> Object:
         """

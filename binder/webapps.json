@@ -1,0 +1,37 @@
+[
+  {
+    "name": "rvizweb",
+    "title": "Rvizweb",
+    "icon": "proxy/8001/rvizweb/webapps/r.svg",
+    "url": "proxy/8001/rvizweb/webapps/rvizweb/build/www/index.html",
+    "start": true,
+    "mode": "split-right"
+  },
+  {
+    "name": "XPRA",
+    "title": "Xpra Desktop",
+    "icon": "proxy/8001/rvizweb/webapps/xpra-logo.svg",
+    "url": "xprahtml5/index.html",
+    "start": true,
+    "mode": "split-left"
+  },
+  
+  {
+    "name": "rosgraph",
+    "title": "Ros Graph",
+    "icon": "proxy/8001/rvizweb/webapps/o.svg",
+    "url": "proxy/8001/rvizweb/webapps/ros-node-graph/build/index.html"
+  },
+  {
+    "name": "rosboard",
+    "title": "ROSBoard",
+    "icon": "proxy/8001/rvizweb/webapps/s.svg",
+    "url": "proxy/18888/index.html"
+  },
+  {
+    "name": "webviz",
+    "title": "Webviz",
+    "icon": "proxy/8001/rvizweb/webapps/webviz/icon.svg",
+    "url": "proxy/8001/rvizweb/webapps/webviz/index.html"
+  }
+]

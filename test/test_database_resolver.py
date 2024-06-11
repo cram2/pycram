@@ -1,14 +1,12 @@
 import os
-import time
 import unittest
 import sqlalchemy
 import sqlalchemy.orm
 import pycram.plan_failures
 from pycram.world_concepts.world_object import Object
-from pycram import task
-from pycram.world import World
+from pycram.datastructures.world import World
 from pycram.designators import action_designator
-from pycram.designators.actions.actions import MoveTorsoActionPerformable, PickUpActionPerformable, \
+from pycram.designators.action_designator import MoveTorsoActionPerformable, PickUpActionPerformable, \
     NavigateActionPerformable, PlaceActionPerformable
 from pycram.orm.base import Base
 from pycram.designators.object_designator import ObjectDesignatorDescription
@@ -16,9 +14,10 @@ from pycram.process_module import ProcessModule
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import Pose
 from pycram.robot_descriptions import robot_description
-from pycram.task import with_tree
+from pycram.tasktree import with_tree
 from pycram.datastructures.enums import ObjectType, WorldMode
-from pycram.resolver.location.database_location import DatabaseCostmapLocation
+from pycram.designators.specialized_designators.location.database_location import DatabaseCostmapLocation
+from pycram.worlds.bullet_world import BulletWorld
 
 pycrorm_uri = os.getenv('PYCRORM_URI')
 if pycrorm_uri:
@@ -36,8 +35,8 @@ class DatabaseResolverTestCase(unittest.TestCase,):
     @classmethod
     def setUpClass(cls) -> None:
         global pycrorm_uri
-        cls.world = World(WorldMode.DIRECT)
-        cls.milk = Object("milk", "milk", "milk.stl", pose=Pose([1.3, 1, 0.9]))
+        cls.world = BulletWorld(WorldMode.DIRECT)
+        cls.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
         cls.robot = Object(robot_description.name, ObjectType.ROBOT, robot_description.name + ".urdf")
         ProcessModule.execution_delay = False
         cls.engine = sqlalchemy.create_engine(pycrorm_uri)
@@ -81,15 +80,15 @@ class DatabaseResolverTestCase(unittest.TestCase,):
 
         with simulated_robot:
             MoveTorsoActionPerformable(sample.torso_height).perform()
-            PickUpActionPerformable(ObjectDesignatorDescription(types=["milk"]).resolve(), arm=sample.reachable_arm,
+            PickUpActionPerformable(ObjectDesignatorDescription(types=[ObjectType.MILK]).resolve(), arm=sample.reachable_arm,
                                     grasp=sample.grasp).perform()
 
     def test_costmap_with_obstacles(self):
-        kitchen = Object("kitchen", "environment", "kitchen.urdf")
+        kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
         self.plan()
         pycram.orm.base.ProcessMetaData().description = "costmap_with_obstacles_test"
         pycram.task.task_tree.root.insert(self.session)
-        self.world.reset_bullet_world()
+        self.world.reset_current_world()
 
         cml = DatabaseCostmapLocation(self.milk, self.session, reachable_for=self.robot)
         sample = next(iter(cml))
@@ -99,7 +98,7 @@ class DatabaseResolverTestCase(unittest.TestCase,):
             MoveTorsoActionPerformable(sample.torso_height).perform()
             try:
                 PickUpActionPerformable(
-                    ObjectDesignatorDescription(types=["milk"]).resolve(),
+                    ObjectDesignatorDescription(types=[ObjectType.MILK]).resolve(),
                     arm=sample.reachable_arm, grasp=sample.grasp).perform()
             except pycram.plan_failures.PlanFailure as p:
                 kitchen.remove()
@@ -107,14 +106,14 @@ class DatabaseResolverTestCase(unittest.TestCase,):
         kitchen.remove()
 
     def test_object_at_different_location(self):
-        kitchen = Object("kitchen", "environment", "kitchen.urdf")
+        kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
         self.plan()
 
         pycram.orm.base.ProcessMetaData().description = "object_at_different_location_test"
         pycram.task.task_tree.root.insert(self.session)
-        self.world.reset_bullet_world()
+        self.world.reset_current_world()
 
-        new_milk = Object("new_milk", "milk", "milk.stl", pose=Pose([-1.45, 2.5, 0.95]))
+        new_milk = Object("new_milk", ObjectType.MILK, "milk.stl", pose=Pose([-1.45, 2.5, 0.95]))
         cml = DatabaseCostmapLocation(new_milk, self.session, reachable_for=self.robot)
 
         sample = next(iter(cml))
@@ -123,21 +122,21 @@ class DatabaseResolverTestCase(unittest.TestCase,):
             MoveTorsoActionPerformable(sample.torso_height).perform()
             try:
                 PickUpActionPerformable(
-                    ObjectDesignatorDescription(names=["new_milk"], types=["milk"]).resolve(),
+                    ObjectDesignatorDescription(names=["new_milk"], types=[ObjectType.MILK]).resolve(),
                     arm=sample.reachable_arm, grasp=sample.grasp).perform()
             except pycram.plan_failures.PlanFailure as p:
                 new_milk.remove()
                 kitchen.remove()
                 raise p
-            PlaceActionPerformable(ObjectDesignatorDescription(names=["new_milk"], types=["milk"]).resolve(),
+            PlaceActionPerformable(ObjectDesignatorDescription(names=["new_milk"], types=[ObjectType.MILK]).resolve(),
                                    arm=sample.reachable_arm, target_location=Pose([-1.45, 2.5, 0.95])).perform()
         new_milk.remove()
         kitchen.remove()
 
     @unittest.skip
     def test_multiple_objects(self):
-        kitchen = Object("kitchen", "environment", "kitchen.urdf")
-        new_milk = Object("new_milk", "milk", "milk.stl", pose=Pose([-1.45, 2.5, 0.9]))
+        kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
+        new_milk = Object("new_milk", ObjectType.MILK, "milk.stl", pose=Pose([-1.45, 2.5, 0.9]))
 
         object_description = ObjectDesignatorDescription(names=["milk"])
         object_description_new_milk = ObjectDesignatorDescription(names=["new_milk"])
@@ -153,7 +152,7 @@ class DatabaseResolverTestCase(unittest.TestCase,):
 
         pycram.orm.base.ProcessMetaData().description = "multiple_objects_test"
         pycram.task.task_tree.root.insert(self.session)
-        self.world.reset_bullet_world()
+        self.world.reset_current_world()
 
         cml = DatabaseCostmapLocation(self.milk, self.session, reachable_for=self.robot)
         cml_new_milk = DatabaseCostmapLocation(new_milk, self.session, reachable_for=self.robot)
@@ -167,17 +166,18 @@ class DatabaseResolverTestCase(unittest.TestCase,):
                 try:
                     if dcl.target.name == "milk":
                         PickUpActionPerformable(
-                            ObjectDesignatorDescription(names=["milk"], types=["milk"]).resolve(),
+                            ObjectDesignatorDescription(names=["milk"], types=[ObjectType.MILK]).resolve(),
                             arm=sample.reachable_arm, grasp=sample.grasp).perform()
                     else:
                         PickUpActionPerformable(
-                            ObjectDesignatorDescription(names=["new_milk"], types=["milk"]).resolve(),
+                            ObjectDesignatorDescription(names=["new_milk"], types=[ObjectType.MILK]).resolve(),
                             arm=sample.reachable_arm, grasp=sample.grasp).perform()
                 except pycram.plan_failures.PlanFailure as p:
                     new_milk.remove()
                     kitchen.remove()
                     raise p
-                PlaceActionPerformable(ObjectDesignatorDescription(names=[dcl.target.name], types=["milk"]).resolve(),
+                PlaceActionPerformable(ObjectDesignatorDescription(names=[dcl.target.name],
+                                                                   types=[ObjectType.MILK]).resolve(),
                                        arm=sample.reachable_arm, target_location=Pose([dcl.target.pose.position.x,
                                                                                        dcl.target.pose.position.y,
                                                                                        dcl.target.pose.position.z])
