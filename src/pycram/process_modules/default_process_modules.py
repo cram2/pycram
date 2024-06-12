@@ -63,7 +63,7 @@ class DefaultMoveGripper(ProcessModule):
         gripper = desig.gripper
         motion = desig.motion
         for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
-            robot.set_joint_state(joint, state)
+            robot.set_joint_position(joint, state)
 
 
 class DefaultDetecting(ProcessModule):
