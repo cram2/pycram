@@ -16,6 +16,7 @@ from .location_designator import CostmapLocation
 from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveArmJointsMotion, MoveTCPMotion, MoveMotion, \
     LookingMotion, DetectingMotion, OpeningMotion, ClosingMotion
 from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
+from ..datastructures.aspects import GraspableAspect, ReachableAspect
 from ..local_transformer import LocalTransformer
 from ..plan_failures import ObjectUnfetchable, ReachabilityFailure
 from ..robot_descriptions import robot_description
@@ -218,6 +219,7 @@ class PickUpAction(ActionDesignatorDescription):
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
         self.arms: List[str] = arms
         self.grasps: List[str] = grasps
+        self.knowledge_conditions = [GraspableAspect(self.object_designator_description) & ReachableAspect(self.object_designator_description)]
 
         if self.soma:
             self.init_ontology_concepts({"picking_up": self.soma.PickingUp})
