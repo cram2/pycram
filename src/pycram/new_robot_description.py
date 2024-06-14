@@ -26,6 +26,11 @@ class RobotDescriptionManager:
         else:
             rospy.logerr(f"Robot description {name} not found")
 
+    def register_description(self, description: RobotDescription):
+        if description.name in self.descriptions.keys():
+            raise ValueError(f"Description {description.name} already exists")
+        self.descriptions[description.name] = description
+
 
 class RobotDescription:
 
@@ -35,9 +40,9 @@ class RobotDescription:
         self.base_link = base_link
         self.torso_link = torso_link
         self.torso_joint = torso_joint
-        self.urdf_path = URDF.from_xml_file(urdf_path)
+        self.urdf_object = URDF.from_xml_file(urdf_path)
         self.kinematic_chains = {}
-        self.cameras = []
+        self.cameras = {}
 
     def add_kinematic_chain_description(self, chain: KinematicChainDescription):
         if chain.name in self.kinematic_chains.keys():
@@ -47,12 +52,17 @@ class RobotDescription:
     def add_kinematic_chain(self, name: str, start_link: str, end_link: str):
         if name in self.kinematic_chains.keys():
             raise ValueError(f"Chain {name} already exists for robot {self.name}")
-        chain = KinematicChainDescription(name, start_link, end_link, self.urdf_path)
+        chain = KinematicChainDescription(name, start_link, end_link, self.urdf_object)
         self.add_kinematic_chain_description(chain)
+
+    def add_camera(self, name: str, camera: CameraDescription):
+        if name in self.cameras.keys():
+            raise ValueError(f"Camera {name} already exists for robot {self.name}")
+        self.cameras[name] = camera
 
     def get_manipulator_chains(self) -> List[KinematicChainDescription]:
         result = []
-        for chain in self.kinematic_chains:
+        for chain in self.kinematic_chains.values():
             if chain.end_effector:
                 result.append(chain)
         return result
@@ -69,11 +79,14 @@ class KinematicChainDescription:
         self.end_effector = None
         self.static_joint_states = {}
 
+        self._init_links()
+        self._init_joints()
+
     def _init_links(self):
-        self.link_names = self.urdf_object.get_chain(self.start_link, self.end_link, links=True)
+        self.link_names = self.urdf_object.get_chain(self.start_link, self.end_link, joints=False)
 
     def _init_joints(self):
-        self.joint_names = self.urdf_object.get_chain(self.start_link, self.end_link, joints=True)
+        self.joint_names = self.urdf_object.get_chain(self.start_link, self.end_link, links=False)
 
     def get_joints(self) -> List[str]:
         return self.joint_names
@@ -128,13 +141,16 @@ class EndEffectorDescription:
     def _init_links_joints(self):
         start_link_obj = self.urdf_object.link_map[self.start_link]
         links = [start_link_obj.name]
-        while len(len) != 0:
+        while len(links) != 0:
             link = links.pop()
             self.link_names.append(link)
-            children = self.urdf_object.child_map[link]
+            if link not in self.urdf_object.child_map:
+                continue
+            else:
+                children = self.urdf_object.child_map[link]
             for joint, link in children:
-                self.joint_names.append(joint.name)
-                links.insert(0, link.name)
+                self.joint_names.append(joint)
+                links.insert(0, link)
                 # links.append(link.name)
 
     def add_static_joint_states(self, name: str, states: dict):
