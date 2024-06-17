@@ -1,71 +1,54 @@
-from ..robot_description import *
-import numpy as np
-import tf
+import rospkg
 
+from ..new_robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
+    CameraDescription, RobotDescriptionManager
 
-class StretchDescription(RobotDescription):
+rospack = rospkg.RosPack()
+filename = rospack.get_path('pycram') + '/resources/robots/' + "stretch" + '.urdf'
 
-    def __init__(self):
-        super().__init__("stretch", "base_link", "base_link", "link_lift", "joint_lift")
+stretch_description = RobotDescription("stretch", "base_link", "link_lift", "joint_lift", filename)
 
-        realsense_color = CameraDescription('camera_color_optical_frame', horizontal_angle=1.047, vertical_angle=0.785,
-                                            minimal_height=1.322, maximal_height=1.322)
+################################## Right Arm ##################################
+arm_description = KinematicChainDescription("arm", "link_mast", "link_wrist_roll", stretch_description.urdf_object)
 
-        realsense_depth = CameraDescription('camera_depth_optical_frame', horizontal_angle=1.047, vertical_angle=0.785,
-                                            minimal_height=1.307, maximal_height=1.307)
+arm_description.add_static_joint_states("park", {'joint_lift': 0.0,
+                                                 'joint_arm_l3': 0.0,
+                                                 'joint_arm_l2': 0.0,
+                                                 'joint_arm_l1': 0.0,
+                                                 'joint_arm_l0': 0.0,
+                                                 'joint_wrist_yaw': 0.0,
+                                                 'joint_wrist_pitch': 0.0,
+                                                 'joint_wrist_roll': 0.0})
 
-        realsense_infra1 = CameraDescription('camera_infra1_optical_frame', horizontal_angle=1.047,
-                                             vertical_angle=0.785,
-                                             minimal_height=1.307, maximal_height=1.307)
-        realsense_infra2 = CameraDescription('camera_infra2_optical_frame', horizontal_angle=1.047,
-                                             vertical_angle=0.785,
-                                             minimal_height=1.257, maximal_height=1.257)
-        self.add_cameras(
-            {'color': realsense_color, 'depth': realsense_depth, 'infra1': realsense_infra1,
-             'infra2': realsense_infra2})
+stretch_description.add_kinematic_chain_description(arm_description)
 
-        self.front_facing_axis = [0, 0, 1]
+################################## Right Gripper ##################################
+gripper_description = EndEffectorDescription("arm", "link_straight_gripper", "link_grasp_center",
+                                             stretch_description.urdf_object)
 
-        neck = ChainDescription("neck", ["joint_head_pan", "joint_head_tilt"],
-                                ["link_head_pan", "link_head_tilt"])
-        self.add_chain("neck", neck)
+gripper_description.add_static_joint_states("open", {'joint_gripper_finger_left': 0.59,
+                                                     'joint_gripper_finger_right': 0.59})
+gripper_description.add_static_joint_states("close", {'joint_gripper_finger_left': 0.0,
+                                                      'joint_gripper_finger_right': 0.0})
 
-        arm_joints = ['joint_lift', 'joint_arm_l3', 'joint_arm_l2', 'joint_arm_l1', 'joint_arm_l0', "joint_wrist_yaw",
-                      "joint_wrist_pitch", "joint_wrist_roll"]
-        arm_links = ['link_lift', 'link_arm_l3', 'link_arm_l2', 'link_arm_l1', 'link_arm_l0', "link_wrist_yaw",
-                     "link_wrist_pitch", "link_wrist_roll"]
+arm_description.end_effector = gripper_description
 
-        arm_chain_desc = ChainDescription("arm", arm_joints, arm_links)
-        arm_inter_desc = InteractionDescription(arm_chain_desc, "link_wrist_yaw")
+################################## Neck ##################################
+neck = KinematicChainDescription("neck", "link_head", "link_head_tilt", stretch_description.urdf_object)
 
-        gripper_links = ['link_gripper_finger_left', 'link_gripper_fingertip_left',
-                         'link_gripper_finger_right', 'link_gripper_fingertip_right', 'link_grasp_center']
-        gripper_joints = ['joint_gripper_finger_left', 'joint_gripper_finger_right']
-        arm_gripper_desc = GripperDescription("arm", gripper_links, gripper_joints,
-                                              gripper_meter_to_jnt_multiplier=5.0,
-                                              gripper_minimal_position=0.013,
-                                              gripper_convergence_delta=0.005)
+stretch_description.add_kinematic_chain_description(neck)
 
-        arm_desc = ManipulatorDescription(arm_inter_desc, tool_frame="link_grasp_center",
-                                          gripper_description=arm_gripper_desc)
-        self.add_chains({"arm": arm_desc, "right": arm_desc, "left": arm_desc})
+################################## Camera ##################################
+realsense_color = CameraDescription("camera_color_optical_frame", "camera_color_optical_frame", 1.322, 1.322)
+realsense_depth = CameraDescription("camera_depth_optical_frame", "camera_depth_optical_frame", 1.307, 1.307)
+realsense_infra1 = CameraDescription("camera_infra1_optical_frame", "camera_infra1_optical_frame", 1.307, 1.307)
+realsense_infra2 = CameraDescription("camera_infra2_optical_frame", "camera_infra2_optical_frame", 1.257, 1.257)
 
-        arm_park = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        self.add_static_joint_chain("arm", "park", arm_park)
+stretch_description.add_camera("camera_color_optical_frame", realsense_color)
+stretch_description.add_camera("camera_depth_optical_frame", realsense_depth)
+stretch_description.add_camera("camera_infra1_optical_frame", realsense_infra1)
+stretch_description.add_camera("camera_infra2_optical_frame", realsense_infra2)
 
-        gripper_confs = {"open": [0.59, 0.59], "close": [0.0, 0.0]}
-        self.add_static_gripper_chains("arm", gripper_confs)
-
-        self.grasps = GraspingDescription({"front": [0, 0, 0, 1],
-                                           "left": [0, 0, -1, 1],
-                                           "right": [0, 0, 1, 1],
-                                           "top": [0, 1, 0, 1]})
-
-    def get_camera_frame(self, name="color"):
-        return super().get_camera_frame(name)
-
-    @staticmethod
-    def stretch_orientation_generator(position, origin):
-        angle = np.arctan2(position[1] - origin.position.y, position[0] - origin.position.x) + np.pi + np.pi / 16
-        quaternion = list(tf.transformations.quaternion_from_euler(0, 0, angle + np.pi / 2, axes="sxyz"))
-        return quaternion
+# Add to RobotDescriptionManager
+rdm = RobotDescriptionManager()
+rdm.register_description(stretch_description)
