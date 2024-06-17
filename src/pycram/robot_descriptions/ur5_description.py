@@ -1,5 +1,5 @@
 import rospkg
-from ..new_robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
+from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager
 
 rospack = rospkg.RosPack()

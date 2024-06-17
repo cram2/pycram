@@ -1,11 +1,11 @@
-from ..new_robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
+from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
 import rospkg
 
 rospack = rospkg.RosPack()
 filename = rospack.get_path('pycram') + '/resources/robots/' + "pr2" + '.urdf'
 
-pr2_description = RobotDescription("pr2", "base_footprint", "base_link", "torso_lift_link",
+pr2_description = RobotDescription("pr2", "base_link", "torso_lift_link", "torso_lift_joint",
                                    filename)
 
 ################################## Right Arm ##################################
@@ -53,6 +53,7 @@ left_arm.end_effector = left_gripper
 ################################## Camera ##################################
 camera = CameraDescription("kinect_camera", "head_mount_kinect_rgb_optical_frame", 1.27,
                            1.60, 0.99483, 0.75049)
+pr2_description.add_camera("kinect_camera", camera)
 
 ################################## Neck ##################################
 pr2_description.add_kinematic_chain("neck", "head_pan_link", "head_tilt_link")
