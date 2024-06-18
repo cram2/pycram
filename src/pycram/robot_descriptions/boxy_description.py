@@ -59,7 +59,7 @@ left_arm.end_effector = left_gripper
 ################################## Camera ##################################
 camera = CameraDescription("head_mount_kinect2_rgb_optical_frame", "head_mount_kinect2_rgb_optical_frame",
                            2.5, 0.99483, 0.75049)
-boxy_description.add_camera("camera", camera)
+boxy_description.add_camera_description(camera)
 
 ################################## Neck ##################################
 boxy_description.add_kinematic_chain("neck", "neck_base_link", "neck_wrist_3_link")

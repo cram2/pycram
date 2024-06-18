@@ -37,15 +37,15 @@ left_arm.end_effector = left_gripper
 
 head_center_camera = CameraDescription("head_center_camera_frame", "head_center_camera_frame", 0.99483, 0.75049)
 head_r_camera = CameraDescription("head_r_stereo_camera_link", "head_r_stereo_camera_link", 0.99483, 0.75049)
-head_l_camera = CameraDescription("head_r_stereo_camera_link", "head_r_stereo_camera_link", 0.99483, 0.75049)
+head_l_camera = CameraDescription("head_l_stereo_camera_link", "head_l_stereo_camera_link", 0.99483, 0.75049)
 head_rgbd_camera = CameraDescription("head_rgbd_sensor_link", "head_rgbd_sensor_link", 0.99483, 0.75049)
 hand_camera = CameraDescription("hand_camera_frame", "hand_camera_frame", 0.99483, 0.75049)
 
-hsrb_description.add_camera("head_center_camera_frame", head_center_camera)
-hsrb_description.add_camera("head_r_stereo_camera_link", head_r_camera)
-hsrb_description.add_camera("head_l_stereo_camera_link", head_l_camera)
-hsrb_description.add_camera("head_rgbd_sensor_link", head_rgbd_camera)
-hsrb_description.add_camera("hand_camera_frame", hand_camera)
+hsrb_description.add_camera_description(head_center_camera)
+hsrb_description.add_camera_description(head_r_camera)
+hsrb_description.add_camera_description(head_l_camera)
+hsrb_description.add_camera_description(head_rgbd_camera)
+hsrb_description.add_camera_description(hand_camera)
 
 ################################## Neck ##################################
 neck = KinematicChainDescription("neck", "head_pan_link", "head_tilt_link",

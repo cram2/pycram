@@ -44,10 +44,10 @@ realsense_depth = CameraDescription("camera_depth_optical_frame", "camera_depth_
 realsense_infra1 = CameraDescription("camera_infra1_optical_frame", "camera_infra1_optical_frame", 1.307, 1.307)
 realsense_infra2 = CameraDescription("camera_infra2_optical_frame", "camera_infra2_optical_frame", 1.257, 1.257)
 
-stretch_description.add_camera("camera_color_optical_frame", realsense_color)
-stretch_description.add_camera("camera_depth_optical_frame", realsense_depth)
-stretch_description.add_camera("camera_infra1_optical_frame", realsense_infra1)
-stretch_description.add_camera("camera_infra2_optical_frame", realsense_infra2)
+stretch_description.add_camera_description(realsense_color)
+stretch_description.add_camera_description(realsense_depth)
+stretch_description.add_camera_description(realsense_infra1)
+stretch_description.add_camera_description(realsense_infra2)
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()
