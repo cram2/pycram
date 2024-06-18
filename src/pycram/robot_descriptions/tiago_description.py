@@ -62,7 +62,7 @@ right_arm.end_effector = right_gripper
 
 ################################## Camera ##################################
 camera = CameraDescription("xtion_optical_frame", "xtion_optical_frame", 0.99483, 0.75049, 1.0665, 1.4165)
-tiago_description.add_camera("xtion_optical_frame", camera)
+tiago_description.add_camera_description(camera)
 
 ################################## Neck ##################################
 tiago_description.add_kinematic_chain("neck", "torso_lift_link", "head_2_link")

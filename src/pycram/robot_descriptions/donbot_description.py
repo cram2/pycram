@@ -34,7 +34,7 @@ right_arm.end_effector = right_gripper
 
 ################################## Camera ##################################
 camera = CameraDescription("camera_link", "camera_link", 0.75049, 0.5, 1.2)
-donbot_description.add_camera("camera_link", camera)
+donbot_description.add_camera_description(camera)
 
 ################################## Neck ##################################
 donbot_description.add_kinematic_chain("neck", "ur5_base_link", "ur5_base_link")
