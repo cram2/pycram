@@ -1,3 +1,4 @@
+import numpy as np
 import tqdm
 from probabilistic_model.probabilistic_circuit.distributions import GaussianDistribution, SymbolicDistribution
 from probabilistic_model.probabilistic_circuit.probabilistic_circuit import ProbabilisticCircuit, \
@@ -124,8 +125,8 @@ class GaussianCostmapModel:
         Create a fully factorized gaussian at the center of the map.
         """
         centered_model = DecomposableProductUnit()
-        centered_model.add_subcircuit(GaussianDistribution(self.relative_x, 0., self.variance))
-        centered_model.add_subcircuit(GaussianDistribution(self.relative_y, 0., self.variance))
+        centered_model.add_subcircuit(GaussianDistribution(self.relative_x, 0., np.sqrt(self.variance)))
+        centered_model.add_subcircuit(GaussianDistribution(self.relative_y, 0., np.sqrt(self.variance)))
 
         grasp_probabilities = MissingDict(float, {int(element): 1 / len(self.grasp.domain.simple_sets) for element in
                                                   self.grasp.domain.simple_sets})
@@ -322,4 +323,4 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
             progress_bar.set_postfix({"Success Probability": successful_tries / total_tries})
 
             # reset world
-            World.current_world.reset_current_world()
+            World.current_world.reset_world()
