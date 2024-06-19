@@ -1,8 +1,8 @@
 import numpy as np
-from random_events.variables import Continuous
+from random_events.variable import Continuous
 #  import plotly.graph_objects as go
-import portion
-from random_events.events import Event, ComplexEvent
+from random_events.product_algebra import Event, SimpleEvent
+from random_events.interval import *
 
 from bullet_world_testcase import BulletWorldTestCase
 from pycram.costmaps import OccupancyCostmap
@@ -40,16 +40,16 @@ class TestCostmapsCase(BulletWorldTestCase):
         events = []
         for rectangle in rectangles:
 
-            event = Event({x: portion.open(rectangle.x_lower, rectangle.x_upper),
-                           y: portion.open(rectangle.y_lower, rectangle.y_upper)})
+            event = SimpleEvent({x: open(rectangle.x_lower, rectangle.x_upper),
+                           y: open(rectangle.y_lower, rectangle.y_upper)})
             events.append(event)
 
-        event = ComplexEvent(events)
+        event = Event(*events)
         # fig = go.Figure(event.plot(), event.plotly_layout())
         # fig.update_xaxes(range=[-2, 2])
         # fig.update_yaxes(range=[-2, 2])
         # fig.show()
-        self.assertTrue(event.are_events_disjoint())
+        self.assertTrue(event.is_disjoint())
 
     def test_visualize(self):
         o = OccupancyCostmap(0.2, from_ros=False, size=200, resolution=0.02,
