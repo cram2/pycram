@@ -15,17 +15,17 @@ from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING
 from typing_extensions import Union
 
-from .cache_manager import CacheManager
-from .datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
+from ..cache_manager import CacheManager
+from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
                                          MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape, SphereVisualShape,
                                          CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
                                          ObjectState, State, WorldState, ContactPoint, ClosestPoint, ClosestPointsList,
                                          ContactPointsList)
-from .datastructures.enums import JointType, ObjectType, WorldMode
-from .datastructures.pose import Pose, Transform
-from .local_transformer import LocalTransformer
-from .world_concepts.constraints import Constraint
-from .world_concepts.event import Event
+from ..datastructures.enums import JointType, ObjectType, WorldMode
+from ..datastructures.pose import Pose, Transform
+from ..local_transformer import LocalTransformer
+from ..world_concepts.constraints import Constraint
+from ..world_concepts.event import Event
 
 if TYPE_CHECKING:
     from ..world_concepts.world_object import Object
@@ -842,6 +842,14 @@ class World(StateEntity, ABC):
             return list(object_map.keys())[list(object_map.values()).index(prospection_object)]
         except ValueError:
             raise ValueError("The given object is not in the prospection world.")
+
+    def reset_world_and_remove_objects(self) -> None:
+        """
+        Resets the World to the state it was first spawned in and removes all objects from the World.
+        """
+        self.reset_world()
+        for obj in copy(self.objects):
+            self.remove_object(obj)
 
     def reset_world(self, remove_saved_states=True) -> None:
         """
