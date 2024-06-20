@@ -2,7 +2,7 @@ from pycram.worlds.bullet_world import BulletWorld
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.designators.object_designator import *
-from pycram.datastructures.enums import ObjectType
+from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import Pose
 from pycram.process_module import simulated_robot, with_simulated_robot
 from pycram.object_descriptors.urdf import ObjectDescription
@@ -11,7 +11,7 @@ from pycram.datastructures.dataclasses import Color
 
 extension = ObjectDescription.get_file_extension()
 
-world = BulletWorld()
+world = BulletWorld(WorldMode.GUI)
 robot = Object("pr2", ObjectType.ROBOT, f"pr2{extension}", pose=Pose([1, 2, 0]))
 apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")
 

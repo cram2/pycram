@@ -11,7 +11,7 @@ from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHEC
 from .datastructures.enums import JointType
 from .local_transformer import LocalTransformer
 from .datastructures.pose import Pose, Transform
-from .world import WorldEntity
+from .datastructures.world import WorldEntity
 from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape
 
 if TYPE_CHECKING:

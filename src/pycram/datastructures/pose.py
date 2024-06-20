@@ -268,6 +268,42 @@ class Pose(PoseStamped):
 
         return pose
 
+    def multiply_quaternions(self, quaternion: List) -> None:
+        """
+        Multiply the quaternion of this Pose with the given quaternion, the result will be the new orientation of this
+        Pose.
+
+        :param quaternion: The quaternion by which the orientation of this Pose should be multiplied
+        """
+        x1, y1, z1, w1 = quaternion
+        x2, y2, z2, w2 = self.orientation_as_list()
+
+        w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
+        x = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2
+        y = w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2
+        z = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2
+
+        self.orientation = (x, y, z, w)
+
+    def set_orientation_from_euler(self, axis: List, euler_angles: List[float]) -> None:
+        """
+        Convert axis-angle to quaternion.
+
+        :param axis: (x, y, z) tuple representing rotation axis.
+        :param angle: rotation angle in degree
+        :return: The quaternion representing the axis angle
+        """
+        angle = math.radians(euler_angles)
+        axis_length = math.sqrt(sum([i ** 2 for i in axis]))
+        normalized_axis = tuple(i / axis_length for i in axis)
+
+        x = normalized_axis[0] * math.sin(angle / 2)
+        y = normalized_axis[1] * math.sin(angle / 2)
+        z = normalized_axis[2] * math.sin(angle / 2)
+        w = math.cos(angle / 2)
+
+        return (x, y, z, w)
+
 
 class Transform(TransformStamped):
     """

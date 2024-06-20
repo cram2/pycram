@@ -16,7 +16,7 @@ from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBod
 from ..datastructures.enums import ObjectType, WorldMode, JointType
 from ..datastructures.pose import Pose
 from ..object_descriptors.urdf import ObjectDescription
-from ..world import World
+from ..datastructures.world import World
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.world_object import Object
 

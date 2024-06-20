@@ -1,15 +1,16 @@
 from threading import Lock
 import numpy as np
 from .. import world_reasoning as btr
-import pycram.helper as helper
+from ..utils import _apply_ik
 from ..designators.motion_designator import *
 from ..datastructures.enums import JointType
 from ..external_interfaces.ik import request_ik
 
-from ..world import World
+from ..datastructures.world import World
 from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_descriptions import robot_description
+from ..world_concepts.world_object import Object
 
 
 def _park_arms(arm):
@@ -187,7 +188,7 @@ class BoxyWorldStateDetecting(ProcessModule):
 
     def _execute(self, desig: WorldStateDetectingMotion):
         obj_type = desig.object_type
-        return list(filter(lambda obj: obj.type == obj_type, World.current_bullet_world.objects))[0]
+        return list(filter(lambda obj: obj.type == obj_type, World.current_world.objects))[0]
 
 
 def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
@@ -196,7 +197,7 @@ def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
     joints = robot_description.chains[arm].joints
 
     inv = request_ik(target, robot, joints, gripper)
-    helper._apply_ik(robot, inv, joints)
+    _apply_ik(robot, inv)
 
 
 class BoxyManager(ProcessModuleManager):

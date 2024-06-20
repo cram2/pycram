@@ -10,14 +10,14 @@ import rospy
 
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..external_interfaces.ik import request_ik
-from ..helper import _apply_ik
+from ..utils import _apply_ik
 from ..local_transformer import LocalTransformer
 from ..designators.object_designator import ObjectDesignatorDescription
 from ..designators.motion_designator import MoveMotion, LookingMotion, \
     DetectingMotion, MoveTCPMotion, MoveArmJointsMotion, WorldStateDetectingMotion, MoveJointsMotion, \
     MoveGripperMotion, OpeningMotion, ClosingMotion
 from ..robot_descriptions import robot_description
-from ..world import World
+from ..datastructures.world import World
 from ..world_concepts.world_object import Object
 from ..datastructures.pose import Pose
 from ..datastructures.enums import JointType, ObjectType
@@ -205,7 +205,7 @@ def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
     joints = robot_description.chains[arm].joints
 
     inv = request_ik(target, robot, joints, gripper)
-    _apply_ik(robot, inv, joints)
+    _apply_ik(robot, inv)
 
 
 ###########################################################
@@ -240,8 +240,8 @@ class Pr2MoveHeadReal(ProcessModule):
         new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
         new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2) * -1
 
-        current_pan = robot.get_joint_state("head_pan_joint")
-        current_tilt = robot.get_joint_state("head_tilt_joint")
+        current_pan = robot.get_joint_position("head_pan_joint")
+        current_tilt = robot.get_joint_position("head_tilt_joint")
 
         giskard.avoid_all_collisions()
         giskard.achieve_joint_goal({"head_pan_joint": new_pan + current_pan,

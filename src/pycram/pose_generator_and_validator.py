@@ -1,7 +1,7 @@
 import tf
 import numpy as np
 
-from .world import World
+from .datastructures.world import World
 from .world_concepts.world_object import Object
 from .world_reasoning import contact
 from .costmaps import Costmap
@@ -11,7 +11,7 @@ from .robot_description import ManipulatorDescription
 from .robot_descriptions import robot_description
 from .external_interfaces.ik import request_ik
 from .plan_failures import IKError
-from .helper import _apply_ik
+from .utils import _apply_ik
 from typing_extensions import Tuple, List, Union, Dict, Iterable
 
 
@@ -201,13 +201,17 @@ def reachability_validator(pose: Pose,
         joint_state_before_ik = robot.get_positions_of_all_joints()
         try:
             # test the possible solution and apply it to the robot
-            resp = request_ik(target, robot, joints, tool_frame)
-            _apply_ik(robot, resp, joints)
+            pose, joint_states = request_ik(target, robot, joints, tool_frame)
+            robot.set_pose(pose)
+            robot.set_joint_positions(joint_states)
+            # _apply_ik(robot, resp, joints)
 
             in_contact = collision_check(robot, allowed_collision)
             if not in_contact:  # only check for retract pose if pose worked
-                resp = request_ik(retract_target_pose, robot, joints, tool_frame)
-                _apply_ik(robot, resp, joints)
+                pose, joint_states = request_ik(retract_target_pose, robot, joints, tool_frame)
+                robot.set_pose(pose)
+                robot.set_joint_positions(joint_states)
+                # _apply_ik(robot, resp, joints)
                 in_contact = collision_check(robot, allowed_collision)
             if not in_contact:
                 arms.append(name)

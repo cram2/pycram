@@ -9,39 +9,39 @@
     <include file="$(find pr2_arm_kinematics)/launch/pr2_ik_larm_node.launch"/>
     <include file="$(find pr2_arm_kinematics)/launch/pr2_ik_rarm_node.launch"/>
     <param name="robot_description"
-           textfile="$(find pycram)/resources/pr2.urdf"/>
+           textfile="$(find pycram)/resources/robots/pr2.urdf"/>
   </group>
   <!-- Boxy -->
   <group if="$(eval robot == 'boxy')">
     <param name="robot_description"
-              textfile="$(find pycram)/resources/boxy.urdf"/>
+              textfile="$(find pycram)/resources/robots/boxy.urdf"/>
   </group>
   <!-- Tiago -->
   <group if="$(eval robot == 'tiago_dual')">
     <param name="robot_description"
-              textfile="$(find pycram)/resources/tiago_dual.urdf"/>
+              textfile="$(find pycram)/resources/robots/tiago_dual.urdf"/>
   </group>
   <!-- UR5 -->
   <group if="$(eval robot == 'ur5')">
     <param name="robot_description"
-              textfile="$(find pycram)/resources/ur5_robotiq.urdf"/>
+              textfile="$(find pycram)/resources/robots/ur5_robotiq.urdf"/>
   </group>
   <!-- Donbot -->
   <group if="$(eval robot == 'donbot')">
     <param name="robot_description"
-              textfile="$(find pycram)/resources/iai_donbot.urdf"/>
+              textfile="$(find pycram)/resources/robots/iai_donbot.urdf"/>
   </group>
 
   <!-- HSR -->
   <group if="$(eval robot == 'hsrb')">
     <param name="robot_description"
-              textfile="$(find pycram)/resources/hsrb.urdf"/>
+              textfile="$(find pycram)/resources/robots/hsrb.urdf"/>
   </group>
 
   <!-- stretch -->
   <group if="$(eval robot == 'stretch')">
     <param name="robot_description"
-              textfile="$(find pycram)/resources/stretch.urdf"/>
+              textfile="$(find pycram)/resources/robots/stretch.urdf"/>
   </group>
 
 

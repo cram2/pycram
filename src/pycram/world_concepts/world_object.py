@@ -8,6 +8,7 @@ import rospy
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
+from ..description import ObjectDescription, LinkDescription, Joint
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPoint, ClosestPointsList,
                                           ContactPointsList)
@@ -17,7 +18,7 @@ from ..description import ObjectDescription, LinkDescription
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..robot_descriptions import robot_description
-from ..world import WorldEntity, World
+from ..datastructures.world import WorldEntity, World
 from ..world_concepts.constraints import Attachment
 
 Link = ObjectDescription.Link
@@ -61,7 +62,9 @@ class Object(WorldEntity):
 
         if pose is None:
             pose = Pose()
-
+        if name in [obj.name for obj in self.world.objects]:
+            rospy.logerr(f"An object with the name {name} already exists in the world.")
+            return None
         self.name: str = name
         self.obj_type: ObjectType = obj_type
         self.color: Color = color
@@ -77,7 +80,7 @@ class Object(WorldEntity):
         self.description.update_description_from_file(self.path)
 
         self.tf_frame = ((self.prospection_world_prefix if self.world.is_prospection_world else "")
-                         + f"{self.name}_{self.id}")
+                         + f"{self.name}")
 
         if robot_description is not None:
             if self.description.name == robot_description.name or self.obj_type == ObjectType.ROBOT:
@@ -94,6 +97,8 @@ class Object(WorldEntity):
         if not self.world.is_prospection_world:
             self._add_to_world_sync_obj_queue()
 
+        if self.name == "spoon" and self.world.is_prospection_world:
+            print("spoon problem")
         self.world.objects.append(self)
 
     @property
@@ -551,7 +556,7 @@ class Object(WorldEntity):
 
     @property
     def current_state(self) -> ObjectState:
-        return ObjectState(self.get_pose(), self.attachments.copy(), self.link_states.copy(), self.joint_states.copy())
+        return ObjectState(self.get_pose().copy(), self.attachments.copy(), self.link_states.copy(), self.joint_states.copy())
 
     @current_state.setter
     def current_state(self, state: ObjectState) -> None:
@@ -565,11 +570,15 @@ class Object(WorldEntity):
     def set_attachments(self, attachments: Dict[Object, Attachment]) -> None:
         """
         Sets the attachments of this object to the given attachments.
+
         :param attachments: A dictionary with the object as key and the attachment as value.
         """
         for obj, attachment in attachments.items():
             if self.world.is_prospection_world and not obj.world.is_prospection_world:
-                obj = self.world.get_prospection_object_for_object(obj)
+                # The object mapping is directly used since this function can be called from the world sync thread which
+                # would cause a deadlock when calling get_prospection_object_for_object.
+                # Furthermore, all attached objects are spawned beforehand so no keyError should occur
+                obj = self.world.world_sync.object_mapping[obj]
             if obj in self.attachments:
                 if self.attachments[obj] != attachment:
                     self.detach(obj)
@@ -1026,6 +1035,15 @@ class Object(WorldEntity):
         base_length = np.absolute(aabb.min_y - aabb.max_y)
         return Pose([aabb.min_x + base_width / 2, aabb.min_y + base_length / 2, aabb.min_z],
                     self.get_orientation_as_list())
+
+    def get_joint_by_id(self, joint_id: int) -> Joint:
+        """
+        Returns the joint object with the given id.
+
+        :param joint_id: The unique id of the joint.
+        :return: The joint object.
+        """
+        return dict([(joint.id, joint) for joint in self.joints.values()])[joint_id]
 
     def copy_to_prospection(self) -> Object:
         """
