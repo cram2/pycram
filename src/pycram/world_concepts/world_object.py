@@ -8,13 +8,12 @@ import rospy
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
-from ..description import ObjectDescription, LinkDescription, Joint
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
-                                          AxisAlignedBoundingBox, VisualShape, ClosestPoint, ClosestPointsList,
+                                          AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
                                           ContactPointsList)
 from ..datastructures.enums import ObjectType, JointType
 from ..datastructures.pose import Pose, Transform
-from ..description import ObjectDescription, LinkDescription
+from ..description import ObjectDescription, LinkDescription, Joint
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..robot_descriptions import robot_description
@@ -62,7 +61,7 @@ class Object(WorldEntity):
 
         if pose is None:
             pose = Pose()
-        if name in [obj.name for obj in self.world.objects]:
+        if name in self.world.get_object_names():
             rospy.logerr(f"An object with the name {name} already exists in the world.")
             return None
         self.name: str = name

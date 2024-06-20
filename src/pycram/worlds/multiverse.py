@@ -8,7 +8,7 @@ from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactP
 from ..datastructures.enums import WorldMode, JointType
 from ..datastructures.pose import Pose
 from ..description import Link, Joint
-from ..world import World
+from ..datastructures.world import World
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.multiverse_socket import MultiverseSocket, SocketAddress
 from ..world_concepts.world_object import Object

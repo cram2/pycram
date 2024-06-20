@@ -5,9 +5,10 @@ import numpy as np
 
 from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
 from .datastructures.pose import Pose, Transform
+from .datastructures.dataclasses import ContactPointsList
 from .robot_descriptions import robot_description
-from .world_concepts.world_object import Object, Link
-from .world import World, UseProspectionWorld
+from .world_concepts.world_object import Object
+from .datastructures.world import World, UseProspectionWorld
 
 
 def stable(obj: Object) -> bool:
@@ -52,13 +53,13 @@ def contact(
         prospection_obj2 = World.current_world.get_prospection_object_for_object(object2)
 
         World.current_world.perform_collision_detection()
-        con_points = World.current_world.get_contact_points_between_two_objects(prospection_obj1, prospection_obj2)
+        con_points: ContactPointsList = World.current_world.get_contact_points_between_two_objects(prospection_obj1,
+                                                                                                   prospection_obj2)
 
         if return_links:
             contact_links = []
             for point in con_points:
-                contact_links.append((prospection_obj1.get_link_by_id(point[3]),
-                                      prospection_obj2.get_link_by_id(point[4])))
+                contact_links.append((point.link_a, point.link_b))
             return con_points != (), contact_links
 
         else:
