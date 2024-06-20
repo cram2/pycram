@@ -6,10 +6,10 @@ import actionlib
 import rosnode
 
 from ..designator import ObjectDesignatorDescription
-from pycram.datastructures.pose import Pose
-from pycram.local_transformer import LocalTransformer
-from pycram.world import World
-from pycram.datastructures.enums import ObjectType
+from ..datastructures.pose import Pose
+from ..local_transformer import LocalTransformer
+from ..datastructures.world import World
+from ..datastructures.enums import ObjectType
 
 try:
     from robokudo_msgs.msg import ObjectDesignator as robokudo_ObjetDesignator

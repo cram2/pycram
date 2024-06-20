@@ -66,3 +66,9 @@ ORM Examples
     notebooks/orm_example
     notebooks/migrate_neems
     notebooks/orm_querying_examples
+
+Ontology
+==========
+
+.. nbgallery::
+    notebooks/ontology

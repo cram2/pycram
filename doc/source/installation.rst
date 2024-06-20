@@ -14,7 +14,7 @@ All dependencies are available via PyPi.
 
 PyCRAM is developed and tested currently with Python3.8, Ubuntu 20.04 and ROS Noetic.
 
-This guide excpects you to have a GitHub account with an SSH key (you can read about adding a new ssh key
+This guide expects you to have a GitHub account with an SSH key (you can read about adding a new ssh key
 `here <https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account>`_).
 
 Installing ROS
@@ -166,13 +166,16 @@ Install the requirements in your python interpreter.
 
 .. code-block:: shell
 
+    cd ~/workspace/ros/src/pycram/doc
     pip install -r requirements.txt
 
 Run pycram and build the docs.
 
 .. code-block:: shell
 
+    cd ~/workspace/ros
     roslaunch pycram ik_and_description.launch
+    cd src/pycram/doc
     make html
 
 Show the index.
@@ -193,7 +196,8 @@ Install PyCharm Professional
 
 First, `install PyCharm Professional <https://www.jetbrains.com/help/pycharm/installation-guide.html#standalone>`_.
 
-Create a JetBrains account and verify it for educational purpose. Now you can unlock the PyCharm Professional features in PyCharm.
+Create a JetBrains account and verify it for educational purpose. Normally, a school email address would suffice, otherwise you would have to upload your student/employee id card. The verification process typically takes 1~2-week time, so until then please use Trial version.
+Once your account is verified, you can unlock the PyCharm Professional features in PyCharm.
 
 The next step will set up the virtual Python environment, so it can be used as a project interpreter in PyCharm. 
 
@@ -207,9 +211,20 @@ The virtualenvwrapper allows to manage virtual Python environments, where additi
 .. code-block:: shell
 
     sudo pip3 install virtualenvwrapper
+
+
+(Optional but recommended) Set virtualenvwrapper's `WORKON_HOME` env variable, of which the default value is `~/.virtualenvs`
+
+.. code-block:: shell
+
     echo "export WORKON_HOME=~/envs" >> ~/.bashrc
-    echo "source /usr/local/bin/virtualenvwrapper.sh" >> ~/.bashrc    
     mkdir -p $WORKON_HOME
+
+Activate virtualenvwrapper at terminal start
+
+.. code-block:: shell
+
+    echo "source /usr/local/bin/virtualenvwrapper.sh" >> ~/.bashrc
     source ~/.bashrc
 
 Create a virtual env based on the workspaces libraries (see build-ws_) and add the `--system-site-packages` to get them properly. The env will be registered in `$WORKON_HOME`.
@@ -264,6 +279,29 @@ folder as Tests and the resources as Resources.
 
 To verify that it works, you can execute any Testcase.
 
+**Useful tips**
+
+- `Keyboard shortcuts <https://www.jetbrains.com/help/pycharm/mastering-keyboard-shortcuts.html>`_
+    - `Keymap <https://www.jetbrains.com/help/pycharm/mastering-keyboard-shortcuts.html#ws_print_keymap>`_
+
+- `Python interpreter <https://www.jetbrains.com/help/pycharm/configuring-python-interpreter.html>`_
+    - `Python virtual environment <https://www.jetbrains.com/help/pycharm/creating-virtual-environment.html>`_
+- `Python packages <https://www.jetbrains.com/help/pycharm/installing-uninstalling-and-upgrading-packages.html>`_
+- `Python console <https://www.jetbrains.com/help/pycharm/using-consoles.html>`_
+
+- **View | Active Editor | Soft-wrap**: wrap text inside the editor view
+
+- **View | Tool Windows | Structure**: display structure window for easy content navigation
+
+- **F12**: Open terminal
+
+- **Double Shift**: Quick file search
+
+- **Ctrl F/R**: Find/Replace text in current file
+
+- **Ctrl Shift F/R**: Find/Replace text in the whole project, module, directory, scope
+
+- **Settings | Editor | Inspections | Code is compatible with specific Python versions**: Enable/Disable Python version-specific warnings
 
 Using IPython as REPL
 =====================
@@ -281,7 +319,8 @@ Enable autoreload
 
 To use changes made in the Python file while the Repl is running you need to enable the iPython extension ``autoreload``.
 This can be done using the iPython startup files, these are files which are always run if iPython is started.
-The startup files are located in ``~/.ipython/profile_default/startup`` along with a README file which explains the usage
+First run ``ipython profile create`` to create a `default profile <https://ipython.readthedocs.io/en/stable/config/intro.html>`_.
+Then you will find the startup files located in ``~/.ipython/profile_default/startup`` along with a README file which explains the usage
 of the startup files. In this directory create a file called ``00-autoreload.ipy`` and enter the following code to the file.
 
 
@@ -297,7 +336,7 @@ code in the shell is executed.
 Run scripts
 -----------
 
-IPython allows to run Python files and enabled the access to created variables. This can be helpful
+IPython allows to run Python files and enables the access to created variables. This can be helpful
 if you want to create a setup script which initializes things like the BulletWorld, Objects and imports
 relevant modules.
 

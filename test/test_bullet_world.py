@@ -11,6 +11,7 @@ from pycram.robot_descriptions import robot_description
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.datastructures.dataclasses import Color
 from pycram.world_concepts.world_object import Object
+from pycram.datastructures.world import UseProspectionWorld
 
 fix_missing_inertial = ObjectDescription.fix_missing_inertial
 
@@ -171,7 +172,7 @@ class BulletWorldTest(BulletWorldTestCase):
 
     def test_real_object_position_does_not_change_with_prospection_object(self):
         milk_2_pos = [1.3, 1, 0.9]
-        milk_2 = Object("milk_2", ObjectType.MILK, "milk.stl", pose=Pose(milk_2_pos))
+        milk_2 = Object("milk_3", ObjectType.MILK, "milk.stl", pose=Pose(milk_2_pos))
         time.sleep(0.05)
         milk_2_pos = milk_2.get_position()
         prospection_milk = self.world.get_prospection_object_for_object(milk_2)
@@ -179,14 +180,15 @@ class BulletWorldTest(BulletWorldTestCase):
         self.assertTrue(prospection_milk_pos == milk_2_pos)
 
         # Assert that when prospection object is moved, the real object is not moved
-        prospection_milk_pos.x += 1
-        prospection_milk.set_position(prospection_milk_pos)
-        self.assertTrue(prospection_milk.get_position() != milk_2.get_position())
+        with UseProspectionWorld():
+            prospection_milk_pos.x += 1
+            prospection_milk.set_position(prospection_milk_pos)
+            self.assertTrue(prospection_milk.get_position() != milk_2.get_position())
         self.world.remove_object(milk_2)
 
     def test_prospection_object_position_does_not_change_with_real_object(self):
         milk_2_pos = [1.3, 1, 0.9]
-        milk_2 = Object("milk_2", ObjectType.MILK, "milk.stl", pose=Pose(milk_2_pos))
+        milk_2 = Object("milk_4", ObjectType.MILK, "milk.stl", pose=Pose(milk_2_pos))
         time.sleep(0.05)
         milk_2_pos = milk_2.get_position()
         prospection_milk = self.world.get_prospection_object_for_object(milk_2)
@@ -194,9 +196,10 @@ class BulletWorldTest(BulletWorldTestCase):
         self.assertTrue(prospection_milk_pos == milk_2_pos)
 
         # Assert that when real object is moved, the prospection object is not moved
-        milk_2_pos.x += 1
-        milk_2.set_position(milk_2_pos)
-        self.assertTrue(prospection_milk.get_position() != milk_2.get_position())
+        with UseProspectionWorld():
+            milk_2_pos.x += 1
+            milk_2.set_position(milk_2_pos)
+            self.assertTrue(prospection_milk.get_position() != milk_2.get_position())
         self.world.remove_object(milk_2)
 
     def test_add_vis_axis(self):
@@ -252,7 +255,7 @@ class XMLTester(unittest.TestCase):
 
     def setUp(self) -> None:
         rospack = rospkg.RosPack()
-        filename = rospack.get_path('pycram') + '/resources/' + 'pr2.urdf'
+        filename = rospack.get_path('pycram') + '/resources/robots/' + 'pr2.urdf'
         with open(filename, "r") as f:
             self.urdf_string = f.read()
 

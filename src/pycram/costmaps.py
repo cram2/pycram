@@ -12,12 +12,12 @@ import rospy
 from matplotlib import colors
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 
-from .world import UseProspectionWorld
+from .datastructures.world import UseProspectionWorld
 from .world_concepts.world_object import Object
 from .description import Link
 from .local_transformer import LocalTransformer
 from .datastructures.pose import Pose, Transform
-from .world import World
+from .datastructures.world import World
 from .datastructures.dataclasses import AxisAlignedBoundingBox, BoxVisualShape, Color
 
 

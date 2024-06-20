@@ -16,9 +16,16 @@ To fix this issue one has to execute
 
     python -m ipykernel install --user --name <kernel_name> --display-name "<Name_to_display>"
 
+, eg.
+
+.. code-block:: shell
+
+    python -m ipykernel install --user --name pycram --display-name "pycram"
+
 in your terminal. --name is the name of your virtual environment and --display-name is the name
-that will display in the drop down menu of jupyter. After that, select the correct kernel and
+that will display in the drop down menu of jupyter. After that, select the correct Python interpreter kernel (``pycram``) and
 everything should work now.
+Refer `here <https://www.jetbrains.com/help/pycharm/configuring-jupyter-notebook.html#resolving-kernel-mismatch-error-of-configured-server>`_ for details.
 
 Adding Notebooks to the Documentation
 =====================================

@@ -4,12 +4,14 @@ import numpy as np
 
 from ..datastructures.enums import JointType
 from ..external_interfaces.ik import request_ik
-from ..helper import _apply_ik
+from ..utils import _apply_ik
 from ..process_module import ProcessModule
 from ..robot_descriptions import robot_description
 from ..local_transformer import LocalTransformer
 from ..designators.motion_designator import *
 from ..world_reasoning import visible, link_pose_for_joint_config
+from ..world_concepts.world_object import Object
+from ..datastructures.world import World
 
 class DefaultNavigation(ProcessModule):
     """
@@ -61,7 +63,7 @@ class DefaultMoveGripper(ProcessModule):
         gripper = desig.gripper
         motion = desig.motion
         for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
-            robot.set_joint_state(joint, state)
+            robot.set_joint_position(joint, state)
 
 
 class DefaultDetecting(ProcessModule):
@@ -175,7 +177,7 @@ def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
     joints = robot_description.chains[arm].joints
 
     inv = request_ik(target, robot, joints, gripper)
-    _apply_ik(robot, inv, joints)
+    _apply_ik(robot, inv)
 
 
 class DefaultManager(ProcessModuleManager):
