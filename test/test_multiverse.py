@@ -7,7 +7,7 @@ from typing_extensions import Optional, List
 
 from pycram.datastructures.enums import ObjectType
 from pycram.datastructures.pose import Pose
-from pycram.world import UseProspectionWorld
+from pycram.datastructures.world import UseProspectionWorld
 from pycram.world_concepts.world_object import Object
 from pycram.worlds.multiverse import Multiverse
 
