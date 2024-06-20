@@ -94,6 +94,8 @@ class Object(WorldEntity):
         if not self.world.is_prospection_world:
             self._add_to_world_sync_obj_queue()
 
+        if self.name == "spoon" and self.world.is_prospection_world:
+            print("spoon problem")
         self.world.objects.append(self)
 
     @property
@@ -554,7 +556,7 @@ class Object(WorldEntity):
 
     @property
     def current_state(self) -> ObjectState:
-        return ObjectState(self.get_pose(), self.attachments.copy(), self.link_states.copy(), self.joint_states.copy())
+        return ObjectState(self.get_pose().copy(), self.attachments.copy(), self.link_states.copy(), self.joint_states.copy())
 
     @current_state.setter
     def current_state(self, state: ObjectState) -> None:
@@ -568,11 +570,15 @@ class Object(WorldEntity):
     def set_attachments(self, attachments: Dict[Object, Attachment]) -> None:
         """
         Sets the attachments of this object to the given attachments.
+
         :param attachments: A dictionary with the object as key and the attachment as value.
         """
         for obj, attachment in attachments.items():
             if self.world.is_prospection_world and not obj.world.is_prospection_world:
-                obj = self.world.get_prospection_object_for_object(obj)
+                # The object mapping is directly used since this function can be called from the world sync thread which
+                # would cause a deadlock when calling get_prospection_object_for_object.
+                # Furthermore, all attached objects are spawned beforehand so no keyError should occur
+                obj = self.world.world_sync.object_mapping[obj]
             if obj in self.attachments:
                 if self.attachments[obj] != attachment:
                     self.detach(obj)
