@@ -275,14 +275,18 @@ class World(StateEntity, ABC):
         """
         return [obj.name for obj in self.objects]
 
-    def get_object_by_name(self, name: str) -> List[Object]:
+    def get_object_by_name(self, name: str) -> Optional[Object]:
         """
-        Returns a list of all Objects in this World with the same name as the given one.
+        Returns the object in this World with the same name as the given one.
 
-        :param name: The name of the returned Objects.
-        :return: A list of all Objects with the name 'name'.
+        :param name: The name of the returned object.
+        :return: the object with the name 'name'.
         """
-        return list(filter(lambda obj: obj.name == name, self.objects))[0]
+        obj = [obj for obj in self.objects if obj.name == name]
+        if len(obj) == 0:
+            return None
+        else:
+            return obj[0]
 
     def get_object_by_type(self, obj_type: ObjectType) -> List[Object]:
         """
