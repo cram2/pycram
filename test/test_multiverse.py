@@ -50,7 +50,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.multiverse.reset_world_and_remove_objects()
         # self.multiverse.multiverse_reset_world()
         MultiversePyCRAMTestCase.big_bowl = self.spawn_big_bowl()
-        time.sleep(0.5)
+        time.sleep(1)
         pass
 
     def test_reset_world(self):
@@ -202,5 +202,5 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             position = [0, 0, 0.1]
         robot = Object("panda", ObjectType.ROBOT, "panda.urdf",
                        pose=Pose(position, [0, 0, 0, 1]))
-        time.sleep(0.5)
+        time.sleep(1)
         return robot
