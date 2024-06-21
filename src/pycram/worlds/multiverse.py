@@ -1,14 +1,14 @@
 import logging
 import os
-from time import time
+from time import time, sleep
 
 from typing_extensions import List, Dict, Optional, Tuple
 
-from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList
-from ..datastructures.enums import WorldMode, JointType
+from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
+from ..datastructures.enums import WorldMode, JointType, ObjectType
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
-from ..description import Link, Joint
+from ..description import Link, Joint, LinkDescription
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.multiverse_socket import MultiverseSocket, SocketAddress
 from ..world_concepts.world_object import Object
@@ -114,11 +114,12 @@ class Multiverse(MultiverseSocket, World):
         self.update_poses_on_get = True
         self.last_object_id: int = -1
         self.last_constraint_id: int = -1
-        self.constraints: Dict[int, Dict[str, str]] = {}
+        self.constraints: Dict[int, Constraint] = {}
         self.object_name_to_id: Dict[str, int] = {}
         self.object_id_to_name: Dict[int, str] = {}
         self.time_start = time()
         self.run()
+        self.floor = self._spawn_floor()
 
     def _init_world(self, mode: WorldMode):
         pass
@@ -133,6 +134,15 @@ class Multiverse(MultiverseSocket, World):
             for resource_path in resources_paths:
                 self.add_resource_path(resource_path)
             self.added_multiverse_resources = True
+
+    def _spawn_floor(self):
+        """
+        Spawn the plane in the simulator.
+        """
+        floor = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf",
+                   world=self)
+        sleep(0.5)
+        return floor
 
     def get_joint_position_name(self, joint: Joint) -> str:
         if joint.type not in self._joint_type_to_position_name:
@@ -278,15 +288,18 @@ class Multiverse(MultiverseSocket, World):
         self.send_and_receive_data()
 
     def add_constraint(self, constraint: Constraint) -> int:
+
         if constraint.type != JointType.FIXED:
             logging.error("Only fixed constraints are supported in Multiverse")
             raise ValueError
+
         self._request_attach(constraint)
-        parent_link_name, child_link_name = self.get_constraint_link_names(constraint)
-        constraint_id = self.last_constraint_id + 1
-        self.constraints[constraint_id] = {'parent_link': parent_link_name,
-                                           'child_link': child_link_name}
-        return constraint_id
+
+        self.last_constraint_id += 1
+
+        self.constraints[self.last_constraint_id] = constraint
+
+        return self.last_constraint_id
 
     def _request_attach(self, constraint: Constraint) -> None:
         """
@@ -324,7 +337,15 @@ class Multiverse(MultiverseSocket, World):
 
     def remove_constraint(self, constraint_id) -> None:
         constraint = self.constraints.pop(constraint_id)
-        self._add_api_request("detach", constraint['parent_link'], constraint['child_link'])
+        self._request_detach(constraint)
+
+    def _request_detach(self, constraint: Constraint) -> None:
+        """
+        Request to detach the child link from the parent link.
+        param constraint: The constraint.
+        """
+        parent_link_name, child_link_name = self.get_constraint_link_names(constraint)
+        self._add_api_request("detach", child_link_name, parent_link_name)
         self._send_api_request()
 
     @staticmethod
@@ -357,42 +378,43 @@ class Multiverse(MultiverseSocket, World):
         return f"{pose.position.x} {pose.position.y} {pose.position.z} {pose.orientation.w} {pose.orientation.x} " \
                f"{pose.orientation.y} {pose.orientation.z}"
 
-    def _init_api_callback(self):
-        """
-        Initialize the API callback in the request metadata.
-        """
-        self.request_meta_data["send"] = {}
-        self.request_meta_data["receive"] = {}
-        self.request_meta_data["api_callbacks"] = {self.simulation: []}
-        self.set_simulation_in_request_meta_data()
-
-    def _add_api_request(self, api_name: str, *params):
-        """
-        Add an API request to the request metadata.
-        param api_name: The name of the API.
-        param params: The parameters of the API.
-        """
-        if "api_callbacks" not in self.request_meta_data:
-            self._init_api_callback()
-        self.request_meta_data["api_callbacks"][self.simulation].append({api_name: list(params)})
-
-    def _send_api_request(self):
-        """
-        Send the API request to the server.
-        """
-        if "api_callbacks" not in self.request_meta_data:
-            logging.error("No API request to send")
-            raise ValueError
-        self.send_and_receive_meta_data()
-        self.request_meta_data.pop("api_callbacks")
-
     def perform_collision_detection(self) -> None:
         logging.warning("perform_collision_detection is not implemented in Multiverse")
 
     def get_object_contact_points(self, obj: Object) -> ContactPointsList:
         self.check_object_exists_and_issue_warning_if_not(obj)
-        logging.warning("get_object_contact_points is not implemented in Multiverse")
-        return ContactPointsList([])
+        contact_bodies = self._request_objects_in_contact(obj)
+        contact_points = ContactPointsList([])
+        body_link = None
+        for body in contact_bodies:
+            if body == "world":
+                continue
+            body_object = self.get_object_by_name(body)
+            if body_object is None:
+                for obj in self.objects:
+                    for link in obj.links.values():
+                        if link.name == body:
+                            body_link = link
+                            break
+            else:
+                body_link = body_object.root_link
+            if body_link is None:
+                logging.error(f"Body link not found: {body}")
+                raise ValueError
+            contact_points.append(ContactPoint(obj.root_link, body_link))
+        return contact_points
+
+    def _request_objects_in_contact(self, obj: Object) -> List[str]:
+        self._init_api_callback()
+        self._add_api_request("get_contact_bodies", obj.name)
+        self._send_api_request()
+        return self._get_contact_bodies_from_response()
+
+    def _get_contact_bodies_from_response(self) -> List[str]:
+        return self._get_api_response("get_contact_bodies")
+
+    def _get_api_response(self, api_name: str) -> List[str]:
+        return self.response_meta_data["api_callbacks_response"][self.simulation][0][api_name]
 
     def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> ContactPointsList:
         self.check_object_exists_and_issue_warning_if_not(obj1)
@@ -456,3 +478,50 @@ class Multiverse(MultiverseSocket, World):
     def check_object_exists_and_issue_warning_if_not(self, obj: Object):
         if obj not in self.objects:
             logging.warning(f"Object {obj.name} does not exist in the simulator")
+
+    def _init_api_callback(self):
+        """
+        Initialize the API callback in the request metadata.
+        """
+        self._reset_send_data()
+        self._reset_receive_data()
+        self._reset_api_callback()
+        self.set_simulation_in_request_meta_data()
+
+    def _reset_send_data(self):
+        """
+        Reset the send data in the request metadata.
+        """
+        self.request_meta_data["send"] = {}
+
+    def _reset_receive_data(self):
+        """
+        Reset the receive data in the request metadata.
+        """
+        self.request_meta_data["receive"] = {}
+
+    def _reset_api_callback(self):
+        """
+        Reset the API callback in the request metadata.
+        """
+        self.request_meta_data["api_callbacks"] = {self.simulation: []}
+
+    def _add_api_request(self, api_name: str, *params):
+        """
+        Add an API request to the request metadata.
+        param api_name: The name of the API.
+        param params: The parameters of the API.
+        """
+        if "api_callbacks" not in self.request_meta_data:
+            self._init_api_callback()
+        self.request_meta_data["api_callbacks"][self.simulation].append({api_name: list(params)})
+
+    def _send_api_request(self):
+        """
+        Send the API request to the server.
+        """
+        if "api_callbacks" not in self.request_meta_data:
+            logging.error("No API request to send")
+            raise ValueError
+        self.send_and_receive_meta_data()
+        self.request_meta_data.pop("api_callbacks")

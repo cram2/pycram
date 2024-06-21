@@ -152,7 +152,6 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.multiverse.robot.set_position(new_position)
         self.assertEqual(self.multiverse.robot.get_position_as_list(), new_position)
 
-    # @unittest.skip("Not working yet.")
     def test_attach_object(self):
         milk = self.spawn_milk([1, 0, 0.1])
         milk.attach(self.big_bowl)
@@ -165,6 +164,23 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         milk.set_position(milk_position)
         time.sleep(0.1)  # TODO: This is a workaround for the issue that the position is not updated immediately.
         new_bowl_position = self.big_bowl.get_position_as_list()
+        self.assertAlmostEqual(new_bowl_position[0], estimated_bowl_position[0], delta=0.001)
+
+    def test_detach_object(self):
+        milk = self.spawn_milk([1, 0, 0.1])
+        milk.attach(self.big_bowl)
+        self.assertTrue(self.big_bowl in milk.attachments)
+        milk.detach(self.big_bowl)
+        self.assertTrue(self.big_bowl not in milk.attachments)
+        milk_position = milk.get_position_as_list()
+        milk_position[0] += 1
+        big_bowl_position = self.big_bowl.get_position_as_list()
+        estimated_bowl_position = big_bowl_position.copy()
+        milk.set_position(milk_position)
+        time.sleep(0.1)  # TODO: This is a workaround for the issue that the position is not updated immediately.
+        new_milk_position = milk.get_position_as_list()
+        new_bowl_position = self.big_bowl.get_position_as_list()
+        self.assertAlmostEqual(new_milk_position[0], milk_position[0], delta=0.001)
         self.assertAlmostEqual(new_bowl_position[0], estimated_bowl_position[0], delta=0.001)
 
     @unittest.skip("Needs mobile base robot")
@@ -183,6 +199,20 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             estimated_bowl_position = bowl_position
             estimated_bowl_position[2] += 3
             self.assertAlmostEqual(new_bowl_position[0], estimated_bowl_position[0])
+
+    def test_get_object_contact_points(self):
+        milk = self.spawn_milk([1, 0, 0.1])
+        contact_points = self.multiverse.get_object_contact_points(milk)
+        self.assertIsInstance(contact_points, list)
+        self.assertEqual(len(contact_points), 1)
+        self.assertTrue(contact_points[0].link_b.object, self.multiverse.floor)
+        big_bowl_position = self.big_bowl.get_position_as_list()
+        milk.set_position([big_bowl_position[0], big_bowl_position[1], big_bowl_position[2] + 0.5])
+        time.sleep(0.5)
+        contact_points = self.multiverse.get_object_contact_points(milk)
+        self.assertIsInstance(contact_points, list)
+        self.assertEqual(len(contact_points), 1)
+        self.assertTrue(contact_points[0].link_b.object, self.big_bowl)
 
     @staticmethod
     def spawn_big_bowl() -> Object:

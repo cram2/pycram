@@ -394,7 +394,7 @@ class ContactPointsList(list):
         return [point.link_b.object.name for point in self]
 
     def __str__(self):
-        return f"ContactPointsList: {len(self)} contact points"
+        return f"ContactPointsList: {', '.join(self.get_names_of_objects_that_have_points())}"
 
     def __repr__(self):
         return self.__str__()
