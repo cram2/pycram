@@ -2,13 +2,13 @@ import logging
 import os
 from time import time
 
-from typing_extensions import List, Dict, Optional
+from typing_extensions import List, Dict, Optional, Tuple
 
-from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPoint, ContactPointsList
+from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList
 from ..datastructures.enums import WorldMode, JointType
 from ..datastructures.pose import Pose
-from ..description import Link, Joint
 from ..datastructures.world import World
+from ..description import Link, Joint
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.multiverse_socket import MultiverseSocket, SocketAddress
 from ..world_concepts.world_object import Object
@@ -22,7 +22,7 @@ def get_resource_paths(dirname: str) -> List[str]:
         for resources_path in resources_paths
     ]
 
-    def add_directories(path: str) -> List[str]:
+    def add_directories(path: str) -> None:
         with os.scandir(path) as entries:
             for entry in entries:
                 if entry.is_dir():
@@ -226,7 +226,9 @@ class Multiverse(MultiverseSocket, World):
         if len(self.receive_data) != 8:
             logging.error(f"Invalid body pose data: {self.receive_data}")
             raise ValueError
-        return Pose(self.receive_data[1:4], self.receive_data[4:])
+        wxyz = self.receive_data[4:]
+        xyzw = [wxyz[1], wxyz[2], wxyz[3], wxyz[0]]
+        return Pose(self.receive_data[1:4], xyzw)
 
     def reset_object_base_pose(self, obj: Object, pose: Pose):
         self.check_object_exists_and_issue_warning_if_not(obj)
@@ -247,7 +249,9 @@ class Multiverse(MultiverseSocket, World):
         self._init_setter()
         self.request_meta_data["send"][body_name] = ["position", "quaternion"]
         self.send_and_receive_meta_data()
-        self.send_data = [time() - self.time_start, *pose.position_as_list(), *pose.orientation_as_list()]
+        xyzw = pose.orientation_as_list()
+        wxyz = [xyzw[3], *xyzw[:3]]
+        self.send_data = [time() - self.time_start, *pose.position_as_list(), *wxyz]
         self.send_and_receive_data()
 
     def get_all_objects_data_from_server(self) -> Dict[str, Dict]:
@@ -277,37 +281,60 @@ class Multiverse(MultiverseSocket, World):
         if constraint.type != JointType.FIXED:
             logging.error("Only fixed constraints are supported in Multiverse")
             raise ValueError
+        self._request_attach(constraint)
+        parent_link_name, child_link_name = self.get_constraint_link_names(constraint)
         constraint_id = self.last_constraint_id + 1
-        parent_link_name = self.get_link_name_from_constraint_link(constraint.parent_link)
-        child_link_name = self.get_link_name_from_constraint_link(constraint.child_link)
-        self._add_api_request("attach", parent_link_name,
-                              child_link_name, self._get_attachment_pose_as_string(constraint))
-        self._send_api_request()
         self.constraints[constraint_id] = {'parent_link': parent_link_name,
                                            'child_link': child_link_name}
         return constraint_id
+
+    def _request_attach(self, constraint: Constraint) -> None:
+        """
+        Request to attach the child link to the parent link.
+        param constraint: The constraint.
+        """
+        parent_link_name, child_link_name = self.get_constraint_link_names(constraint)
+        self._add_api_request("attach", child_link_name,
+                              parent_link_name, self._get_attachment_pose_as_string(constraint))
+        self._send_api_request()
+
+    def get_constraint_link_names(self, constraint: Constraint) -> Tuple[str, str]:
+        """
+        Get the link names of the constraint.
+        param constraint: The constraint.
+        return: The link names of the constraint.
+        """
+        return self.get_parent_link_name(constraint), self.get_constraint_child_link_name(constraint)
+
+    def get_parent_link_name(self, constraint: Constraint) -> str:
+        """
+        Get the parent link name of the constraint.
+        param constraint: The constraint.
+        return: The parent link name of the constraint.
+        """
+        return self.get_link_name_for_constraint(constraint.parent_link)
+
+    def get_constraint_child_link_name(self, constraint: Constraint) -> str:
+        """
+        Get the child link name of the constraint.
+        param constraint: The constraint.
+        return: The child link name of the constraint.
+        """
+        return self.get_link_name_for_constraint(constraint.child_link)
 
     def remove_constraint(self, constraint_id) -> None:
         constraint = self.constraints.pop(constraint_id)
         self._add_api_request("detach", constraint['parent_link'], constraint['child_link'])
         self._send_api_request()
 
-    def get_link_name_from_constraint_link(self, link: Link) -> str:
+    @staticmethod
+    def get_link_name_for_constraint(link: Link) -> str:
         """
-        Get the link name from the constraint link, if the link belongs to a one link object, return the object name.
+        Get the link name from link object, if the link belongs to a one link object, return the object name.
         param link: The link.
         return: The link name.
         """
-        return link.name if not self.is_one_link_object(link.object) else link.object.name
-
-    @staticmethod
-    def is_one_link_object(obj: Object) -> bool:
-        """
-        Check if the object has only one link.
-        param obj: The object.
-        return: True if the object has only one link, False otherwise.
-        """
-        return len(obj.links) == 1
+        return link.name if not link.is_only_link else link.object.name
 
     def _get_attachment_pose_as_string(self, constraint: Constraint) -> str:
         """
@@ -328,7 +355,7 @@ class Multiverse(MultiverseSocket, World):
         return: The pose as a string.
         """
         return f"{pose.position.x} {pose.position.y} {pose.position.z} {pose.orientation.w} {pose.orientation.x} " \
-                  f"{pose.orientation.y} {pose.orientation.z}"
+               f"{pose.orientation.y} {pose.orientation.z}"
 
     def _init_api_callback(self):
         """
@@ -365,7 +392,7 @@ class Multiverse(MultiverseSocket, World):
     def get_object_contact_points(self, obj: Object) -> ContactPointsList:
         self.check_object_exists_and_issue_warning_if_not(obj)
         logging.warning("get_object_contact_points is not implemented in Multiverse")
-        return []
+        return ContactPointsList([])
 
     def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> ContactPointsList:
         self.check_object_exists_and_issue_warning_if_not(obj1)
@@ -426,6 +453,6 @@ class Multiverse(MultiverseSocket, World):
     def set_gravity(self, gravity_vector: List[float]) -> None:
         logging.warning("set_gravity is not implemented in Multiverse")
 
-    def check_object_exists_and_issue_warning_if_not(self, object):
-        if object not in self.objects:
-            logging.warning(f"Object {object.name} does not exist in the simulator")
+    def check_object_exists_and_issue_warning_if_not(self, obj: Object):
+        if obj not in self.objects:
+            logging.warning(f"Object {obj.name} does not exist in the simulator")

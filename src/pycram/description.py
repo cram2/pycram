@@ -240,6 +240,15 @@ class Link(ObjectEntity, LinkDescription, ABC):
             del child_link.constraint_ids[self]
 
     @property
+    def is_only_link(self) -> bool:
+        """
+        Returns whether this link is the only link of the object.
+
+        :return: True if this link is the only link, False otherwise.
+        """
+        return self.object.has_one_link
+
+    @property
     def is_root(self) -> bool:
         """
         Returns whether this link is the root link of the object.

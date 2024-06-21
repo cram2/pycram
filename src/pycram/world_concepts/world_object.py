@@ -190,6 +190,13 @@ class Object(WorldEntity):
         self.world.world_sync.add_obj_queue.put(self)
 
     @property
+    def has_one_link(self) -> bool:
+        """
+        Returns True if the object has only one link, otherwise False.
+        """
+        return len(self.links) == 1
+
+    @property
     def link_names(self) -> List[str]:
         """
         :return: The name of each link as a list.
