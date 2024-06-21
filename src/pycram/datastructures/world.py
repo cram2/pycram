@@ -135,7 +135,7 @@ class World(StateEntity, ABC):
     and the objects.
     """
 
-    cache_dir = data_directory[0] + '/cached/'
+    cache_dir: str = data_directory[0] + '/cached/'
     """
     Global reference for the cache directory, this is used to cache the description files of the robot and the objects.
     """
@@ -157,6 +157,7 @@ class World(StateEntity, ABC):
         World.simulation_frequency = simulation_frequency
 
         self.cache_manager = CacheManager(self.cache_dir, self.data_directory)
+        self.object_lock: threading.Lock = threading.Lock()
 
         self.id: Optional[int] = -1
         # This is used to connect to the physics server (allows multiple clients)
@@ -319,6 +320,9 @@ class World(StateEntity, ABC):
 
         :param obj: The object to be removed.
         """
+        while self.object_lock.locked():
+            time.sleep(0.1)
+        self.object_lock.acquire()
         obj.detach_all()
 
         self.objects.remove(obj)
@@ -333,6 +337,7 @@ class World(StateEntity, ABC):
 
         if World.robot == obj:
             World.robot = None
+        self.object_lock.release()
 
     def add_fixed_constraint(self, parent_link: Link, child_link: Link,
                              child_to_parent_transform: Transform) -> int:
