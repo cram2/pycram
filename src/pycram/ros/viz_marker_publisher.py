@@ -34,9 +34,8 @@ class VizMarkerPublisher:
 
         self.thread = threading.Thread(target=self._publish)
         self.kill_event = threading.Event()
-        self.lock = threading.Lock()
         self.main_world = World.current_world if not World.current_world.is_prospection_world else World.current_world.world_sync.world
-
+        self.lock = self.main_world.object_lock
         self.thread.start()
         atexit.register(self._stop_publishing)
 
@@ -45,6 +44,8 @@ class VizMarkerPublisher:
         Constantly publishes the Marker Array. To the given topic name at a fixed rate.
         """
         while not self.kill_event.is_set():
+            while self.lock.locked():
+                time.sleep(0.1)
             self.lock.acquire()
             marker_array = self._make_marker_array()
             self.lock.release()
