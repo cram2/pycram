@@ -30,13 +30,15 @@ if 'mujoco' not in process_names:
 @unittest.skipIf(not multiverse_installed, "Multiverse is not installed.")
 @unittest.skipIf(not multiverse_running, "Multiverse server is not running.")
 @unittest.skipIf(not mujoco_running, "Mujoco is not running.")
-# @unittest.skip("Needs Multiverse server and simulation to be running")
 class MultiversePyCRAMTestCase(unittest.TestCase):
-    multiverse: Multiverse
+    if multiverse_installed:
+        multiverse: Multiverse
     big_bowl: Optional[Object] = None
 
     @classmethod
     def setUpClass(cls):
+        if not multiverse_installed:
+            return
         cls.multiverse = Multiverse(simulation="pycram_test",
                                     client_addr=SocketAddress(port="5481"),
                                     is_prospection=True)
