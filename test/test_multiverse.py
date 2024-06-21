@@ -9,7 +9,13 @@ from pycram.datastructures.enums import ObjectType
 from pycram.datastructures.pose import Pose
 from pycram.datastructures.world import UseProspectionWorld
 from pycram.world_concepts.world_object import Object
-from pycram.worlds.multiverse import Multiverse
+
+multiverse_installed = True
+try:
+    from pycram.worlds.multiverse import Multiverse
+    from pycram.world_concepts.multiverse_socket import SocketAddress
+except ImportError:
+    multiverse_installed = False
 
 processes = psutil.process_iter()
 process_names = [p.name() for p in processes]
@@ -21,6 +27,7 @@ if 'mujoco' not in process_names:
     mujoco_running = False
 
 
+@unittest.skipIf(not multiverse_installed, "Multiverse is not installed.")
 @unittest.skipIf(not multiverse_running, "Multiverse server is not running.")
 @unittest.skipIf(not mujoco_running, "Mujoco is not running.")
 # @unittest.skip("Needs Multiverse server and simulation to be running")
@@ -30,13 +37,9 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        try:
-            from pycram.world_concepts.multiverse_socket import SocketAddress
-            cls.multiverse = Multiverse(simulation="pycram_test",
-                                        client_addr=SocketAddress(port="5481"),
-                                        is_prospection=True)
-        except ImportError:
-            return
+        cls.multiverse = Multiverse(simulation="pycram_test",
+                                    client_addr=SocketAddress(port="5481"),
+                                    is_prospection=True)
         cls.big_bowl = cls.spawn_big_bowl()
 
     @classmethod
