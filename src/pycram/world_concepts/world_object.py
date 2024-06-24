@@ -18,7 +18,7 @@ from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointSt
 from ..datastructures.enums import ObjectType, JointType
 from ..local_transformer import LocalTransformer
 from ..datastructures.pose import Pose, Transform
-from ..new_robot_description import RobotDescriptionManager
+from ..robot_description import RobotDescriptionManager
 
 Link = ObjectDescription.Link
 

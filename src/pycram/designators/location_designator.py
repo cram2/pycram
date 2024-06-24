@@ -10,7 +10,7 @@ from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, Gau
 from ..robot_descriptions import robot_description
 from ..datastructures.enums import JointType
 from ..pose_generator_and_validator import PoseGenerator, visibility_validator, reachability_validator
-from ..robot_description import ManipulatorDescription
+from ..robot_description import RobotDescription
 from ..datastructures.pose import Pose
 
 
@@ -187,9 +187,11 @@ class CostmapLocation(LocationDesignatorDescription):
                                                        World.current_world)
                 if self.reachable_for:
                     hand_links = []
-                    for name, chain in robot_description.chains.items():
-                        if isinstance(chain, ManipulatorDescription):
-                            hand_links += chain.gripper.links
+                    for description in RobotDescription.current_robot_description.get_manipulator_chains():
+                        hand_links += description.links
+                    #for name, chain in robot_description.chains.items():
+                    #    if isinstance(chain, ManipulatorDescription):
+                    #        hand_links += chain.gripper.links
                     valid, arms = reachability_validator(maybe_pose, test_robot, target_pose,
                                                          allowed_collision={test_robot: hand_links})
                     if self.reachable_arm:
@@ -275,9 +277,11 @@ class AccessingLocation(LocationDesignatorDescription):
                                              orientation_generator=lambda p, o: PoseGenerator.generate_orientation(p, half_pose)):
 
                 hand_links = []
-                for name, chain in robot_description.chains.items():
-                    if isinstance(chain, ManipulatorDescription):
-                        hand_links += chain.gripper.links
+                for description in RobotDescription.current_robot_description.get_manipulator_chains():
+                    hand_links += description.links
+                #for name, chain in robot_description.chains.items():
+                #    if isinstance(chain, ManipulatorDescription):
+                #        hand_links += chain.gripper.links
 
                 valid_init, arms_init = reachability_validator(maybe_pose, test_robot, init_pose,
                                                                allowed_collision={test_robot: hand_links})
