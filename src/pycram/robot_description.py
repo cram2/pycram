@@ -60,7 +60,7 @@ class RobotDescription:
     Base class of a robot description. Contains all necessary information about a robot, like the URDF, the base link,
     the torso link and joint, the kinematic chains and cameras.
     """
-    current_robot_description = None
+    current_robot_description: RobotDescription = None
 
     def __init__(self, name: str, base_link: str, torso_link: str, torso_joint: str, urdf_path: str):
         """
@@ -79,7 +79,7 @@ class RobotDescription:
         self.torso_joint = torso_joint
         with suppress_stdout_stderr():
             self.urdf_object = URDF.from_xml_file(urdf_path)
-        self.kinematic_chains = {}
+        self.kinematic_chains: Dict[str, KinematicChainDescription] = {}
         self.cameras = {}
 
     def add_kinematic_chain_description(self, chain: KinematicChainDescription):
@@ -151,6 +151,15 @@ class RobotDescription:
         """
         return self.cameras[list(self.cameras.keys())[0]].link_name
 
+    def get_static_joint_chain(self, kinematic_chain_name: str, configuration_name: str):
+        if kinematic_chain_name in self.kinematic_chains.keys():
+            if configuration_name in self.kinematic_chains[kinematic_chain_name].static_joint_states.keys():
+                return self.kinematic_chains[kinematic_chain_name].static_joint_states[configuration_name]
+            else:
+                raise ValueError(f"There is no static joint state with the name {configuration_name} for Kinematic chain {kinematic_chain_name} of robot {self.name}")
+        else:
+            raise ValueError(f"There is no KinematicChain with name {kinematic_chain_name} for robot {self.name}")
+
 
 class KinematicChainDescription:
     """
@@ -170,15 +179,15 @@ class KinematicChainDescription:
         :param urdf_object: URDF object of the robot which is used to get the chain
         :param include_fixed_joints: If True, fixed joints are included in the chain
         """
-        self.name = name
-        self.start_link = start_link
-        self.end_link = end_link
-        self.urdf_object = urdf_object
-        self.include_fixed_joints = include_fixed_joints
-        self.link_names = []
-        self.joint_names = []
-        self.end_effector = None
-        self.static_joint_states = {}
+        self.name: str = name
+        self.start_link: str = start_link
+        self.end_link: str = end_link
+        self.urdf_object: URDF = urdf_object
+        self.include_fixed_joints: bool = include_fixed_joints
+        self.link_names: List[str] = []
+        self.joint_names: List[str] = []
+        self.end_effector: EndEffectorDescription = None
+        self.static_joint_states: Dict[str, float] = {}
 
         self._init_links()
         self._init_joints()
@@ -253,6 +262,11 @@ class KinematicChainDescription:
         except KeyError:
             rospy.logerr(f"Static joint states for chain {name} not found")
 
+    def get_tool_frame(self):
+        if self.end_effector:
+            return self.end_effector.tool_frame
+        else:
+            raise ValueError(f"The Kinematic chain {self.name} has no end-effector")
 
 class CameraDescription:
     """

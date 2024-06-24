@@ -7,7 +7,8 @@ from .world_reasoning import contact
 from .costmaps import Costmap
 from .local_transformer import LocalTransformer
 from .datastructures.pose import Pose, Transform
-from .robot_description import ManipulatorDescription
+from .robot_description import RobotDescription
+#from .robot_description import ManipulatorDescription
 from .robot_descriptions import robot_description
 from .external_interfaces.ik import request_ik
 from .plan_failures import IKError
@@ -179,21 +180,22 @@ def reachability_validator(pose: Pose,
         target = target.get_pose()
 
     robot.set_pose(pose)
-    manipulator_descs = list(
-        filter(lambda chain: isinstance(chain[1], ManipulatorDescription), robot_description.chains.items()))
+    # manipulator_descs = list(
+    #    filter(lambda chain: isinstance(chain[1], ManipulatorDescription), robot_description.chains.items()))
+    manipulator_descs = RobotDescription.current_robot_description.get_manipulator_chains()
 
     # TODO Make orientation adhere to grasping orientation
     res = False
     arms = []
-    for name, chain in manipulator_descs:
-        retract_target_pose = LocalTransformer().transform_pose(target, robot.get_link_tf_frame(chain.tool_frame))
+    for description in manipulator_descs:
+        retract_target_pose = LocalTransformer().transform_pose(target, robot.get_link_tf_frame(description.end_effector.tool_frame))
         retract_target_pose.position.x -= 0.07  # Care hard coded value copied from PlaceAction class
 
         # retract_pose needs to be in world frame?
         retract_target_pose = LocalTransformer().transform_pose(retract_target_pose, "map")
 
-        joints = robot_description.chains[name].joints
-        tool_frame = robot_description.get_tool_frame(name)
+        joints = description.joints
+        tool_frame = description.end_effector.tool_frame
 
         # TODO Make orientation adhere to grasping orientation
         in_contact = False
