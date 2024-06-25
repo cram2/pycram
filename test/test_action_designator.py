@@ -1,9 +1,10 @@
+import time
 import unittest
 from pycram.designators import action_designator, object_designator
 from pycram.designators.action_designator import MoveTorsoActionPerformable, PickUpActionPerformable, \
     NavigateActionPerformable, FaceAtPerformable
 from pycram.local_transformer import LocalTransformer
-from pycram.robot_descriptions import robot_description
+from pycram.robot_description import RobotDescription
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import Pose
 from pycram.datastructures.enums import ObjectType, Arms
@@ -21,7 +22,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.assertEqual(description.ground().position, 0.3)
         with simulated_robot:
             description.resolve().perform()
-        self.assertEqual(self.world.robot.get_joint_position(robot_description.torso_joint), 0.3)
+        self.assertEqual(self.world.robot.get_joint_position(RobotDescription.current_robot_description.torso_joint), 0.3)
 
     def test_set_gripper(self):
         description = action_designator.SetGripperAction(["left"], ["open", "close"])
@@ -31,7 +32,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.assertEqual(len(list(iter(description))), 2)
         with simulated_robot:
             description.resolve().perform()
-        for joint, state in robot_description.get_static_gripper_chain("left", "open").items():
+        for joint, state in RobotDescription.current_robot_description.kinematic_chains["left"].get_static_gripper_state("open").items():
             self.assertEqual(self.world.robot.get_joint_position(joint), state)
 
     def test_release(self):
@@ -54,16 +55,19 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.assertTrue(description.ontology_concept_holders)
         with simulated_robot:
             description.resolve().perform()
-        for joint, pose in robot_description.get_static_joint_chain("right", "park").items():
+        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("right", "park").items():
             joint_position = self.world.robot.get_joint_position(joint)
             self.assertEqual(joint_position, pose)
-        for joint, pose in robot_description.get_static_joint_chain("left", "park").items():
+        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("left", "park").items():
             self.assertEqual(self.world.robot.get_joint_position(joint), pose)
 
     def test_navigate(self):
         description = action_designator.NavigateAction([Pose([1, 0, 0], [0, 0, 0, 1])])
+        with simulated_robot:
+            description.resolve().perform()
         self.assertEqual(description.ground().target_location, Pose([1, 0, 0], [0, 0, 0, 1]))
         self.assertTrue(description.ontology_concept_holders)
+        self.assertEqual(self.robot.get_pose(), Pose([1, 0, 0]))
 
     def test_pick_up(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
@@ -148,7 +152,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         with simulated_robot:
             description.resolve().perform()
         dist = np.linalg.norm(
-            np.array(self.robot.get_link_position_as_list(robot_description.get_tool_frame("right"))) -
+            np.array(self.robot.get_link_position_as_list(RobotDescription.current_robot_description.kinematic_chains["right"].get_tool_frame())) -
             np.array(self.milk.get_position_as_list()))
         self.assertTrue(dist < 0.01)
 
