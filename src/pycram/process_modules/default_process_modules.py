@@ -6,7 +6,7 @@ from ..datastructures.enums import JointType
 from ..external_interfaces.ik import request_ik
 from ..utils import _apply_ik
 from ..process_module import ProcessModule
-from ..robot_descriptions import robot_description
+from ..robot_description import RobotDescription
 from ..local_transformer import LocalTransformer
 from ..designators.motion_designator import *
 from ..world_reasoning import visible, link_pose_for_joint_config
@@ -34,11 +34,11 @@ class DefaultMoveHead(ProcessModule):
 
         local_transformer = LocalTransformer()
 
-        pan_link = robot_description.chains["neck"].links[0]
-        tilt_link = robot_description.chains["neck"].links[1]
+        pan_link = RobotDescription.current_robot_description.kinematic_chains["neck"].links[0]
+        tilt_link = RobotDescription.current_robot_description.kinematic_chains["neck"].links[1]
 
-        pan_joint = robot_description.chains["neck"].joints[0]
-        tilt_joint = robot_description.chains["neck"].joints[1]
+        pan_joint = RobotDescription.current_robot_description.kinematic_chains["neck"].joints[0]
+        tilt_joint = RobotDescription.current_robot_description.kinematic_chains["neck"].joints[1]
         pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame(pan_link))
         pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame(tilt_link))
 
@@ -62,7 +62,7 @@ class DefaultMoveGripper(ProcessModule):
         robot = World.robot
         gripper = desig.gripper
         motion = desig.motion
-        for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
+        for joint, state in RobotDescription.current_robot_description.get_static_gripper_chain(gripper, motion).items():
             robot.set_joint_position(joint, state)
 
 
@@ -76,9 +76,9 @@ class DefaultDetecting(ProcessModule):
         robot = World.robot
         object_type = desig.object_type
         # Should be "wide_stereo_optical_frame"
-        cam_frame_name = robot_description.get_camera_frame()
+        cam_frame_name = RobotDescription.current_robot_description.get_camera_frame()
         # should be [0, 0, 1]
-        front_facing_axis = robot_description.front_facing_axis
+        front_facing_axis = RobotDescription.current_robot_description.get_default_camera().front_facing_axis
 
         objects = World.current_world.get_object_by_type(object_type)
         for obj in objects:
@@ -172,9 +172,9 @@ class DefaultClose(ProcessModule):
 
 
 def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
-    gripper = robot_description.get_tool_frame(arm)
+    gripper = RobotDescription.current_robot_description.kinematic_chains[arm].get_tool_frame()
 
-    joints = robot_description.chains[arm].joints
+    joints = RobotDescription.current_robot_description.kinematic_chains[arm].joints
 
     inv = request_ik(target, robot, joints, gripper)
     _apply_ik(robot, inv)

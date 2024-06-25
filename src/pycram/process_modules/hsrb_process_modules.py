@@ -4,7 +4,7 @@ from threading import Lock
 from typing import Any
 
 from ..datastructures.enums import JointType
-from ..robot_descriptions import robot_description
+from ..robot_description import RobotDescription
 from ..process_module import ProcessModule
 from ..datastructures.pose import Point
 from ..utils import _apply_ik
@@ -23,9 +23,9 @@ def calculate_and_apply_ik(robot, gripper: str, target_position: Point, max_iter
     """
     target_position_l  = [target_position.x, target_position.y, target_position.z]
     # TODO: Check if this is correct (getting the arm and using its joints), previously joints was not provided.
-    arm = "right" if gripper == robot_description.get_tool_frame("right") else "left"
+    arm = "right" if gripper == RobotDescription.current_robot_description.kinematic_chains["right"].get_tool_frame() else "left"
     inv = request_ik(Pose(target_position_l, [0, 0, 0, 1]),
-                     robot, robot_description.chains[arm].joints, gripper)
+                     robot, RobotDescription.current_robot_description.kinematic_chains[arm].joints, gripper)
     _apply_ik(robot, inv)
 
 
@@ -38,7 +38,7 @@ def _park_arms(arm):
 
     robot = World.robot
     if arm == "left":
-        for joint, pose in robot_description.get_static_joint_chain("left", "park").items():
+        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("left", "park").items():
             robot.set_joint_position(joint, pose)
 
 
@@ -86,7 +86,7 @@ class HSRBMoveGripper(ProcessModule):
         robot = World.robot
         gripper = desig.gripper
         motion = desig.motion
-        for joint, state in robot_description.get_static_gripper_chain(gripper, motion).items():
+        for joint, state in RobotDescription.current_robot_description.kinematic_chains[gripper].get_static_gripper_state(motion).items():
             robot.set_joint_position(joint, state)
 
 
@@ -101,9 +101,9 @@ class HSRBDetecting(ProcessModule):
         robot = World.robot
         object_type = desig.object_type
         # Should be "wide_stereo_optical_frame"
-        cam_frame_name = robot_description.get_camera_frame()
+        cam_frame_name = RobotDescription.current_robot_description.get_camera_frame()
         # should be [0, 0, 1]
-        front_facing_axis = robot_description.front_facing_axis
+        front_facing_axis = RobotDescription.current_robot_description.get_default_camera().front_facing_axis
         # if desig.technique == 'all':
         #     rospy.loginfo("Fake detecting all generic objects")
         #     objects = BulletWorld.current_bullet_world.get_all_objets_not_robot()
@@ -216,9 +216,9 @@ class HSRBClose(ProcessModule):
 
 
 def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
-    gripper = robot_description.get_tool_frame(arm)
+    gripper = RobotDescription.current_robot_description.kinematic_chains[arm].get_tool_frame()
 
-    joints = robot_description.chains[arm].joints
+    joints = RobotDescription.current_robot_description.kinematic_chains[arm].joints
 
     inv = request_ik(target, robot, joints, gripper)
     _apply_ik(robot, inv)
@@ -247,7 +247,7 @@ class HSRBNavigationSemiReal(ProcessModule):
 
     def _execute(self, designator: MoveMotion) -> Any:
         rospy.logdebug(f"Sending goal to giskard to Move the robot")
-        giskard.achieve_cartesian_goal(designator.target, robot_description.base_link, "map")
+        giskard.achieve_cartesian_goal(designator.target, RobotDescription.current_robot_description.base_link, "map")
         # queryPoseNav(designator.target)
 
 
@@ -268,8 +268,8 @@ class HSRBMoveHeadReal(ProcessModule):
         new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
         new_tilt = np.arctan2(pose_in_tilt.position.z, pose_in_tilt.position.x + pose_in_tilt.position.y)
 
-        current_pan = robot.get_joint_state("head_pan_joint")
-        current_tilt = robot.get_joint_state("head_tilt_joint")
+        current_pan = robot.get_joint_position("head_pan_joint")
+        current_tilt = robot.get_joint_position("head_tilt_joint")
 
         giskard.avoid_all_collisions()
         giskard.achieve_joint_goal(
@@ -385,7 +385,7 @@ class HSRBMoveTCPReal(ProcessModule):
         giskard.avoid_all_collisions()
         if designator.allow_gripper_collision:
             giskard.allow_gripper_collision(designator.arm)
-        giskard.achieve_cartesian_goal(pose_in_map, robot_description.get_tool_frame(designator.arm),
+        giskard.achieve_cartesian_goal(pose_in_map, RobotDescription.current_robot_description.kinematic_chains[designator.arm].get_tool_frame(),
                                        "map")
 
 
@@ -448,7 +448,7 @@ class HSRBOpenReal(ProcessModule):
     """
 
     def _execute(self, designator: OpeningMotion) -> Any:
-        giskard.achieve_open_container_goal(robot_description.get_tool_frame(designator.arm),
+        giskard.achieve_open_container_goal(RobotDescription.current_robot_description.kinematic_chains[designator.arm].get_tool_frame(),
                                             designator.object_part.name)
 
 
@@ -458,7 +458,7 @@ class HSRBCloseReal(ProcessModule):
     """
 
     def _execute(self, designator: ClosingMotion) -> Any:
-        giskard.achieve_close_container_goal(robot_description.get_tool_frame(designator.arm),
+        giskard.achieve_close_container_goal(RobotDescription.current_robot_description.kinematic_chains[designator.arm].get_tool_frame(),
                                              designator.object_part.name)
 
 
