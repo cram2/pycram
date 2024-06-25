@@ -724,7 +724,7 @@ class PickUpActionPerformable(ActionAbstract):
         # Retrieve object and robot from designators
         object = self.object_designator.world_object
         # Get grasp orientation and target pose
-        grasp = robot_description.grasps.get_orientation_for_grasp(self.grasp)
+        grasp = RobotDescription.current_robot_description.grasps[self.grasp]
         # oTm = Object Pose in Frame map
         oTm = object.get_pose()
         # Transform the object pose to the object frame, basically the origin of the object frame
@@ -765,7 +765,7 @@ class PickUpActionPerformable(ActionAbstract):
         MoveTCPMotion(adjusted_oTm, self.arm, allow_gripper_collision=True).perform()
         adjusted_oTm.pose.position.z += 0.03
         MoveGripperMotion(motion="close", gripper=self.arm).perform()
-        tool_frame = RobotDescription.current_robot_description.kinematic_chains[self.arm].get_tool_frame
+        tool_frame = RobotDescription.current_robot_description.kinematic_chains[self.arm].get_tool_frame()
         robot.attach(object, tool_frame)
 
         # Lift object
@@ -804,7 +804,7 @@ class PlaceActionPerformable(ActionAbstract):
         # Transformations such that the target position is the position of the object and not the tcp
         tcp_to_object = local_tf.transform_pose(object_pose,
                                                 World.robot.get_link_tf_frame(
-                                                    RobotDescription.current_robot_description.kinematic_chains[self.arm].get_tool_frame))
+                                                    RobotDescription.current_robot_description.kinematic_chains[self.arm].get_tool_frame()))
         target_diff = self.target_location.to_transform("target").inverse_times(
             tcp_to_object.to_transform("object")).to_pose()
 
@@ -812,7 +812,7 @@ class PlaceActionPerformable(ActionAbstract):
         MoveGripperMotion("open", self.arm).perform()
         World.robot.detach(self.object_designator.world_object)
         retract_pose = local_tf.transform_pose(target_diff, World.robot.get_link_tf_frame(
-            RobotDescription.current_robot_description.kinematic_chains[self.arm].get_tool_frame))
+            RobotDescription.current_robot_description.kinematic_chains[self.arm].get_tool_frame()))
         retract_pose.position.x -= 0.07
         MoveTCPMotion(retract_pose, self.arm).perform()
 
@@ -989,7 +989,7 @@ class GraspingActionPerformable(ActionAbstract):
         else:
             object_pose = self.object_desig.world_object.get_pose()
         lt = LocalTransformer()
-        gripper_name = RobotDescription.current_robot_description.kinematic_chains[self.arm].get_tool_frame
+        gripper_name = RobotDescription.current_robot_description.kinematic_chains[self.arm].get_tool_frame()
 
         object_pose_in_gripper = lt.transform_pose(object_pose,
                                                    World.robot.get_link_tf_frame(gripper_name))

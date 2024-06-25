@@ -7,7 +7,6 @@ from ..local_transformer import LocalTransformer
 from ..world_reasoning import link_pose_for_joint_config
 from ..designator import DesignatorError, LocationDesignatorDescription
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
-from ..robot_descriptions import robot_description
 from ..datastructures.enums import JointType
 from ..pose_generator_and_validator import PoseGenerator, visibility_validator, reachability_validator
 from ..robot_description import RobotDescription
@@ -152,8 +151,8 @@ class CostmapLocation(LocationDesignatorDescription):
 
            :yield: An instance of CostmapLocation.Location with a valid position that satisfies the given constraints
            """
-        min_height = list(robot_description.cameras.values())[0].min_height
-        max_height = list(robot_description.cameras.values())[0].max_height
+        min_height = RobotDescription.current_robot_description.get_default_camera().minimal_height
+        max_height = RobotDescription.current_robot_description.get_default_camera().maximal_height
         # This ensures that the costmaps always get a position as their origin.
         if isinstance(self.target, ObjectDesignatorDescription.Object):
             target_pose = self.target.world_object.get_pose()
@@ -189,9 +188,6 @@ class CostmapLocation(LocationDesignatorDescription):
                     hand_links = []
                     for description in RobotDescription.current_robot_description.get_manipulator_chains():
                         hand_links += description.links
-                    #for name, chain in robot_description.chains.items():
-                    #    if isinstance(chain, ManipulatorDescription):
-                    #        hand_links += chain.gripper.links
                     valid, arms = reachability_validator(maybe_pose, test_robot, target_pose,
                                                          allowed_collision={test_robot: hand_links})
                     if self.reachable_arm:

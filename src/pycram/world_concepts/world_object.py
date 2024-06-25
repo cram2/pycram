@@ -95,14 +95,12 @@ class Object(WorldEntity):
         if not self.world.is_prospection_world:
             self._add_to_world_sync_obj_queue()
 
-        if self.name == "spoon" and self.world.is_prospection_world:
-            print("spoon problem")
         self.world.objects.append(self)
 
-        if self.obj_type == ObjectType.ROBOT:
+        if self.obj_type == ObjectType.ROBOT and not self.world.is_prospection_world:
             rdm = RobotDescriptionManager()
             rdm.load_description(self.name)
-            self.world.set_robot_if_not_set(self)
+            World.robot = self
 
     @property
     def pose(self):

@@ -23,5 +23,13 @@ class DeprecatedRobotDescription:
     def joints(self):
         self.raise_error()
 
+    @property
+    def torso_joint(self):
+        self.raise_error()
+
+    @property
+    def torso_link(self):
+        self.raise_error()
+
 
 robot_description = DeprecatedRobotDescription()
