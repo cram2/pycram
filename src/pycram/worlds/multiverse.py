@@ -1,14 +1,17 @@
 import logging
 import os
+from dataclasses import dataclass
 from time import time, sleep
 
 from typing_extensions import List, Dict, Optional, Tuple
+from tf.transformations import quaternion_matrix
+import numpy as np
 
 from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
 from ..datastructures.enums import WorldMode, JointType, ObjectType
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
-from ..description import Link, Joint, LinkDescription
+from ..description import Link, Joint
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.multiverse_socket import MultiverseSocket, SocketAddress
 from ..world_concepts.world_object import Object
@@ -76,6 +79,39 @@ def find_multiverse_path() -> Optional[str]:
     return None
 
 
+@dataclass
+class APIData:
+    """
+    A dataclass to store the API data.
+    """
+    api_name: str
+    params: List[str]
+
+    @property
+    def as_dict(self) -> Dict:
+        return {self.api_name: self.params}
+
+
+class APIDataDict(dict):
+    """
+    A dictionary to store the API data, where the key is the API name and the value is the parameters.
+    """
+    @classmethod
+    def from_list(cls, api_data_list: List[APIData]) -> "APIDataDict":
+        data = {api_data.api_name: api_data.params for api_data in api_data_list}
+        return cls(data)
+
+
+@dataclass
+class MultiverseContactPoint:
+    """
+    A dataclass to store the contact point returned from Multiverse.
+    """
+    body_name: str
+    contact_force: List[float]
+    contact_torque: List[float]
+
+
 class Multiverse(MultiverseSocket, World):
     """
     This class implements an interface between Multiverse and PyCRAM.
@@ -92,6 +128,15 @@ class Multiverse(MultiverseSocket, World):
     added_multiverse_resources: bool = False
     """
     A flag to check if the multiverse resources have been added.
+    """
+
+    GET_CONTACT_BODIES_API_NAME = "get_contact_bodies"
+    GET_CONSTRAINT_EFFORT_API_NAME = "get_constraint_effort"
+    ATTACH_API_NAME = "attach"
+    DETACH_API_NAME = "detach"
+    GET_RAYS_API_NAME = "get_rays"
+    """
+    The API names for the API callbacks to the Multiverse server.
     """
 
     def __init__(self, simulation: str, mode: Optional[WorldMode] = WorldMode.DIRECT,
@@ -140,7 +185,7 @@ class Multiverse(MultiverseSocket, World):
         Spawn the plane in the simulator.
         """
         floor = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf",
-                   world=self)
+                       world=self)
         sleep(0.5)
         return floor
 
@@ -207,9 +252,6 @@ class Multiverse(MultiverseSocket, World):
         self.request_meta_data["send"] = {}
         self.request_meta_data["receive"] = {}
         self.set_simulation_in_request_meta_data()
-
-    def set_simulation_in_request_meta_data(self):
-        self.request_meta_data["meta_data"]["simulation_name"] = self.simulation
 
     def reset_joint_position(self, joint: Joint, joint_position: float) -> None:
         self._init_setter()
@@ -383,38 +425,40 @@ class Multiverse(MultiverseSocket, World):
 
     def get_object_contact_points(self, obj: Object) -> ContactPointsList:
         self.check_object_exists_and_issue_warning_if_not(obj)
-        contact_bodies = self._request_objects_in_contact(obj)
+        multiverse_contact_points = self._request_contact_points(obj)
         contact_points = ContactPointsList([])
         body_link = None
-        for body in contact_bodies:
-            if body == "world":
+        for point in multiverse_contact_points:
+            if point.body_name == "world":
                 continue
-            body_object = self.get_object_by_name(body)
+            body_object = self.get_object_by_name(point.body_name)
             if body_object is None:
                 for obj in self.objects:
                     for link in obj.links.values():
-                        if link.name == body:
+                        if link.name == point.body_name:
                             body_link = link
                             break
             else:
                 body_link = body_object.root_link
             if body_link is None:
-                logging.error(f"Body link not found: {body}")
+                logging.error(f"Body link not found: {point.body_name}")
                 raise ValueError
             contact_points.append(ContactPoint(obj.root_link, body_link))
+            normal_force = self._get_normal_force_on_object_from_contact_force(obj, point.contact_force)
+            contact_points[-1].normal_on_b = normal_force
+            contact_points[-1].normal_force = normal_force
         return contact_points
 
-    def _request_objects_in_contact(self, obj: Object) -> List[str]:
-        self._init_api_callback()
-        self._add_api_request("get_contact_bodies", obj.name)
-        self._send_api_request()
-        return self._get_contact_bodies_from_response()
-
-    def _get_contact_bodies_from_response(self) -> List[str]:
-        return self._get_api_response("get_contact_bodies")
-
-    def _get_api_response(self, api_name: str) -> List[str]:
-        return self.response_meta_data["api_callbacks_response"][self.simulation][0][api_name]
+    @staticmethod
+    def _get_normal_force_on_object_from_contact_force(obj: Object, contact_force: List[float]) -> float:
+        """
+        Get the normal force on an object from the contact force exerted by another object that is expressed in the
+        world frame. Thus transforming the contact force to the object frame is necessary.
+        """
+        obj_quat = obj.get_orientation_as_list()
+        obj_rot_matrix = quaternion_matrix(obj_quat)[:3, :3]
+        contact_force_array = obj_rot_matrix @ np.array(contact_force).reshape(3, 1)
+        return contact_force_array.flatten().tolist()[2]
 
     def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> ContactPointsList:
         self.check_object_exists_and_issue_warning_if_not(obj1)
@@ -479,6 +523,117 @@ class Multiverse(MultiverseSocket, World):
         if obj not in self.objects:
             logging.warning(f"Object {obj.name} does not exist in the simulator")
 
+    def _request_contact_points(self, obj: Object) -> List[MultiverseContactPoint]:
+        """
+        Request the contact points of an object, this includes the object names and the contact forces and torques.
+        param obj: The object.
+        return: The contact points of the object as a list of MultiverseContactPoint.
+        """
+        api_response_data = self._request_apis_callbacks(self._get_contact_points_api_data(obj))
+        body_names = api_response_data[self.GET_CONTACT_BODIES_API_NAME]
+        contact_efforts = self._parse_constraint_effort(api_response_data[self.GET_CONSTRAINT_EFFORT_API_NAME])
+        return [MultiverseContactPoint(body_names[i], contact_efforts[:3], contact_efforts[3:])
+                for i in range(len(body_names))]
+
+    @staticmethod
+    def _parse_constraint_effort(contact_effort: List[str]) -> List[float]:
+        """
+        Parse the contact effort of an object.
+        param contact_effort: The contact effort of the object as a list of strings.
+        return: The contact effort of the object as a list of floats.
+        """
+        return list(map(float, contact_effort[0].split()))
+
+    def _request_objects_in_contact(self, obj: Object) -> List[str]:
+        """
+        Request the objects in contact with an object.
+        param obj: The object.
+        return: The objects in contact as a list of strings for object names.
+        """
+        return self._request_single_api_callback(self._get_contact_bodies_api_data(obj))
+
+    def _request_contact_effort(self, obj: Object) -> List[str]:
+        """
+        Request the contact effort of an object.
+        param obj: The object.
+        return: The contact effort of the object as a list of strings that represent the contact forces and torques.
+        """
+        return self._request_single_api_callback(self._get_constraint_effort_api_data(obj))
+
+    def _get_contact_points_api_data(self, obj: Object) -> APIDataDict:
+        """
+        Get the contact points API data to be added to the api callback request metadata, this includes the
+         contact bodies and the contact effort api data.
+        param obj: The object.
+        return: The contact points API data as an APIDataDict.
+        """
+        api_data_list = [self._get_contact_bodies_api_data(obj), self._get_constraint_effort_api_data(obj)]
+        return APIDataDict.from_list(api_data_list)
+
+    @staticmethod
+    def _get_contact_bodies_api_data(obj: Object):
+        """
+        Get the contact bodies API data to be added to the api callback request metadata.
+        param obj: The object.
+        """
+        return APIData("get_contact_bodies", [obj.name])
+
+    @staticmethod
+    def _get_constraint_effort_api_data(obj: Object) -> APIData:
+        """
+        Get the constraint effort API data to be added to the api callback request metadata.
+        param obj: The object.
+        """
+        return APIData("get_constraint_effort", [obj.name])
+
+    def _request_single_api_callback(self, api_data: APIData) -> List[str]:
+        """
+        Request a single API callback from the server.
+        param api_data: The API data to request the callback.
+        return: The API response as a list of strings.
+        """
+        return self._request_apis_callbacks(APIDataDict(api_data.as_dict))[api_data.api_name]
+
+    def _request_apis_callbacks(self, api_data: APIDataDict) -> APIDataDict:
+        """
+        Request the API callbacks from the server.
+        param api_data_request: The API data to add to the request metadata.
+        return: The API response as a list of strings.
+        """
+        self._init_api_callback()
+        for api_data, params in api_data.items():
+            self._add_api_request(api_data.api_name, *api_data.params)
+        self._send_api_request()
+        return self._get_all_apis_responses()
+
+    def _get_all_apis_responses(self) -> APIDataDict:
+        """
+        Get all the API responses from the server.
+        return: The API responses as a list of APIData.
+        """
+        list_of_api_responses = self.response_meta_data["api_callbacks_response"][self.simulation]
+        dict_of_api_responses = APIDataDict({api_name: api_response for api_response in list_of_api_responses
+                                             for api_name, response in api_response.items()})
+        return dict_of_api_responses
+
+    def _add_api_request(self, api_name: str, *params):
+        """
+        Add an API request to the request metadata.
+        param api_name: The name of the API.
+        param params: The parameters of the API.
+        """
+        self.request_meta_data["api_callbacks"][self.simulation].append({api_name: list(params)})
+
+    def _send_api_request(self):
+        """
+        Send the API request to the server.
+        """
+        if "api_callbacks" not in self.request_meta_data:
+            logging.error("No API request to send")
+            raise ValueError
+        self.send_and_receive_meta_data()
+        self.request_meta_data.pop("api_callbacks")
+
     def _init_api_callback(self):
         """
         Initialize the API callback in the request metadata.
@@ -506,22 +661,5 @@ class Multiverse(MultiverseSocket, World):
         """
         self.request_meta_data["api_callbacks"] = {self.simulation: []}
 
-    def _add_api_request(self, api_name: str, *params):
-        """
-        Add an API request to the request metadata.
-        param api_name: The name of the API.
-        param params: The parameters of the API.
-        """
-        if "api_callbacks" not in self.request_meta_data:
-            self._init_api_callback()
-        self.request_meta_data["api_callbacks"][self.simulation].append({api_name: list(params)})
-
-    def _send_api_request(self):
-        """
-        Send the API request to the server.
-        """
-        if "api_callbacks" not in self.request_meta_data:
-            logging.error("No API request to send")
-            raise ValueError
-        self.send_and_receive_meta_data()
-        self.request_meta_data.pop("api_callbacks")
+    def set_simulation_in_request_meta_data(self):
+        self.request_meta_data["meta_data"]["simulation_name"] = self.simulation
