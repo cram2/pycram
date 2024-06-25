@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 import rospy
-from typing_extensions import List, Dict
+from typing_extensions import List, Dict, Union, Optional
 from urdf_parser_py.urdf import URDF
 
 from .utils import suppress_stdout_stderr
+from .datastructures.enums import Arms
 
 
 class RobotDescriptionManager:
@@ -26,7 +27,7 @@ class RobotDescriptionManager:
         Initialize the RobotDescriptionManager, if no instance exists a new instance is created.
         """
         if self._initialized: return
-        self.descriptions = {}
+        self.descriptions: Dict[str, RobotDescription] = {}
         self._initialized = True
 
     def load_description(self, name: str):
@@ -80,7 +81,10 @@ class RobotDescription:
         with suppress_stdout_stderr():
             self.urdf_object = URDF.from_xml_file(urdf_path)
         self.kinematic_chains: Dict[str, KinematicChainDescription] = {}
-        self.cameras = {}
+        self.cameras: Dict[str, CameraDescription] = {}
+        self.grasps = {}
+        self.links = [l.name for l in self.urdf_object.links]
+        self.joints = [j.name for j in self.urdf_object.joints]
 
     def add_kinematic_chain_description(self, chain: KinematicChainDescription):
         """
@@ -131,6 +135,25 @@ class RobotDescription:
         camera_desc = CameraDescription(name, camera_link, minimal_height, maximal_height)
         self.cameras[name] = camera_desc
 
+    def add_grasp_orientation(self, name: str, orientation: List[float]):
+        """
+        Adds a grasp orientation to the robot description. This is used to define the orientation of the end effector
+        when grasping an object.
+
+        :param name: Name of the grasp orientation
+        :param orientation: List of floats representing the orientation
+        """
+        self.grasps[name] = orientation
+
+    def add_grasp_orientations(self, orientations: Dict[str, List[float]]):
+        """
+        Adds multiple grasp orientations to the robot description. This is used to define the orientation of the end effector
+        when grasping an object.
+
+        :param orientations: Dictionary of grasp orientations
+        """
+        self.grasps.update(orientations)
+
     def get_manipulator_chains(self) -> List[KinematicChainDescription]:
         """
         Returns a list of all manipulator chains of the robot which posses an end effector.
@@ -151,14 +174,71 @@ class RobotDescription:
         """
         return self.cameras[list(self.cameras.keys())[0]].link_name
 
+    def get_default_camera(self) -> CameraDescription:
+        """
+        Returns the first camera in the list of cameras.
+
+        :return: A CameraDescription object
+        """
+        return self.cameras[list(self.cameras.keys())[0]]
+
     def get_static_joint_chain(self, kinematic_chain_name: str, configuration_name: str):
         if kinematic_chain_name in self.kinematic_chains.keys():
             if configuration_name in self.kinematic_chains[kinematic_chain_name].static_joint_states.keys():
                 return self.kinematic_chains[kinematic_chain_name].static_joint_states[configuration_name]
             else:
-                raise ValueError(f"There is no static joint state with the name {configuration_name} for Kinematic chain {kinematic_chain_name} of robot {self.name}")
+                raise ValueError(
+                    f"There is no static joint state with the name {configuration_name} for Kinematic chain {kinematic_chain_name} of robot {self.name}")
         else:
             raise ValueError(f"There is no KinematicChain with name {kinematic_chain_name} for robot {self.name}")
+
+    def get_parent(self, name: str) -> str:
+        """
+        Returns the parent of a link or joint in the URDF. Always returns the imeadiate parent, for a link this is a joint
+        and vice versa.
+
+        :param name: Name of the link or joint in the URDF
+        :return: Name of the parent link or joint
+        """
+        if name not in self.links and name not in self.joints:
+            raise ValueError(f"Link or joint {name} not found in URDF")
+        if name in self.links:
+            if name in self.urdf_object.parent_map:
+                parent_joint, parent_link = self.urdf_object.parent_map[name]
+                return parent_joint
+            else:
+                raise ValueError(f"Link {name} has no parent")
+        elif name in self.joints:
+            parent_link = self.urdf_object.joint_map[name].parent
+            return parent_link
+
+    def get_child(self, name: str, return_multiple_children: bool = False) -> Union[str, List[str]]:
+        """
+        Returns the child of a link or joint in the URDF. Always returns the imeadiate child, for a link this is a joint
+        and vice versa. Since a link can have multiple children, the return_multiple_children parameter can be set to
+        True to get a list of all children.
+
+        :param name: Name of the link or joint in the URDF
+        :param return_multiple_children: If True, a list of all children is returned
+        :return: Name of the child link or joint or a list of all children
+        """
+        if name not in self.links and name not in self.joints:
+            raise ValueError(f"Link or joint {name} not found in URDF")
+        if name in self.links:
+            if name in self.urdf_object.child_map:
+                children = self.urdf_object.child_map[name]
+                # A link can have multiple children
+                child_joints = [child[0] for child in children]
+                if return_multiple_children:
+                    return child_joints
+                else:
+                    return child_joints[0]
+
+            else:
+                raise ValueError(f"Link {name} has no children")
+        elif name in self.joints:
+            child_link = self.urdf_object.joint_map[name].child
+            return child_link
 
 
 class KinematicChainDescription:
@@ -169,7 +249,9 @@ class KinematicChainDescription:
     This class contains all necessary information about the chain, like the start and end
     link, the URDF object and the joints of the chain.
     """
-    def __init__(self, name: str, start_link: str, end_link: str, urdf_object: URDF, include_fixed_joints=False):
+
+    def __init__(self, name: str, start_link: str, end_link: str, urdf_object: URDF, arm_type: Arms = None,
+                 include_fixed_joints=False):
         """
         Initialize the KinematicChainDescription object.
 
@@ -177,6 +259,7 @@ class KinematicChainDescription:
         :param start_link: First link of the chain
         :param end_link: Last link of the chain
         :param urdf_object: URDF object of the robot which is used to get the chain
+        :param arm_type: Type of the arm, if the chain is an arm
         :param include_fixed_joints: If True, fixed joints are included in the chain
         """
         self.name: str = name
@@ -187,7 +270,8 @@ class KinematicChainDescription:
         self.link_names: List[str] = []
         self.joint_names: List[str] = []
         self.end_effector: EndEffectorDescription = None
-        self.static_joint_states: Dict[str, float] = {}
+        self.arm_type: Arms = arm_type
+        self.static_joint_states: Dict[str, Dict[str, float]] = {}
 
         self._init_links()
         self._init_joints()
@@ -202,7 +286,8 @@ class KinematicChainDescription:
         """
         Initializes the joints of the chain by getting the chain from the URDF object.
         """
-        self.joint_names = self.urdf_object.get_chain(self.start_link, self.end_link, links=False)
+        joints = self.urdf_object.get_chain(self.start_link, self.end_link, links=False)
+        self.joint_names = list(filter(lambda j: self.urdf_object.joint_map[j].type != "fixed" or self.include_fixed_joints, joints))
 
     def get_joints(self) -> List[str]:
         """
@@ -262,17 +347,36 @@ class KinematicChainDescription:
         except KeyError:
             rospy.logerr(f"Static joint states for chain {name} not found")
 
-    def get_tool_frame(self):
+    def get_tool_frame(self) -> str:
+        """
+        Returns the name of the tool frame of the end effector of this chain, if it has an end effector.
+
+        :return: The name of the link of the tool frame in the URDF.
+        """
         if self.end_effector:
             return self.end_effector.tool_frame
         else:
             raise ValueError(f"The Kinematic chain {self.name} has no end-effector")
+
+    def get_static_gripper_state(self, state: str) -> Dict[str, float]:
+        """
+        Returns the static joint states for the gripper of the chain.
+
+        :param state: Name of the static joint states
+        :return: Dictionary of joint names and their values
+        """
+        if self.end_effector:
+            return self.end_effector.static_joint_states[state]
+        else:
+            raise ValueError(f"The Kinematic chain {self.name} has no end-effector")
+
 
 class CameraDescription:
     """
     Represents a camera mounted on a robot. Contains all necessary information about the camera, like the link name,
     minimal and maximal height, horizontal and vertical angle and the front facing axis.
     """
+
     def __init__(self, name: str, link_name: str, minimal_height: float, maximal_height: float,
                  horizontal_angle: float = 20, vertical_angle: float = 20, front_facing_axis: List[float] = None):
         """
@@ -286,13 +390,13 @@ class CameraDescription:
         :param vertical_angle: Vertical opening angle of the camera
         :param front_facing_axis: Axis along which the camera taking the image
         """
-        self.name = name
-        self.link_name = link_name
-        self.minimal_height = minimal_height
-        self.maximal_height = maximal_height
-        self.horizontal_angle = horizontal_angle
-        self.vertical_angle = vertical_angle
-        self.front_facing_axis = front_facing_axis if front_facing_axis else [0, 0, 1]
+        self.name: str = name
+        self.link_name: str = link_name
+        self.minimal_height: float = minimal_height
+        self.maximal_height: float = maximal_height
+        self.horizontal_angle: float = horizontal_angle
+        self.vertical_angle: float = vertical_angle
+        self.front_facing_axis: List[int] = front_facing_axis if front_facing_axis else [0, 0, 1]
 
 
 class EndEffectorDescription:
@@ -300,6 +404,7 @@ class EndEffectorDescription:
     Describes an end effector of robot. Contains all necessary information about the end effector, like the
     base link, the tool frame, the URDF object and the static joint states.
     """
+
     def __init__(self, name: str, start_link: str, tool_frame: str, urdf_object: URDF):
         """
         Initialize the EndEffectorDescription object.
@@ -309,13 +414,13 @@ class EndEffectorDescription:
         :param tool_frame: Name of the tool frame link in the URDf
         :param urdf_object: URDF object of the robot
         """
-        self.name = name
-        self.start_link = start_link
-        self.tool_frame = tool_frame
-        self.urdf_object = urdf_object
-        self.link_names = []
-        self.joint_names = []
-        self.static_joint_states = {}
+        self.name: str = name
+        self.start_link: str = start_link
+        self.tool_frame: str = tool_frame
+        self.urdf_object: URDF = urdf_object
+        self.link_names: List[str] = []
+        self.joint_names: List[str] = []
+        self.static_joint_states: Dict[str, Dict[str, float]] = {}
         self._init_links_joints()
 
     def _init_links_joints(self):
