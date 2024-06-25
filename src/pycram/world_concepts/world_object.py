@@ -108,6 +108,10 @@ class Object(WorldEntity):
     def pose(self, pose: Pose):
         self.set_pose(pose)
 
+    @property
+    def transform(self):
+        return self.get_pose().to_transform(self.tf_frame)
+
     def _load_object_and_get_id(self, path: str,
                                 ignore_cached_files: Optional[bool] = False) -> Tuple[int, Union[str, None]]:
         """
