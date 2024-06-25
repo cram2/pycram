@@ -9,7 +9,6 @@ GeneratorList -- implementation of generator list wrappers.
 from inspect import isgeneratorfunction
 from typing_extensions import List, Tuple, Callable
 
-import numpy as np
 import os
 
 from .datastructures.pose import Pose
