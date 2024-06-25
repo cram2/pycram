@@ -49,7 +49,7 @@ class DatabaseResolverTestCase(unittest.TestCase,):
 
     def tearDown(self) -> None:
         self.world.reset_world()
-        pycram.task.reset_tree()
+        pycram.tasktree.reset_tree()
         pycram.orm.base.ProcessMetaData.reset()
         self.session.rollback()
         pycram.orm.base.Base.metadata.drop_all(self.engine)
@@ -73,7 +73,7 @@ class DatabaseResolverTestCase(unittest.TestCase,):
         """Check if grasping a milk in the air works."""
         self.plan()
         pycram.orm.base.ProcessMetaData().description = "costmap_no_obstacles_test"
-        pycram.task.task_tree.root.insert(self.session)
+        pycram.tasktree.task_tree.root.insert(self.session)
 
         cml = DatabaseCostmapLocation(self.milk, self.session, reachable_for=self.robot)
         sample = next(iter(cml))
@@ -87,7 +87,7 @@ class DatabaseResolverTestCase(unittest.TestCase,):
         kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
         self.plan()
         pycram.orm.base.ProcessMetaData().description = "costmap_with_obstacles_test"
-        pycram.task.task_tree.root.insert(self.session)
+        pycram.tasktree.task_tree.root.insert(self.session)
         self.world.reset_current_world()
 
         cml = DatabaseCostmapLocation(self.milk, self.session, reachable_for=self.robot)
@@ -110,7 +110,7 @@ class DatabaseResolverTestCase(unittest.TestCase,):
         self.plan()
 
         pycram.orm.base.ProcessMetaData().description = "object_at_different_location_test"
-        pycram.task.task_tree.root.insert(self.session)
+        pycram.tasktree.task_tree.root.insert(self.session)
         self.world.reset_current_world()
 
         new_milk = Object("new_milk", ObjectType.MILK, "milk.stl", pose=Pose([-1.45, 2.5, 0.95]))
@@ -151,7 +151,7 @@ class DatabaseResolverTestCase(unittest.TestCase,):
             description.resolve().perform()
 
         pycram.orm.base.ProcessMetaData().description = "multiple_objects_test"
-        pycram.task.task_tree.root.insert(self.session)
+        pycram.tasktree.task_tree.root.insert(self.session)
         self.world.reset_current_world()
 
         cml = DatabaseCostmapLocation(self.milk, self.session, reachable_for=self.robot)

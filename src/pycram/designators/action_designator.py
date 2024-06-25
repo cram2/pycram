@@ -1066,4 +1066,4 @@ class MoveAndPickUpPerformable(ActionAbstract):
     def perform(self):
         NavigateActionPerformable(self.standing_position).perform()
         FaceAtPerformable(self.object_designator.pose).perform()
-        PickUpActionPerformable(self.object_designator, self.arm, self.grasp).perform()
+        PickUpActionPerformable(self.object_designator, str.lower(self.arm.name), str.lower(self.grasp.name)).perform()
