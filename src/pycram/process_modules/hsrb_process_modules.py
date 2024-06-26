@@ -86,7 +86,7 @@ class HSRBMoveGripper(ProcessModule):
         robot = World.robot
         gripper = desig.gripper
         motion = desig.motion
-        for joint, state in RobotDescription.current_robot_description.kinematic_chains[gripper].get_static_gripper_state(motion).items():
+        for joint, state in RobotDescription.current_robot_description.get_arm_chain(gripper).get_static_gripper_state(motion).items():
             robot.set_joint_position(joint, state)
 
 
@@ -215,10 +215,10 @@ class HSRBClose(ProcessModule):
                                                               part_of_object.get_joint_limits(container_joint)[0])
 
 
-def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
-    gripper = RobotDescription.current_robot_description.kinematic_chains[arm].get_tool_frame()
+def _move_arm_tcp(target: Pose, robot: Object, arm: Arms) -> None:
+    gripper = RobotDescription.current_robot_description.get_arm_chain(arm).get_tool_frame()
 
-    joints = RobotDescription.current_robot_description.kinematic_chains[arm].joints
+    joints = RobotDescription.current_robot_description.get_arm_chain(arm).joints
 
     inv = request_ik(target, robot, joints, gripper)
     _apply_ik(robot, inv)
@@ -385,7 +385,7 @@ class HSRBMoveTCPReal(ProcessModule):
         giskard.avoid_all_collisions()
         if designator.allow_gripper_collision:
             giskard.allow_gripper_collision(designator.arm)
-        giskard.achieve_cartesian_goal(pose_in_map, RobotDescription.current_robot_description.kinematic_chains[designator.arm].get_tool_frame(),
+        giskard.achieve_cartesian_goal(pose_in_map, RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame(),
                                        "map")
 
 
@@ -448,7 +448,7 @@ class HSRBOpenReal(ProcessModule):
     """
 
     def _execute(self, designator: OpeningMotion) -> Any:
-        giskard.achieve_open_container_goal(RobotDescription.current_robot_description.kinematic_chains[designator.arm].get_tool_frame(),
+        giskard.achieve_open_container_goal(RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame(),
                                             designator.object_part.name)
 
 
@@ -458,7 +458,7 @@ class HSRBCloseReal(ProcessModule):
     """
 
     def _execute(self, designator: ClosingMotion) -> Any:
-        giskard.achieve_close_container_goal(RobotDescription.current_robot_description.kinematic_chains[designator.arm].get_tool_frame(),
+        giskard.achieve_close_container_goal(RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame(),
                                              designator.object_part.name)
 
 

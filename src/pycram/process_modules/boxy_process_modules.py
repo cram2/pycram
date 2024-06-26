@@ -54,7 +54,7 @@ class BoxyOpen(ProcessModule):
 
         _move_arm_tcp(goal_pose, World.robot, desig.arm)
 
-        desig.object_part.world_object.set_joint_state(container_joint,
+        desig.object_part.world_object.set_joint_position(container_joint,
                                                               part_of_object.get_joint_limits(
                                                                   container_joint)[1])
 
@@ -73,7 +73,7 @@ class BoxyClose(ProcessModule):
 
         _move_arm_tcp(goal_pose, World.robot, desig.arm)
 
-        desig.object_part.world_object.set_joint_state(container_joint,
+        desig.object_part.world_object.set_joint_position(container_joint,
                                                               part_of_object.get_joint_limits(
                                                                   container_joint)[0])
 
@@ -191,10 +191,10 @@ class BoxyWorldStateDetecting(ProcessModule):
         return list(filter(lambda obj: obj.type == obj_type, World.current_world.objects))[0]
 
 
-def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
-    gripper = RobotDescription.current_robot_description.kinematic_chains[arm].get_tool_frame()
+def _move_arm_tcp(target: Pose, robot: Object, arm: Arms) -> None:
+    gripper = RobotDescription.current_robot_description.get_arm_chain(arm).get_tool_frame()
 
-    joints = RobotDescription.current_robot_description.kinematic_chains[arm].joints
+    joints = RobotDescription.current_robot_description.get_arm_chain(arm).joints
 
     inv = request_ik(target, robot, joints, gripper)
     _apply_ik(robot, inv)

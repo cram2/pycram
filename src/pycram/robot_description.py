@@ -378,7 +378,7 @@ class KinematicChainDescription:
         else:
             raise ValueError(f"The Kinematic chain {self.name} has no end-effector")
 
-    def get_static_gripper_state(self, state: str) -> Dict[str, float]:
+    def get_static_gripper_state(self, state: GripperState) -> Dict[str, float]:
         """
         Returns the static joint states for the gripper of the chain.
 

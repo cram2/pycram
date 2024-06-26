@@ -8,6 +8,7 @@ from ..local_transformer import LocalTransformer
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..robot_description import RobotDescription
 from ..process_modules.pr2_process_modules import Pr2Detecting as DonbotDetecting, _move_arm_tcp
+from ..datastructures.enums import Arms
 
 
 def _park_arms(arm):
@@ -49,7 +50,7 @@ class DonbotPlace(ProcessModule):
                                                 robot.get_link_tf_frame(RobotDescription.current_robot_description.kinematic_chains["left"].get_tool_frame()))
         target_diff = desig.target.to_transform("target").inverse_times(tcp_to_object.to_transform("object")).to_pose()
 
-        _move_arm_tcp(target_diff, robot, "left")
+        _move_arm_tcp(target_diff, robot, Arms.LEFT)
         robot.detach(obj)
 
 
@@ -93,7 +94,7 @@ class DonbotMoveGripper(ProcessModule):
         robot = World.robot
         gripper = desig.gripper
         motion = desig.motion
-        robot.set_joint_positions(RobotDescription.current_robot_description.kinematic_chains[gripper].get_static_gripper_state(motion))
+        robot.set_joint_positions(RobotDescription.current_robot_description.get_arm_chain(gripper).get_static_gripper_state(motion))
 
 
 class DonbotMoveTCP(ProcessModule):

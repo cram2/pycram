@@ -2,6 +2,7 @@ import rospkg
 
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     CameraDescription, RobotDescriptionManager
+from ..datastructures.enums import GripperState, Arms, Grasp
 
 rospack = rospkg.RosPack()
 filename = rospack.get_path('pycram') + '/resources/robots/' + "stretch" + '.urdf'
@@ -9,7 +10,8 @@ filename = rospack.get_path('pycram') + '/resources/robots/' + "stretch" + '.urd
 stretch_description = RobotDescription("stretch", "base_link", "link_lift", "joint_lift", filename)
 
 ################################## Right Arm ##################################
-arm_description = KinematicChainDescription("arm", "link_mast", "link_wrist_roll", stretch_description.urdf_object)
+arm_description = KinematicChainDescription("arm", "link_mast", "link_wrist_roll", stretch_description.urdf_object,
+                                            arm_type=Arms.RIGHT)
 
 arm_description.add_static_joint_states("park", {'joint_lift': 0.0,
                                                  'joint_arm_l3': 0.0,
@@ -26,10 +28,10 @@ stretch_description.add_kinematic_chain_description(arm_description)
 gripper_description = EndEffectorDescription("arm", "link_straight_gripper", "link_grasp_center",
                                              stretch_description.urdf_object)
 
-gripper_description.add_static_joint_states("open", {'joint_gripper_finger_left': 0.59,
-                                                     'joint_gripper_finger_right': 0.59})
-gripper_description.add_static_joint_states("close", {'joint_gripper_finger_left': 0.0,
-                                                      'joint_gripper_finger_right': 0.0})
+gripper_description.add_static_joint_states(GripperState.OPEN, {'joint_gripper_finger_left': 0.59,
+                                                                'joint_gripper_finger_right': 0.59})
+gripper_description.add_static_joint_states(GripperState.CLOSE, {'joint_gripper_finger_left': 0.0,
+                                                                 'joint_gripper_finger_right': 0.0})
 
 arm_description.end_effector = gripper_description
 
@@ -48,6 +50,12 @@ stretch_description.add_camera_description(realsense_color)
 stretch_description.add_camera_description(realsense_depth)
 stretch_description.add_camera_description(realsense_infra1)
 stretch_description.add_camera_description(realsense_infra2)
+
+################################## Grasps ##################################
+stretch_description.add_grasp_orientations({Grasp.FRONT: [0, 0, 0, 1],
+                                            Grasp.LEFT: [0, 0, -1, 1],
+                                            Grasp.RIGHT: [0, 0, 1, 1],
+                                            Grasp.TOP: [0, 1, 0, 1]})
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()
