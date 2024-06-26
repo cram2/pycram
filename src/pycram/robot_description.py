@@ -6,7 +6,7 @@ from typing_extensions import List, Dict, Union, Optional
 from urdf_parser_py.urdf import URDF
 
 from .utils import suppress_stdout_stderr
-from .datastructures.enums import Arms
+from .datastructures.enums import Arms, Grasp, GripperState
 
 
 class RobotDescriptionManager:
@@ -82,9 +82,9 @@ class RobotDescription:
             self.urdf_object = URDF.from_xml_file(urdf_path)
         self.kinematic_chains: Dict[str, KinematicChainDescription] = {}
         self.cameras: Dict[str, CameraDescription] = {}
-        self.grasps = {}
-        self.links = [l.name for l in self.urdf_object.links]
-        self.joints = [j.name for j in self.urdf_object.joints]
+        self.grasps: Dict[Grasp, List[float]] = {}
+        self.links: List[str] = [l.name for l in self.urdf_object.links]
+        self.joints: List[str] = [j.name for j in self.urdf_object.joints]
 
     def add_kinematic_chain_description(self, chain: KinematicChainDescription):
         """
@@ -135,17 +135,17 @@ class RobotDescription:
         camera_desc = CameraDescription(name, camera_link, minimal_height, maximal_height)
         self.cameras[name] = camera_desc
 
-    def add_grasp_orientation(self, name: str, orientation: List[float]):
+    def add_grasp_orientation(self, grasp: Grasp, orientation: List[float]):
         """
         Adds a grasp orientation to the robot description. This is used to define the orientation of the end effector
         when grasping an object.
 
-        :param name: Name of the grasp orientation
+        :param grasp: Gasp from the Grasp enum which should be added
         :param orientation: List of floats representing the orientation
         """
-        self.grasps[name] = orientation
+        self.grasps[grasp] = orientation
 
-    def add_grasp_orientations(self, orientations: Dict[str, List[float]]):
+    def add_grasp_orientations(self, orientations: Dict[Grasp, List[float]]):
         """
         Adds multiple grasp orientations to the robot description. This is used to define the orientation of the end effector
         when grasping an object.
@@ -183,6 +183,14 @@ class RobotDescription:
         return self.cameras[list(self.cameras.keys())[0]]
 
     def get_static_joint_chain(self, kinematic_chain_name: str, configuration_name: str):
+        """
+        Returns the static joint states of a kinematic chain for a specific configuration. When trying to access one of
+        the robot arms the function `:func: get_arm_chain` should be used.
+
+        :param kinematic_chain_name:
+        :param configuration_name:
+        :return:
+        """
         if kinematic_chain_name in self.kinematic_chains.keys():
             if configuration_name in self.kinematic_chains[kinematic_chain_name].static_joint_states.keys():
                 return self.kinematic_chains[kinematic_chain_name].static_joint_states[configuration_name]
@@ -214,7 +222,7 @@ class RobotDescription:
 
     def get_child(self, name: str, return_multiple_children: bool = False) -> Union[str, List[str]]:
         """
-        Returns the child of a link or joint in the URDF. Always returns the imeadiate child, for a link this is a joint
+        Returns the child of a link or joint in the URDF. Always returns the immediate child, for a link this is a joint
         and vice versa. Since a link can have multiple children, the return_multiple_children parameter can be set to
         True to get a list of all children.
 
@@ -239,6 +247,18 @@ class RobotDescription:
         elif name in self.joints:
             child_link = self.urdf_object.joint_map[name].child
             return child_link
+
+    def get_arm_chain(self, arm: Arms) -> KinematicChainDescription:
+        """
+        Returns the kinematic chain of a specific arm.
+
+        :param arm: Arm for which the chain should be returned
+        :return: KinematicChainDescription object of the arm
+        """
+        for chain in self.kinematic_chains.values():
+            if chain.arm_type == arm:
+                return chain
+        raise ValueError(f"There is no Kinematic Chain for the Arm {arm}")
 
 
 class KinematicChainDescription:
@@ -420,7 +440,7 @@ class EndEffectorDescription:
         self.urdf_object: URDF = urdf_object
         self.link_names: List[str] = []
         self.joint_names: List[str] = []
-        self.static_joint_states: Dict[str, Dict[str, float]] = {}
+        self.static_joint_states: Dict[GripperState, Dict[str, float]] = {}
         self._init_links_joints()
 
     def _init_links_joints(self):
@@ -440,7 +460,7 @@ class EndEffectorDescription:
                 self.joint_names.append(joint)
                 links.insert(0, link)
 
-    def add_static_joint_states(self, name: str, states: dict):
+    def add_static_joint_states(self, name: GripperState, states: dict):
         """
         Adds static joint states to the end effector. These define a specific configuration of the end effector. Like
         open and close configurations of a gripper.

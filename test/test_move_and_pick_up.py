@@ -4,11 +4,11 @@ import unittest
 import numpy as np
 
 from bullet_world_testcase import BulletWorldTestCase
-from pycram.datastructures.enums import ObjectType
+from pycram.datastructures.enums import ObjectType, Arms, Grasp
 from pycram.designator import ObjectDesignatorDescription
 from pycram.designators.action_designator import MoveTorsoActionPerformable
 from pycram.designators.specialized_designators.probabilistic.probabilistic_action import (MoveAndPickUp,
-                                                                                           GaussianCostmapModel, Arms, Grasp)
+                                                                                           GaussianCostmapModel)
 from pycram.plan_failures import PlanFailure
 from pycram.process_module import simulated_robot
 
