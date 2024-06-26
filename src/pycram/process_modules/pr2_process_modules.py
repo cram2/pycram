@@ -72,7 +72,8 @@ class Pr2MoveGripper(ProcessModule):
     def _execute(self, desig: MoveGripperMotion):
         robot = World.robot
         motion = desig.motion
-        for joint, state in RobotDescription.current_robot_description.get_arm_chain(desig.gripper).get_static_gripper_state(motion).items():
+        for joint, state in RobotDescription.current_robot_description.get_arm_chain(
+                desig.gripper).get_static_gripper_state(motion).items():
             robot.set_joint_position(joint, state)
 
 
@@ -275,8 +276,8 @@ class Pr2MoveTCPReal(ProcessModule):
 
         if designator.allow_gripper_collision:
             giskard.allow_gripper_collision(designator.arm)
-        giskard.achieve_cartesian_goal(pose_in_map, RobotDescription.current_robot_description.kinematic_chains[
-            designator.arm].get_tool_frame(),
+        giskard.achieve_cartesian_goal(pose_in_map, RobotDescription.current_robot_description.get_arm_chain(
+            designator.arm).get_tool_frame(),
                                        "torso_lift_link")
         # robot_description.base_link)
 
@@ -343,7 +344,7 @@ class Pr2OpenReal(ProcessModule):
 
     def _execute(self, designator: OpeningMotion) -> Any:
         giskard.achieve_open_container_goal(
-            RobotDescription.current_robot_description.kinematic_chains[designator.arm].get_tool_frame(),
+            RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame(),
             designator.object_part.name)
 
 
@@ -354,7 +355,7 @@ class Pr2CloseReal(ProcessModule):
 
     def _execute(self, designator: ClosingMotion) -> Any:
         giskard.achieve_close_container_goal(
-            RobotDescription.current_robot_description.kinematic_chains[designator.arm].get_tool_frame(),
+            RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame(),
             designator.object_part.name)
 
 

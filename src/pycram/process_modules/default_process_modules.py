@@ -62,7 +62,7 @@ class DefaultMoveGripper(ProcessModule):
         robot = World.robot
         gripper = desig.gripper
         motion = desig.motion
-        for joint, state in RobotDescription.current_robot_description.get_static_gripper_chain(gripper, motion).items():
+        for joint, state in RobotDescription.current_robot_description.get_arm_chain(gripper).get_static_gripper_state(motion).items():
             robot.set_joint_position(joint, state)
 
 
@@ -171,10 +171,10 @@ class DefaultClose(ProcessModule):
                                                                   container_joint)[0])
 
 
-def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
-    gripper = RobotDescription.current_robot_description.kinematic_chains[arm].get_tool_frame()
+def _move_arm_tcp(target: Pose, robot: Object, arm: Arms) -> None:
+    gripper = RobotDescription.current_robot_description.get_arm_chain(arm).get_tool_frame()
 
-    joints = RobotDescription.current_robot_description.kinematic_chains[arm].joints
+    joints = RobotDescription.current_robot_description.get_arm_chain(arm).joints
 
     inv = request_ik(target, robot, joints, gripper)
     _apply_ik(robot, inv)
