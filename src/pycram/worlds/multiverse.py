@@ -135,6 +135,7 @@ class Multiverse(MultiverseSocket, World):
     ATTACH_API_NAME = "attach"
     DETACH_API_NAME = "detach"
     GET_RAYS_API_NAME = "get_rays"
+    EXIST_API_NAME = "exist"
     """
     The API names for the API callbacks to the Multiverse server.
     """
@@ -186,7 +187,7 @@ class Multiverse(MultiverseSocket, World):
         """
         floor = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf",
                        world=self)
-        sleep(0.5)
+        # sleep(0.5)
         return floor
 
     def get_joint_position_name(self, joint: Joint) -> str:
@@ -212,6 +213,12 @@ class Multiverse(MultiverseSocket, World):
 
         self.object_name_to_id[name] = self.last_object_id
         self.object_id_to_name[self.last_object_id] = name
+
+        while not self.check_object_exists_in_multiverse(name):
+            print(f"Waiting for object {name} to be loaded in Multiverse")
+            sleep(0.5)
+
+        sleep(0.5)
 
         return self.last_object_id
 
@@ -322,9 +329,15 @@ class Multiverse(MultiverseSocket, World):
         pass
 
     def remove_object_from_simulator(self, obj: Object) -> None:
+        self._multiverse_remove_object(obj.name)
+
+    def _multiverse_remove_object(self, object_name: str):
+        """
+        Remove the object from the simulator.
+        """
         self.set_simulation_in_request_meta_data()
-        self.request_meta_data["send"][obj.name] = []
-        self.request_meta_data["receive"][obj.name] = []
+        self.request_meta_data["send"][object_name] = []
+        self.request_meta_data["receive"][object_name] = []
         self.send_and_receive_meta_data()
         self.send_data = [time() - self.time_start]
         self.send_and_receive_data()
@@ -348,10 +361,18 @@ class Multiverse(MultiverseSocket, World):
         Request to attach the child link to the parent link.
         param constraint: The constraint.
         """
+        self._request_single_api_callback(self._get_attach_api_data(constraint))
+
+    def _get_attach_api_data(self, constraint: Constraint) -> APIData:
+        """
+        Get the attach API data to be added to the api callback request metadata.
+        param constraint: The constraint.
+        return: The attach API data as an APIData.
+        """
         parent_link_name, child_link_name = self.get_constraint_link_names(constraint)
-        self._add_api_request("attach", child_link_name,
-                              parent_link_name, self._get_attachment_pose_as_string(constraint))
-        self._send_api_request()
+        return APIData(self.ATTACH_API_NAME, [child_link_name,
+                                              parent_link_name,
+                                              self._get_attachment_pose_as_string(constraint)])
 
     def get_constraint_link_names(self, constraint: Constraint) -> Tuple[str, str]:
         """
@@ -386,9 +407,16 @@ class Multiverse(MultiverseSocket, World):
         Request to detach the child link from the parent link.
         param constraint: The constraint.
         """
+        self._request_single_api_callback(self._get_detach_api_data(constraint))
+
+    def _get_detach_api_data(self, constraint: Constraint) -> APIData:
+        """
+        Get the detach API data to be added to the api callback request metadata.
+        param constraint: The constraint.
+        return: The detach API data as an APIData.
+        """
         parent_link_name, child_link_name = self.get_constraint_link_names(constraint)
-        self._add_api_request("detach", child_link_name, parent_link_name)
-        self._send_api_request()
+        return APIData(self.DETACH_API_NAME, [child_link_name, parent_link_name])
 
     @staticmethod
     def get_link_name_for_constraint(link: Link) -> str:
@@ -523,6 +551,17 @@ class Multiverse(MultiverseSocket, World):
         if obj not in self.objects:
             logging.warning(f"Object {obj.name} does not exist in the simulator")
 
+    def check_object_exists_in_multiverse(self, object_name: str) -> bool:
+        result = self._request_check_object_exists(object_name)[0]
+        return result == "yes"
+
+    def _request_check_object_exists(self, object_name: str) -> List[str]:
+        api_data = self._get_object_exists_api_data(object_name)
+        return self._request_single_api_callback(api_data)
+
+    def _get_object_exists_api_data(self, object_name: str) -> APIData:
+        return APIData(self.EXIST_API_NAME, [object_name])
+
     def _request_contact_points(self, obj: Object) -> List[MultiverseContactPoint]:
         """
         Request the contact points of an object, this includes the object names and the contact forces and torques.
@@ -592,7 +631,9 @@ class Multiverse(MultiverseSocket, World):
         param api_data: The API data to request the callback.
         return: The API response as a list of strings.
         """
-        return self._request_apis_callbacks(APIDataDict(api_data.as_dict))[api_data.api_name]
+        api_data_dict = APIDataDict(api_data.as_dict)
+        response = self._request_apis_callbacks(api_data_dict)
+        return response[api_data.api_name]
 
     def _request_apis_callbacks(self, api_data: APIDataDict) -> APIDataDict:
         """
@@ -601,8 +642,8 @@ class Multiverse(MultiverseSocket, World):
         return: The API response as a list of strings.
         """
         self._init_api_callback()
-        for api_data, params in api_data.items():
-            self._add_api_request(api_data.api_name, *api_data.params)
+        for api_name, params in api_data.items():
+            self._add_api_request(api_name, *params)
         self._send_api_request()
         return self._get_all_apis_responses()
 
@@ -612,7 +653,7 @@ class Multiverse(MultiverseSocket, World):
         return: The API responses as a list of APIData.
         """
         list_of_api_responses = self.response_meta_data["api_callbacks_response"][self.simulation]
-        dict_of_api_responses = APIDataDict({api_name: api_response for api_response in list_of_api_responses
+        dict_of_api_responses = APIDataDict({api_name: response for api_response in list_of_api_responses
                                              for api_name, response in api_response.items()})
         return dict_of_api_responses
 
@@ -631,6 +672,7 @@ class Multiverse(MultiverseSocket, World):
         if "api_callbacks" not in self.request_meta_data:
             logging.error("No API request to send")
             raise ValueError
+        self.send_and_receive_meta_data()
         self.send_and_receive_meta_data()
         self.request_meta_data.pop("api_callbacks")
 
