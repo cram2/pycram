@@ -206,7 +206,7 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
         pose = Pose(position, frame=self.object_designator.world_object.tf_frame)
         standing_position = LocalTransformer().transform_pose(pose, "map")
         standing_position.position.z = 0
-        action = MoveAndPickUpPerformable(standing_position, self.object_designator, Arms(int(arm)), Grasp(int(grasp)))
+        action = MoveAndPickUpPerformable(standing_position, self.object_designator, EArms(int(arm)), EGrasp(int(grasp)))
         return action
 
     def events_from_occupancy_and_visibility_costmap(self) -> Event:

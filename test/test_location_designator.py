@@ -14,7 +14,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         location = location_desig.resolve()
         self.assertTrue(len(location.pose.position_as_list()) == 3)
         self.assertTrue(len(location.pose.orientation_as_list()) == 4)
-        self.assertTrue("left" in location.reachable_arms or "right" in location.reachable_arms)
+        self.assertTrue(Arms.LEFT in location.reachable_arms or Arms.RIGHT in location.reachable_arms)
 
     def test_reachability_pose(self):
         robot_desig = ObjectDesignatorDescription(names=[RobotDescription.current_robot_description.name])
@@ -22,7 +22,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         location = location_desig.resolve()
         self.assertTrue(len(location.pose.position_as_list()) == 3)
         self.assertTrue(len(location.pose.orientation_as_list()) == 4)
-        self.assertTrue("left" in location.reachable_arms or "right" in location.reachable_arms)
+        self.assertTrue(Arms.LEFT in location.reachable_arms or Arms.RIGHT in location.reachable_arms)
 
     def test_visibility(self):
         object_desig = ObjectDesignatorDescription(names=["milk"])
@@ -40,7 +40,7 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         location = location_desig.resolve()
         self.assertTrue(len(location.pose.position_as_list()) == 3)
         self.assertTrue(len(location.pose.orientation_as_list()) == 4)
-        self.assertTrue("left" in location.reachable_arms or "right" in location.reachable_arms)
+        self.assertTrue(Arms.LEFT in location.reachable_arms or Arms.RIGHT in location.reachable_arms)
 
     def test_semantic_location(self):
         kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])

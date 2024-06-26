@@ -214,7 +214,7 @@ def reachability_validator(pose: Pose,
                 # _apply_ik(robot, resp, joints)
                 in_contact = collision_check(robot, allowed_collision)
             if not in_contact:
-                arms.append(description.name)
+                arms.append(description.arm_type)
         except IKError:
             pass
         finally:
@@ -224,7 +224,7 @@ def reachability_validator(pose: Pose,
     return res, arms
 
 
-def collision_check(robot: Object, allowed_collision: list):
+def collision_check(robot: Object, allowed_collision: Dict[Object, List]):
     """
     This method checks if a given robot collides with any object within the world
     which it is not allowed to collide with.

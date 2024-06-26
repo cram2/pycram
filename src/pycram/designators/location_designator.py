@@ -7,7 +7,7 @@ from ..local_transformer import LocalTransformer
 from ..world_reasoning import link_pose_for_joint_config
 from ..designator import DesignatorError, LocationDesignatorDescription
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
-from ..datastructures.enums import JointType
+from ..datastructures.enums import JointType, Arms
 from ..pose_generator_and_validator import PoseGenerator, visibility_validator, reachability_validator
 from ..robot_description import RobotDescription
 from ..datastructures.pose import Pose
@@ -105,7 +105,7 @@ class CostmapLocation(LocationDesignatorDescription):
 
     @dataclasses.dataclass
     class Location(LocationDesignatorDescription.Location):
-        reachable_arms: List[str]
+        reachable_arms: List[Arms]
         """
         List of arms with which the pose can be reached, is only used when the 'rechable_for' parameter is used
         """
@@ -113,7 +113,7 @@ class CostmapLocation(LocationDesignatorDescription):
     def __init__(self, target: Union[Pose, ObjectDesignatorDescription.Object],
                  reachable_for: Optional[ObjectDesignatorDescription.Object] = None,
                  visible_for: Optional[ObjectDesignatorDescription.Object] = None,
-                 reachable_arm: Optional[str] = None, resolver: Optional[Callable] = None):
+                 reachable_arm: Optional[Arms] = None, resolver: Optional[Callable] = None):
         """
         Location designator that uses costmaps as base to calculate locations for complex constrains like reachable or
         visible. In case of reachable the resolved location contains a list of arms with which the location is reachable.
@@ -128,7 +128,7 @@ class CostmapLocation(LocationDesignatorDescription):
         self.target: Union[Pose, ObjectDesignatorDescription.Object] = target
         self.reachable_for: ObjectDesignatorDescription.Object = reachable_for
         self.visible_for: ObjectDesignatorDescription.Object = visible_for
-        self.reachable_arm: Optional[str] = reachable_arm
+        self.reachable_arm: Optional[Arms] = reachable_arm
 
     def ground(self) -> Location:
         """
@@ -206,7 +206,7 @@ class AccessingLocation(LocationDesignatorDescription):
 
     @dataclasses.dataclass
     class Location(LocationDesignatorDescription.Location):
-        arms: List[str]
+        arms: List[Arms]
         """
         List of arms that can be used to for accessing from this pose
         """
@@ -275,9 +275,6 @@ class AccessingLocation(LocationDesignatorDescription):
                 hand_links = []
                 for description in RobotDescription.current_robot_description.get_manipulator_chains():
                     hand_links += description.links
-                #for name, chain in robot_description.chains.items():
-                #    if isinstance(chain, ManipulatorDescription):
-                #        hand_links += chain.gripper.links
 
                 valid_init, arms_init = reachability_validator(maybe_pose, test_robot, init_pose,
                                                                allowed_collision={test_robot: hand_links})

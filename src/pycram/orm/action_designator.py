@@ -2,7 +2,7 @@ from typing_extensions import Optional
 
 from .base import RobotState, Designator, MapperArgsMixin, PoseMixin
 from .object_designator import ObjectMixin
-from pycram.datastructures.enums import Arms
+from ..datastructures.enums import Arms, GripperState, Grasp
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey
 
@@ -43,22 +43,22 @@ class SetGripperAction(Action):
     """ORM Class of pycram.designators.action_designator.SetGripperAction."""
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
-    gripper: Mapped[str]
-    motion: Mapped[str]
+    gripper: Mapped[Arms]
+    motion: Mapped[GripperState]
 
 
 class Release(ObjectMixin, Action):
     """ORM Class of pycram.designators.action_designator.Release."""
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
-    gripper: Mapped[str] = mapped_column(init=False)
+    gripper: Mapped[Arms] = mapped_column(init=False)
 
 
 class GripAction(ObjectMixin, Action):
     """ORM Class of pycram.designators.action_designator.GripAction."""
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
-    gripper: Mapped[str] = mapped_column(init=False)
+    gripper: Mapped[Arms] = mapped_column(init=False)
     effort: Mapped[float] = mapped_column(init=False)
     # TODO grasped_object
 
@@ -67,22 +67,22 @@ class PickUpAction(ObjectMixin, Action):
     """ORM Class of pycram.designators.action_designator.PickUpAction."""
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
-    arm: Mapped[str]
-    grasp: Mapped[str]
+    arm: Mapped[Arms]
+    grasp: Mapped[Grasp]
 
 
 class PlaceAction(PoseMixin, ObjectMixin, Action):
     """ORM Class of pycram.designators.action_designator.PlaceAction."""
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
-    arm: Mapped[str]
+    arm: Mapped[Arms]
 
 
 class TransportAction(PoseMixin, ObjectMixin, Action):
     """ORM Class of pycram.designators.action_designator.TransportAction."""
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
-    arm: Mapped[str]
+    arm: Mapped[Arms]
 
 
 class LookAtAction(PoseMixin, Action):
@@ -101,7 +101,7 @@ class OpenAction(ObjectMixin, Action):
     """ORM Class of pycram.designators.action_designator.OpenAction."""
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
-    arm: Mapped[str]
+    arm: Mapped[Arms]
     # distance: Mapped[float] = mapped_column(init=False)
 
 
@@ -109,14 +109,14 @@ class CloseAction(ObjectMixin, Action):
     """ORM Class of pycram.designators.action_designator.CloseAction."""
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
-    arm: Mapped[str]
+    arm: Mapped[Arms]
 
 
 class GraspingAction(ObjectMixin, Action):
     """ORM Class of pycram.designators.action_designator.GraspingAction."""
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
-    arm: Mapped[str]
+    arm: Mapped[Arms]
 
 
 class FaceAtAction(PoseMixin, Action):
