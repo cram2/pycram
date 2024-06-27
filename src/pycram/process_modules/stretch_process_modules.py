@@ -164,7 +164,7 @@ class StretchMoveHeadReal(ProcessModule):
 
         new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
         new_tilt = np.arctan2(-pose_in_tilt.position.y,
-                              pose_in_tilt.position.z ** 2 + pose_in_tilt.position.x ** 2) * -1
+                              np.sqrt(pose_in_tilt.position.z ** 2 + pose_in_tilt.position.x ** 2)) * -1
 
         current_pan = robot.get_joint_position("joint_head_pan")
         current_tilt = robot.get_joint_position("joint_head_tilt")
