@@ -419,6 +419,11 @@ class Object(WorldEntity):
 
         :param child_object: The object which should be detached
         """
+        if not self.world.is_prospection_world:
+            prospection_self = self.world.get_prospection_object_for_object(self)
+            prospection_child = self.world.get_prospection_object_for_object(child_object)
+            prospection_self.detach(prospection_child)
+
         del self.attachments[child_object]
         del child_object.attachments[self]
 
