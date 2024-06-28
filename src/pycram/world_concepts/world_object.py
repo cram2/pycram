@@ -419,11 +419,6 @@ class Object(WorldEntity):
 
         :param child_object: The object which should be detached
         """
-        if not self.world.is_prospection_world:
-            prospection_self = self.world.get_prospection_object_for_object(self)
-            prospection_child = self.world.get_prospection_object_for_object(child_object)
-            prospection_self.detach(prospection_child)
-
         del self.attachments[child_object]
         del child_object.attachments[self]
 
@@ -583,7 +578,8 @@ class Object(WorldEntity):
                 # The object mapping is directly used since this function can be called from the world sync thread which
                 # would cause a deadlock when calling get_prospection_object_for_object.
                 # Furthermore, all attached objects are spawned beforehand so no keyError should occur
-                obj = self.world.world_sync.object_mapping[obj]
+                # obj = self.world.world_sync.object_mapping[obj]
+                continue
             if obj in self.attachments:
                 if self.attachments[obj] != attachment:
                     self.detach(obj)
