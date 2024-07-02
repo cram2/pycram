@@ -165,7 +165,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         estimated_bowl_position = big_bowl_position.copy()
         estimated_bowl_position[0] += 1
         milk.set_position(milk_position)
-        time.sleep(0.1)  # TODO: This is a workaround for the issue that the position is not updated immediately.
+        time.sleep(1)  # TODO: This is a workaround for the issue that the position is not updated immediately.
         new_bowl_position = self.big_bowl.get_position_as_list()
         self.assertAlmostEqual(new_bowl_position[0], estimated_bowl_position[0], delta=0.001)
 
@@ -207,6 +207,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     def test_get_object_contact_points(self):
         milk = self.spawn_milk([1, 0, 0.1])
+        time.sleep(1)
         contact_points = self.multiverse.get_object_contact_points(milk)
         self.assertIsInstance(contact_points, list)
         self.assertEqual(len(contact_points), 1)

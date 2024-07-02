@@ -19,7 +19,7 @@ from ..cache_manager import CacheManager
 from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
                                          MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape, SphereVisualShape,
                                          CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
-                                         ObjectState, State, WorldState, ContactPoint, ClosestPoint, ClosestPointsList,
+                                         ObjectState, State, WorldState, ClosestPointsList,
                                          ContactPointsList)
 from ..datastructures.enums import JointType, ObjectType, WorldMode
 from ..datastructures.pose import Pose, Transform
@@ -129,13 +129,19 @@ class World(StateEntity, ABC):
      the URDF with the name of the URDF on the parameter server. 
     """
 
-    data_directory: List[str] = [os.path.join(os.path.dirname(__file__), '..', '..', '..', 'resources')]
+    resources_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'resources')
     """
-    Global reference for the data directories, this is used to search for the description files of the robot 
-    and the objects.
+    Global reference for the resources path, this is used to search for the description files of the robot and
+     the objects.
     """
 
-    cache_dir: str = data_directory[0] + '/cached/'
+    data_directory: List[str] = [resources_path, os.path.join(resources_path, 'robots')]
+    """
+    Global reference for the data directories, this is used to search for the description files of the robot,
+     the objects, and the cached files.
+    """
+
+    cache_dir: str = os.path.join(resources_path, 'cached')
     """
     Global reference for the cache directory, this is used to cache the description files of the robot and the objects.
     """
