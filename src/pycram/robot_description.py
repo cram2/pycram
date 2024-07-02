@@ -472,3 +472,21 @@ class EndEffectorDescription:
             if joint_name not in self.joint_names:
                 raise ValueError(f"Joint {joint_name} is not part of the chain")
         self.static_joint_states[name] = states
+
+    @property
+    def links(self) -> List[str]:
+        """
+        Property to get the links of the chain.
+
+        :return: List of link names
+        """
+        return self.link_names
+
+    @property
+    def joints(self) -> List[str]:
+        """
+        Property to get the joints of the chain.
+
+        :return: List of joint names
+        """
+        return self.joint_names
