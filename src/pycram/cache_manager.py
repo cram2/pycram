@@ -46,7 +46,7 @@ class CacheManager:
         self.create_cache_dir_if_not_exists()
 
         # save correct path in case the file is already in the cache directory
-        cache_path = self.cache_dir + object_description.get_file_name(path_object, extension, object_name)
+        cache_path = os.path.join(self.cache_dir, object_description.get_file_name(path_object, extension, object_name))
 
         if not self.is_cached(path, object_description) or ignore_cached_files:
             # if file is not yet cached preprocess the description file and save it in the cache directory.
