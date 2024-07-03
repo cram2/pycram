@@ -1,0 +1,671 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>pycram.pose_generator_and_validator &#8212; PyCRAM</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+<link href="../../../_static/styles/bootstrap.css?digest=5b4479735964841361fd" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+
+  
+  <link href="../../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=5b4479735964841361fd" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" href="../../../_static/styles/sphinx-book-theme.css?digest=14f4ca6b54d191a8c7657f6c759bf11a5fb86285" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-thebe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=5b4479735964841361fd" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd" />
+  <script src="../../../_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=5b4479735964841361fd"></script>
+
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/clipboard.min.js"></script>
+    <script src="../../../_static/copybutton.js"></script>
+    <script src="../../../_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../_static/togglebutton.js"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script src="../../../_static/design-tabs.js"></script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"
+const thebe_selector = ".thebe,.cell"
+const thebe_selector_input = "pre"
+const thebe_selector_output = ".output, .cell_output"
+</script>
+    <script async="async" src="../../../_static/sphinx-thebe.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'autoapi/pycram/pose_generator_and_validator/index';</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search this book..."
+         aria-label="Search this book..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/pycram_logo.png" class="logo__image only-light" alt="PyCRAM - Home"/>
+    <script>document.write(`<img src="../../../_static/pycram_logo.png" class="logo__image only-dark" alt="PyCRAM - Home"/>`);</script>
+  
+  
+</a></div>
+        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        
+        <ul class="nav bd-sidenav bd-sidenav__home-link">
+            <li class="toctree-l1">
+                <a class="reference internal" href="../../../index.html">
+                    Welcome to pycram’s documentation!
+                </a>
+            </li>
+        </ul>
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../designators.html">Designators</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../notebooks/action_designator.html">Action Designator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../notebooks/object_designator.html">Object Designator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../notebooks/location_designator.html">Location Designator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../notebooks/motion_designator.html">Motion Designator</a></li>
+</ul>
+</li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../../ros_utils.html">ROS Utils</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Trouble Shooting</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../../remarks.html">General Remarks</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><label class="sidebar-toggle primary-toggle btn btn-sm" for="__primary" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</label></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/cram2/pycram" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/cram2/pycram/issues/new?title=Issue%20on%20page%20%2Fautoapi/pycram/pose_generator_and_validator/index.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../../../_sources/autoapi/pycram/pose_generator_and_validator/index.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<label class="sidebar-toggle secondary-toggle btn btn-sm" for="__secondary"title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</label>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>pycram.pose_generator_and_validator</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a></li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section id="module-pycram.pose_generator_and_validator">
+<span id="pycram-pose-generator-and-validator"></span><h1><a class="reference internal" href="#module-pycram.pose_generator_and_validator" title="pycram.pose_generator_and_validator"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pycram.pose_generator_and_validator</span></code></a><a class="headerlink" href="#module-pycram.pose_generator_and_validator" title="Permalink to this heading">#</a></h1>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this heading">#</a></h2>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading">#</a></h3>
+</section>
+<section id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this heading">#</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.pose_generator_and_validator.PoseGenerator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.pose_generator_and_validator.</span></span><span class="sig-name descname"><span class="pre">PoseGenerator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">costmap</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../costmaps/index.html#pycram.costmaps.Costmap" title="pycram.costmaps.Costmap"><span class="pre">pycram.costmaps.Costmap</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_of_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orientation_generator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.pose_generator_and_validator.PoseGenerator" title="Permalink to this definition">#</a></dt>
+<dd><p>Crates pose candidates from a given costmap. The generator
+selects the highest values, amount is given by number_of_sample, and returns the corresponding positions.
+Orientations are calculated such that the Robot faces the center of the costmap.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>costmap</strong> – The costmap from which poses should be sampled.</p></li>
+<li><p><strong>number_of_samples</strong> – The number of samples from the costmap that should be returned at max</p></li>
+<li><p><strong>orientation_generator</strong> – function that generates an orientation given a position and the origin of the costmap</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.pose_generator_and_validator.PoseGenerator.current_orientation_generator">
+<span class="sig-name descname"><span class="pre">current_orientation_generator</span></span><a class="headerlink" href="#pycram.pose_generator_and_validator.PoseGenerator.current_orientation_generator" title="Permalink to this definition">#</a></dt>
+<dd><p>If no orientation generator is given, this generator is used to generate the orientation of the robot.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.pose_generator_and_validator.PoseGenerator.override_orientation_generator">
+<span class="sig-name descname"><span class="pre">override_orientation_generator</span></span><a class="headerlink" href="#pycram.pose_generator_and_validator.PoseGenerator.override_orientation_generator" title="Permalink to this definition">#</a></dt>
+<dd><p>Override the orientation generator with a custom generator, which will be used regardless of the current_orientation_generator.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.pose_generator_and_validator.PoseGenerator.__iter__">
+<span class="sig-name descname"><span class="pre">__iter__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.Iterable</span></span></span><a class="headerlink" href="#pycram.pose_generator_and_validator.PoseGenerator.__iter__" title="Permalink to this definition">#</a></dt>
+<dd><p>A generator that crates pose candidates from a given costmap. The generator
+selects the highest 100 values and returns the corresponding positions.
+Orientations are calculated such that the Robot faces the center of the costmap.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Yield<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A tuple of position and orientation</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.pose_generator_and_validator.PoseGenerator.height_generator">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">height_generator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#pycram.pose_generator_and_validator.PoseGenerator.height_generator" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.pose_generator_and_validator.PoseGenerator.generate_orientation">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">generate_orientation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">origin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../datastructures/pose/index.html#pycram.datastructures.pose.Pose" title="pycram.datastructures.pose.Pose"><span class="pre">pycram.datastructures.pose.Pose</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.pose_generator_and_validator.PoseGenerator.generate_orientation" title="Permalink to this definition">#</a></dt>
+<dd><p>This method generates the orientation for a given position in a costmap. The
+orientation is calculated such that the robot faces the origin of the costmap.
+This generation is done by simply calculating the arctan between the position,
+in the costmap, and the origin of the costmap.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>position</strong> – The position in the costmap. This position is already converted to the world coordinate frame.</p></li>
+<li><p><strong>origin</strong> – The origin of the costmap. This is also the point which the robot should face.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A quaternion of the calculated orientation</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pycram.pose_generator_and_validator.visibility_validator">
+<span class="sig-prename descclassname"><span class="pre">pycram.pose_generator_and_validator.</span></span><span class="sig-name descname"><span class="pre">visibility_validator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../datastructures/pose/index.html#pycram.datastructures.pose.Pose" title="pycram.datastructures.pose.Pose"><span class="pre">pycram.datastructures.pose.Pose</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">robot</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../world_concepts/world_object/index.html#pycram.world_concepts.world_object.Object" title="pycram.world_concepts.world_object.Object"><span class="pre">pycram.world_concepts.world_object.Object</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_or_pose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Union</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../world_concepts/world_object/index.html#pycram.world_concepts.world_object.Object" title="pycram.world_concepts.world_object.Object"><span class="pre">pycram.world_concepts.world_object.Object</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="../datastructures/pose/index.html#pycram.datastructures.pose.Pose" title="pycram.datastructures.pose.Pose"><span class="pre">pycram.datastructures.pose.Pose</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">world</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../datastructures/world/index.html#pycram.datastructures.world.World" title="pycram.datastructures.world.World"><span class="pre">pycram.datastructures.world.World</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#pycram.pose_generator_and_validator.visibility_validator" title="Permalink to this definition">#</a></dt>
+<dd><p>This method validates if the robot can see the target position from a given
+pose candidate. The target position can either be a position, in world coordinate
+system, or an object in the World. The validation is done by shooting a
+ray from the camera to the target position and checking that it does not collide
+with anything else.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pose</strong> – The pose candidate that should be validated</p></li>
+<li><p><strong>robot</strong> – The robot object for which this should be validated</p></li>
+<li><p><strong>object_or_pose</strong> – The target position or object for which the pose candidate should be validated.</p></li>
+<li><p><strong>world</strong> – The World instance in which this should be validated.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the target is visible for the robot, None in any other case.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pycram.pose_generator_and_validator._in_contact">
+<span class="sig-prename descclassname"><span class="pre">pycram.pose_generator_and_validator.</span></span><span class="sig-name descname"><span class="pre">_in_contact</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">robot</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../world_concepts/world_object/index.html#pycram.world_concepts.world_object.Object" title="pycram.world_concepts.world_object.Object"><span class="pre">pycram.world_concepts.world_object.Object</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../world_concepts/world_object/index.html#pycram.world_concepts.world_object.Object" title="pycram.world_concepts.world_object.Object"><span class="pre">pycram.world_concepts.world_object.Object</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">allowed_collision</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../world_concepts/world_object/index.html#pycram.world_concepts.world_object.Object" title="pycram.world_concepts.world_object.Object"><span class="pre">pycram.world_concepts.world_object.Object</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allowed_robot_links</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#pycram.pose_generator_and_validator._in_contact" title="Permalink to this definition">#</a></dt>
+<dd><p>This method checks if a given robot is in contact with a given object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>robot</strong> – The robot object that should be checked for contact.</p></li>
+<li><p><strong>obj</strong> – The object that should be checked for contact with the robot.</p></li>
+<li><p><strong>allowed_collision</strong> – A dictionary that contains the allowed collisions for links of each object in the world.</p></li>
+<li><p><strong>allowed_robot_links</strong> – A list of links of the robot that are allowed to be in contact with the object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the robot is in contact with the object and False otherwise.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pycram.pose_generator_and_validator.reachability_validator">
+<span class="sig-prename descclassname"><span class="pre">pycram.pose_generator_and_validator.</span></span><span class="sig-name descname"><span class="pre">reachability_validator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../datastructures/pose/index.html#pycram.datastructures.pose.Pose" title="pycram.datastructures.pose.Pose"><span class="pre">pycram.datastructures.pose.Pose</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">robot</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../world_concepts/world_object/index.html#pycram.world_concepts.world_object.Object" title="pycram.world_concepts.world_object.Object"><span class="pre">pycram.world_concepts.world_object.Object</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Union</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../world_concepts/world_object/index.html#pycram.world_concepts.world_object.Object" title="pycram.world_concepts.world_object.Object"><span class="pre">pycram.world_concepts.world_object.Object</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="../datastructures/pose/index.html#pycram.datastructures.pose.Pose" title="pycram.datastructures.pose.Pose"><span class="pre">pycram.datastructures.pose.Pose</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allowed_collision</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../world_concepts/world_object/index.html#pycram.world_concepts.world_object.Object" title="pycram.world_concepts.world_object.Object"><span class="pre">pycram.world_concepts.world_object.Object</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.pose_generator_and_validator.reachability_validator" title="Permalink to this definition">#</a></dt>
+<dd><p>This method validates if a target position is reachable for a pose candidate.
+This is done by asking the ik solver if there is a valid solution if the
+robot stands at the position of the pose candidate. if there is a solution
+the validator returns True and False in any other case.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pose</strong> – The pose candidate for which the reachability should be validated</p></li>
+<li><p><strong>robot</strong> – The robot object in the World for which the reachability should be validated.</p></li>
+<li><p><strong>target</strong> – The target position or object instance which should be the target for reachability.</p></li>
+<li><p><strong>allowed_collision</strong> – dict of objects with which the robot is allowed to collide each object correlates to a list of links of which this object consists</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the target is reachable for the robot and False in any other case.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pycram.pose_generator_and_validator.collision_check">
+<span class="sig-prename descclassname"><span class="pre">pycram.pose_generator_and_validator.</span></span><span class="sig-name descname"><span class="pre">collision_check</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">robot</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../world_concepts/world_object/index.html#pycram.world_concepts.world_object.Object" title="pycram.world_concepts.world_object.Object"><span class="pre">pycram.world_concepts.world_object.Object</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">allowed_collision</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../world_concepts/world_object/index.html#pycram.world_concepts.world_object.Object" title="pycram.world_concepts.world_object.Object"><span class="pre">pycram.world_concepts.world_object.Object</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.pose_generator_and_validator.collision_check" title="Permalink to this definition">#</a></dt>
+<dd><p>This method checks if a given robot collides with any object within the world
+which it is not allowed to collide with.
+This is done checking iterating over every object within the world and checking
+if the robot collides with it. Careful the floor will be ignored.
+If there is a collision with an object that was not within the allowed collision
+list the function returns True else it will return False</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>robot</strong> – The robot object in the (Bullet)World where it should be checked if it collides with something</p></li>
+<li><p><strong>allowed_collision</strong> – dict of objects with which the robot is allowed to collide each object correlates to a list of links of which this object consists</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the target is reachable for the robot and False in any other case.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "python"
+        },
+        kernelOptions: {
+            name: "python3",
+            path: "./autoapi/pycram/pose_generator_and_validator"
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'python3'</script>
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Jonas Dech
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2024.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../_static/scripts/bootstrap.js?digest=5b4479735964841361fd"></script>
+<script src="../../../_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

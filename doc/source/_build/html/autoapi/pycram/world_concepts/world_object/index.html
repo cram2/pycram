@@ -1,0 +1,1574 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>pycram.world_concepts.world_object &#8212; PyCRAM</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+<link href="../../../../_static/styles/bootstrap.css?digest=5b4479735964841361fd" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+
+  
+  <link href="../../../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=5b4479735964841361fd" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
+    <link rel="stylesheet" href="../../../../_static/styles/sphinx-book-theme.css?digest=14f4ca6b54d191a8c7657f6c759bf11a5fb86285" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/togglebutton.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sphinx-thebe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=5b4479735964841361fd" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd" />
+  <script src="../../../../_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=5b4479735964841361fd"></script>
+
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/clipboard.min.js"></script>
+    <script src="../../../../_static/copybutton.js"></script>
+    <script src="../../../../_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../../_static/togglebutton.js"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script src="../../../../_static/design-tabs.js"></script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"
+const thebe_selector = ".thebe,.cell"
+const thebe_selector_input = "pre"
+const thebe_selector_output = ".output, .cell_output"
+</script>
+    <script async="async" src="../../../../_static/sphinx-thebe.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'autoapi/pycram/world_concepts/world_object/index';</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search this book..."
+         aria-label="Search this book..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../../_static/pycram_logo.png" class="logo__image only-light" alt="PyCRAM - Home"/>
+    <script>document.write(`<img src="../../../../_static/pycram_logo.png" class="logo__image only-dark" alt="PyCRAM - Home"/>`);</script>
+  
+  
+</a></div>
+        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        
+        <ul class="nav bd-sidenav bd-sidenav__home-link">
+            <li class="toctree-l1">
+                <a class="reference internal" href="../../../../index.html">
+                    Welcome to pycram’s documentation!
+                </a>
+            </li>
+        </ul>
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../designators.html">Designators</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../notebooks/action_designator.html">Action Designator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../notebooks/object_designator.html">Object Designator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../notebooks/location_designator.html">Location Designator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../notebooks/motion_designator.html">Motion Designator</a></li>
+</ul>
+</li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../../../ros_utils.html">ROS Utils</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Trouble Shooting</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../../../remarks.html">General Remarks</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><label class="sidebar-toggle primary-toggle btn btn-sm" for="__primary" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</label></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/cram2/pycram" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/cram2/pycram/issues/new?title=Issue%20on%20page%20%2Fautoapi/pycram/world_concepts/world_object/index.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../../../../_sources/autoapi/pycram/world_concepts/world_object/index.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<label class="sidebar-toggle secondary-toggle btn btn-sm" for="__secondary"title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</label>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>pycram.world_concepts.world_object</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#attributes">Attributes</a></li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section id="module-pycram.world_concepts.world_object">
+<span id="pycram-world-concepts-world-object"></span><h1><a class="reference internal" href="#module-pycram.world_concepts.world_object" title="pycram.world_concepts.world_object"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pycram.world_concepts.world_object</span></code></a><a class="headerlink" href="#module-pycram.world_concepts.world_object" title="Permalink to this heading">#</a></h1>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this heading">#</a></h2>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading">#</a></h3>
+</section>
+<section id="attributes">
+<h3>Attributes<a class="headerlink" href="#attributes" title="Permalink to this heading">#</a></h3>
+<dl class="py data">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Link">
+<span class="sig-prename descclassname"><span class="pre">pycram.world_concepts.world_object.</span></span><span class="sig-name descname"><span class="pre">Link</span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Link" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.world_concepts.world_object.</span></span><span class="sig-name descname"><span class="pre">Object</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../datastructures/enums/index.html#pycram.datastructures.enums.ObjectType" title="pycram.datastructures.enums.ObjectType"><span class="pre">pycram.datastructures.enums.ObjectType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">typing_extensions.Type</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../../description/index.html#pycram.description.ObjectDescription" title="pycram.description.ObjectDescription"><span class="pre">pycram.description.ObjectDescription</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">URDFObject</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../../datastructures/pose/index.html#pycram.datastructures.pose.Pose" title="pycram.datastructures.pose.Pose"><span class="pre">pycram.datastructures.pose.Pose</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">world</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../../datastructures/world/index.html#pycram.datastructures.world.World" title="pycram.datastructures.world.World"><span class="pre">pycram.datastructures.world.World</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../../datastructures/dataclasses/index.html#pycram.datastructures.dataclasses.Color" title="pycram.datastructures.dataclasses.Color"><span class="pre">pycram.datastructures.dataclasses.Color</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Color()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_cached_files</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.world_concepts.world_object.Object" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../../datastructures/world/index.html#pycram.datastructures.world.WorldEntity" title="pycram.datastructures.world.WorldEntity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pycram.datastructures.world.WorldEntity</span></code></a></p>
+<p>Represents a spawned Object in the World.</p>
+<p>The constructor loads the description file into the given World, if no World is specified the
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">current_world</span></code> will be used. It is also possible to load .obj and .stl file into the World.
+The rgba_color parameter is only used when loading .stl or .obj files,
+for URDFs <a class="reference internal" href="#pycram.world_concepts.world_object.Object.set_color" title="pycram.world_concepts.world_object.Object.set_color"><code class="xref py py-func docutils literal notranslate"><span class="pre">set_color()</span></code></a> can be used.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – The name of the object</p></li>
+<li><p><strong>obj_type</strong> – The type of the object as an ObjectType enum.</p></li>
+<li><p><strong>path</strong> – The path to the source file, if only a filename is provided then the resources directories will be searched.</p></li>
+<li><p><strong>description</strong> – The ObjectDescription of the object, this contains the joints and links of the object.</p></li>
+<li><p><strong>pose</strong> – The pose at which the Object should be spawned</p></li>
+<li><p><strong>world</strong> – The World in which the object should be spawned, if no world is specified the <code class="xref py py-attr docutils literal notranslate"><span class="pre">current_world</span></code> will be used.</p></li>
+<li><p><strong>color</strong> – The rgba_color with which the object should be spawned.</p></li>
+<li><p><strong>ignore_cached_files</strong> – If true the file will be spawned while ignoring cached files.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.pose">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">pose</span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.pose" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.link_names">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">link_names</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.world_concepts.world_object.Object.link_names" title="Permalink to this definition">#</a></dt>
+<dd><p>The name of each link as a list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>return</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.joint_names">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">joint_names</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.world_concepts.world_object.Object.joint_names" title="Permalink to this definition">#</a></dt>
+<dd><p>The name of each joint as a list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>return</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.base_origin_shift">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">base_origin_shift</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span></em><a class="headerlink" href="#pycram.world_concepts.world_object.Object.base_origin_shift" title="Permalink to this definition">#</a></dt>
+<dd><p>The shift between the base of the object and the origin of the object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A numpy array with the shift between the base of the object and the origin of the object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.current_state">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">current_state</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../../datastructures/dataclasses/index.html#pycram.datastructures.dataclasses.ObjectState" title="pycram.datastructures.dataclasses.ObjectState"><span class="pre">pycram.datastructures.dataclasses.ObjectState</span></a></em><a class="headerlink" href="#pycram.world_concepts.world_object.Object.current_state" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.link_states">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">link_states</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="../../datastructures/dataclasses/index.html#pycram.datastructures.dataclasses.LinkState" title="pycram.datastructures.dataclasses.LinkState"><span class="pre">pycram.datastructures.dataclasses.LinkState</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.world_concepts.world_object.Object.link_states" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the current state of all links of this object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A dictionary with the link id as key and the current state of the link as value.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.joint_states">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">joint_states</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="../../datastructures/dataclasses/index.html#pycram.datastructures.dataclasses.JointState" title="pycram.datastructures.dataclasses.JointState"><span class="pre">pycram.datastructures.dataclasses.JointState</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.world_concepts.world_object.Object.joint_states" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the current state of all joints of this object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A dictionary with the joint id as key and the current state of the joint as value.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.root_link">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">root_link</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../../description/index.html#pycram.description.ObjectDescription.Link" title="pycram.description.ObjectDescription.Link"><span class="pre">pycram.description.ObjectDescription.Link</span></a></em><a class="headerlink" href="#pycram.world_concepts.world_object.Object.root_link" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the root link of this object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The root link of this object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.root_link_name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">root_link_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#pycram.world_concepts.world_object.Object.root_link_name" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the name of the root link of this object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The name of the root link of this object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.links_colors">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">links_colors</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="../../datastructures/dataclasses/index.html#pycram.datastructures.dataclasses.Color" title="pycram.datastructures.dataclasses.Color"><span class="pre">pycram.datastructures.dataclasses.Color</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.world_concepts.world_object.Object.links_colors" title="Permalink to this definition">#</a></dt>
+<dd><p>The color of each link as a dictionary with link names as keys and RGBA colors as values.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.prospection_world_prefix">
+<span class="sig-name descname"><span class="pre">prospection_world_prefix</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'prospection/'</span></em><a class="headerlink" href="#pycram.world_concepts.world_object.Object.prospection_world_prefix" title="Permalink to this definition">#</a></dt>
+<dd><p>The ObjectDescription of the object, this contains the name and type of the object as well as the path to the source
+file.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object._load_object_and_get_id">
+<span class="sig-name descname"><span class="pre">_load_object_and_get_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_cached_files</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">typing_extensions.Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object._load_object_and_get_id" title="Permalink to this definition">#</a></dt>
+<dd><p>Loads an object to the given World with the given position and orientation. The rgba_color will only be
+used when an .obj or .stl file is given.
+If a .obj or .stl file is given, before spawning, an urdf file with the .obj or .stl as mesh will be created
+and this URDf file will be loaded instead.
+When spawning a URDf file a new file will be created in the cache directory, if there exists none.
+This new file will have resolved mesh file paths, meaning there will be no references
+to ROS packges instead there will be absolute file paths.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – The path to the description file, if None then no file will be loaded, this is useful when the PyCRAM is not responsible for loading the file but another system is.</p></li>
+<li><p><strong>ignore_cached_files</strong> – Whether to ignore files in the cache directory.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The unique id of the object and the path of the file that was loaded.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object._init_joint_name_and_id_map">
+<span class="sig-name descname"><span class="pre">_init_joint_name_and_id_map</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object._init_joint_name_and_id_map" title="Permalink to this definition">#</a></dt>
+<dd><p>Creates a dictionary which maps the joint names to their unique ids and vice versa.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object._init_link_name_and_id_map">
+<span class="sig-name descname"><span class="pre">_init_link_name_and_id_map</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object._init_link_name_and_id_map" title="Permalink to this definition">#</a></dt>
+<dd><p>Creates a dictionary which maps the link names to their unique ids and vice versa.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object._init_links_and_update_transforms">
+<span class="sig-name descname"><span class="pre">_init_links_and_update_transforms</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object._init_links_and_update_transforms" title="Permalink to this definition">#</a></dt>
+<dd><p>Initializes the link objects from the URDF file and creates a dictionary which maps the link names to the
+corresponding link objects.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object._init_joints">
+<span class="sig-name descname"><span class="pre">_init_joints</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycram.world_concepts.world_object.Object._init_joints" title="Permalink to this definition">#</a></dt>
+<dd><p>Initialize the joint objects from the URDF file and creates a dictionary which mas the joint names to the
+corresponding joint objects</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object._add_to_world_sync_obj_queue">
+<span class="sig-name descname"><span class="pre">_add_to_world_sync_obj_queue</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object._add_to_world_sync_obj_queue" title="Permalink to this definition">#</a></dt>
+<dd><p>Adds this object to the objects queue of the WorldSync object of the World.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_link">
+<span class="sig-name descname"><span class="pre">get_link</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">link_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../../description/index.html#pycram.description.ObjectDescription.Link" title="pycram.description.ObjectDescription.Link"><span class="pre">pycram.description.ObjectDescription.Link</span></a></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_link" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the link object with the given name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>link_name</strong> – The name of the link.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The link object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_link_pose">
+<span class="sig-name descname"><span class="pre">get_link_pose</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">link_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../../datastructures/pose/index.html#pycram.datastructures.pose.Pose" title="pycram.datastructures.pose.Pose"><span class="pre">pycram.datastructures.pose.Pose</span></a></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_link_pose" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the pose of the link with the given name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>link_name</strong> – The name of the link.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The pose of the link.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_link_position">
+<span class="sig-name descname"><span class="pre">get_link_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">link_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">geometry_msgs.msg.Point</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_link_position" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the position of the link with the given name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>link_name</strong> – The name of the link.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The position of the link.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_link_position_as_list">
+<span class="sig-name descname"><span class="pre">get_link_position_as_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">link_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_link_position_as_list" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the position of the link with the given name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>link_name</strong> – The name of the link.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The position of the link.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_link_orientation">
+<span class="sig-name descname"><span class="pre">get_link_orientation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">link_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">geometry_msgs.msg.Quaternion</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_link_orientation" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the orientation of the link with the given name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>link_name</strong> – The name of the link.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The orientation of the link.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_link_orientation_as_list">
+<span class="sig-name descname"><span class="pre">get_link_orientation_as_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">link_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_link_orientation_as_list" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the orientation of the link with the given name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>link_name</strong> – The name of the link.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The orientation of the link.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_link_tf_frame">
+<span class="sig-name descname"><span class="pre">get_link_tf_frame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">link_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_link_tf_frame" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the tf frame of the link with the given name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>link_name</strong> – The name of the link.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The tf frame of the link.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_link_axis_aligned_bounding_box">
+<span class="sig-name descname"><span class="pre">get_link_axis_aligned_bounding_box</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">link_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../../datastructures/dataclasses/index.html#pycram.datastructures.dataclasses.AxisAlignedBoundingBox" title="pycram.datastructures.dataclasses.AxisAlignedBoundingBox"><span class="pre">pycram.datastructures.dataclasses.AxisAlignedBoundingBox</span></a></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_link_axis_aligned_bounding_box" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the axis aligned bounding box of the link with the given name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>link_name</strong> – The name of the link.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The axis aligned bounding box of the link.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_transform_between_links">
+<span class="sig-name descname"><span class="pre">get_transform_between_links</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">from_link</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_link</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../../datastructures/pose/index.html#pycram.datastructures.pose.Transform" title="pycram.datastructures.pose.Transform"><span class="pre">pycram.datastructures.pose.Transform</span></a></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_transform_between_links" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the transform between two links.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>from_link</strong> – The name of the link from which the transform should be calculated.</p></li>
+<li><p><strong>to_link</strong> – The name of the link to which the transform should be calculated.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_link_color">
+<span class="sig-name descname"><span class="pre">get_link_color</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">link_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../../datastructures/dataclasses/index.html#pycram.datastructures.dataclasses.Color" title="pycram.datastructures.dataclasses.Color"><span class="pre">pycram.datastructures.dataclasses.Color</span></a></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_link_color" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the color of the link with the given name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>link_name</strong> – The name of the link.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The color of the link.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.set_link_color">
+<span class="sig-name descname"><span class="pre">set_link_color</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">link_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.set_link_color" title="Permalink to this definition">#</a></dt>
+<dd><p>Sets the color of the link with the given name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>link_name</strong> – The name of the link.</p></li>
+<li><p><strong>color</strong> – The new color of the link.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_link_geometry">
+<span class="sig-name descname"><span class="pre">get_link_geometry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">link_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.Union</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../../datastructures/dataclasses/index.html#pycram.datastructures.dataclasses.VisualShape" title="pycram.datastructures.dataclasses.VisualShape"><span class="pre">pycram.datastructures.dataclasses.VisualShape</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_link_geometry" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the geometry of the link with the given name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>link_name</strong> – The name of the link.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The geometry of the link.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_link_transform">
+<span class="sig-name descname"><span class="pre">get_link_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">link_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../../datastructures/pose/index.html#pycram.datastructures.pose.Transform" title="pycram.datastructures.pose.Transform"><span class="pre">pycram.datastructures.pose.Transform</span></a></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_link_transform" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the transform of the link with the given name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>link_name</strong> – The name of the link.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The transform of the link.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_link_origin">
+<span class="sig-name descname"><span class="pre">get_link_origin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">link_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../../datastructures/pose/index.html#pycram.datastructures.pose.Pose" title="pycram.datastructures.pose.Pose"><span class="pre">pycram.datastructures.pose.Pose</span></a></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_link_origin" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the origin of the link with the given name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>link_name</strong> – The name of the link.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The origin of the link as a ‘Pose’.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_link_origin_transform">
+<span class="sig-name descname"><span class="pre">get_link_origin_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">link_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../../datastructures/pose/index.html#pycram.datastructures.pose.Transform" title="pycram.datastructures.pose.Transform"><span class="pre">pycram.datastructures.pose.Transform</span></a></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_link_origin_transform" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the origin transform of the link with the given name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>link_name</strong> – The name of the link.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The origin transform of the link.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.__repr__" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.remove">
+<span class="sig-name descname"><span class="pre">remove</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.remove" title="Permalink to this definition">#</a></dt>
+<dd><p>Removes this object from the World it currently resides in.
+For the object to be removed it has to be detached from all objects it
+is currently attached to. After this is done a call to world remove object is done
+to remove this Object from the simulation/world.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">remove_saved_states</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.reset" title="Permalink to this definition">#</a></dt>
+<dd><p>Resets the Object to the state it was first spawned in.
+All attached objects will be detached, all joints will be set to the
+default position of 0 and the object will be set to the position and
+orientation in which it was spawned.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>remove_saved_states</strong> – If True the saved states will be removed.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.attach">
+<span class="sig-name descname"><span class="pre">attach</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">child_object</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pycram.world_concepts.world_object.Object" title="pycram.world_concepts.world_object.Object"><span class="pre">Object</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent_link</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">child_link</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bidirectional</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.attach" title="Permalink to this definition">#</a></dt>
+<dd><p>Attaches another object to this object. This is done by
+saving the transformation between the given link, if there is one, and
+the base pose of the other object. Additionally, the name of the link, to
+which the object is attached, will be saved.
+Furthermore, a simulator constraint will be created so the attachment
+also works while simulation.
+Loose attachments means that the attachment will only be one-directional. For example, if this object moves the
+other, attached, object will also move but not the other way around.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>child_object</strong> – The other object that should be attached.</p></li>
+<li><p><strong>parent_link</strong> – The link name of this object.</p></li>
+<li><p><strong>child_link</strong> – The link name of the other object.</p></li>
+<li><p><strong>bidirectional</strong> – If the attachment should be a loose attachment.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.detach">
+<span class="sig-name descname"><span class="pre">detach</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">child_object</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pycram.world_concepts.world_object.Object" title="pycram.world_concepts.world_object.Object"><span class="pre">Object</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.detach" title="Permalink to this definition">#</a></dt>
+<dd><p>Detaches another object from this object. This is done by
+deleting the attachment from the attachments dictionary of both objects
+and deleting the constraint of the simulator.
+Afterward the detachment event of the corresponding World will be fired.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>child_object</strong> – The object which should be detached</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.detach_all">
+<span class="sig-name descname"><span class="pre">detach_all</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.detach_all" title="Permalink to this definition">#</a></dt>
+<dd><p>Detach all objects attached to this object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.update_attachment_with_object">
+<span class="sig-name descname"><span class="pre">update_attachment_with_object</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">child_object</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pycram.world_concepts.world_object.Object" title="pycram.world_concepts.world_object.Object"><span class="pre">Object</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.update_attachment_with_object" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_position">
+<span class="sig-name descname"><span class="pre">get_position</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">geometry_msgs.msg.Point</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_position" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the position of this Object as a list of xyz.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The current position of this object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_orientation">
+<span class="sig-name descname"><span class="pre">get_orientation</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pycram.datastructures.pose.Pose.orientation</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_orientation" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the orientation of this object as a list of xyzw, representing a quaternion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of xyzw</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_position_as_list">
+<span class="sig-name descname"><span class="pre">get_position_as_list</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_position_as_list" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the position of this Object as a list of xyz.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The current position of this object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_base_position_as_list">
+<span class="sig-name descname"><span class="pre">get_base_position_as_list</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_base_position_as_list" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the position of this Object as a list of xyz.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The current position of this object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_orientation_as_list">
+<span class="sig-name descname"><span class="pre">get_orientation_as_list</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_orientation_as_list" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the orientation of this object as a list of xyzw, representing a quaternion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of xyzw</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_pose">
+<span class="sig-name descname"><span class="pre">get_pose</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../../datastructures/pose/index.html#pycram.datastructures.pose.Pose" title="pycram.datastructures.pose.Pose"><span class="pre">pycram.datastructures.pose.Pose</span></a></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_pose" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the position of this object as a list of xyz. Alias for <a class="reference internal" href="#pycram.world_concepts.world_object.Object.get_position" title="pycram.world_concepts.world_object.Object.get_position"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_position()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The current pose of this object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.set_pose">
+<span class="sig-name descname"><span class="pre">set_pose</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../datastructures/pose/index.html#pycram.datastructures.pose.Pose" title="pycram.datastructures.pose.Pose"><span class="pre">pycram.datastructures.pose.Pose</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">base</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">set_attachments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.set_pose" title="Permalink to this definition">#</a></dt>
+<dd><p>Sets the Pose of the object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pose</strong> – New Pose for the object</p></li>
+<li><p><strong>base</strong> – If True places the object base instead of origin at the specified position and orientation</p></li>
+<li><p><strong>set_attachments</strong> – Whether to set the poses of the attached objects to this object or not.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.reset_base_pose">
+<span class="sig-name descname"><span class="pre">reset_base_pose</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../datastructures/pose/index.html#pycram.datastructures.pose.Pose" title="pycram.datastructures.pose.Pose"><span class="pre">pycram.datastructures.pose.Pose</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.reset_base_pose" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.update_pose">
+<span class="sig-name descname"><span class="pre">update_pose</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.update_pose" title="Permalink to this definition">#</a></dt>
+<dd><p>Updates the current pose of this object from the world, and updates the poses of all links.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object._update_all_links_poses">
+<span class="sig-name descname"><span class="pre">_update_all_links_poses</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycram.world_concepts.world_object.Object._update_all_links_poses" title="Permalink to this definition">#</a></dt>
+<dd><p>Updates the poses of all links by getting them from the simulator.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.move_base_to_origin_pose">
+<span class="sig-name descname"><span class="pre">move_base_to_origin_pose</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.move_base_to_origin_pose" title="Permalink to this definition">#</a></dt>
+<dd><p>Move the object such that its base will be at the current origin position.
+This is useful when placing objects on surfaces where you want the object base in contact with the surface.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.save_state">
+<span class="sig-name descname"><span class="pre">save_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_id</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.save_state" title="Permalink to this definition">#</a></dt>
+<dd><p>Saves the state of this object by saving the state of all links and attachments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>state_id</strong> – The unique id of the state.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.save_links_states">
+<span class="sig-name descname"><span class="pre">save_links_states</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.save_links_states" title="Permalink to this definition">#</a></dt>
+<dd><p>Saves the state of all links of this object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>state_id</strong> – The unique id of the state.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.save_joints_states">
+<span class="sig-name descname"><span class="pre">save_joints_states</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.save_joints_states" title="Permalink to this definition">#</a></dt>
+<dd><p>Saves the state of all joints of this object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>state_id</strong> – The unique id of the state.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.set_attachments">
+<span class="sig-name descname"><span class="pre">set_attachments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attachments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pycram.world_concepts.world_object.Object" title="pycram.world_concepts.world_object.Object"><span class="pre">Object</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="../constraints/index.html#pycram.world_concepts.constraints.Attachment" title="pycram.world_concepts.constraints.Attachment"><span class="pre">pycram.world_concepts.constraints.Attachment</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.set_attachments" title="Permalink to this definition">#</a></dt>
+<dd><p>Sets the attachments of this object to the given attachments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>attachments</strong> – A dictionary with the object as key and the attachment as value.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.remove_saved_states">
+<span class="sig-name descname"><span class="pre">remove_saved_states</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.remove_saved_states" title="Permalink to this definition">#</a></dt>
+<dd><p>Removes all saved states of this object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.remove_links_saved_states">
+<span class="sig-name descname"><span class="pre">remove_links_saved_states</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.remove_links_saved_states" title="Permalink to this definition">#</a></dt>
+<dd><p>Removes all saved states of the links of this object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.remove_joints_saved_states">
+<span class="sig-name descname"><span class="pre">remove_joints_saved_states</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.remove_joints_saved_states" title="Permalink to this definition">#</a></dt>
+<dd><p>Removes all saved states of the joints of this object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object._set_attached_objects_poses">
+<span class="sig-name descname"><span class="pre">_set_attached_objects_poses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">already_moved_objects</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pycram.world_concepts.world_object.Object" title="pycram.world_concepts.world_object.Object"><span class="pre">Object</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object._set_attached_objects_poses" title="Permalink to this definition">#</a></dt>
+<dd><p>Updates the positions of all attached objects. This is done
+by calculating the new pose in world coordinate frame and setting the
+base pose of the attached objects to this new pose.
+After this the _set_attached_objects method of all attached objects
+will be called.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>already_moved_objects</strong> – A list of Objects that were already moved, these will be excluded to prevent loops in the update.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.set_position">
+<span class="sig-name descname"><span class="pre">set_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Union</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../../datastructures/pose/index.html#pycram.datastructures.pose.Pose" title="pycram.datastructures.pose.Pose"><span class="pre">pycram.datastructures.pose.Pose</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">geometry_msgs.msg.Point</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.set_position" title="Permalink to this definition">#</a></dt>
+<dd><p>Sets this Object to the given position, if base is true the bottom of the Object will be placed at the position
+instead of the origin in the center of the Object. The given position can either be a Pose,
+in this case only the position is used or a geometry_msgs.msg/Point which is the position part of a Pose.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>position</strong> – Target position as xyz.</p></li>
+<li><p><strong>base</strong> – If the bottom of the Object should be placed or the origin in the center.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.set_orientation">
+<span class="sig-name descname"><span class="pre">set_orientation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">orientation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Union</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../../datastructures/pose/index.html#pycram.datastructures.pose.Pose" title="pycram.datastructures.pose.Pose"><span class="pre">pycram.datastructures.pose.Pose</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">geometry_msgs.msg.Quaternion</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">typing_extensions.Tuple</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.set_orientation" title="Permalink to this definition">#</a></dt>
+<dd><p>Sets the orientation of the Object to the given orientation. Orientation can either be a Pose, in this case only
+the orientation of this pose is used or a geometry_msgs.msg/Quaternion which is the orientation of a Pose.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>orientation</strong> – Target orientation given as a list of xyzw.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_joint_id">
+<span class="sig-name descname"><span class="pre">get_joint_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_joint_id" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the unique id for a joint name. As used by the world/simulator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> – The joint name</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The unique id</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_root_link_description">
+<span class="sig-name descname"><span class="pre">get_root_link_description</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../../description/index.html#pycram.description.LinkDescription" title="pycram.description.LinkDescription"><span class="pre">pycram.description.LinkDescription</span></a></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_root_link_description" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the root link of the URDF of this object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The root link as defined in the URDF of this object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_root_link_id">
+<span class="sig-name descname"><span class="pre">get_root_link_id</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_root_link_id" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the unique id of the root link of this object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The unique id of the root link of this object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_link_id">
+<span class="sig-name descname"><span class="pre">get_link_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">link_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_link_id" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns a unique id for a link name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>link_name</strong> – The name of the link.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The unique id of the link.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_link_by_id">
+<span class="sig-name descname"><span class="pre">get_link_by_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">link_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../../description/index.html#pycram.description.ObjectDescription.Link" title="pycram.description.ObjectDescription.Link"><span class="pre">pycram.description.ObjectDescription.Link</span></a></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_link_by_id" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the link for a given unique link id</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>link_id</strong> – The unique id of the link.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The link object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.reset_all_joints_positions">
+<span class="sig-name descname"><span class="pre">reset_all_joints_positions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.reset_all_joints_positions" title="Permalink to this definition">#</a></dt>
+<dd><p>Sets the current position of all joints to 0. This is useful if the joints should be reset to their default</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.set_joint_positions">
+<span class="sig-name descname"><span class="pre">set_joint_positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">joint_poses</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.set_joint_positions" title="Permalink to this definition">#</a></dt>
+<dd><p>Sets the current position of multiple joints at once, this method should be preferred when setting
+multiple joints at once instead of running <a class="reference internal" href="#pycram.world_concepts.world_object.Object.set_joint_position" title="pycram.world_concepts.world_object.Object.set_joint_position"><code class="xref py py-func docutils literal notranslate"><span class="pre">set_joint_position()</span></code></a> in a loop.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>joint_poses</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.set_joint_position">
+<span class="sig-name descname"><span class="pre">set_joint_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">joint_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">joint_position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.set_joint_position" title="Permalink to this definition">#</a></dt>
+<dd><p>Sets the position of the given joint to the given joint pose and updates the poses of all attached objects.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>joint_name</strong> – The name of the joint</p></li>
+<li><p><strong>joint_position</strong> – The target pose for this joint</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_joint_position">
+<span class="sig-name descname"><span class="pre">get_joint_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">joint_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_joint_position" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>joint_name</strong> – The name of the joint</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The current position of the given joint</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_joint_damping">
+<span class="sig-name descname"><span class="pre">get_joint_damping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">joint_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_joint_damping" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>joint_name</strong> – The name of the joint</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The damping of the given joint</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_joint_upper_limit">
+<span class="sig-name descname"><span class="pre">get_joint_upper_limit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">joint_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_joint_upper_limit" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>joint_name</strong> – The name of the joint</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The upper limit of the given joint</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_joint_lower_limit">
+<span class="sig-name descname"><span class="pre">get_joint_lower_limit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">joint_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_joint_lower_limit" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>joint_name</strong> – The name of the joint</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The lower limit of the given joint</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_joint_axis">
+<span class="sig-name descname"><span class="pre">get_joint_axis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">joint_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">geometry_msgs.msg.Point</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_joint_axis" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>joint_name</strong> – The name of the joint</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The axis of the given joint</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_joint_type">
+<span class="sig-name descname"><span class="pre">get_joint_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">joint_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../../datastructures/enums/index.html#pycram.datastructures.enums.JointType" title="pycram.datastructures.enums.JointType"><span class="pre">pycram.datastructures.enums.JointType</span></a></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_joint_type" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>joint_name</strong> – The name of the joint</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The type of the given joint</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_joint_limits">
+<span class="sig-name descname"><span class="pre">get_joint_limits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">joint_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_joint_limits" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>joint_name</strong> – The name of the joint</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The lower and upper limits of the given joint</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_joint_child_link">
+<span class="sig-name descname"><span class="pre">get_joint_child_link</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">joint_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../../description/index.html#pycram.description.ObjectDescription.Link" title="pycram.description.ObjectDescription.Link"><span class="pre">pycram.description.ObjectDescription.Link</span></a></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_joint_child_link" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>joint_name</strong> – The name of the joint</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The child link of the given joint</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_joint_parent_link">
+<span class="sig-name descname"><span class="pre">get_joint_parent_link</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">joint_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../../description/index.html#pycram.description.ObjectDescription.Link" title="pycram.description.ObjectDescription.Link"><span class="pre">pycram.description.ObjectDescription.Link</span></a></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_joint_parent_link" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>joint_name</strong> – The name of the joint</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The parent link of the given joint</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.find_joint_above_link">
+<span class="sig-name descname"><span class="pre">find_joint_above_link</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">link_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">joint_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../datastructures/enums/index.html#pycram.datastructures.enums.JointType" title="pycram.datastructures.enums.JointType"><span class="pre">pycram.datastructures.enums.JointType</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.find_joint_above_link" title="Permalink to this definition">#</a></dt>
+<dd><p>Traverses the chain from ‘link’ to the URDF origin and returns the first joint that is of type ‘joint_type’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>link_name</strong> – AbstractLink name above which the joint should be found</p></li>
+<li><p><strong>joint_type</strong> – Joint type that should be searched for</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Name of the first joint which has the given type</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_positions_of_all_joints">
+<span class="sig-name descname"><span class="pre">get_positions_of_all_joints</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_positions_of_all_joints" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the positions of all joints of the object as a dictionary of joint names and joint positions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A dictionary with all joints positions’.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.update_link_transforms">
+<span class="sig-name descname"><span class="pre">update_link_transforms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transform_time</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">rospy.Time</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.update_link_transforms" title="Permalink to this definition">#</a></dt>
+<dd><p>Updates the transforms of all links of this object using time ‘transform_time’ or the current ros time.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.contact_points">
+<span class="sig-name descname"><span class="pre">contact_points</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.List</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.contact_points" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns a list of contact points of this Object with other Objects.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of all contact points with other objects</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.contact_points_simulated">
+<span class="sig-name descname"><span class="pre">contact_points_simulated</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.List</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.contact_points_simulated" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns a list of all contact points between this Object and other Objects after stepping the simulation once.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of contact points between this Object and other Objects</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.set_color">
+<span class="sig-name descname"><span class="pre">set_color</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rgba_color</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../datastructures/dataclasses/index.html#pycram.datastructures.dataclasses.Color" title="pycram.datastructures.dataclasses.Color"><span class="pre">pycram.datastructures.dataclasses.Color</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.set_color" title="Permalink to this definition">#</a></dt>
+<dd><p>Changes the color of this object, the color has to be given as a list
+of RGBA values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rgba_color</strong> – The color as Color object with RGBA values between 0 and 1</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_color">
+<span class="sig-name descname"><span class="pre">get_color</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.Union</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../../datastructures/dataclasses/index.html#pycram.datastructures.dataclasses.Color" title="pycram.datastructures.dataclasses.Color"><span class="pre">pycram.datastructures.dataclasses.Color</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="../../datastructures/dataclasses/index.html#pycram.datastructures.dataclasses.Color" title="pycram.datastructures.dataclasses.Color"><span class="pre">pycram.datastructures.dataclasses.Color</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_color" title="Permalink to this definition">#</a></dt>
+<dd><p>This method returns the rgba_color of this object. The return is either:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><dl class="simple">
+<dt>A Color object with RGBA values, this is the case if the object only has one link (this</dt><dd><p>happens for example if the object is spawned from a .obj or .stl file)</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>A dict with the link name as key and the rgba_color as value. The rgba_color is given as a Color Object.</dt><dd><dl class="simple">
+<dt>Please keep in mind that not every link may have a rgba_color. This is dependent on the URDF from which</dt><dd><p>the object is spawned.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</li>
+</ol>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The rgba_color as Color object with RGBA values between 0 and 1 or a dict with the link name as key and the rgba_color as value.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_axis_aligned_bounding_box">
+<span class="sig-name descname"><span class="pre">get_axis_aligned_bounding_box</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../../datastructures/dataclasses/index.html#pycram.datastructures.dataclasses.AxisAlignedBoundingBox" title="pycram.datastructures.dataclasses.AxisAlignedBoundingBox"><span class="pre">pycram.datastructures.dataclasses.AxisAlignedBoundingBox</span></a></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_axis_aligned_bounding_box" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The axis aligned bounding box of this object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_base_origin">
+<span class="sig-name descname"><span class="pre">get_base_origin</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../../datastructures/pose/index.html#pycram.datastructures.pose.Pose" title="pycram.datastructures.pose.Pose"><span class="pre">pycram.datastructures.pose.Pose</span></a></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_base_origin" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>the origin of the base/bottom of this object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.get_joint_by_id">
+<span class="sig-name descname"><span class="pre">get_joint_by_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">joint_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../../description/index.html#pycram.description.Joint" title="pycram.description.Joint"><span class="pre">pycram.description.Joint</span></a></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.get_joint_by_id" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the joint object with the given id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>joint_id</strong> – The unique id of the joint.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The joint object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.copy_to_prospection">
+<span class="sig-name descname"><span class="pre">copy_to_prospection</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pycram.world_concepts.world_object.Object" title="pycram.world_concepts.world_object.Object"><span class="pre">Object</span></a></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.copy_to_prospection" title="Permalink to this definition">#</a></dt>
+<dd><p>Copies this object to the prospection world.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The copied object in the prospection world.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.__copy__">
+<span class="sig-name descname"><span class="pre">__copy__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pycram.world_concepts.world_object.Object" title="pycram.world_concepts.world_object.Object"><span class="pre">Object</span></a></span></span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.__copy__" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns a copy of this object. The copy will have the same name, type, path, description, pose, world and color.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A copy of this object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.__eq__">
+<span class="sig-name descname"><span class="pre">__eq__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.__eq__" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.world_concepts.world_object.Object.__hash__">
+<span class="sig-name descname"><span class="pre">__hash__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycram.world_concepts.world_object.Object.__hash__" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "python"
+        },
+        kernelOptions: {
+            name: "python3",
+            path: "./autoapi/pycram/world_concepts/world_object"
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'python3'</script>
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#attributes">Attributes</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Jonas Dech
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2024.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../../_static/scripts/bootstrap.js?digest=5b4479735964841361fd"></script>
+<script src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

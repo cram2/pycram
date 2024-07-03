@@ -1,0 +1,972 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>pycram.robot_description &#8212; PyCRAM</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+<link href="../../../_static/styles/bootstrap.css?digest=5b4479735964841361fd" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+
+  
+  <link href="../../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=5b4479735964841361fd" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" href="../../../_static/styles/sphinx-book-theme.css?digest=14f4ca6b54d191a8c7657f6c759bf11a5fb86285" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-thebe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=5b4479735964841361fd" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd" />
+  <script src="../../../_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=5b4479735964841361fd"></script>
+
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/clipboard.min.js"></script>
+    <script src="../../../_static/copybutton.js"></script>
+    <script src="../../../_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../_static/togglebutton.js"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script src="../../../_static/design-tabs.js"></script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"
+const thebe_selector = ".thebe,.cell"
+const thebe_selector_input = "pre"
+const thebe_selector_output = ".output, .cell_output"
+</script>
+    <script async="async" src="../../../_static/sphinx-thebe.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'autoapi/pycram/robot_description/index';</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search this book..."
+         aria-label="Search this book..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/pycram_logo.png" class="logo__image only-light" alt="PyCRAM - Home"/>
+    <script>document.write(`<img src="../../../_static/pycram_logo.png" class="logo__image only-dark" alt="PyCRAM - Home"/>`);</script>
+  
+  
+</a></div>
+        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        
+        <ul class="nav bd-sidenav bd-sidenav__home-link">
+            <li class="toctree-l1">
+                <a class="reference internal" href="../../../index.html">
+                    Welcome to pycram’s documentation!
+                </a>
+            </li>
+        </ul>
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../designators.html">Designators</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../notebooks/action_designator.html">Action Designator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../notebooks/object_designator.html">Object Designator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../notebooks/location_designator.html">Location Designator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../notebooks/motion_designator.html">Motion Designator</a></li>
+</ul>
+</li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../../ros_utils.html">ROS Utils</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Trouble Shooting</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../../remarks.html">General Remarks</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><label class="sidebar-toggle primary-toggle btn btn-sm" for="__primary" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</label></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/cram2/pycram" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/cram2/pycram/issues/new?title=Issue%20on%20page%20%2Fautoapi/pycram/robot_description/index.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../../../_sources/autoapi/pycram/robot_description/index.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<label class="sidebar-toggle secondary-toggle btn btn-sm" for="__secondary"title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</label>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>pycram.robot_description</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section id="module-pycram.robot_description">
+<span id="pycram-robot-description"></span><h1><a class="reference internal" href="#module-pycram.robot_description" title="pycram.robot_description"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pycram.robot_description</span></code></a><a class="headerlink" href="#module-pycram.robot_description" title="Permalink to this heading">#</a></h1>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this heading">#</a></h2>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading">#</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.robot_description.RobotDescriptionManager">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.robot_description.</span></span><span class="sig-name descname"><span class="pre">RobotDescriptionManager</span></span><a class="headerlink" href="#pycram.robot_description.RobotDescriptionManager" title="Permalink to this definition">#</a></dt>
+<dd><p>Singleton class to manage multiple robot descriptions. Stores all robot descriptions and loads a robot description
+according to the name of the loaded robot.</p>
+<p>Initialize the RobotDescriptionManager, if no instance exists a new instance is created.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.robot_description.RobotDescriptionManager._instance">
+<span class="sig-name descname"><span class="pre">_instance</span></span><a class="headerlink" href="#pycram.robot_description.RobotDescriptionManager._instance" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.RobotDescriptionManager.load_description">
+<span class="sig-name descname"><span class="pre">load_description</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.robot_description.RobotDescriptionManager.load_description" title="Permalink to this definition">#</a></dt>
+<dd><p>Loads a robot description according to the name of the robot. This required that a robot description with the
+corresponding name is registered.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> – Name of the robot to which the description should be loaded.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The loaded robot description.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.RobotDescriptionManager.register_description">
+<span class="sig-name descname"><span class="pre">register_description</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pycram.robot_description.RobotDescription" title="pycram.robot_description.RobotDescription"><span class="pre">RobotDescription</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.robot_description.RobotDescriptionManager.register_description" title="Permalink to this definition">#</a></dt>
+<dd><p>Register a robot description to the RobotDescriptionManager. The description is stored with the name of the
+description as key. This will later be used to load the description.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>description</strong> – RobotDescription to register.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.robot_description.RobotDescription">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.robot_description.</span></span><span class="sig-name descname"><span class="pre">RobotDescription</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_link</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">torso_link</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">torso_joint</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">urdf_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.robot_description.RobotDescription" title="Permalink to this definition">#</a></dt>
+<dd><p>Base class of a robot description. Contains all necessary information about a robot, like the URDF, the base link,
+the torso link and joint, the kinematic chains and cameras.</p>
+<p>Initialize the RobotDescription. The URDF is loaded from the given path and used as basis for the kinematic
+chains.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name of the robot</p></li>
+<li><p><strong>base_link</strong> – Base link of the robot, meaning the first link in the URDF</p></li>
+<li><p><strong>torso_link</strong> – Torso link of the robot</p></li>
+<li><p><strong>torso_joint</strong> – Torso joint of the robot, this is the joint that moves the torso upwards if there is one</p></li>
+<li><p><strong>urdf_path</strong> – Path to the URDF file of the robot</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.robot_description.RobotDescription.current_robot_description">
+<span class="sig-name descname"><span class="pre">current_robot_description</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#pycram.robot_description.RobotDescription" title="pycram.robot_description.RobotDescription"><span class="pre">RobotDescription</span></a></em><a class="headerlink" href="#pycram.robot_description.RobotDescription.current_robot_description" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.RobotDescription.add_kinematic_chain_description">
+<span class="sig-name descname"><span class="pre">add_kinematic_chain_description</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pycram.robot_description.KinematicChainDescription" title="pycram.robot_description.KinematicChainDescription"><span class="pre">KinematicChainDescription</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.robot_description.RobotDescription.add_kinematic_chain_description" title="Permalink to this definition">#</a></dt>
+<dd><p>Adds a KinematicChainDescription object to the RobotDescription. The chain is stored with the name of the chain
+as key.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>chain</strong> – KinematicChainDescription object to add</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.RobotDescription.add_kinematic_chain">
+<span class="sig-name descname"><span class="pre">add_kinematic_chain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_link</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_link</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.robot_description.RobotDescription.add_kinematic_chain" title="Permalink to this definition">#</a></dt>
+<dd><p>Creates and adds a KinematicChainDescription object to the RobotDescription.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name of the KinematicChainDescription object</p></li>
+<li><p><strong>start_link</strong> – First link of the chain</p></li>
+<li><p><strong>end_link</strong> – Last link of the chain</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.RobotDescription.add_camera_description">
+<span class="sig-name descname"><span class="pre">add_camera_description</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pycram.robot_description.CameraDescription" title="pycram.robot_description.CameraDescription"><span class="pre">CameraDescription</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.robot_description.RobotDescription.add_camera_description" title="Permalink to this definition">#</a></dt>
+<dd><p>Adds a CameraDescription object to the RobotDescription. The camera is stored with the name of the camera as key.
+:param camera: The CameraDescription object to add</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.RobotDescription.add_camera">
+<span class="sig-name descname"><span class="pre">add_camera</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">camera_link</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minimal_height</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maximal_height</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.robot_description.RobotDescription.add_camera" title="Permalink to this definition">#</a></dt>
+<dd><p>Creates and adds a CameraDescription object to the RobotDescription. Minimal and maximal height of the camera are
+relevant if the robot has a moveable torso or the camera is mounted on a moveable part of the robot. Otherwise
+both values can be the same.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name of the CameraDescription object</p></li>
+<li><p><strong>camera_link</strong> – Link of the camera in the URDF</p></li>
+<li><p><strong>minimal_height</strong> – Minimal height of the camera</p></li>
+<li><p><strong>maximal_height</strong> – Maximal height of the camera</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.RobotDescription.add_grasp_orientation">
+<span class="sig-name descname"><span class="pre">add_grasp_orientation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grasp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../datastructures/enums/index.html#pycram.datastructures.enums.Grasp" title="pycram.datastructures.enums.Grasp"><span class="pre">pycram.datastructures.enums.Grasp</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">orientation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.robot_description.RobotDescription.add_grasp_orientation" title="Permalink to this definition">#</a></dt>
+<dd><p>Adds a grasp orientation to the robot description. This is used to define the orientation of the end effector
+when grasping an object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>grasp</strong> – Gasp from the Grasp enum which should be added</p></li>
+<li><p><strong>orientation</strong> – List of floats representing the orientation</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.RobotDescription.add_grasp_orientations">
+<span class="sig-name descname"><span class="pre">add_grasp_orientations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">orientations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../datastructures/enums/index.html#pycram.datastructures.enums.Grasp" title="pycram.datastructures.enums.Grasp"><span class="pre">pycram.datastructures.enums.Grasp</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.robot_description.RobotDescription.add_grasp_orientations" title="Permalink to this definition">#</a></dt>
+<dd><p>Adds multiple grasp orientations to the robot description. This is used to define the orientation of the end effector
+when grasping an object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>orientations</strong> – Dictionary of grasp orientations</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.RobotDescription.get_manipulator_chains">
+<span class="sig-name descname"><span class="pre">get_manipulator_chains</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pycram.robot_description.KinematicChainDescription" title="pycram.robot_description.KinematicChainDescription"><span class="pre">KinematicChainDescription</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.robot_description.RobotDescription.get_manipulator_chains" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns a list of all manipulator chains of the robot which posses an end effector.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of KinematicChainDescription objects</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.RobotDescription.get_camera_frame">
+<span class="sig-name descname"><span class="pre">get_camera_frame</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#pycram.robot_description.RobotDescription.get_camera_frame" title="Permalink to this definition">#</a></dt>
+<dd><p>Quick method to get the name of a link of a camera. Uses the first camera in the list of cameras.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A name of the link of a camera</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.RobotDescription.get_default_camera">
+<span class="sig-name descname"><span class="pre">get_default_camera</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pycram.robot_description.CameraDescription" title="pycram.robot_description.CameraDescription"><span class="pre">CameraDescription</span></a></span></span><a class="headerlink" href="#pycram.robot_description.RobotDescription.get_default_camera" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the first camera in the list of cameras.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A CameraDescription object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.RobotDescription.get_static_joint_chain">
+<span class="sig-name descname"><span class="pre">get_static_joint_chain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kinematic_chain_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">configuration_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.robot_description.RobotDescription.get_static_joint_chain" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the static joint states of a kinematic chain for a specific configuration. When trying to access one of
+the robot arms the function <cite>:func: get_arm_chain</cite> should be used.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kinematic_chain_name</strong> – </p></li>
+<li><p><strong>configuration_name</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.RobotDescription.get_parent">
+<span class="sig-name descname"><span class="pre">get_parent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#pycram.robot_description.RobotDescription.get_parent" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the parent of a link or joint in the URDF. Always returns the imeadiate parent, for a link this is a joint
+and vice versa.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> – Name of the link or joint in the URDF</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Name of the parent link or joint</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.RobotDescription.get_child">
+<span class="sig-name descname"><span class="pre">get_child</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_multiple_children</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.robot_description.RobotDescription.get_child" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the child of a link or joint in the URDF. Always returns the immediate child, for a link this is a joint
+and vice versa. Since a link can have multiple children, the return_multiple_children parameter can be set to
+True to get a list of all children.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name of the link or joint in the URDF</p></li>
+<li><p><strong>return_multiple_children</strong> – If True, a list of all children is returned</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Name of the child link or joint or a list of all children</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.RobotDescription.get_arm_chain">
+<span class="sig-name descname"><span class="pre">get_arm_chain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../datastructures/enums/index.html#pycram.datastructures.enums.Arms" title="pycram.datastructures.enums.Arms"><span class="pre">pycram.datastructures.enums.Arms</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pycram.robot_description.KinematicChainDescription" title="pycram.robot_description.KinematicChainDescription"><span class="pre">KinematicChainDescription</span></a></span></span><a class="headerlink" href="#pycram.robot_description.RobotDescription.get_arm_chain" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the kinematic chain of a specific arm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>arm</strong> – Arm for which the chain should be returned</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>KinematicChainDescription object of the arm</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.robot_description.KinematicChainDescription">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.robot_description.</span></span><span class="sig-name descname"><span class="pre">KinematicChainDescription</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_link</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_link</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">urdf_object</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">urdf_parser_py.urdf.URDF</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arm_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../datastructures/enums/index.html#pycram.datastructures.enums.Arms" title="pycram.datastructures.enums.Arms"><span class="pre">pycram.datastructures.enums.Arms</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_fixed_joints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.robot_description.KinematicChainDescription" title="Permalink to this definition">#</a></dt>
+<dd><p>Represents a kinematic chain of a robot. A Kinematic chain is a chain of links and joints that are connected to each
+other and can be moved.</p>
+<p>This class contains all necessary information about the chain, like the start and end
+link, the URDF object and the joints of the chain.</p>
+<p>Initialize the KinematicChainDescription object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name of the chain</p></li>
+<li><p><strong>start_link</strong> – First link of the chain</p></li>
+<li><p><strong>end_link</strong> – Last link of the chain</p></li>
+<li><p><strong>urdf_object</strong> – URDF object of the robot which is used to get the chain</p></li>
+<li><p><strong>arm_type</strong> – Type of the arm, if the chain is an arm</p></li>
+<li><p><strong>include_fixed_joints</strong> – If True, fixed joints are included in the chain</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="pycram.robot_description.KinematicChainDescription.links">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">links</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.robot_description.KinematicChainDescription.links" title="Permalink to this definition">#</a></dt>
+<dd><p>Property to get the links of the chain.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of link names</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pycram.robot_description.KinematicChainDescription.joints">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">joints</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.robot_description.KinematicChainDescription.joints" title="Permalink to this definition">#</a></dt>
+<dd><p>Property to get the joints of the chain.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of joint names</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.KinematicChainDescription._init_links">
+<span class="sig-name descname"><span class="pre">_init_links</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycram.robot_description.KinematicChainDescription._init_links" title="Permalink to this definition">#</a></dt>
+<dd><p>Initializes the links of the chain by getting the chain from the URDF object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.KinematicChainDescription._init_joints">
+<span class="sig-name descname"><span class="pre">_init_joints</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycram.robot_description.KinematicChainDescription._init_joints" title="Permalink to this definition">#</a></dt>
+<dd><p>Initializes the joints of the chain by getting the chain from the URDF object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.KinematicChainDescription.get_joints">
+<span class="sig-name descname"><span class="pre">get_joints</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.robot_description.KinematicChainDescription.get_joints" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns a list of all joints of the chain.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of joint names</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.KinematicChainDescription.get_links">
+<span class="sig-name descname"><span class="pre">get_links</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.robot_description.KinematicChainDescription.get_links" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns a list of all links of the chain.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of link names</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.KinematicChainDescription.add_static_joint_states">
+<span class="sig-name descname"><span class="pre">add_static_joint_states</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">states</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.robot_description.KinematicChainDescription.add_static_joint_states" title="Permalink to this definition">#</a></dt>
+<dd><p>Adds static joint states to the chain. These define a specific configuration of the chain.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name of the static joint states</p></li>
+<li><p><strong>states</strong> – Dictionary of joint names and their values</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.KinematicChainDescription.get_static_joint_states">
+<span class="sig-name descname"><span class="pre">get_static_joint_states</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.robot_description.KinematicChainDescription.get_static_joint_states" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the dictionary of static joint states for a given name of the static joint states.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> – Name of the static joint states</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary of joint names and their values</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.KinematicChainDescription.get_tool_frame">
+<span class="sig-name descname"><span class="pre">get_tool_frame</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#pycram.robot_description.KinematicChainDescription.get_tool_frame" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the name of the tool frame of the end effector of this chain, if it has an end effector.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The name of the link of the tool frame in the URDF.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.KinematicChainDescription.get_static_gripper_state">
+<span class="sig-name descname"><span class="pre">get_static_gripper_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../datastructures/enums/index.html#pycram.datastructures.enums.GripperState" title="pycram.datastructures.enums.GripperState"><span class="pre">pycram.datastructures.enums.GripperState</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.robot_description.KinematicChainDescription.get_static_gripper_state" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the static joint states for the gripper of the chain.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>state</strong> – Name of the static joint states</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary of joint names and their values</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.robot_description.CameraDescription">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.robot_description.</span></span><span class="sig-name descname"><span class="pre">CameraDescription</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">link_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minimal_height</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maximal_height</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">horizontal_angle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vertical_angle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">front_facing_axis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.robot_description.CameraDescription" title="Permalink to this definition">#</a></dt>
+<dd><p>Represents a camera mounted on a robot. Contains all necessary information about the camera, like the link name,
+minimal and maximal height, horizontal and vertical angle and the front facing axis.</p>
+<p>Initialize the CameraDescription object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name of the camera</p></li>
+<li><p><strong>link_name</strong> – Name of the link in the URDF</p></li>
+<li><p><strong>minimal_height</strong> – Minimal height the camera can be at</p></li>
+<li><p><strong>maximal_height</strong> – Maximal height the camera can be at</p></li>
+<li><p><strong>horizontal_angle</strong> – Horizontal opening angle of the camera</p></li>
+<li><p><strong>vertical_angle</strong> – Vertical opening angle of the camera</p></li>
+<li><p><strong>front_facing_axis</strong> – Axis along which the camera taking the image</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.robot_description.EndEffectorDescription">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.robot_description.</span></span><span class="sig-name descname"><span class="pre">EndEffectorDescription</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_link</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tool_frame</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">urdf_object</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">urdf_parser_py.urdf.URDF</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.robot_description.EndEffectorDescription" title="Permalink to this definition">#</a></dt>
+<dd><p>Describes an end effector of robot. Contains all necessary information about the end effector, like the
+base link, the tool frame, the URDF object and the static joint states.</p>
+<p>Initialize the EndEffectorDescription object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name of the end effector</p></li>
+<li><p><strong>start_link</strong> – Root link of the end effector, every link below this link in the URDF is part of the end effector</p></li>
+<li><p><strong>tool_frame</strong> – Name of the tool frame link in the URDf</p></li>
+<li><p><strong>urdf_object</strong> – URDF object of the robot</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="pycram.robot_description.EndEffectorDescription.links">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">links</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.robot_description.EndEffectorDescription.links" title="Permalink to this definition">#</a></dt>
+<dd><p>Property to get the links of the chain.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of link names</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pycram.robot_description.EndEffectorDescription.joints">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">joints</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.robot_description.EndEffectorDescription.joints" title="Permalink to this definition">#</a></dt>
+<dd><p>Property to get the joints of the chain.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of joint names</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.EndEffectorDescription._init_links_joints">
+<span class="sig-name descname"><span class="pre">_init_links_joints</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycram.robot_description.EndEffectorDescription._init_links_joints" title="Permalink to this definition">#</a></dt>
+<dd><p>Traverses the URDF object to get all links and joints of the end effector below the start link.1</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.robot_description.EndEffectorDescription.add_static_joint_states">
+<span class="sig-name descname"><span class="pre">add_static_joint_states</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../datastructures/enums/index.html#pycram.datastructures.enums.GripperState" title="pycram.datastructures.enums.GripperState"><span class="pre">pycram.datastructures.enums.GripperState</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">states</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.robot_description.EndEffectorDescription.add_static_joint_states" title="Permalink to this definition">#</a></dt>
+<dd><p>Adds static joint states to the end effector. These define a specific configuration of the end effector. Like
+open and close configurations of a gripper.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name of the static joint states</p></li>
+<li><p><strong>states</strong> – Dictionary of joint names and their values</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "python"
+        },
+        kernelOptions: {
+            name: "python3",
+            path: "./autoapi/pycram/robot_description"
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'python3'</script>
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Jonas Dech
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2024.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../_static/scripts/bootstrap.js?digest=5b4479735964841361fd"></script>
+<script src="../../../_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>
