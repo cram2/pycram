@@ -115,7 +115,7 @@ def visible(
             if obj == prospection_obj or (World.robot and obj == prospection_robot):
                 continue
             else:
-                obj.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
+                obj.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]), set_attachments=False)
 
         seg_mask, target_point = get_visible_objects(camera_pose, front_facing_axis)
         flat_list = list(itertools.chain.from_iterable(seg_mask))
