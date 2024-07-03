@@ -136,12 +136,14 @@ class suppress_stdout_stderr(object):
 
     def __enter__(self):
         # Assign the null pointers to stdout and stderr.
-        os.dup2(self.null_fds[0], 1)
+        # This one is not needed for URDF parsing output
+        # os.dup2(self.null_fds[0], 1)
         os.dup2(self.null_fds[1], 2)
 
     def __exit__(self, *_):
         # Re-assign the real stdout/stderr back to (1) and (2)
-        os.dup2(self.save_fds[0], 1)
+        # This one is not needed for URDF parsing output
+        # os.dup2(self.save_fds[0], 1)
         os.dup2(self.save_fds[1], 2)
         # Close all file descriptors
         for fd in self.null_fds + self.save_fds:
