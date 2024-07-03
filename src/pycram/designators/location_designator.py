@@ -1,4 +1,6 @@
 import dataclasses
+import time
+
 from typing_extensions import List, Union, Iterable, Optional, Callable
 
 from .object_designator import ObjectDesignatorDescription, ObjectPart
@@ -176,7 +178,6 @@ class CostmapLocation(LocationDesignatorDescription):
         if self.visible_for or self.reachable_for:
             robot_object = self.visible_for.world_object if self.visible_for else self.reachable_for.world_object
             test_robot = World.current_world.get_prospection_object_for_object(robot_object)
-
         with UseProspectionWorld():
             for maybe_pose in PoseGenerator(final_map, number_of_samples=600):
                 res = True
@@ -187,14 +188,13 @@ class CostmapLocation(LocationDesignatorDescription):
                 if self.reachable_for:
                     hand_links = []
                     for description in RobotDescription.current_robot_description.get_manipulator_chains():
-                        hand_links += description.links
+                        hand_links += description.end_effector.links
                     valid, arms = reachability_validator(maybe_pose, test_robot, target_pose,
                                                          allowed_collision={test_robot: hand_links})
                     if self.reachable_arm:
                         res = res and valid and self.reachable_arm in arms
                     else:
                         res = res and valid
-
                 if res:
                     yield self.Location(maybe_pose, arms)
 
@@ -248,6 +248,7 @@ class AccessingLocation(LocationDesignatorDescription):
         gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)
 
         final_map = occupancy + gaussian
+
 
         test_robot = World.current_world.get_prospection_object_for_object(self.robot)
 
