@@ -1,4 +1,4 @@
-import os
+import pathlib
 import unittest
 from pycram.robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     CameraDescription, RobotDescriptionManager
@@ -10,7 +10,7 @@ class TestRobotDescription(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.path = os.getcwd() + '/../resources/robots/' + "pr2" + '.urdf'
+        cls.path = str(pathlib.Path(__file__).parent.resolve()) + '/../resources/robots/' + "pr2" + '.urdf'
         cls.urdf_obj = URDF.from_xml_file(cls.path)
 
     def test_robot_description_construct(self):
