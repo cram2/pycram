@@ -157,7 +157,6 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     # @unittest.skip("Not implemented feature yet.")
     def test_attach_object(self):
         milk = self.spawn_milk([1, 0, 0.1])
-        print(milk.get_position_as_list())
         milk.attach(self.big_bowl)
         self.assertTrue(self.big_bowl in milk.attachments)
         milk_position = milk.get_position_as_list()
