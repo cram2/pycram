@@ -238,6 +238,7 @@ class RobotDescription:
                 # A link can have multiple children
                 child_joints = [child[0] for child in children]
                 if return_multiple_children:
+                    child_joints.reverse()
                     return child_joints
                 else:
                     return child_joints[0]
@@ -248,13 +249,15 @@ class RobotDescription:
             child_link = self.urdf_object.joint_map[name].child
             return child_link
 
-    def get_arm_chain(self, arm: Arms) -> KinematicChainDescription:
+    def get_arm_chain(self, arm: Arms) -> Union[KinematicChainDescription, List[KinematicChainDescription]]:
         """
-        Returns the kinematic chain of a specific arm.
+        Returns the kinematic chain of a specific arm. If the arm is set to BOTH, all kinematic chains are returned.
 
         :param arm: Arm for which the chain should be returned
         :return: KinematicChainDescription object of the arm
         """
+        if arm == Arms.BOTH:
+            return list(filter(lambda chain: chain.arm_type is not None, self.kinematic_chains.values()))
         for chain in self.kinematic_chains.values():
             if chain.arm_type == arm:
                 return chain
