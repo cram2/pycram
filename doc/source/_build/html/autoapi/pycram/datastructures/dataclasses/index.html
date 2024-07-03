@@ -1,0 +1,1065 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>pycram.datastructures.dataclasses &#8212; PyCRAM</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+<link href="../../../../_static/styles/bootstrap.css?digest=5b4479735964841361fd" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+
+  
+  <link href="../../../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=5b4479735964841361fd" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
+    <link rel="stylesheet" href="../../../../_static/styles/sphinx-book-theme.css?digest=14f4ca6b54d191a8c7657f6c759bf11a5fb86285" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/togglebutton.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sphinx-thebe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=5b4479735964841361fd" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd" />
+  <script src="../../../../_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=5b4479735964841361fd"></script>
+
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/clipboard.min.js"></script>
+    <script src="../../../../_static/copybutton.js"></script>
+    <script src="../../../../_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../../_static/togglebutton.js"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script src="../../../../_static/design-tabs.js"></script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"
+const thebe_selector = ".thebe,.cell"
+const thebe_selector_input = "pre"
+const thebe_selector_output = ".output, .cell_output"
+</script>
+    <script async="async" src="../../../../_static/sphinx-thebe.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'autoapi/pycram/datastructures/dataclasses/index';</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search this book..."
+         aria-label="Search this book..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../../_static/pycram_logo.png" class="logo__image only-light" alt="PyCRAM - Home"/>
+    <script>document.write(`<img src="../../../../_static/pycram_logo.png" class="logo__image only-dark" alt="PyCRAM - Home"/>`);</script>
+  
+  
+</a></div>
+        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        
+        <ul class="nav bd-sidenav bd-sidenav__home-link">
+            <li class="toctree-l1">
+                <a class="reference internal" href="../../../../index.html">
+                    Welcome to pycram’s documentation!
+                </a>
+            </li>
+        </ul>
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../designators.html">Designators</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../notebooks/action_designator.html">Action Designator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../notebooks/object_designator.html">Object Designator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../notebooks/location_designator.html">Location Designator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../notebooks/motion_designator.html">Motion Designator</a></li>
+</ul>
+</li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../../../ros_utils.html">ROS Utils</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Trouble Shooting</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../../../remarks.html">General Remarks</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><label class="sidebar-toggle primary-toggle btn btn-sm" for="__primary" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</label></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/cram2/pycram" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/cram2/pycram/issues/new?title=Issue%20on%20page%20%2Fautoapi/pycram/datastructures/dataclasses/index.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../../../../_sources/autoapi/pycram/datastructures/dataclasses/index.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<label class="sidebar-toggle secondary-toggle btn btn-sm" for="__secondary"title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</label>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>pycram.datastructures.dataclasses</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a></li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section id="module-pycram.datastructures.dataclasses">
+<span id="pycram-datastructures-dataclasses"></span><h1><a class="reference internal" href="#module-pycram.datastructures.dataclasses" title="pycram.datastructures.dataclasses"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pycram.datastructures.dataclasses</span></code></a><a class="headerlink" href="#module-pycram.datastructures.dataclasses" title="Permalink to this heading">#</a></h1>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this heading">#</a></h2>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading">#</a></h3>
+</section>
+<section id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this heading">#</a></h3>
+<dl class="py function">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.get_point_as_list">
+<span class="sig-prename descclassname"><span class="pre">pycram.datastructures.dataclasses.</span></span><span class="sig-name descname"><span class="pre">get_point_as_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">point</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pycram.datastructures.pose.Point</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.get_point_as_list" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the point as a list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>point</strong> – The point.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The point as a list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.Color">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.datastructures.dataclasses.</span></span><span class="sig-name descname"><span class="pre">Color</span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.Color" title="Permalink to this definition">#</a></dt>
+<dd><p>Dataclass for storing rgba_color as an RGBA value.
+The values are stored as floats between 0 and 1.
+The default rgba_color is white. ‘A’ stands for the opacity.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.Color.R">
+<span class="sig-name descname"><span class="pre">R</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.Color.R" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.Color.G">
+<span class="sig-name descname"><span class="pre">G</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.Color.G" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.Color.B">
+<span class="sig-name descname"><span class="pre">B</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.Color.B" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.Color.A">
+<span class="sig-name descname"><span class="pre">A</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.Color.A" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.Color.from_list">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.datastructures.dataclasses.Color.from_list" title="Permalink to this definition">#</a></dt>
+<dd><p>Sets the rgba_color from a list of RGBA values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>color</strong> – The list of RGBA values</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.Color.from_rgb">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_rgb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rgb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.datastructures.dataclasses.Color.from_rgb" title="Permalink to this definition">#</a></dt>
+<dd><p>Sets the rgba_color from a list of RGB values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rgb</strong> – The list of RGB values</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.Color.from_rgba">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_rgba</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rgba</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.datastructures.dataclasses.Color.from_rgba" title="Permalink to this definition">#</a></dt>
+<dd><p>Sets the rgba_color from a list of RGBA values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rgba</strong> – The list of RGBA values</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.Color.get_rgba">
+<span class="sig-name descname"><span class="pre">get_rgba</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.Color.get_rgba" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the rgba_color as a list of RGBA values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The rgba_color as a list of RGBA values</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.Color.get_rgb">
+<span class="sig-name descname"><span class="pre">get_rgb</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.Color.get_rgb" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the rgba_color as a list of RGB values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The rgba_color as a list of RGB values</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.AxisAlignedBoundingBox">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.datastructures.dataclasses.</span></span><span class="sig-name descname"><span class="pre">AxisAlignedBoundingBox</span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.AxisAlignedBoundingBox" title="Permalink to this definition">#</a></dt>
+<dd><p>Dataclass for storing an axis-aligned bounding box.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.AxisAlignedBoundingBox.min_x">
+<span class="sig-name descname"><span class="pre">min_x</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.AxisAlignedBoundingBox.min_x" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.AxisAlignedBoundingBox.min_y">
+<span class="sig-name descname"><span class="pre">min_y</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.AxisAlignedBoundingBox.min_y" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.AxisAlignedBoundingBox.min_z">
+<span class="sig-name descname"><span class="pre">min_z</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.AxisAlignedBoundingBox.min_z" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.AxisAlignedBoundingBox.max_x">
+<span class="sig-name descname"><span class="pre">max_x</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.AxisAlignedBoundingBox.max_x" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.AxisAlignedBoundingBox.max_y">
+<span class="sig-name descname"><span class="pre">max_y</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.AxisAlignedBoundingBox.max_y" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.AxisAlignedBoundingBox.max_z">
+<span class="sig-name descname"><span class="pre">max_z</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.AxisAlignedBoundingBox.max_z" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.AxisAlignedBoundingBox.from_min_max">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_min_max</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">min_point</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_point</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycram.datastructures.dataclasses.AxisAlignedBoundingBox.from_min_max" title="Permalink to this definition">#</a></dt>
+<dd><p>Sets the axis-aligned bounding box from a minimum and maximum point.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>min_point</strong> – The minimum point</p></li>
+<li><p><strong>max_point</strong> – The maximum point</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.AxisAlignedBoundingBox.get_min_max_points">
+<span class="sig-name descname"><span class="pre">get_min_max_points</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">pycram.datastructures.pose.Point</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">pycram.datastructures.pose.Point</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.AxisAlignedBoundingBox.get_min_max_points" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the axis-aligned bounding box as a tuple of minimum and maximum points.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The axis-aligned bounding box as a tuple of minimum and maximum points</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.AxisAlignedBoundingBox.get_min_point">
+<span class="sig-name descname"><span class="pre">get_min_point</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pycram.datastructures.pose.Point</span></span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.AxisAlignedBoundingBox.get_min_point" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the axis-aligned bounding box as a minimum point.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The axis-aligned bounding box as a minimum point</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.AxisAlignedBoundingBox.get_max_point">
+<span class="sig-name descname"><span class="pre">get_max_point</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pycram.datastructures.pose.Point</span></span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.AxisAlignedBoundingBox.get_max_point" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the axis-aligned bounding box as a maximum point.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The axis-aligned bounding box as a maximum point</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.AxisAlignedBoundingBox.get_min_max">
+<span class="sig-name descname"><span class="pre">get_min_max</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.AxisAlignedBoundingBox.get_min_max" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the axis-aligned bounding box as a tuple of minimum and maximum points.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The axis-aligned bounding box as a tuple of minimum and maximum points</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.AxisAlignedBoundingBox.get_min">
+<span class="sig-name descname"><span class="pre">get_min</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.AxisAlignedBoundingBox.get_min" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the minimum point of the axis-aligned bounding box.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The minimum point of the axis-aligned bounding box</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.AxisAlignedBoundingBox.get_max">
+<span class="sig-name descname"><span class="pre">get_max</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.AxisAlignedBoundingBox.get_max" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the maximum point of the axis-aligned bounding box.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The maximum point of the axis-aligned bounding box</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.CollisionCallbacks">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.datastructures.dataclasses.</span></span><span class="sig-name descname"><span class="pre">CollisionCallbacks</span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.CollisionCallbacks" title="Permalink to this definition">#</a></dt>
+<dd><dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.CollisionCallbacks.on_collision_cb">
+<span class="sig-name descname"><span class="pre">on_collision_cb</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.Callable</span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.CollisionCallbacks.on_collision_cb" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.CollisionCallbacks.no_collision_cb">
+<span class="sig-name descname"><span class="pre">no_collision_cb</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">typing_extensions.Callable</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.CollisionCallbacks.no_collision_cb" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.MultiBody">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.datastructures.dataclasses.</span></span><span class="sig-name descname"><span class="pre">MultiBody</span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.MultiBody" title="Permalink to this definition">#</a></dt>
+<dd><dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.MultiBody.base_visual_shape_index">
+<span class="sig-name descname"><span class="pre">base_visual_shape_index</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.MultiBody.base_visual_shape_index" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.MultiBody.base_pose">
+<span class="sig-name descname"><span class="pre">base_pose</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../pose/index.html#pycram.datastructures.pose.Pose" title="pycram.datastructures.pose.Pose"><span class="pre">pycram.datastructures.pose.Pose</span></a></em><a class="headerlink" href="#pycram.datastructures.dataclasses.MultiBody.base_pose" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.MultiBody.link_visual_shape_indices">
+<span class="sig-name descname"><span class="pre">link_visual_shape_indices</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.MultiBody.link_visual_shape_indices" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.MultiBody.link_poses">
+<span class="sig-name descname"><span class="pre">link_poses</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../pose/index.html#pycram.datastructures.pose.Pose" title="pycram.datastructures.pose.Pose"><span class="pre">pycram.datastructures.pose.Pose</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.MultiBody.link_poses" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.MultiBody.link_masses">
+<span class="sig-name descname"><span class="pre">link_masses</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.MultiBody.link_masses" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.MultiBody.link_inertial_frame_poses">
+<span class="sig-name descname"><span class="pre">link_inertial_frame_poses</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../pose/index.html#pycram.datastructures.pose.Pose" title="pycram.datastructures.pose.Pose"><span class="pre">pycram.datastructures.pose.Pose</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.MultiBody.link_inertial_frame_poses" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.MultiBody.link_parent_indices">
+<span class="sig-name descname"><span class="pre">link_parent_indices</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.MultiBody.link_parent_indices" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.MultiBody.link_joint_types">
+<span class="sig-name descname"><span class="pre">link_joint_types</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../enums/index.html#pycram.datastructures.enums.JointType" title="pycram.datastructures.enums.JointType"><span class="pre">pycram.datastructures.enums.JointType</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.MultiBody.link_joint_types" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.MultiBody.link_joint_axis">
+<span class="sig-name descname"><span class="pre">link_joint_axis</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">pycram.datastructures.pose.Point</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.MultiBody.link_joint_axis" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.MultiBody.link_collision_shape_indices">
+<span class="sig-name descname"><span class="pre">link_collision_shape_indices</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.MultiBody.link_collision_shape_indices" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.VisualShape">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.datastructures.dataclasses.</span></span><span class="sig-name descname"><span class="pre">VisualShape</span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.VisualShape" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Helper class that provides a standard way to create an ABC using
+inheritance.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.VisualShape.visual_geometry_type">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">visual_geometry_type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../enums/index.html#pycram.datastructures.enums.Shape" title="pycram.datastructures.enums.Shape"><span class="pre">pycram.datastructures.enums.Shape</span></a></em><a class="headerlink" href="#pycram.datastructures.dataclasses.VisualShape.visual_geometry_type" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the visual geometry type of the visual shape (e.g. box, sphere).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.VisualShape.rgba_color">
+<span class="sig-name descname"><span class="pre">rgba_color</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#pycram.datastructures.dataclasses.Color" title="pycram.datastructures.dataclasses.Color"><span class="pre">Color</span></a></em><a class="headerlink" href="#pycram.datastructures.dataclasses.VisualShape.rgba_color" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.VisualShape.visual_frame_position">
+<span class="sig-name descname"><span class="pre">visual_frame_position</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.VisualShape.visual_frame_position" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.VisualShape.shape_data">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">typing_extensions.Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.VisualShape.shape_data" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the shape data of the visual shape (e.g. half extents for a box, radius for a sphere).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.BoxVisualShape">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.datastructures.dataclasses.</span></span><span class="sig-name descname"><span class="pre">BoxVisualShape</span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.BoxVisualShape" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycram.datastructures.dataclasses.VisualShape" title="pycram.datastructures.dataclasses.VisualShape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VisualShape</span></code></a></p>
+<p>Helper class that provides a standard way to create an ABC using
+inheritance.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.BoxVisualShape.visual_geometry_type">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">visual_geometry_type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../enums/index.html#pycram.datastructures.enums.Shape" title="pycram.datastructures.enums.Shape"><span class="pre">pycram.datastructures.enums.Shape</span></a></em><a class="headerlink" href="#pycram.datastructures.dataclasses.BoxVisualShape.visual_geometry_type" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the visual geometry type of the visual shape (e.g. box, sphere).</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.BoxVisualShape.size">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">size</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.BoxVisualShape.size" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.BoxVisualShape.half_extents">
+<span class="sig-name descname"><span class="pre">half_extents</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.BoxVisualShape.half_extents" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.BoxVisualShape.shape_data">
+<span class="sig-name descname"><span class="pre">shape_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.BoxVisualShape.shape_data" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the shape data of the visual shape (e.g. half extents for a box, radius for a sphere).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.SphereVisualShape">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.datastructures.dataclasses.</span></span><span class="sig-name descname"><span class="pre">SphereVisualShape</span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.SphereVisualShape" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycram.datastructures.dataclasses.VisualShape" title="pycram.datastructures.dataclasses.VisualShape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VisualShape</span></code></a></p>
+<p>Helper class that provides a standard way to create an ABC using
+inheritance.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.SphereVisualShape.visual_geometry_type">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">visual_geometry_type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../enums/index.html#pycram.datastructures.enums.Shape" title="pycram.datastructures.enums.Shape"><span class="pre">pycram.datastructures.enums.Shape</span></a></em><a class="headerlink" href="#pycram.datastructures.dataclasses.SphereVisualShape.visual_geometry_type" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the visual geometry type of the visual shape (e.g. box, sphere).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.SphereVisualShape.radius">
+<span class="sig-name descname"><span class="pre">radius</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.SphereVisualShape.radius" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.SphereVisualShape.shape_data">
+<span class="sig-name descname"><span class="pre">shape_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.SphereVisualShape.shape_data" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the shape data of the visual shape (e.g. half extents for a box, radius for a sphere).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.CapsuleVisualShape">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.datastructures.dataclasses.</span></span><span class="sig-name descname"><span class="pre">CapsuleVisualShape</span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.CapsuleVisualShape" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycram.datastructures.dataclasses.VisualShape" title="pycram.datastructures.dataclasses.VisualShape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VisualShape</span></code></a></p>
+<p>Helper class that provides a standard way to create an ABC using
+inheritance.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.CapsuleVisualShape.visual_geometry_type">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">visual_geometry_type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../enums/index.html#pycram.datastructures.enums.Shape" title="pycram.datastructures.enums.Shape"><span class="pre">pycram.datastructures.enums.Shape</span></a></em><a class="headerlink" href="#pycram.datastructures.dataclasses.CapsuleVisualShape.visual_geometry_type" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the visual geometry type of the visual shape (e.g. box, sphere).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.CapsuleVisualShape.radius">
+<span class="sig-name descname"><span class="pre">radius</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.CapsuleVisualShape.radius" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.CapsuleVisualShape.length">
+<span class="sig-name descname"><span class="pre">length</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.CapsuleVisualShape.length" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.CapsuleVisualShape.shape_data">
+<span class="sig-name descname"><span class="pre">shape_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.CapsuleVisualShape.shape_data" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the shape data of the visual shape (e.g. half extents for a box, radius for a sphere).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.CylinderVisualShape">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.datastructures.dataclasses.</span></span><span class="sig-name descname"><span class="pre">CylinderVisualShape</span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.CylinderVisualShape" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycram.datastructures.dataclasses.CapsuleVisualShape" title="pycram.datastructures.dataclasses.CapsuleVisualShape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CapsuleVisualShape</span></code></a></p>
+<p>Helper class that provides a standard way to create an ABC using
+inheritance.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.CylinderVisualShape.visual_geometry_type">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">visual_geometry_type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../enums/index.html#pycram.datastructures.enums.Shape" title="pycram.datastructures.enums.Shape"><span class="pre">pycram.datastructures.enums.Shape</span></a></em><a class="headerlink" href="#pycram.datastructures.dataclasses.CylinderVisualShape.visual_geometry_type" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the visual geometry type of the visual shape (e.g. box, sphere).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.MeshVisualShape">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.datastructures.dataclasses.</span></span><span class="sig-name descname"><span class="pre">MeshVisualShape</span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.MeshVisualShape" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycram.datastructures.dataclasses.VisualShape" title="pycram.datastructures.dataclasses.VisualShape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VisualShape</span></code></a></p>
+<p>Helper class that provides a standard way to create an ABC using
+inheritance.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.MeshVisualShape.visual_geometry_type">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">visual_geometry_type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../enums/index.html#pycram.datastructures.enums.Shape" title="pycram.datastructures.enums.Shape"><span class="pre">pycram.datastructures.enums.Shape</span></a></em><a class="headerlink" href="#pycram.datastructures.dataclasses.MeshVisualShape.visual_geometry_type" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the visual geometry type of the visual shape (e.g. box, sphere).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.MeshVisualShape.scale">
+<span class="sig-name descname"><span class="pre">scale</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.MeshVisualShape.scale" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.MeshVisualShape.file_name">
+<span class="sig-name descname"><span class="pre">file_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.MeshVisualShape.file_name" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.MeshVisualShape.shape_data">
+<span class="sig-name descname"><span class="pre">shape_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">typing_extensions.Union</span><span class="p"><span class="pre">[</span></span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.MeshVisualShape.shape_data" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the shape data of the visual shape (e.g. half extents for a box, radius for a sphere).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.PlaneVisualShape">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.datastructures.dataclasses.</span></span><span class="sig-name descname"><span class="pre">PlaneVisualShape</span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.PlaneVisualShape" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycram.datastructures.dataclasses.VisualShape" title="pycram.datastructures.dataclasses.VisualShape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VisualShape</span></code></a></p>
+<p>Helper class that provides a standard way to create an ABC using
+inheritance.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.PlaneVisualShape.visual_geometry_type">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">visual_geometry_type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../enums/index.html#pycram.datastructures.enums.Shape" title="pycram.datastructures.enums.Shape"><span class="pre">pycram.datastructures.enums.Shape</span></a></em><a class="headerlink" href="#pycram.datastructures.dataclasses.PlaneVisualShape.visual_geometry_type" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the visual geometry type of the visual shape (e.g. box, sphere).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.PlaneVisualShape.normal">
+<span class="sig-name descname"><span class="pre">normal</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.PlaneVisualShape.normal" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.PlaneVisualShape.shape_data">
+<span class="sig-name descname"><span class="pre">shape_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">typing_extensions.List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.PlaneVisualShape.shape_data" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the shape data of the visual shape (e.g. half extents for a box, radius for a sphere).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.State">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.datastructures.dataclasses.</span></span><span class="sig-name descname"><span class="pre">State</span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.State" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Helper class that provides a standard way to create an ABC using
+inheritance.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.LinkState">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.datastructures.dataclasses.</span></span><span class="sig-name descname"><span class="pre">LinkState</span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.LinkState" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycram.datastructures.dataclasses.State" title="pycram.datastructures.dataclasses.State"><code class="xref py py-obj docutils literal notranslate"><span class="pre">State</span></code></a></p>
+<p>Helper class that provides a standard way to create an ABC using
+inheritance.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.LinkState.constraint_ids">
+<span class="sig-name descname"><span class="pre">constraint_ids</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../../description/index.html#pycram.description.Link" title="pycram.description.Link"><span class="pre">pycram.description.Link</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.LinkState.constraint_ids" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.JointState">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.datastructures.dataclasses.</span></span><span class="sig-name descname"><span class="pre">JointState</span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.JointState" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycram.datastructures.dataclasses.State" title="pycram.datastructures.dataclasses.State"><code class="xref py py-obj docutils literal notranslate"><span class="pre">State</span></code></a></p>
+<p>Helper class that provides a standard way to create an ABC using
+inheritance.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.JointState.position">
+<span class="sig-name descname"><span class="pre">position</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.JointState.position" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.ObjectState">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.datastructures.dataclasses.</span></span><span class="sig-name descname"><span class="pre">ObjectState</span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.ObjectState" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycram.datastructures.dataclasses.State" title="pycram.datastructures.dataclasses.State"><code class="xref py py-obj docutils literal notranslate"><span class="pre">State</span></code></a></p>
+<p>Helper class that provides a standard way to create an ABC using
+inheritance.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.ObjectState.pose">
+<span class="sig-name descname"><span class="pre">pose</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../pose/index.html#pycram.datastructures.pose.Pose" title="pycram.datastructures.pose.Pose"><span class="pre">pycram.datastructures.pose.Pose</span></a></em><a class="headerlink" href="#pycram.datastructures.dataclasses.ObjectState.pose" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.ObjectState.attachments">
+<span class="sig-name descname"><span class="pre">attachments</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../../world_concepts/world_object/index.html#pycram.world_concepts.world_object.Object" title="pycram.world_concepts.world_object.Object"><span class="pre">pycram.world_concepts.world_object.Object</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="../../world_concepts/constraints/index.html#pycram.world_concepts.constraints.Attachment" title="pycram.world_concepts.constraints.Attachment"><span class="pre">pycram.world_concepts.constraints.Attachment</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.ObjectState.attachments" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.ObjectState.link_states">
+<span class="sig-name descname"><span class="pre">link_states</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#pycram.datastructures.dataclasses.LinkState" title="pycram.datastructures.dataclasses.LinkState"><span class="pre">LinkState</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.ObjectState.link_states" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.ObjectState.joint_states">
+<span class="sig-name descname"><span class="pre">joint_states</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#pycram.datastructures.dataclasses.JointState" title="pycram.datastructures.dataclasses.JointState"><span class="pre">JointState</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.ObjectState.joint_states" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.WorldState">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycram.datastructures.dataclasses.</span></span><span class="sig-name descname"><span class="pre">WorldState</span></span><a class="headerlink" href="#pycram.datastructures.dataclasses.WorldState" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycram.datastructures.dataclasses.State" title="pycram.datastructures.dataclasses.State"><code class="xref py py-obj docutils literal notranslate"><span class="pre">State</span></code></a></p>
+<p>Helper class that provides a standard way to create an ABC using
+inheritance.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.WorldState.simulator_state_id">
+<span class="sig-name descname"><span class="pre">simulator_state_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.WorldState.simulator_state_id" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pycram.datastructures.dataclasses.WorldState.object_states">
+<span class="sig-name descname"><span class="pre">object_states</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">typing_extensions.Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#pycram.datastructures.dataclasses.ObjectState" title="pycram.datastructures.dataclasses.ObjectState"><span class="pre">ObjectState</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycram.datastructures.dataclasses.WorldState.object_states" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "python"
+        },
+        kernelOptions: {
+            name: "python3",
+            path: "./autoapi/pycram/datastructures/dataclasses"
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'python3'</script>
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Jonas Dech
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2024.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../../_static/scripts/bootstrap.js?digest=5b4479735964841361fd"></script>
+<script src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

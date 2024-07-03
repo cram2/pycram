@@ -1,0 +1,867 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>Plan Language &#8212; PyCRAM</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=5b4479735964841361fd" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=5b4479735964841361fd" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" href="../_static/styles/sphinx-book-theme.css?digest=14f4ca6b54d191a8c7657f6c759bf11a5fb86285" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-thebe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=5b4479735964841361fd" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd" />
+  <script src="../_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=5b4479735964841361fd"></script>
+
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/clipboard.min.js"></script>
+    <script src="../_static/copybutton.js"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../_static/togglebutton.js"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script src="../_static/design-tabs.js"></script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"
+const thebe_selector = ".thebe,.cell"
+const thebe_selector_input = "pre"
+const thebe_selector_output = ".output, .cell_output"
+</script>
+    <script async="async" src="../_static/sphinx-thebe.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'notebooks/language';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search this book..."
+         aria-label="Search this book..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/pycram_logo.png" class="logo__image only-light" alt="PyCRAM - Home"/>
+    <script>document.write(`<img src="../_static/pycram_logo.png" class="logo__image only-dark" alt="PyCRAM - Home"/>`);</script>
+  
+  
+</a></div>
+        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        
+        <ul class="nav bd-sidenav bd-sidenav__home-link">
+            <li class="toctree-l1">
+                <a class="reference internal" href="../index.html">
+                    Welcome to pycram’s documentation!
+                </a>
+            </li>
+        </ul>
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../designators.html">Designators</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="action_designator.html">Action Designator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="object_designator.html">Object Designator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="location_designator.html">Location Designator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="motion_designator.html">Motion Designator</a></li>
+</ul>
+</li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ros_utils.html">ROS Utils</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Trouble Shooting</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../remarks.html">General Remarks</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><label class="sidebar-toggle primary-toggle btn btn-sm" for="__primary" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</label></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/cram2/pycram" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/cram2/pycram/issues/new?title=Issue%20on%20page%20%2Fnotebooks/language.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../_sources/notebooks/language.ipynb" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.ipynb</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<label class="sidebar-toggle secondary-toggle btn btn-sm" for="__secondary"title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</label>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Plan Language</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#sequential">Sequential</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#try-in-order">Try In Order</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#parallel">Parallel</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#try-all">Try All</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#combination-of-expressions">Combination of Expressions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#code-objects">Code Objects</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#exception-handling">Exception Handling</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#repeat">Repeat</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#monitor">Monitor</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section class="tex2jax_ignore mathjax_ignore" id="plan-language">
+<h1>Plan Language<a class="headerlink" href="#plan-language" title="Permalink to this heading">#</a></h1>
+<p>The PyCRAM plan language is a way to structure the execuition of your plan. In generall the plan language allows to execute designators either sequential or in parallel. Furthermore, excpetions that occur during execution of a plan with the plan language do not interupt the execution instead they are catched and saved to a dictionary for later analysis. All language expressions return a State, this can either be SUCCEDED or FAILED.</p>
+<p>There are 4 language expressions:</p>
+<table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Expression</p></th>
+<th class="head"><p>Name</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>+</p></td>
+<td><p><strong>Sequential</strong></p></td>
+<td><p>Executes the designators one after another, if one of the designators raises an exception the execution is aborted and the state FAILED will be returned.</p></td>
+</tr>
+<tr class="row-odd"><td><p>-</p></td>
+<td><p><strong>Try In Order</strong></p></td>
+<td><p>Executes the designators one after another, if one designator raises an exception the exception is catched and saved but the execution is not interrupted and the other designators are executed. Returns the state SUCCEDED if at least one designator can be executed without exception.</p></td>
+</tr>
+<tr class="row-even"><td><p>*</p></td>
+<td><p><strong>Repeat</strong></p></td>
+<td><p>Repeat the previous language expression a number of time. Has to be used with a language expression and an integer.</p></td>
+</tr>
+<tr class="row-odd"><td><p>|</p></td>
+<td><p><strong>Parallel</strong></p></td>
+<td><p>Executes all designators in parallel. For each designator there will be a new thread created and the designator is executed in this thread. If one of the designators raises an exception the returned state will be FAILED.</p></td>
+</tr>
+<tr class="row-even"><td><p>^</p></td>
+<td><p><strong>Try All</strong></p></td>
+<td><p>Executes all designators in parallel with a designated thread for each designator. Returns the state SUCCEDED if at least one designator can be executed without an exception</p></td>
+</tr>
+<tr class="row-odd"><td><p>&gt;&gt;</p></td>
+<td><p><strong>Monitor</strong></p></td>
+<td><p>Monitors the execution of the attached langauge expression, will interrupt the execution as soon as a given condition is fulfilled.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The Sequential expression is the only one which aborts the execution once an error is raised.</p>
+<p>When using the plan language a tree structure of the plan is created where the language expressions are nodes and designators are leafs. This tree uses AnyTree (like the task tree) and can be rendered with the anytree Renderer.</p>
+<section id="sequential">
+<h2>Sequential<a class="headerlink" href="#sequential" title="Permalink to this heading">#</a></h2>
+<p>This language expression allows to execute designators one after another, if one of the designators raises an exception the execution will be aborted and the state FAILED will be returned.</p>
+<p>We will start with a simple example that uses an action designator for moving the robot and parking its arms.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">from</span> <span class="nn">pycram.designators.action_designator</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">pycram.pose</span> <span class="kn">import</span> <span class="n">Pose</span>
+<span class="kn">from</span> <span class="nn">pycram.enums</span> <span class="kn">import</span> <span class="n">Arms</span>
+
+<span class="n">navigate</span> <span class="o">=</span> <span class="n">NavigateAction</span><span class="p">([</span><span class="n">Pose</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])])</span>
+<span class="n">park</span> <span class="o">=</span> <span class="n">ParkArmsAction</span><span class="p">([</span><span class="n">Arms</span><span class="o">.</span><span class="n">BOTH</span><span class="p">])</span>
+
+<span class="n">plan</span> <span class="o">=</span> <span class="n">navigate</span> <span class="o">+</span> <span class="n">park</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output traceback highlight-ipythontb notranslate"><div class="highlight"><pre><span></span><span class="gt">---------------------------------------------------------------------------</span>
+<span class="ne">ModuleNotFoundError</span><span class="g g-Whitespace">                       </span>Traceback (most recent call last)
+<span class="n">Cell</span> <span class="n">In</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">line</span> <span class="mi">4</span>
+<span class="g g-Whitespace">      </span><span class="mi">1</span> <span class="kn">import</span> <span class="nn">time</span>
+<span class="g g-Whitespace">      </span><span class="mi">3</span> <span class="kn">from</span> <span class="nn">pycram.designators.action_designator</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="ne">----&gt; </span><span class="mi">4</span> <span class="kn">from</span> <span class="nn">pycram.pose</span> <span class="kn">import</span> <span class="n">Pose</span>
+<span class="g g-Whitespace">      </span><span class="mi">5</span> <span class="kn">from</span> <span class="nn">pycram.enums</span> <span class="kn">import</span> <span class="n">Arms</span>
+<span class="g g-Whitespace">      </span><span class="mi">7</span> <span class="n">navigate</span> <span class="o">=</span> <span class="n">NavigateAction</span><span class="p">([</span><span class="n">Pose</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])])</span>
+
+<span class="ne">ModuleNotFoundError</span>: No module named &#39;pycram.pose&#39;
+</pre></div>
+</div>
+</div>
+</div>
+<p>With this simple plan created we can inspect it and render the created tree structure.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">anytree</span> <span class="kn">import</span> <span class="n">RenderTree</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">RenderTree</span><span class="p">(</span><span class="n">plan</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;pycram.new_language.Sequential object at 0x7f473c230910&gt;
+├── &lt;pycram.designators.action_designator.NavigateAction object at 0x7f473c230970&gt;
+└── &lt;pycram.designators.action_designator.ParkArmsAction object at 0x7f473c2308b0&gt;
+</pre></div>
+</div>
+</div>
+</div>
+<p>As you can see there is the root node which is the language expression and then there are the leafs which are the designators. When executing this plan the Sequential node will try to execute the NavigateAction and if that is finished without any error the ParkArmsAction will be executed.</p>
+<p>The plan can be executed by wrapping it inside a <code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">simulated_robot</span></code> envirionment and calling perform on the plan.</p>
+<p>If you are performing a plan with a simulated robot, you need a BulletWorld.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pycram.bullet_world</span> <span class="kn">import</span> <span class="n">BulletWorld</span><span class="p">,</span> <span class="n">Object</span>
+<span class="kn">from</span> <span class="nn">pycram.enums</span> <span class="kn">import</span> <span class="n">ObjectType</span>
+
+<span class="n">world</span> <span class="o">=</span> <span class="n">BulletWorld</span><span class="p">()</span>
+<span class="n">pr2</span>  <span class="o">=</span> <span class="n">Object</span><span class="p">(</span><span class="s2">&quot;pr2&quot;</span><span class="p">,</span> <span class="n">ObjectType</span><span class="o">.</span><span class="n">ROBOT</span><span class="p">,</span> <span class="s2">&quot;pr2.urdf&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>If you are finished with this example you can close the world with the cell below.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">world</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pycram.process_module</span> <span class="kn">import</span> <span class="n">simulated_robot</span>
+<span class="n">world</span><span class="o">.</span><span class="n">reset_bullet_world</span><span class="p">()</span>
+
+<span class="k">with</span> <span class="n">simulated_robot</span><span class="p">:</span>
+    <span class="n">plan</span><span class="o">.</span><span class="n">perform</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="try-in-order">
+<h2>Try In Order<a class="headerlink" href="#try-in-order" title="Permalink to this heading">#</a></h2>
+<p>Try in order is similar to Sequential, it also executes all designators one after another but the key difference is that an exception in one of the designators does not terminate the whole execution. Furthermore, the state FAILED will only be returned if all designator executions raise an error.</p>
+<p>Besides the described differnce in behaviour this language expression can be used in the same way as Sequential.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pycram.designators.action_designator</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">pycram.pose</span> <span class="kn">import</span> <span class="n">Pose</span>
+<span class="kn">from</span> <span class="nn">pycram.enums</span> <span class="kn">import</span> <span class="n">Arms</span>
+<span class="kn">from</span> <span class="nn">pycram.process_module</span> <span class="kn">import</span> <span class="n">simulated_robot</span>
+<span class="n">world</span><span class="o">.</span><span class="n">reset_bullet_world</span><span class="p">()</span>
+
+<span class="n">navigate</span> <span class="o">=</span> <span class="n">NavigateAction</span><span class="p">([</span><span class="n">Pose</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])])</span>
+<span class="n">park</span> <span class="o">=</span> <span class="n">ParkArmsAction</span><span class="p">([</span><span class="n">Arms</span><span class="o">.</span><span class="n">BOTH</span><span class="p">])</span>
+
+<span class="n">plan</span> <span class="o">=</span> <span class="n">navigate</span> <span class="o">-</span> <span class="n">park</span>
+
+<span class="k">with</span> <span class="n">simulated_robot</span><span class="p">:</span>
+    
+    <span class="n">plan</span><span class="o">.</span><span class="n">perform</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="parallel">
+<h2>Parallel<a class="headerlink" href="#parallel" title="Permalink to this heading">#</a></h2>
+<p>Parallel executes all designator at once in dedicated threads. The execution of other designators is not aborted when a exception is raised, this is the case since threads can not be killed from the outside and this would also cause unforseen problems. The state returned will be SUCCEDED if all designators could be executed without an exception raised in any other case FAILED will be returned.</p>
+<p>Since executing designators in parallel can get chaotic especially with complex actions like PickUp or Transport. For this reason not all action designators can be used in parallel and try all expressions. The list of action designator that cannot be used in language expressions can be seen in <code class="docutils literal notranslate"><span class="pre">Language.parallel_blocklist</span></code>.</p>
+<p>Designators that cannot be used in parallel and try all:</p>
+<ul class="simple">
+<li><p>PickUpAction</p></li>
+<li><p>PlaceAction</p></li>
+<li><p>OpenAction</p></li>
+<li><p>CloseAction</p></li>
+<li><p>TransportAction</p></li>
+</ul>
+<p>Using the parallel expressions works like Sequential and TryInOrder.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pycram.designators.action_designator</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">pycram.pose</span> <span class="kn">import</span> <span class="n">Pose</span>
+<span class="kn">from</span> <span class="nn">pycram.enums</span> <span class="kn">import</span> <span class="n">Arms</span>
+<span class="kn">from</span> <span class="nn">pycram.process_module</span> <span class="kn">import</span> <span class="n">simulated_robot</span>
+<span class="n">world</span><span class="o">.</span><span class="n">reset_bullet_world</span><span class="p">()</span>
+
+<span class="n">navigate</span> <span class="o">=</span> <span class="n">NavigateAction</span><span class="p">([</span><span class="n">Pose</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])])</span>
+<span class="n">park</span> <span class="o">=</span> <span class="n">ParkArmsAction</span><span class="p">([</span><span class="n">Arms</span><span class="o">.</span><span class="n">BOTH</span><span class="p">])</span>
+
+<span class="n">plan</span> <span class="o">=</span> <span class="n">navigate</span> <span class="o">|</span> <span class="n">park</span>
+
+<span class="k">with</span> <span class="n">simulated_robot</span><span class="p">:</span>
+    <span class="n">plan</span><span class="o">.</span><span class="n">perform</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="try-all">
+<h2>Try All<a class="headerlink" href="#try-all" title="Permalink to this heading">#</a></h2>
+<p>TryAll is to Parallel what TryInOrder is to Sequential, meaning TryAll will also execute all designators in parallel but will return SUCCEEDED if at least one designator is executed without raising an exception.</p>
+<p>TryAll can be used like any other language expression.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pycram.designators.action_designator</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">pycram.pose</span> <span class="kn">import</span> <span class="n">Pose</span>
+<span class="kn">from</span> <span class="nn">pycram.enums</span> <span class="kn">import</span> <span class="n">Arms</span>
+<span class="kn">from</span> <span class="nn">pycram.process_module</span> <span class="kn">import</span> <span class="n">simulated_robot</span>
+<span class="n">world</span><span class="o">.</span><span class="n">reset_bullet_world</span><span class="p">()</span>
+
+<span class="n">navigate</span> <span class="o">=</span> <span class="n">NavigateAction</span><span class="p">([</span><span class="n">Pose</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])])</span>
+<span class="n">park</span> <span class="o">=</span> <span class="n">ParkArmsAction</span><span class="p">([</span><span class="n">Arms</span><span class="o">.</span><span class="n">BOTH</span><span class="p">])</span>
+
+<span class="n">plan</span> <span class="o">=</span> <span class="n">navigate</span> <span class="o">^</span> <span class="n">park</span>
+
+<span class="k">with</span> <span class="n">simulated_robot</span><span class="p">:</span>
+    <span class="n">plan</span><span class="o">.</span><span class="n">perform</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="combination-of-expressions">
+<h2>Combination of Expressions<a class="headerlink" href="#combination-of-expressions" title="Permalink to this heading">#</a></h2>
+<p>You can also combine different language expressions to further structure your plans. If you combine sequential and paralle expression please keep in mind that sequential expressions bind stringer than parallel ones. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">navigate</span> <span class="o">|</span> <span class="n">park</span> <span class="o">+</span> <span class="n">move_torso</span>
+</pre></div>
+</div>
+<p>In this case ‘park’ and ‘move_torso’ would form a Sequential expression and ‘naviagte’ would form a Parallel expression with Sequential. You can try this yourself in the following cell.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pycram.designators.action_designator</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">pycram.pose</span> <span class="kn">import</span> <span class="n">Pose</span>
+<span class="kn">from</span> <span class="nn">pycram.enums</span> <span class="kn">import</span> <span class="n">Arms</span>
+<span class="kn">from</span> <span class="nn">pycram.process_module</span> <span class="kn">import</span> <span class="n">simulated_robot</span>
+<span class="n">world</span><span class="o">.</span><span class="n">reset_bullet_world</span><span class="p">()</span>
+
+<span class="n">navigate</span> <span class="o">=</span> <span class="n">NavigateAction</span><span class="p">([</span><span class="n">Pose</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])])</span>
+<span class="n">park</span> <span class="o">=</span> <span class="n">ParkArmsAction</span><span class="p">([</span><span class="n">Arms</span><span class="o">.</span><span class="n">BOTH</span><span class="p">])</span>
+<span class="n">move_torso</span> <span class="o">=</span> <span class="n">MoveTorsoAction</span><span class="p">([</span><span class="mf">0.3</span><span class="p">])</span>
+
+<span class="n">plan</span> <span class="o">=</span> <span class="n">navigate</span> <span class="o">|</span> <span class="n">park</span> <span class="o">+</span> <span class="n">move_torso</span>
+
+<span class="k">with</span> <span class="n">simulated_robot</span><span class="p">:</span>
+    <span class="n">plan</span><span class="o">.</span><span class="n">perform</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="code-objects">
+<h2>Code Objects<a class="headerlink" href="#code-objects" title="Permalink to this heading">#</a></h2>
+<p>You can not only use designators in the plan language but also python code. For this there is the <code class="docutils literal notranslate"><span class="pre">Code</span></code>  object which takes a callable and the arguments for this callable. This allows you to execute arbitrary code in a plan.</p>
+<p>The callable that is used in the <code class="docutils literal notranslate"><span class="pre">Code</span></code> object can either be a lambda expression or, for more complex code, a function. If you use a function you can provide parameters as keyword-arguments.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pycram.designators.action_designator</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">pycram.enums</span> <span class="kn">import</span> <span class="n">Arms</span>
+<span class="kn">from</span> <span class="nn">pycram.process_module</span> <span class="kn">import</span> <span class="n">simulated_robot</span>
+<span class="kn">from</span> <span class="nn">pycram.language</span> <span class="kn">import</span> <span class="n">Code</span>
+
+<span class="k">def</span> <span class="nf">code_test</span><span class="p">(</span><span class="n">param</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">20</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
+
+<span class="n">park</span> <span class="o">=</span> <span class="n">ParkArmsAction</span><span class="p">([</span><span class="n">Arms</span><span class="o">.</span><span class="n">BOTH</span><span class="p">])</span>
+<span class="n">code</span> <span class="o">=</span> <span class="n">Code</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;This is from the code object&quot;</span><span class="p">))</span>
+<span class="n">code_func</span> <span class="o">=</span> <span class="n">Code</span><span class="p">(</span><span class="n">code_test</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="s2">&quot;Code funtion&quot;</span><span class="p">})</span>
+
+<span class="n">plan</span> <span class="o">=</span> <span class="n">navigate</span> <span class="o">|</span> <span class="n">code</span> <span class="o">|</span> <span class="n">code_func</span>
+
+<span class="k">with</span> <span class="n">simulated_robot</span><span class="p">:</span>
+    <span class="n">plan</span><span class="o">.</span><span class="n">perform</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>This is from the code object--------------------
+Code funtion
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="exception-handling">
+<h2>Exception Handling<a class="headerlink" href="#exception-handling" title="Permalink to this heading">#</a></h2>
+<p>If an exception is raised during the execution of a designator when it is used in a language expression the exception will be catched and saved to a dictionary. In genereal all designators in a language expression are executed regardless of exceptions raised, the only exception from this is the Sequential expression which stops after it encountered an exception.</p>
+<p>The language will only catch exceptions that are of type <code class="docutils literal notranslate"><span class="pre">PlanFailure</span></code> meaning errors that are defined in plan_failures.py in PyCRAM. This also means normal Python errors, such as KeyError, will interrupt the execution of your designators.</p>
+<p>We will see how exceptions are handled at a simple example.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pycram.designators.action_designator</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">pycram.process_module</span> <span class="kn">import</span> <span class="n">simulated_robot</span>
+<span class="kn">from</span> <span class="nn">pycram.language</span> <span class="kn">import</span> <span class="n">Code</span>
+<span class="kn">from</span> <span class="nn">pycram.plan_failures</span> <span class="kn">import</span> <span class="n">PlanFailure</span>
+
+<span class="k">def</span> <span class="nf">code_test</span><span class="p">():</span>
+    <span class="k">raise</span> <span class="n">PlanFailure</span>
+
+<span class="n">navigate</span> <span class="o">=</span> <span class="n">NavigateAction</span><span class="p">([</span><span class="n">Pose</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])])</span>
+<span class="n">code_func</span> <span class="o">=</span> <span class="n">Code</span><span class="p">(</span><span class="n">code_test</span><span class="p">)</span>
+
+<span class="n">plan</span> <span class="o">=</span> <span class="n">navigate</span> <span class="o">|</span> <span class="n">code_func</span>
+
+<span class="k">with</span> <span class="n">simulated_robot</span><span class="p">:</span>
+    <span class="n">plan</span><span class="o">.</span><span class="n">perform</span><span class="p">()</span>
+    
+<span class="nb">print</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">exceptions</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&lt;pycram.language.Parallel object at 0x7fde3c03dbe0&gt;: [PlanFailure()]}
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="repeat">
+<h2>Repeat<a class="headerlink" href="#repeat" title="Permalink to this heading">#</a></h2>
+<p>Repeat simply repeats a language expression a number of times. As all other language expressions Repeat capturtes exceptions that occur during execution and saves them to the dictionary in the root of the plan.</p>
+<p>Since Repeat uses the * operator you should keep in mind that it will be evaluated before any other operator, so use parentheses to ensure the correct structure of your plan.</p>
+<p>You can see an example of how to use Repeat below.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pycram.designators.action_designator</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">pycram.process_module</span> <span class="kn">import</span> <span class="n">simulated_robot</span>
+
+<span class="n">move_torso_up</span> <span class="o">=</span> <span class="n">MoveTorsoAction</span><span class="p">([</span><span class="mf">0.3</span><span class="p">])</span>
+<span class="n">move_torso_down</span> <span class="o">=</span> <span class="n">MoveTorsoAction</span><span class="p">([</span><span class="mf">0.</span><span class="p">])</span>
+
+<span class="n">plan</span> <span class="o">=</span> <span class="p">(</span><span class="n">move_torso_up</span> <span class="o">+</span> <span class="n">move_torso_down</span><span class="p">)</span> <span class="o">*</span> <span class="mi">5</span>
+
+<span class="k">with</span> <span class="n">simulated_robot</span><span class="p">:</span>
+    <span class="n">plan</span><span class="o">.</span><span class="n">perform</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="monitor">
+<h2>Monitor<a class="headerlink" href="#monitor" title="Permalink to this heading">#</a></h2>
+<p>Monitor allows to monitor the execution of a language expression and interrupt it as soon as a given condition is fulfilled. The condition can either be a Callable which returns a boolean or a Fluent.
+When executed the Monitor will create a separate thread which will check if the condition is satisfied with a frequency of 10 Hz. If the condition is satisfied the execution of the language expression will be interrupted.</p>
+<p>For the example on how Monitors work we will use the previous example with the robot moving up and down. We will use a Monitor to interrupt the execution after 2 seconds instead of executing the whole plan 5 times.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pycram.designators.action_designator</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">pycram.process_module</span> <span class="kn">import</span> <span class="n">simulated_robot</span>
+<span class="kn">from</span> <span class="nn">pycram.language</span> <span class="kn">import</span> <span class="n">Monitor</span>
+
+<span class="n">move_torso_up</span> <span class="o">=</span> <span class="n">MoveTorsoAction</span><span class="p">([</span><span class="mf">0.3</span><span class="p">])</span>
+<span class="n">move_torso_down</span> <span class="o">=</span> <span class="n">MoveTorsoAction</span><span class="p">([</span><span class="mf">0.</span><span class="p">])</span>
+
+<span class="k">def</span> <span class="nf">monitor_func</span><span class="p">():</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">True</span>
+
+<span class="n">plan</span> <span class="o">=</span> <span class="p">(</span><span class="n">move_torso_up</span> <span class="o">+</span> <span class="n">move_torso_down</span><span class="p">)</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">&gt;&gt;</span> <span class="n">Monitor</span><span class="p">(</span><span class="n">monitor_func</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">simulated_robot</span><span class="p">:</span>
+    <span class="n">plan</span><span class="o">.</span><span class="n">perform</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+</section>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "python"
+        },
+        kernelOptions: {
+            name: "python3",
+            path: "./notebooks"
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'python3'</script>
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#sequential">Sequential</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#try-in-order">Try In Order</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#parallel">Parallel</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#try-all">Try All</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#combination-of-expressions">Combination of Expressions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#code-objects">Code Objects</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#exception-handling">Exception Handling</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#repeat">Repeat</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#monitor">Monitor</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Jonas Dech
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2024.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=5b4479735964841361fd"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

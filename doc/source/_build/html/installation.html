@@ -1,0 +1,829 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>Installation &#8212; PyCRAM</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+<link href="_static/styles/bootstrap.css?digest=5b4479735964841361fd" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+
+  
+  <link href="_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=5b4479735964841361fd" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" href="_static/styles/sphinx-book-theme.css?digest=14f4ca6b54d191a8c7657f6c759bf11a5fb86285" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-thebe.css" />
+    <link rel="stylesheet" type="text/css" href="_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=5b4479735964841361fd" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd" />
+  <script src="_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=5b4479735964841361fd"></script>
+
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/clipboard.min.js"></script>
+    <script src="_static/copybutton.js"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="_static/togglebutton.js"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script src="_static/design-tabs.js"></script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"
+const thebe_selector = ".thebe,.cell"
+const thebe_selector_input = "pre"
+const thebe_selector_output = ".output, .cell_output"
+</script>
+    <script async="async" src="_static/sphinx-thebe.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'installation';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Designators" href="designators.html" />
+    <link rel="prev" title="Welcome to pycram’s documentation!" href="index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search this book..."
+         aria-label="Search this book..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="_static/pycram_logo.png" class="logo__image only-light" alt="PyCRAM - Home"/>
+    <script>document.write(`<img src="_static/pycram_logo.png" class="logo__image only-dark" alt="PyCRAM - Home"/>`);</script>
+  
+  
+</a></div>
+        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        
+        <ul class="nav bd-sidenav bd-sidenav__home-link">
+            <li class="toctree-l1">
+                <a class="reference internal" href="index.html">
+                    Welcome to pycram’s documentation!
+                </a>
+            </li>
+        </ul>
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Installation</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="designators.html">Designators</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="notebooks/action_designator.html">Action Designator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebooks/object_designator.html">Object Designator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebooks/location_designator.html">Location Designator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebooks/motion_designator.html">Motion Designator</a></li>
+</ul>
+</li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="ros_utils.html">ROS Utils</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Trouble Shooting</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="remarks.html">General Remarks</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><label class="sidebar-toggle primary-toggle btn btn-sm" for="__primary" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</label></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/cram2/pycram" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/cram2/pycram/issues/new?title=Issue%20on%20page%20%2Finstallation.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="_sources/installation.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<label class="sidebar-toggle secondary-toggle btn btn-sm" for="__secondary"title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</label>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Installation</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installing-ros">Installing ROS</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installing-dependencies">Installing Dependencies</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pycram-on-ubuntu-20-04-ros-noetic">PyCRAM on Ubuntu 20.04 (ROS Noetic)</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#python-dependencies">Python Dependencies</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#building-your-ros-workspace">Building your ROS workspace</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#using-pycram">Using PyCRAM</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#building-the-documentation">Building the documentation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#setting-up-pycram-with-pycharm">Setting up PyCRAM with PyCharm</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#install-pycharm-professional">Install PyCharm Professional</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#set-up-virtualenv">Set up virtualenv</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#configure-pycharm">Configure PyCharm</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#using-ipython-as-repl">Using IPython as REPL</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enable-autoreload">Enable autoreload</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#run-scripts">Run scripts</a></li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">#</a></h1>
+<dl class="simple">
+<dt>The setup of PyCRAM can be divided in four steps:</dt><dd><ul class="simple">
+<li><p>Install ROS</p></li>
+<li><p>Installing Dependencies</p></li>
+<li><p>Cloning the PyCRAM repo</p></li>
+<li><p>Building your ROS workspace</p></li>
+</ul>
+</dd>
+</dl>
+<p>All dependencies are available via PyPi.</p>
+<p>PyCRAM is developed and tested currently with Python3.8, Ubuntu 20.04 and ROS Noetic.</p>
+<p>This guide expects you to have a GitHub account with an SSH key (you can read about adding a new ssh key
+<a class="reference external" href="https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account">here</a>).</p>
+<section id="installing-ros">
+<h2>Installing ROS<a class="headerlink" href="#installing-ros" title="Permalink to this heading">#</a></h2>
+<p>PyCRAM uses ROS for a variety of functionality, for this reason you need a working ROS installation on your machine.
+For information on how to install ROS please referee to the official
+documentation <a class="reference external" href="http://wiki.ros.org/noetic/Installation/Ubuntu">here</a>.</p>
+</section>
+<section id="installing-dependencies">
+<h2>Installing Dependencies<a class="headerlink" href="#installing-dependencies" title="Permalink to this heading">#</a></h2>
+<dl class="simple">
+<dt>The dependencies you will need are:</dt><dd><ul class="simple">
+<li><p>Pip</p></li>
+<li><p>vcstool</p></li>
+</ul>
+</dd>
+</dl>
+<p>These are available via the Ubuntu apt-repos and can be installed via the terminal:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>python3-pip<span class="w"> </span>python3-vcstool
+</pre></div>
+</div>
+</section>
+<section id="pycram-on-ubuntu-20-04-ros-noetic">
+<h2>PyCRAM on Ubuntu 20.04 (ROS Noetic)<a class="headerlink" href="#pycram-on-ubuntu-20-04-ros-noetic" title="Permalink to this heading">#</a></h2>
+<p id="install-pycram">Before installing PyCRAM you need to setup a ROS workspace into which PyCRAM can be cloned.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>-p<span class="w"> </span>~/workspace/ros/src
+<span class="nb">cd</span><span class="w"> </span>workspace/ros
+catkin_make
+<span class="nb">source</span><span class="w"> </span>devel/setup.bash
+</pre></div>
+</div>
+<p>If <code class="docutils literal notranslate"><span class="pre">catkin_make</span></code> does not work this probably means that you did not source your ROS installation.
+Source it by invoking:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">source</span><span class="w"> </span>/opt/ros/noetic/setup.bash
+</pre></div>
+</div>
+<p>Now you can install PyCRAM into your ROS workspace.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>~/workspace/ros/src
+vcs<span class="w"> </span>import<span class="w"> </span>--input<span class="w"> </span>https://raw.githubusercontent.com/cram2/pycram/dev/pycram.rosinstall<span class="w"> </span>--recursive
+rosdep<span class="w"> </span>update
+rosdep<span class="w"> </span>install<span class="w"> </span>--ignore-src<span class="w"> </span>--from-paths<span class="w"> </span>.<span class="w"> </span>-r
+<span class="nb">cd</span><span class="w"> </span>..
+catkin_make
+<span class="nb">source</span><span class="w"> </span>devel/setup.bash
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;~/workspace/ros/devel/setup.bash&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/.bashrc
+</pre></div>
+</div>
+<p>The cloning and setting up can take several minutes. After the command finishes you should see a number of repositories
+in your ROS workspace.</p>
+<p>Now the last thing that needs to be done is clone the submodules of the PyCRAM repo, this is done via the following
+commands.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>src/pycram
+git<span class="w"> </span>submodule<span class="w"> </span>init
+git<span class="w"> </span>submodule<span class="w"> </span>update
+</pre></div>
+</div>
+<p>The cloned repository contains the source code for PyCRAM as well as two short demos which demonstrate how to use it.</p>
+</section>
+<section id="python-dependencies">
+<h2>Python Dependencies<a class="headerlink" href="#python-dependencies" title="Permalink to this heading">#</a></h2>
+<p>To install the Python dependencies Pip is used. To install Pip type the following command into a terminal.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>python3-pip
+</pre></div>
+</div>
+<p>Now the actual Python packages can be installed, these are summarized in the requirements.txt in the PyCRAM repo.
+For this first navigate to your PyCRAM repo.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>~/workspace/ros/src/pycram
+</pre></div>
+</div>
+<p>Then install the Python packages in the requirements.txt file</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>pip3<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
+sudo<span class="w"> </span>pip3<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>src/neem_interface_python/requirements.txt
+</pre></div>
+</div>
+</section>
+<section id="building-your-ros-workspace">
+<h2>Building your ROS workspace<a class="headerlink" href="#building-your-ros-workspace" title="Permalink to this heading">#</a></h2>
+<p id="build-ws">Building and sourcing your ROS workspace using catkin compiles all ROS packages and manages the appending to the
+respective PATH variables. This is necessary to be able to import PyCRAM via the Python import system and to find the
+robot descriptions in the launch file.</p>
+<p>If you have been following the tutorial steps until now you can skip this part.</p>
+<p>You can build your ROS workspace with the following commands:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>~/workspace/ros
+catkin_make
+<span class="nb">source</span><span class="w"> </span>devel/setup.bash
+</pre></div>
+</div>
+</section>
+<section id="using-pycram">
+<h2>Using PyCRAM<a class="headerlink" href="#using-pycram" title="Permalink to this heading">#</a></h2>
+<p>To start using PyCRAM you first need to launch the ROS launch file. This launchfile is located in the directory “launch”
+and is named “ik_and_description.launch”.</p>
+<p>The launchfile can be started with the following command:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>roslaunch<span class="w"> </span>pycram<span class="w"> </span>ik_and_description.launch
+</pre></div>
+</div>
+<p>What the launch file does is start a ROS master, upload the robot URDF to the parameter server as well as starting the
+IK solver.</p>
+</section>
+<section id="building-the-documentation">
+<h2>Building the documentation<a class="headerlink" href="#building-the-documentation" title="Permalink to this heading">#</a></h2>
+<p>The documentation uses sphinx as engine.
+Building sphinx based documentations requires pandoc
+to be installed. Pandoc can be installed via the package manager of Ubuntu.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>pandoc
+</pre></div>
+</div>
+<p>After installing pandoc, install sphinx on your device.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>python3-sphinx
+</pre></div>
+</div>
+<p>Install the requirements in your python interpreter.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>~/workspace/ros/src/pycram/doc
+pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
+</pre></div>
+</div>
+<p>Run pycram and build the docs.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>~/workspace/ros
+roslaunch<span class="w"> </span>pycram<span class="w"> </span>ik_and_description.launch
+<span class="nb">cd</span><span class="w"> </span>src/pycram/doc
+make<span class="w"> </span>html
+</pre></div>
+</div>
+<p>Show the index.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">firefox</span> <span class="n">build</span><span class="o">/</span><span class="n">html</span><span class="o">/</span><span class="n">index</span><span class="o">.</span><span class="n">html</span>
+</pre></div>
+</div>
+</section>
+<section id="setting-up-pycram-with-pycharm">
+<h2>Setting up PyCRAM with PyCharm<a class="headerlink" href="#setting-up-pycram-with-pycharm" title="Permalink to this heading">#</a></h2>
+<p>Setting up PyCharm with packages that rely on rospy is non trivial. Follow this guide to get correct syntax highlighting for the PyCRAM project.</p>
+<section id="install-pycharm-professional">
+<h3>Install PyCharm Professional<a class="headerlink" href="#install-pycharm-professional" title="Permalink to this heading">#</a></h3>
+<p>First, <a class="reference external" href="https://www.jetbrains.com/help/pycharm/installation-guide.html#standalone">install PyCharm Professional</a>.</p>
+<p>Create a JetBrains account and verify it for educational purpose. Normally, a school email address would suffice, otherwise you would have to upload your student/employee id card. The verification process typically takes 1~2-week time, so until then please use Trial version.
+Once your account is verified, you can unlock the PyCharm Professional features in PyCharm.</p>
+<p>The next step will set up the virtual Python environment, so it can be used as a project interpreter in PyCharm.</p>
+</section>
+<section id="set-up-virtualenv">
+<h3>Set up virtualenv<a class="headerlink" href="#set-up-virtualenv" title="Permalink to this heading">#</a></h3>
+<p id="virtualenv">The virtualenvwrapper allows to manage virtual Python environments, where additional packages can be installed without the risk of breaking the system-wide Python configuration. Install <a class="reference external" href="https://virtualenvwrapper.readthedocs.io/en/latest/">virtualenvwrapper</a> via pip and set it up.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>pip3<span class="w"> </span>install<span class="w"> </span>virtualenvwrapper
+</pre></div>
+</div>
+<p>(Optional but recommended) Set virtualenvwrapper’s <cite>WORKON_HOME</cite> env variable, of which the default value is <cite>~/.virtualenvs</cite></p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;export WORKON_HOME=~/envs&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/.bashrc
+mkdir<span class="w"> </span>-p<span class="w"> </span><span class="nv">$WORKON_HOME</span>
+</pre></div>
+</div>
+<p>Activate virtualenvwrapper at terminal start</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;source /usr/local/bin/virtualenvwrapper.sh&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/.bashrc
+<span class="nb">source</span><span class="w"> </span>~/.bashrc
+</pre></div>
+</div>
+<p>Create a virtual env based on the workspaces libraries (see <a class="reference internal" href="#build-ws">build-ws</a>) and add the <cite>–system-site-packages</cite> to get them properly. The env will be registered in <cite>$WORKON_HOME</cite>.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">source</span><span class="w"> </span>~/workspace/ros/devel/setup.bash
+mkvirtualenv<span class="w"> </span>pycram<span class="w"> </span>--system-site-packages
+ls<span class="w"> </span><span class="nv">$WORKON_HOME</span>
+</pre></div>
+</div>
+<p>Check if the ROS libraries are available in the virtual env.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>workon<span class="w"> </span>pycram
+python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import rospy&quot;</span>
+</pre></div>
+</div>
+<p>If it complains about <cite>python</cite>, install the following, to set <cite>python</cite> to Python 3 by default.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>python-is-python3
+</pre></div>
+</div>
+<p>If it finds <cite>python</cite> but complains about missing packages, make sure that the workspace is sourced before creating the virtual env. Also remember to create the virtual env with the <cite>–system-site-packages</cite> flag.</p>
+<p>If this returns no errors, you can be sure that rospy is usable in your virtual environment. Next you have to build the
+ros workspace including pycram and source it as described in <a class="reference internal" href="#build-ws">build-ws</a>.</p>
+</section>
+<section id="configure-pycharm">
+<h3>Configure PyCharm<a class="headerlink" href="#configure-pycharm" title="Permalink to this heading">#</a></h3>
+<p>Always start PyCharm from the terminal via</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pycharm-professional
+</pre></div>
+</div>
+<p>or</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>~/pycharm/bin/pycharm.sh
+</pre></div>
+</div>
+<p>Select <strong>File | Open</strong> and select the root folder of the PyCRAM package.
+Next go to <strong>File | Settings | Project: pycram | Python Interpreter</strong> and set up your virtual environment with rospy and
+the sourced workspace available as the python interpreter.</p>
+<p>Finally, go to  <strong>File | Settings | Project: pycram | Project Structure</strong> and mark the src folder as Sources, the test
+folder as Tests and the resources as Resources.</p>
+<p>To verify that it works, you can execute any Testcase.</p>
+<p><strong>Useful tips</strong></p>
+<ul class="simple">
+<li><dl class="simple">
+<dt><a class="reference external" href="https://www.jetbrains.com/help/pycharm/mastering-keyboard-shortcuts.html">Keyboard shortcuts</a></dt><dd><ul>
+<li><p><a class="reference external" href="https://www.jetbrains.com/help/pycharm/mastering-keyboard-shortcuts.html#ws_print_keymap">Keymap</a></p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><a class="reference external" href="https://www.jetbrains.com/help/pycharm/configuring-python-interpreter.html">Python interpreter</a></dt><dd><ul>
+<li><p><a class="reference external" href="https://www.jetbrains.com/help/pycharm/creating-virtual-environment.html">Python virtual environment</a></p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p><a class="reference external" href="https://www.jetbrains.com/help/pycharm/installing-uninstalling-and-upgrading-packages.html">Python packages</a></p></li>
+<li><p><a class="reference external" href="https://www.jetbrains.com/help/pycharm/using-consoles.html">Python console</a></p></li>
+<li><p><strong>View | Active Editor | Soft-wrap</strong>: wrap text inside the editor view</p></li>
+<li><p><strong>View | Tool Windows | Structure</strong>: display structure window for easy content navigation</p></li>
+<li><p><strong>F12</strong>: Open terminal</p></li>
+<li><p><strong>Double Shift</strong>: Quick file search</p></li>
+<li><p><strong>Ctrl F/R</strong>: Find/Replace text in current file</p></li>
+<li><p><strong>Ctrl Shift F/R</strong>: Find/Replace text in the whole project, module, directory, scope</p></li>
+<li><p><strong>Settings | Editor | Inspections | Code is compatible with specific Python versions</strong>: Enable/Disable Python version-specific warnings</p></li>
+</ul>
+</section>
+</section>
+<section id="using-ipython-as-repl">
+<h2>Using IPython as REPL<a class="headerlink" href="#using-ipython-as-repl" title="Permalink to this heading">#</a></h2>
+<p>If you want to use a REPl with PyCRAM you can use IPython for that. IPython can be installed via
+the Ubunutu package manager.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>ipython3
+</pre></div>
+</div>
+<section id="enable-autoreload">
+<h3>Enable autoreload<a class="headerlink" href="#enable-autoreload" title="Permalink to this heading">#</a></h3>
+<p>To use changes made in the Python file while the Repl is running you need to enable the iPython extension <code class="docutils literal notranslate"><span class="pre">autoreload</span></code>.
+This can be done using the iPython startup files, these are files which are always run if iPython is started.
+First run <code class="docutils literal notranslate"><span class="pre">ipython</span> <span class="pre">profile</span> <span class="pre">create</span></code> to create a <a class="reference external" href="https://ipython.readthedocs.io/en/stable/config/intro.html">default profile</a>.
+Then you will find the startup files located in <code class="docutils literal notranslate"><span class="pre">~/.ipython/profile_default/startup</span></code> along with a README file which explains the usage
+of the startup files. In this directory create a file called <code class="docutils literal notranslate"><span class="pre">00-autoreload.ipy</span></code> and enter the following code to the file.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>%load_ext<span class="w"> </span>autoreload
+%autoreload<span class="w"> </span><span class="m">2</span>
+</pre></div>
+</div>
+<p>The first line loads the extension to iPython and the second line configures autoreload to reload all modules before the
+code in the shell is executed.</p>
+</section>
+<section id="run-scripts">
+<h3>Run scripts<a class="headerlink" href="#run-scripts" title="Permalink to this heading">#</a></h3>
+<p>IPython allows to run Python files and enables the access to created variables. This can be helpful
+if you want to create a setup script which initializes things like the BulletWorld, Objects and imports
+relevant modules.</p>
+<p>To execute a Python script simply run <code class="docutils literal notranslate"><span class="pre">run</span> <span class="pre">filename.py</span></code> in the IPython shell.</p>
+<p>Here is an example how a setup script can look like.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pycram.bullet_world</span> <span class="kn">import</span> <span class="n">BulletWorld</span><span class="p">,</span> <span class="n">Object</span>
+<span class="kn">from</span> <span class="nn">pycram.designators.action_designator</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">pycram.designators.motion_designator</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">pycram.designators.location_designator</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">pycram.designators.object_designator</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">pycram.process_module</span> <span class="kn">import</span> <span class="n">simulated_robot</span>
+<span class="kn">from</span> <span class="nn">pycram.pose</span> <span class="kn">import</span> <span class="n">Pose</span>
+<span class="kn">from</span> <span class="nn">pycram.enums</span> <span class="kn">import</span> <span class="n">ObjectType</span>
+
+<span class="n">world</span> <span class="o">=</span> <span class="n">BulletWorld</span><span class="p">()</span>
+
+<span class="n">robot</span> <span class="o">=</span> <span class="n">Object</span><span class="p">(</span><span class="s2">&quot;pr2&quot;</span><span class="p">,</span> <span class="n">ObjectType</span><span class="o">.</span><span class="n">ROBOT</span><span class="p">,</span> <span class="s2">&quot;pr2.urdf&quot;</span><span class="p">)</span>
+<span class="n">kitchen</span> <span class="o">=</span> <span class="n">Object</span><span class="p">(</span><span class="s2">&quot;kitchen&quot;</span><span class="p">,</span> <span class="n">ObjectType</span><span class="o">.</span><span class="n">ENVIRONMENT</span><span class="p">,</span> <span class="s2">&quot;kitchen.urdf&quot;</span><span class="p">)</span>
+<span class="n">cereal</span> <span class="o">=</span> <span class="n">Object</span><span class="p">(</span><span class="s2">&quot;cereal&quot;</span><span class="p">,</span> <span class="n">ObjectType</span><span class="o">.</span><span class="n">BREAKFAST_CEREAL</span><span class="p">,</span> <span class="s2">&quot;breakfast_cereal.stl&quot;</span><span class="p">,</span> <span class="n">pose</span><span class="o">=</span><span class="n">Pose</span><span class="p">([</span><span class="mf">1.4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">]))</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "python"
+        },
+        kernelOptions: {
+            name: "python3",
+            path: "./."
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'python3'</script>
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Welcome to pycram’s documentation!</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="designators.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Designators</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installing-ros">Installing ROS</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installing-dependencies">Installing Dependencies</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pycram-on-ubuntu-20-04-ros-noetic">PyCRAM on Ubuntu 20.04 (ROS Noetic)</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#python-dependencies">Python Dependencies</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#building-your-ros-workspace">Building your ROS workspace</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#using-pycram">Using PyCRAM</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#building-the-documentation">Building the documentation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#setting-up-pycram-with-pycharm">Setting up PyCRAM with PyCharm</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#install-pycharm-professional">Install PyCharm Professional</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#set-up-virtualenv">Set up virtualenv</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#configure-pycharm">Configure PyCharm</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#using-ipython-as-repl">Using IPython as REPL</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enable-autoreload">Enable autoreload</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#run-scripts">Run scripts</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Jonas Dech
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2024.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=5b4479735964841361fd"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

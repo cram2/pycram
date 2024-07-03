@@ -1,0 +1,935 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>Ontology interface &#8212; PyCRAM</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=5b4479735964841361fd" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=5b4479735964841361fd" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" href="../_static/styles/sphinx-book-theme.css?digest=14f4ca6b54d191a8c7657f6c759bf11a5fb86285" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-thebe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=5b4479735964841361fd" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd" />
+  <script src="../_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=5b4479735964841361fd"></script>
+
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/clipboard.min.js"></script>
+    <script src="../_static/copybutton.js"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../_static/togglebutton.js"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script src="../_static/design-tabs.js"></script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"
+const thebe_selector = ".thebe,.cell"
+const thebe_selector_input = "pre"
+const thebe_selector_output = ".output, .cell_output"
+</script>
+    <script async="async" src="../_static/sphinx-thebe.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'notebooks/ontology';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search this book..."
+         aria-label="Search this book..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/pycram_logo.png" class="logo__image only-light" alt="PyCRAM - Home"/>
+    <script>document.write(`<img src="../_static/pycram_logo.png" class="logo__image only-dark" alt="PyCRAM - Home"/>`);</script>
+  
+  
+</a></div>
+        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        
+        <ul class="nav bd-sidenav bd-sidenav__home-link">
+            <li class="toctree-l1">
+                <a class="reference internal" href="../index.html">
+                    Welcome to pycram’s documentation!
+                </a>
+            </li>
+        </ul>
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../designators.html">Designators</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="action_designator.html">Action Designator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="object_designator.html">Object Designator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="location_designator.html">Location Designator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="motion_designator.html">Motion Designator</a></li>
+</ul>
+</li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ros_utils.html">ROS Utils</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Trouble Shooting</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../remarks.html">General Remarks</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><label class="sidebar-toggle primary-toggle btn btn-sm" for="__primary" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</label></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/cram2/pycram" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/cram2/pycram/issues/new?title=Issue%20on%20page%20%2Fnotebooks/ontology.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../_sources/notebooks/ontology.md" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.md</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<label class="sidebar-toggle secondary-toggle btn btn-sm" for="__secondary"title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</label>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Ontology interface</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#">Ontology interface</a></li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#owlready2">Owlready2</a></li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#ontology-manager">Ontology Manager</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ontology-concept-holder">Ontology Concept Holder</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#query-ontology-classes-and-their-properties">Query ontology classes and their properties</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#create-a-new-ontology-concept-class-and-its-individual">Create a new ontology concept class and its individual</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#access-ontology-concept-classes-and-individuals">Access ontology concept classes and individuals</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#connect-ontology-class-individuals-with-designators">Connect ontology class individuals with designators</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#create-new-ontology-triple-classes">Create new ontology triple classes</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#create-ontology-relations">Create ontology relations</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#query-designators-based-on-their-ontology-concept-relations">Query designators based on their ontology-concept relations</a></li>
+</ul>
+</li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#practical-examples">Practical examples</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#example-1">Example 1</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#example-2">Example 2</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#setup-simulated-environment">Setup simulated environment</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#create-pourableobject-liquidholder-triple-ontology-classes">Create PourableObject-LiquidHolder triple ontology classes</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#spawn-a-pourable-object-liquid-holders-into-the-world-and-create-their-designators">Spawn a pourable object &amp; liquid holders into the world and Create their designators</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#create-an-ontology-relation-between-the-designators-of-the-pourable-object-its-liquid-holders">Create an ontology relation between the designators of the pourable object &amp; its liquid holders</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#set-up-resolve-for-the-ontology-concept-of-the-pourable-object">Set up <code class="docutils literal notranslate"><span class="pre">resolve</span></code> for the ontology concept of the pourable object</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#robot-picks-up-the-target-liquid-holder">Robot picks up the target liquid holder</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#save-ontologies-to-an-owl-file">Save ontologies to an OWL file</a></li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#optimize-ontology-loading-with-sqlite3">Optimize ontology loading with SQLite3</a></li>
+</ul>
+
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <!-- #region jupyter={"outputs_hidden": false} -->
+<section class="tex2jax_ignore mathjax_ignore" id="ontology-interface">
+<h1>Ontology interface<a class="headerlink" href="#ontology-interface" title="Permalink to this heading">#</a></h1>
+<p>This tutorial demonstrates basic usages of <strong>owlready2</strong> API for ontology manipulation. Notably, new ontology concept triple classes (subject, predicate, object) will be dynamically created, with optional existing ontology parent classes that are loaded from an OWL ontology. Then through the interconnected relations specified in triples, designators and their corresponding ontology concepts can be double-way queried for input information in certain tasks, eg. making a robot motion plan.</p>
+<!-- #endregion -->
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Type</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span>
+<span class="kn">import</span> <span class="nn">pycram</span>
+<span class="kn">from</span> <span class="nn">pycram.designator</span> <span class="kn">import</span> <span class="n">ObjectDesignatorDescription</span>
+</pre></div>
+</div>
+<!-- #region jupyter={"outputs_hidden": false} -->
+</section>
+<section class="tex2jax_ignore mathjax_ignore" id="owlready2">
+<h1>Owlready2<a class="headerlink" href="#owlready2" title="Permalink to this heading">#</a></h1>
+<p><a class="reference external" href="https://owlready2.readthedocs.io/en/latest/intro.html">Owlready2</a> is a Python package providing a transparent access to OWL ontologies. It supports various manipulation operations, including but not limited to loading, modification, saving ontologies. Built-in supported reasoners include <a class="reference external" href="http://www.hermit-reasoner.com">HermiT</a> and <a class="reference external" href="https://github.com/stardog-union/pellet">Pellet</a>.</p>
+<!-- #endregion -->
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">owlready2</span>
+    <span class="kn">from</span> <span class="nn">owlready2</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">owlready2</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Could not import owlready2, Ontology Manager could not be initialized!&quot;</span><span class="p">)</span>
+
+<span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+</pre></div>
+</div>
+<!-- #region jupyter={"outputs_hidden": false} -->
+</section>
+<section class="tex2jax_ignore mathjax_ignore" id="ontology-manager">
+<h1>Ontology Manager<a class="headerlink" href="#ontology-manager" title="Permalink to this heading">#</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">OntologyManager</span></code> is the singleton class acting as the main interface between PyCram with ontologies, whereby object instances in the former could query relevant information based on the semantic connection with their corresponding ontology concepts.</p>
+<p>Such connection, as represented by triples (subject-predicate-object), could be also created on the fly if not pre-existing in the loaded ontology.</p>
+<p>Also new and updated concepts with their properties defined in runtime could be stored into an <a class="reference external" href="https://owlready2.readthedocs.io/en/latest/world.html">SQLite3 file database</a> for reuse.</p>
+<p>Here we will use <a class="reference external" href="https://ease-crc.github.io/soma">SOMA ontology</a> as the baseline to utilize the generalized concepts provided by it.</p>
+<!-- #endregion -->
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pycram.ontology.ontology</span> <span class="kn">import</span> <span class="n">OntologyManager</span><span class="p">,</span> <span class="n">SOMA_HOME_ONTOLOGY_IRI</span>
+<span class="kn">from</span> <span class="nn">pycram.ontology.ontology_common</span> <span class="kn">import</span> <span class="n">OntologyConceptHolderStore</span><span class="p">,</span> <span class="n">OntologyConceptHolder</span>
+
+<span class="n">ontology_manager</span> <span class="o">=</span> <span class="n">OntologyManager</span><span class="p">(</span><span class="n">SOMA_HOME_ONTOLOGY_IRI</span><span class="p">)</span>
+<span class="n">main_ontology</span> <span class="o">=</span> <span class="n">ontology_manager</span><span class="o">.</span><span class="n">main_ontology</span>
+<span class="n">soma</span> <span class="o">=</span> <span class="n">ontology_manager</span><span class="o">.</span><span class="n">soma</span>
+<span class="n">dul</span> <span class="o">=</span> <span class="n">ontology_manager</span><span class="o">.</span><span class="n">dul</span>
+</pre></div>
+</div>
+<!-- #region jupyter={"outputs_hidden": false} -->
+<section id="ontology-concept-holder">
+<h2>Ontology Concept Holder<a class="headerlink" href="#ontology-concept-holder" title="Permalink to this heading">#</a></h2>
+<p><strong>OntologyConceptHolder</strong> class, encapsulating an <strong>owlready2.Thing</strong> instance, is used primarily as the binding connection between the <code class="docutils literal notranslate"><span class="pre">owlready2.Thing</span></code> ontology concept to PyCram designators. We make it that way, instead of creating a custom concept class that inherits from <code class="docutils literal notranslate"><span class="pre">owlready2.Thing</span></code> for the reasons below:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">owlready2</span></code> API does not have very robust support for client classes to inherit from theirs with added (non-semantic) attributes, particularly in our case, where classes like <code class="docutils literal notranslate"><span class="pre">DesignatorDescription</span></code> have their <code class="docutils literal notranslate"><span class="pre">metaclass</span></code> as <code class="docutils literal notranslate"><span class="pre">ABCMeta</span></code>, while it is <code class="docutils literal notranslate"><span class="pre">EntityClass</span></code> that is the metaclass used for basically all concepts (classes, properties) in <code class="docutils literal notranslate"><span class="pre">owlready2</span></code>. Since those two metaclasses just bear no relationship, for the inheritance to work, the only way is to create a child metaclass with both of those as parents, however without full support by <code class="docutils literal notranslate"><span class="pre">owlready2</span></code>, plus the second reason below will point out it’s not worth the effort.</p></li>
+<li><p>Essentially, we will have new ontology concept classes created dynamically, if their types inherit from <code class="docutils literal notranslate"><span class="pre">owlready2.Thing</span></code>, all custom non-semantic (of types known only by PyCram) attributes, which are defined by their own in child classes, will apparently be not savable into the ontology by <code class="docutils literal notranslate"><span class="pre">owlready2</span></code> api. Then the next time the ontology is loaded, those same dynamic classes will not be created anymore, thus without those attributes either, causing running error.</p></li>
+</ul>
+<p>As such, in short, an ontology concept class, either newly created on the fly or loaded from ontologies, has to be <code class="docutils literal notranslate"><span class="pre">owlready2.Thing</span></code> or its pure derived class (without non-semantic attributes), so to make itself reusable upon reloading.</p>
+<p>Notable attributes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ontology_concept</span></code>: An ontology concept of <code class="docutils literal notranslate"><span class="pre">owlready2.Thing</span></code> type or its pure child class (without custom non-semantic attributes), either dynamically created, or loaded from an ontology</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">designators</span></code>: a list of <code class="docutils literal notranslate"><span class="pre">DesignatorDescription</span></code> instances associated with <code class="docutils literal notranslate"><span class="pre">ontology_concept</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">resolve</span></code>: a <code class="docutils literal notranslate"><span class="pre">Callable</span></code> typically returning a list of <code class="docutils literal notranslate"><span class="pre">DesignatorDescription</span></code> as specific designators, like <code class="docutils literal notranslate"><span class="pre">designators</span></code> or its subset, inferred from the ontology concept. In fact, it can be resolved to anything else relevant, up to the caller.</p></li>
+</ul>
+<!-- #endregion -->
+<!-- #region jupyter={"outputs_hidden": false} -->
+</section>
+<section id="query-ontology-classes-and-their-properties">
+<h2>Query ontology classes and their properties<a class="headerlink" href="#query-ontology-classes-and-their-properties" title="Permalink to this heading">#</a></h2>
+<p>Classes in the loaded ontology can be queried based on their exact names, or part of them, or by namespace.
+Here, we can see essential info (ancestors, super/sub-classes, properties, direct instances, etc.) of the found ontology class.</p>
+<!-- #endregion -->
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ontology_designed_container_class</span> <span class="o">=</span> <span class="n">ontology_manager</span><span class="o">.</span><span class="n">get_ontology_class</span><span class="p">(</span><span class="s1">&#39;DesignedContainer&#39;</span><span class="p">)</span>
+<span class="n">ontology_manager</span><span class="o">.</span><span class="n">print_ontology_class</span><span class="p">(</span><span class="n">ontology_designed_container_class</span><span class="p">)</span>
+<span class="n">classes</span> <span class="o">=</span> <span class="n">ontology_manager</span><span class="o">.</span><span class="n">get_ontology_classes_by_subname</span><span class="p">(</span><span class="s1">&#39;PhysicalObject&#39;</span><span class="p">);</span> <span class="nb">print</span><span class="p">(</span><span class="n">classes</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">classes</span> <span class="o">=</span> <span class="n">ontology_manager</span><span class="o">.</span><span class="n">get_ontology_classes_by_namespace</span><span class="p">(</span><span class="s1">&#39;SOMA&#39;</span><span class="p">);</span> <span class="nb">print</span><span class="p">(</span><span class="n">classes</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span>
+</pre></div>
+</div>
+<!-- #region jupyter={"outputs_hidden": false} -->
+<p><strong>Descendants</strong> of an ontology class can be also queried by</p>
+<!-- #endregion -->
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ontology_manager</span><span class="o">.</span><span class="n">get_ontology_descendant_classes</span><span class="p">(</span><span class="n">ontology_designed_container_class</span><span class="p">)[:</span><span class="mi">5</span><span class="p">]</span>
+</pre></div>
+</div>
+<!-- #region jupyter={"outputs_hidden": false} -->
+</section>
+<section id="create-a-new-ontology-concept-class-and-its-individual">
+<h2>Create a new ontology concept class and its individual<a class="headerlink" href="#create-a-new-ontology-concept-class-and-its-individual" title="Permalink to this heading">#</a></h2>
+<p>A new ontology class can be created dynamically as inheriting from an existing class in the loaded ontology.
+Here we create the class and its instance, also known as <a class="reference external" href="https://owlready2.readthedocs.io/en/latest/class.html#creating-equivalent-classes"><strong>individual</strong></a> in ontology terms, which is then wrapped inside an <code class="docutils literal notranslate"><span class="pre">OntologyConceptHolder</span></code>.</p>
+<!-- #endregion -->
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ontology_custom_container_class</span> <span class="o">=</span> <span class="n">ontology_manager</span><span class="o">.</span><span class="n">create_ontology_concept_class</span><span class="p">(</span><span class="s1">&#39;CustomContainerConcept&#39;</span><span class="p">,</span>
+                                                                                 <span class="n">ontology_designed_container_class</span><span class="p">)</span>
+<span class="n">custom_container_concept_holder</span> <span class="o">=</span> <span class="n">OntologyConceptHolder</span><span class="p">(</span><span class="n">ontology_custom_container_class</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;ontology_custom_container_concept&#39;</span><span class="p">,</span>
+                                                                                        <span class="n">namespace</span><span class="o">=</span><span class="n">main_ontology</span><span class="p">))</span>
+</pre></div>
+</div>
+<!-- #region jupyter={"outputs_hidden": false} -->
+</section>
+<section id="access-ontology-concept-classes-and-individuals">
+<h2>Access ontology concept classes and individuals<a class="headerlink" href="#access-ontology-concept-classes-and-individuals" title="Permalink to this heading">#</a></h2>
+<p>All ontology classes created on the fly purely inherit (without added non-semantic attributes) from <code class="docutils literal notranslate"><span class="pre">owlready2.Thing</span></code>, and so share the same namespace with the loaded ontology instance, <code class="docutils literal notranslate"><span class="pre">main_ontology</span></code>. They can then be accessible through that namespace by <strong>main_ontology.&lt;class_name&gt;</strong>.
+The same applies for individuals of those classes, accessible by <strong>main_ontology.&lt;class_individual_name&gt;</strong></p>
+<!-- #endregion -->
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ontology_manager</span><span class="o">.</span><span class="n">print_ontology_class</span><span class="p">(</span><span class="n">main_ontology</span><span class="o">.</span><span class="n">CustomContainerConcept</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;custom_container_concept is </span><span class="si">{</span><span class="n">main_ontology</span><span class="o">.</span><span class="n">ontology_custom_container_concept</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">custom_container_concept_holder</span><span class="o">.</span><span class="n">ontology_concept</span><span class="w"> </span><span class="ow">is</span><span class="w"> </span><span class="n">main_ontology</span><span class="o">.</span><span class="n">ontology_custom_container_concept</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<!-- #region jupyter={"outputs_hidden": false} -->
+<p>For ones already existing in the ontology, they can only be accessed through their corresponding ontology, eg: <code class="docutils literal notranslate"><span class="pre">soma</span></code> as follows</p>
+<!-- #endregion -->
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ontology_manager</span><span class="o">.</span><span class="n">print_ontology_class</span><span class="p">(</span><span class="n">soma</span><span class="o">.</span><span class="n">Cup</span><span class="p">)</span>
+</pre></div>
+</div>
+<!-- #region jupyter={"outputs_hidden": false} -->
+</section>
+<section id="connect-ontology-class-individuals-with-designators">
+<h2>Connect ontology class individuals with designators<a class="headerlink" href="#connect-ontology-class-individuals-with-designators" title="Permalink to this heading">#</a></h2>
+<p>After creating <code class="docutils literal notranslate"><span class="pre">custom_container_concept_holder</span></code> (wrapping <code class="docutils literal notranslate"><span class="pre">custom_container_concept</span></code> as an <code class="docutils literal notranslate"><span class="pre">owlready2.Thing</span></code>), we connect it to a designator (say <code class="docutils literal notranslate"><span class="pre">obj_designator</span></code>) by:</p>
+<ul class="simple">
+<li><p>Appending to <code class="docutils literal notranslate"><span class="pre">obj_designator.ontology_concept_holders</span></code> with <code class="docutils literal notranslate"><span class="pre">custom_container_concept_holder</span></code></p></li>
+<li><p>Appending to <code class="docutils literal notranslate"><span class="pre">custom_container_concept_holder.designators</span></code> with <code class="docutils literal notranslate"><span class="pre">obj_designator</span></code></p></li>
+</ul>
+<!-- #endregion -->
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">custom_container_designator</span> <span class="o">=</span> <span class="n">ObjectDesignatorDescription</span><span class="p">(</span><span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;obj&quot;</span><span class="p">])</span>
+<span class="n">custom_container_designator</span><span class="o">.</span><span class="n">ontology_concept_holders</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">custom_container_concept_holder</span><span class="p">)</span>
+<span class="n">custom_container_concept_holder</span><span class="o">.</span><span class="n">designators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">custom_container_designator</span><span class="p">)</span>
+</pre></div>
+</div>
+<!-- #region jupyter={"outputs_hidden": false} -->
+<p>We can also automatize all the above setup with a single function call</p>
+<!-- #endregion -->
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">another_custom_container_designator</span> <span class="o">=</span> <span class="n">ontology_manager</span><span class="o">.</span><span class="n">create_ontology_linked_designator</span><span class="p">(</span><span class="n">object_name</span><span class="o">=</span><span class="s2">&quot;another_custom_container&quot;</span><span class="p">,</span>
+                                                                                         <span class="n">designator_class</span><span class="o">=</span><span class="n">ObjectDesignatorDescription</span><span class="p">,</span>
+                                                                                         <span class="n">ontology_concept_name</span><span class="o">=</span><span class="s2">&quot;AnotherCustomContainerConcept&quot;</span><span class="p">,</span>
+                                                                                         <span class="n">ontology_parent_class</span><span class="o">=</span><span class="n">ontology_designed_container_class</span><span class="p">)</span>
+<span class="n">another_custom_container_concept</span> <span class="o">=</span> <span class="n">another_custom_container_designator</span><span class="o">.</span><span class="n">ontology_concept_holders</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ontology_concept</span> 
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Ontology concept: </span><span class="si">{</span><span class="n">another_custom_container_concept</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> of class </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">another_custom_container_concept</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="n">another_custom_container_designator</span> <span class="o">=</span> <span class="n">OntologyConceptHolderStore</span><span class="p">()</span><span class="o">.</span><span class="n">get_ontology_concept_holder_by_name</span><span class="p">(</span><span class="n">main_ontology</span><span class="o">.</span><span class="n">AnotherCustomContainerConcept</span><span class="o">.</span><span class="n">instances</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">get_default_designator</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Designator: </span><span class="si">{</span><span class="n">another_custom_container_designator</span><span class="o">.</span><span class="n">names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> of type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">another_custom_container_designator</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<!-- #region jupyter={"outputs_hidden": false} -->
+</section>
+<section id="create-new-ontology-triple-classes">
+<h2>Create new ontology triple classes<a class="headerlink" href="#create-new-ontology-triple-classes" title="Permalink to this heading">#</a></h2>
+<p>Concept classes of a triple, aka [<strong>subject, predicate, object</strong>], can be created dynamically. Here we will make an example creating ones for [<strong>handheld objects</strong>] and [<strong>placeholder objects</strong>], with a pair of predicate and inverse predicate signifying their mutual relation.</p>
+<!-- #endregion -->
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">PLACEABLE_ON_PREDICATE_NAME</span> <span class="o">=</span> <span class="s2">&quot;placeable_on&quot;</span>
+<span class="n">HOLD_OBJ_PREDICATE_NAME</span> <span class="o">=</span> <span class="s2">&quot;hold_obj&quot;</span>
+<span class="n">ontology_manager</span><span class="o">.</span><span class="n">create_ontology_triple_classes</span><span class="p">(</span><span class="n">ontology_subject_parent_class</span><span class="o">=</span><span class="n">soma</span><span class="o">.</span><span class="n">DesignedContainer</span><span class="p">,</span>
+                                                <span class="n">subject_class_name</span><span class="o">=</span><span class="s2">&quot;OntologyPlaceHolderObject&quot;</span><span class="p">,</span>
+                                                <span class="n">ontology_object_parent_class</span><span class="o">=</span><span class="n">soma</span><span class="o">.</span><span class="n">Shape</span><span class="p">,</span>
+                                                <span class="n">object_class_name</span><span class="o">=</span><span class="s2">&quot;OntologyHandheldObject&quot;</span><span class="p">,</span>
+                                                <span class="n">predicate_name</span><span class="o">=</span><span class="n">PLACEABLE_ON_PREDICATE_NAME</span><span class="p">,</span>
+                                                <span class="n">inverse_predicate_name</span><span class="o">=</span><span class="n">HOLD_OBJ_PREDICATE_NAME</span><span class="p">,</span>
+                                                <span class="n">ontology_property_parent_class</span><span class="o">=</span><span class="n">soma</span><span class="o">.</span><span class="n">affordsBearer</span><span class="p">,</span>
+                                                <span class="n">ontology_inverse_property_parent_class</span><span class="o">=</span><span class="n">soma</span><span class="o">.</span><span class="n">isBearerAffordedBy</span><span class="p">)</span>
+</pre></div>
+</div>
+<!-- #region jupyter={"outputs_hidden": false} -->
+<p>There, we use <code class="docutils literal notranslate"><span class="pre">soma.DesignedContainer</span></code> &amp; <code class="docutils literal notranslate"><span class="pre">soma.Shape</span></code>, existing concept in SOMA ontology, as the parent classes for the subject &amp; object concepts respectively.
+There is also a note that those classes will have the same namespace with <code class="docutils literal notranslate"><span class="pre">main_ontology</span></code>, so later on to be accessible through it.</p>
+<p>Then now we define some instances of the newly created triple classes, and link them to object designators, again using <code class="docutils literal notranslate"><span class="pre">ontology_manager.create_ontology_linked_designator()</span></code></p>
+<!-- #endregion -->
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">create_ontology_handheld_object_designator</span><span class="p">(</span><span class="n">object_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ontology_parent_class</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">owlready2</span><span class="o">.</span><span class="n">Thing</span><span class="p">]):</span>
+    <span class="k">return</span> <span class="n">ontology_manager</span><span class="o">.</span><span class="n">create_ontology_linked_designator</span><span class="p">(</span><span class="n">object_name</span><span class="o">=</span><span class="n">object_name</span><span class="p">,</span>
+                                                              <span class="n">designator_class</span><span class="o">=</span><span class="n">ObjectDesignatorDescription</span><span class="p">,</span>
+                                                              <span class="n">ontology_concept_name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Onto</span><span class="si">{</span><span class="n">object_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                                                              <span class="n">ontology_parent_class</span><span class="o">=</span><span class="n">ontology_parent_class</span><span class="p">)</span>
+<span class="c1"># Holdable Objects</span>
+<span class="n">cookie_box</span> <span class="o">=</span> <span class="n">create_ontology_handheld_object_designator</span><span class="p">(</span><span class="s2">&quot;cookie_box&quot;</span><span class="p">,</span> <span class="n">main_ontology</span><span class="o">.</span><span class="n">OntologyHandheldObject</span><span class="p">)</span>
+<span class="n">egg</span> <span class="o">=</span> <span class="n">create_ontology_handheld_object_designator</span><span class="p">(</span><span class="s2">&quot;egg&quot;</span><span class="p">,</span> <span class="n">main_ontology</span><span class="o">.</span><span class="n">OntologyHandheldObject</span><span class="p">)</span>
+    
+<span class="c1"># Placeholder objects</span>
+<span class="n">placeholders</span> <span class="o">=</span> <span class="p">[</span><span class="n">create_ontology_handheld_object_designator</span><span class="p">(</span><span class="n">object_name</span><span class="p">,</span> <span class="n">main_ontology</span><span class="o">.</span><span class="n">OntologyPlaceHolderObject</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">object_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;table&#39;</span><span class="p">,</span> <span class="s1">&#39;stool&#39;</span><span class="p">,</span> <span class="s1">&#39;shelf&#39;</span><span class="p">]]</span>
+
+<span class="n">egg_tray</span> <span class="o">=</span> <span class="n">create_ontology_handheld_object_designator</span><span class="p">(</span><span class="s2">&quot;egg_tray&quot;</span><span class="p">,</span> <span class="n">main_ontology</span><span class="o">.</span><span class="n">OntologyPlaceHolderObject</span><span class="p">)</span>
+</pre></div>
+</div>
+<!-- #region jupyter={"outputs_hidden": false} -->
+<section id="create-ontology-relations">
+<h3>Create ontology relations<a class="headerlink" href="#create-ontology-relations" title="Permalink to this heading">#</a></h3>
+<p>Now we will create ontology relations or predicates between <strong>placeholder objects</strong> and <strong>handheld objects</strong> with <code class="docutils literal notranslate"><span class="pre">ontology_manager.set_ontology_relation()</span></code></p>
+<!-- #endregion -->
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">place_holder</span> <span class="ow">in</span> <span class="n">placeholders</span><span class="p">:</span>
+    <span class="n">ontology_manager</span><span class="o">.</span><span class="n">set_ontology_relation</span><span class="p">(</span><span class="n">subject_designator</span><span class="o">=</span><span class="n">cookie_box</span><span class="p">,</span> <span class="n">object_designator</span><span class="o">=</span><span class="n">place_holder</span><span class="p">,</span>
+                                           <span class="n">predicate_name</span><span class="o">=</span><span class="n">PLACEABLE_ON_PREDICATE_NAME</span><span class="p">)</span>
+
+<span class="n">ontology_manager</span><span class="o">.</span><span class="n">set_ontology_relation</span><span class="p">(</span><span class="n">subject_designator</span><span class="o">=</span><span class="n">egg_tray</span><span class="p">,</span> <span class="n">object_designator</span><span class="o">=</span><span class="n">egg</span><span class="p">,</span>
+                                       <span class="n">predicate_name</span><span class="o">=</span><span class="n">HOLD_OBJ_PREDICATE_NAME</span><span class="p">)</span>
+</pre></div>
+</div>
+<!-- #region jupyter={"outputs_hidden": false} -->
+</section>
+</section>
+<section id="query-designators-based-on-their-ontology-concept-relations">
+<h2>Query designators based on their ontology-concept relations<a class="headerlink" href="#query-designators-based-on-their-ontology-concept-relations" title="Permalink to this heading">#</a></h2>
+<p>Now we can make queries for designators from designators, based on the relation among their corresponding ontology concepts setup above</p>
+<!-- #endregion -->
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cookie_box</span><span class="o">.</span><span class="n">names</span><span class="si">}</span><span class="s2">&#39;s placeholder candidates:&quot;</span><span class="p">,</span>
+      <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span><span class="si">{</span><span class="p">[</span><span class="n">placeholder</span><span class="o">.</span><span class="n">names</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">placeholder</span><span class="w"> </span><span class="ow">in</span>
+<span class="w">            </span><span class="n">ontology_manager</span><span class="o">.</span><span class="n">get_designators_by_subject_predicate</span><span class="p">(</span><span class="n">subject</span><span class="o">=</span><span class="n">cookie_box</span><span class="p">,</span>
+<span class="w">                                                                  </span><span class="n">predicate_name</span><span class="o">=</span><span class="n">PLACEABLE_ON_PREDICATE_NAME</span><span class="p">)]</span><span class="si">}</span><span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">egg</span><span class="o">.</span><span class="n">names</span><span class="si">}</span><span class="s2">&#39;s placeholder candidates:&quot;</span><span class="p">,</span>
+      <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span><span class="si">{</span><span class="p">[</span><span class="n">placeholder</span><span class="o">.</span><span class="n">names</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">placeholder</span><span class="w"> </span><span class="ow">in</span>
+<span class="w">            </span><span class="n">ontology_manager</span><span class="o">.</span><span class="n">get_designators_by_subject_predicate</span><span class="p">(</span><span class="n">subject</span><span class="o">=</span><span class="n">egg</span><span class="p">,</span>
+<span class="w">                                                                  </span><span class="n">predicate_name</span><span class="o">=</span><span class="n">PLACEABLE_ON_PREDICATE_NAME</span><span class="p">)]</span><span class="si">}</span><span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">place_holder</span> <span class="ow">in</span> <span class="n">placeholders</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">place_holder</span><span class="o">.</span><span class="n">names</span><span class="si">}</span><span class="s2"> can hold:&quot;</span><span class="p">,</span>
+          <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span><span class="si">{</span><span class="p">[</span><span class="n">placeholder</span><span class="o">.</span><span class="n">names</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">placeholder</span><span class="w"> </span><span class="ow">in</span>
+<span class="w">                </span><span class="n">ontology_manager</span><span class="o">.</span><span class="n">get_designators_by_subject_predicate</span><span class="p">(</span><span class="n">subject</span><span class="o">=</span><span class="n">place_holder</span><span class="p">,</span>
+<span class="w">                                                                      </span><span class="n">predicate_name</span><span class="o">=</span><span class="n">HOLD_OBJ_PREDICATE_NAME</span><span class="p">)]</span><span class="si">}</span><span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">egg_tray</span><span class="o">.</span><span class="n">names</span><span class="si">}</span><span class="s2"> can hold:&quot;</span><span class="p">,</span>
+      <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span><span class="si">{</span><span class="p">[</span><span class="n">placeholder</span><span class="o">.</span><span class="n">names</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">placeholder</span><span class="w"> </span><span class="ow">in</span>
+<span class="w">            </span><span class="n">ontology_manager</span><span class="o">.</span><span class="n">get_designators_by_subject_predicate</span><span class="p">(</span><span class="n">subject</span><span class="o">=</span><span class="n">egg_tray</span><span class="p">,</span>
+<span class="w">                                                                  </span><span class="n">predicate_name</span><span class="o">=</span><span class="n">HOLD_OBJ_PREDICATE_NAME</span><span class="p">)]</span><span class="si">}</span><span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<!-- #region jupyter={"outputs_hidden": false} -->
+</section>
+</section>
+<section class="tex2jax_ignore mathjax_ignore" id="practical-examples">
+<h1>Practical examples<a class="headerlink" href="#practical-examples" title="Permalink to this heading">#</a></h1>
+<section id="example-1">
+<h2>Example 1<a class="headerlink" href="#example-1" title="Permalink to this heading">#</a></h2>
+<p>How about creating ontology concept classes encapsulating <code class="docutils literal notranslate"><span class="pre">pycram.datastructures.enums.ObjectType</span></code>? We can do it by:</p>
+<!-- #endregion -->
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pycram.datastructures.enums</span> <span class="kn">import</span> <span class="n">ObjectType</span>
+
+<span class="c1"># Create a generic ontology concept class for edible objects</span>
+<span class="n">generic_edible_class</span> <span class="o">=</span> <span class="n">ontology_manager</span><span class="o">.</span><span class="n">create_ontology_concept_class</span><span class="p">(</span><span class="s1">&#39;GenericEdible&#39;</span><span class="p">)</span>
+
+<span class="c1"># Create a list of object designators sharing the same concept class as [generic_edible_class]</span>
+<span class="n">edible_obj_types</span> <span class="o">=</span> <span class="p">[</span><span class="n">ObjectType</span><span class="o">.</span><span class="n">MILK</span><span class="p">,</span> <span class="n">ObjectType</span><span class="o">.</span><span class="n">BREAKFAST_CEREAL</span><span class="p">]</span>
+<span class="k">for</span> <span class="n">object_type</span> <span class="ow">in</span> <span class="n">ObjectType</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">object_type</span> <span class="ow">in</span> <span class="n">edible_obj_types</span><span class="p">:</span>
+        <span class="c1"># Create a designator for the edible object</span>
+        <span class="n">ontology_manager</span><span class="o">.</span><span class="n">create_ontology_object_designator_from_type</span><span class="p">(</span><span class="n">object_type</span><span class="p">,</span> <span class="n">generic_edible_class</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">generic_edible_class</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1"> object types:&#39;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">edible_ontology_concept</span> <span class="ow">in</span> <span class="n">generic_edible_class</span><span class="o">.</span><span class="n">direct_instances</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">edible_ontology_concept</span><span class="p">,</span>
+          <span class="p">[</span><span class="n">des</span><span class="o">.</span><span class="n">types</span> <span class="k">for</span> <span class="n">des</span> <span class="ow">in</span> <span class="n">OntologyConceptHolderStore</span><span class="p">()</span><span class="o">.</span><span class="n">get_ontology_concept_holder_by_name</span><span class="p">(</span><span class="n">edible_ontology_concept</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">designators</span><span class="p">])</span>
+
+</pre></div>
+</div>
+<!-- #region jupyter={"outputs_hidden": false} -->
+</section>
+<section id="example-2">
+<h2>Example 2<a class="headerlink" href="#example-2" title="Permalink to this heading">#</a></h2>
+<p>We could also make use of relations between ontology concepts that designators are associated with, to enable more abstract inputs in robot motion plans.</p>
+<p>In a similar style to the scenario of <strong>placeholder objects</strong> and <strong>handheld objects</strong> above, but with a bit difference, we will ask the robot to query which content holders (eg. cup, pitcher, bowl) whereby a milk box could be pourable into.</p>
+<p>Basically, we will provide an ontology-based implementation for the query:</p>
+<p><code class="docutils literal notranslate"><span class="pre">abstract_ontology_concept</span> <span class="pre">-&gt;</span> <span class="pre">specific_objects_in_world?</span></code></p>
+<p>To achieve it, we will create triple classes and configure a customized <code class="docutils literal notranslate"><span class="pre">resolve()</span></code> for the abstract concept, which returns its associated specific designators.
+These designators are then used to again resolve for the target objects of interest, which become the inputs to a robot motion plan.</p>
+<section id="setup-simulated-environment">
+<h3>Setup simulated environment<a class="headerlink" href="#setup-simulated-environment" title="Permalink to this heading">#</a></h3>
+<!-- #endregion -->
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pycram.worlds.bullet_world</span> <span class="kn">import</span> <span class="n">BulletWorld</span><span class="p">,</span> <span class="n">Object</span>
+<span class="kn">from</span> <span class="nn">pycram.datastructures.pose</span> <span class="kn">import</span> <span class="n">Pose</span>
+
+<span class="kn">from</span> <span class="nn">pycram.process_module</span> <span class="kn">import</span> <span class="n">simulated_robot</span>
+<span class="kn">from</span> <span class="nn">pycram.designators.action_designator</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">pycram.designators.location_designator</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">world</span> <span class="o">=</span> <span class="n">BulletWorld</span><span class="p">()</span>
+<span class="n">kitchen</span> <span class="o">=</span> <span class="n">Object</span><span class="p">(</span><span class="s2">&quot;kitchen&quot;</span><span class="p">,</span> <span class="n">ObjectType</span><span class="o">.</span><span class="n">ENVIRONMENT</span><span class="p">,</span> <span class="s2">&quot;kitchen.urdf&quot;</span><span class="p">)</span>
+<span class="n">pr2</span> <span class="o">=</span> <span class="n">Object</span><span class="p">(</span><span class="s2">&quot;pr2&quot;</span><span class="p">,</span> <span class="n">ObjectType</span><span class="o">.</span><span class="n">ROBOT</span><span class="p">,</span> <span class="s2">&quot;pr2.urdf&quot;</span><span class="p">)</span>
+<span class="n">kitchen_designator</span> <span class="o">=</span> <span class="n">ObjectDesignatorDescription</span><span class="p">(</span><span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;kitchen&quot;</span><span class="p">])</span>
+<span class="n">robot_designator</span> <span class="o">=</span> <span class="n">ObjectDesignatorDescription</span><span class="p">(</span><span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;pr2&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="create-pourableobject-liquidholder-triple-ontology-classes">
+<h3>Create PourableObject-LiquidHolder triple ontology classes<a class="headerlink" href="#create-pourableobject-liquidholder-triple-ontology-classes" title="Permalink to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">POURABLE_INTO_PREDICATE_NAME</span> <span class="o">=</span> <span class="s2">&quot;pourable_into&quot;</span>
+<span class="n">HOLD_LIQUID_PREDICATE_NAME</span> <span class="o">=</span> <span class="s2">&quot;hold_liquid&quot;</span>
+<span class="n">ontology_manager</span><span class="o">.</span><span class="n">create_ontology_triple_classes</span><span class="p">(</span><span class="n">ontology_subject_parent_class</span><span class="o">=</span><span class="n">soma</span><span class="o">.</span><span class="n">DesignedContainer</span><span class="p">,</span>
+                                                <span class="n">subject_class_name</span><span class="o">=</span><span class="s2">&quot;OntologyLiquidHolderObject&quot;</span><span class="p">,</span>
+                                                <span class="n">ontology_object_parent_class</span><span class="o">=</span><span class="n">soma</span><span class="o">.</span><span class="n">Shape</span><span class="p">,</span>
+                                                <span class="n">object_class_name</span><span class="o">=</span><span class="s2">&quot;OntologyPourableObject&quot;</span><span class="p">,</span>
+                                                <span class="n">predicate_name</span><span class="o">=</span><span class="n">POURABLE_INTO_PREDICATE_NAME</span><span class="p">,</span>
+                                                <span class="n">inverse_predicate_name</span><span class="o">=</span><span class="n">HOLD_LIQUID_PREDICATE_NAME</span><span class="p">,</span>
+                                                <span class="n">ontology_property_parent_class</span><span class="o">=</span><span class="n">soma</span><span class="o">.</span><span class="n">affordsBearer</span><span class="p">,</span>
+                                                <span class="n">ontology_inverse_property_parent_class</span><span class="o">=</span><span class="n">soma</span><span class="o">.</span><span class="n">isBearerAffordedBy</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="spawn-a-pourable-object-liquid-holders-into-the-world-and-create-their-designators">
+<h3>Spawn a pourable object &amp; liquid holders into the world and Create their designators<a class="headerlink" href="#spawn-a-pourable-object-liquid-holders-into-the-world-and-create-their-designators" title="Permalink to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Holdable obj</span>
+<span class="n">milk_box</span> <span class="o">=</span> <span class="n">Object</span><span class="p">(</span><span class="s2">&quot;milk_box&quot;</span><span class="p">,</span> <span class="n">ObjectType</span><span class="o">.</span><span class="n">MILK</span><span class="p">,</span> <span class="s2">&quot;milk.stl&quot;</span><span class="p">)</span>
+<span class="n">milk_box_designator</span> <span class="o">=</span> <span class="n">create_ontology_handheld_object_designator</span><span class="p">(</span><span class="n">milk_box</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">main_ontology</span><span class="o">.</span><span class="n">OntologyPourableObject</span><span class="p">)</span>
+
+<span class="c1"># Liquid-holders</span>
+<span class="n">cup</span> <span class="o">=</span> <span class="n">Object</span><span class="p">(</span><span class="s2">&quot;cup&quot;</span><span class="p">,</span> <span class="n">ObjectType</span><span class="o">.</span><span class="n">JEROEN_CUP</span><span class="p">,</span> <span class="s2">&quot;jeroen_cup.stl&quot;</span><span class="p">,</span> <span class="n">pose</span><span class="o">=</span><span class="n">Pose</span><span class="p">([</span><span class="mf">1.4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">]))</span>
+<span class="n">bowl</span> <span class="o">=</span> <span class="n">Object</span><span class="p">(</span><span class="s2">&quot;bowl&quot;</span><span class="p">,</span> <span class="n">ObjectType</span><span class="o">.</span><span class="n">BOWL</span><span class="p">,</span> <span class="s2">&quot;bowl.stl&quot;</span><span class="p">,</span> <span class="n">pose</span><span class="o">=</span><span class="n">Pose</span><span class="p">([</span><span class="mf">1.4</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">]))</span>
+<span class="n">pitcher</span> <span class="o">=</span> <span class="n">Object</span><span class="p">(</span><span class="s2">&quot;pitcher&quot;</span><span class="p">,</span> <span class="n">ObjectType</span><span class="o">.</span><span class="n">GENERIC_OBJECT</span><span class="p">,</span> <span class="s2">&quot;Static_MilkPitcher.stl&quot;</span><span class="p">,</span> <span class="n">pose</span><span class="o">=</span><span class="n">Pose</span><span class="p">([</span><span class="mf">1.4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">]))</span>
+<span class="n">milk_holders</span> <span class="o">=</span> <span class="p">[</span><span class="n">cup</span><span class="p">,</span> <span class="n">bowl</span><span class="p">,</span> <span class="n">pitcher</span><span class="p">]</span>
+<span class="n">milk_holder_designators</span> <span class="o">=</span> <span class="p">[</span><span class="n">create_ontology_handheld_object_designator</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">main_ontology</span><span class="o">.</span><span class="n">OntologyLiquidHolderObject</span><span class="p">)</span>
+                           <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">milk_holders</span><span class="p">]</span>
+</pre></div>
+</div>
+</section>
+<section id="create-an-ontology-relation-between-the-designators-of-the-pourable-object-its-liquid-holders">
+<h3>Create an ontology relation between the designators of the pourable object &amp; its liquid holders<a class="headerlink" href="#create-an-ontology-relation-between-the-designators-of-the-pourable-object-its-liquid-holders" title="Permalink to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">milk_holder_desig</span> <span class="ow">in</span> <span class="n">milk_holder_designators</span><span class="p">:</span>
+    <span class="n">ontology_manager</span><span class="o">.</span><span class="n">set_ontology_relation</span><span class="p">(</span><span class="n">subject_designator</span><span class="o">=</span><span class="n">milk_box_designator</span><span class="p">,</span> <span class="n">object_designator</span><span class="o">=</span><span class="n">milk_holder_desig</span><span class="p">,</span>
+                                           <span class="n">predicate_name</span><span class="o">=</span><span class="n">POURABLE_INTO_PREDICATE_NAME</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="set-up-resolve-for-the-ontology-concept-of-the-pourable-object">
+<h3>Set up <code class="docutils literal notranslate"><span class="pre">resolve</span></code> for the ontology concept of the pourable object<a class="headerlink" href="#set-up-resolve-for-the-ontology-concept-of-the-pourable-object" title="Permalink to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">milk_box_concept_holder</span> <span class="o">=</span> <span class="n">milk_box_designator</span><span class="o">.</span><span class="n">ontology_concept_holders</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="k">def</span> <span class="nf">milk_box_concept_resolve</span><span class="p">():</span> 
+    <span class="n">object_designator</span> <span class="o">=</span> <span class="n">ontology_manager</span><span class="o">.</span><span class="n">get_designators_by_subject_predicate</span><span class="p">(</span><span class="n">subject</span><span class="o">=</span><span class="n">milk_box_designator</span><span class="p">,</span> <span class="n">predicate_name</span><span class="o">=</span><span class="n">POURABLE_INTO_PREDICATE_NAME</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">object_designator</span><span class="p">,</span> <span class="n">object_designator</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+
+<span class="n">milk_box_concept_holder</span><span class="o">.</span><span class="n">resolve</span> <span class="o">=</span> <span class="n">milk_box_concept_resolve</span>
+</pre></div>
+</div>
+<p>Here, for demonstration purpose only, we specify the resolving result by <code class="docutils literal notranslate"><span class="pre">milk_box_concept_holder</span></code> as <code class="docutils literal notranslate"><span class="pre">cup</span></code>, the first-registered (default) pourable-into target milk holder, utilizing the ontology relation setup above.</p>
+<p>Now, we can query the milk box’s target liquid holder by resolving <code class="docutils literal notranslate"><span class="pre">milk_box_concept_holder</span></code></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">target_milk_holder_designator</span><span class="p">,</span> <span class="n">target_milk_holder</span> <span class="o">=</span> <span class="n">milk_box_concept_holder</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Pickup target object: </span><span class="si">{</span><span class="n">target_milk_holder</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, a content holder for </span><span class="si">{</span><span class="n">milk_box_designator</span><span class="o">.</span><span class="n">names</span><span class="si">}</span><span class="s2"> as in relation `</span><span class="si">{</span><span class="n">POURABLE_INTO_PREDICATE_NAME</span><span class="si">}</span><span class="s2">`&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="robot-picks-up-the-target-liquid-holder">
+<h3>Robot picks up the target liquid holder<a class="headerlink" href="#robot-picks-up-the-target-liquid-holder" title="Permalink to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">simulated_robot</span><span class="p">:</span>
+    <span class="n">ParkArmsAction</span><span class="p">([</span><span class="n">Arms</span><span class="o">.</span><span class="n">BOTH</span><span class="p">])</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">perform</span><span class="p">()</span>
+
+    <span class="n">MoveTorsoAction</span><span class="p">([</span><span class="mf">0.3</span><span class="p">])</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">perform</span><span class="p">()</span>
+
+    <span class="n">pickup_pose</span> <span class="o">=</span> <span class="n">CostmapLocation</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">target_milk_holder</span><span class="p">,</span> <span class="n">reachable_for</span><span class="o">=</span><span class="n">robot_designator</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="n">pickup_arm</span> <span class="o">=</span> <span class="n">pickup_pose</span><span class="o">.</span><span class="n">reachable_arms</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="n">pickup_pose</span><span class="p">,</span> <span class="n">pickup_arm</span><span class="p">)</span>
+
+    <span class="n">NavigateAction</span><span class="p">(</span><span class="n">target_locations</span><span class="o">=</span><span class="p">[</span><span class="n">pickup_pose</span><span class="o">.</span><span class="n">pose</span><span class="p">])</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">perform</span><span class="p">()</span>
+
+    <span class="n">PickUpAction</span><span class="p">(</span><span class="n">object_designator_description</span><span class="o">=</span><span class="n">target_milk_holder_designator</span><span class="p">,</span> <span class="n">arms</span><span class="o">=</span><span class="p">[</span><span class="n">pickup_arm</span><span class="p">],</span> <span class="n">grasps</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;front&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">perform</span><span class="p">()</span>
+
+    <span class="n">ParkArmsAction</span><span class="p">([</span><span class="n">Arms</span><span class="o">.</span><span class="n">BOTH</span><span class="p">])</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">perform</span><span class="p">()</span>
+
+    <span class="n">place_island</span> <span class="o">=</span> <span class="n">SemanticCostmapLocation</span><span class="p">(</span><span class="s2">&quot;kitchen_island_surface&quot;</span><span class="p">,</span> <span class="n">kitchen_designator</span><span class="o">.</span><span class="n">resolve</span><span class="p">(),</span> <span class="n">target_milk_holder_designator</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+
+    <span class="n">place_stand</span> <span class="o">=</span> <span class="n">CostmapLocation</span><span class="p">(</span><span class="n">place_island</span><span class="o">.</span><span class="n">pose</span><span class="p">,</span> <span class="n">reachable_for</span><span class="o">=</span><span class="n">robot_designator</span><span class="p">,</span> <span class="n">reachable_arm</span><span class="o">=</span><span class="n">pickup_arm</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+
+    <span class="n">NavigateAction</span><span class="p">(</span><span class="n">target_locations</span><span class="o">=</span><span class="p">[</span><span class="n">place_stand</span><span class="o">.</span><span class="n">pose</span><span class="p">])</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">perform</span><span class="p">()</span>
+
+    <span class="n">PlaceAction</span><span class="p">(</span><span class="n">target_milk_holder_designator</span><span class="p">,</span> <span class="n">target_locations</span><span class="o">=</span><span class="p">[</span><span class="n">place_island</span><span class="o">.</span><span class="n">pose</span><span class="p">],</span> <span class="n">arms</span><span class="o">=</span><span class="p">[</span><span class="n">pickup_arm</span><span class="p">])</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">perform</span><span class="p">()</span>
+
+    <span class="n">ParkArmsAction</span><span class="p">([</span><span class="n">Arms</span><span class="o">.</span><span class="n">BOTH</span><span class="p">])</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">perform</span><span class="p">()</span>
+<span class="n">world</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+<section class="tex2jax_ignore mathjax_ignore" id="save-ontologies-to-an-owl-file">
+<h1>Save ontologies to an OWL file<a class="headerlink" href="#save-ontologies-to-an-owl-file" title="Permalink to this heading">#</a></h1>
+<p>After all the above operations on our ontologies, we now can save them to an OWL file on disk</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ontology_manager</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span><span class="si">}</span><span class="s2">/ontologies/New</span><span class="si">{</span><span class="n">main_ontology</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.owl&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section class="tex2jax_ignore mathjax_ignore" id="optimize-ontology-loading-with-sqlite3">
+<h1>Optimize ontology loading with SQLite3<a class="headerlink" href="#optimize-ontology-loading-with-sqlite3" title="Permalink to this heading">#</a></h1>
+<p>Upon the initial ontology loading from OWL, an SQLite3 file is automatically created, acting as the quadstore cache for the loaded ontologies. This allows them to be <strong>selectively</strong> reusable the next time being loaded.
+More info can be referenced <a class="reference external" href="https://owlready2.readthedocs.io/en/latest/world.html">here</a>.</p>
+</section>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "python"
+        },
+        kernelOptions: {
+            name: "python3",
+            path: "./notebooks"
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'python3'</script>
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#">Ontology interface</a></li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#owlready2">Owlready2</a></li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#ontology-manager">Ontology Manager</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ontology-concept-holder">Ontology Concept Holder</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#query-ontology-classes-and-their-properties">Query ontology classes and their properties</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#create-a-new-ontology-concept-class-and-its-individual">Create a new ontology concept class and its individual</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#access-ontology-concept-classes-and-individuals">Access ontology concept classes and individuals</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#connect-ontology-class-individuals-with-designators">Connect ontology class individuals with designators</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#create-new-ontology-triple-classes">Create new ontology triple classes</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#create-ontology-relations">Create ontology relations</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#query-designators-based-on-their-ontology-concept-relations">Query designators based on their ontology-concept relations</a></li>
+</ul>
+</li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#practical-examples">Practical examples</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#example-1">Example 1</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#example-2">Example 2</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#setup-simulated-environment">Setup simulated environment</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#create-pourableobject-liquidholder-triple-ontology-classes">Create PourableObject-LiquidHolder triple ontology classes</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#spawn-a-pourable-object-liquid-holders-into-the-world-and-create-their-designators">Spawn a pourable object &amp; liquid holders into the world and Create their designators</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#create-an-ontology-relation-between-the-designators-of-the-pourable-object-its-liquid-holders">Create an ontology relation between the designators of the pourable object &amp; its liquid holders</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#set-up-resolve-for-the-ontology-concept-of-the-pourable-object">Set up <code class="docutils literal notranslate"><span class="pre">resolve</span></code> for the ontology concept of the pourable object</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#robot-picks-up-the-target-liquid-holder">Robot picks up the target liquid holder</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#save-ontologies-to-an-owl-file">Save ontologies to an OWL file</a></li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#optimize-ontology-loading-with-sqlite3">Optimize ontology loading with SQLite3</a></li>
+</ul>
+
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Jonas Dech
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2024.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=5b4479735964841361fd"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

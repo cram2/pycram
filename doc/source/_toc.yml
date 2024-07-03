@@ -1,0 +1,29 @@
+# Table of contents
+# Learn more at https://jupyterbook.org/customize/toc.html
+
+format: jb-book
+root: index.rst
+parts:
+  - caption: Getting Started
+    chapters:
+    - file: installation.rst
+  - caption: Examples
+    chapters:
+      - file: designators.rst
+        sections:
+        - file: notebooks/action_designator
+        - file: notebooks/object_designator
+        - file: notebooks/location_designator
+        - file: notebooks/motion_designator
+  - caption: Concepts
+    chapters:
+    - file: ros_utils.rst
+  - caption: Trouble Shooting
+    chapters:
+    - file: trouble_shooting.rst
+    - file: remarks.rst
+
+
+#  - caption: API
+#    chapters:
+#    - file: autoapi/index
