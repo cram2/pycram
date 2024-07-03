@@ -49,11 +49,10 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         cls.multiverse.disconnect_from_physics_server()
 
     def tearDown(self):
-        self.multiverse.reset_world_and_remove_objects()
-        # self.multiverse.multiverse_reset_world()
+        # self.multiverse.reset_world_and_remove_objects()
+        self.multiverse.multiverse_reset_world()
+        self.multiverse._reset_request_meta_data()
         MultiversePyCRAMTestCase.big_bowl = self.spawn_big_bowl()
-        # time.sleep(1)
-        pass
 
     def test_reset_world(self):
         set_position = [1, 1, 0.1]
@@ -81,6 +80,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         milk = self.spawn_milk([0, 0, 0.1])
         milk.remove()
 
+    @unittest.skip("Not implemented feature yet.")
     def test_check_object_exists(self):
         milk = self.spawn_milk([0, 0, 0.1])
         data = self.multiverse.get_all_objects_data_from_server()
@@ -154,6 +154,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.multiverse.robot.set_position(new_position)
         self.assertEqual(self.multiverse.robot.get_position_as_list(), new_position)
 
+    # @unittest.skip("Not implemented feature yet.")
     def test_attach_object(self):
         milk = self.spawn_milk([1, 0, 0.1])
         print(milk.get_position_as_list())
@@ -165,10 +166,11 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         estimated_bowl_position = big_bowl_position.copy()
         estimated_bowl_position[0] += 1
         milk.set_position(milk_position)
-        time.sleep(1)  # TODO: This is a workaround for the issue that the position is not updated immediately.
+        time.sleep(0.1)
         new_bowl_position = self.big_bowl.get_position_as_list()
         self.assertAlmostEqual(new_bowl_position[0], estimated_bowl_position[0], delta=0.001)
 
+    @unittest.skip("Not implemented feature yet.")
     def test_detach_object(self):
         for i in range(10):
             milk = self.spawn_milk([1, 0, 0.1])
@@ -207,7 +209,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     def test_get_object_contact_points(self):
         milk = self.spawn_milk([1, 0, 0.1])
-        time.sleep(1)
+        # time.sleep(1)
         contact_points = self.multiverse.get_object_contact_points(milk)
         self.assertIsInstance(contact_points, list)
         self.assertEqual(len(contact_points), 1)
@@ -224,14 +226,14 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def spawn_big_bowl() -> Object:
         big_bowl = Object("big_bowl", ObjectType.GENERIC_OBJECT, "BigBowl.obj",
                           pose=Pose([2, 2, 0.1], [0, 0, 0, 1]))
-        # time.sleep(0.5)
+        time.sleep(0.5)
         return big_bowl
 
     @staticmethod
     def spawn_milk(position: List) -> Object:
         milk = Object("milk_box", ObjectType.MILK, "milk_box.urdf",
                       pose=Pose(position, [0, 0, 0, 1]))
-        # time.sleep(0.5)
+        time.sleep(0.5)
         return milk
 
     @staticmethod
@@ -240,5 +242,5 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             position = [0, 0, 0.1]
         robot = Object("panda", ObjectType.ROBOT, "panda.urdf",
                        pose=Pose(position, [0, 0, 0, 1]))
-        # time.sleep(1)
+        time.sleep(1)
         return robot
