@@ -214,12 +214,6 @@ class Multiverse(MultiverseSocket, World):
         self.object_name_to_id[name] = self.last_object_id
         self.object_id_to_name[self.last_object_id] = name
 
-        while not self.check_object_exists_in_multiverse(name):
-            print(f"Waiting for object {name} to be loaded in Multiverse")
-            sleep(0.5)
-
-        sleep(0.5)
-
         return self.last_object_id
 
     def _init_spawn_object(self, name: str) -> None:
@@ -239,9 +233,7 @@ class Multiverse(MultiverseSocket, World):
         return [link.name for link in obj.description.links]
 
     def _init_getter(self):
-        self.request_meta_data["receive"] = {}
-        self.request_meta_data["send"] = {}
-        self.request_meta_data["meta_data"]["simulation_name"] = self._meta_data.simulation_name
+        self._reset_request_meta_data()
 
     def get_joint_position(self, joint: Joint) -> float:
         self.check_object_exists_and_issue_warning_if_not(joint.object)
@@ -256,9 +248,8 @@ class Multiverse(MultiverseSocket, World):
         return receive_data[0]
 
     def _init_setter(self):
-        self.request_meta_data["send"] = {}
-        self.request_meta_data["receive"] = {}
-        self.set_simulation_in_request_meta_data()
+        self._reset_request_meta_data()
+        self._set_simulation_in_request_meta_data()
 
     def reset_joint_position(self, joint: Joint, joint_position: float) -> None:
         self._init_setter()
@@ -323,6 +314,7 @@ class Multiverse(MultiverseSocket, World):
         return self.response_meta_data["receive"]
 
     def disconnect_from_physics_server(self) -> None:
+        self._reset_request_meta_data()
         self.stop()
 
     def join_threads(self) -> None:
@@ -335,7 +327,7 @@ class Multiverse(MultiverseSocket, World):
         """
         Remove the object from the simulator.
         """
-        self.set_simulation_in_request_meta_data()
+        self._set_simulation_in_request_meta_data()
         self.request_meta_data["send"][object_name] = []
         self.request_meta_data["receive"][object_name] = []
         self.send_and_receive_meta_data()
@@ -673,29 +665,14 @@ class Multiverse(MultiverseSocket, World):
             logging.error("No API request to send")
             raise ValueError
         self.send_and_receive_meta_data()
-        self.send_and_receive_meta_data()
         self.request_meta_data.pop("api_callbacks")
 
     def _init_api_callback(self):
         """
         Initialize the API callback in the request metadata.
         """
-        self._reset_send_data()
-        self._reset_receive_data()
+        self._reset_request_meta_data()
         self._reset_api_callback()
-        self.set_simulation_in_request_meta_data()
-
-    def _reset_send_data(self):
-        """
-        Reset the send data in the request metadata.
-        """
-        self.request_meta_data["send"] = {}
-
-    def _reset_receive_data(self):
-        """
-        Reset the receive data in the request metadata.
-        """
-        self.request_meta_data["receive"] = {}
 
     def _reset_api_callback(self):
         """
@@ -703,5 +680,18 @@ class Multiverse(MultiverseSocket, World):
         """
         self.request_meta_data["api_callbacks"] = {self.simulation: []}
 
-    def set_simulation_in_request_meta_data(self):
+    def _set_simulation_in_request_meta_data(self):
+        """
+        Set the simulation name in the request metadata. (for e.g. name of simulator in the muv file)
+        """
         self.request_meta_data["meta_data"]["simulation_name"] = self.simulation
+
+    def _reset_request_meta_data(self):
+        """
+        Reset the request metadata.
+        """
+        self.request_meta_data = {
+            "meta_data": self._meta_data.__dict__,
+            "send": {},
+            "receive": {},
+        }

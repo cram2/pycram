@@ -44,6 +44,7 @@ class MultiverseSocket:
         self._send_data = None
         self._client_addr = client_addr
         self._meta_data = multiverse_meta_data
+        self.client_name = self._meta_data.simulation_name
         self._multiverse_socket = MultiverseClientPybind(
             f"{self._server_addr.host}:{self._server_addr.port}"
         )
