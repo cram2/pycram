@@ -63,6 +63,13 @@ class DualArmPickupAction(PickUpAction):
             distances.append(distance)
 
         min_index = distances.index(min(distances))
-        winner = self.gripper_list[min_index]
+        winner_frame = self.gripper_list[min_index]
+
+        if "l_gripper" in winner_frame:
+            winner = "left"
+        elif "r_gripper" in winner_frame:
+            winner = "right"
+        else:
+            raise ValueError(f"Could not determine the winner arm for the pickup action. Winner: {winner_frame}")
 
         return PickUpActionPerformable(object_designator=obj_desig, arm=winner, grasp=self.grasps[0])
