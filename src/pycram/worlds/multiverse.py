@@ -1,11 +1,11 @@
 import logging
 import os
 from dataclasses import dataclass
-from time import time, sleep
+from time import time
 
-from typing_extensions import List, Dict, Optional, Tuple
-from tf.transformations import quaternion_matrix
 import numpy as np
+from tf.transformations import quaternion_matrix
+from typing_extensions import List, Dict, Optional, Tuple
 
 from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
 from ..datastructures.enums import WorldMode, JointType, ObjectType
@@ -96,6 +96,7 @@ class APIDataDict(dict):
     """
     A dictionary to store the API data, where the key is the API name and the value is the parameters.
     """
+
     @classmethod
     def from_list(cls, api_data_list: List[APIData]) -> "APIDataDict":
         data = {api_data.api_name: api_data.params for api_data in api_data_list}
@@ -237,8 +238,9 @@ class Multiverse(MultiverseSocket, World):
 
     def get_joint_position(self, joint: Joint) -> float:
         self.check_object_exists_and_issue_warning_if_not(joint.object)
-        self._init_getter()
         attribute = self.get_joint_position_name(joint)
+        self._check_for_get(joint.name, [attribute])
+        self._init_getter()
         self.request_meta_data["receive"][joint.name] = [attribute]
         self.send_and_receive_meta_data()
         receive_data = self.response_meta_data["receive"][joint.name][attribute]
@@ -267,7 +269,17 @@ class Multiverse(MultiverseSocket, World):
         self.check_object_exists_and_issue_warning_if_not(obj)
         return self._get_body_pose(obj.name)
 
+    def _check_for_get(self, object_name: str, object_props: List[str]) -> None:
+        while True:
+            self._init_getter()
+            self.request_meta_data["receive"][""] = [""]
+            self.send_and_receive_meta_data()
+            if (object_name in self.response_meta_data["receive"] and
+                    all([prop in self.response_meta_data["receive"][object_name] for prop in object_props])):
+                break
+
     def _get_body_pose(self, body_name: str) -> Pose:
+        self._check_for_get(body_name, ["position", "quaternion"])
         self._init_getter()
         self.request_meta_data["receive"][body_name] = ["position", "quaternion"]
         self.send_and_receive_meta_data()
@@ -691,7 +703,7 @@ class Multiverse(MultiverseSocket, World):
         Reset the request metadata.
         """
         self.request_meta_data = {
-            "meta_data": self._meta_data.__dict__,
+            "meta_data": self._meta_data.__dict__.copy(),
             "send": {},
             "receive": {},
         }
