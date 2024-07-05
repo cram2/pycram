@@ -6,7 +6,7 @@ import tf
 class StretchDescription(RobotDescription):
 
     def __init__(self):
-        super().__init__("stretch", "base_link", "base_link", "link_lift", "joint_lift")
+        super().__init__("stretch_description", "base_link", "base_link", "link_lift", "joint_lift")
 
         realsense_color = CameraDescription('camera_color_optical_frame', horizontal_angle=1.047, vertical_angle=0.785,
                                             minimal_height=1.322, maximal_height=1.322)
