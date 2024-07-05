@@ -281,7 +281,7 @@ class StretchCloseReal(ProcessModule):
 
 class StretchManager(ProcessModuleManager):
     def __init__(self):
-        super().__init__("stretch")
+        super().__init__("stretch_description")
         self._navigate_lock = Lock()
         self._looking_lock = Lock()
         self._detecting_lock = Lock()

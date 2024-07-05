@@ -6,7 +6,7 @@ import rospy
 import sys
 import rosnode
 
-from ..datastructures.enums import JointType
+from ..datastructures.enums import JointType, ObjectType
 from ..datastructures.pose import Pose
 from ..robot_descriptions import robot_description
 from ..datastructures.world import World
@@ -130,18 +130,17 @@ def sync_worlds() -> None:
     add_gripper_groups()
     world_object_names = set()
     for obj in World.current_world.objects:
-        if obj.name != robot_description.name and len(obj.link_name_to_id) != 1:
+        if obj.name != robot_description.name and obj.obj_type != ObjectType.ROBOT and len(obj.link_name_to_id) != 1:
             world_object_names.add(obj.name)
-        if obj.name == robot_description.name:
+        if obj.name == robot_description.name or obj.obj_type == ObjectType.ROBOT:
             joint_config = obj.get_positions_of_all_joints()
             non_fixed_joints = list(filter(lambda joint: joint.type != JointType.FIXED, obj.joints.values()))
             joint_config_filtered = {joint.name: joint_config[joint.name] for joint in non_fixed_joints}
 
-            giskard_wrapper.motion_goals.set_seed_configuration(joint_config_filtered,
+            giskard_wrapper.monitors.add_set_seed_configuration(joint_config_filtered,
                                                                 robot_description.name)
-            giskard_wrapper.motion_goals.set_seed_odometry(_pose_to_pose_stamped(obj.get_pose()),
+            giskard_wrapper.monitors.add_set_seed_odometry(_pose_to_pose_stamped(obj.get_pose()),
                                                            robot_description.name)
-
     giskard_object_names = set(giskard_wrapper.get_group_names())
     robot_name = {robot_description.name}
     if not world_object_names.union(robot_name).issubset(giskard_object_names):
@@ -597,7 +596,6 @@ def add_gripper_groups() -> None:
         for name in giskard_wrapper.get_group_names():
             if "gripper" in name:
                 return
-
         for name, description in robot_description.chains.items():
             if isinstance(description, ManipulatorDescription):
                 root_link = robot_description.chains[name].gripper.links[-1]
