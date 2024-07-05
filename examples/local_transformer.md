@@ -1,0 +1,127 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .md
+      format_name: markdown
+      format_version: '1.3'
+      jupytext_version: 1.16.2
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+# Local Transformer
+The local transformer is used to handle transforms between different frames in PyCRAM. This is useful when you want to transform a pose from one frame to another, for example, from the map frame to the frame of an object. This example will introduce the Local Transformer and how to use it to transform poses between frames.
+
+## Setting up the Environment
+
+This step involves importing the required modules and initializing key components for our tasks.
+
+
+```python
+from pycram.bullet_world import BulletWorld, Object
+from pycram.pose import Transform, Pose
+from pycram.local_transformer import LocalTransformer
+```
+
+
+## Initializing the World
+
+Every robot simulation requires a world where it can interact. This world serves as the playground where the robot performs tasks. 
+Let's start by creating this world.
+
+Since the local transformer can only transform between frames of objects which are in the world, we need to create a world first.
+
+
+```python
+# Create an instance of the BulletWorld
+world = BulletWorld()
+
+```
+
+The world can be closed by calling the exit method of the world, but don't call this method yet since it would close the world.
+
+```python
+world.exit()
+```
+
+
+## Adding Objects to the World
+
+For our robot to perform meaningful tasks, we need to populate its world with objects. 
+In this section, we'll add a variety of objects, from a simple floor plane to kitchen setups and items like milk and bowls. 
+These objects will be used in subsequent tasks, to provide the frames to which we will transform poses.
+
+
+```python
+from pycram.bullet_world import Object
+from pycram.enums import ObjectType
+
+kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
+milk = Object("milk", ObjectType.MILK, "milk.stl", Pose([0.9, 1, 0.95]))
+bowl = Object("bowl", ObjectType.BOWL, "bowl.stl", Pose([1.6, 1, 0.90]))
+```
+
+## Creating a Local Transfomer
+The local transformer is implemented as a singelton, meaing regardless of how much and where an instance is created it will always be the same instance. This is done since the local transfomer collects all transformations between frames and would there always be a new instance, all transformations woulb need to be re-collected. 
+
+```python
+from pycram.local_transformer import LocalTransformer
+
+local_transformer = LocalTransformer()
+print(local_transformer)
+
+new_local_transformer = LocalTransformer()
+print(new_local_transformer)
+```
+
+## Transformations with LocalTransformer
+Now that we have our world set up, let's perform some transformations. We'll use the LocalTransformer to transform poses relative to our objects.
+
+```python
+from pycram.local_transformer import LocalTransformer
+
+l = LocalTransformer()
+test_pose = Pose([1, 1, 1], [0, 0, 0, 1], "map")
+
+transformed_pose = l.transform_pose_to_object_frame(test_pose, milk)
+print(transformed_pose)
+
+print("-------------------")
+new_pose = l.transform_pose(transformed_pose, "map")
+print(new_pose)
+```
+
+In the above code, we first transformed a pose to the object frame of the milk object, and then we transformed it back to the map frame. This demonstrates how we can easily manipulate poses relative to objects in our environment.
+You can also transform poses relative to other poses. by using the transform_pose method. Further you can set a Transform.
+
+```python
+from pycram.pose import Transform
+
+l.setTransform(Transform([1, 1, 1], [0, 0, 0, 1], "map", "test_frame"))
+p = Pose()
+
+transformed_pose = l.transform_pose(p, "test_frame")
+```
+
+You can also set a Pose to an object and update the transforms for that object. However, this is usually done in the background when necessary so you should only use this method if there is something wrong with the Transformation.
+
+```python
+milk.set_pose(Pose([1, 2, 1]))
+l.update_transforms_for_object(milk)
+```
+
+## Transformation frames
+As you can see in the example above the frame_id of the object is not 'milk' but 'milk_4'. This is done since frame_ids need to be unique, however, the name of an Object does not. To solve this problem the name of an Object is concatenated with a unique id therefore making it unique. 
+
+Furthermore, links of an Object are represented by the Object frame_id + '/' + link name. Since link names need to be unique for an URDF this is no problem.
+
+These frames need to be used in whenever you are transforming something with the local transformer. To get the base frame of an Object, meaning the frame name without any link there is the attribute tf_frame and for the frame of a link there is the collection links from which you can access all link objects by name, link objects also have the attribute tf_frame which gives the tf_frame of the link. 
+
+```python
+print(milk.tf_frame)
+
+print(kitchen.get_link_tf_frame("kitchen_island_surface"))
+```
