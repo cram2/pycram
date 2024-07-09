@@ -297,7 +297,7 @@ class Multiverse(MultiverseSocket, World):
         self._reset_body_pose(obj.name, pose)
 
     def multiverse_reset_world(self):
-        self._init_setter()
+        self._reset_request_meta_data()
         self.send_and_receive_meta_data()
         self.send_data = [0]
         self.send_and_receive_data()
@@ -352,7 +352,8 @@ class Multiverse(MultiverseSocket, World):
             logging.error("Only fixed constraints are supported in Multiverse")
             raise ValueError
 
-        self._request_attach(constraint)
+        if not self.set_attached_objects_poses:
+            self._request_attach(constraint)
 
         self.last_constraint_id += 1
 
@@ -553,7 +554,7 @@ class Multiverse(MultiverseSocket, World):
 
     def check_object_exists_and_issue_warning_if_not(self, obj: Object):
         if obj not in self.objects:
-            logging.warning(f"Object {obj.name} does not exist in the simulator")
+            logging.warning(f"Object {obj} does not exist in the simulator")
 
     def check_object_exists_in_multiverse(self, object_name: str) -> bool:
         result = self._request_check_object_exists(object_name)[0]

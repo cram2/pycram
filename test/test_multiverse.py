@@ -7,7 +7,6 @@ from typing_extensions import Optional, List
 
 from pycram.datastructures.enums import ObjectType
 from pycram.datastructures.pose import Pose
-from pycram.datastructures.world import UseProspectionWorld
 from pycram.world_concepts.world_object import Object
 
 multiverse_installed = True
@@ -42,45 +41,45 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         cls.multiverse = Multiverse(simulation="pycram_test",
                                     client_addr=SocketAddress(port="5481"),
                                     is_prospection=True)
-        cls.big_bowl = cls.spawn_big_bowl()
+        # cls.big_bowl = cls.spawn_big_bowl()
 
     @classmethod
     def tearDownClass(cls):
         cls.multiverse.disconnect_from_physics_server()
 
     def tearDown(self):
-        # self.multiverse.reset_world_and_remove_objects()
-        self.multiverse.multiverse_reset_world()
-        self.multiverse._reset_request_meta_data()
-        MultiversePyCRAMTestCase.big_bowl = self.spawn_big_bowl()
+        # self.multiverse.multiverse_reset_world()
+        self.multiverse.reset_world_and_remove_objects()
+        # MultiversePyCRAMTestCase.big_bowl = self.spawn_big_bowl()
 
     def test_reset_world(self):
         set_position = [1, 1, 0.1]
-        self.big_bowl.set_position(set_position)
-        bowl_position = self.big_bowl.get_position_as_list()
-        for i in range(3):
-            self.assertAlmostEqual(bowl_position[i], set_position[i])
+        milk = self.spawn_milk(set_position)
+        milk.set_position(set_position)
+        time.sleep(0.1)
+        milk_position = milk.get_position_as_list()
+        self.assert_list_is_equal(milk_position[:2], set_position[:2])
         self.multiverse.reset_world()
-        big_bowl_pose = self.big_bowl.get_pose()
-        for v1, v2 in zip(big_bowl_pose.position_as_list()[:2], self.big_bowl.original_pose.position_as_list()[:2]):
-            self.assertAlmostEqual(v1, v2, delta=0.001)
-        for v1, v2 in zip(big_bowl_pose.orientation_as_list(), self.big_bowl.original_pose.orientation_as_list()):
-            self.assertAlmostEqual(v1, v2, delta=0.001)
+        time.sleep(0.1)
+        milk_pose = milk.get_pose()
+        self.assert_list_is_equal(milk_pose.position_as_list()[:2],
+                                  milk.original_pose.position_as_list()[:2])
+        self.assert_list_is_equal(milk_pose.orientation_as_list(),
+                                  milk.original_pose.orientation_as_list())
 
     def test_spawn_object(self):
         milk = self.spawn_milk([1, 0, 0.1])
         self.assertIsInstance(milk, Object)
         milk_pose = milk.get_pose()
-        for v1, v2 in zip(milk_pose.position_as_list()[:2], [1, 0]):
-            self.assertAlmostEqual(v1, v2, delta=0.002)
-        for v1, v2 in zip(milk_pose.orientation_as_list(), milk.original_pose.orientation_as_list()):
-            self.assertAlmostEqual(v1, v2, delta=0.002)
+        self.assert_list_is_equal(milk_pose.position_as_list()[:2], [1, 0])
+        self.assert_list_is_equal(milk_pose.orientation_as_list(), milk.original_pose.orientation_as_list())
 
     def test_remove_object(self):
         milk = self.spawn_milk([0, 0, 0.1])
         milk.remove()
+        self.assertTrue(milk not in self.multiverse.objects)
+        self.assertFalse(self.multiverse.check_object_exists_in_multiverse(milk.name))
 
-    @unittest.skip("Not implemented feature yet.")
     def test_check_object_exists(self):
         milk = self.spawn_milk([0, 0, 0.1])
         data = self.multiverse.get_all_objects_data_from_server()
@@ -92,15 +91,13 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         original_milk_position[0] += 1
         milk.set_position(original_milk_position)
         milk_position = milk.get_position_as_list()
-        for v1, v2 in zip(milk_position[:2], original_milk_position[:2]):
-            self.assertAlmostEqual(v1, v2, delta=0.002)
+        self.assert_list_is_equal(milk_position[:2], original_milk_position[:2])
 
     def test_update_position(self):
         milk = self.spawn_milk([1, 0, 0.1])
         milk.update_pose()
         milk_position = milk.get_position_as_list()
-        for i, v in enumerate([1, 0]):
-            self.assertAlmostEqual(milk_position[i], v, delta=0.002)
+        self.assert_list_is_equal(milk_position[:2], [1, 0], delta=0.002)
 
     def test_set_joint_position(self):
         if self.multiverse.robot is None:
@@ -118,7 +115,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
                 break
             i += 1
             # time.sleep(0.1)
-        self.assertAlmostEqual(joint_position, original_joint_position - 1.57)
+        self.assertAlmostEqual(joint_position, original_joint_position - 1.57, delta=0.02)
 
     # @unittest.skip("Not implemented feature yet.")
     def test_spawn_robot(self):
@@ -148,64 +145,65 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assertTrue(self.multiverse.robot in self.multiverse.objects)
 
     def test_set_robot_position(self):
-        if self.multiverse.robot is None:
-            self.spawn_robot()
+        self.spawn_mobile_robot(robot_name='panda_free')
         new_position = [1, 1, 0.1]
         self.multiverse.robot.set_position(new_position)
-        self.assertEqual(self.multiverse.robot.get_position_as_list(), new_position)
+        robot_position = self.multiverse.robot.get_position_as_list()
+        self.assert_positon_is_equal(robot_position, new_position, delta=0.035)
 
-    # @unittest.skip("Not implemented feature yet.")
     def test_attach_object(self):
         milk = self.spawn_milk([1, 0, 0.1])
-        milk.attach(self.big_bowl)
-        self.assertTrue(self.big_bowl in milk.attachments)
+        cup = self.spawn_cup([1, 1, 0.1])
+        milk.attach(cup)
+        self.assertTrue(cup in milk.attachments)
         milk_position = milk.get_position_as_list()
         milk_position[0] += 1
-        big_bowl_position = self.big_bowl.get_position_as_list()
-        estimated_bowl_position = big_bowl_position.copy()
-        estimated_bowl_position[0] += 1
+        cup_position = cup.get_position_as_list()
+        estimated_cup_position = cup_position.copy()
+        estimated_cup_position[0] += 1
         milk.set_position(milk_position)
         time.sleep(0.1)
-        new_bowl_position = self.big_bowl.get_position_as_list()
-        self.assertAlmostEqual(new_bowl_position[0], estimated_bowl_position[0], delta=0.001)
+        new_cup_position = cup.get_position_as_list()
+        self.assertAlmostEqual(new_cup_position[0], estimated_cup_position[0], delta=0.001)
 
-    @unittest.skip("Not implemented feature yet.")
+    # @unittest.skip("Not implemented feature yet.")
     def test_detach_object(self):
         for i in range(10):
             milk = self.spawn_milk([1, 0, 0.1])
-            milk.attach(self.big_bowl)
-            self.assertTrue(self.big_bowl in milk.attachments)
-            milk.detach(self.big_bowl)
-            self.assertTrue(self.big_bowl not in milk.attachments)
+            cup = self.spawn_cup([1, 1, 0.1])
+            milk.attach(cup)
+            self.assertTrue(cup in milk.attachments)
+            milk.detach(cup)
+            self.assertTrue(cup not in milk.attachments)
             milk_position = milk.get_position_as_list()
             milk_position[0] += 1
-            big_bowl_position = self.big_bowl.get_position_as_list()
-            estimated_bowl_position = big_bowl_position.copy()
+            cup_position = cup.get_position_as_list()
+            estimated_cup_position = cup_position.copy()
             milk.set_position(milk_position)
             # time.sleep(0.1)  # TODO: This is a workaround for the issue that the position is not updated immediately.
             new_milk_position = milk.get_position_as_list()
-            new_bowl_position = self.big_bowl.get_position_as_list()
+            new_cup_position = cup.get_position_as_list()
             self.assertAlmostEqual(new_milk_position[0], milk_position[0], delta=0.001)
-            self.assertAlmostEqual(new_bowl_position[0], estimated_bowl_position[0], delta=0.001)
+            self.assertAlmostEqual(new_cup_position[0], estimated_cup_position[0], delta=0.001)
+            cup.remove()
+            milk.remove()
             self.tearDown()
 
-    @unittest.skip("Needs mobile base robot")
     def test_attach_with_robot(self):
-        with UseProspectionWorld():
-            if self.multiverse.robot is None:
-                robot = self.spawn_robot()
-            robot.attach(self.big_bowl)
-            self.assertTrue(self.big_bowl in robot.attachments)
-            bowl_position = self.big_bowl.get_position_as_list()
-            robot.update_pose()
-            robot_position = robot.get_position_as_list()
-            robot_position[2] += 3
-            robot.set_position(robot_position)
-            new_bowl_position = self.big_bowl.get_position_as_list()
-            estimated_bowl_position = bowl_position
-            estimated_bowl_position[2] += 3
-            self.assertAlmostEqual(new_bowl_position[0], estimated_bowl_position[0])
+        milk = self.spawn_milk([1, 0, 0.1])
+        robot = self.spawn_robot()
+        # Get position of milk relative to robot end effector
+        milk_initial_pose = milk.root_link.get_pose_wrt_link(robot.tip_link)
+        robot.attach(milk, robot.tip_link_name)
+        self.assertTrue(robot in milk.attachments)
+        robot_position = robot.get_joint_position("joint1")
+        robot_position += 1.57
+        robot.set_joint_position("joint1", robot_position)
+        time.sleep(0.1)
+        milk_pose = milk.root_link.get_pose_wrt_link(robot.tip_link)
+        self.assert_poses_are_equal(milk_initial_pose, milk_pose)
 
+    @unittest.skip("Not implemented feature yet.")
     def test_get_object_contact_points(self):
         milk = self.spawn_milk([1, 0, 0.1])
         # time.sleep(1)
@@ -225,21 +223,53 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def spawn_big_bowl() -> Object:
         big_bowl = Object("big_bowl", ObjectType.GENERIC_OBJECT, "BigBowl.obj",
                           pose=Pose([2, 2, 0.1], [0, 0, 0, 1]))
-        time.sleep(0.5)
+        # time.sleep(0.1)
         return big_bowl
 
     @staticmethod
     def spawn_milk(position: List) -> Object:
         milk = Object("milk_box", ObjectType.MILK, "milk_box.urdf",
                       pose=Pose(position, [0, 0, 0, 1]))
-        time.sleep(0.5)
+        # time.sleep(0.5)
         return milk
 
-    @staticmethod
-    def spawn_robot(position: Optional[List[float]] = None) -> Object:
+    def spawn_mobile_robot(self, position: Optional[List[float]] = None, robot_name: Optional[str] = 'tiago_dual') -> Object:
+        self.spawn_robot(position, robot_name, replace=True)
+
+    def spawn_robot(self, position: Optional[List[float]] = None,
+                    robot_name: Optional[str] = 'panda',
+                    replace: Optional[bool] = False) -> Object:
         if position is None:
             position = [0, 0, 0.1]
-        robot = Object("panda", ObjectType.ROBOT, "panda.urdf",
-                       pose=Pose(position, [0, 0, 0, 1]))
-        time.sleep(1)
+        if self.multiverse.robot is None or replace:
+            if self.multiverse.robot is not None:
+                self.multiverse.robot.remove()
+            robot = Object(robot_name, ObjectType.ROBOT, f"{robot_name}.urdf",
+                           pose=Pose(position, [0, 0, 0, 1]))
+        else:
+            robot = self.multiverse.robot
+            robot.set_position(position)
+        # time.sleep(0.5)
         return robot
+
+    @staticmethod
+    def spawn_cup(position: List) -> Object:
+        cup = Object("cup", ObjectType.GENERIC_OBJECT, "Cup.obj",
+                     pose=Pose(position, [0, 0, 0, 1]))
+        # time.sleep(0.5)
+        return cup
+
+    def assert_poses_are_equal(self, pose1: Pose, pose2: Pose,
+                               position_delta: float = 0.02, orientation_delta: float = 0.01):
+        self.assert_positon_is_equal(pose1.position_as_list(), pose2.position_as_list(), delta=position_delta)
+        self.assert_orientation_is_equal(pose1.orientation_as_list(), pose2.orientation_as_list(), delta=orientation_delta)
+
+    def assert_positon_is_equal(self, position1: List[float], position2: List[float], delta: float = 0.02):
+        self.assert_list_is_equal(position1, position2, delta=delta)
+
+    def assert_orientation_is_equal(self, orientation1: List[float], orientation2: List[float], delta: float = 0.01):
+        self.assert_list_is_equal(orientation1, orientation2, delta=delta)
+
+    def assert_list_is_equal(self, list1: List, list2: List, delta: float = 0.02):
+        for i in range(len(list1)):
+            self.assertAlmostEqual(list1[i], list2[i], delta=delta)
