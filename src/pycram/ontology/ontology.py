@@ -84,10 +84,12 @@ class OntologyManager(object, metaclass=Singleton):
         # Load ontologies from `main_ontology_iri` to `main_ontology_world`
         # If `main_ontology_iri` is a remote URL, Owlready2 first searches for a local copy of the OWL file (from `onto_path`),
         # if not found, tries to download it from the Internet.
-        self.main_ontology, self.main_ontology_namespace = self.load_ontology(self.main_ontology_iri)
-        if self.main_ontology.loaded:
-            self.soma = self.ontologies.get(SOMA_ONTOLOGY_NAMESPACE)
-            self.dul = self.ontologies.get(DUL_ONTOLOGY_NAMESPACE)
+        ontology_info = self.load_ontology(self.main_ontology_iri)
+        if ontology_info:
+            self.main_ontology, self.main_ontology_namespace = ontology_info
+            if self.main_ontology and self.main_ontology.loaded:
+                self.soma = self.ontologies.get(SOMA_ONTOLOGY_NAMESPACE)
+                self.dul = self.ontologies.get(DUL_ONTOLOGY_NAMESPACE)
 
     @staticmethod
     def print_ontology_class(ontology_class: Type[Thing]):
@@ -187,7 +189,7 @@ class OntologyManager(object, metaclass=Singleton):
             rospy.loginfo(f"Created a new ontology world with SQL backend: {sql_backend_name}")
         return world
 
-    def load_ontology(self, ontology_iri: str) -> tuple[Optional[Ontology], Optional[Namespace]]:
+    def load_ontology(self, ontology_iri: str) -> Optional[Tuple[Ontology, Namespace]]:
         """
         Load an ontology from an IRI
 
@@ -196,7 +198,7 @@ class OntologyManager(object, metaclass=Singleton):
         """
         if not ontology_iri:
             rospy.logerr("Ontology IRI is empty")
-            return None, None
+            return None
 
         # If `ontology_iri` is a local path -> create an empty ontology file if not existing
         if not (ontology_iri.startswith("http:") or ontology_iri.startswith("https:")) \
@@ -231,7 +233,7 @@ class OntologyManager(object, metaclass=Singleton):
 
         :return: True if loaded, otherwise False
         """
-        return hasattr(self, "main_ontology") and self.main_ontology.loaded
+        return hasattr(self, "main_ontology") and self.main_ontology and self.main_ontology.loaded
 
     @staticmethod
     def browse_ontologies(ontology: Ontology,
