@@ -22,7 +22,7 @@ java_runtime_installed = owlready2 is not None
 if owlready2:
     try:
         subprocess.run(["java", "--version"], check=True)
-    except subprocess.CalledProcessError:
+    except (FileNotFoundError, subprocess.CalledProcessError):
         java_runtime_installed = False
         rospy.logwarn("Java runtime is not installed, Ontology reasoning unit-test could not run!")
 
