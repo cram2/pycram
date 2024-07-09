@@ -10,11 +10,21 @@ from pycram.designator import ObjectDesignatorDescription
 
 import rospy
 
+# Owlready2
 try:
     from owlready2 import *
 except ImportError:
     owlready2 = None
     rospy.logwarn("Could not import owlready2, Ontology unit-tests could not run!")
+
+# Java runtime, required by Owlready2 reasoning
+java_runtime_installed = owlready2 is not None
+if owlready2:
+    try:
+        subprocess.run(["java", "--version"], check=True)
+    except subprocess.CalledProcessError:
+        java_runtime_installed = False
+        rospy.logwarn("Java runtime is not installed, Ontology reasoning unit-test could not run!")
 
 from pycram.ontology.ontology import OntologyManager, SOMA_HOME_ONTOLOGY_IRI, SOMA_ONTOLOGY_IRI
 from pycram.ontology.ontology_common import (OntologyConceptHolderStore, OntologyConceptHolder,
@@ -60,9 +70,8 @@ class TestOntologyManager(unittest.TestCase):
         if owlready2:
             self.assertTrue(self.ontology_manager.initialized())
 
+    @unittest.skipUnless(owlready2, 'Owlready2 is required')
     def test_ontology_world(self):
-        if not owlready2:
-            return
         # Main ontology world as the global default world
         main_world = self.ontology_manager.main_ontology_world
         self.assertIsNotNone(main_world)
@@ -90,18 +99,16 @@ class TestOntologyManager(unittest.TestCase):
         # Remove SQL file finally
         self.remove_sql_file(extra_world_sql_filename)
 
+    @unittest.skipUnless(owlready2, 'Owlready2 is required')
     def test_ontology_concept_holder(self):
-        if not owlready2:
-            return
         dynamic_ontology_concept_class = self.ontology_manager.create_ontology_concept_class('DynamicOntologyConcept')
         dynamic_ontology_concept_holder = OntologyConceptHolder(
             dynamic_ontology_concept_class(name='dynamic_ontology_concept1',
                                            namespace=self.main_ontology))
         self.assertTrue(owlready2.isinstance_python(dynamic_ontology_concept_holder.ontology_concept, owlready2.Thing))
 
+    @unittest.skipUnless(owlready2, 'Owlready2 is required')
     def test_loaded_ontologies(self):
-        if not owlready2:
-            return
         self.assertIsNotNone(self.main_ontology)
         self.assertTrue(self.main_ontology.loaded)
         if self.ontology_manager.main_ontology_iri is SOMA_ONTOLOGY_IRI or \
@@ -111,9 +118,8 @@ class TestOntologyManager(unittest.TestCase):
             self.assertIsNotNone(self.dul)
             self.assertTrue(self.dul.loaded)
 
+    @unittest.skipUnless(owlready2, 'Owlready2 is required')
     def test_ontology_concept_class_dynamic_creation(self):
-        if not owlready2:
-            return
         dynamic_ontology_concept_class = self.ontology_manager.create_ontology_concept_class('DynamicOntologyConcept')
         self.assertIsNotNone(dynamic_ontology_concept_class)
         self.assertEqual(dynamic_ontology_concept_class.namespace, self.main_ontology)
@@ -123,9 +129,8 @@ class TestOntologyManager(unittest.TestCase):
                                                                   namespace=self.main_ontology)
         self.assertTrue(owlready2.isinstance_python(dynamic_ontology_concept, owlready2.Thing))
 
+    @unittest.skipUnless(owlready2, 'Owlready2 is required')
     def test_ontology_triple_classes_dynamic_creation(self):
-        if not owlready2:
-            return
         # Test dynamic triple classes creation without inheritance from existing parent ontology classes
         self.assertTrue(self.ontology_manager.create_ontology_triple_classes(subject_class_name="OntologySubject",
                                                                              object_class_name="OntologyObject",
@@ -190,9 +195,8 @@ class TestOntologyManager(unittest.TestCase):
         self.assertTrue(len(egg_tray_holdables) == 1)
         self.assertEqual(egg_tray_holdables[0], ["egg"])
 
+    @unittest.skipUnless(owlready2, 'Owlready2 is required')
     def test_ontology_class_destruction(self):
-        if not owlready2:
-            return
         concept_class_name = 'DynamicOntologyConcept'
         dynamic_ontology_concept_class = self.ontology_manager.create_ontology_concept_class(concept_class_name)
         OntologyConceptHolder(dynamic_ontology_concept_class(name='dynamic_ontology_concept3',
@@ -202,11 +206,9 @@ class TestOntologyManager(unittest.TestCase):
         self.assertIsNone(self.ontology_manager.get_ontology_class(concept_class_name))
         self.assertFalse(OntologyConceptHolderStore().get_ontology_concepts_by_class(dynamic_ontology_concept_class))
 
-    #@unittest.skip("owlready2 reasoning requires Java runtime, which is available only for CI running on master/dev")
+    @unittest.skipUnless(owlready2, 'Owlready2 is required')
+    @unittest.skipUnless(java_runtime_installed, 'Java runtime is required')
     def test_ontology_reasoning(self):
-        if not owlready2:
-            return
-
         REASONING_TEST_ONTOLOGY_IRI = f"reasoning_test{ONTOLOGY_OWL_FILE_EXTENSION}"
         ENTITY_CONCEPT_NAME = "Entity"
         CAN_TRANSPORT_PREDICATE_NAME = "can_transport"
@@ -289,10 +291,8 @@ class TestOntologyManager(unittest.TestCase):
                     if i != j:
                         self.assertTrue(coresidents(entities[i], entities[j]))
 
+    @unittest.skipUnless(owlready2, 'Owlready2 is required')
     def test_ontology_save(self):
-        if not owlready2:
-            return
-
         save_dir = self.ontology_manager.get_main_ontology_dir()
         owl_filepath = f"{save_dir}/{Path(self.ontology_manager.main_ontology_iri).stem}{ONTOLOGY_OWL_FILE_EXTENSION}"
         sql_filepath = f"{save_dir}/{Path(owl_filepath).stem}{ONTOLOGY_SQL_BACKEND_FILE_EXTENSION}"
