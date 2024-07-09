@@ -4,26 +4,43 @@
 format: jb-book
 root: index.rst
 parts:
-  - caption: Getting Started
-    chapters:
-    - file: installation.rst
-  - caption: Examples
-    chapters:
-      - file: designators.rst
-        sections:
-        - file: notebooks/action_designator
-        - file: notebooks/object_designator
-        - file: notebooks/location_designator
-        - file: notebooks/motion_designator
-  - caption: Concepts
-    chapters:
-    - file: ros_utils.rst
-  - caption: Trouble Shooting
-    chapters:
-    - file: trouble_shooting.rst
-    - file: remarks.rst
+- caption: Getting Started
+  chapters:
+  - file: installation.rst
+
+- caption: Concepts
+  chapters:
+  - file: ros_utils.rst
+- caption: Trouble Shooting
+  chapters:
+  - file: troubleshooting.rst
+  - file: remarks.rst
 
 
-#  - caption: API
-#    chapters:
-#    - file: autoapi/index
+- caption: Examples
+  chapters:
+    - file: designators.rst
+      sections:
+      - file: notebooks/action_designator
+      - file: notebooks/object_designator
+      - file: notebooks/location_designator
+      - file: notebooks/motion_designator
+    - file: notebooks/intro
+    - file: orm.rst
+      sections:
+      - file: notebooks/orm_example
+      - file: notebooks/orm_querying_examples
+      - file: notebooks/migrate_neems
+    - file: datastructures.rst
+      sections:
+      - file: notebooks/language
+      - file: notebooks/local_transformer
+      - file: notebooks/pose
+      - file: notebooks/ontology
+
+#      - caption: World
+#      - file: notebooks/bullet_world
+
+- caption: API
+  chapters:
+  - file: autoapi/index
