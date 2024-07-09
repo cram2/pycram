@@ -24,7 +24,7 @@ from typing_extensions import Type, List, Dict, Any, Optional, Union, get_type_h
 from .local_transformer import LocalTransformer
 from .language import Language
 from .datastructures.pose import Pose
-from .robot_descriptions import robot_description
+from .robot_description import RobotDescription
 from .datastructures.enums import ObjectType
 
 import logging
@@ -406,7 +406,7 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
 
         def __post_init__(self):
             self.robot_position = World.robot.get_pose()
-            self.robot_torso_height = World.robot.get_joint_position(robot_description.torso_joint)
+            self.robot_torso_height = World.robot.get_joint_position(RobotDescription.current_robot_description.torso_joint)
             self.robot_type = World.robot.obj_type
 
         @with_tree
@@ -651,7 +651,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
                     pose_in_object.pose.position.x += value[0]
                     pose_in_object.pose.position.y += value[1]
                     pose_in_object.pose.position.z += value[2]
-                    rospy.loginfo("Adjusted target pose based on special knowledge for grasp: ", grasp)
+                    rospy.loginfo("Adjusted target pose based on special knowledge for grasp: %s", grasp)
                     return pose_in_object
             return pose
 

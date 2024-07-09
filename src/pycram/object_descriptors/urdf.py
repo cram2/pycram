@@ -10,12 +10,13 @@ from urdf_parser_py import urdf
 from urdf_parser_py.urdf import (URDF, Collision, Box as URDF_Box, Cylinder as URDF_Cylinder,
                                  Sphere as URDF_Sphere, Mesh as URDF_Mesh)
 
-from pycram.datastructures.enums import JointType
-from pycram.datastructures.pose import Pose
-from pycram.description import JointDescription as AbstractJointDescription, \
+from ..datastructures.enums import JointType
+from ..datastructures.pose import Pose
+from ..description import JointDescription as AbstractJointDescription, \
     LinkDescription as AbstractLinkDescription, ObjectDescription as AbstractObjectDescription
-from pycram.datastructures.dataclasses import Color, VisualShape, BoxVisualShape, CylinderVisualShape, \
+from ..datastructures.dataclasses import Color, VisualShape, BoxVisualShape, CylinderVisualShape, \
     SphereVisualShape, MeshVisualShape
+from ..utils import suppress_stdout_stderr
 
 
 class LinkDescription(AbstractLinkDescription):
@@ -173,7 +174,8 @@ class ObjectDescription(AbstractObjectDescription):
 
     def load_description(self, path) -> URDF:
         with open(path, 'r') as file:
-            return URDF.from_xml_string(file.read())
+            with suppress_stdout_stderr():
+                return URDF.from_xml_string(file.read())
 
     def generate_from_mesh_file(self, path: str, name: str, color: Optional[Color] = Color()) -> str:
         """

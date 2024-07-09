@@ -13,7 +13,7 @@ from pycram.designators.object_designator import ObjectDesignatorDescription
 from pycram.process_module import ProcessModule
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import Pose
-from pycram.robot_descriptions import robot_description
+from pycram.robot_description import RobotDescription
 from pycram.tasktree import with_tree
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.designators.specialized_designators.location.database_location import DatabaseCostmapLocation
@@ -37,7 +37,7 @@ class DatabaseResolverTestCase(unittest.TestCase,):
         global pycrorm_uri
         cls.world = BulletWorld(WorldMode.DIRECT)
         cls.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-        cls.robot = Object(robot_description.name, ObjectType.ROBOT, robot_description.name + ".urdf")
+        cls.robot = Object(robot_description.name, ObjectType.ROBOT, RobotDescription.current_robot_description.name + ".urdf")
         ProcessModule.execution_delay = False
         cls.engine = sqlalchemy.create_engine(pycrorm_uri)
 
@@ -49,7 +49,7 @@ class DatabaseResolverTestCase(unittest.TestCase,):
 
     def tearDown(self) -> None:
         self.world.reset_world()
-        pycram.task.reset_tree()
+        pycram.tasktree.reset_tree()
         pycram.orm.base.ProcessMetaData.reset()
         self.session.rollback()
         pycram.orm.base.Base.metadata.drop_all(self.engine)
@@ -73,7 +73,7 @@ class DatabaseResolverTestCase(unittest.TestCase,):
         """Check if grasping a milk in the air works."""
         self.plan()
         pycram.orm.base.ProcessMetaData().description = "costmap_no_obstacles_test"
-        pycram.task.task_tree.root.insert(self.session)
+        pycram.tasktree.task_tree.root.insert(self.session)
 
         cml = DatabaseCostmapLocation(self.milk, self.session, reachable_for=self.robot)
         sample = next(iter(cml))
@@ -87,7 +87,7 @@ class DatabaseResolverTestCase(unittest.TestCase,):
         kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
         self.plan()
         pycram.orm.base.ProcessMetaData().description = "costmap_with_obstacles_test"
-        pycram.task.task_tree.root.insert(self.session)
+        pycram.tasktree.task_tree.root.insert(self.session)
         self.world.reset_current_world()
 
         cml = DatabaseCostmapLocation(self.milk, self.session, reachable_for=self.robot)
@@ -110,7 +110,7 @@ class DatabaseResolverTestCase(unittest.TestCase,):
         self.plan()
 
         pycram.orm.base.ProcessMetaData().description = "object_at_different_location_test"
-        pycram.task.task_tree.root.insert(self.session)
+        pycram.tasktree.task_tree.root.insert(self.session)
         self.world.reset_current_world()
 
         new_milk = Object("new_milk", ObjectType.MILK, "milk.stl", pose=Pose([-1.45, 2.5, 0.95]))
@@ -151,7 +151,7 @@ class DatabaseResolverTestCase(unittest.TestCase,):
             description.resolve().perform()
 
         pycram.orm.base.ProcessMetaData().description = "multiple_objects_test"
-        pycram.task.task_tree.root.insert(self.session)
+        pycram.tasktree.task_tree.root.insert(self.session)
         self.world.reset_current_world()
 
         cml = DatabaseCostmapLocation(self.milk, self.session, reachable_for=self.robot)

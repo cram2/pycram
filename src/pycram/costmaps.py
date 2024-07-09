@@ -20,6 +20,8 @@ from .datastructures.pose import Pose, Transform
 from .datastructures.world import World
 from .datastructures.dataclasses import AxisAlignedBoundingBox, BoxVisualShape, Color
 
+import pybullet as p
+
 
 @dataclass
 class Rectangle:
@@ -80,16 +82,65 @@ class Costmap:
         self.map: np.ndarray = map
         self.vis_ids: List[int] = []
 
+    # def visualize(self) -> None:
+    #     """
+    #     Visualizes a costmap in the World, the visualisation works by
+    #     subdividing the costmap in rectangles which are then visualized as world visual shapes.
+    #     """
+    #     if self.vis_ids:
+    #         return
+    #
+    #     # working on a copy of the costmap, since found rectangles are deleted
+    #     map = np.copy(self.map)
+    #     boxes = []
+    #     # Finding all rectangles in the costmap
+    #     for i in range(0, map.shape[0]):
+    #         for j in range(0, map.shape[1]):
+    #             if map[i][j] > 0:
+    #                 curr_width = self._find_consectuive_line((i, j), map)
+    #                 curr_pose = (i, j)
+    #                 curr_height = self._find_max_box_height((i, j), curr_width, map)
+    #                 avg = np.average(map[i:i + curr_height, j:j + curr_width])
+    #                 boxes.append([curr_pose, curr_height, curr_width, avg])
+    #                 map[i:i + curr_height, j:j + curr_width] = 0
+    #     cells = []
+    #     # Creation of the visual shapes, for documentation of the visual shapes
+    #     # please look here:
+    #     # https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#heading=h.q1gn7v6o58bf
+    #     for box in boxes:
+    #         visual_shape = BoxVisualShape(Color(1, 0, 0, 0.6),
+    #                                       visual_frame_position=[(box[0][0] + box[1] / 2) * self.resolution,
+    #                                                              (box[0][1] + box[2] / 2) * self.resolution, 0.],
+    #                                       half_extents=[(box[1] * self.resolution) / 2,
+    #                                                     (box[2] * self.resolution) / 2, 0.001])
+    #         visual = self.world.create_visual_shape(visual_shape)
+    #         cells.append(visual)
+    #
+    #     # Set to 127 for since this is the maximal amount of links in a multibody
+    #     for cell_parts in self._chunks(cells, 127):
+    #         offset = Transform([-self.height / 2 * self.resolution, -self.width / 2 * self.resolution, 0.05],
+    #                            [0, 0, 0, 1])
+    #         origin = Transform(self.origin.position_as_list(), self.origin.orientation_as_list())
+    #         new_transform = origin * offset
+    #         new_pose = new_transform.to_pose().to_list()
+    #
+    #         map_obj = self.world.create_multi_body_from_visual_shapes(cell_parts, Pose(*new_pose))
+    #         self.vis_ids.append(map_obj)
+
     def visualize(self) -> None:
         """
-        Visualizes a costmap in the World, the visualisation works by
-        subdividing the costmap in rectangles which are then visualized as world visual shapes.
+        Visualizes a costmap in the BulletWorld, the visualisation works by
+        subdividing the costmap in rectangles which are then visualized as pybullet
+        visual shapes.
         """
-        if self.vis_ids:
+        if self.vis_ids != []:
             return
 
         # working on a copy of the costmap, since found rectangles are deleted
         map = np.copy(self.map)
+        curr_width = 0
+        curr_height = 0
+        curr_pose = []
         boxes = []
         # Finding all rectangles in the costmap
         for i in range(0, map.shape[0]):
@@ -103,26 +154,44 @@ class Costmap:
                     map[i:i + curr_height, j:j + curr_width] = 0
         cells = []
         # Creation of the visual shapes, for documentation of the visual shapes
-        # please look here:
-        # https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#heading=h.q1gn7v6o58bf
+        # please look here: https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#heading=h.q1gn7v6o58bf
         for box in boxes:
-            visual_shape = BoxVisualShape(Color(1, 0, 0, 0.6),
-                                          visual_frame_position=[(box[0][0] + box[1] / 2) * self.resolution,
-                                                                 (box[0][1] + box[2] / 2) * self.resolution, 0.],
-                                          half_extents=[(box[1] * self.resolution) / 2,
-                                                        (box[2] * self.resolution) / 2, 0.001])
-            visual = self.world.create_visual_shape(visual_shape)
+            visual = p.createVisualShape(p.GEOM_BOX,
+                                         halfExtents=[(box[1] * self.resolution) / 2, (box[2] * self.resolution) / 2,
+                                                      0.001],
+                                         rgbaColor=[1, 0, 0, 0.6],
+                                         visualFramePosition=[(box[0][0] + box[1] / 2) * self.resolution,
+                                                              (box[0][1] + box[2] / 2) * self.resolution, 0.])
             cells.append(visual)
-
         # Set to 127 for since this is the maximal amount of links in a multibody
         for cell_parts in self._chunks(cells, 127):
-            offset = Transform([-self.height / 2 * self.resolution, -self.width / 2 * self.resolution, 0.05],
-                               [0, 0, 0, 1])
-            origin = Transform(self.origin.position_as_list(), self.origin.orientation_as_list())
-            new_transform = origin * offset
-            new_pose = new_transform.to_pose().to_list()
+            # Dummy paramater since these are needed to spawn visual shapes as a
+            # multibody.
+            link_poses = [[0, 0, 0] for c in cell_parts]
+            link_orientations = [[0, 0, 0, 1] for c in cell_parts]
+            link_masses = [1.0 for c in cell_parts]
+            link_parent = [0 for c in cell_parts]
+            link_joints = [p.JOINT_FIXED for c in cell_parts]
+            link_collision = [-1 for c in cell_parts]
+            link_joint_axis = [[1, 0, 0] for c in cell_parts]
+            # The position at which the multibody will be spawned. Offset such that
+            # the origin referes to the centre of the costmap.
+            # origin_pose = self.origin.position_as_list()
+            # base_pose = [origin_pose[0] - self.height / 2 * self.resolution,
+            #              origin_pose[1] - self.width / 2 * self.resolution, origin_pose[2]]
 
-            map_obj = self.world.create_multi_body_from_visual_shapes(cell_parts, Pose(*new_pose))
+            offset = [[-self.height / 2 * self.resolution, -self.width / 2 * self.resolution, 0.05], [0, 0, 0, 1]]
+            new_pose = p.multiplyTransforms(self.origin.position_as_list(), self.origin.orientation_as_list(),
+                                            offset[0], offset[1])
+
+            map_obj = p.createMultiBody(baseVisualShapeIndex=-1, linkVisualShapeIndices=cell_parts,
+                                        basePosition=new_pose[0], baseOrientation=new_pose[1], linkPositions=link_poses,
+                                        # [0, 0, 1, 0]
+                                        linkMasses=link_masses, linkOrientations=link_orientations,
+                                        linkInertialFramePositions=link_poses,
+                                        linkInertialFrameOrientations=link_orientations, linkParentIndices=link_parent,
+                                        linkJointTypes=link_joints, linkJointAxis=link_joint_axis,
+                                        linkCollisionShapeIndices=link_collision)
             self.vis_ids.append(map_obj)
 
     def _chunks(self, lst: List, n: int) -> List:
@@ -141,7 +210,7 @@ class Costmap:
         Removes the visualization from the World.
         """
         for v_id in self.vis_ids:
-            self.world.remove_object(self.world.get_object_by_id(v_id))
+            self.world.remove_object_by_id(v_id)
         self.vis_ids = []
 
     def _find_consectuive_line(self, start: Tuple[int, int], map: np.ndarray) -> int:
@@ -437,23 +506,19 @@ class OccupancyCostmap(Costmap):
         i = 0
         j = 0
         for n in self._chunks(np.array(rays), 16380):
-            with UseProspectionWorld():
+            # with UseProspectionWorld():
+            r_t = self.world.ray_test_batch(n[:, 0], n[:, 1], num_threads=0)
+            while r_t is None:
                 r_t = self.world.ray_test_batch(n[:, 0], n[:, 1], num_threads=0)
-                while r_t is None:
-                    r_t = self.world.ray_test_batch(n[:, 0], n[:, 1], num_threads=0)
-                j += len(n)
-                if World.robot:
-                    shadow_robot = World.current_world.get_prospection_object_for_object(World.robot)
-                    attached_objs = World.robot.attachments.keys()
-                    attached_objs_shadow_id = [World.current_world.get_prospection_object_for_object(x).id for x
-                                               in
-                                               attached_objs]
-                    res[i:j] = [
-                        1 if ray[0] == -1 or ray[0] == shadow_robot.id or ray[0] in attached_objs_shadow_id else 0 for
-                        ray in r_t]
-                else:
-                    res[i:j] = [1 if ray[0] == -1 else 0 for ray in r_t]
-                i += len(n)
+            j += len(n)
+            if World.robot:
+                attached_objs_id = [o.id for o in self.world.robot.attachments.keys()]
+                res[i:j] = [
+                    1 if ray[0] == -1 or ray[0] == self.world.robot.id or ray[0] in attached_objs_id else 0 for
+                    ray in r_t]
+            else:
+                res[i:j] = [1 if ray[0] == -1 else 0 for ray in r_t]
+            i += len(n)
 
         res = np.flip(np.reshape(np.array(res), (size, size)))
 

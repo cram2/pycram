@@ -18,6 +18,7 @@ from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointSt
 from ..datastructures.enums import ObjectType, JointType
 from ..local_transformer import LocalTransformer
 from ..datastructures.pose import Pose, Transform
+from ..robot_description import RobotDescriptionManager
 
 Link = ObjectDescription.Link
 
@@ -79,9 +80,9 @@ class Object(WorldEntity):
         self.tf_frame = ((self.prospection_world_prefix if self.world.is_prospection_world else "")
                          + f"{self.name}")
 
-        if robot_description is not None:
-            if self.description.name == robot_description.name:
-                self.world.set_robot_if_not_set(self)
+        # if robot_description is not None:
+        #     if self.description.name == robot_description.name:
+        #         self.world.set_robot_if_not_set(self)
 
         self._init_joint_name_and_id_map()
         self._init_link_name_and_id_map()
@@ -95,6 +96,11 @@ class Object(WorldEntity):
             self._add_to_world_sync_obj_queue()
 
         self.world.objects.append(self)
+
+        if self.obj_type == ObjectType.ROBOT and not self.world.is_prospection_world:
+            rdm = RobotDescriptionManager()
+            rdm.load_description(self.name)
+            World.robot = self
 
     @property
     def pose(self):
@@ -554,7 +560,7 @@ class Object(WorldEntity):
 
     @property
     def current_state(self) -> ObjectState:
-        return ObjectState(self.get_pose(), self.attachments.copy(), self.link_states.copy(), self.joint_states.copy())
+        return ObjectState(self.get_pose().copy(), self.attachments.copy(), self.link_states.copy(), self.joint_states.copy())
 
     @current_state.setter
     def current_state(self, state: ObjectState) -> None:
@@ -568,11 +574,15 @@ class Object(WorldEntity):
     def set_attachments(self, attachments: Dict[Object, Attachment]) -> None:
         """
         Sets the attachments of this object to the given attachments.
+
         :param attachments: A dictionary with the object as key and the attachment as value.
         """
         for obj, attachment in attachments.items():
             if self.world.is_prospection_world and not obj.world.is_prospection_world:
-                obj = self.world.get_prospection_object_for_object(obj)
+                # The object mapping is directly used since this function can be called from the world sync thread which
+                # would cause a deadlock when calling get_prospection_object_for_object.
+                # Furthermore, all attached objects are spawned beforehand so no keyError should occur
+                obj = self.world.world_sync.object_mapping[obj]
             if obj in self.attachments:
                 if self.attachments[obj] != attachment:
                     self.detach(obj)
