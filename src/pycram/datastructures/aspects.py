@@ -1,6 +1,8 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+from abc import abstractmethod
+
 from .pose import Pose
 from typing_extensions import List, Iterable
 from anytree import NodeMixin, PreOrderIter, Node
@@ -55,6 +57,10 @@ class Aspect(NodeMixin):
         """
         return NotAspect(self)
 
+    @abstractmethod
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError("The __call__ method must be implemented in the subclass")
+
 
 class AspectOperator(Aspect):
     """
@@ -97,6 +103,16 @@ class AspectOperator(Aspect):
         node2.parent = None
         node1.children = node2.children + node1.children
 
+    def __call__(self, *args, **kwargs):
+        """
+        Implementation of the abstract method, since this class only acts as a parent class for logical operators there
+        is no implementation here.
+
+        :param args: A list of arguments
+        :param kwargs: A dictionary of keyword arguments
+        """
+        pass
+
 
 class AndAspect(AspectOperator):
     """
@@ -114,7 +130,7 @@ class AndAspect(AspectOperator):
         super().__init__(aspects)
         self.simplify()
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> bool:
         """
         Evaluate the children of this node as an and operator. This is done by iterating over the children and calling
         them with the given arguments. If one child returns False, the evaluation will be stopped and False will be
@@ -147,7 +163,7 @@ class OrAspect(AspectOperator):
         super().__init__(aspects)
         self.simplify()
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> bool:
         """
         Evaluate the children of this node as an or operator. This is done by iterating over the children and calling
         them with the given arguments. If one child returns True, the evaluation will be stopped and True will be
@@ -178,7 +194,7 @@ class NotAspect(AspectOperator):
         """
         super().__init__([aspect])
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> bool:
         """
         Evaluate the child of this node as a not operator. This is done by calling the child with the given arguments
         and returning the negation of the result.

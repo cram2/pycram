@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+
 from ..designator import DesignatorDescription
 from ..plan_failures import KnowledgeNotAvailable
 
@@ -39,7 +40,7 @@ class KnowledgeSource(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def connect(self):
+    def connect(self) -> bool:
         """
         Connect to the knowledge source
         """
@@ -47,10 +48,6 @@ class KnowledgeSource(ABC):
 
     def __str__(self):
         return f"{self.name} - Priority:{self.priority}"
-
-    # @abstractmethod
-    # def query(self, designator):
-    #     raise NotImplementedError
 
 
 class QueryKnowledge:
@@ -62,7 +59,8 @@ class QueryKnowledge:
         :return: Designator with the pose information
         :raises KnowledgeNotAvailable: If the pose for the object is not available in this knowledge source
         """
-        raise KnowledgeNotAvailable(f"Pose for object {designator} not available in {self.name}")
+        pass
+
 
     def query_grasp_for_object(self, designator: DesignatorDescription) -> DesignatorDescription:
         """
