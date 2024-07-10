@@ -62,6 +62,49 @@ class RobotDescription:
     the torso link and joint, the kinematic chains and cameras.
     """
     current_robot_description: RobotDescription = None
+    """
+    The currently loaded robot description.
+    """
+    name: str
+    """
+    Name of the robot
+    """
+    base_link: str
+    """
+    Base link of the robot
+    """
+    torso_link: str
+    """
+    Torso link of the robot
+    """
+    torso_joint: str
+    """
+    Torso joint of the robot
+    """
+    urdf_object: URDF
+    """
+    Parsed URDF of the robot
+    """
+    kinematic_chains: Dict[str, KinematicChainDescription]
+    """
+    All kinematic chains defined for this robot
+    """
+    cameras: Dict[str, CameraDescription]
+    """
+    All cameras defined for this robot
+    """
+    grasps: Dict[Grasp, List[float]]
+    """
+    The orientations of the end effector for different grasps
+    """
+    links: List[str]
+    """
+    All links defined in the URDF
+    """
+    joints: List[str]
+    """
+    All joints defined in the URDF, by default fixed joints are not included
+    """
 
     def __init__(self, name: str, base_link: str, torso_link: str, torso_joint: str, urdf_path: str):
         """
@@ -79,6 +122,7 @@ class RobotDescription:
         self.torso_link = torso_link
         self.torso_joint = torso_joint
         with suppress_stdout_stderr():
+            # Since parsing URDF causes a lot of warning messages which can't be deactivated, we suppress them
             self.urdf_object = URDF.from_xml_file(urdf_path)
         self.kinematic_chains: Dict[str, KinematicChainDescription] = {}
         self.cameras: Dict[str, CameraDescription] = {}
@@ -273,6 +317,47 @@ class KinematicChainDescription:
     link, the URDF object and the joints of the chain.
     """
 
+    name: str
+    """
+    Name of the chain
+    """
+    start_link: str
+    """
+    First link of the chain
+    """
+    end_link: str
+    """
+    Last link of the chain
+    """
+    urdf_object: URDF
+    """
+    Parsed URDF of the robot
+    """
+    include_fixed_joints: bool
+    """
+    If True, fixed joints are included in the chain
+    """
+    link_names: List[str]
+    """
+    List of all links in the chain
+    """
+    joint_names: List[str]
+    """
+    List of all joints in the chain
+    """
+    end_effector: EndEffectorDescription
+    """
+    End effector of the chain, if there is one
+    """
+    arm_type: Arms
+    """
+    Type of the arm, if the chain is an arm
+    """
+    static_joint_states: Dict[str, Dict[str, float]]
+    """
+    Dictionary of static joint states for the chain
+    """
+
     def __init__(self, name: str, start_link: str, end_link: str, urdf_object: URDF, arm_type: Arms = None,
                  include_fixed_joints=False):
         """
@@ -292,9 +377,9 @@ class KinematicChainDescription:
         self.include_fixed_joints: bool = include_fixed_joints
         self.link_names: List[str] = []
         self.joint_names: List[str] = []
-        self.end_effector: EndEffectorDescription = None
         self.arm_type: Arms = arm_type
         self.static_joint_states: Dict[str, Dict[str, float]] = {}
+        self.end_effector = None
 
         self._init_links()
         self._init_joints()
@@ -399,6 +484,34 @@ class CameraDescription:
     Represents a camera mounted on a robot. Contains all necessary information about the camera, like the link name,
     minimal and maximal height, horizontal and vertical angle and the front facing axis.
     """
+    name: str
+    """
+    Name of the camera
+    """
+    link_name: str
+    """
+    Name of the link in the URDF
+    """
+    minimal_height: float
+    """
+    Minimal height the camera can be at
+    """
+    maximal_height: float
+    """
+    Maximal height the camera can be at
+    """
+    horizontal_angle: float
+    """
+    Horizontal opening angle of the camera
+    """
+    vertical_angle: float
+    """
+    Vertical opening angle of the camera
+    """
+    front_facing_axis: List[int]
+    """
+    Axis along which the camera is taking the image
+    """
 
     def __init__(self, name: str, link_name: str, minimal_height: float, maximal_height: float,
                  horizontal_angle: float = 20, vertical_angle: float = 20, front_facing_axis: List[float] = None):
@@ -426,6 +539,34 @@ class EndEffectorDescription:
     """
     Describes an end effector of robot. Contains all necessary information about the end effector, like the
     base link, the tool frame, the URDF object and the static joint states.
+    """
+    name: str
+    """
+    Name of the end effector
+    """
+    start_link: str
+    """
+    Root link of the end effector, every link below this link in the URDF is part of the end effector
+    """
+    tool_frame: str
+    """
+    Name of the tool frame link in the URDf
+    """
+    urdf_object: URDF
+    """
+    Parsed URDF of the robot
+    """
+    link_names: List[str]
+    """
+    List of all links in the end effector
+    """
+    joint_names: List[str]
+    """
+    List of all joints in the end effector
+    """
+    static_joint_states: Dict[GripperState, Dict[str, float]]
+    """
+    Dictionary of static joint states for the end effector
     """
 
     def __init__(self, name: str, start_link: str, tool_frame: str, urdf_object: URDF):
