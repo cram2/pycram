@@ -6,7 +6,7 @@ from typing_extensions import List, Dict, Union, Optional
 from urdf_parser_py.urdf import URDF
 
 from .utils import suppress_stdout_stderr
-from .datastructures.enums import Arms, Grasp, GripperState
+from .datastructures.enums import Arms, Grasp, GripperState, GripperType
 
 
 class RobotDescriptionManager:
@@ -567,6 +567,14 @@ class EndEffectorDescription:
     static_joint_states: Dict[GripperState, Dict[str, float]]
     """
     Dictionary of static joint states for the end effector
+    """
+    end_effector_type: GripperType
+    """
+    Type of the gripper
+    """
+    opening_distance: float
+    """
+    Distance the gripper can open, in cm
     """
 
     def __init__(self, name: str, start_link: str, tool_frame: str, urdf_object: URDF):
