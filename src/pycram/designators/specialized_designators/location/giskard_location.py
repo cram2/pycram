@@ -3,9 +3,8 @@ import tf
 from ....datastructures.pose import Pose
 from ....designators.location_designator import CostmapLocation
 from ....external_interfaces.giskard import projection_cartesian_goal_with_approach, projection_joint_goal
-from ....robot_description import ManipulatorDescription
+
 from ....datastructures.world import UseProspectionWorld, World
-from ....robot_descriptions import robot_description
 from ....local_transformer import LocalTransformer
 from ....costmaps import OccupancyCostmap, GaussianCostmap
 from ....pose_generator_and_validator import PoseGenerator

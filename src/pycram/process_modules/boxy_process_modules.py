@@ -13,22 +13,6 @@ from ..robot_description import RobotDescription
 from ..world_concepts.world_object import Object
 
 
-def _park_arms(arm):
-    """
-    Defines the joint poses for the parking positions of the arms of Boxy and applies them to the
-    in the BulletWorld defined robot.
-    :return: None
-    """
-
-    robot = World.robot
-    if arm == "right":
-        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("right", "park").items():
-            robot.set_joint_position(joint, pose)
-    if arm == "left":
-        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("left", "park").items():
-            robot.set_joint_position(joint, pose)
-
-
 class BoxyNavigation(ProcessModule):
     """
     The process module to move the robot from one position to another.

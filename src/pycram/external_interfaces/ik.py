@@ -144,8 +144,9 @@ def try_to_reach(pose_or_object: Union[Pose, Object], prospection_robot: Object,
     """
     input_pose = pose_or_object.get_pose() if isinstance(pose_or_object, Object) else pose_or_object
 
-    arm = "left" if (gripper_name == RobotDescription.current_robot_description.kinematic_chains["left"].get_tool_frame()) else "right"
-    joints = RobotDescription.current_robot_description.kinematic_chains[arm].joints
+    arm_chain = list(filter(lambda chain: chain.get_tool_frame() == gripper_name, RobotDescription.current_robot_description.get_manipulator_chains()))[0]
+
+    joints = arm_chain.joints
 
     try:
         inv = request_ik(input_pose, prospection_robot, joints, gripper_name)

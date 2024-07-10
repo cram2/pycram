@@ -82,51 +82,6 @@ class Costmap:
         self.map: np.ndarray = map
         self.vis_ids: List[int] = []
 
-    # def visualize(self) -> None:
-    #     """
-    #     Visualizes a costmap in the World, the visualisation works by
-    #     subdividing the costmap in rectangles which are then visualized as world visual shapes.
-    #     """
-    #     if self.vis_ids:
-    #         return
-    #
-    #     # working on a copy of the costmap, since found rectangles are deleted
-    #     map = np.copy(self.map)
-    #     boxes = []
-    #     # Finding all rectangles in the costmap
-    #     for i in range(0, map.shape[0]):
-    #         for j in range(0, map.shape[1]):
-    #             if map[i][j] > 0:
-    #                 curr_width = self._find_consectuive_line((i, j), map)
-    #                 curr_pose = (i, j)
-    #                 curr_height = self._find_max_box_height((i, j), curr_width, map)
-    #                 avg = np.average(map[i:i + curr_height, j:j + curr_width])
-    #                 boxes.append([curr_pose, curr_height, curr_width, avg])
-    #                 map[i:i + curr_height, j:j + curr_width] = 0
-    #     cells = []
-    #     # Creation of the visual shapes, for documentation of the visual shapes
-    #     # please look here:
-    #     # https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#heading=h.q1gn7v6o58bf
-    #     for box in boxes:
-    #         visual_shape = BoxVisualShape(Color(1, 0, 0, 0.6),
-    #                                       visual_frame_position=[(box[0][0] + box[1] / 2) * self.resolution,
-    #                                                              (box[0][1] + box[2] / 2) * self.resolution, 0.],
-    #                                       half_extents=[(box[1] * self.resolution) / 2,
-    #                                                     (box[2] * self.resolution) / 2, 0.001])
-    #         visual = self.world.create_visual_shape(visual_shape)
-    #         cells.append(visual)
-    #
-    #     # Set to 127 for since this is the maximal amount of links in a multibody
-    #     for cell_parts in self._chunks(cells, 127):
-    #         offset = Transform([-self.height / 2 * self.resolution, -self.width / 2 * self.resolution, 0.05],
-    #                            [0, 0, 0, 1])
-    #         origin = Transform(self.origin.position_as_list(), self.origin.orientation_as_list())
-    #         new_transform = origin * offset
-    #         new_pose = new_transform.to_pose().to_list()
-    #
-    #         map_obj = self.world.create_multi_body_from_visual_shapes(cell_parts, Pose(*new_pose))
-    #         self.vis_ids.append(map_obj)
-
     def visualize(self) -> None:
         """
         Visualizes a costmap in the BulletWorld, the visualisation works by

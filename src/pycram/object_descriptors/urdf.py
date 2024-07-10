@@ -174,6 +174,7 @@ class ObjectDescription(AbstractObjectDescription):
 
     def load_description(self, path) -> URDF:
         with open(path, 'r') as file:
+            # Since parsing URDF causes a lot of warning messages which can't be deactivated, we suppress them
             with suppress_stdout_stderr():
                 return URDF.from_xml_string(file.read())
 

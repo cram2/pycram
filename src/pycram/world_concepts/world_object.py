@@ -80,10 +80,6 @@ class Object(WorldEntity):
         self.tf_frame = ((self.prospection_world_prefix if self.world.is_prospection_world else "")
                          + f"{self.name}")
 
-        # if robot_description is not None:
-        #     if self.description.name == robot_description.name:
-        #         self.world.set_robot_if_not_set(self)
-
         self._init_joint_name_and_id_map()
         self._init_link_name_and_id_map()
 
