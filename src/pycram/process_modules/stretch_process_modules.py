@@ -9,6 +9,7 @@ from .default_process_modules import *
 from ..datastructures.world import World
 from ..designators.motion_designator import *
 from ..external_interfaces.ik import request_giskard_ik
+from ..robot_description import RobotDescription
 
 
 class StretchNavigate(DefaultNavigation):
@@ -91,7 +92,7 @@ class StretchOpen(ProcessModule):
     """
 
     def _execute(self, desig: OpeningMotion):
-        part_of_object = desig.object_part.bullet_world_object
+        part_of_object = desig.object_part.world_object
 
         container_joint = part_of_object.find_joint_above(desig.object_part.name, JointType.PRISMATIC)
 
@@ -100,7 +101,7 @@ class StretchOpen(ProcessModule):
 
         _move_arm_tcp(goal_pose, World.robot, desig.arm)
 
-        desig.object_part.bullet_world_object.set_joint_state(container_joint,
+        desig.object_part.world_object.set_joint_position(container_joint,
                                                               part_of_object.get_joint_limits(
                                                                   container_joint)[1] - 0.05)
 
@@ -120,13 +121,13 @@ class StretchClose(ProcessModule):
 
         _move_arm_tcp(goal_pose, World.robot, desig.arm)
 
-        desig.object_part.world_object.set_joint_state(container_joint,
+        desig.object_part.world_object.set_joint_position(container_joint,
                                                        part_of_object.get_joint_limits(
                                                            container_joint)[0])
 
 
-def _move_arm_tcp(target: Pose, robot: Object, arm: str) -> None:
-    gripper = robot_description.get_tool_frame(arm)
+def _move_arm_tcp(target: Pose, robot: Object, arm: Arms) -> None:
+    gripper = RobotDescription.current_robot_description.get_arm_chain(arm).get_tool_frame()
 
     # inv = request_ik(target, robot, joints, gripper)
     pose, joint_states = request_giskard_ik(target, robot, gripper)
@@ -146,7 +147,7 @@ class StretchNavigationReal(ProcessModule):
 
     def _execute(self, designator: MoveMotion) -> Any:
         rospy.logdebug(f"Sending goal to giskard to Move the robot")
-        giskard.achieve_cartesian_goal(designator.target, robot_description.base_link, "map")
+        giskard.achieve_cartesian_goal(designator.target, RobotDescription.current_robot_description.base_link, "map")
 
 
 class StretchMoveHeadReal(ProcessModule):
@@ -219,8 +220,8 @@ class StretchMoveTCPReal(ProcessModule):
 
         if designator.allow_gripper_collision:
             giskard.allow_gripper_collision(designator.arm)
-        giskard.achieve_cartesian_goal(pose_in_map, robot_description.get_tool_frame(designator.arm),
-                                       robot_description.base_link)
+        giskard.achieve_cartesian_goal(pose_in_map, RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame(),
+                                       RobotDescription.current_robot_description.base_link)
 
 
 class StretchMoveArmJointsReal(ProcessModule):
@@ -255,7 +256,7 @@ class StretchMoveGripperReal(ProcessModule):
     """
 
     def _execute(self, designator: MoveGripperMotion) -> Any:
-        chain = robot_description.chains[designator.gripper].gripper.get_static_joint_chain(designator.motion)
+        chain = RobotDescription.current_robot_description.get_arm_chain(designator.gripper).get_static_gripper_state(designator.motion)
         giskard.achieve_joint_goal(chain)
 
 
@@ -265,7 +266,7 @@ class StretchOpenReal(ProcessModule):
     """
 
     def _execute(self, designator: OpeningMotion) -> Any:
-        giskard.achieve_open_container_goal(robot_description.get_tool_frame(designator.arm),
+        giskard.achieve_open_container_goal(RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame(),
                                             designator.object_part.name)
 
 
@@ -275,7 +276,7 @@ class StretchCloseReal(ProcessModule):
     """
 
     def _execute(self, designator: ClosingMotion) -> Any:
-        giskard.achieve_close_container_goal(robot_description.get_tool_frame(designator.arm),
+            giskard.achieve_close_container_goal(RobotDescription.current_robot_description.get_arm_chain(designator.arm).get_tool_frame(),
                                              designator.object_part.name)
 
 
