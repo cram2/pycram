@@ -98,8 +98,8 @@ class SetGripperAction(ActionDesignatorDescription):
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
         super().__init__(resolver, ontology_concept_holders)
-        self.grippers: List[GripperState] = grippers
-        self.motions: List[Arms] = motions
+        self.grippers: List[Arms] = grippers
+        self.motions: List[GripperState] = motions
 
         if self.soma:
             self.init_ontology_concepts({"setting_gripper": self.soma.SettingGripper})
@@ -220,7 +220,7 @@ class PickUpAction(ActionDesignatorDescription):
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
         self.arms: List[Arms] = arms
         self.grasps: List[Grasp] = grasps
-        self.knowledge_conditions = [GraspableAspect(self.object_designator_description) & ReachableAspect(self.object_designator_description)]
+        self.knowledge_conditions = GraspableAspect(self.object_designator_description) & ReachableAspect(self.object_designator_description)
 
         if self.soma:
             self.init_ontology_concepts({"picking_up": self.soma.PickingUp})
