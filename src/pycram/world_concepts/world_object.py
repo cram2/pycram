@@ -575,10 +575,9 @@ class Object(WorldEntity):
         """
         for obj, attachment in attachments.items():
             if self.world.is_prospection_world and not obj.world.is_prospection_world:
-                # The object mapping is directly used since this function can be called from the world sync thread which
-                # would cause a deadlock when calling get_prospection_object_for_object.
-                # Furthermore, all attached objects are spawned beforehand so no keyError should occur
-                obj = self.world.world_sync.object_mapping[obj]
+                # In case this object is in the prospection world and the other object is not, the attachment will no
+                # be set.
+                continue
             if obj in self.attachments:
                 if self.attachments[obj] != attachment:
                     self.detach(obj)
