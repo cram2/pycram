@@ -5,6 +5,7 @@ from typing import List, Dict, TypeVar
 import logging
 
 from multiverse_client_pybind import MultiverseClientPybind  # noqa
+from typing_extensions import Optional
 
 T = TypeVar("T")
 
@@ -30,9 +31,6 @@ class SocketAddress:
 
 class MultiverseSocket:
     _server_addr: SocketAddress = SocketAddress(port="7000")
-    _client_addr: SocketAddress
-    _meta_data: MultiverseMetaData
-    _multiverse_socket: MultiverseClientPybind
 
     def __init__(
             self,
