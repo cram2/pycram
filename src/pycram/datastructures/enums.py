@@ -107,3 +107,16 @@ class GripperState(Enum):
     OPEN = auto()
     CLOSE = auto()
 
+
+class GripperType(Enum):
+    """
+    Enum for the different types of grippers.
+    """
+    PARALLEL = auto()
+    SUCTION = auto()
+    FINGER = auto()
+    HYDRAULIC = auto()
+    PNEUMATIC = auto()
+    CUSTOM = auto()
+
+

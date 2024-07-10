@@ -1,6 +1,6 @@
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
-from ..datastructures.enums import Arms, Grasp, GripperState
+from ..datastructures.enums import Arms, Grasp, GripperState, GripperType
 import rospkg
 
 rospack = rospkg.RosPack()
@@ -28,6 +28,8 @@ left_gripper.add_static_joint_states(GripperState.OPEN, {'l_gripper_l_finger_joi
                                               'l_gripper_r_finger_joint': 0.548})
 left_gripper.add_static_joint_states(GripperState.CLOSE, {'l_gripper_l_finger_joint': 0.0,
                                                'l_gripper_r_finger_joint': 0.0})
+left_gripper.end_effector_type = GripperType.PARALLEL
+left_gripper.opening_distance = 0.548
 left_arm.end_effector = left_gripper
 
 ################################## Right Arm ##################################
@@ -49,6 +51,8 @@ right_gripper.add_static_joint_states(GripperState.OPEN, {'r_gripper_l_finger_jo
                                                'r_gripper_r_finger_joint': 0.548})
 right_gripper.add_static_joint_states(GripperState.CLOSE, {'r_gripper_l_finger_joint': 0.0,
                                                 'r_gripper_r_finger_joint': 0.0})
+left_gripper.end_effector_type = GripperType.PARALLEL
+left_gripper.opening_distance = 0.548
 right_arm.end_effector = right_gripper
 
 
