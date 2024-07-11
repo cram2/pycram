@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 from copy import copy
 from queue import Queue
 
+
 import numpy as np
 import rospy
 from geometry_msgs.msg import Point
@@ -288,6 +289,15 @@ class World(StateEntity, ABC):
         :return: The Object with the id 'id'.
         """
         return list(filter(lambda obj: obj.id == obj_id, self.objects))[0]
+
+    @abstractmethod
+    def remove_object_by_id(self, obj_id: int) -> None:
+        """
+        Removes the object with the given id from the world.
+
+        :param obj_id: The unique id of the object to be removed.
+        """
+        pass
 
     @abstractmethod
     def remove_object_from_simulator(self, obj: Object) -> None:
@@ -1115,29 +1125,22 @@ class WorldSync(threading.Thread):
         """
         while not self.terminate:
             self.check_for_pause()
-            # self.equal_states = False
-            for i in range(self.add_obj_queue.qsize()):
+            while not self.add_obj_queue.empty():
                 obj = self.add_obj_queue.get()
                 # Maps the World object to the prospection world object
                 self.object_mapping[obj] = copy(obj)
                 self.add_obj_queue.task_done()
-            for i in range(self.remove_obj_queue.qsize()):
+            while not self.remove_obj_queue.empty():
                 obj = self.remove_obj_queue.get()
                 # Get prospection world object reference from object mapping
                 prospection_obj = self.object_mapping[obj]
                 prospection_obj.remove()
                 del self.object_mapping[obj]
                 self.remove_obj_queue.task_done()
-
             for world_obj, prospection_obj in self.object_mapping.items():
                 prospection_obj.current_state = world_obj.current_state
-
             self.check_for_pause()
-            # self.check_for_equal()
             time.sleep(wait_time_as_n_simulation_steps * self.world.simulation_time_step)
-
-        self.add_obj_queue.join()
-        self.remove_obj_queue.join()
 
     def check_for_pause(self) -> None:
         """
@@ -1155,6 +1158,6 @@ class WorldSync(threading.Thread):
         """
         eql = True
         for obj, prospection_obj in self.object_mapping.items():
-            eql = eql and obj.get_pose() == prospection_obj.get_pose()
+            eql = eql and obj.get_pose().dist(prospection_obj.get_pose()) < 0.001
         self.equal_states = eql
         return eql

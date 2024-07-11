@@ -1,4 +1,6 @@
 import dataclasses
+import time
+
 from typing_extensions import List, Union, Iterable, Optional, Callable
 
 from .object_designator import ObjectDesignatorDescription, ObjectPart
@@ -7,10 +9,9 @@ from ..local_transformer import LocalTransformer
 from ..world_reasoning import link_pose_for_joint_config
 from ..designator import DesignatorError, LocationDesignatorDescription
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
-from ..robot_descriptions import robot_description
-from ..datastructures.enums import JointType
+from ..datastructures.enums import JointType, Arms
 from ..pose_generator_and_validator import PoseGenerator, visibility_validator, reachability_validator
-from ..robot_description import ManipulatorDescription
+from ..robot_description import RobotDescription
 from ..datastructures.pose import Pose
 
 
@@ -106,7 +107,7 @@ class CostmapLocation(LocationDesignatorDescription):
 
     @dataclasses.dataclass
     class Location(LocationDesignatorDescription.Location):
-        reachable_arms: List[str]
+        reachable_arms: List[Arms]
         """
         List of arms with which the pose can be reached, is only used when the 'rechable_for' parameter is used
         """
@@ -114,7 +115,7 @@ class CostmapLocation(LocationDesignatorDescription):
     def __init__(self, target: Union[Pose, ObjectDesignatorDescription.Object],
                  reachable_for: Optional[ObjectDesignatorDescription.Object] = None,
                  visible_for: Optional[ObjectDesignatorDescription.Object] = None,
-                 reachable_arm: Optional[str] = None, resolver: Optional[Callable] = None):
+                 reachable_arm: Optional[Arms] = None, resolver: Optional[Callable] = None):
         """
         Location designator that uses costmaps as base to calculate locations for complex constrains like reachable or
         visible. In case of reachable the resolved location contains a list of arms with which the location is reachable.
@@ -129,7 +130,7 @@ class CostmapLocation(LocationDesignatorDescription):
         self.target: Union[Pose, ObjectDesignatorDescription.Object] = target
         self.reachable_for: ObjectDesignatorDescription.Object = reachable_for
         self.visible_for: ObjectDesignatorDescription.Object = visible_for
-        self.reachable_arm: Optional[str] = reachable_arm
+        self.reachable_arm: Optional[Arms] = reachable_arm
 
     def ground(self) -> Location:
         """
@@ -152,8 +153,8 @@ class CostmapLocation(LocationDesignatorDescription):
 
            :yield: An instance of CostmapLocation.Location with a valid position that satisfies the given constraints
            """
-        min_height = list(robot_description.cameras.values())[0].min_height
-        max_height = list(robot_description.cameras.values())[0].max_height
+        min_height = RobotDescription.current_robot_description.get_default_camera().minimal_height
+        max_height = RobotDescription.current_robot_description.get_default_camera().maximal_height
         # This ensures that the costmaps always get a position as their origin.
         if isinstance(self.target, ObjectDesignatorDescription.Object):
             target_pose = self.target.world_object.get_pose()
@@ -177,7 +178,6 @@ class CostmapLocation(LocationDesignatorDescription):
         if self.visible_for or self.reachable_for:
             robot_object = self.visible_for.world_object if self.visible_for else self.reachable_for.world_object
             test_robot = World.current_world.get_prospection_object_for_object(robot_object)
-
         with UseProspectionWorld():
             for maybe_pose in PoseGenerator(final_map, number_of_samples=600):
                 res = True
@@ -187,16 +187,14 @@ class CostmapLocation(LocationDesignatorDescription):
                                                        World.current_world)
                 if self.reachable_for:
                     hand_links = []
-                    for name, chain in robot_description.chains.items():
-                        if isinstance(chain, ManipulatorDescription):
-                            hand_links += chain.gripper.links
+                    for description in RobotDescription.current_robot_description.get_manipulator_chains():
+                        hand_links += description.end_effector.links
                     valid, arms = reachability_validator(maybe_pose, test_robot, target_pose,
                                                          allowed_collision={test_robot: hand_links})
                     if self.reachable_arm:
                         res = res and valid and self.reachable_arm in arms
                     else:
                         res = res and valid
-
                 if res:
                     yield self.Location(maybe_pose, arms)
 
@@ -208,7 +206,7 @@ class AccessingLocation(LocationDesignatorDescription):
 
     @dataclasses.dataclass
     class Location(LocationDesignatorDescription.Location):
-        arms: List[str]
+        arms: List[Arms]
         """
         List of arms that can be used to for accessing from this pose
         """
@@ -251,6 +249,7 @@ class AccessingLocation(LocationDesignatorDescription):
 
         final_map = occupancy + gaussian
 
+
         test_robot = World.current_world.get_prospection_object_for_object(self.robot)
 
         # Find a Joint of type prismatic which is above the handle in the URDF tree
@@ -275,9 +274,8 @@ class AccessingLocation(LocationDesignatorDescription):
                                              orientation_generator=lambda p, o: PoseGenerator.generate_orientation(p, half_pose)):
 
                 hand_links = []
-                for name, chain in robot_description.chains.items():
-                    if isinstance(chain, ManipulatorDescription):
-                        hand_links += chain.gripper.links
+                for description in RobotDescription.current_robot_description.get_manipulator_chains():
+                    hand_links += description.links
 
                 valid_init, arms_init = reachability_validator(maybe_pose, test_robot, init_pose,
                                                                allowed_collision={test_robot: hand_links})

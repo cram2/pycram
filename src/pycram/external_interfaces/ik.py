@@ -13,7 +13,7 @@ from ..world_concepts.world_object import Object
 from ..utils import _apply_ik
 from ..local_transformer import LocalTransformer
 from ..datastructures.pose import Pose
-from ..robot_descriptions import robot_description
+from ..robot_description import RobotDescription
 from ..plan_failures import IKError
 from ..external_interfaces.giskard import projection_cartesian_goal, allow_gripper_collision
 
@@ -69,7 +69,7 @@ def call_ik(root_link: str, tip_link: str, target_pose: Pose, robot_object: Obje
    :param joints: A list of joint name that should be altered
    :return: The solution that was generated as a list of joint values corresponding to the order of joints given
    """
-    if robot_description.name == "pr2":
+    if RobotDescription.current_robot_description.name == "pr2":
         ik_service = "/pr2_right_arm_kinematics/get_ik" if "r_wrist" in tip_link else "/pr2_left_arm_kinematics/get_ik"
     else:
         ik_service = "/kdl_ik_service/get_ik"
@@ -83,13 +83,13 @@ def call_ik(root_link: str, tip_link: str, target_pose: Pose, robot_object: Obje
     try:
         resp = ik(req)
     except rospy.ServiceException as e:
-        if robot_description.name == "pr2":
-            raise IKError(target_pose, root_link)
+        if RobotDescription.current_robot_description.name == "pr2":
+            raise IKError(target_pose, root_link, tip_link)
         else:
             raise e
 
     if resp.error_code.val == -31:
-        raise IKError(target_pose, root_link)
+        raise IKError(target_pose, root_link, tip_link)
 
     return resp.solution.joint_state.position
 
@@ -124,7 +124,7 @@ def apply_grasp_orientation_to_pose(grasp: str, pose: Pose) -> Pose:
     """
     local_transformer = LocalTransformer()
     target_map = local_transformer.transform_pose(pose, "map")
-    grasp_orientation = robot_description.grasps.get_orientation_for_grasp(grasp)
+    grasp_orientation = RobotDescription.current_robot_description.grasps[grasp]
     target_map.orientation.x = grasp_orientation[0]
     target_map.orientation.y = grasp_orientation[1]
     target_map.orientation.z = grasp_orientation[2]
@@ -144,8 +144,9 @@ def try_to_reach(pose_or_object: Union[Pose, Object], prospection_robot: Object,
     """
     input_pose = pose_or_object.get_pose() if isinstance(pose_or_object, Object) else pose_or_object
 
-    arm = "left" if gripper_name == robot_description.get_tool_frame("left") else "right"
-    joints = robot_description.chains[arm].joints
+    arm_chain = list(filter(lambda chain: chain.get_tool_frame() == gripper_name, RobotDescription.current_robot_description.get_manipulator_chains()))[0]
+
+    joints = arm_chain.joints
 
     try:
         inv = request_ik(input_pose, prospection_robot, joints, gripper_name)
@@ -187,9 +188,9 @@ def request_kdl_ik(target_pose: Pose, robot: Object, joints: List[str], gripper:
     :return: A list of joint values
     """
     local_transformer = LocalTransformer()
-    base_link = robot_description.get_parent(joints[0])
+    base_link = RobotDescription.current_robot_description.get_parent(joints[0])
     # Get link after last joint in chain
-    end_effector = robot_description.get_child(joints[-1])
+    end_effector = RobotDescription.current_robot_description.get_child(joints[-1])
 
     target_torso = local_transformer.transform_pose(target_pose, robot.get_link_tf_frame(base_link))
 
@@ -240,6 +241,6 @@ def request_giskard_ik(target_pose: Pose, robot: Object, gripper: str) -> Tuple[
         dist = tip_pose.dist(target_map)
 
         if dist > 0.01:
-            raise IKError(target_pose, "map")
+            raise IKError(target_pose, "map", gripper)
         return pose, robot_joint_states
 

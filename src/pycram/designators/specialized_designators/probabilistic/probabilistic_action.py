@@ -1,23 +1,39 @@
-from dataclasses import dataclass
-from sqlalchemy import select
-
-import portion
+import numpy as np
+import tqdm
 from probabilistic_model.probabilistic_circuit.distributions import GaussianDistribution, SymbolicDistribution
 from probabilistic_model.probabilistic_circuit.probabilistic_circuit import ProbabilisticCircuit, \
     DecomposableProductUnit
-from random_events.events import Event, ComplexEvent
-from random_events.variables import Symbolic, Continuous
-import tqdm
+from probabilistic_model.utils import MissingDict
+from random_events.interval import *
+from random_events.product_algebra import Event, SimpleEvent
+from random_events.set import SetElement
+from random_events.variable import Symbolic, Continuous
+from sqlalchemy import select
 from typing_extensions import Optional, List, Iterator
-from ....datastructures.world import World
-from ....costmaps import OccupancyCostmap, VisibilityCostmap
-from ....designator import ActionDesignatorDescription, ObjectDesignatorDescription
+
 from ...action_designator import MoveAndPickUpPerformable, ActionAbstract
-from ....datastructures.enums import Arms, Grasp, TaskStatus
+from ....costmaps import OccupancyCostmap, VisibilityCostmap
+from ....datastructures.enums import Arms as EArms, Grasp as EGrasp, TaskStatus
+from ....datastructures.pose import Pose
+from ....datastructures.world import World
+from ....designator import ActionDesignatorDescription, ObjectDesignatorDescription
 from ....local_transformer import LocalTransformer
 from ....orm.views import PickUpWithContextView
 from ....plan_failures import ObjectUnreachable, PlanFailure
-from ....datastructures.pose import Pose
+
+
+class Grasp(SetElement):
+    EMPTY_SET = -1
+    FRONT = 0
+    LEFT = 1
+    RIGHT = 2
+    TOP = 3
+
+
+class Arms(SetElement):
+    EMPTY_SET = -1
+    LEFT = 0
+    RIGHT = 1
 
 
 class ProbabilisticAction:
@@ -89,8 +105,8 @@ class GaussianCostmapModel:
 
     relative_x = Continuous("relative_x")
     relative_y = Continuous("relative_y")
-    grasp = Symbolic("grasp", ["front", "left", "right"])
-    arm = Symbolic("arm", ["left", "right"])
+    grasp = Symbolic("grasp", Grasp)
+    arm = Symbolic("arm", Arms)
 
     def __init__(self, distance_to_center: float = 0.2, variance: float = 0.5):
         self.distance_to_center = distance_to_center
@@ -100,20 +116,26 @@ class GaussianCostmapModel:
         """
         Create an event that describes the center of the map.
         """
-        return Event({self.relative_x: portion.open(-self.distance_to_center, self.distance_to_center),
-                      self.relative_y: portion.open(-self.distance_to_center, self.distance_to_center)})
+        return SimpleEvent({self.relative_x: open(-self.distance_to_center, self.distance_to_center),
+                            self.relative_y: open(-self.distance_to_center,
+                                                  self.distance_to_center)}).as_composite_set()
 
     def create_model_with_center(self) -> ProbabilisticCircuit:
         """
         Create a fully factorized gaussian at the center of the map.
         """
         centered_model = DecomposableProductUnit()
-        centered_model.add_subcircuit(GaussianDistribution(self.relative_x, 0., self.variance))
-        centered_model.add_subcircuit(GaussianDistribution(self.relative_y, 0., self.variance))
-        centered_model.add_subcircuit(SymbolicDistribution(self.grasp,
-                                                           [1/len(self.grasp.domain)] * len(self.grasp.domain)))
-        centered_model.add_subcircuit(SymbolicDistribution(self.arm,
-                                                           [1/len(self.arm.domain)] * len(self.arm.domain)))
+        centered_model.add_subcircuit(GaussianDistribution(self.relative_x, 0., np.sqrt(self.variance)))
+        centered_model.add_subcircuit(GaussianDistribution(self.relative_y, 0., np.sqrt(self.variance)))
+
+        grasp_probabilities = MissingDict(float, {int(element): 1 / len(self.grasp.domain.simple_sets) for element in
+                                                  self.grasp.domain.simple_sets})
+
+        centered_model.add_subcircuit(SymbolicDistribution(self.grasp, grasp_probabilities))
+
+        arm_probabilities = MissingDict(float, {int(element): 1 / len(self.arm.domain.simple_sets) for element in
+                                                self.arm.domain.simple_sets})
+        centered_model.add_subcircuit(SymbolicDistribution(self.arm, arm_probabilities))
         return centered_model.probabilistic_circuit
 
     def create_model(self) -> ProbabilisticCircuit:
@@ -124,8 +146,8 @@ class GaussianCostmapModel:
         """
         centered_model = self.create_model_with_center()
         outer_event = self.center_event().complement()
-        limiting_event = Event({self.relative_x: portion.open(-2, 2),
-                                self.relative_y: portion.open(-2, 2)})
+        limiting_event = SimpleEvent({self.relative_x: open(-2, 2),
+                                      self.relative_y: open(-2, 2)}).as_composite_set()
         event = outer_event & limiting_event
         # go.Figure(event.plot()).show()
         result, _ = centered_model.conditional(event)
@@ -133,11 +155,10 @@ class GaussianCostmapModel:
 
 
 class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
-
     @dataclass
     class Variables:
-        arm: Symbolic = Symbolic("arm", ["left", "right"])
-        grasp: Symbolic = Symbolic("grasp", ["front", "left", "right", "top"])
+        arm: Symbolic = Symbolic("arm", Arms)
+        grasp: Symbolic = Symbolic("grasp", Grasp)
         relative_x: Continuous = Continuous("relative_x")
         relative_y: Continuous = Continuous("relative_y")
 
@@ -163,7 +184,7 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
     The grasps that can be used for the pick up.
     """
 
-    def __init__(self, object_designator: ObjectDesignatorDescription.Object, arms: List[str], grasps: List[str],
+    def __init__(self, object_designator: ObjectDesignatorDescription.Object, arms: List[Arms], grasps: List[Grasp],
                  policy: Optional[ProbabilisticCircuit] = None):
         ActionDesignatorDescription.__init__(self)
         ProbabilisticAction.__init__(self, policy)
@@ -178,17 +199,17 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
         """
         Convert a sample from the underlying distribution to a performable action.
         :param sample: The sample
-        :return: The action
+        :return:  action
         """
         arm, grasp, relative_x, relative_y = sample
         position = [relative_x, relative_y, 0.]
         pose = Pose(position, frame=self.object_designator.world_object.tf_frame)
         standing_position = LocalTransformer().transform_pose(pose, "map")
         standing_position.position.z = 0
-        action = MoveAndPickUpPerformable(standing_position, self.object_designator, arm, grasp)
+        action = MoveAndPickUpPerformable(standing_position, self.object_designator, EArms(int(arm)), EGrasp(int(grasp)))
         return action
 
-    def events_from_occupancy_and_visibility_costmap(self) -> ComplexEvent:
+    def events_from_occupancy_and_visibility_costmap(self) -> Event:
         """
         Create events from the occupancy and visibility costmap.
 
@@ -205,13 +226,13 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
         # convert rectangles to events
         events = []
         for rectangle in mcm.partitioning_rectangles():
-            event = Event({self.variables.relative_x: portion.open(rectangle.x_lower, rectangle.x_upper),
-                           self.variables.relative_y: portion.open(rectangle.y_lower, rectangle.y_upper)})
+            event = SimpleEvent({self.variables.relative_x: open(rectangle.x_lower, rectangle.x_upper),
+                                 self.variables.relative_y: open(rectangle.y_lower, rectangle.y_upper)})
             events.append(event)
-        return ComplexEvent(events)
+        return Event(*events)
 
     def ground_model(self, model: Optional[ProbabilisticCircuit] = None,
-                     event: Optional[ComplexEvent] = None) -> ProbabilisticCircuit:
+                     event: Optional[Event] = None) -> ProbabilisticCircuit:
         """
         Ground the model to the current evidence.
 
@@ -251,7 +272,7 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
         """
         model = self.ground_model(self.policy, self.events_from_occupancy_and_visibility_costmap())
         samples = model.sample(self.sample_amount)
-        likelihoods = [model.likelihood(sample) for sample in samples]
+        likelihoods = model.likelihood(samples)
 
         # sort samples by likelihood
         samples = [x for _, x in sorted(zip(likelihoods, samples), key=lambda pair: pair[0], reverse=True)]
@@ -302,4 +323,4 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
             progress_bar.set_postfix({"Success Probability": successful_tries / total_tries})
 
             # reset world
-            World.current_world.reset_current_world()
+            World.current_world.reset_world()
