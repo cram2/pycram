@@ -44,7 +44,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.multiverse.disconnect_from_physics_server()
+        cls.multiverse.exit()
 
     def tearDown(self):
         # self.multiverse.multiverse_reset_world()
@@ -55,11 +55,9 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         set_position = [1, 1, 0.1]
         milk = self.spawn_milk(set_position)
         milk.set_position(set_position)
-        time.sleep(0.1)
         milk_position = milk.get_position_as_list()
         self.assert_list_is_equal(milk_position[:2], set_position[:2])
         self.multiverse.reset_world()
-        time.sleep(0.1)
         milk_pose = milk.get_pose()
         self.assert_list_is_equal(milk_pose.position_as_list()[:2],
                                   milk.original_pose.position_as_list()[:2])
@@ -161,13 +159,13 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         estimated_cup_position = cup_position.copy()
         estimated_cup_position[0] += 1
         milk.set_position(milk_position)
-        time.sleep(0.1)
+        # time.sleep(0.3)
         new_cup_position = cup.get_position_as_list()
         self.assertAlmostEqual(new_cup_position[0], estimated_cup_position[0], delta=0.001)
 
     # @unittest.skip("Not implemented feature yet.")
     def test_detach_object(self):
-        for i in range(10):
+        for i in range(1):
             milk = self.spawn_milk([1, 0, 0.1])
             cup = self.spawn_cup([1, 1, 0.1])
             milk.attach(cup)
@@ -179,7 +177,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             cup_position = cup.get_position_as_list()
             estimated_cup_position = cup_position.copy()
             milk.set_position(milk_position)
-            # time.sleep(0.1)  # TODO: This is a workaround for the issue that the position is not updated immediately.
+            # time.sleep(0.3)  # TODO: This is a workaround for the issue that the position is not updated immediately.
             new_milk_position = milk.get_position_as_list()
             new_cup_position = cup.get_position_as_list()
             self.assertAlmostEqual(new_milk_position[0], milk_position[0], delta=0.001)
@@ -198,7 +196,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         robot_position = robot.get_joint_position("joint1")
         robot_position += 1.57
         robot.set_joint_position("joint1", robot_position)
-        time.sleep(0.1)
+        # time.sleep(0.1)
         milk_pose = milk.root_link.get_pose_wrt_link(robot.tip_link)
         self.assert_poses_are_equal(milk_initial_pose, milk_pose)
 

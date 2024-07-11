@@ -1,7 +1,7 @@
 import logging
 import threading
 from dataclasses import dataclass
-from time import time
+from time import time, sleep
 
 from typing_extensions import List, Dict, Tuple, Optional
 
@@ -46,25 +46,137 @@ class MultiverseContactPoint:
 
 
 class MultiverseReader(MultiverseSocket):
-    def __init__(self):
+    def __init__(self, max_wait_time_for_data: Optional[float] = 1):
+        """
+        Initialize the Multiverse reader, which reads the data from the Multiverse server in a separate thread.
+        This class provides methods to get data (e.g., position, orientation) from the Multiverse server.
+        param max_wait_time_for_data: The maximum wait time for the data in seconds.
+        """
+        self.max_wait_time_for_data = max_wait_time_for_data
         meta_data = MultiverseMetaData()
         meta_data.simulation_name = "reader"
         super().__init__(SocketAddress(port="8000"), meta_data)
         self.run()
         self.data_lock = threading.Lock()
-        self.thread = threading.Thread(target=self.get_all_data_from_server)
+        self.thread = threading.Thread(target=self.receive_all_data_from_server)
         self.stop_thread = False
         self.request_meta_data["receive"][""] = [""]
         self.thread.start()
 
-    def get_all_data_from_server(self):
+    def get_body_pose(self, name: str, wait: Optional[bool] = True) -> Optional[Pose]:
+        """
+        Get the body pose from the multiverse server.
+        param name: The name of the body.
+        param wait: Whether to wait for the data.
+        return: The position and orientation of the body.
+        """
+        data = self.get_body_data(name, ["position", "quaternion"], wait=wait)
+        if data is not None:
+            return Pose(data["position"], self.wxyz_to_xyzw(data["quaternion"]))
+
+    def get_body_position(self, name: str, wait: Optional[bool] = True) -> Optional[List[float]]:
+        """
+        Get the body position from the multiverse server.
+        param name: The name of the body.
+        param wait: Whether to wait for the data.
+        return: The position of the body.
+        """
+        return self.get_body_data(name, ["position"], wait=wait)
+
+    def get_body_orientation(self, name: str, wait: Optional[bool] = True) -> Optional[List[float]]:
+        """
+        Get the body orientation from the multiverse server.
+        param name: The name of the body.
+        param wait: Whether to wait for the data.
+        return: The orientation of the body.
+        """
+        data = self.get_body_property(name, "quaternion", wait=wait)
+        if data is not None:
+            return self.wxyz_to_xyzw(data)
+
+    def get_body_property(self, name: str, property_name: str, wait: Optional[bool] = True) -> Optional[List[float]]:
+        """
+        Get the body property from the multiverse server.
+        param name: The name of the body.
+        param property_name: The name of the property.
+        param wait: Whether to wait for the data.
+        return: The property of the body.
+        """
+        data = self.get_body_data(name, [property_name], wait=wait)
+        if data is not None:
+            return data[property_name]
+
+    @staticmethod
+    def wxyz_to_xyzw(quaternion: List[float]) -> List[float]:
+        """
+        Convert the quaternion from wxyz to xyzw.
+        param quaternion: The quaternion as a list of floats.
+        return: The quaternion as a list of floats.
+        """
+        return quaternion[1:] + [quaternion[0]]
+
+    def get_body_data(self, name: str,
+                      properties: Optional[List[str]] = None,
+                      wait: Optional[bool] = True) -> Optional[Dict]:
+        """
+        Get the body data from the multiverse server.
+        param name: The name of the body.
+        param properties: The properties of the body.
+        param wait: Whether to wait for the data.
+        return: The body data as a dictionary.
+        """
+        if wait:
+            return self.wait_for_body_data(name, properties)
+        elif self.check_for_body_data(name, self.get_received_data(), properties):
+            return self.get_received_data()[name]
+
+    def wait_for_body_data(self, name: str, properties: Optional[List[str]] = None) -> Dict:
+        """
+        Wait for the body data from the multiverse server.
+        param name: The name of the body.
+        param properties: The properties of the body.
+        return: The body data as a dictionary.
+        """
+        start = time()
+        while time() - start < self.max_wait_time_for_data:
+            received_data = self.get_received_data()
+            data_received_flag = self.check_for_body_data(name, received_data, properties)
+            if data_received_flag:
+                return received_data[name]
+
+    @staticmethod
+    def check_for_body_data(name: str, data: Dict, properties: Optional[List[str]] = None) -> bool:
+        """
+        Check if the body data is received from the multiverse server.
+        param name: The name of the body.
+        param data: The data received from the multiverse server.
+        param properties: The properties of the body.
+        return: Whether the body data is received.
+        """
+        if properties is None:
+            return name in data
+        else:
+            return name in data and all([prop in data[name] and None not in data[name][prop] for prop in properties])
+
+    def get_received_data(self):
+        """
+        Get the latest received data from the multiverse server.
+        """
+        self.data_lock.acquire()
+        data = self.response_meta_data["receive"]
+        self.data_lock.release()
+        return data
+
+    def receive_all_data_from_server(self):
         """
         Get all data from the multiverse server.
         """
         while not self.stop_thread:
+            self.request_meta_data["receive"][""] = [""]
             self.data_lock.acquire()
             self.send_and_receive_meta_data()
             self.data_lock.release()
+            sleep(0.01)
         self.stop()
 
     def join(self):
@@ -72,7 +184,19 @@ class MultiverseReader(MultiverseSocket):
 
 
 class MultiverseWriter(MultiverseSocket):
+
+    time_for_sim_update: Optional[float] = 0.3
+    """
+    Wait time for the sent data to be applied in the simulator.
+    """
+
     def __init__(self, simulation: str):
+        """
+        Initialize the Multiverse writer, which writes the data to the Multiverse server.
+        This class provides methods to send data (e.g., position, orientation) to the Multiverse server.
+        param simulation: The name of the simulation that the writer is connected to
+         (usually the name defined in the .muv file).
+        """
         meta_data = MultiverseMetaData()
         meta_data.simulation_name = "writer"
         super().__init__(SocketAddress(port="8001"), meta_data)
@@ -91,23 +215,46 @@ class MultiverseWriter(MultiverseSocket):
         }
         self.request_meta_data["meta_data"]["simulation_name"] = self.simulation
 
-    def set_body_pose(self, body_name: str, position: List[float], orientation: List[float]):
+    def set_body_pose(self, body_name: str, position: List[float], orientation: List[float]) -> None:
+        """
+        Set the body pose in the simulation.
+        param body_name: The name of the body.
+        param position: The position of the body.
+        param orientation: The orientation of the body.
+        """
         self.send_body_data_to_server(body_name,
                                       {"position": position,
-                                       "orientation": orientation})
+                                       "quaternion": orientation})
 
-    def set_body_position(self, body_name: str, position: List[float]):
+    def set_body_position(self, body_name: str, position: List[float]) -> None:
+        """
+        Set the body position in the simulation.
+        param body_name: The name of the body.
+        param position: The position of the body.
+        """
         self.send_body_data_to_server(body_name, {"position": position})
 
-    def set_body_orientation(self, body_name: str, orientation: List[float]):
-        self.send_body_data_to_server(body_name, {"orientation": orientation})
+    def set_body_orientation(self, body_name: str, orientation: List[float]) -> None:
+        """
+        Set the body orientation in the simulation.
+        param body_name: The name of the body.
+        param orientation: The orientation of the body.
+        """
+        self.send_body_data_to_server(body_name, {"quaternion": orientation})
 
-    def remove_body(self, body_name: str):
+    def remove_body(self, body_name: str) -> None:
+        """
+        Remove the body from the simulation.
+        param body_name: The name of the body.
+        """
         self.send_data_to_server([time() - self.time_start],
                                  send_meta_data={body_name: []},
                                  receive_meta_data={body_name: []})
 
-    def reset_world(self):
+    def reset_world(self) -> None:
+        """
+        Reset the world in the simulation.
+        """
         self.send_data_to_server([0])
 
     def send_body_data_to_server(self, body_name: str, data: Dict[str, List[float]]) -> Dict:
@@ -115,10 +262,14 @@ class MultiverseWriter(MultiverseSocket):
         Send data to the multiverse server.
         param body_name: The name of the body.
         param data: The data to be sent.
+        return: The response from the server.
         """
         send_meta_data = {body_name: list(data.keys())}
-        send_data = [time() - self.time_start, *data.values()]
-        return self.send_data_to_server(send_data, send_meta_data=send_meta_data)
+        flattened_data = [item for sublist in data.values() for item in sublist]
+        send_data = [time() - self.time_start, *flattened_data]
+        response = self.send_data_to_server(send_data, send_meta_data=send_meta_data)
+        sleep(self.time_for_sim_update)
+        return response
 
     def send_data_to_server(self, data: List,
                             send_meta_data: Optional[Dict] = None,
@@ -127,6 +278,8 @@ class MultiverseWriter(MultiverseSocket):
         Send data to the multiverse server.
         param data: The data to be sent.
         param send_meta_data: The metadata to be sent.
+        param receive_meta_data: The metadata to be received.
+        return: The response from the server.
         """
         self._reset_request_meta_data()
         if send_meta_data:
@@ -152,10 +305,17 @@ class MultiverseAPI(MultiverseSocket):
     """
 
     def __init__(self, simulation: str):
+        """
+        Initialize the Multiverse API, which sends API requests to the Multiverse server.
+        This class provides methods like attach and detach objects, get contact points, and other API requests.
+        param simulation: The name of the simulation that the API is connected to
+         (usually the name defined in the .muv file).
+        """
         meta_data = MultiverseMetaData()
         meta_data.simulation_name = "api_requester"
         super().__init__(SocketAddress(port="8002"), meta_data)
         self.simulation = simulation
+        self.run()
 
     def attach(self, constraint: Constraint) -> None:
         """
@@ -243,11 +403,21 @@ class MultiverseAPI(MultiverseSocket):
         return f"{pose.position.x} {pose.position.y} {pose.position.z} {pose.orientation.w} {pose.orientation.x} " \
                f"{pose.orientation.y} {pose.orientation.z}"
 
-    def check_object_exists(self, object_name: str) -> List[str]:
+    def check_object_exists(self, object_name: str) -> bool:
+        """
+        Check if the object exists in the simulation.
+        param object_name: The name of the object.
+        return: Whether the object exists in the simulation.
+        """
         api_data = self._get_object_exists_api_data(object_name)
-        return self._request_single_api_callback(api_data)
+        return self._request_single_api_callback(api_data)[0] == 'yes'
 
     def _get_object_exists_api_data(self, object_name: str) -> APIData:
+        """
+        Get the object exists API data to be added to the api callback request metadata.
+        param object_name: The name of the object.
+        return: The object exists API data as an APIData.
+        """
         return APIData(self.EXIST_API_NAME, [object_name])
 
     def get_contact_points(self, obj: Object) -> List[MultiverseContactPoint]:
