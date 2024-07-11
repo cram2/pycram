@@ -349,7 +349,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
 
         :return: A Pose object containing the pose of the link relative to the world frame.
         """
-        if self.world.update_poses_on_get:
+        if self.world.update_poses_from_sim_on_get:
             self._update_pose()
         return self._current_pose
 
@@ -487,7 +487,7 @@ class Joint(ObjectEntity, JointDescription, ABC):
 
     @property
     def position(self) -> float:
-        if self.world.update_poses_on_get:
+        if self.world.update_poses_from_sim_on_get:
             self._update_position()
         return self._current_position
 

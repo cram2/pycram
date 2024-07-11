@@ -134,7 +134,7 @@ class Object(WorldEntity):
             raise e
 
         try:
-            path = self.path if self.world.handle_spawning else self.name
+            path = self.path if self.world.let_pycram_handle_spawning else self.name
             obj_id = self.world.load_object_and_get_id(path, self._current_pose)
             return obj_id, self.path
 
@@ -488,7 +488,7 @@ class Object(WorldEntity):
 
         :return: The current pose of this object
         """
-        if self.world.update_poses_on_get:
+        if self.world.update_poses_from_sim_on_get:
             self.update_pose()
         return self._current_pose
 
@@ -666,7 +666,7 @@ class Object(WorldEntity):
 
         :param already_moved_objects: A list of Objects that were already moved, these will be excluded to prevent loops in the update.
         """
-        if not self.world.set_attached_objects_poses:
+        if not self.world.let_pycram_move_attached_objects:
             return
 
         if already_moved_objects is None:

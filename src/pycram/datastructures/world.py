@@ -186,9 +186,9 @@ class World(StateEntity, ABC):
 
         self._init_events()
 
-        self.set_attached_objects_poses = True
-        self.handle_spawning = True
-        self.update_poses_on_get = False
+        self.let_pycram_move_attached_objects = True
+        self.let_pycram_handle_spawning = True
+        self.update_poses_from_sim_on_get = False
 
         self._current_state: Optional[WorldState] = None
 

@@ -123,9 +123,9 @@ class Multiverse(World):
         self.api_requester = MultiverseAPI(simulation)
 
     def _set_world_job_flags(self):
-        self.set_attached_objects_poses = False
-        self.handle_spawning = False
-        self.update_poses_on_get = True
+        self.let_pycram_move_attached_objects = False
+        self.let_pycram_handle_spawning = False
+        self.update_poses_from_sim_on_get = True
 
     def _init_constraint_and_object_id_name_map_collections(self):
         self.last_object_id: int = -1
@@ -172,7 +172,7 @@ class Multiverse(World):
         if pose is None:
             pose = Pose()
 
-        self._reset_body_pose(name, pose)
+        self._set_body_pose(name, pose)
 
         return self._update_object_id_name_maps_and_get_latest_id(name)
 
@@ -197,16 +197,11 @@ class Multiverse(World):
 
     def get_joint_position(self, joint: Joint) -> float:
         self.check_object_exists_and_issue_warning_if_not(joint.object)
-        attribute = self.get_joint_position_name(joint)
-        received_data = self._check_for_get(joint.name, [attribute])
-        attribute_value = received_data[joint.name][attribute]
-        return attribute_value[0]
+        property_name = self.get_joint_position_name(joint)
+        return self.get_body_property(joint.name, property_name)
 
-    def get_data_from_reader(self) -> Dict:
-        self.reader.data_lock.acquire()
-        received_objects = self.reader.response_meta_data['receive']
-        self.reader.data_lock.release()
-        return received_objects
+    def get_body_property(self, body_name: str, property_name: str) -> float:
+        return self.reader.get_body_property(body_name, property_name)[0]
 
     def reset_joint_position(self, joint: Joint, joint_position: float) -> None:
         attribute = self.get_joint_position_name(joint)
@@ -223,13 +218,6 @@ class Multiverse(World):
         self.check_object_exists_and_issue_warning_if_not(obj)
         return self._get_body_pose(obj.name)
 
-    def _check_for_get(self, object_name: str, object_props: List[str]) -> Dict:
-        while True:
-            received_data = self.get_data_from_reader()
-            if (object_name in received_data and
-                    all([prop in received_data[object_name] for prop in object_props])):
-                return received_data
-
     def _get_body_pose(self, body_name: str) -> Pose:
         """
         Get the pose of a body in the simulator.
@@ -238,22 +226,18 @@ class Multiverse(World):
         """
         if body_name == "floor":
             return Pose()
-        received_data = self._check_for_get(body_name, ["position", "quaternion"])
-        body_data = received_data[body_name]
-        wxyz = body_data["quaternion"]
-        xyzw = [wxyz[1], wxyz[2], wxyz[3], wxyz[0]]
-        return Pose(body_data["position"], xyzw)
+        return self.reader.get_body_pose(body_name)
 
     def reset_object_base_pose(self, obj: Object, pose: Pose):
         self.check_object_exists_and_issue_warning_if_not(obj)
-        self._reset_body_pose(obj.name, pose)
+        self._set_body_pose(obj.name, pose)
 
     def multiverse_reset_world(self):
         self.writer.reset_world()
 
-    def _reset_body_pose(self, body_name: str, pose: Pose) -> None:
+    def _set_body_pose(self, body_name: str, pose: Pose) -> None:
         """
-        Reset the pose of a body in the simulator.
+        Reset the pose of a body (object, link, or joint) in the simulator.
         param body_name: The name of the body.
         param pose: The pose of the body.
         """
@@ -283,7 +267,7 @@ class Multiverse(World):
         self.check_object_exists_and_issue_warning_if_not(constraint.parent_link.object)
         self.check_object_exists_and_issue_warning_if_not(constraint.child_link.object)
 
-        if not self.set_attached_objects_poses:
+        if not self.let_pycram_move_attached_objects:
             self.api_requester.attach(constraint)
 
         return self._update_constraint_collection_and_get_latest_id(constraint)
@@ -406,5 +390,4 @@ class Multiverse(World):
             logging.warning(f"Object {obj} does not exist in the simulator")
 
     def check_object_exists_in_multiverse(self, object_name: str) -> bool:
-        result = self.api_requester.check_object_exists(object_name)[0]
-        return result == "yes"
+        return self.api_requester.check_object_exists(object_name)
