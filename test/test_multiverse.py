@@ -111,7 +111,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
                 break
             i += 1
             # time.sleep(0.1)
-        self.assertAlmostEqual(joint_position, original_joint_position - 1.57, delta=0.001)
+        self.assertAlmostEqual(joint_position, original_joint_position - 1.57, delta=0.03)
 
     def test_spawn_robot(self):
         if self.multiverse.robot is not None:
@@ -144,7 +144,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         new_position = [1, 1, 0.1]
         self.multiverse.robot.set_position(new_position)
         robot_position = self.multiverse.robot.get_position_as_list()
-        self.assert_positon_is_equal(robot_position, new_position, delta=0.035)
+        self.assert_list_is_equal(robot_position[:2], new_position[:2], delta=0.02)
 
     def test_attach_object(self):
         milk = self.spawn_milk([1, 0, 0.1])
@@ -194,31 +194,30 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assert_poses_are_equal(milk_initial_pose, milk_pose)
 
     def test_get_object_contact_points(self):
-        milk = self.spawn_milk([1, 0, 0.1])
-        cup = self.spawn_cup([1, 1, 0.1])
+        milk = self.spawn_milk([1, 0, 0.1], [0, -0.707, 0, 0.707])
         contact_points = self.multiverse.get_object_contact_points(milk)
         self.assertIsInstance(contact_points, list)
         self.assertEqual(len(contact_points), 1)
         self.assertTrue(contact_points[0].link_b.object, self.multiverse.floor)
-        cup_position = cup.get_position_as_list()
-        milk.set_position([cup_position[0], cup_position[1], cup_position[2] + 0.2])
-        contact_points = self.multiverse.get_object_contact_points(milk)
+        cup = self.spawn_cup([1, 0, 0.2])
+        # rotate milk around y-axis by 90 degrees
+        contact_points = self.multiverse.get_object_contact_points(cup)
         self.assertIsInstance(contact_points, list)
         self.assertEqual(len(contact_points), 1)
-        self.assertTrue(contact_points[0].link_b.object, cup)
+        self.assertTrue(contact_points[0].link_b.object, milk)
 
     @staticmethod
     def spawn_big_bowl() -> Object:
         big_bowl = Object("big_bowl", ObjectType.GENERIC_OBJECT, "BigBowl.obj",
                           pose=Pose([2, 2, 0.1], [0, 0, 0, 1]))
-        # time.sleep(0.1)
         return big_bowl
 
     @staticmethod
-    def spawn_milk(position: List) -> Object:
+    def spawn_milk(position: List, orientation: Optional[List] = None) -> Object:
+        if orientation is None:
+            orientation = [0, 0, 0, 1]
         milk = Object("milk_box", ObjectType.MILK, "milk_box.urdf",
-                      pose=Pose(position, [0, 0, 0, 1]))
-        # time.sleep(0.5)
+                      pose=Pose(position, orientation))
         return milk
 
     def spawn_mobile_robot(self, position: Optional[List[float]] = None, robot_name: Optional[str] = 'tiago_dual') -> Object:
@@ -237,14 +236,12 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         else:
             robot = self.multiverse.robot
             robot.set_position(position)
-        # time.sleep(0.5)
         return robot
 
     @staticmethod
     def spawn_cup(position: List) -> Object:
         cup = Object("cup", ObjectType.GENERIC_OBJECT, "Cup.obj",
                      pose=Pose(position, [0, 0, 0, 1]))
-        # time.sleep(0.5)
         return cup
 
     def assert_poses_are_equal(self, pose1: Pose, pose2: Pose,

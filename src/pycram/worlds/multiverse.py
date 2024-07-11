@@ -310,9 +310,13 @@ class Multiverse(World):
                 logging.error(f"Body link not found: {point.body_name}")
                 raise ValueError
             contact_points.append(ContactPoint(obj.root_link, body_link))
-            normal_force = self._get_normal_force_on_object_from_contact_force(obj, point.contact_force)
-            contact_points[-1].normal_on_b = normal_force
-            contact_points[-1].normal_force = normal_force
+            b_obj = body_link.object
+            # normal_force_in_b_frame = self._get_normal_force_on_object_from_contact_force(b_obj, point.contact_force)
+            contact_points[-1].force_x_in_world_frame = point.contact_force[0]
+            contact_points[-1].force_y_in_world_frame = point.contact_force[1]
+            contact_points[-1].force_z_in_world_frame = point.contact_force[2]
+            contact_points[-1].normal_on_b = point.contact_force[2]
+            contact_points[-1].normal_force = point.contact_force[2]
         return contact_points
 
     @staticmethod
@@ -323,6 +327,8 @@ class Multiverse(World):
         """
         obj_quat = obj.get_orientation_as_list()
         obj_rot_matrix = quaternion_matrix(obj_quat)[:3, :3]
+        # invert the rotation matrix to get the transformation from world to object frame
+        obj_rot_matrix = np.linalg.inv(obj_rot_matrix)
         contact_force_array = obj_rot_matrix @ np.array(contact_force).reshape(3, 1)
         return contact_force_array.flatten().tolist()[2]
 
