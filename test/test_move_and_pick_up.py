@@ -3,13 +3,14 @@ import unittest
 
 import numpy as np
 
+from bullet_world_testcase import BulletWorldTestCase
+from pycram.datastructures.enums import ObjectType, Arms, Grasp
 from pycram.designator import ObjectDesignatorDescription
-from pycram.datastructures.enums import ObjectType
 from pycram.designators.action_designator import MoveTorsoActionPerformable
+from pycram.designators.specialized_designators.probabilistic.probabilistic_action import (MoveAndPickUp,
+                                                                                           GaussianCostmapModel)
 from pycram.plan_failures import PlanFailure
 from pycram.process_module import simulated_robot
-from pycram.designators.specialized_designators.probabilistic.probabilistic_action import MoveAndPickUp, GaussianCostmapModel
-from bullet_world_testcase import BulletWorldTestCase
 
 
 class GaussianCostmapModelTestCase(unittest.TestCase):
@@ -33,19 +34,18 @@ class MoveAndPickUpTestCase(BulletWorldTestCase):
 
     def test_grounding(self):
         object_designator = ObjectDesignatorDescription(types=[ObjectType.MILK]).resolve()
-        move_and_pick = MoveAndPickUp(object_designator, arms=["left", "right"],
-                                      grasps=["front", "left", "right", "top"])
+        move_and_pick = MoveAndPickUp(object_designator, arms=[Arms.LEFT, Arms.RIGHT],
+                                      grasps=[Grasp.FRONT, Grasp.LEFT, Grasp.RIGHT, Grasp.TOP])
 
         model = move_and_pick.ground_model()
         event = move_and_pick.events_from_occupancy_and_visibility_costmap()
-        self.assertTrue(event.are_events_disjoint())
+        self.assertTrue(event.is_disjoint())
         self.assertIsNotNone(model)
-
 
     def test_move_and_pick_up(self):
         object_designator = ObjectDesignatorDescription(types=[ObjectType.MILK]).resolve()
-        move_and_pick = MoveAndPickUp(object_designator, arms=["left", "right"],
-                                      grasps=["front", "left", "right", "top"])
+        move_and_pick = MoveAndPickUp(object_designator, arms=[Arms.LEFT, Arms.RIGHT],
+                                      grasps=[Grasp.FRONT, Grasp.LEFT, Grasp.RIGHT, Grasp.TOP])
         with simulated_robot:
             for action in move_and_pick:
                 try:

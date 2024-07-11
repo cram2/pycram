@@ -6,13 +6,14 @@ import rospy
 import sys
 import rosnode
 
-from ..datastructures.enums import JointType
+from ..datastructures.enums import JointType, ObjectType
 from ..datastructures.pose import Pose
-from ..robot_descriptions import robot_description
+# from ..robot_descriptions import robot_description
 from ..datastructures.world import World
 from ..datastructures.dataclasses import MeshVisualShape
 from ..world_concepts.world_object import Object
-from ..robot_description import ManipulatorDescription
+# from ..robot_description import ManipulatorDescription
+from ..robot_description import RobotDescription
 
 from typing_extensions import List, Dict, Callable, Optional
 from geometry_msgs.msg import PoseStamped, PointStamped, QuaternionStamped, Vector3Stamped
@@ -130,20 +131,19 @@ def sync_worlds() -> None:
     add_gripper_groups()
     world_object_names = set()
     for obj in World.current_world.objects:
-        if obj.name != robot_description.name and len(obj.link_name_to_id) != 1:
+        if obj.name != RobotDescription.current_robot_description.name and obj.obj_type != ObjectType.ROBOT and len(obj.link_name_to_id) != 1:
             world_object_names.add(obj.name)
-        if obj.name == robot_description.name:
+        if obj.name == RobotDescription.current_robot_description.name or obj.obj_type == ObjectType.ROBOT:
             joint_config = obj.get_positions_of_all_joints()
             non_fixed_joints = list(filter(lambda joint: joint.type != JointType.FIXED, obj.joints.values()))
             joint_config_filtered = {joint.name: joint_config[joint.name] for joint in non_fixed_joints}
 
-            giskard_wrapper.motion_goals.set_seed_configuration(joint_config_filtered,
-                                                                robot_description.name)
-            giskard_wrapper.motion_goals.set_seed_odometry(_pose_to_pose_stamped(obj.get_pose()),
-                                                           robot_description.name)
-
+            giskard_wrapper.monitors.add_set_seed_configuration(joint_config_filtered,
+                                                                RobotDescription.current_robot_description.name)
+            giskard_wrapper.monitors.add_set_seed_odometry(_pose_to_pose_stamped(obj.get_pose()),
+                                                           RobotDescription.current_robot_description.name)
     giskard_object_names = set(giskard_wrapper.get_group_names())
-    robot_name = {robot_description.name}
+    robot_name = {RobotDescription.current_robot_description.name}
     if not world_object_names.union(robot_name).issubset(giskard_object_names):
         giskard_wrapper.clear_world()
     initial_adding_objects()
@@ -597,11 +597,8 @@ def add_gripper_groups() -> None:
         for name in giskard_wrapper.get_group_names():
             if "gripper" in name:
                 return
-
-        for name, description in robot_description.chains.items():
-            if isinstance(description, ManipulatorDescription):
-                root_link = robot_description.chains[name].gripper.links[-1]
-                giskard_wrapper.register_group(name + "_gripper", root_link, robot_description.name)
+        for description in RobotDescription.current_robot_description.get_manipulator_chains():
+            giskard_wrapper.register_group(description.name + "_gripper", description.start_link, RobotDescription.current_robot_description.name)
 
 
 @init_giskard_interface
