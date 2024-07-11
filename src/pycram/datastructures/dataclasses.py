@@ -315,6 +315,9 @@ class ContactPoint:
     normal_force: Optional[List[float]] = None  # normal force applied during last step simulation
     lateral_friction_1: Optional[LateralFriction] = None
     lateral_friction_2: Optional[LateralFriction] = None
+    force_x_in_world_frame: Optional[float] = None
+    force_y_in_world_frame: Optional[float] = None
+    force_z_in_world_frame: Optional[float] = None
 
     def __str__(self):
         return f"ContactPoint: {self.link_a.object.name} - {self.link_b.object.name}"

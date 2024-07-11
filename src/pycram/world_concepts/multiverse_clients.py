@@ -185,7 +185,7 @@ class MultiverseReader(MultiverseSocket):
 
 class MultiverseWriter(MultiverseSocket):
 
-    time_for_sim_update: Optional[float] = 0.3
+    time_for_sim_update: Optional[float] = 0.4
     """
     Wait time for the sent data to be applied in the simulator.
     """
