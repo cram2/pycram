@@ -206,6 +206,29 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assertEqual(len(contact_points), 1)
         self.assertTrue(contact_points[0].link_b.object, milk)
 
+    def test_get_contact_points_between_two_objects(self):
+        milk = self.spawn_milk([1, 0, 0.1], [0, -0.707, 0, 0.707])
+        cup = self.spawn_cup([1, 0, 0.2])
+        contact_points = self.multiverse.get_contact_points_between_two_objects(milk, cup)
+        self.assertIsInstance(contact_points, list)
+        self.assertEqual(len(contact_points), 1)
+        self.assertTrue(contact_points[0].link_a.object, milk)
+        self.assertTrue(contact_points[0].link_b.object, cup)
+
+    def test_get_one_ray(self):
+        milk = self.spawn_milk([1, 0, 0.1])
+        intersected_object = self.multiverse.ray_test([1, 1, 0.1], [1, 0.5, 0.1])
+        self.assertTrue(intersected_object is None)
+        intersected_object = self.multiverse.ray_test([1, 1, 0.1], [1, 0, 0.1])
+        self.assertTrue(intersected_object == milk.id)
+
+    def test_get_rays(self):
+        milk = self.spawn_milk([1, 0, 0.1])
+        intersected_objects = self.multiverse.ray_test_batch([[1, 1, 0.1], [1, 1, 0.1]],
+                                                             [[1, 0.5, 0.1], [1, 0, 0.1]])
+        self.assertTrue(intersected_objects[0] == -1)
+        self.assertTrue(intersected_objects[1] == milk.id)
+
     @staticmethod
     def spawn_big_bowl() -> Object:
         big_bowl = Object("big_bowl", ObjectType.GENERIC_OBJECT, "BigBowl.obj",
