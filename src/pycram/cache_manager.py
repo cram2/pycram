@@ -125,7 +125,7 @@ class CacheManager:
         :param path: The path of the file to check.
         """
         file_name = pathlib.Path(path).name
-        full_path = pathlib.Path(self.cache_dir + file_name)
+        full_path = pathlib.Path(os.path.join(self.cache_dir, file_name))
         return full_path.exists()
 
     def check_without_extension(self, path: str, object_description: 'ObjectDescription') -> bool:

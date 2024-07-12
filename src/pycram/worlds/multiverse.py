@@ -95,9 +95,10 @@ class Multiverse(World):
     A flag to check if the multiverse resources have been added.
     """
 
-    def __init__(self, simulation: str, mode: Optional[WorldMode] = WorldMode.DIRECT,
+    def __init__(self, mode: Optional[WorldMode] = WorldMode.DIRECT,
                  is_prospection: Optional[bool] = False,
-                 simulation_frequency: Optional[float] = 60.0):
+                 simulation_frequency: Optional[float] = 60.0,
+                 simulation: Optional[str] = "empty_simulation"):
         """
         Initialize the Multiverse Socket and the PyCram World.
         param mode: The mode of the world (DIRECT or GUI).
@@ -105,11 +106,12 @@ class Multiverse(World):
         param simulation_frequency: The frequency of the simulation.
         param client_addr: The address of the multiverse client.
         """
+
+        self._make_sure_multiverse_resources_are_added()
+
         World.__init__(self, mode, is_prospection, simulation_frequency)
 
         self._init_clients(simulation)
-
-        self._make_sure_multiverse_resources_are_added()
 
         self._set_world_job_flags()
 
@@ -144,8 +146,7 @@ class Multiverse(World):
         if not self.added_multiverse_resources:
             dirname = find_multiverse_resources_path()
             resources_paths = get_resource_paths(dirname)
-            for resource_path in resources_paths:
-                self.add_resource_path(resource_path)
+            World.data_directory = resources_paths + self.data_directory
             self.added_multiverse_resources = True
 
     def _spawn_floor(self):
@@ -172,7 +173,8 @@ class Multiverse(World):
         if pose is None:
             pose = Pose()
 
-        self._set_body_pose(name, pose)
+        if not self.get_object_by_name(name).obj_type == ObjectType.ENVIRONMENT:
+            self._set_body_pose(name, pose)
 
         return self._update_object_id_name_maps_and_get_latest_id(name)
 
@@ -216,6 +218,8 @@ class Multiverse(World):
 
     def get_object_pose(self, obj: Object) -> Pose:
         self.check_object_exists_and_issue_warning_if_not(obj)
+        if obj.obj_type == ObjectType.ENVIRONMENT:
+            return Pose()
         return self._get_body_pose(obj.name)
 
     def _get_body_pose(self, body_name: str) -> Pose:
@@ -224,12 +228,12 @@ class Multiverse(World):
         param body_name: The name of the body.
         return: The pose of the body.
         """
-        if body_name == "floor":
-            return Pose()
         return self.reader.get_body_pose(body_name)
 
     def reset_object_base_pose(self, obj: Object, pose: Pose):
         self.check_object_exists_and_issue_warning_if_not(obj)
+        if obj.obj_type == ObjectType.ENVIRONMENT:
+            return
         self._set_body_pose(obj.name, pose)
 
     def multiverse_reset_world(self):
@@ -256,7 +260,8 @@ class Multiverse(World):
         self.reader.join()
 
     def remove_object_from_simulator(self, obj: Object) -> None:
-        self.writer.remove_body(obj.name)
+        if obj.obj_type != ObjectType.ENVIRONMENT:
+            self.writer.remove_body(obj.name)
 
     def add_constraint(self, constraint: Constraint) -> int:
 

@@ -74,6 +74,8 @@ class Object(WorldEntity):
         self.original_pose = self.local_transformer.transform_pose(pose, "map")
         self._current_pose = self.original_pose
 
+        self.world.objects.append(self)
+
         self.id, self.path = self._load_object_and_get_id(path, ignore_cached_files)
 
         self.description.update_description_from_file(self.path)
@@ -98,7 +100,6 @@ class Object(WorldEntity):
 
         if self.name == "spoon" and self.world.is_prospection_world:
             print("spoon problem")
-        self.world.objects.append(self)
 
     @property
     def pose(self):
