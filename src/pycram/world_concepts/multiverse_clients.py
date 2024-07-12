@@ -281,12 +281,34 @@ class MultiverseWriter(MultiverseSocket):
         param data: The data to be sent.
         return: The response from the server.
         """
-        send_meta_data = {body_name: list(data.keys())}
-        flattened_data = [item for sublist in data.values() for item in sublist]
-        send_data = [time() - self.time_start, *flattened_data]
-        response = self.send_data_to_server(send_data, send_meta_data=send_meta_data)
+        return self.send_multiple_body_data_to_server({body_name: data})
+
+    def send_multiple_body_data_to_server(self, body_data: Dict[str, Dict[str, List[float]]]) -> Dict:
+        """
+        Send data to the multiverse server for multiple bodies.
+        param body_data: The data to be sent for multiple bodies.
+        return: The response from the server.
+        """
+        send_meta_data = {body_name: list(data.keys()) for body_name, data in body_data.items()}
+        response_meta_data = self.send_meta_data_and_get_response(send_meta_data)
+        body_names = list(response_meta_data["send"].keys())
+        flattened_data = [value for body_name in body_names for data in body_data[body_name].values()
+                          for value in data]
+        self.send_data = [time() - self.time_start, *flattened_data]
+        self.send_and_receive_data()
         sleep(self.time_for_sim_update)
-        return response
+        return self.response_meta_data
+
+    def send_meta_data_and_get_response(self, send_meta_data: Dict) -> Dict:
+        """
+        Send metadata to the multiverse server and get the response.
+        param send_meta_data: The metadata to be sent.
+        return: The response from the server.
+        """
+        self._reset_request_meta_data()
+        self.request_meta_data["send"] = send_meta_data
+        self.send_and_receive_meta_data()
+        return self.response_meta_data
 
     def send_data_to_server(self, data: List,
                             send_meta_data: Optional[Dict] = None,

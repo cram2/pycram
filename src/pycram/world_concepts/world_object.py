@@ -824,6 +824,8 @@ class Object(WorldEntity):
         Sets the current position of all joints to 0. This is useful if the joints should be reset to their default
         """
         joint_names = list(self.joint_name_to_id.keys())
+        if len(joint_names) == 0:
+            return
         joint_positions = [0] * len(joint_names)
         self.set_joint_positions(dict(zip(joint_names, joint_positions)))
 
@@ -834,8 +836,7 @@ class Object(WorldEntity):
 
         :param joint_poses:
         """
-        for joint_name, joint_position in joint_poses.items():
-            self.joints[joint_name].position = joint_position
+        self.world.set_multiple_joint_positions(self, joint_poses)
         # self.update_pose()
         self._update_all_links_poses()
         self.update_link_transforms()
