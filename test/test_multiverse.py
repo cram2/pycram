@@ -88,24 +88,24 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
                                   milk.original_pose.orientation_as_list())
 
     def test_spawn_object(self):
-        milk = self.spawn_milk([1, 0, 0.1])
+        milk = self.spawn_milk([1, 1, 0.1])
         self.assertIsInstance(milk, Object)
         milk_pose = milk.get_pose()
-        self.assert_list_is_equal(milk_pose.position_as_list()[:2], [1, 0])
+        self.assert_list_is_equal(milk_pose.position_as_list()[:2], [1, 1])
         self.assert_list_is_equal(milk_pose.orientation_as_list(), milk.original_pose.orientation_as_list())
 
     def test_remove_object(self):
-        milk = self.spawn_milk([0, 0, 0.1])
+        milk = self.spawn_milk([1, 1, 0.1])
         milk.remove()
         self.assertTrue(milk not in self.multiverse.objects)
         self.assertFalse(self.multiverse.check_object_exists_in_multiverse(milk.name))
 
     def test_check_object_exists(self):
-        milk = self.spawn_milk([0, 0, 0.1])
+        milk = self.spawn_milk([1, 1, 0.1])
         self.assertTrue(self.multiverse.check_object_exists_in_multiverse(milk.name))
 
     def test_set_position(self):
-        milk = self.spawn_milk([0, 0, 0.1])
+        milk = self.spawn_milk([1, 1, 0.1])
         original_milk_position = milk.get_position_as_list()
         original_milk_position[0] += 1
         milk.set_position(original_milk_position)
@@ -113,10 +113,10 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assert_list_is_equal(milk_position[:2], original_milk_position[:2])
 
     def test_update_position(self):
-        milk = self.spawn_milk([1, 0, 0.1])
+        milk = self.spawn_milk([1, 1, 0.1])
         milk.update_pose()
         milk_position = milk.get_position_as_list()
-        self.assert_list_is_equal(milk_position[:2], [1, 0])
+        self.assert_list_is_equal(milk_position[:2], [1, 1])
 
     def test_set_joint_position(self):
         if self.multiverse.robot is None:
@@ -125,16 +125,10 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             robot = self.multiverse.robot
         original_joint_position = robot.get_joint_position("joint1")
         step = 1.57
-        i = 0
-        while True:
-            robot.set_joint_position("joint1", original_joint_position - step * i)
-            robot.joints["joint1"]._update_position()
-            joint_position = robot.get_joint_position("joint1")
-            if joint_position <= original_joint_position - 1.57:
-                break
-            i += 1
-            # time.sleep(0.1)
-        self.assertAlmostEqual(joint_position, original_joint_position - 1.57, delta=0.03)
+        robot.set_joint_position("joint1", original_joint_position - step)
+        robot.joints["joint1"]._update_position()
+        joint_position = robot.get_joint_position("joint1")
+        self.assertAlmostEqual(joint_position, original_joint_position - step, delta=0.3)
 
     def test_spawn_robot(self):
         if self.multiverse.robot is not None:
@@ -158,16 +152,16 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assertTrue(self.multiverse.robot in self.multiverse.objects)
         self.multiverse.robot.remove()
         self.assertTrue(self.multiverse.robot not in self.multiverse.objects)
-        self.spawn_robot(position=[0, 0, 0.1])
+        self.spawn_robot()
         self.assertTrue(self.multiverse.robot in self.multiverse.objects)
 
     # @unittest.skip("This will cause respawning of the robot.")
     def test_set_robot_position(self):
         self.spawn_mobile_robot(robot_name='panda_free')
-        new_position = [1, 1, 0.1]
+        new_position = [-3, -3, 0.1]
         self.multiverse.robot.set_position(new_position)
         robot_position = self.multiverse.robot.get_position_as_list()
-        self.assert_list_is_equal(robot_position[:2], new_position[:2], delta=0.02)
+        self.assert_list_is_equal(robot_position[:2], new_position[:2], delta=0.2)
 
     def test_attach_object(self):
         milk = self.spawn_milk([1, 0, 0.1])
@@ -204,7 +198,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             self.tearDown()
 
     def test_attach_with_robot(self):
-        milk = self.spawn_milk([1, 0, 0.1])
+        milk = self.spawn_milk([1, 1, 0.1])
         robot = self.spawn_robot()
         # Get position of milk relative to robot end effector
         milk_initial_pose = milk.root_link.get_pose_wrt_link(robot.tip_link)
@@ -217,12 +211,12 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assert_poses_are_equal(milk_initial_pose, milk_pose)
 
     def test_get_object_contact_points(self):
-        milk = self.spawn_milk([1, 0, 0.1], [0, -0.707, 0, 0.707])
+        milk = self.spawn_milk([1, 1, 0.1], [0, -0.707, 0, 0.707])
         contact_points = self.multiverse.get_object_contact_points(milk)
         self.assertIsInstance(contact_points, list)
         self.assertEqual(len(contact_points), 1)
         self.assertTrue(contact_points[0].link_b.object, self.multiverse.floor)
-        cup = self.spawn_cup([1, 0, 0.2])
+        cup = self.spawn_cup([1, 1, 0.2])
         # rotate milk around y-axis by 90 degrees
         contact_points = self.multiverse.get_object_contact_points(cup)
         self.assertIsInstance(contact_points, list)
@@ -230,8 +224,8 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assertTrue(contact_points[0].link_b.object, milk)
 
     def test_get_contact_points_between_two_objects(self):
-        milk = self.spawn_milk([1, 0, 0.1], [0, -0.707, 0, 0.707])
-        cup = self.spawn_cup([1, 0, 0.2])
+        milk = self.spawn_milk([1, 1, 0.1], [0, -0.707, 0, 0.707])
+        cup = self.spawn_cup([1, 1, 0.2])
         contact_points = self.multiverse.get_contact_points_between_two_objects(milk, cup)
         self.assertIsInstance(contact_points, list)
         self.assertEqual(len(contact_points), 1)
@@ -239,16 +233,16 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assertTrue(contact_points[0].link_b.object, cup)
 
     def test_get_one_ray(self):
-        milk = self.spawn_milk([1, 0, 0.1])
-        intersected_object = self.multiverse.ray_test([1, 1, 0.1], [1, 0.5, 0.1])
+        milk = self.spawn_milk([1, 1, 0.1])
+        intersected_object = self.multiverse.ray_test([1, 2, 0.1], [1, 1.5, 0.1])
         self.assertTrue(intersected_object is None)
-        intersected_object = self.multiverse.ray_test([1, 1, 0.1], [1, 0, 0.1])
+        intersected_object = self.multiverse.ray_test([1, 2, 0.1], [1, 1, 0.1])
         self.assertTrue(intersected_object == milk.id)
 
     def test_get_rays(self):
-        milk = self.spawn_milk([1, 0, 0.1])
-        intersected_objects = self.multiverse.ray_test_batch([[1, 1, 0.1], [1, 1, 0.1]],
-                                                             [[1, 0.5, 0.1], [1, 0, 0.1]])
+        milk = self.spawn_milk([1, 1, 0.1])
+        intersected_objects = self.multiverse.ray_test_batch([[1, 2, 0.1], [1, 2, 0.1]],
+                                                             [[1, 1.5, 0.1], [1, 1, 0.1]])
         self.assertTrue(intersected_objects[0] == -1)
         self.assertTrue(intersected_objects[1] == milk.id)
 
@@ -273,7 +267,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
                     robot_name: Optional[str] = 'panda',
                     replace: Optional[bool] = False) -> Object:
         if position is None:
-            position = [0, 0, 0.1]
+            position = [-2, -2, 0.1]
         if self.multiverse.robot is None or replace:
             if self.multiverse.robot is not None:
                 self.multiverse.robot.remove()

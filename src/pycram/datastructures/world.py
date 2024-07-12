@@ -1094,6 +1094,15 @@ class World(StateEntity, ABC):
     def __del__(self):
         self.exit()
 
+    @abstractmethod
+    def set_multiple_joint_positions(self, obj: Object, joint_poses: Dict[str, float]) -> None:
+        """
+        Set the positions of multiple joints of an articulated object.
+        :param obj: The object.
+        :param joint_poses: A dictionary with joint names as keys and joint positions as values.
+        """
+        pass
+
 
 class UseProspectionWorld:
     """

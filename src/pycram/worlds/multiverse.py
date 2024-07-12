@@ -207,10 +207,18 @@ class Multiverse(World):
 
     def reset_joint_position(self, joint: Joint, joint_position: float) -> None:
         attribute = self.get_joint_position_name(joint)
-        self.send_data_to_server(joint.name, {attribute: [joint_position]})
+        self.send_body_data_to_server(joint.name, {attribute: [joint_position]})
 
-    def send_data_to_server(self, body_name: str, data: Dict[str, List[float]]):
+    def set_multiple_joint_positions(self, obj: Object, joint_poses: Dict[str, float]) -> None:
+        data = {joint.name: {self.get_joint_position_name(joint): [joint_poses[joint.name]]}
+                for joint in obj.joints.values()}
+        self.writer.send_multiple_body_data_to_server(data)
+
+    def send_body_data_to_server(self, body_name: str, data: Dict[str, List[float]]):
         self.writer.send_body_data_to_server(body_name, data)
+
+    def sent_data_to_server(self, data: Dict[str, List[float]]):
+        self.writer.send_data_to_server(list(data.values()))
 
     def get_link_pose(self, link: Link) -> Pose:
         self.check_object_exists_and_issue_warning_if_not(link.object)
@@ -304,7 +312,7 @@ class Multiverse(World):
         body_link = None
         for point in multiverse_contact_points:
             if point.body_name == "world":
-                continue
+                point.body_name = "floor"
             body_object = self.get_object_by_name(point.body_name)
             if body_object is None:
                 for obj in self.objects:

@@ -163,7 +163,11 @@ class BulletWorld(World):
                 "lateral_friction_1": LateralFriction(point[10], point[11]),
                 "lateral_friction_2": LateralFriction(point[12], point[13])}
 
-    def reset_joint_position(self, joint: ObjectDescription.Joint, joint_position: str) -> None:
+    def set_multiple_joint_positions(self, obj: Object, joint_poses: Dict[str, float]) -> None:
+        for joint_name, joint_position in joint_poses.items():
+            self.reset_joint_position(obj.joints[joint_name], joint_position)
+
+    def reset_joint_position(self, joint: ObjectDescription.Joint, joint_position: float) -> None:
         p.resetJointState(joint.object_id, joint.id, joint_position, physicsClientId=self.id)
 
     def reset_object_base_pose(self, obj: Object, pose: Pose) -> None:
