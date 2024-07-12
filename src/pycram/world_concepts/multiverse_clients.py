@@ -12,6 +12,23 @@ from ..datastructures.pose import Pose
 
 
 @dataclass
+class RayResult:
+    """
+    A dataclass to store the ray result. The ray result contains the body name that the ray intersects with and the
+    distance from the ray origin to the intersection point.
+    """
+    body_name: str
+    distance: float
+
+    def intersected(self) -> bool:
+        """
+        Check if the ray intersects with a body.
+        return: Whether the ray intersects with a body.
+        """
+        return self.distance >= 0 and self.body_name != ""
+
+
+@dataclass
 class APIData:
     """
     A dataclass to store the API data.
@@ -431,6 +448,55 @@ class MultiverseAPI(MultiverseSocket):
         contact_efforts = self._parse_constraint_effort(api_response_data[self.GET_CONSTRAINT_EFFORT_API_NAME])
         return [MultiverseContactPoint(body_names[i], contact_efforts[:3], contact_efforts[3:])
                 for i in range(len(body_names))]
+
+    def get_objects_intersected_with_rays(self, from_positions: List[List[float]],
+                                          to_positions: List[List[float]]) -> List[RayResult]:
+        """
+        Get the rays from the from_positions to the to_positions.
+        param from_positions: The from positions of the rays.
+        param to_positions: The to positions of the rays.
+        return: The rays as a list of RayResult.
+        """
+        api_data = self._get_rays_api_data(from_positions, to_positions)
+        get_rays_response = self._request_single_api_callback(api_data)
+        return self._parse_get_rays_response(get_rays_response)
+
+    def _get_rays_api_data(self, from_positions: List[List[float]], to_positions: List[List[float]]) -> APIData:
+        """
+        Get the rays API data to be added to the api callback request metadata.
+        param from_positions: The from positions of the rays.
+        param to_positions: The to positions of the rays.
+        return: The rays API data as an APIData.
+        """
+        return APIData(self.GET_RAYS_API_NAME, [self.list_of_positions_to_string(from_positions),
+                                                self.list_of_positions_to_string(to_positions)]
+                       )
+
+    @staticmethod
+    def _parse_get_rays_response(response: List[str]) -> List[RayResult]:
+        """
+        Parse the response of the get rays API.
+        param response: The response of the get rays API as a list of strings.
+        return: The rays as a list of lists of floats.
+        """
+        get_rays_results = []
+        for ray_response in response:
+            if ray_response == "None":
+                get_rays_results.append(RayResult("", -1))
+            else:
+                result = ray_response.split()
+                result[1] = float(result[1])
+                get_rays_results.append(RayResult(*result))
+        return get_rays_results
+
+    @staticmethod
+    def list_of_positions_to_string(positions: List[List[float]]) -> str:
+        """
+        Convert the list of positions to a string.
+        param positions: The list of positions.
+        return: The list of positions as a string.
+        """
+        return " ".join([f"{position[0]} {position[1]} {position[2]}" for position in positions])
 
     @staticmethod
     def _parse_constraint_effort(contact_effort: List[str]) -> List[float]:

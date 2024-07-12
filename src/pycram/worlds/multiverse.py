@@ -290,6 +290,9 @@ class Multiverse(World):
         logging.warning("perform_collision_detection is not implemented in Multiverse")
 
     def get_object_contact_points(self, obj: Object) -> ContactPointsList:
+        """
+        Note: Currently Multiverse only gets one contact point per contact objects.
+        """
         self.check_object_exists_and_issue_warning_if_not(obj)
         multiverse_contact_points = self.api_requester.get_contact_points(obj)
         contact_points = ContactPointsList([])
@@ -310,7 +313,7 @@ class Multiverse(World):
                 logging.error(f"Body link not found: {point.body_name}")
                 raise ValueError
             contact_points.append(ContactPoint(obj.root_link, body_link))
-            b_obj = body_link.object
+            # b_obj = body_link.object
             # normal_force_in_b_frame = self._get_normal_force_on_object_from_contact_force(b_obj, point.contact_force)
             contact_points[-1].force_x_in_world_frame = point.contact_force[0]
             contact_points[-1].force_y_in_world_frame = point.contact_force[1]
@@ -335,17 +338,27 @@ class Multiverse(World):
     def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> ContactPointsList:
         self.check_object_exists_and_issue_warning_if_not(obj1)
         self.check_object_exists_and_issue_warning_if_not(obj2)
-        logging.warning("get_contact_points_between_two_objects is not implemented in Multiverse")
-        return ContactPointsList([])
+        obj1_contact_points = self.get_object_contact_points(obj1)
+        return obj1_contact_points.get_points_of_object(obj2)
 
-    def ray_test(self, from_position: List[float], to_position: List[float]) -> int:
-        logging.error("ray_test is not implemented in Multiverse")
-        raise NotImplementedError
+    def ray_test(self, from_position: List[float], to_position: List[float]) -> Optional[int]:
+        ray_test_result = self.ray_test_batch([from_position], [to_position])
+        return ray_test_result[0] if ray_test_result[0] != -1 else None
 
     def ray_test_batch(self, from_positions: List[List[float]], to_positions: List[List[float]],
                        num_threads: int = 1) -> List[int]:
-        logging.error("ray_test_batch is not implemented in Multiverse")
-        raise NotImplementedError
+        """
+        Note: Currently, num_threads is not used in Multiverse.
+        """
+        ray_results = self.api_requester.get_objects_intersected_with_rays(from_positions, to_positions)
+        results = []
+        for ray_result in ray_results:
+            if ray_result.intersected():
+                results.append(self.floor.id if ray_result.body_name == "world" else
+                               self.object_name_to_id[ray_result.body_name])
+            else:
+                results.append(-1)
+        return results
 
     def step(self):
         logging.warning("step is not implemented in Multiverse")
