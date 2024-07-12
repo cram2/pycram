@@ -5,8 +5,11 @@ import unittest
 import psutil
 from typing_extensions import Optional, List
 
+from pycram.datastructures.dataclasses import Color
 from pycram.datastructures.enums import ObjectType
 from pycram.datastructures.pose import Pose
+from pycram.designators.object_designator import BelieveObject
+from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.world_concepts.world_object import Object
 
 multiverse_installed = True
@@ -50,6 +53,26 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         # self.multiverse.multiverse_reset_world()
         self.multiverse.reset_world_and_remove_objects()
         # MultiversePyCRAMTestCase.big_bowl = self.spawn_big_bowl()
+
+    def test_demo(self):
+        extension = ObjectDescription.get_file_extension()
+
+        robot = Object("tiago_dual", ObjectType.ROBOT, f"tiago_dual{extension}", pose=Pose([1, 2, 0.01]))
+        apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")
+
+        milk = Object("milk_box", ObjectType.MILK, f"milk_box{extension}", pose=Pose([2.5, 2, 1.02]),
+                      color=Color(1, 0, 0, 1))
+        spoon = Object("soup_spoon", ObjectType.SPOON, f"SoupSpoon.obj", pose=Pose([2.5, 2.5, 1.02]),
+                       color=Color(0, 0, 1, 1))
+        bowl = Object("big_bowl", ObjectType.BOWL, f"BigBowl.obj", pose=Pose([2.5, 2.2, 1.02]),
+                      color=Color(1, 1, 0, 1))
+        bowl.attach(spoon)
+        bowl.set_position([2.5, 2.3, 1.02])
+
+        pick_pose = Pose([2.7, 2.15, 1])
+
+        robot_desig = BelieveObject(names=["tiago_dual"])
+        apartment_desig = BelieveObject(names=["apartment"])
 
     def test_reset_world(self):
         set_position = [1, 1, 0.1]

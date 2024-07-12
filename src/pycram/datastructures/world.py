@@ -864,8 +864,7 @@ class World(StateEntity, ABC):
         """
         self.reset_world()
         for obj in copy(self.objects):
-            if obj.name != 'floor':
-                self.remove_object(obj)
+            self.remove_object(obj)
 
     def reset_world(self, remove_saved_states=True) -> None:
         """
