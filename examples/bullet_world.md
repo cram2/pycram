@@ -5,7 +5,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.2
+      jupytext_version: 1.16.3
   kernelspec:
     display_name: Python 3
     language: python
@@ -18,9 +18,9 @@ This Notebook will show you the basics of working with the PyCRAM BulletWorld.
 First we need to import and create a BulletWorld.
 
 ```python
-from pycram.bullet_world import BulletWorld
-from pycram.pose import Pose
-from pycram.enums import ObjectType, WorldMode
+from pycram.worlds.bullet_world import BulletWorld
+from pycram.datastructures.pose import Pose
+from pycram.datastructures.enums import ObjectType, WorldMode
 
 world = BulletWorld(mode=WorldMode.GUI)
 ```
@@ -44,7 +44,7 @@ world.exit()
 To spawn new things in the BulletWorld we need to import the Object class and create and instance of it. 
 
 ```python
-from pycram.bullet_world import Object
+from pycram.world_concepts.world_object import Object
 
 milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([0, 0, 1]))
 ```

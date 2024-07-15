@@ -1,76 +1,35 @@
-import logging
-import re
+from os.path import dirname, basename, isfile, join
+import glob
 
-import rospy
+modules = glob.glob(join(dirname(__file__), "*.py"))
+__all__ = [basename(f)[:-3] for f in modules if isfile(f) and not f.endswith('__init__.py')]
 
-from .boxy_description import BoxyDescription
-from .donbot_description import DonbotDescription
-from .hsrb_description import HSRBDescription
-from .pr2_description import PR2Description
-from .ur5_description import UR5Description
-from .tiago_description import TiagoDescription
-from .stretch_description import StretchDescription
-from .. import utils
-from ..robot_description import RobotDescription
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+from . import *
 
 
-class InitializedRobotDescription():
-    # singleton instance short named as 'i'
-    i = None
-    current_description_loaded = None
+class DeprecatedRobotDescription:
+    def raise_error(self):
+        raise DeprecationWarning("Robot description moved, please use RobotDescription.current_robot_description from pycram.robot_description")
 
-    def __init__(self, robot_description):
-        assert issubclass(robot_description, RobotDescription) and robot_description is not RobotDescription
-        if not InitializedRobotDescription.i or \
-                InitializedRobotDescription.current_description_loaded is not robot_description:
-            InitializedRobotDescription.current_description_loaded = robot_description
-            InitializedRobotDescription.i = robot_description()
-            logger.info("(robot-description) (Re)Loaded Description of robot %s.", self.i.name)
+    @property
+    def name(self):
+        self.raise_error()
 
+    @property
+    def chains(self):
+        self.raise_error()
 
-def update_robot_description(robot_name=None, from_ros=None):
-    # Get robot name
-    if robot_name:
-        robot = robot_name
-    elif from_ros:
-        try:
-            urdf = rospy.get_param('robot_description')
-        except Exception as e:
-            logger.error("(robot-description) Could not get robot name from parameter server. Try again.")
-            return None
-        res = re.findall(r"robot\ *name\ *=\ *\"\ *[a-zA-Z_0-9]*\ *\"", urdf)
-        if len(res) == 1:
-            begin = res[0].find("\"")
-            end = res[0][begin + 1:].find("\"")
-            robot = res[0][begin + 1:begin + 1 + end].lower()
-    else:
-        return None
+    @property
+    def joints(self):
+        self.raise_error()
 
-    # Choose Description based on robot name
-    if 'iai_donbot' in robot:
-        description = DonbotDescription
-    elif 'pr2' in robot:
-        description = PR2Description
-    elif 'boxy' in robot:
-        description = BoxyDescription
-    elif 'hsrb' in robot:
-        description = HSRBDescription
-    elif "ur5_robotiq" in robot:
-        description = UR5Description
-    elif "tiago_dual" in robot:
-        description = TiagoDescription
-    elif "stretch" in robot:
-        description = StretchDescription
-    else:
-        logger.error("(robot-description) The given robot name %s has no description class.", robot_name)
-        return None
-    return InitializedRobotDescription(description)
+    @property
+    def torso_joint(self):
+        self.raise_error()
+
+    @property
+    def torso_link(self):
+        self.raise_error()
 
 
-# with utils.suppress_stdout_stderr():
-update_robot_description(from_ros=True)  # "ur5_robotiq")#  # todo: put in ros init
-
-robot_description = InitializedRobotDescription.i
+robot_description = DeprecatedRobotDescription()

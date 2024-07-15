@@ -5,7 +5,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.2
+      jupytext_version: 1.16.3
   kernelspec:
     display_name: Python 3
     language: python
@@ -48,12 +48,13 @@ If you already have some data in your local database you can skip the next block
 some example data
 
 ```python
-from pycram.enums import Arms, ObjectType
+from pycram.datastructures.enums import Arms, ObjectType
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
-from pycram.task import with_tree
-from pycram.bullet_world import Object
+from pycram.tasktree import with_tree
+from pycram.worlds.bullet_world import BulletWorld
+from pycram.world_concepts.world_object import Object
 from pycram.designators.object_designator import *
 
 
@@ -97,7 +98,7 @@ class ExamplePlans:
 
 ```python
 import pycram.orm.utils           
-import pycram.task
+import pycram.tasktree
             
 with source_session_maker() as session:
     example_plans = ExamplePlans()
@@ -109,7 +110,7 @@ with source_session_maker() as session:
             process_meta_data = pycram.orm.base.ProcessMetaData()
             process_meta_data.description = "Example Plan {}".format(i)
             process_meta_data.insert(session)
-            pycram.task.task_tree.root.insert(session)
+            pycram.tasktree.task_tree.root.insert(session)
             process_meta_data.reset()
         except Exception as e:
             print("Error: {}\n{}".format(type(e).__name__, e))

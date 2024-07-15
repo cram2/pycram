@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 from .object_designator import ObjectDesignatorDescription, ObjectPart, RealObject
+from ..designator import ResolutionError
 from ..orm.base import ProcessMetaData
 from ..plan_failures import PerceptionObjectNotFound
 from ..process_module import ProcessModuleManager
@@ -11,7 +12,7 @@ from ..orm.motion_designator import (MoveMotion as ORMMoveMotion,
                                      MoveGripperMotion as ORMMoveGripperMotion, DetectingMotion as ORMDetectingMotion,
                                      OpeningMotion as ORMOpeningMotion, ClosingMotion as ORMClosingMotion,
                                      Motion as ORMMotionDesignator)
-from ..datastructures.enums import ObjectType
+from ..datastructures.enums import ObjectType, Arms, GripperState
 
 from typing_extensions import Dict, Optional, get_type_hints, get_args, get_origin
 from ..datastructures.pose import Pose
@@ -123,7 +124,7 @@ class MoveTCPMotion(BaseMotion):
     """
     Target pose to which the TCP should be moved
     """
-    arm: str
+    arm: Arms
     """
     Arm with the TCP that should be moved to the target
     """
@@ -179,11 +180,11 @@ class MoveGripperMotion(BaseMotion):
     Opens or closes the gripper
     """
 
-    motion: str
+    motion: GripperState
     """
     Motion that should be performed, either 'open' or 'close'
     """
-    gripper: str
+    gripper: Arms
     """
     Name of the gripper that should be moved
     """
@@ -326,7 +327,7 @@ class OpeningMotion(BaseMotion):
     """
     Object designator for the drawer handle
     """
-    arm: str
+    arm: Arms
     """
     Arm that should be used
     """
@@ -358,7 +359,7 @@ class ClosingMotion(BaseMotion):
     """
     Object designator for the drawer handle
     """
-    arm: str
+    arm: Arms
     """
     Arm that should be used
     """

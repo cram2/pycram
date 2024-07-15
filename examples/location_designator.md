@@ -5,7 +5,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.2
+      jupytext_version: 1.16.3
   kernelspec:
     display_name: Python 3
     language: python
@@ -31,9 +31,10 @@ Location designators work similar to other designators, meaning you have to crea
 We will start with a simple location designator that describes a location where the robot can be placed without colliding with the environment. To do this we need a BulletWorld since the costmaps are mostly created from the current state of the BulletWorld. 
 
 ```python
-from pycram.bullet_world import BulletWorld, Object
-from pycram.enums import ObjectType
-from pycram.pose import Pose
+from pycram.worlds.bullet_world import BulletWorld
+from pycram.world_concepts.world_object import Object
+from pycram.datastructures.enums import ObjectType, WorldMode
+from pycram.datastructures.pose import Pose
 
 world = BulletWorld()
 kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
@@ -193,7 +194,7 @@ Some robots like the HSR or the Stretch2 need a full-body ik solver to utilize t
 **Note:** The GiskardLocation relies on Giskard, therefore Giskard needs to run in order for this Location Designator to work.
 
 ```python
-from pycram.resolver.location.giskard_location import GiskardLocation
+from pycram.designators.specialized_designators.location.giskard_location import GiskardLocation
 
 robot_desig = BelieveObject(names=["pr2"]).resolve()
 

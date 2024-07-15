@@ -5,7 +5,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.2
+      jupytext_version: 1.16.3
   kernelspec:
     display_name: Python 3
     language: python
@@ -27,9 +27,10 @@ It is possible to spawn objects and robots into the BulletWorld, these objects c
 A BulletWorld can be created by simply creating an object of the BulletWorld class. 
 
 ```python
-from pycram.bullet_world import BulletWorld, Object
-from pycram.enums import ObjectType
-from pycram.pose import Pose
+from pycram.worlds.bullet_world import BulletWorld
+from pycram.world_concepts.world_object import Object
+from pycram.datastructures.enums import ObjectType
+from pycram.datastructures.pose import Pose
 
 world = BulletWorld()
 ```
@@ -168,7 +169,7 @@ Allows for geometric reasoning in the BulletWorld. At the moment the following t
 To show the geometric reasoning we first spawn a robot as well as the milk Object again.
 
 ```python
-import pycram.bullet_world_reasoning as btr
+import pycram.world_reasoning as btr
 milk = Object("Milk", ObjectType.MILK, "milk.stl", pose=Pose([1, 0, 1]))
 pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
 ```
@@ -287,7 +288,7 @@ Action Designators are used to describe high-level actions. Action Designators a
 
 ```python
 from pycram.designators.action_designator import *
-from pycram.enums import Arms
+from pycram.datastructures.enums import Arms
 
 with simulated_robot:
     ParkArmsAction([Arms.BOTH]).resolve().perform()

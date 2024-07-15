@@ -5,7 +5,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.2
+      jupytext_version: 1.16.3
   kernelspec:
     display_name: Python 3
     language: python
@@ -389,7 +389,7 @@ with simulated_robot:
 
     NavigateAction(target_locations=[pickup_pose.pose]).resolve().perform()
 
-    PickUpAction(object_designator_description=target_milk_holder_designator, arms=[pickup_arm], grasps=["front"]).resolve().perform()
+    PickUpAction(object_designator_description=target_milk_holder_designator, arms=[pickup_arm], grasps=[Grasp.FRONT]).resolve().perform()
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 

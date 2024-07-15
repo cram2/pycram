@@ -10,7 +10,7 @@ from pycram.datastructures.pose import Pose
 from pycram.language import Sequential, Language, Parallel, TryAll, TryInOrder, Monitor, Code
 from pycram.process_module import simulated_robot
 from bullet_world_testcase import BulletWorldTestCase
-from pycram.robot_descriptions import robot_description
+from pycram.robot_description import RobotDescription
 
 
 class LanguageTestCase(BulletWorldTestCase):
@@ -148,9 +148,9 @@ class LanguageTestCase(BulletWorldTestCase):
             plan.perform()
         self.assertEqual(self.robot.get_pose(), Pose([1, 1, 0]))
         self.assertEqual(self.robot.get_joint_position("torso_lift_joint"), 0.3)
-        for joint, pose in robot_description.get_static_joint_chain("right", "park").items():
+        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("right", "park").items():
             self.assertEqual(self.world.robot.get_joint_position(joint), pose)
-        for joint, pose in robot_description.get_static_joint_chain("left", "park").items():
+        for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("left", "park").items():
             self.assertEqual(self.world.robot.get_joint_position(joint), pose)
 
     def test_perform_code(self):
