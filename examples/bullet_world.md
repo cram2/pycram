@@ -34,13 +34,6 @@ This new window is the BulletWorld, PyCRAMs internal physics simulation. You can
 At the moment the BulletWorld only contains a floor, this is spawned by default when creating the BulletWorld. Furthermore, the gravity is set to 9.8 m^2, which is the same gravitation as the one on earth. 
     
 
-
-To close the BulletWorld again please use the ```exit``` method since it will also terminate threads running in the background
-
-```python
-world.exit()
-```
-
 To spawn new things in the BulletWorld we need to import the Object class and create and instance of it. 
 
 ```python
@@ -163,4 +156,11 @@ Lastly, there is ```get_AABB```, AABB stands for *A*xis *A*ligned *B*ounding *B*
 
 ```python
 pr2.get_axis_aligned_bounding_box()
+```
+
+
+To close the BulletWorld again please use the ```exit``` method since it will also terminate threads running in the background
+
+```python
+world.exit()
 ```

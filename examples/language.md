@@ -72,12 +72,6 @@ world = BulletWorld()
 pr2  = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
 ```
 
-If you are finished with this example you can close the world with the cell below.
-
-```python
-world.exit()
-```
-
 ```python
 from pycram.process_module import simulated_robot
 world.reset_bullet_world()
@@ -202,7 +196,7 @@ park = ParkArmsAction([Arms.BOTH])
 code = Code(lambda: print("This is from the code object"))
 code_func = Code(code_test, {"param": "Code funtion"})
 
-plan = navigate | code | code_func
+plan = park | code | code_func
 
 with simulated_robot:
     plan.perform()
@@ -265,6 +259,7 @@ For the example on how Monitors work we will use the previous example with the r
 from pycram.designators.action_designator import *
 from pycram.process_module import simulated_robot
 from pycram.language import Monitor
+import time
 
 move_torso_up = MoveTorsoAction([0.3])
 move_torso_down = MoveTorsoAction([0.])
@@ -277,4 +272,11 @@ plan = (move_torso_up + move_torso_down) * 5 >> Monitor(monitor_func)
 
 with simulated_robot:
     plan.perform()
+```
+
+
+If you are finished with this example you can close the world with the cell below.
+
+```python
+world.exit()
 ```

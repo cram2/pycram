@@ -40,10 +40,6 @@ world = BulletWorld()
 kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
 ```
 
-```python
-world.exit()
-```
-
 Next up we will create the location designator description, the ```CostmapLocation``` that we will be using needs a target as a parameter. This target describes what the location designator is for, this could either be a pose or object that the robot should be able to see or reach.
 
 In this case we only want poses where the robot can be placed, this is the default behaviour of the location designator which we will be extending later. 
@@ -200,4 +196,9 @@ robot_desig = BelieveObject(names=["pr2"]).resolve()
 
 loc = GiskardLocation(target=Pose([1, 1, 1]), reachable_for=robot_desig).resolve()
 print(loc.pose)
+```
+
+If you are finished with this example you can close the world with the following cell:
+```python
+world.exit()
 ```
