@@ -90,7 +90,33 @@ class WorldMode(Enum):
     GUI = "GUI"
     DIRECT = "DIRECT"
 
+
 class AxisIdentifier(Enum):
+    """
+    Enum for translating the axis name to a vector along that axis.
+    """
     X = (1, 0, 0)
     Y = (0, 1, 0)
     Z = (0, 0, 1)
+
+
+class GripperState(Enum):
+    """
+    Enum for the different motions of the gripper.
+    """
+    OPEN = auto()
+    CLOSE = auto()
+
+
+class GripperType(Enum):
+    """
+    Enum for the different types of grippers.
+    """
+    PARALLEL = auto()
+    SUCTION = auto()
+    FINGER = auto()
+    HYDRAULIC = auto()
+    PNEUMATIC = auto()
+    CUSTOM = auto()
+
+

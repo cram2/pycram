@@ -313,6 +313,15 @@ class World(StateEntity, ABC):
         return list(filter(lambda obj: obj.id == obj_id, self.objects))[0]
 
     @abstractmethod
+    def remove_object_by_id(self, obj_id: int) -> None:
+        """
+        Removes the object with the given id from the world.
+
+        :param obj_id: The unique id of the object to be removed.
+        """
+        pass
+
+    @abstractmethod
     def remove_object_from_simulator(self, obj: Object) -> None:
         """
         Removes an object from the physics simulator.

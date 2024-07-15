@@ -8,17 +8,18 @@ import rospy
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
-from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
-                                          AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
-                                          ContactPointsList)
-from ..datastructures.enums import ObjectType, JointType
-from ..datastructures.pose import Pose, Transform
 from ..description import ObjectDescription, LinkDescription, Joint
-from ..local_transformer import LocalTransformer
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..robot_descriptions import robot_description
 from ..datastructures.world import WorldEntity, World
 from ..world_concepts.constraints import Attachment
+from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
+                                          AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
+                                          ContactPointsList)
+from ..datastructures.enums import ObjectType, JointType
+from ..local_transformer import LocalTransformer
+from ..datastructures.pose import Pose, Transform
+from ..robot_description import RobotDescriptionManager
 
 Link = ObjectDescription.Link
 
@@ -61,20 +62,18 @@ class Object(WorldEntity):
 
         if pose is None:
             pose = Pose()
-        if name in self.world.get_object_names():
+        if name in [obj.name for obj in self.world.objects]:
             rospy.logerr(f"An object with the name {name} already exists in the world.")
             return None
         self.name: str = name
         self.obj_type: ObjectType = obj_type
         self.color: Color = color
-        self.description: ObjectDescription = description()
+        self.description = description()
         self.cache_manager = self.world.cache_manager
 
         self.local_transformer = LocalTransformer()
         self.original_pose = self.local_transformer.transform_pose(pose, "map")
         self._current_pose = self.original_pose
-
-        self.world.objects.append(self)
 
         self.id, self.path = self._load_object_and_get_id(path, ignore_cached_files)
 
@@ -82,10 +81,6 @@ class Object(WorldEntity):
 
         self.tf_frame = ((self.prospection_world_prefix if self.world.is_prospection_world else "")
                          + f"{self.name}")
-
-        if robot_description is not None:
-            if self.description.name == robot_description.name or self.obj_type == ObjectType.ROBOT:
-                self.world.set_robot_if_not_set(self)
 
         self._init_joint_name_and_id_map()
         self._init_link_name_and_id_map()
@@ -98,8 +93,12 @@ class Object(WorldEntity):
         if not self.world.is_prospection_world:
             self._add_to_world_sync_obj_queue()
 
-        if self.name == "spoon" and self.world.is_prospection_world:
-            print("spoon problem")
+        self.world.objects.append(self)
+
+        if self.obj_type == ObjectType.ROBOT and not self.world.is_prospection_world:
+            rdm = RobotDescriptionManager()
+            rdm.load_description(self.name)
+            World.robot = self
 
     @property
     def pose(self):

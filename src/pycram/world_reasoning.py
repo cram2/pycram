@@ -5,8 +5,8 @@ import numpy as np
 
 from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
 from .datastructures.pose import Pose, Transform
+from .robot_description import RobotDescription
 from .datastructures.dataclasses import ContactPointsList
-from .robot_descriptions import robot_description
 from .world_concepts.world_object import Object
 from .datastructures.world import World, UseProspectionWorld
 
@@ -76,7 +76,7 @@ def get_visible_objects(
     :param front_facing_axis: The axis, of the camera frame, which faces to the front of the robot. Given as list of xyz
     :return: A segmentation mask of the objects that are visible and the pose of the point at exactly 2 meters in front of the camera in the direction of the front facing axis with respect to the world coordinate frame.
     """
-    front_facing_axis = robot_description.front_facing_axis if not front_facing_axis else front_facing_axis
+    front_facing_axis = RobotDescription.current_robot_description.get_default_camera().front_facing_axis
 
     world_to_cam = camera_pose.to_transform("camera")
 

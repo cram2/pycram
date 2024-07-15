@@ -84,6 +84,9 @@ class BulletWorld(World):
     def remove_object_from_simulator(self, obj: Object) -> None:
         p.removeBody(obj.id, self.id)
 
+    def remove_object_by_id(self, obj_id: int) -> None:
+        p.removeBody(obj_id, self.id)
+
     def add_constraint(self, constraint: Constraint) -> int:
 
         constraint_id = p.createConstraint(constraint.parent_object_id,
