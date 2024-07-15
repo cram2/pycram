@@ -14,7 +14,7 @@ from typing_extensions import Callable, Type, Any, Union
 import rospy
 
 from .language import Language
-from .robot_descriptions import robot_description
+from .robot_description import RobotDescription
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -252,7 +252,7 @@ class ProcessModuleManager(ABC):
             return
 
         for pm_manager in ProcessModuleManager.available_pms:
-            if pm_manager.robot_name == robot_description.name:
+            if pm_manager.robot_name == RobotDescription.current_robot_description.name:
                 manager = pm_manager
             if pm_manager.robot_name == "default":
                 _default_manager = pm_manager
@@ -260,11 +260,11 @@ class ProcessModuleManager(ABC):
         if manager:
             return manager
         elif _default_manager:
-            rospy.logwarn_once(f"No Process Module Manager found for robot: '{robot_description.name}'"
+            rospy.logwarn_once(f"No Process Module Manager found for robot: '{RobotDescription.current_robot_description.name}'"
                                f", using default process modules")
             return _default_manager
         else:
-            rospy.logerr(f"No Process Module Manager found for robot: '{robot_description.name}'"
+            rospy.logerr(f"No Process Module Manager found for robot: '{RobotDescription.current_robot_description.name}'"
                          f", and no default process modules available")
             return None
 

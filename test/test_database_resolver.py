@@ -13,7 +13,7 @@ from pycram.designators.object_designator import ObjectDesignatorDescription
 from pycram.process_module import ProcessModule
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import Pose
-from pycram.robot_descriptions import robot_description
+from pycram.robot_description import RobotDescription
 from pycram.tasktree import with_tree
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.designators.specialized_designators.location.database_location import DatabaseCostmapLocation
@@ -37,7 +37,7 @@ class DatabaseResolverTestCase(unittest.TestCase,):
         global pycrorm_uri
         cls.world = BulletWorld(WorldMode.DIRECT)
         cls.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-        cls.robot = Object(robot_description.name, ObjectType.ROBOT, robot_description.name + ".urdf")
+        cls.robot = Object(robot_description.name, ObjectType.ROBOT, RobotDescription.current_robot_description.name + ".urdf")
         ProcessModule.execution_delay = False
         cls.engine = sqlalchemy.create_engine(pycrorm_uri)
 
