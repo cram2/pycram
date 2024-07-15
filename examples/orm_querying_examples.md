@@ -5,7 +5,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.2
+      jupytext_version: 1.16.3
   kernelspec:
     display_name: Python 3
     language: python
@@ -22,7 +22,6 @@ In the experiment the robot will try to grasp a randomized object using random p
 
 
 ```python
-from pycram.designators.actions.actions import MoveTorsoActionPerformable, ParkArmsActionPerformable
 from tf import transformations
 import itertools
 import time
@@ -35,26 +34,25 @@ import tf
 import tqdm
 
 import pycram.orm.base
-import pycram.task
-from pycram.bullet_world import BulletWorld, Object as BulletWorldObject
-from pycram.designators.action_designator import MoveTorsoAction, PickUpAction, NavigateAction, ParkArmsAction
+from pycram.worlds.bullet_world import BulletWorld
+from pycram.world_concepts.world_object import Object as BulletWorldObject
+from pycram.designators.action_designator import MoveTorsoAction, PickUpAction, NavigateAction, ParkArmsAction, ParkArmsActionPerformable, MoveTorsoActionPerformable
 from pycram.designators.object_designator import ObjectDesignatorDescription
-import pycram.enums
 from pycram.plan_failures import PlanFailure
 from pycram.process_module import ProcessModule
+from pycram.datastructures.enums import Arms, ObjectType, Grasp
 
 from pycram.process_module import simulated_robot
 import sqlalchemy.orm
-# from pycram.resolver.location.jpt_location import JPTCostmapLocation
 import pycram.orm
 from pycram.orm.base import Position, RobotState
-from pycram.orm.task import TaskTreeNode, Code
+from pycram.orm.tasktree import TaskTreeNode
 from pycram.orm.action_designator import PickUpAction as ORMPickUpAction
 from pycram.orm.object_designator import Object
 import sqlalchemy.sql
 import pandas as pd
 
-from pycram.pose import Pose
+from pycram.datastructures.pose import Pose
 
 np.random.seed(420)
 
@@ -68,7 +66,7 @@ class GraspingExplorer:
     world: Optional[BulletWorld]
 
     def __init__(self, robots: Optional[List[Tuple[str, str]]] = None, objects: Optional[List[Tuple[str, str]]] = None,
-                 arms: Optional[List[str]] = None, grasps: Optional[List[str]] = None,
+                 arms: Optional[List[Arms]] = None, grasps: Optional[List[Grasp]] = None,
                  samples_per_scenario: int = 1000):
         """
         Create a GraspingExplorer.
@@ -83,16 +81,16 @@ class GraspingExplorer:
             self.robots: List[Tuple[str, str]] = [("pr2", "pr2.urdf")]
 
         if not objects:
-            self.objects: List[Tuple[str, pycram.enums.ObjectType, str]] = [("cereal", pycram.enums.ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl"),
-                                                                            ("bowl", pycram.enums.ObjectType.BOWL, "bowl.stl"),
-                                                                            ("milk", pycram.enums.ObjectType.MILK, "milk.stl"),
-                                                                            ("spoon", pycram.enums.ObjectType.SPOON, "spoon.stl")]
+            self.objects: List[Tuple[str, ObjectType, str]] = [("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl"),
+                                                                            ("bowl", ObjectType.BOWL, "bowl.stl"),
+                                                                            ("milk", ObjectType.MILK, "milk.stl"),
+                                                                            ("spoon", ObjectType.SPOON, "spoon.stl")]
 
         if not arms:
-            self.arms: List[str] = ["left", "right"]
+            self.arms: List[str] = [Arms.LEFT, Arms.RIGHT]
 
         if not grasps:
-            self.grasps: List[str] = ["left", "right", "front", "top"]
+            self.grasps: List[str] = [Grasp.LEFT, Grasp.RIGHT, Grasp.FRONT, Grasp.TOP]
 
         # store trials per scenario
         self.samples_per_scenario: int = samples_per_scenario
@@ -119,13 +117,13 @@ class GraspingExplorer:
         for robot, robot_urdf in self.robots:
 
             # spawn it
-            robot = BulletWorldObject(robot, pycram.enums.ObjectType.ROBOT, robot_urdf)
+            robot = BulletWorldObject(robot, ObjectType.ROBOT, robot_urdf)
 
             # for every obj
             for obj, obj_type, obj_stl in self.objects:
 
                 # spawn it
-                bw_object = BulletWorldObject(obj, obj_type, obj_stl, Pose([0, 0, 0.75], [0, 0, 0, 1]))
+                bw_object = BulletWorldObject(obj, obj_type, obj_stl, pose=Pose([0, 0, 0.75], [0, 0, 0, 1]))
 
                 # create object designator
                 object_designator = ObjectDesignatorDescription(names=[obj])
@@ -148,7 +146,7 @@ class GraspingExplorer:
                         # try to execute a grasping plan
                         with simulated_robot:
 
-                            ParkArmsActionPerformable(pycram.enums.Arms.BOTH).perform()
+                            ParkArmsActionPerformable(Arms.BOTH).perform()
                             # navigate to sampled position
                             NavigateAction([Pose(position, orientation)]).resolve().perform()
 
@@ -167,14 +165,14 @@ class GraspingExplorer:
                                 self.total_failures += 1
 
                             # reset BulletWorld
-                            self.world.reset_bullet_world()
+                            self.world.reset_world()
 
                             # update progress bar
                             self.total_tries += 1
 
                             # insert into database
-                            pycram.task.task_tree.insert(session, use_progress_bar=False)
-                            pycram.task.reset_tree()
+                            pycram.tasktree.task_tree.insert(session, use_progress_bar=False)
+                            pycram.tasktree.reset_tree()
 
                             progress_bar.update()
                             progress_bar.set_postfix(success_rate=(self.total_tries - self.total_failures) /
@@ -207,7 +205,7 @@ Let's say we want to select positions of robots that were able to grasp a specif
 
 ```python
 from sqlalchemy import select
-from pycram.enums import ObjectType
+from pycram.datastructures.enums import ObjectType
 
 milk = BulletWorldObject("Milk", ObjectType.MILK, "milk.stl")
 

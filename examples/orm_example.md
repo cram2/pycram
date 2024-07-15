@@ -5,7 +5,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.2
+      jupytext_version: 1.16.3
   kernelspec:
     display_name: Python 3
     language: python
@@ -41,15 +41,16 @@ Next we will write a simple plan where the robot parks his arms and then moves s
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
-from pycram.enums import Arms, ObjectType
-from pycram.task import with_tree
-import pycram.task
-from pycram.bullet_world import Object
+from pycram.datastructures.enums import Arms, ObjectType, Grasp, WorldMode
+from pycram.tasktree import with_tree
+import pycram.tasktree
+from pycram.worlds.bullet_world import BulletWorld
+from pycram.world_concepts.world_object import Object
 from pycram.designators.object_designator import *
-from pycram.pose import Pose
+from pycram.datastructures.pose import Pose
 import anytree
 
-world = BulletWorld()
+world = BulletWorld(WorldMode.GUI)
 pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
 kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
 milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
@@ -63,11 +64,11 @@ kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
 def plan():
     with simulated_robot:
         ParkArmsActionPerformable(Arms.BOTH).perform()
-        MoveTorsoAction([0.3]).resolve().perform()
+        MoveTorsoAction([0.2]).resolve().perform()
         pickup_pose = CostmapLocation(target=cereal_desig.resolve(), reachable_for=robot_desig).resolve()
         pickup_arm = pickup_pose.reachable_arms[0]
         NavigateAction(target_locations=[pickup_pose.pose]).resolve().perform()
-        PickUpAction(object_designator_description=cereal_desig, arms=[pickup_arm], grasps=["front"]).resolve().perform()
+        PickUpAction(object_designator_description=cereal_desig, arms=[pickup_arm], grasps=[Grasp.FRONT]).resolve().perform()
         ParkArmsAction([Arms.BOTH]).resolve().perform()
 
         place_island = SemanticCostmapLocation("kitchen_island_surface", kitchen_desig.resolve(),
@@ -85,7 +86,7 @@ plan()
 
 # set description of what we are doing
 pycram.orm.base.ProcessMetaData().description = "Tutorial for getting familiar with the ORM."
-task_tree = pycram.task.task_tree
+task_tree = pycram.tasktree.task_tree
 print(anytree.RenderTree(task_tree))
 ```
 
@@ -138,7 +139,9 @@ Make sure to check out the other examples of ORM querying.
 If we want to filter for all successful tasks we can just add the filter operator:
 
 ```python
-successful_tasks = session.scalars(select(pycram.orm.task.TaskTreeNode).where(pycram.orm.task.TaskTreeNode.status == "SUCCEEDED"))
+from pycram.orm.tasktree import TaskTreeNode
+
+successful_tasks = session.scalars(select(TaskTreeNode).where(TaskTreeNode.status == "SUCCEEDED"))
 print(*successful_tasks, sep="\n")
 ```
 
@@ -192,7 +195,7 @@ Now we can create and insert a Saying action. Since this is the last part where 
 ```python
 # create a saying action and insert it
 SayingActionPerformable("Patchie, Patchie; Where is my Patchie?").perform()
-pycram.task.task_tree.root.insert(session)
+pycram.tasktree.task_tree.root.insert(session)
 session.commit()
 
 world.exit()

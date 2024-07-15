@@ -15,5 +15,3 @@ Tutorial
 --------
 A tutorial for custom resolver creation is found in the notebook below.
 
-.. nbgallery::
-    notebooks/improving_actions

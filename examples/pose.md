@@ -5,7 +5,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.2
+      jupytext_version: 1.16.3
   kernelspec:
     display_name: Python 3
     language: python
@@ -25,7 +25,7 @@ Before we start a few words about naming convention of Poses in PyCRAM. Naming c
 * **Pose:** A pose is the combination of a position and an orientation. Poses in PyCRAM also contain a frame of reference to which the position and orientation are relative.
 
 ```python
-from pycram.pose import Pose
+from pycram.datastructures.pose import Pose
 
 example_pose = Pose([1, 2, 3], [0, 0, 0, 1], "map")
 print(example_pose)
@@ -34,7 +34,7 @@ print(example_pose)
 As you can see we created the ```example_pose``` with a position of ```[1, 2, 3]``` and an orientation of ```[0, 0, 0, 1]``` in the frame ```map```. But we don't need to provide all these parameters for a Pose, in case there is no parameter the Pose will use default parameter. 
 
 ```python
-from pycram.pose import Pose
+from pycram.datastructures.pose import Pose
 
 default_pose = Pose()
 print(default_pose)
@@ -49,7 +49,7 @@ In case no parameter is provided the defualt parameter are:
 The following example will show how to access the data stored in a pose. 
 
 ```python
-from pycram.pose import Pose
+from pycram.datastructures.pose import Pose
 
 example_pose = Pose([1, 2, 3], [0, 0, 0, 1], "map")
 
@@ -71,7 +71,7 @@ You can also edit the data saved in a Pose, similar to how you access it.
 
 
 ```python
-from pycram.pose import Pose
+from pycram.datastructures.pose import Pose
 
 example_pose = Pose([1, 2, 3], [0, 0, 0, 1], "map")
 
@@ -94,7 +94,7 @@ print(f"Set the position via method:\n{example_pose.position}", "\n")
 You can also copy Poses to create a new Pose with the same data. This can be useful if you have a method which would need to alter the Pose, since poses are passed by reference to a method every change done to the Pose in the method would affect the instanced passed to the method. 
 
 ```python
-from pycram.pose import Pose
+from pycram.datastructures.pose import Pose
 
 example_pose = Pose([1, 2, 3], [0, 0, 0, 1], "map")
 
@@ -110,7 +110,7 @@ PyCRAM also has its own transform at which we will take a look in the next secti
 For this example we will take a Pose which represents the current pose of a milk object and convert it into a Transform which represents the transformation from the ```map``` frame to the ```milk``` frame.
 
 ```python
-from pycram.pose import Pose
+from pycram.datastructures.pose import Pose
 
 milk_pose = Pose([3, 4, 1], [1, 0, 0, 1], "map")
 
@@ -129,7 +129,7 @@ Transforms in PyCRAM inherit from the TransformStamped message of ROS which make
 * **Transform:** The combination of translation and rotation 
 
 ```python
-from pycram.pose import Transform
+from pycram.datastructures.pose import Transform
 
 example_transform = Transform([1, 2, 2], [0, 0, 0, 1], "map", "object")
 
@@ -139,7 +139,7 @@ print(example_transform)
 Transforms have the same methods to get and set values as Poses have, therefore only a short showcase will be given. For more details please look at the Pose example or the API documentation.
 
 ```python
-from pycram.pose import Transform
+from pycram.datastructures.pose import Transform
 
 example_transform = Transform([2, 5, 1], [0, 0, 1, 1], "map", "object")
 
@@ -159,7 +159,7 @@ Analog to Poses Transforms have a method that converts a Transform to a Pose, in
 Also like in Poses Transforms have a ```copy``` method which creates an exact copy of this Transform.
 
 ```python
-from pycram.pose import Transform
+from pycram.datastructures.pose import Transform
 
 milk_transform = Transform([1, 1, 1], [0, 0, 0, 1], "map", "milk")
 
@@ -185,7 +185,7 @@ Transforms have, unlike Poses, operations that can be done. These operations are
 We will first take a look at the multiplication of Transforms. We will use an example were we have two Transforms, the first from ```map``` to a ```hand``` frame and the second from the ```hand``` to a ```milk``` frame. By multiplying these two we get the Transform from ```map``` to ```milk``` frame.
 
 ```python
-from pycram.pose import Transform
+from pycram.datastructures.pose import Transform
 
 map_to_hand = Transform([1, 1, 1], [0, 0, 0, 1], "map", "hand")
 
@@ -200,7 +200,7 @@ print(map_to_milk)
 This inverts a Transform, so in we have a transform from ```map``` to ```milk``` then inverting it results in a Transform from ```milk``` to ```map``` . 
 
 ```python
-from pycram.pose import Transform
+from pycram.datastructures.pose import Transform
 
 map_to_milk = Transform([1, 1, 0.5], [0, 0, 0, 1], "map", "milk")
 
@@ -213,7 +213,7 @@ print(milk_to_map)
 Inverse times combines the inverting and multiplication of Transforms, this results in a 'minus' for Transforms. We will again use the example of a hand holding a milk, but this time we have the Transforms from ```map``` to ```milk``` and ```hand``` to ```milk```. 
 
 ```python
-from pycram.pose import Transform
+from pycram.datastructures.pose import Transform
 
 map_to_milk = Transform([1.1, 1.05, 1], [0, 0, 0, 1], "map", "milk")
 

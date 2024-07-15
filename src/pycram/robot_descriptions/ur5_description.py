@@ -1,42 +1,45 @@
-from ..robot_description import *
+import rospkg
+from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
+    RobotDescriptionManager
+from ..datastructures.enums import Arms, Grasp, GripperState
 
+rospack = rospkg.RosPack()
+filename = rospack.get_path('pycram') + '/resources/robots/' + "ur5_robotiq" + '.urdf'
 
-class UR5Description(RobotDescription):
-    def __init__(self):
-        # all joints which are not fix,
-        super(UR5Description, self).__init__("ur5_robotiq", "world", "base_link")
+ur5_description = RobotDescription("ur5_robotiq", "world", "base_link", "ee_link",
+                                   filename)
 
-        # Arm
-        arm_joints = ["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint",
-                      "wrist_3_joint"]
-        arm_links = ["base_link", "shoulder_link", "upper_arm_link", "forearm_link", "wrist_1_link", "wrist_2_link", "wrist_3_link"]
-        gripper_joints = ["robotiq_85_left_finger_joint", "robotiq_85_right_finger_joint",
-                          "robotiq_85_left_inner_knuckle_joint", "robotiq_85_right_inner_knuckle_joint",
-                          "robotiq_85_left_finger_tip_joint", "robotiq_85_left_finger_tip_joint"]
-        gripper_links = ["robotiq_85_base_link", "robotiq_85_left_knuckle_link", "robotiq_85_right_knuckle_link",
-                         "robotiq_85_left_finger_link", "robotiq_85_right_finger_link",
-                         "robotiq_85_left_inner_knuckle_link", "robotiq_85_right_inner_knuckle_link",
-                         "robotiq_85_left_finger_tip_link" "robotiq_85_right_finger_tip_link"]
+################################## Arm ##################################
+arm = KinematicChainDescription("manipulator", "base_link", "wrist_3_link", ur5_description.urdf_object, arm_type=Arms.RIGHT)
 
-        # Arm
-        manipulator_chain = ChainDescription("manipulator", arm_joints, arm_links)
-        manipulator_inter = InteractionDescription(manipulator_chain, "ee_link")
-        # Gripper
-        gripper = GripperDescription("gripper", gripper_links, gripper_joints)
-        # Adding Arm + Gripper
-        manipulator = ManipulatorDescription(manipulator_inter, tool_frame="ee_link",
-                                             gripper_description=gripper)
-        self.add_chains({"manipulator": manipulator})
-        # Adding Static Joint Poses
-        # Static Arm Positions
-        manipulator_home = [0, 0, 0, 0, 0, 0]
-        self.add_static_joint_chain("manipulator", "home", manipulator_home)
-        # Static Gripper Positions
-        gripper_confs = {"open": [0.0], "close": [1.0]}
-        self.add_static_gripper_chains("gripper", gripper_confs)
+arm.add_static_joint_states("home", {'shoulder_pan_joint': 0.0,
+                                     'shoulder_lift_joint': 0.0,
+                                     'elbow_joint': 0.0,
+                                     'wrist_1_joint': 0.0,
+                                     'wrist_2_joint': 0.0,
+                                     'wrist_3_joint': 0.0})
 
-    def get_camera_frame(self, name="camera"):
-        # TODO: Hacky since only one optical camera frame from pr2 is used
-        return super().get_camera_frame(name)
+ur5_description.add_kinematic_chain_description(arm)
 
+################################## Gripper ##################################
+gripper = EndEffectorDescription("gripper", "robotiq_85_base_link", "robotiq_85_right_finger_link",
+                                 ur5_description.urdf_object)
 
+gripper.add_static_joint_states(GripperState.OPEN, {'robotiq_85_left_finger_joint': 0.0,
+                                         'robotiq_85_right_finger_joint': 0.0,
+                                         'robotiq_85_left_inner_knuckle_joint': 0.0,
+                                         'robotiq_85_right_inner_knuckle_joint': 0.0,
+                                         'robotiq_85_left_finger_tip_joint': 0.0,
+                                         'robotiq_85_right_finger_tip_joint': 0.0})
+gripper.add_static_joint_states(GripperState.CLOSE, {'robotiq_85_left_finger_joint': 1,
+                                          'robotiq_85_right_finger_joint': 1,
+                                          'robotiq_85_left_inner_knuckle_joint': 1.0,
+                                          'robotiq_85_right_inner_knuckle_joint': 1.0,
+                                          'robotiq_85_left_finger_tip_joint': 1.0,
+                                          'robotiq_85_right_finger_tip_joint': 1.0})
+
+arm.end_effector = gripper
+
+# Add to RobotDescriptionManager
+rdm = RobotDescriptionManager()
+rdm.register_description(ur5_description)

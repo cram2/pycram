@@ -9,7 +9,7 @@ from pycram.datastructures.enums import ObjectType, Arms, WorldMode
 from pycram.failure_handling import Retry
 from pycram.plan_failures import PlanFailure
 from pycram.process_module import ProcessModule, simulated_robot
-from pycram.robot_descriptions import robot_description
+from pycram.robot_description import RobotDescription
 from pycram.object_descriptors.urdf import ObjectDescription
 
 extension = ObjectDescription.get_file_extension()
@@ -33,7 +33,7 @@ class FailureHandlingTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.world = BulletWorld(WorldMode.DIRECT)
-        cls.robot = Object(robot_description.name, ObjectType.ROBOT, robot_description.name + extension,
+        cls.robot = Object(RobotDescription.current_robot_description.name, ObjectType.ROBOT, RobotDescription.current_robot_description.name + extension,
                            ObjectDescription)
         ProcessModule.execution_delay = True
 

@@ -5,7 +5,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.2
+      jupytext_version: 1.16.3
   kernelspec:
     display_name: Python 3
     language: python
@@ -21,9 +21,11 @@ This step involves importing the required modules and initializing key component
 
 
 ```python
-from pycram.bullet_world import BulletWorld, Object
-from pycram.pose import Transform, Pose
+from pycram.worlds.bullet_world import BulletWorld
+from pycram.world_concepts.world_object import Object
+from pycram.datastructures.pose import Transform, Pose
 from pycram.local_transformer import LocalTransformer
+from pycram.datastructures.enums import WorldMode
 ```
 
 
@@ -37,14 +39,8 @@ Since the local transformer can only transform between frames of objects which a
 
 ```python
 # Create an instance of the BulletWorld
-world = BulletWorld()
+world = BulletWorld(WorldMode.GUI)
 
-```
-
-The world can be closed by calling the exit method of the world, but don't call this method yet since it would close the world.
-
-```python
-world.exit()
 ```
 
 
@@ -56,12 +52,12 @@ These objects will be used in subsequent tasks, to provide the frames to which w
 
 
 ```python
-from pycram.bullet_world import Object
-from pycram.enums import ObjectType
+from pycram.worlds.bullet_world import Object
+from pycram.datastructures.enums import ObjectType
 
 kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
-milk = Object("milk", ObjectType.MILK, "milk.stl", Pose([0.9, 1, 0.95]))
-bowl = Object("bowl", ObjectType.BOWL, "bowl.stl", Pose([1.6, 1, 0.90]))
+milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([0.9, 1, 0.95]))
+bowl = Object("bowl", ObjectType.BOWL, "bowl.stl", pose=Pose([1.6, 1, 0.90]))
 ```
 
 ## Creating a Local Transfomer
@@ -86,7 +82,7 @@ from pycram.local_transformer import LocalTransformer
 l = LocalTransformer()
 test_pose = Pose([1, 1, 1], [0, 0, 0, 1], "map")
 
-transformed_pose = l.transform_pose_to_object_frame(test_pose, milk)
+transformed_pose = l.transform_to_object_frame(test_pose, milk)
 print(transformed_pose)
 
 print("-------------------")
@@ -98,19 +94,12 @@ In the above code, we first transformed a pose to the object frame of the milk o
 You can also transform poses relative to other poses. by using the transform_pose method. Further you can set a Transform.
 
 ```python
-from pycram.pose import Transform
+from pycram.datastructures.pose import Transform
 
 l.setTransform(Transform([1, 1, 1], [0, 0, 0, 1], "map", "test_frame"))
 p = Pose()
 
 transformed_pose = l.transform_pose(p, "test_frame")
-```
-
-You can also set a Pose to an object and update the transforms for that object. However, this is usually done in the background when necessary so you should only use this method if there is something wrong with the Transformation.
-
-```python
-milk.set_pose(Pose([1, 2, 1]))
-l.update_transforms_for_object(milk)
 ```
 
 ## Transformation frames
@@ -124,4 +113,10 @@ These frames need to be used in whenever you are transforming something with the
 print(milk.tf_frame)
 
 print(kitchen.get_link_tf_frame("kitchen_island_surface"))
+```
+
+You can use the cell below to exit the simulation.
+
+```python
+world.exit()
 ```

@@ -52,13 +52,14 @@ The code for this plan can be seen below.
 
 .. code-block:: python
 
-    from pycram.bullet_world import BulletWorld, Object
+    from pycram.world.bullet_world import BulletWorld
+    from pycram.world_concepts.world_concepts import Object
     from pycram.process_module import simulated_robot
     from pycram.designators.motion_designator import *
     from pycram.designators.location_designator import *
     from pycram.designators.action_designator import *
     from pycram.designators.object_designator import *
-    from pycram.enums import ObjectType
+    from pycram.datastructures.enums import ObjectType, Arms, Grasps
 
     world = BulletWorld()
     kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
@@ -79,7 +80,7 @@ The code for this plan can be seen below.
 
         NavigateAction(target_locations=[pickup_pose.pose]).resolve().perform()
 
-        PickUpAction(object_designator_description=cereal_desig, arms=[pickup_arm], grasps=["front"]).resolve().perform()
+        PickUpAction(object_designator_description=cereal_desig, arms=[pickup_arm], grasps=[Grasps.FRONT]).resolve().perform()
 
         ParkArmsAction([Arms.BOTH]).resolve().perform()
 
@@ -106,6 +107,22 @@ Authors
  * **Christopher Pollok** <cpollok@uni-bremen.de>
  * **Thomas Lipps** <tlipps@uni-bremen.de>
  * **Benjamin Alt** <benjamin.alt@uni-bremen.de>
+
+<<<<<<< HEAD
+=======
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+   installation
+   designators
+   resolvers
+   new_robot
+   examples
+   troubleshooting
+   ros_utils
+   remarks
+>>>>>>> a5b75b6d7991419920b07d7271a994f9be72fbe4
 
 
 

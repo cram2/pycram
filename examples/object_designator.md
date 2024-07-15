@@ -5,7 +5,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.2
+      jupytext_version: 1.16.3
   kernelspec:
     display_name: Python 3
     language: python
@@ -27,11 +27,12 @@ Object Designators work similar to Location designators, they get constrains des
 For all following examples we need a BulletWorld, so let's create one.
 
 ```python
-from pycram.bullet_world import BulletWorld, Object
-from pycram.enums import ObjectType
-from pycram.pose import Pose
+from pycram.worlds.bullet_world import BulletWorld
+from pycram.world_concepts.world_object import Object
+from pycram.datastructures.enums import ObjectType, WorldMode
+from pycram.datastructures.pose import Pose
 
-world = BulletWorld()
+world = BulletWorld(WorldMode.GUI)
 ```
 
 ```python

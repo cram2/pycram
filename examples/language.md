@@ -5,7 +5,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.2
+      jupytext_version: 1.16.3
   kernelspec:
     display_name: Python 3
     language: python
@@ -40,8 +40,8 @@ We will start with a simple example that uses an action designator for moving th
 import time
 
 from pycram.designators.action_designator import *
-from pycram.pose import Pose
-from pycram.enums import Arms
+from pycram.datastructures.pose import Pose
+from pycram.datastructures.enums import Arms
 
 navigate = NavigateAction([Pose([1, 1, 0])])
 park = ParkArmsAction([Arms.BOTH])
@@ -64,8 +64,9 @@ The plan can be executed by wrapping it inside a ```with simulated_robot``` envi
 If you are performing a plan with a simulated robot, you need a BulletWorld. 
 
 ```python
-from pycram.bullet_world import BulletWorld, Object
-from pycram.enums import ObjectType
+from pycram.worlds.bullet_world import BulletWorld
+from pycram.world_concepts.world_object import Object
+from pycram.datastructures.enums import ObjectType
 
 world = BulletWorld()
 pr2  = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
@@ -92,8 +93,8 @@ Besides the described differnce in behaviour this language expression can be use
 
 ```python
 from pycram.designators.action_designator import *
-from pycram.pose import Pose
-from pycram.enums import Arms
+from pycram.datastructures.pose import Pose
+from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
 world.reset_bullet_world()
 
@@ -123,10 +124,10 @@ Using the parallel expressions works like Sequential and TryInOrder.
 
 ```python
 from pycram.designators.action_designator import *
-from pycram.pose import Pose
-from pycram.enums import Arms
+from pycram.datastructures.pose import Pose
+from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
-world.reset_bullet_world()
+world.reset_world()
 
 navigate = NavigateAction([Pose([1, 1, 0])])
 park = ParkArmsAction([Arms.BOTH])
@@ -144,8 +145,8 @@ TryAll can be used like any other language expression.
 
 ```python
 from pycram.designators.action_designator import *
-from pycram.pose import Pose
-from pycram.enums import Arms
+from pycram.datastructures.pose import Pose
+from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
 world.reset_bullet_world()
 
@@ -167,10 +168,10 @@ In this case 'park' and 'move_torso' would form a Sequential expression and 'nav
 
 ```python
 from pycram.designators.action_designator import *
-from pycram.pose import Pose
-from pycram.enums import Arms
+from pycram.datastructures.pose import Pose
+from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
-world.reset_bullet_world()
+world.reset_world()
 
 navigate = NavigateAction([Pose([1, 1, 0])])
 park = ParkArmsAction([Arms.BOTH])
@@ -189,7 +190,7 @@ The callable that is used in the ```Code``` object can either be a lambda expres
 
 ```python
 from pycram.designators.action_designator import *
-from pycram.enums import Arms
+from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
 from pycram.language import Code
 

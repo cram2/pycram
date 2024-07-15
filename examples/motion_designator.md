@@ -5,7 +5,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.2
+      jupytext_version: 1.16.3
   kernelspec:
     display_name: Python 3
     language: python
@@ -18,10 +18,11 @@ Motion designators are similar to action designators, but unlike action designat
 Since motion designators perform a motion on the robot, we need a robot which we can use. Therefore, we will create a BulletWorld as well as a PR2 robot.
 
 ```python
-from pycram.bullet_world import BulletWorld, Object
-from pycram.enums import ObjectType
+from pycram.worlds.bullet_world import BulletWorld
+from pycram.world_concepts.world_object import Object
+from pycram.datastructures.enums import ObjectType, WorldMode
 
-world = BulletWorld()
+world = BulletWorld(WorldMode.GUI)
 pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
 ```
 
@@ -35,7 +36,7 @@ world.exit()
 Move is used to let the robot drive to the given target pose. Motion designator are used in the same way as the other designator, first create a description then resolve it to the actual designator and lastly, perform the resolved designator. 
 
 ```python
-from pycram.pose import Pose
+from pycram.datastructures.pose import Pose
 from pycram.designators.motion_designator import MoveMotion
 from pycram.process_module import simulated_robot
 
@@ -46,7 +47,7 @@ with simulated_robot:
 ```
 
 ```python
-world.reset_bullet_world()
+world.reset_world()
 ```
 
 ## MoveTCP
@@ -55,9 +56,10 @@ MoveTCP is used to move the tool center point (TCP) of the given arm to the targ
 ```python
 from pycram.designators.motion_designator import MoveTCPMotion
 from pycram.process_module import simulated_robot
+from pycram.datastructures.enums import Arms
 
 with simulated_robot:
-    motion_description = MoveTCPMotion(target=Pose([0.5, 0.6, 0.6], [0, 0, 0, 1]), arm="left")
+    motion_description = MoveTCPMotion(target=Pose([0.5, 0.6, 0.6], [0, 0, 0, 1]), arm=Arms.LEFT)
     
     motion_description.perform()
 ```
@@ -81,9 +83,10 @@ Move gripper moves the gripper of an arm to one of two states. The states can be
 ```python
 from pycram.designators.motion_designator import MoveGripperMotion
 from pycram.process_module import simulated_robot
+from pycram.datastructures.enums import Arms, GripperState
 
 with simulated_robot:
-    motion_description = MoveGripperMotion(motion="open", gripper="left")
+    motion_description = MoveGripperMotion(motion=GripperState.OPEN, gripper=Arms.LEFT)
     
     motion_description.perform()
 ```

@@ -5,7 +5,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.2
+      jupytext_version: 1.16.3
   kernelspec:
     display_name: Python 3
     language: python
@@ -31,23 +31,19 @@ We will start with a simple example of the ```NavigateAction```.
 First, we need a BulletWorld with a robot.
 
 ```python
-from pycram.bullet_world import BulletWorld, Object
-from pycram.pose import Pose
-from pycram.enums import ObjectType
+from pycram.worlds.bullet_world import BulletWorld
+from pycram.world_concepts.world_object import Object
+from pycram.datastructures.enums import ObjectType, WorldMode
 
-world = BulletWorld()
+world = BulletWorld(WorldMode.GUI)
 pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
-```
-
-```python
-world.exit()
 ```
 
 To move the robot we need to create a description and resolve it to an actual Designator. The description of navigation only needs a list of possible poses.
 
 ```python
 from pycram.designators.action_designator import NavigateAction
-from pycram.pose import Pose
+from pycram.datastructures.pose import Pose
 
 pose = Pose([1, 0, 0], [0, 0, 0, 1])
 
@@ -97,9 +93,10 @@ The procedure is similar to the last time, but this time we will shorten it a bi
 ```python
 from pycram.designators.action_designator import SetGripperAction
 from pycram.process_module import simulated_robot
+from pycram.datastructures.enums import GripperState, Arms
 
-gripper = "right"
-motion = "open"
+gripper = Arms.RIGHT
+motion = GripperState.OPEN
 
 with simulated_robot:
     SetGripperAction(grippers=[gripper], motions=[motion]).resolve().perform()
@@ -111,7 +108,7 @@ Park arms is used to move one or both arms into the default parking position.
 ```python
 from pycram.designators.action_designator import ParkArmsAction
 from pycram.process_module import simulated_robot
-from pycram.enums import Arms
+from pycram.datastructures.enums import Arms
 
 with simulated_robot:
     ParkArmsAction([Arms.BOTH]).resolve().perform()
@@ -128,42 +125,43 @@ To start we need an environment in which we can pick up and place things as well
 kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
 milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
 
-world.reset_bullet_world()
+world.reset_world()
 ```
 
 ```python
 from pycram.designators.action_designator import PickUpAction, PlaceAction, ParkArmsAction, MoveTorsoAction, NavigateAction
 from pycram.designators.object_designator import BelieveObject
 from pycram.process_module import simulated_robot
-from pycram.enums import Arms
-from pycram.pose import Pose
+from pycram.datastructures.enums import Arms, Grasp
+from pycram.datastructures.pose import Pose
 
 milk_desig = BelieveObject(names=["milk"])
-arm ="right"
+arm = Arms.RIGHT
 
 with simulated_robot:
     ParkArmsAction([Arms.BOTH]).resolve().perform()
     
     MoveTorsoAction([0.3]).resolve().perform()
     
-    NavigateAction([Pose([0.72, 0.98, 0.0], 
+    NavigateAction([Pose([0.78, 1, 0.0], 
                      [0.0, 0.0, 0.014701099828940344, 0.9998919329926708])]).resolve().perform()
     
     PickUpAction(object_designator_description=milk_desig, 
                      arms=[arm], 
-                     grasps=["right"]).resolve().perform()
+                     grasps=[Grasp.RIGHT]).resolve().perform()
     
     NavigateAction([Pose([-1.90, 0.78, 0.0], 
                      [0.0, 0.0, 0.16439898301071468, 0.9863939245479175])]).resolve().perform()
     
     PlaceAction(object_designator_description=milk_desig, 
                 target_locations=[Pose([-1.20, 1.0192, 0.9624], 
-                                   [0.0, 0.0, 0.6339889056055381, 0.7733421413379024])], 
+                                   #[0.0, 0.0, 0.6339889056055381, 0.7733421413379024])], 
+                                       [0, 0, 0, 1])],
                 arms=[arm]).resolve().perform()
 ```
 
 ```python
-world.reset_bullet_world()
+world.reset_world()
 ```
 
 ## Look At
@@ -172,7 +170,7 @@ Look at lets the robot look at a specific point, for example if it should look a
 ```python
 from pycram.designators.action_designator import LookAtAction
 from pycram.process_module import simulated_robot
-from pycram.pose import Pose
+from pycram.datastructures.pose import Pose
 
 target_location = Pose([1, 0, 0.5], [0, 0, 0, 1])
 with simulated_robot:
@@ -189,9 +187,9 @@ milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
 ```python
 from pycram.designators.action_designator import DetectAction, LookAtAction, ParkArmsAction, NavigateAction
 from pycram.designators.object_designator import BelieveObject
-from pycram.enums import Arms
+from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
-from pycram.pose import Pose
+from pycram.datastructures.pose import Pose
 
 milk_desig = BelieveObject(names=["milk"])
 
@@ -219,13 +217,18 @@ milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
 from pycram.designators.action_designator import *
 from pycram.designators.object_designator import *
 from pycram.process_module import simulated_robot
-from pycram.pose import Pose
+from pycram.datastructures.pose import Pose
+from pycram.datastructures.enums import Arms
 
 milk_desig = BelieveObject(names=["milk"])
 
+description = TransportAction(milk_desig,
+                            [Arms.LEFT],
+                            [Pose([-1.35, 0.78, 0.95],
+                                  [0.0, 0.0, 0.16439898301071468, 0.9863939245479175])])
 with simulated_robot:
-    MoveTorsoAction([0.3]).resolve().perform()
-    TransportAction(milk_desig, ["left"], [Pose([-0.9, 0.9, 0.95], [0, 0, 1, 0])]).resolve().perform()
+    MoveTorsoAction([0.2]).resolve().perform()
+    description.resolve().perform()
 ```
 
 ## Opening
@@ -244,9 +247,9 @@ apartment = Object("apartment", ObjectType.ENVIRONMENT, "apartment.urdf")
 ```python
 from pycram.designators.action_designator import *
 from pycram.designators.object_designator import *
-from pycram.enums import Arms
+from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
-from pycram.pose import Pose
+from pycram.datastructures.pose import Pose
 
 apartment_desig = BelieveObject(names=["apartment"]).resolve()
 handle_deisg = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig)
@@ -256,7 +259,7 @@ with simulated_robot:
     ParkArmsAction([Arms.BOTH]).resolve().perform()
     NavigateAction([Pose([1.7474915981292725, 2.6873629093170166, 0.0],
                          [-0.0, 0.0, 0.5253598267689507, -0.850880163370435])]).resolve().perform()
-    OpenAction(handle_deisg, ["right"]).resolve().perform()
+    OpenAction(handle_deisg, [Arms.RIGHT]).resolve().perform()
 ```
 
 ## Closing
@@ -276,9 +279,9 @@ apartment.set_joint_state("cabinet10_drawer_top_joint", 0.4)
 ```python
 from pycram.designators.action_designator import *
 from pycram.designators.object_designator import *
-from pycram.enums import Arms
+from pycram.datastructures.enums import Arms
 from pycram.process_module import simulated_robot
-from pycram.pose import Pose
+from pycram.datastructures.pose import Pose
 
 apartment_desig = BelieveObject(names=["apartment"]).resolve()
 handle_deisg = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig)
@@ -288,5 +291,9 @@ with simulated_robot:
     ParkArmsAction([Arms.BOTH]).resolve().perform()
     NavigateAction([Pose([1.7474915981292725, 2.8073629093170166, 0.0],
                          [-0.0, 0.0, 0.5253598267689507, -0.850880163370435])]).resolve().perform()
-    CloseAction(handle_deisg, ["right"]).resolve().perform()
+    CloseAction(handle_deisg, [Arms.RIGHT]).resolve().perform()
+```
+
+```python
+world.exit()
 ```
