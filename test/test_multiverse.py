@@ -42,7 +42,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         if not multiverse_installed:
             return
         cls.multiverse = Multiverse(simulation="pycram_test",
-                                    is_prospection=True)
+                                    is_prospection=False)
         # cls.big_bowl = cls.spawn_big_bowl()
 
     @classmethod

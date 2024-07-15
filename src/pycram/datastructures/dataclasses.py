@@ -420,3 +420,10 @@ class TextAnnotation:
     position: List[float]
     color: Color
     id: int
+
+
+@dataclass
+class VirtualMoveBaseJoints:
+    translation_x: str
+    translation_y: str
+    angular_z: str
