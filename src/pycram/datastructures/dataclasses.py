@@ -331,6 +331,14 @@ ClosestPoint = ContactPoint
 
 class ContactPointsList(list):
 
+    def __index__(self, index: int) -> ContactPoint:
+        return super().__getitem__(index)
+
+    def __getitem__(self, item) -> Union[ContactPoint, 'ContactPointsList']:
+        if isinstance(item, slice):
+            return ContactPointsList(super().__getitem__(item))
+        return super().__getitem__(item)
+
     def get_normals_of_object(self, obj: Object) -> List[List[float]]:
         """
         Gets the normals of the object.

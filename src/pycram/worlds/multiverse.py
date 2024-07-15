@@ -15,68 +15,6 @@ from ..world_concepts.multiverse_clients import MultiverseReader, MultiverseWrit
 from ..world_concepts.world_object import Object
 
 
-def get_resource_paths(dirname: str) -> List[str]:
-    resources_paths = ["../robots", "../worlds", "../objects"]
-    resources_paths = [
-        os.path.join(dirname, resources_path.replace('../', '')) if not os.path.isabs(
-            resources_path) else resources_path
-        for resources_path in resources_paths
-    ]
-
-    def add_directories(path: str) -> None:
-        with os.scandir(path) as entries:
-            for entry in entries:
-                if entry.is_dir():
-                    resources_paths.append(entry.path)
-                    add_directories(entry.path)
-
-    resources_path_copy = resources_paths.copy()
-    for resources_path in resources_path_copy:
-        add_directories(resources_path)
-
-    return resources_paths
-
-
-def find_multiverse_resources_path() -> Optional[str]:
-    """
-    Find the path to the Multiverse resources directory.
-    """
-    # Get the path to the Multiverse installation
-    multiverse_path = find_multiverse_path()
-
-    # Check if the path to the Multiverse installation was found
-    if multiverse_path:
-        # Construct the path to the resources directory
-        resources_path = os.path.join(multiverse_path, 'resources')
-
-        # Check if the resources directory exists
-        if os.path.exists(resources_path):
-            return resources_path
-
-    return None
-
-
-def find_multiverse_path() -> Optional[str]:
-    """
-    Find the path to the Multiverse installation.
-    """
-    # Get the value of PYTHONPATH environment variable
-    pythonpath = os.getenv('PYTHONPATH')
-
-    # Check if PYTHONPATH is set
-    if pythonpath:
-        # Split the PYTHONPATH into individual paths using the platform-specific path separator
-        paths = pythonpath.split(os.pathsep)
-
-        # Iterate through each path and check if 'Multiverse' is in it
-        for path in paths:
-            if 'multiverse' in path:
-                multiverse_path = path.split('multiverse')[0]
-                return multiverse_path + 'multiverse'
-
-    return None
-
-
 class Multiverse(World):
     """
     This class implements an interface between Multiverse and PyCRAM.
@@ -190,9 +128,8 @@ class Multiverse(World):
         return self.last_object_id
 
     def get_object_joint_names(self, obj: Object) -> List[str]:
-
         return [joint.name for joint in obj.description.joints
-                if joint.type in [JointType.REVOLUTE, JointType.PRISMATIC]]
+                if joint.type in self._joint_type_to_position_name.keys()]
 
     def get_object_link_names(self, obj: Object) -> List[str]:
         return [link.name for link in obj.description.links]
@@ -242,7 +179,26 @@ class Multiverse(World):
         self.check_object_exists_and_issue_warning_if_not(obj)
         if obj.obj_type == ObjectType.ENVIRONMENT:
             return
-        self._set_body_pose(obj.name, pose)
+        # elif obj.obj_type == ObjectType.ROBOT:
+        #     self.set_mobile_robot_pose(obj, pose)
+        else:
+            self._set_body_pose(obj.name, pose)
+
+    def set_mobile_robot_pose(self, robot: Object, pose: Pose):
+        # Get the joints of the base link
+        base_link = robot.root_link
+        base_link_joints = [joint for joint in robot.joints.values() if joint.child_link == base_link]
+        joint_name_position_dict = {}
+        for joint in base_link_joints:
+            # get the pose in the joint frame
+            pose_in_joint_frame = robot.local_transformer.transform_pose(pose, joint.tf_frame)
+            if joint.type == JointType.PRISMATIC:
+                joint_name_position_dict[joint.name] = pose_in_joint_frame.position[joint.axis.index(1)]
+            elif joint.axis == [0, 0, 1] and joint.type == JointType.REVOLUTE:
+                # get rotation angle around the z-axis
+                angle = pose_in_joint_frame.orientation.to_euler().z
+                joint_name_position_dict[joint.name] = angle
+        self.set_multiple_joint_positions(robot, joint_name_position_dict)
 
     def multiverse_reset_world(self):
         self.writer.reset_world()
@@ -324,7 +280,7 @@ class Multiverse(World):
                 body_link = body_object.root_link
             if body_link is None:
                 logging.error(f"Body link not found: {point.body_name}")
-                raise ValueError
+                raise ValueError(f"Body link not found: {point.body_name}")
             contact_points.append(ContactPoint(obj.root_link, body_link))
             # b_obj = body_link.object
             # normal_force_in_b_frame = self._get_normal_force_on_object_from_contact_force(b_obj, point.contact_force)
@@ -423,3 +379,65 @@ class Multiverse(World):
 
     def check_object_exists_in_multiverse(self, object_name: str) -> bool:
         return self.api_requester.check_object_exists(object_name)
+
+
+def get_resource_paths(dirname: str) -> List[str]:
+    resources_paths = ["../robots", "../worlds", "../objects"]
+    resources_paths = [
+        os.path.join(dirname, resources_path.replace('../', '')) if not os.path.isabs(
+            resources_path) else resources_path
+        for resources_path in resources_paths
+    ]
+
+    def add_directories(path: str) -> None:
+        with os.scandir(path) as entries:
+            for entry in entries:
+                if entry.is_dir():
+                    resources_paths.append(entry.path)
+                    add_directories(entry.path)
+
+    resources_path_copy = resources_paths.copy()
+    for resources_path in resources_path_copy:
+        add_directories(resources_path)
+
+    return resources_paths
+
+
+def find_multiverse_resources_path() -> Optional[str]:
+    """
+    Find the path to the Multiverse resources directory.
+    """
+    # Get the path to the Multiverse installation
+    multiverse_path = find_multiverse_path()
+
+    # Check if the path to the Multiverse installation was found
+    if multiverse_path:
+        # Construct the path to the resources directory
+        resources_path = os.path.join(multiverse_path, 'resources')
+
+        # Check if the resources directory exists
+        if os.path.exists(resources_path):
+            return resources_path
+
+    return None
+
+
+def find_multiverse_path() -> Optional[str]:
+    """
+    Find the path to the Multiverse installation.
+    """
+    # Get the value of PYTHONPATH environment variable
+    pythonpath = os.getenv('PYTHONPATH')
+
+    # Check if PYTHONPATH is set
+    if pythonpath:
+        # Split the PYTHONPATH into individual paths using the platform-specific path separator
+        paths = pythonpath.split(os.pathsep)
+
+        # Iterate through each path and check if 'Multiverse' is in it
+        for path in paths:
+            if 'multiverse' in path:
+                multiverse_path = path.split('multiverse')[0]
+                return multiverse_path + 'multiverse'
+
+    return None
