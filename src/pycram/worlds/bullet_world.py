@@ -69,7 +69,8 @@ class BulletWorld(World):
         self._gui_thread.start()
         time.sleep(0.1)
 
-    def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[Pose] = None) -> int:
+    def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[Pose] = None,
+                               obj_type: Optional[ObjectType] = None) -> int:
         if pose is None:
             pose = Pose()
         return self._load_object_and_get_id(path, pose)

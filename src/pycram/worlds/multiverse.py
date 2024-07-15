@@ -2,14 +2,16 @@ import logging
 import os
 
 import numpy as np
-from tf.transformations import quaternion_matrix
+from tf.transformations import quaternion_matrix, euler_from_quaternion
 from typing_extensions import List, Dict, Optional
 
-from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
+from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint, \
+    VirtualMoveBaseJoints
 from ..datastructures.enums import WorldMode, JointType, ObjectType
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
 from ..description import Link, Joint
+from ..robot_description import RobotDescription
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.multiverse_clients import MultiverseReader, MultiverseWriter, MultiverseAPI
 from ..world_concepts.world_object import Object
@@ -33,10 +35,16 @@ class Multiverse(World):
     A flag to check if the multiverse resources have been added.
     """
 
+    simulation: Optional[str] = None
+    """
+    The simulation name to be used in the Multiverse world (this is the name defined in
+     the multiverse configuration file).
+    """
+
     def __init__(self, mode: Optional[WorldMode] = WorldMode.DIRECT,
                  is_prospection: Optional[bool] = False,
                  simulation_frequency: Optional[float] = 60.0,
-                 simulation: Optional[str] = "empty_simulation"):
+                 simulation: Optional[str] = None):
         """
         Initialize the Multiverse Socket and the PyCram World.
         param mode: The mode of the world (DIRECT or GUI).
@@ -47,20 +55,29 @@ class Multiverse(World):
 
         self._make_sure_multiverse_resources_are_added()
 
+        if Multiverse.simulation is None:
+            if simulation is None:
+                logging.error("Simulation name not provided")
+                raise ValueError("Simulation name not provided")
+            Multiverse.simulation = simulation
+
+        self.simulation = (self.prospection_world_prefix if is_prospection else "") + Multiverse.simulation
+
         World.__init__(self, mode, is_prospection, simulation_frequency)
 
-        self._init_clients(simulation)
+        self._init_clients()
 
         self._set_world_job_flags()
 
         self._init_constraint_and_object_id_name_map_collections()
 
-        self._spawn_floor()
+        if not self.is_prospection_world:
+            self._spawn_floor()
 
-    def _init_clients(self, simulation: str):
-        self.reader = MultiverseReader()
-        self.writer = MultiverseWriter(simulation)
-        self.api_requester = MultiverseAPI(simulation)
+    def _init_clients(self):
+        self.reader = MultiverseReader(is_prospection_world=self.is_prospection_world)
+        self.writer = MultiverseWriter(self.simulation, is_prospection_world=self.is_prospection_world)
+        self.api_requester = MultiverseAPI(self.simulation, is_prospection_world=self.is_prospection_world)
 
     def _set_world_job_flags(self):
         self.let_pycram_move_attached_objects = False
@@ -101,17 +118,19 @@ class Multiverse(World):
         return self._joint_type_to_position_name[joint.type]
 
     def load_object_and_get_id(self, name: Optional[str] = None,
-                               pose: Optional[Pose] = None) -> int:
+                               pose: Optional[Pose] = None,
+                               obj_type: Optional[ObjectType] = None) -> int:
         """
         Spawn the object in the simulator and return the object id. Object name has to be unique and has to be same as
         the name of the object in the description file.
         param name: The name of the object to be loaded.
         param pose: The pose of the object.
+        param obj_type: The type of the object.
         """
         if pose is None:
             pose = Pose()
 
-        if not self.get_object_by_name(name).obj_type == ObjectType.ENVIRONMENT:
+        if not obj_type == ObjectType.ENVIRONMENT:
             self._set_body_pose(name, pose)
 
         return self._update_object_id_name_maps_and_get_latest_id(name)
@@ -179,25 +198,23 @@ class Multiverse(World):
         self.check_object_exists_and_issue_warning_if_not(obj)
         if obj.obj_type == ObjectType.ENVIRONMENT:
             return
-        # elif obj.obj_type == ObjectType.ROBOT:
-        #     self.set_mobile_robot_pose(obj, pose)
+        elif obj.obj_type == ObjectType.ROBOT and RobotDescription.virtual_move_base_joints is not None:
+            self.set_mobile_robot_pose(obj, pose)
         else:
             self._set_body_pose(obj.name, pose)
 
     def set_mobile_robot_pose(self, robot: Object, pose: Pose):
+        """
+        Set the pose of a mobile robot in the simulator by setting the position of the virtual move base joints.
+        param robot: The robot object.
+        param pose: The pose of the robot.
+        """
         # Get the joints of the base link
-        base_link = robot.root_link
-        base_link_joints = [joint for joint in robot.joints.values() if joint.child_link == base_link]
-        joint_name_position_dict = {}
-        for joint in base_link_joints:
-            # get the pose in the joint frame
-            pose_in_joint_frame = robot.local_transformer.transform_pose(pose, joint.tf_frame)
-            if joint.type == JointType.PRISMATIC:
-                joint_name_position_dict[joint.name] = pose_in_joint_frame.position[joint.axis.index(1)]
-            elif joint.axis == [0, 0, 1] and joint.type == JointType.REVOLUTE:
-                # get rotation angle around the z-axis
-                angle = pose_in_joint_frame.orientation.to_euler().z
-                joint_name_position_dict[joint.name] = angle
+        base_link_joints: VirtualMoveBaseJoints = RobotDescription.virtual_move_base_joints
+        joint_name_position_dict = {base_link_joints.translation_x: pose.position.x,
+                                    base_link_joints.translation_y: pose.position.y,
+                                    base_link_joints.angular_z: euler_from_quaternion(pose.orientation_as_list())[2]}
+        # get the pose in the joint frame
         self.set_multiple_joint_positions(robot, joint_name_position_dict)
 
     def multiverse_reset_world(self):
@@ -222,6 +239,10 @@ class Multiverse(World):
     def join_threads(self) -> None:
         self.reader.stop_thread = True
         self.reader.join()
+
+    def remove_object_by_id(self, obj_id: int) -> None:
+        obj = self.get_object_by_id(obj_id)
+        self.remove_object_from_simulator(obj)
 
     def remove_object_from_simulator(self, obj: Object) -> None:
         if obj.obj_type != ObjectType.ENVIRONMENT:

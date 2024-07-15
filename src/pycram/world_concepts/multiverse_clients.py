@@ -8,6 +8,7 @@ from typing_extensions import List, Dict, Tuple, Optional
 from .constraints import Constraint
 from .multiverse_socket import MultiverseSocket, MultiverseMetaData, SocketAddress
 from .world_object import Object, Link
+from ..datastructures.world import World
 from ..datastructures.pose import Pose
 
 
@@ -63,16 +64,19 @@ class MultiverseContactPoint:
 
 
 class MultiverseReader(MultiverseSocket):
-    def __init__(self, max_wait_time_for_data: Optional[float] = 1):
+    def __init__(self, max_wait_time_for_data: Optional[float] = 1, is_prospection_world: Optional[bool] = False):
         """
         Initialize the Multiverse reader, which reads the data from the Multiverse server in a separate thread.
         This class provides methods to get data (e.g., position, orientation) from the Multiverse server.
         param max_wait_time_for_data: The maximum wait time for the data in seconds.
+        param is_prospection_world: Whether the reader is connected to the prospection world.
         """
         self.max_wait_time_for_data = max_wait_time_for_data
         meta_data = MultiverseMetaData()
-        meta_data.simulation_name = "reader"
-        super().__init__(SocketAddress(port="8000"), meta_data)
+        meta_data.simulation_name = (World.prospection_world_prefix if is_prospection_world else "") + "reader"
+        meta_data.world_name = (World.prospection_world_prefix if is_prospection_world else "") + meta_data.world_name
+        port = "8003" if is_prospection_world else "8000"
+        super().__init__(SocketAddress(port=port), meta_data)
         self.run()
         self.data_lock = threading.Lock()
         self.thread = threading.Thread(target=self.receive_all_data_from_server)
@@ -207,16 +211,19 @@ class MultiverseWriter(MultiverseSocket):
     Wait time for the sent data to be applied in the simulator.
     """
 
-    def __init__(self, simulation: str):
+    def __init__(self, simulation: str, is_prospection_world: Optional[bool] = False):
         """
         Initialize the Multiverse writer, which writes the data to the Multiverse server.
         This class provides methods to send data (e.g., position, orientation) to the Multiverse server.
         param simulation: The name of the simulation that the writer is connected to
          (usually the name defined in the .muv file).
+        param is_prospection_world: Whether the writer is connected to the prospection world.
         """
         meta_data = MultiverseMetaData()
-        meta_data.simulation_name = "writer"
-        super().__init__(SocketAddress(port="8001"), meta_data)
+        meta_data.simulation_name = (World.prospection_world_prefix if is_prospection_world else "") + "writer"
+        meta_data.world_name = (World.prospection_world_prefix if is_prospection_world else "") + meta_data.world_name
+        port = "8004" if is_prospection_world else "8001"
+        super().__init__(SocketAddress(port=port), meta_data)
         self.simulation = simulation
         self.time_start = time()
         self.run()
@@ -344,16 +351,19 @@ class MultiverseAPI(MultiverseSocket):
     The API names for the API callbacks to the Multiverse server.
     """
 
-    def __init__(self, simulation: str):
+    def __init__(self, simulation: str, is_prospection_world: Optional[bool] = False):
         """
         Initialize the Multiverse API, which sends API requests to the Multiverse server.
         This class provides methods like attach and detach objects, get contact points, and other API requests.
         param simulation: The name of the simulation that the API is connected to
          (usually the name defined in the .muv file).
+        param is_prospection_world: Whether the API is connected to the prospection world.
         """
         meta_data = MultiverseMetaData()
-        meta_data.simulation_name = "api_requester"
-        super().__init__(SocketAddress(port="8002"), meta_data)
+        meta_data.simulation_name = (World.prospection_world_prefix if is_prospection_world else "") + "api_requester"
+        meta_data.world_name = (World.prospection_world_prefix if is_prospection_world else "") + meta_data.world_name
+        port = "8005" if is_prospection_world else "8002"
+        super().__init__(SocketAddress(port=port), meta_data)
         self.simulation = simulation
         self.run()
 

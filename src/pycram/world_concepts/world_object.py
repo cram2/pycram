@@ -10,7 +10,6 @@ from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
 from ..description import ObjectDescription, LinkDescription, Joint
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
-from ..robot_descriptions import robot_description
 from ..datastructures.world import WorldEntity, World
 from ..world_concepts.constraints import Attachment
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
@@ -31,8 +30,7 @@ class Object(WorldEntity):
 
     prospection_world_prefix: str = "prospection/"
     """
-    The ObjectDescription of the object, this contains the name and type of the object as well as the path to the source 
-    file.
+    The prefix for the tf frame of objects in the prospection world.
     """
 
     def __init__(self, name: str, obj_type: ObjectType, path: str,
@@ -64,7 +62,7 @@ class Object(WorldEntity):
             pose = Pose()
         if name in [obj.name for obj in self.world.objects]:
             rospy.logerr(f"An object with the name {name} already exists in the world.")
-            return None
+            raise ValueError(f"An object with the name {name} already exists in the world.")
         self.name: str = name
         self.obj_type: ObjectType = obj_type
         self.color: Color = color
@@ -79,8 +77,7 @@ class Object(WorldEntity):
 
         self.description.update_description_from_file(self.path)
 
-        self.tf_frame = ((self.prospection_world_prefix if self.world.is_prospection_world else "")
-                         + f"{self.name}")
+        self.tf_frame = (self.prospection_world_prefix if self.world.is_prospection_world else "") + self.name
 
         self._init_joint_name_and_id_map()
         self._init_link_name_and_id_map()
@@ -93,12 +90,12 @@ class Object(WorldEntity):
         if not self.world.is_prospection_world:
             self._add_to_world_sync_obj_queue()
 
-        self.world.objects.append(self)
-
         if self.obj_type == ObjectType.ROBOT and not self.world.is_prospection_world:
             rdm = RobotDescriptionManager()
             rdm.load_description(self.name)
             World.robot = self
+
+        self.world.objects.append(self)
 
     @property
     def pose(self):

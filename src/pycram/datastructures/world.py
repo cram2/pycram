@@ -146,6 +146,11 @@ class World(StateEntity, ABC):
     Global reference for the cache directory, this is used to cache the description files of the robot and the objects.
     """
 
+    prospection_world_prefix: str = "prospection_"
+    """
+    The prefix for the prospection world name.
+    """
+
     def __init__(self, mode: WorldMode, is_prospection_world: bool, simulation_frequency: float):
         """
        Creates a new simulation, the mode decides if the simulation should be a rendered window or just run in the
@@ -170,14 +175,14 @@ class World(StateEntity, ABC):
 
         self._init_world(mode)
 
+        self.objects: List[Object] = []
+        # List of all Objects in the World
+
         self.is_prospection_world: bool = is_prospection_world
         self._init_and_sync_prospection_world()
 
         self.local_transformer = LocalTransformer()
         self._update_local_transformer_worlds()
-
-        self.objects: List[Object] = []
-        # List of all Objects in the World
 
         self.mode: WorldMode = mode
         # The mode of the simulation, can be "GUI" or "DIRECT"
@@ -263,12 +268,14 @@ class World(StateEntity, ABC):
         return 1 / World.simulation_frequency
 
     @abstractmethod
-    def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[Pose] = None) -> int:
+    def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[Pose] = None,
+                               obj_type: Optional[ObjectType] = None) -> int:
         """
         Loads a description file (e.g. URDF) at the given pose and returns the id of the loaded object.
 
         :param path: The path to the description file, if None the description file is assumed to be already loaded.
         :param pose: The pose at which the object should be loaded.
+        :param obj_type: The type of the object.
         :return: The id of the loaded object.
         """
         pass

@@ -5,6 +5,7 @@ import rospy
 from typing_extensions import List, Dict, Union, Optional
 from urdf_parser_py.urdf import URDF
 
+from .datastructures.dataclasses import VirtualMoveBaseJoints
 from .utils import suppress_stdout_stderr
 from .datastructures.enums import Arms, Grasp, GripperState, GripperType
 
@@ -105,8 +106,14 @@ class RobotDescription:
     """
     All joints defined in the URDF, by default fixed joints are not included
     """
+    virtual_move_base_joints: Optional[VirtualMoveBaseJoints] = None
+    """
+    Virtual move base joint names for mobile robots, these joints are not part of the URDF, however they are used to
+     move the robot in the simulation (e.g. set_pose for the robot would actually move these joints)
+    """
 
-    def __init__(self, name: str, base_link: str, torso_link: str, torso_joint: str, urdf_path: str):
+    def __init__(self, name: str, base_link: str, torso_link: str, torso_joint: str, urdf_path: str,
+                 virtual_move_base_joints: Optional[VirtualMoveBaseJoints] = None):
         """
         Initialize the RobotDescription. The URDF is loaded from the given path and used as basis for the kinematic
         chains.
@@ -129,6 +136,7 @@ class RobotDescription:
         self.grasps: Dict[Grasp, List[float]] = {}
         self.links: List[str] = [l.name for l in self.urdf_object.links]
         self.joints: List[str] = [j.name for j in self.urdf_object.joints]
+        self.virtual_move_base_joints: Optional[VirtualMoveBaseJoints] = virtual_move_base_joints
 
     def add_kinematic_chain_description(self, chain: KinematicChainDescription):
         """
