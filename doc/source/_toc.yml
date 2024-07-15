@@ -12,6 +12,7 @@ parts:
   chapters:
   - file: ros_utils.rst
   - file: new_robot.rst
+
 - caption: Trouble Shooting
   chapters:
   - file: troubleshooting.rst
@@ -38,6 +39,8 @@ parts:
       - file: notebooks/local_transformer
       - file: notebooks/pose
       - file: notebooks/ontology
+      - file: notebooks/robot_description
+
 
 #      - caption: World
 #      - file: notebooks/bullet_world

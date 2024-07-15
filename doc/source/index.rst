@@ -108,23 +108,6 @@ Authors
  * **Thomas Lipps** <tlipps@uni-bremen.de>
  * **Benjamin Alt** <benjamin.alt@uni-bremen.de>
 
-<<<<<<< HEAD
-=======
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-   installation
-   designators
-   resolvers
-   new_robot
-   examples
-   troubleshooting
-   ros_utils
-   remarks
->>>>>>> a5b75b6d7991419920b07d7271a994f9be72fbe4
-
-
 
 Indices and tables
 ==================
