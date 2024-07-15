@@ -35,10 +35,6 @@ from pycram.datastructures.pose import Pose
 world = BulletWorld(WorldMode.GUI)
 ```
 
-```python
-world.exit()
-```
-
 ## Believe Object
 This object designator is used to describe objects that are located in the BulletWorld. So objects that are in the belief state, hence the name. In the future when there is a perception interface, there will be a ```RealObject``` description which will be used to describe objects in the real world. 
 
@@ -109,4 +105,10 @@ object_description = BelieveObject(types=[ObjectType.MILK, ObjectType.BREAKFAST_
 
 for obj in object_description:
     print(obj, "\n")
+```
+
+To close the world use the following exit function.
+
+```python
+world.exit()
 ```

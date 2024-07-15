@@ -26,12 +26,6 @@ world = BulletWorld(WorldMode.GUI)
 pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
 ```
 
-The following cell can be used after testing the examples, to close the BulletWorld.
-
-```python
-world.exit()
-```
-
 ## Move
 Move is used to let the robot drive to the given target pose. Motion designator are used in the same way as the other designator, first create a description then resolve it to the actual designator and lastly, perform the resolved designator. 
 
@@ -159,4 +153,11 @@ with simulated_robot:
     motion_description = MoveJointsMotion(names=["torso_lift_joint", "r_shoulder_pan_joint"], positions=[0.2, -1.2])
     
     motion_description.perform()
+```
+
+
+The following cell can be used after testing the examples, to close the BulletWorld.
+
+```python
+world.exit()
 ```

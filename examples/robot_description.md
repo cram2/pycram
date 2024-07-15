@@ -13,6 +13,7 @@ jupyter:
 ---
 
 # Robot Description
+:label: 
 The robot description contains semantic information about the robot which can not be extracted from the URDF in a general way. This inludes kinematic chains, end-effectors, cameras and their parameter, etc. 
 
 In genral a Robot Description consists a number of different descriptions, these are: 

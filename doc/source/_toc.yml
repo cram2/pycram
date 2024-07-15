@@ -11,6 +11,7 @@ parts:
 - caption: Concepts
   chapters:
   - file: ros_utils.rst
+  - file: new_robot.rst
 - caption: Trouble Shooting
   chapters:
   - file: troubleshooting.rst

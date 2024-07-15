@@ -44,7 +44,8 @@ import pycram.orm.base
 from pycram.designators.action_designator import MoveTorsoActionPerformable
 from pycram.plan_failures import PlanFailure
 from pycram.designators.object_designator import ObjectDesignatorDescription
-from pycram.worlds.bullet_world import BulletWorld, Object
+from pycram.worlds.bullet_world import BulletWorld
+from pycram.world_concepts.world_object import Object
 from pycram.robot_descriptions import robot_description
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import Pose
