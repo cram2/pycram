@@ -67,7 +67,7 @@ class Object(WorldEntity):
         self.name: str = name
         self.obj_type: ObjectType = obj_type
         self.color: Color = color
-        self.description = description()
+        self.description: ObjectDescription = description()
         self.cache_manager = self.world.cache_manager
 
         self.local_transformer = LocalTransformer()

@@ -202,7 +202,7 @@ class MultiverseReader(MultiverseSocket):
 
 class MultiverseWriter(MultiverseSocket):
 
-    time_for_sim_update: Optional[float] = 0.4
+    time_for_sim_update: Optional[float] = 0.7
     """
     Wait time for the sent data to be applied in the simulator.
     """
@@ -267,6 +267,7 @@ class MultiverseWriter(MultiverseSocket):
         self.send_data_to_server([time() - self.time_start],
                                  send_meta_data={body_name: []},
                                  receive_meta_data={body_name: []})
+        sleep(self.time_for_sim_update)
 
     def reset_world(self) -> None:
         """

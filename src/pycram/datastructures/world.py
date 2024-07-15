@@ -335,7 +335,8 @@ class World(StateEntity, ABC):
         self.object_lock.acquire()
         obj.detach_all()
 
-        self.objects.remove(obj)
+        if obj.name != "floor":
+            self.objects.remove(obj)
 
         # This means the current world of the object is not the prospection world, since it
         # has a reference to the prospection world
@@ -343,7 +344,8 @@ class World(StateEntity, ABC):
             self.world_sync.remove_obj_queue.put(obj)
             self.world_sync.remove_obj_queue.join()
 
-        self.remove_object_from_simulator(obj)
+        if obj.name != "floor":
+            self.remove_object_from_simulator(obj)
 
         if World.robot == obj:
             World.robot = None

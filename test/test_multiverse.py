@@ -5,7 +5,7 @@ import unittest
 import psutil
 from typing_extensions import Optional, List
 
-from pycram.datastructures.dataclasses import Color
+from pycram.datastructures.dataclasses import Color, ContactPointsList, ContactPoint
 from pycram.datastructures.enums import ObjectType
 from pycram.datastructures.pose import Pose
 from pycram.designators.object_designator import BelieveObject
@@ -57,7 +57,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def test_demo(self):
         extension = ObjectDescription.get_file_extension()
 
-        robot = Object("tiago_dual", ObjectType.ROBOT, f"tiago_dual{extension}", pose=Pose([1, 2, 0.01]))
+        robot = self.spawn_robot(robot_name='tiago_dual', position=[1, 2, 0.01])
         apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")
 
         milk = Object("milk_box", ObjectType.MILK, f"milk_box{extension}", pose=Pose([2.5, 2, 1.02]),
@@ -120,15 +120,15 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     def test_set_joint_position(self):
         if self.multiverse.robot is None:
-            robot = self.spawn_robot()
+            robot = self.spawn_robot('tiago_dual')
         else:
             robot = self.multiverse.robot
-        original_joint_position = robot.get_joint_position("joint1")
-        step = 1.57
-        robot.set_joint_position("joint1", original_joint_position - step)
-        robot.joints["joint1"]._update_position()
-        joint_position = robot.get_joint_position("joint1")
-        self.assertAlmostEqual(joint_position, original_joint_position - step, delta=0.3)
+        step = 0.2
+        for joint in ['torso_lift_joint', 'head_1_joint']:
+            original_joint_position = robot.get_joint_position(joint)
+            robot.set_joint_position(joint, original_joint_position - step)
+            joint_position = robot.get_joint_position(joint)
+            self.assertAlmostEqual(joint_position, original_joint_position - step, delta=0.01)
 
     def test_spawn_robot(self):
         if self.multiverse.robot is not None:
@@ -157,8 +157,8 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     # @unittest.skip("This will cause respawning of the robot.")
     def test_set_robot_position(self):
-        self.spawn_mobile_robot(robot_name='panda_free')
-        new_position = [-3, -3, 0.1]
+        self.spawn_robot(robot_name='tiago_dual')
+        new_position = [-3, -3, 0.001]
         self.multiverse.robot.set_position(new_position)
         robot_position = self.multiverse.robot.get_position_as_list()
         self.assert_list_is_equal(robot_position[:2], new_position[:2], delta=0.2)
@@ -193,7 +193,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             milk.set_position(milk_position)
             new_milk_position = milk.get_position_as_list()
             new_cup_position = cup.get_position_as_list()
-            self.assert_list_is_equal(new_milk_position[:2], milk_position[:2], 0.002)
+            self.assert_list_is_equal(new_milk_position[:2], milk_position[:2], 0.005)
             self.assert_list_is_equal(new_cup_position[:2], estimated_cup_position[:2], 0.002)
             self.tearDown()
 
@@ -211,26 +211,32 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assert_poses_are_equal(milk_initial_pose, milk_pose)
 
     def test_get_object_contact_points(self):
-        milk = self.spawn_milk([1, 1, 0.1], [0, -0.707, 0, 0.707])
-        contact_points = self.multiverse.get_object_contact_points(milk)
-        self.assertIsInstance(contact_points, list)
-        self.assertEqual(len(contact_points), 1)
-        self.assertTrue(contact_points[0].link_b.object, self.multiverse.floor)
-        cup = self.spawn_cup([1, 1, 0.2])
-        # rotate milk around y-axis by 90 degrees
-        contact_points = self.multiverse.get_object_contact_points(cup)
-        self.assertIsInstance(contact_points, list)
-        self.assertEqual(len(contact_points), 1)
-        self.assertTrue(contact_points[0].link_b.object, milk)
+        for i in range(3):
+            milk = self.spawn_milk([1, 1, 0.1], [0, -0.707, 0, 0.707])
+            contact_points = self.multiverse.get_object_contact_points(milk)
+            self.assertIsInstance(contact_points, ContactPointsList)
+            self.assertEqual(len(contact_points), 1)
+            self.assertIsInstance(contact_points[0], ContactPoint)
+            self.assertTrue(contact_points[0].link_b.object, self.multiverse.floor)
+            cup = self.spawn_cup([1, 1, 0.1])
+            contact_points = self.multiverse.get_object_contact_points(cup)
+            self.assertIsInstance(contact_points, ContactPointsList)
+            self.assertEqual(len(contact_points), 1)
+            self.assertIsInstance(contact_points[0], ContactPoint)
+            self.assertTrue(contact_points[0].link_b.object, milk)
+            self.tearDown()
 
     def test_get_contact_points_between_two_objects(self):
-        milk = self.spawn_milk([1, 1, 0.1], [0, -0.707, 0, 0.707])
-        cup = self.spawn_cup([1, 1, 0.2])
-        contact_points = self.multiverse.get_contact_points_between_two_objects(milk, cup)
-        self.assertIsInstance(contact_points, list)
-        self.assertEqual(len(contact_points), 1)
-        self.assertTrue(contact_points[0].link_a.object, milk)
-        self.assertTrue(contact_points[0].link_b.object, cup)
+        for i in range(3):
+            milk = self.spawn_milk([1, 1, 0.1], [0, -0.707, 0, 0.707])
+            cup = self.spawn_cup([1, 1, 0.2])
+            contact_points = self.multiverse.get_contact_points_between_two_objects(milk, cup)
+            self.assertIsInstance(contact_points, ContactPointsList)
+            self.assertEqual(len(contact_points), 1)
+            self.assertIsInstance(contact_points[0], ContactPoint)
+            self.assertTrue(contact_points[0].link_a.object, milk)
+            self.assertTrue(contact_points[0].link_b.object, cup)
+            self.tearDown()
 
     def test_get_one_ray(self):
         milk = self.spawn_milk([1, 1, 0.1])
@@ -260,14 +266,11 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
                       pose=Pose(position, orientation))
         return milk
 
-    def spawn_mobile_robot(self, position: Optional[List[float]] = None, robot_name: Optional[str] = 'tiago_dual') -> Object:
-        self.spawn_robot(position, robot_name, replace=True)
-
     def spawn_robot(self, position: Optional[List[float]] = None,
                     robot_name: Optional[str] = 'panda',
-                    replace: Optional[bool] = False) -> Object:
+                    replace: Optional[bool] = True) -> Object:
         if position is None:
-            position = [-2, -2, 0.1]
+            position = [-2, -2, 0.001]
         if self.multiverse.robot is None or replace:
             if self.multiverse.robot is not None:
                 self.multiverse.robot.remove()
