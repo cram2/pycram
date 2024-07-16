@@ -166,7 +166,7 @@ class World(StateEntity, ABC):
         self.let_pycram_move_attached_objects = True
         self.let_pycram_handle_spawning = True
         self.let_pycram_handle_world_sync = True
-        self.update_poses_from_sim_on_get = False
+        self.update_poses_from_sim_on_get = True
 
         if World.current_world is None:
             World.current_world = self
@@ -360,7 +360,9 @@ class World(StateEntity, ABC):
         # has a reference to the prospection world
         if self.prospection_world is not None:
             self.world_sync.remove_obj_queue.put(obj)
+            # self.resume_world_sync()
             # self.world_sync.remove_obj_queue.join()
+            # self.pause_world_sync()
 
         if obj.name != "floor":
             self.remove_object_from_simulator(obj)
@@ -1148,6 +1150,7 @@ class UseProspectionWorld:
         with UseProspectionWorld():
             NavigateAction.Action([[1, 0, 0], [0, 0, 0, 1]]).perform()
     """
+    WAIT_TIME_AS_N_SIMULATION_STEPS = 20
 
     def __init__(self):
         self.prev_world: Optional[World] = None
@@ -1158,6 +1161,7 @@ class UseProspectionWorld:
         This method is called when entering the with block, it will set the current world to the prospection world
         """
         if not World.current_world.is_prospection_world:
+            time.sleep(self.WAIT_TIME_AS_N_SIMULATION_STEPS * World.current_world.simulation_time_step)
             # blocks until the adding queue is ready
             World.current_world.resume_world_sync()
             World.current_world.world_sync.join_queues()
@@ -1222,8 +1226,8 @@ class WorldSync(threading.Thread):
         """
         Syncs the prospection world with the main world by adding and removing objects and synchronizing their states.
         """
-        self.add_queued_objects()
         self.remove_queued_objects()
+        self.add_queued_objects()
         self.sync_objects_states()
 
     def add_queued_objects(self) -> None:
@@ -1263,6 +1267,11 @@ class WorldSync(threading.Thread):
         :return: True if both Worlds have the same state, False otherwise.
         """
         eql = True
+        prospection_names = self.prospection_world.get_object_names()
+        eql = eql and [name in prospection_names for name in self.world.get_object_names()]
+        eql = eql and len(prospection_names) == len(self.world.get_object_names())
+        if not eql:
+            return False
         for obj, prospection_obj in self.object_mapping.items():
             eql = eql and obj.get_pose().dist(prospection_obj.get_pose()) < 0.001
         self.equal_states = eql

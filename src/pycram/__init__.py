@@ -22,6 +22,7 @@ import logging
 import logging.config
 
 import pycram.process_modules
+import pycram.robot_descriptions
 
 logging.basicConfig(level=logging.WARNING, format='%(levelname)s - %(name)s  - Line:%(lineno)d - %(message)s')
 
