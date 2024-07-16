@@ -23,13 +23,12 @@ class KnowrobKnowledge(KnowledgeSource, QueryKnowledge, UpdateKnowledge):
     def is_connected(self) -> bool:
         return self.prolog_client is not None
 
-    def connect(self):
+    def connect(self) -> bool:
         if self.is_available:
             self.prolog_client = Prolog()
             self.prolog_client.once(f"tripledb_load('package://iai_apartment/owl/iai-apartment.owl').")
-
-    def query(self, designator: DesignatorDescription) -> DesignatorDescription:
-        pass
+            return True
 
     def query_pose_for_object(self, designator: DesignatorDescription) -> DesignatorDescription:
+        print("test")
         result = self.prolog_client.once(f"")

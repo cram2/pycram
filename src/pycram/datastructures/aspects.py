@@ -3,11 +3,13 @@ from __future__ import annotations
 
 from abc import abstractmethod
 
+from .enums import Arms
 from .pose import Pose
 from typing_extensions import List, Iterable
 from anytree import NodeMixin, PreOrderIter, Node
 
 from ..designator import ObjectDesignatorDescription, ActionDesignatorDescription
+from ..world_concepts.world_object import Object
 
 
 class Aspect(NodeMixin):
@@ -61,18 +63,18 @@ class Aspect(NodeMixin):
         :return: A NotAspect containing this aspect
         """
         return NotAspect(self)
-
-    @abstractmethod
-    def __call__(self, designator: ActionDesignatorDescription, *args, **kwargs) -> bool:
-        """
-        Abstract method that is called when the aspect is evaluated. This method must be implemented in the subclass.
-
-        :param designator: The designator for which this aspect is part of the knowledge pre-condition
-        :param args: A list of arguments
-        :param kwargs: A dictionary of keyword arguments
-        :return: True if the aspect is fulfilled, False otherwise
-        """
-        raise NotImplementedError("The __call__ method must be implemented in the subclass")
+    #
+    # @abstractmethod
+    # def __call__(self, designator: ActionDesignatorDescription, *args, **kwargs) -> bool:
+    #     """
+    #     Abstract method that is called when the aspect is evaluated. This method must be implemented in the subclass.
+    #
+    #     :param designator: The designator for which this aspect is part of the knowledge pre-condition
+    #     :param args: A list of arguments
+    #     :param kwargs: A dictionary of keyword arguments
+    #     :return: True if the aspect is fulfilled, False otherwise
+    #     """
+    #     raise NotImplementedError("The __call__ method must be implemented in the subclass")
 
 
 class AspectOperator(Aspect):
@@ -243,9 +245,6 @@ class ReachableAspect(Aspect):
     def reachable(self, pose: Pose) -> bool:
         raise NotImplementedError
 
-    def __call__(self, designator, *args, **kwargs):
-        return self.reachable(*args, **kwargs)
-
 
 class GraspableAspect(Aspect):
 
@@ -253,11 +252,9 @@ class GraspableAspect(Aspect):
         super().__init__(None, None)
         self.object_designator = object_designator
 
-    def graspable(self) -> bool:
+    @abstractmethod
+    def graspable(self, obj: Object) -> bool:
         raise NotImplementedError
-
-    def __call__(self, designator, *args, **kwargs):
-        return self.graspable(*args, **kwargs)
 
 
 class SpaceIsFreeAspect(Aspect):
@@ -266,11 +263,9 @@ class SpaceIsFreeAspect(Aspect):
         super().__init__(None, None)
         self.object_designator = object_designator
 
-    def is_occupied(self) -> bool:
+    @abstractmethod
+    def space_is_free(self, pose: Pose) -> bool:
         raise NotImplementedError
-
-    def __call__(self, designator, *args, **kwargs):
-        return self.is_occupied(*args, **kwargs)
 
 
 class GripperIsFreeAspect(Aspect):
@@ -279,11 +274,9 @@ class GripperIsFreeAspect(Aspect):
         super().__init__(None, None)
         self.object_designator = object_designator
 
-    def is_free(self) -> bool:
+    @abstractmethod
+    def gripper_is_free(self, gripper: Arms) -> bool:
         raise NotImplementedError
-
-    def __call__(self, designator, *args, **kwargs):
-        return self.is_free(*args, **kwargs)
 
 
 class VisibleAspect(Aspect):
@@ -292,8 +285,6 @@ class VisibleAspect(Aspect):
         super().__init__(None, None)
         self.object_designator = object_designator
 
-    def is_visible(self) -> bool:
+    @abstractmethod
+    def is_visible(self, obj: Object) -> bool:
         raise NotImplementedError
-
-    def __call__(self, designator, *args, **kwargs):
-        return self.is_visible(*args, **kwargs)
