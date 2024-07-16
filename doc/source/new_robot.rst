@@ -29,4 +29,4 @@ and are the only component of PyCRAM that interacts with the robot directly.
 If you want to use the robot in simulation then you can use the provided default process modules which will suffice to
 control the robot in simulation. However, should the provided process modules not be sufficient for your use case, you can
 implement them yourself. For examples how the process modules are designed please have a look at the already implemented
-process modules in pycram.process_modules.
+process modules in :mod:`pycram.process_modules`.

@@ -5,9 +5,9 @@ from ..robot_description import RobotDescription, KinematicChainDescription, End
 from ..datastructures.enums import GripperState, Arms, Grasp
 
 rospack = rospkg.RosPack()
-filename = rospack.get_path('pycram') + '/resources/robots/' + "stretch" + '.urdf'
+filename = rospack.get_path('pycram') + '/resources/robots/' + "stretch_description" + '.urdf'
 
-stretch_description = RobotDescription("stretch", "base_link", "link_lift", "joint_lift", filename)
+stretch_description = RobotDescription("stretch_description", "base_link", "link_lift", "joint_lift", filename)
 
 ################################## Right Arm ##################################
 arm_description = KinematicChainDescription("arm", "link_mast", "link_wrist_roll", stretch_description.urdf_object,
