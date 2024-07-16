@@ -7,7 +7,7 @@ from .pose import Pose
 from typing_extensions import List, Iterable
 from anytree import NodeMixin, PreOrderIter, Node
 
-from ..designator import ObjectDesignatorDescription
+from ..designator import ObjectDesignatorDescription, ActionDesignatorDescription
 
 
 class Aspect(NodeMixin):
@@ -15,6 +15,11 @@ class Aspect(NodeMixin):
     Parent class to represent a semantic aspect as part of a knowledge pre-condition of designators.
     Aspects can be combined using logical operators to create complex pre-conditions, the resulting expression is a
     datastructure of a tree.
+    """
+    resolved_aspect: Aspect
+    """
+    Reference to the actual implementation of the aspect function in the KnowledgeSource. This reference is used when 
+    evaluating the tree structure of aspects.
     """
 
     def __init__(self, parent: NodeMixin = None, children: Iterable[NodeMixin] = None):
@@ -58,7 +63,15 @@ class Aspect(NodeMixin):
         return NotAspect(self)
 
     @abstractmethod
-    def __call__(self, *args, **kwargs):
+    def __call__(self, designator: ActionDesignatorDescription, *args, **kwargs) -> bool:
+        """
+        Abstract method that is called when the aspect is evaluated. This method must be implemented in the subclass.
+
+        :param designator: The designator for which this aspect is part of the knowledge pre-condition
+        :param args: A list of arguments
+        :param kwargs: A dictionary of keyword arguments
+        :return: True if the aspect is fulfilled, False otherwise
+        """
         raise NotImplementedError("The __call__ method must be implemented in the subclass")
 
 
@@ -68,6 +81,8 @@ class AspectOperator(Aspect):
     use Aspects as part of a tree structure. Furthermore, there is a method to simplify the tree structure by merging
     Nodes of the same type.
     """
+    aspects: List[Aspect]
+
     def __init__(self, aspects: List[Aspect]):
         """
         Initialize the AspectOperator with a list of aspects. The parent of this node is None, therefore the node is
@@ -77,6 +92,7 @@ class AspectOperator(Aspect):
         """
         super().__init__(parent=None, children=aspects)
         self.aspects = aspects
+        # self.resolved_aspects = []
 
     def simplify(self):
         """
@@ -142,7 +158,12 @@ class AndAspect(AspectOperator):
         """
         result = True
         for child in self.children:
-            result = result and child(*args, **kwargs)
+            # Child is an Aspect and the resolved function should be called
+            if child.is_leaf:
+                result = result and child(*args, **kwargs)
+            # Child is an AspectOperator
+            else:
+                child(*args, **kwargs)
             if not result:
                 return False
 
@@ -175,7 +196,12 @@ class OrAspect(AspectOperator):
         """
         result = False
         for child in self.children:
-            result = result or child(*args, **kwargs)
+            # Child is an Aspect and the resolved function should be called
+            if child.is_leaf:
+                result = result or child(*args, **kwargs)
+            # Child is an AspectOperator
+            else:
+                result = child(*args, **kwargs)
             if result:
                 return True
 
@@ -203,6 +229,8 @@ class NotAspect(AspectOperator):
         :param kwargs: A dictionary of keyword arguments to pass to the child
         :return: The negation of the result of the child
         """
+        if self.children[0].is_leaf:
+            return not self.children[0].resolved_aspect(*args, **kwargs)
         return not self.children[0](*args, **kwargs)
 
 
@@ -215,7 +243,7 @@ class ReachableAspect(Aspect):
     def reachable(self, pose: Pose) -> bool:
         raise NotImplementedError
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, designator, *args, **kwargs):
         return self.reachable(*args, **kwargs)
 
 
@@ -228,5 +256,44 @@ class GraspableAspect(Aspect):
     def graspable(self) -> bool:
         raise NotImplementedError
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, designator, *args, **kwargs):
         return self.graspable(*args, **kwargs)
+
+
+class SpaceIsFreeAspect(Aspect):
+
+    def __init__(self, object_designator: ObjectDesignatorDescription):
+        super().__init__(None, None)
+        self.object_designator = object_designator
+
+    def is_occupied(self) -> bool:
+        raise NotImplementedError
+
+    def __call__(self, designator, *args, **kwargs):
+        return self.is_occupied(*args, **kwargs)
+
+
+class GripperIsFreeAspect(Aspect):
+
+    def __init__(self, object_designator: ObjectDesignatorDescription):
+        super().__init__(None, None)
+        self.object_designator = object_designator
+
+    def is_free(self) -> bool:
+        raise NotImplementedError
+
+    def __call__(self, designator, *args, **kwargs):
+        return self.is_free(*args, **kwargs)
+
+
+class VisibleAspect(Aspect):
+
+    def __init__(self, object_designator: ObjectDesignatorDescription):
+        super().__init__(None, None)
+        self.object_designator = object_designator
+
+    def is_visible(self) -> bool:
+        raise NotImplementedError
+
+    def __call__(self, designator, *args, **kwargs):
+        return self.is_visible(*args, **kwargs)

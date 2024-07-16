@@ -1,7 +1,9 @@
 import inspect
 
 import rospy
+from anytree import PreOrderIter
 
+from .aspects import Aspect
 from .knowledge_source import KnowledgeSource
 from ..designator import DesignatorDescription, ActionDesignatorDescription
 from typing_extensions import Type, Callable, List
@@ -33,18 +35,21 @@ class KnowledgeEngine:
 
     def init_sources(self):
         """
-        Initialize all knowledge sources
+        Initialize all knowledge sources from the available subclasses of KnowledgeSource
         """
         # Class reference to all knowledge sources
         sources = KnowledgeSource.__subclasses__()
         for src in sources:
-            self.knowledge_sources.append(src())
+            if src not in [c.__class__ for c in self.knowledge_sources]:
+                self.knowledge_sources.append(src())
         self.knowledge_sources.sort(key=lambda x: x.priority)
 
     def update_sources(self):
         """
-        Update all knowledge sources, this will check if the sources are still and if new sources have become available.
+        Updates all knowledge sources, this will check if the sources are still available and if new sources have
+        become available.
         """
+        self.init_sources()
         for source in self.knowledge_sources:
             if source.is_connected and not source.is_available:
                 rospy.logwarn(f"Knowledge source {source.name} is not available anymore")
@@ -57,8 +62,24 @@ class KnowledgeEngine:
 
         :return:
         """
+        self.update_sources()
+
         conditions = designator.knowledge_conditions
         conditions(designator)
+
+    def resolve_aspects(self, aspects: Aspect):
+        """
+        Traverses the tree of aspects and resolves the aspect functions to the corresponding function in the knowledge
+        source.
+
+        :param aspects: Root node of the tree of aspects
+        """
+        for child in PreOrderIter(aspects):
+            if child.is_leaf:
+                source = self.find_source_for_aspect(child)
+                resolved_aspect_function = source.__getattribute__(
+                    [fun for fun in child.__class__.__dict__.keys() if not fun.startswith("__")][0])
+                child.resolved_aspect = resolved_aspect_function
 
     def update(self):
         """
@@ -87,10 +108,21 @@ class KnowledgeEngine:
         """
         self.update_sources()
         for source in self.knowledge_sources:
-            print(source)
             if (query_function.__name__ in list(source.__class__.__dict__.keys())
                     and source.is_connected):
                 source_query_function = getattr(source, query_function.__name__)
                 return source_query_function(*args, **kwargs)
-        raise KnowledgeNotAvailable(f"Query function {query_function.__name__} is not available in any connected knowledge source")
+        raise KnowledgeNotAvailable(
+            f"Query function {query_function.__name__} is not available in any connected knowledge source")
 
+    def find_source_for_aspect(self, aspect: Type[Aspect]):
+        """
+        Find the source for the given aspect
+
+        :param aspect: The aspect for which to find the source.
+        :return: Source that can provide the aspect.
+        """
+        for source in self.knowledge_sources:
+            if (aspect.__class__ in list(source.__class__.__bases__)
+                    and source.is_connected):
+                return source

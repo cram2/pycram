@@ -46,6 +46,13 @@ class KnowledgeSource(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def clear_state(self) -> None:
+        """
+        Clear the state of the knowledge source
+        """
+        raise NotImplementedError
+
     def __str__(self):
         return f"{self.name} - Priority:{self.priority}"
 
@@ -60,7 +67,6 @@ class QueryKnowledge:
         :raises KnowledgeNotAvailable: If the pose for the object is not available in this knowledge source
         """
         pass
-
 
     def query_grasp_for_object(self, designator: DesignatorDescription) -> DesignatorDescription:
         """

@@ -25,7 +25,7 @@ from .local_transformer import LocalTransformer
 from .language import Language
 from .datastructures.pose import Pose
 from .robot_description import RobotDescription
-from .datastructures.enums import ObjectType
+from .datastructures.enums import ObjectType, Grasp
 
 import logging
 
@@ -379,10 +379,16 @@ class DesignatorDescription(ABC):
         """
         return self.ontology_concept_holders[0].ontology_concept if self.ontology_concept_holders else None
 
+
 class ActionDesignatorDescription(DesignatorDescription, Language):
     """
     Abstract class for action designator descriptions.
     Descriptions hold possible parameter ranges for action designators.
+    """
+
+    knowledge_conditions = None
+    """
+    Knowledge condition that have to be fulfilled before executing the action.
     """
 
     @dataclass
@@ -464,6 +470,7 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
         Language.__init__(self)
         from .ontology.ontology import OntologyManager
         self.soma = OntologyManager().soma
+        self.knowledge_conditions = None
 
     def ground(self) -> Action:
         """Fill all missing parameters and chose plan to execute. """
@@ -630,7 +637,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
                 [f"{f.name}={self.__getattribute__(f.name)}" for f in fields(self)] + [
                     f"pose={self.pose}"]) + ')'
 
-        def special_knowledge_adjustment_pose(self, grasp: str, pose: Pose) -> Pose:
+        def special_knowledge_adjustment_pose(self, grasp: Grasp, pose: Pose) -> Pose:
             """
             Returns the adjusted target pose based on special knowledge for "grasp front".
 
