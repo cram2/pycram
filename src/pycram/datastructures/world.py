@@ -163,6 +163,11 @@ class World(StateEntity, ABC):
 
         StateEntity.__init__(self)
 
+        self.let_pycram_move_attached_objects = True
+        self.let_pycram_handle_spawning = True
+        self.let_pycram_handle_world_sync = True
+        self.update_poses_from_sim_on_get = False
+
         if World.current_world is None:
             World.current_world = self
         World.simulation_frequency = simulation_frequency
@@ -190,10 +195,6 @@ class World(StateEntity, ABC):
         self.coll_callbacks: Dict[Tuple[Object, Object], CollisionCallbacks] = {}
 
         self._init_events()
-
-        self.let_pycram_move_attached_objects = True
-        self.let_pycram_handle_spawning = True
-        self.update_poses_from_sim_on_get = False
 
         self._current_state: Optional[WorldState] = None
 
