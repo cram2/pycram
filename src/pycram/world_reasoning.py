@@ -1,14 +1,14 @@
 import itertools
-from typing_extensions import List, Tuple, Optional, Union, Dict
 
 import numpy as np
+from typing_extensions import List, Tuple, Optional, Union, Dict
 
-from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
-from .datastructures.pose import Pose, Transform
-from .robot_description import RobotDescription
 from .datastructures.dataclasses import ContactPointsList
-from .world_concepts.world_object import Object
+from .datastructures.pose import Pose, Transform
 from .datastructures.world import World, UseProspectionWorld
+from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
+from .robot_description import RobotDescription
+from .world_concepts.world_object import Object
 
 
 def stable(obj: Object) -> bool:
@@ -51,17 +51,13 @@ def contact(
     with UseProspectionWorld():
         prospection_obj1 = World.current_world.get_prospection_object_for_object(object1)
         prospection_obj2 = World.current_world.get_prospection_object_for_object(object2)
-
         World.current_world.perform_collision_detection()
         con_points: ContactPointsList = World.current_world.get_contact_points_between_two_objects(prospection_obj1,
                                                                                                    prospection_obj2)
         objects_are_in_contact = len(con_points) > 0
         if return_links:
-            contact_links = []
-            for point in con_points:
-                contact_links.append((point.link_a, point.link_b))
+            contact_links = [(point.link_a, point.link_b) for point in con_points]
             return objects_are_in_contact, contact_links
-
         else:
             return objects_are_in_contact
 
@@ -227,17 +223,15 @@ def blocking(
     :return: A list of objects the robot is in collision with when reaching for the specified object or None if the pose or object is not reachable.
     """
 
-    prospection_robot = World.current_world.get_prospection_object_for_object(robot)
     with UseProspectionWorld():
+        prospection_robot = World.current_world.get_prospection_object_for_object(robot)
         if grasp:
             try_to_reach_with_grasp(pose_or_object, prospection_robot, gripper_name, grasp)
         else:
             try_to_reach(pose_or_object, prospection_robot, gripper_name)
 
-        block = []
-        for obj in World.current_world.objects:
-            if contact(prospection_robot, obj):
-                block.append(World.current_world.get_object_for_prospection_object(obj))
+        block = [World.current_world.get_object_for_prospection_object(obj) for obj in World.current_world.objects
+                 if contact(prospection_robot, obj)]
     return block
 
 

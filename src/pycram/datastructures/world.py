@@ -6,7 +6,6 @@ import threading
 import time
 from abc import ABC, abstractmethod
 from copy import copy
-from queue import Queue
 
 
 import numpy as np
@@ -356,14 +355,6 @@ class World(StateEntity, ABC):
         if obj.name != "floor":
             self.objects.remove(obj)
 
-        # This means the current world of the object is not the prospection world, since it
-        # has a reference to the prospection world
-        if self.prospection_world is not None:
-            self.world_sync.remove_obj_queue.put(obj)
-            # self.resume_world_sync()
-            # self.world_sync.remove_obj_queue.join()
-            # self.pause_world_sync()
-
         if obj.name != "floor":
             self.remove_object_from_simulator(obj)
 
@@ -684,8 +675,6 @@ class World(StateEntity, ABC):
         Exits the prospection world if it exists.
         """
         if self.prospection_world:
-            self.world_sync.empty_queues()
-            self.world_sync.join_queues()
             self.terminate_world_sync()
             self.prospection_world.exit()
 
@@ -855,16 +844,15 @@ class World(StateEntity, ABC):
         :param obj: The object for which the corresponding object in the prospection World should be found.
         :return: The corresponding object in the prospection world.
         """
-        self.world_sync.add_obj_queue.join()
-        try:
-            return self.world_sync.object_mapping[obj]
-        except KeyError:
-            prospection_world = self if self.is_prospection_world else self.prospection_world
-            if obj in prospection_world.objects:
-                return obj
-            else:
-                raise ValueError(
-                    f"There is no prospection object for the given object: {obj}, this could be the case if"
+        with UseProspectionWorld():
+            try:
+                if obj.world.is_prospection_world:
+                    return obj
+                else:
+                    return self.world_sync.get_prospection_object(obj)
+            except KeyError:
+                raise KeyError(
+                    f"There is no prospection object for the given object: {obj.name}, this could be the case if"
                     f" the object isn't anymore in the main (graphical) World"
                     f" or if the given object is already a prospection object. ")
 
@@ -877,19 +865,23 @@ class World(StateEntity, ABC):
         :param prospection_object: The object for which the corresponding object in the main World should be found.
         :return: The object in the main World.
         """
-        object_map = self.world_sync.object_mapping
-        try:
-            return list(object_map.keys())[list(object_map.values()).index(prospection_object)]
-        except ValueError:
-            raise ValueError("The given object is not in the prospection world.")
+        with UseProspectionWorld():
+            try:
+                if not prospection_object.world.is_prospection_world:
+                    return prospection_object
+                else:
+                    return self.world_sync.get_world_object(prospection_object)
+            except KeyError:
+                raise KeyError(f"The given object {prospection_object.name} is not in the prospection world.")
 
-    def reset_world_and_remove_objects(self) -> None:
+    def reset_world_and_remove_objects(self, exclude_objects: Optional[List[Object]]) -> None:
         """
         Resets the World to the state it was first spawned in and removes all objects from the World.
+        :param exclude_objects: A list of objects that should not be removed.
         """
         self.reset_world()
-        for obj in copy(self.objects):
-            self.remove_object(obj)
+        objs_copy = copy(self.objects)
+        [self.remove_object(obj) for obj in objs_copy if obj not in exclude_objects]
 
     def reset_world(self, remove_saved_states=True) -> None:
         """
@@ -1151,6 +1143,9 @@ class UseProspectionWorld:
             NavigateAction.Action([[1, 0, 0], [0, 0, 0, 1]]).perform()
     """
     WAIT_TIME_AS_N_SIMULATION_STEPS = 20
+    """
+    The time in simulation steps to wait before switching to the prospection world
+    """
 
     def __init__(self):
         self.prev_world: Optional[World] = None
@@ -1161,13 +1156,11 @@ class UseProspectionWorld:
         This method is called when entering the with block, it will set the current world to the prospection world
         """
         if not World.current_world.is_prospection_world:
-            time.sleep(self.WAIT_TIME_AS_N_SIMULATION_STEPS * World.current_world.simulation_time_step)
-            # blocks until the adding queue is ready
-            World.current_world.resume_world_sync()
-            World.current_world.world_sync.join_queues()
-
             self.prev_world = World.current_world
             World.current_world = World.current_world.prospection_world
+            World.current_world.resume_world_sync()
+            time.sleep(self.WAIT_TIME_AS_N_SIMULATION_STEPS * World.current_world.simulation_time_step)
+            World.current_world.pause_world_sync()
 
     def __exit__(self, *args):
         """
@@ -1175,7 +1168,6 @@ class UseProspectionWorld:
         """
         if self.prev_world is not None:
             World.current_world = self.prev_world
-            World.current_world.pause_world_sync()
 
 
 class WorldSync(threading.Thread):
@@ -1183,10 +1175,13 @@ class WorldSync(threading.Thread):
     Synchronizes the state between the World and its prospection world.
     Meaning the cartesian and joint position of everything in the prospection world will be
     synchronized with the main World.
-    Adding and removing objects is done via queues, such that loading times of objects
-    in the prospection world does not affect the World.
     The class provides the possibility to pause the synchronization, this can be used
     if reasoning should be done in the prospection world.
+    """
+
+    WAIT_TIME_AS_N_SIMULATION_STEPS = 20
+    """
+    The time in simulation steps to wait between each iteration of the syncing loop.
     """
 
     def __init__(self, world: World, prospection_world: World):
@@ -1196,67 +1191,91 @@ class WorldSync(threading.Thread):
         self.prospection_world.world_sync = self
 
         self.terminate: bool = False
-        self.add_obj_queue: Queue = Queue()
-        self.remove_obj_queue: Queue = Queue()
         self.pause_sync: bool = False
         # Maps world to prospection world objects
-        self.object_mapping: Dict[Object, Object] = {}
+        self.object_to_prospection_object_map: Dict[Object, Object] = {}
+        self.prospection_object_to_object_map: Dict[Object, Object] = {}
         self.equal_states = False
         self.sync_lock: threading.Lock = threading.Lock()
 
-    def run(self, wait_time_as_n_simulation_steps: Optional[int] = 1):
+    def run(self):
         """
         Main method of the synchronization, this thread runs in a loop until the
         terminate flag is set.
         While this loop runs it continuously checks the cartesian and joint position of
         every object in the World and updates the corresponding object in the
-        prospection world. When there are entries in the adding or removing queue the corresponding objects will
-        be added or removed in the same iteration.
-
-        :param wait_time_as_n_simulation_steps: The time in simulation steps to wait between each iteration of
-         the syncing loop.
+        prospection world.
         """
         while not self.terminate:
             self.sync_lock.acquire()
             self.sync_worlds()
             self.sync_lock.release()
-            time.sleep(wait_time_as_n_simulation_steps * self.world.simulation_time_step)
+            time.sleep(WorldSync.WAIT_TIME_AS_N_SIMULATION_STEPS * self.world.simulation_time_step)
+
+    def get_world_object(self, prospection_object: Object) -> Object:
+        """
+        Returns the corresponding object from the main World for a given object in the prospection world.
+
+        :param prospection_object: The object for which the corresponding object in the main World should be found.
+        :return: The object in the main World.
+        """
+        return self.prospection_object_to_object_map[prospection_object]
+
+    def get_prospection_object(self, obj: Object) -> Object:
+        """
+        Returns the corresponding object from the prospection world for a given object in the main world.
+
+        :param obj: The object for which the corresponding object in the prospection World should be found.
+        :return: The corresponding object in the prospection world.
+        """
+        return self.object_to_prospection_object_map[obj]
 
     def sync_worlds(self):
         """
         Syncs the prospection world with the main world by adding and removing objects and synchronizing their states.
         """
-        self.remove_queued_objects()
-        self.add_queued_objects()
+        self.remove_objects_not_in_world()
+        self.add_objects_not_in_prospection_world()
+        self.prospection_object_to_object_map = {prospection_obj: obj for obj, prospection_obj in
+                                                 self.object_to_prospection_object_map.items()}
         self.sync_objects_states()
 
-    def add_queued_objects(self) -> None:
+    def remove_objects_not_in_world(self):
         """
-        Adds all objects in the add queue to the prospection world.
+        Removes all objects that are not in the main world from the prospection world.
         """
-        while not self.add_obj_queue.empty():
-            obj = self.add_obj_queue.get()
-            # Maps the World object to the prospection world object
-            self.object_mapping[obj] = copy(obj)
-            self.add_obj_queue.task_done()
+        obj_map_copy = copy(self.object_to_prospection_object_map)
+        [self.remove_object(obj) for obj in obj_map_copy.keys() if obj not in self.world.objects]
 
-    def remove_queued_objects(self) -> None:
+    def add_objects_not_in_prospection_world(self):
         """
-        Removes all objects in the remove queue from the prospection world.
+        Adds all objects that are in the main world but not in the prospection world to the prospection world.
         """
-        while not self.remove_obj_queue.empty():
-            obj = self.remove_obj_queue.get()
-            # Get prospection world object reference from object mapping
-            prospection_obj = self.object_mapping[obj]
-            prospection_obj.remove()
-            del self.object_mapping[obj]
-            self.remove_obj_queue.task_done()
+        [self.add_object(obj) for obj in self.world.objects if obj not in self.object_to_prospection_object_map]
+
+    def add_object(self, obj: Object) -> None:
+        """
+        Adds an object to the prospection world.
+
+        :param obj: The object to be added.
+        """
+        self.object_to_prospection_object_map[obj] = copy(obj)
+
+    def remove_object(self, obj: Object) -> None:
+        """
+        Removes an object from the prospection world.
+
+        :param obj: The object to be removed.
+        """
+        prospection_obj = self.object_to_prospection_object_map[obj]
+        prospection_obj.remove()
+        del self.object_to_prospection_object_map[obj]
 
     def sync_objects_states(self) -> None:
         """
         Synchronizes the state of all objects in the World with the prospection world.
         """
-        for world_obj, prospection_obj in self.object_mapping.items():
+        for world_obj, prospection_obj in self.object_to_prospection_object_map.items():
             prospection_obj.current_state = world_obj.current_state
 
     def check_for_equal(self) -> bool:
@@ -1272,37 +1291,7 @@ class WorldSync(threading.Thread):
         eql = eql and len(prospection_names) == len(self.world.get_object_names())
         if not eql:
             return False
-        for obj, prospection_obj in self.object_mapping.items():
+        for obj, prospection_obj in self.object_to_prospection_object_map.items():
             eql = eql and obj.get_pose().dist(prospection_obj.get_pose()) < 0.001
         self.equal_states = eql
         return eql
-
-    def empty_queues(self) -> None:
-        """
-        Empties the add and remove object queues.
-        """
-        self.empty_add_queue()
-        self.empty_remove_queue()
-
-    def empty_add_queue(self) -> None:
-        """
-        Empties the add object queue.
-        """
-        while not self.add_obj_queue.empty():
-            self.add_obj_queue.get()
-            self.add_obj_queue.task_done()
-
-    def empty_remove_queue(self) -> None:
-        """
-        Empties the remove object queue.
-        """
-        while not self.remove_obj_queue.empty():
-            self.remove_obj_queue.get()
-            self.remove_obj_queue.task_done()
-
-    def join_queues(self) -> None:
-        """
-        Joins the add and remove object queues.
-        """
-        self.add_obj_queue.join()
-        self.remove_obj_queue.join()

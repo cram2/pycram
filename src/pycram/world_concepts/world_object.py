@@ -87,9 +87,6 @@ class Object(WorldEntity):
 
         self.attachments: Dict[Object, Attachment] = {}
 
-        if not self.world.is_prospection_world:
-            self._add_to_world_sync_obj_queue()
-
         if self.obj_type == ObjectType.ROBOT and not self.world.is_prospection_world:
             rdm = RobotDescriptionManager()
             rdm.load_description(self.name)
@@ -183,12 +180,6 @@ class Object(WorldEntity):
         for joint_name, joint_id in self.joint_name_to_id.items():
             joint_description = self.description.get_joint_by_name(joint_name)
             self.joints[joint_name] = self.description.Joint(joint_id, joint_description, self)
-
-    def _add_to_world_sync_obj_queue(self) -> None:
-        """
-        Adds this object to the objects queue of the WorldSync object of the World.
-        """
-        self.world.world_sync.add_obj_queue.put(self)
 
     @property
     def has_one_link(self) -> bool:
