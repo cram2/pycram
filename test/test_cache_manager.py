@@ -13,7 +13,7 @@ class TestCacheManager(BulletWorldTestCase):
         file_path = pathlib.Path(__file__).parent.resolve()
         path = str(file_path) + "/../resources/apartment.urdf"
         extension = Path(path).suffix
-        cache_path = self.world.cache_dir + "apartment.urdf"
+        cache_path = self.world.cache_dir + "/apartment.urdf"
         apartment = Object("apartment", ObjectType.ENVIRONMENT, path)
         cache_manager.generate_description_and_write_to_cache(path, apartment.name, extension, cache_path,
                                                               apartment.description)

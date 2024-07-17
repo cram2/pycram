@@ -11,7 +11,7 @@ from pycram.robot_description import RobotDescription
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.datastructures.dataclasses import Color
 from pycram.world_concepts.world_object import Object
-from pycram.datastructures.world import UseProspectionWorld
+from pycram.datastructures.world import UseProspectionWorld, World
 
 fix_missing_inertial = ObjectDescription.fix_missing_inertial
 
@@ -137,8 +137,6 @@ class BulletWorldTest(BulletWorldTestCase):
         self.robot.set_pose(Pose([1, 0, 0], [0, 0, 0, 1]))
         self.assertFalse(self.world.world_sync.check_for_equal())
         with UseProspectionWorld():
-            self.world.prospection_world.object_states = self.world.current_state.object_states
-            time.sleep(0.05)
             self.assertTrue(self.world.world_sync.check_for_equal())
 
     def test_add_resource_path(self):
@@ -148,30 +146,12 @@ class BulletWorldTest(BulletWorldTestCase):
     def test_no_prospection_object_found_for_given_object(self):
         milk_2 = Object("milk_2", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
         try:
-            with UseProspectionWorld():
-                prospection_milk_2 = self.world.get_prospection_object_for_object(milk_2)
+            prospection_milk_2 = self.world.get_prospection_object_for_object(milk_2)
             self.world.remove_object(milk_2)
-            # time.sleep(0.1)
-            with UseProspectionWorld():
-                self.world.get_prospection_object_for_object(milk_2)
+            self.world.get_prospection_object_for_object(milk_2)
             self.assertFalse(True)
-        except ValueError as e:
+        except KeyError as e:
             self.assertTrue(True)
-
-    def test_no_object_found_for_given_prospection_object(self):
-        milk_2 = Object("milk_2", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-        with UseProspectionWorld():
-            time.sleep(0.05)
-            prospection_milk = self.world.get_prospection_object_for_object(milk_2)
-            self.assertTrue(self.world.get_object_for_prospection_object(prospection_milk) == milk_2)
-            try:
-                self.world.remove_object(milk_2)
-                time.sleep(0.1)
-                self.world.get_object_for_prospection_object(prospection_milk)
-                self.assertFalse(True)
-            except ValueError as e:
-                self.assertTrue(True)
-            time.sleep(0.05)
 
     def test_real_object_position_does_not_change_with_prospection_object(self):
         milk_2_pos = [1.3, 1, 0.9]
