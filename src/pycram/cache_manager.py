@@ -1,6 +1,7 @@
 import glob
 import os
 import pathlib
+import shutil
 
 from typing_extensions import List, TYPE_CHECKING
 
@@ -28,6 +29,20 @@ class CacheManager:
         """
         self.cache_dir = cache_dir
         self.data_directory = data_directory
+
+    def clear_cache(self):
+        """
+        Clears the cache directory.
+        """
+        self.delete_cache_dir()
+        self.create_cache_dir_if_not_exists()
+
+    def delete_cache_dir(self):
+        """
+        Deletes the cache directory.
+        """
+        if pathlib.Path(self.cache_dir).exists():
+            shutil.rmtree(self.cache_dir)
 
     def update_cache_dir_with_object(self, path: str, ignore_cached_files: bool,
                                      object_description: 'ObjectDescription', object_name: str) -> str:

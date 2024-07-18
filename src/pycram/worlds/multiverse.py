@@ -99,9 +99,11 @@ class Multiverse(World):
         Add the multiverse resources to the pycram world resources.
         """
         if not self.added_multiverse_resources:
+            World.cache_manager.clear_cache()
             dirname = find_multiverse_resources_path()
             resources_paths = get_resource_paths(dirname)
             World.data_directory = resources_paths + self.data_directory
+            World.cache_manager.data_directory = World.data_directory
             self.added_multiverse_resources = True
 
     def _spawn_floor(self):
@@ -148,7 +150,7 @@ class Multiverse(World):
 
     def get_object_joint_names(self, obj: Object) -> List[str]:
         return [joint.name for joint in obj.description.joints
-                if joint.type in self._joint_type_to_position_name.keys()]
+                           if joint.type in self._joint_type_to_position_name.keys()]
 
     def get_object_link_names(self, obj: Object) -> List[str]:
         return [link.name for link in obj.description.links]
@@ -167,8 +169,12 @@ class Multiverse(World):
 
     def set_multiple_joint_positions(self, obj: Object, joint_poses: Dict[str, float]) -> None:
         data = {joint.name: {self.get_joint_position_name(joint): [joint_poses[joint.name]]}
-                for joint in obj.joints.values()}
-        self.writer.send_multiple_body_data_to_server(data)
+                for joint in obj.joints.values() if joint.name in joint_poses.keys()}
+        if len(data) > 0:
+            self.writer.send_multiple_body_data_to_server(data)
+        else:
+            logging.warning(f"No joints found in object {obj.name}")
+            raise ValueError(f"No joints found in object {obj.name}")
 
     def send_body_data_to_server(self, body_name: str, data: Dict[str, List[float]]):
         self.writer.send_body_data_to_server(body_name, data)
@@ -198,7 +204,8 @@ class Multiverse(World):
         self.check_object_exists_and_issue_warning_if_not(obj)
         if obj.obj_type == ObjectType.ENVIRONMENT:
             return
-        elif obj.obj_type == ObjectType.ROBOT and RobotDescription.virtual_move_base_joints is not None:
+        elif (obj.obj_type == ObjectType.ROBOT and
+              RobotDescription.current_robot_description.virtual_move_base_joints is not None):
             self.set_mobile_robot_pose(obj, pose)
         else:
             self._set_body_pose(obj.name, pose)
@@ -209,11 +216,16 @@ class Multiverse(World):
         param robot: The robot object.
         param pose: The pose of the robot.
         """
+        current_position = robot.get_position()
+        position_diff = [pose.position.x - current_position.x,
+                         pose.position.y - current_position.y]
+        current_angle = euler_from_quaternion(robot.get_orientation_as_list())[2]
+        angle_diff = euler_from_quaternion(pose.orientation_as_list())[2] - current_angle
         # Get the joints of the base link
-        base_link_joints: VirtualMoveBaseJoints = RobotDescription.virtual_move_base_joints
-        joint_name_position_dict = {base_link_joints.translation_x: pose.position.x,
-                                    base_link_joints.translation_y: pose.position.y,
-                                    base_link_joints.angular_z: euler_from_quaternion(pose.orientation_as_list())[2]}
+        base_link_joints: VirtualMoveBaseJoints = RobotDescription.current_robot_description.virtual_move_base_joints
+        joint_name_position_dict = {base_link_joints.translation_x: position_diff[0],
+                                    base_link_joints.translation_y: position_diff[1],
+                                    base_link_joints.angular_z: angle_diff}
         # get the pose in the joint frame
         self.set_multiple_joint_positions(robot, joint_name_position_dict)
 
