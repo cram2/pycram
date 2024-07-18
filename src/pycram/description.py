@@ -8,18 +8,17 @@ import rospy
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING
 
+from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape
 from .datastructures.enums import JointType
-from .local_transformer import LocalTransformer
 from .datastructures.pose import Pose, Transform
 from .datastructures.world import WorldEntity
-from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape
+from .local_transformer import LocalTransformer
 
 if TYPE_CHECKING:
     from .world_concepts.world_object import Object
 
 
 class EntityDescription(ABC):
-
     """
     A class that represents a description of an entity. This can be a link, joint or object description.
     """
@@ -63,7 +62,7 @@ class JointDescription(EntityDescription):
     A class that represents the description of a joint.
     """
 
-    def __init__(self, parsed_joint_description: Any):
+    def __init__(self, parsed_joint_description: Optional[Any] = None):
         self.parsed_description = parsed_joint_description
 
     @property
@@ -560,7 +559,6 @@ class Joint(ObjectEntity, JointDescription, ABC):
 
 
 class ObjectDescription(EntityDescription):
-
     """
     A class that represents the description of an object.
     """
@@ -587,6 +585,24 @@ class ObjectDescription(EntityDescription):
             self.update_description_from_file(path)
         else:
             self._parsed_description = None
+
+    @abstractmethod
+    def add_joint(self, name: str, child: str, joint_type: JointType,
+                  axis: Point, parent: Optional[str] = None, origin: Optional[Pose] = None,
+                  lower_limit: Optional[float] = None, upper_limit: Optional[float] = None) -> None:
+        """
+        Adds a joint to this object.
+
+        :param name: The name of the joint.
+        :param child: The name of the child link.
+        :param joint_type: The type of the joint.
+        :param axis: The axis of the joint.
+        :param parent: The name of the parent link.
+        :param origin: The origin of the joint.
+        :param lower_limit: The lower limit of the joint.
+        :param upper_limit: The upper limit of the joint.
+        """
+        pass
 
     def update_description_from_file(self, path: str) -> None:
         """

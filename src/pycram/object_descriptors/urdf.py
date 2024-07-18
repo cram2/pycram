@@ -4,7 +4,7 @@ from xml.etree import ElementTree
 import rospkg
 import rospy
 from geometry_msgs.msg import Point
-from tf.transformations import quaternion_from_euler
+from tf.transformations import quaternion_from_euler, euler_from_quaternion
 from typing_extensions import Union, List, Optional
 from urdf_parser_py import urdf
 from urdf_parser_py.urdf import (URDF, Collision, Box as URDF_Box, Cylinder as URDF_Cylinder,
@@ -78,6 +78,8 @@ class JointDescription(AbstractJointDescription):
                      'floating': JointType.FLOATING,
                      'planar': JointType.PLANAR,
                      'fixed': JointType.FIXED}
+
+    pycram_type_map = {pycram_type: urdf_type for urdf_type, pycram_type in urdf_type_map.items()}
 
     def __init__(self, urdf_description: urdf.Joint):
         super().__init__(urdf_description)
@@ -171,6 +173,28 @@ class ObjectDescription(AbstractObjectDescription):
 
     class Joint(AbstractObjectDescription.Joint, JointDescription):
         ...
+
+    def add_joint(self, name: str, child: str, joint_type: JointType,
+                  axis: Point, parent: Optional[str] = None, origin: Optional[Pose] = None,
+                  lower_limit: Optional[float] = None, upper_limit: Optional[float] = None) -> None:
+        if lower_limit is not None or upper_limit is not None:
+            limit = urdf.JointLimit(lower=lower_limit, upper=upper_limit)
+        else:
+            limit = None
+        if origin is not None:
+            origin = urdf.Pose(origin.position_as_list(), euler_from_quaternion(origin.orientation_as_list()))
+        if axis is not None:
+            axis = [axis.x, axis.y, axis.z]
+        if parent is None:
+            parent = self.get_root()
+        else:
+            parent = self.get_link_by_name(parent).parsed_description
+        joint = urdf.Joint(name,
+                           parent,
+                           self.get_link_by_name(child).parsed_description,
+                           JointDescription.pycram_type_map[joint_type],
+                           axis, origin, limit)
+        self.parsed_description.add_joint(joint)
 
     def load_description(self, path) -> URDF:
         with open(path, 'r') as file:

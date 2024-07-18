@@ -8,7 +8,7 @@ import rospy
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
-from ..description import ObjectDescription, LinkDescription, Joint
+from ..description import ObjectDescription, LinkDescription, Joint, JointDescription
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..datastructures.world import WorldEntity, World
 from ..world_concepts.constraints import Attachment
@@ -18,7 +18,7 @@ from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointSt
 from ..datastructures.enums import ObjectType, JointType
 from ..local_transformer import LocalTransformer
 from ..datastructures.pose import Pose, Transform
-from ..robot_description import RobotDescriptionManager
+from ..robot_description import RobotDescriptionManager, RobotDescription
 
 Link = ObjectDescription.Link
 
@@ -77,6 +77,12 @@ class Object(WorldEntity):
 
         self.description.update_description_from_file(self.path)
 
+        if self.obj_type == ObjectType.ROBOT and not self.world.is_prospection_world:
+            rdm = RobotDescriptionManager()
+            rdm.load_description(self.name)
+            World.robot = self
+            self._add_virtual_move_base_joints()
+
         self.tf_frame = (self.prospection_world_prefix if self.world.is_prospection_world else "") + self.name
 
         self._init_joint_name_and_id_map()
@@ -86,11 +92,6 @@ class Object(WorldEntity):
         self._init_joints()
 
         self.attachments: Dict[Object, Attachment] = {}
-
-        if self.obj_type == ObjectType.ROBOT and not self.world.is_prospection_world:
-            rdm = RobotDescriptionManager()
-            rdm.load_description(self.name)
-            World.robot = self
 
         self.world.objects.append(self)
 
@@ -129,7 +130,7 @@ class Object(WorldEntity):
 
         try:
             path = self.path if self.world.let_pycram_handle_spawning else self.name
-            obj_id = self.world.load_object_and_get_id(path, self._current_pose)
+            obj_id = self.world.load_object_and_get_id(path, self._current_pose, self.obj_type)
             return obj_id, self.path
 
         except Exception as e:
@@ -138,6 +139,13 @@ class Object(WorldEntity):
                 " the name of an URDF string on the parameter server.")
             os.remove(path)
             raise e
+
+    def _add_virtual_move_base_joints(self):
+        virtual_joints = RobotDescription.current_robot_description.virtual_move_base_joints
+        child_link = self.root_link_name
+        axes = virtual_joints.get_axes()
+        for joint_name, joint_type in virtual_joints.get_types().items():
+            self.description.add_joint(joint_name, child_link, joint_type, axes[joint_name])
 
     def _init_joint_name_and_id_map(self) -> None:
         """

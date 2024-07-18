@@ -427,3 +427,19 @@ class VirtualMoveBaseJoints:
     translation_x: str
     translation_y: str
     angular_z: str
+    child_link: str
+
+    def as_list(self) -> List[str]:
+        return [self.translation_x, self.translation_y, self.angular_z]
+
+    def get_types(self) -> Dict[str, JointType]:
+        return {self.translation_x: JointType.PRISMATIC,
+                self.translation_y: JointType.PRISMATIC,
+                self.angular_z: JointType.REVOLUTE}
+
+    def get_axes(self) -> Dict[str, Point]:
+        return {self.translation_x: Point(1, 0, 0),
+                self.translation_y: Point(0, 1, 0),
+                self.angular_z: Point(0, 0, 1)}
+
+

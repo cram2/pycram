@@ -145,6 +145,11 @@ class World(StateEntity, ABC):
     Global reference for the cache directory, this is used to cache the description files of the robot and the objects.
     """
 
+    cache_manager: CacheManager = CacheManager(cache_dir, data_directory)
+    """
+    Global reference for the cache manager, this is used to cache the description files of the robot and the objects.
+    """
+
     prospection_world_prefix: str = "prospection_"
     """
     The prefix for the prospection world name.
@@ -171,7 +176,6 @@ class World(StateEntity, ABC):
             World.current_world = self
         World.simulation_frequency = simulation_frequency
 
-        self.cache_manager = CacheManager(self.cache_dir, self.data_directory)
         self.object_lock: threading.Lock = threading.Lock()
 
         self.id: Optional[int] = -1
@@ -874,13 +878,14 @@ class World(StateEntity, ABC):
             except KeyError:
                 raise KeyError(f"The given object {prospection_object.name} is not in the prospection world.")
 
-    def reset_world_and_remove_objects(self, exclude_objects: Optional[List[Object]]) -> None:
+    def reset_world_and_remove_objects(self, exclude_objects: Optional[List[Object]] = None) -> None:
         """
         Resets the World to the state it was first spawned in and removes all objects from the World.
         :param exclude_objects: A list of objects that should not be removed.
         """
         self.reset_world()
         objs_copy = copy(self.objects)
+        exclude_objects = [] if exclude_objects is None else exclude_objects
         [self.remove_object(obj) for obj in objs_copy if obj not in exclude_objects]
 
     def reset_world(self, remove_saved_states=True) -> None:

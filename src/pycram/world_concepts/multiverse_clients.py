@@ -64,6 +64,15 @@ class MultiverseContactPoint:
 
 
 class MultiverseReader(MultiverseSocket):
+
+    PORT: int = 9000
+    """
+    The port of the Multiverse reader client.
+    """
+    PROSPECTION_PORT: int = PORT + 3
+    """
+    The port of the Multiverse reader client for the prospection world."""
+
     def __init__(self, max_wait_time_for_data: Optional[float] = 1, is_prospection_world: Optional[bool] = False):
         """
         Initialize the Multiverse reader, which reads the data from the Multiverse server in a separate thread.
@@ -75,8 +84,8 @@ class MultiverseReader(MultiverseSocket):
         meta_data = MultiverseMetaData()
         meta_data.simulation_name = (World.prospection_world_prefix if is_prospection_world else "") + "reader"
         meta_data.world_name = (World.prospection_world_prefix if is_prospection_world else "") + meta_data.world_name
-        port = "8003" if is_prospection_world else "8000"
-        super().__init__(SocketAddress(port=port), meta_data)
+        port = self.PROSPECTION_PORT if is_prospection_world else self.PORT
+        super().__init__(SocketAddress(port=str(port)), meta_data)
         self.run()
         self.data_lock = threading.Lock()
         self.thread = threading.Thread(target=self.receive_all_data_from_server)
@@ -211,6 +220,15 @@ class MultiverseWriter(MultiverseSocket):
     Wait time for the sent data to be applied in the simulator.
     """
 
+    PORT: int = MultiverseReader.PORT + 1
+    """
+    The port of the Multiverse writer client.
+    """
+    PROSPECTION_PORT: int = PORT + 3
+    """
+    The port of the Multiverse writer client for the prospection world.
+    """
+
     def __init__(self, simulation: str, is_prospection_world: Optional[bool] = False):
         """
         Initialize the Multiverse writer, which writes the data to the Multiverse server.
@@ -222,8 +240,8 @@ class MultiverseWriter(MultiverseSocket):
         meta_data = MultiverseMetaData()
         meta_data.simulation_name = (World.prospection_world_prefix if is_prospection_world else "") + "writer"
         meta_data.world_name = (World.prospection_world_prefix if is_prospection_world else "") + meta_data.world_name
-        port = "8004" if is_prospection_world else "8001"
-        super().__init__(SocketAddress(port=port), meta_data)
+        port = self.PROSPECTION_PORT if is_prospection_world else self.PORT
+        super().__init__(SocketAddress(port=str(port)), meta_data)
         self.simulation = simulation
         self.time_start = time()
         self.run()
@@ -351,6 +369,15 @@ class MultiverseAPI(MultiverseSocket):
     The API names for the API callbacks to the Multiverse server.
     """
 
+    PORT: int = MultiverseWriter.PORT + 1
+    """
+    The port of the Multiverse API client.
+    """
+    PROSPECTION_PORT: int = PORT + 3
+    """
+    The port of the Multiverse API client for the prospection world.
+    """
+
     def __init__(self, simulation: str, is_prospection_world: Optional[bool] = False):
         """
         Initialize the Multiverse API, which sends API requests to the Multiverse server.
@@ -362,8 +389,8 @@ class MultiverseAPI(MultiverseSocket):
         meta_data = MultiverseMetaData()
         meta_data.simulation_name = (World.prospection_world_prefix if is_prospection_world else "") + "api_requester"
         meta_data.world_name = (World.prospection_world_prefix if is_prospection_world else "") + meta_data.world_name
-        port = "8005" if is_prospection_world else "8002"
-        super().__init__(SocketAddress(port=port), meta_data)
+        port = self.PROSPECTION_PORT if is_prospection_world else self.PORT
+        super().__init__(SocketAddress(port=str(port)), meta_data)
         self.simulation = simulation
         self.run()
 
