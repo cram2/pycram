@@ -301,6 +301,16 @@ class RobotDescription:
             child_link = self.urdf_object.joint_map[name].child
             return child_link
 
+    def get_arm_tool_frame(self, arm: Arms) -> str:
+        """
+        Returns the name of the tool frame of a specific arm.
+
+        :param arm: Arm for which the tool frame should be returned
+        :return: The name of the link of the tool frame in the URDF.
+        """
+        chain = self.get_arm_chain(arm)
+        return chain.get_tool_frame()
+
     def get_arm_chain(self, arm: Arms) -> Union[KinematicChainDescription, List[KinematicChainDescription]]:
         """
         Returns the kinematic chain of a specific arm. If the arm is set to BOTH, all kinematic chains are returned.

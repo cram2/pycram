@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING
-from .enums import JointType, Shape
+from .enums import JointType, Shape, VirtualMoveBaseJointNames
 from .pose import Pose, Point
 from abc import ABC, abstractmethod
 
@@ -271,21 +271,33 @@ class PlaneVisualShape(VisualShape):
 
 @dataclass
 class State(ABC):
+    """
+    Abstract dataclass for storing the state of an entity (e.g. world, object, link, joint).
+    """
     pass
 
 
 @dataclass
 class LinkState(State):
+    """
+    Dataclass for storing the state of a link.
+    """
     constraint_ids: Dict[Link, int]
 
 
 @dataclass
 class JointState(State):
+    """
+    Dataclass for storing the state of a joint.
+    """
     position: float
 
 
 @dataclass
 class ObjectState(State):
+    """
+    Dataclass for storing the state of an object.
+    """
     pose: Pose
     attachments: Dict[Object, Attachment]
     link_states: Dict[int, LinkState]
@@ -294,18 +306,27 @@ class ObjectState(State):
 
 @dataclass
 class WorldState(State):
+    """
+    Dataclass for storing the state of the world.
+    """
     simulator_state_id: int
     object_states: Dict[str, ObjectState]
 
 
 @dataclass
 class LateralFriction:
+    """
+    Dataclass for storing the information of the lateral friction.
+    """
     lateral_friction: float
     lateral_friction_direction: List[float]
 
 
 @dataclass
 class ContactPoint:
+    """
+    Dataclass for storing the information of a contact point between two objects.
+    """
     link_a: Link
     link_b: Link
     position_on_object_a: Optional[List[float]] = None
@@ -330,6 +351,9 @@ ClosestPoint = ContactPoint
 
 
 class ContactPointsList(list):
+    """
+    A list of contact points.
+    """
 
     def __index__(self, index: int) -> ContactPoint:
         return super().__getitem__(index)
@@ -416,6 +440,9 @@ ClosestPointsList = ContactPointsList
 
 @dataclass
 class TextAnnotation:
+    """
+    Dataclass for storing text annotations that can be displayed in the simulation.
+    """
     text: str
     position: List[float]
     color: Color
@@ -424,20 +451,25 @@ class TextAnnotation:
 
 @dataclass
 class VirtualMoveBaseJoints:
-    translation_x: str
-    translation_y: str
-    angular_z: str
-    child_link: str
-
-    def as_list(self) -> List[str]:
-        return [self.translation_x, self.translation_y, self.angular_z]
+    """
+    Dataclass for storing the names, types and axes of the virtual move base joints of a mobile robot.
+    """
+    translation_x: Optional[str] = VirtualMoveBaseJointNames.LINEAR_X.value
+    translation_y: Optional[str] = VirtualMoveBaseJointNames.LINEAR_Y.value
+    angular_z: Optional[str] = VirtualMoveBaseJointNames.ANGULAR_Z.value
 
     def get_types(self) -> Dict[str, JointType]:
+        """
+        Returns the joint types of the virtual move base joints.
+        """
         return {self.translation_x: JointType.PRISMATIC,
                 self.translation_y: JointType.PRISMATIC,
                 self.angular_z: JointType.REVOLUTE}
 
     def get_axes(self) -> Dict[str, Point]:
+        """
+        Returns the axes (i.e. The axis on which the joint moves) of the virtual move base joints.
+        """
         return {self.translation_x: Point(1, 0, 0),
                 self.translation_y: Point(0, 1, 0),
                 self.angular_z: Point(0, 0, 1)}
