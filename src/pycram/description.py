@@ -257,6 +257,17 @@ class Link(ObjectEntity, LinkDescription, ABC):
         """
         return self.object.get_root_link_id() == self.id
 
+    def set_pose(self, pose: Pose) -> None:
+        """
+        Sets the pose of this link to the given pose.
+        NOTE: This will move the entire object such that the link is at the given pose, it will not consider any joints
+        that can allow the link to be at the given pose.
+        :param pose: The target pose for this link.
+        """
+        self.object.set_pose(
+            (pose.to_transform(self.tf_frame) * self.get_transform_to_link(self.object.root_link)).to_pose()
+        )
+
     def update_transform(self, transform_time: Optional[rospy.Time] = None) -> None:
         """
         Updates the transformation of this link at the given time.

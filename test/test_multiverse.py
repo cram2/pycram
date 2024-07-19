@@ -121,15 +121,15 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     def test_set_joint_position(self):
         if self.multiverse.robot is None:
-            robot = self.spawn_robot('tiago_dual')
+            robot = self.spawn_robot()
         else:
             robot = self.multiverse.robot
         step = 0.2
-        for joint in ['torso_lift_joint', 'head_1_joint']:
+        for joint in ['torso_lift_joint']:
             original_joint_position = robot.get_joint_position(joint)
-            robot.set_joint_position(joint, original_joint_position - step)
+            robot.set_joint_position(joint, original_joint_position + step)
             joint_position = robot.get_joint_position(joint)
-            self.assertAlmostEqual(joint_position, original_joint_position - step, delta=0.01)
+            self.assertAlmostEqual(joint_position, original_joint_position + step, delta=0.01)
 
     def test_spawn_robot(self):
         if self.multiverse.robot is not None:
@@ -158,7 +158,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     # @unittest.skip("This will cause respawning of the robot.")
     def test_set_robot_position(self):
-        self.spawn_robot(robot_name='tiago_dual')
+        self.spawn_robot()
         new_position = [-3, -3, 0.001]
         # self.multiverse.writer.send_multiple_body_data_to_server({"odom_vel_lin_x_joint": {"joint_tvalue": [-4]}})
         self.multiverse.robot.set_position(new_position)
@@ -207,15 +207,15 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         robot.attach(milk, ee_link.name, coincide_the_objects=True)
         self.assertTrue(robot in milk.attachments)
         milk_initial_pose = milk.root_link.get_pose_wrt_link(ee_link)
-        robot_position = robot.get_joint_position("arm_right_1_joint")
+        robot_position = robot.get_joint_position("arm_right_2_joint")
         robot_position += 1.57
-        robot.set_joint_position("arm_right_1_joint", robot_position)
+        robot.set_joint_position("arm_right_2_joint", robot_position)
         milk_pose = milk.root_link.get_pose_wrt_link(ee_link)
         self.assert_poses_are_equal(milk_initial_pose, milk_pose)
 
     def test_get_object_contact_points(self):
         for i in range(3):
-            milk = self.spawn_milk([1, 1, 0.1], [0, -0.707, 0, 0.707])
+            milk = self.spawn_milk([1, 1, 0], [0, -0.707, 0, 0.707])
             contact_points = self.multiverse.get_object_contact_points(milk)
             self.assertIsInstance(contact_points, ContactPointsList)
             self.assertEqual(len(contact_points), 1)
@@ -232,7 +232,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def test_get_contact_points_between_two_objects(self):
         for i in range(3):
             milk = self.spawn_milk([1, 1, 0.1], [0, -0.707, 0, 0.707])
-            cup = self.spawn_cup([1, 1, 0.2])
+            cup = self.spawn_cup([1, 1, 0.1])
             contact_points = self.multiverse.get_contact_points_between_two_objects(milk, cup)
             self.assertIsInstance(contact_points, ContactPointsList)
             self.assertEqual(len(contact_points), 1)

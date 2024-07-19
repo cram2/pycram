@@ -215,9 +215,13 @@ class MultiverseReader(MultiverseSocket):
 
 class MultiverseWriter(MultiverseSocket):
 
-    time_for_sim_update: Optional[float] = 0.7
+    time_for_sim_update: Optional[float] = 0.02
     """
     Wait time for the sent data to be applied in the simulator.
+    """
+    time_for_setting_body_data: Optional[float] = 0.01
+    """
+    Wait time for setting body data.
     """
 
     PORT: int = MultiverseReader.PORT + 1
@@ -292,7 +296,6 @@ class MultiverseWriter(MultiverseSocket):
         self.send_data_to_server([time() - self.time_start],
                                  send_meta_data={body_name: []},
                                  receive_meta_data={body_name: []})
-        sleep(self.time_for_sim_update)
 
     def reset_world(self) -> None:
         """
@@ -322,7 +325,7 @@ class MultiverseWriter(MultiverseSocket):
                           for value in data]
         self.send_data = [time() - self.time_start, *flattened_data]
         self.send_and_receive_data()
-        sleep(self.time_for_sim_update)
+        sleep(self.time_for_setting_body_data)
         return self.response_meta_data
 
     def send_meta_data_and_get_response(self, send_meta_data: Dict) -> Dict:
@@ -354,6 +357,7 @@ class MultiverseWriter(MultiverseSocket):
         self.send_and_receive_meta_data()
         self.send_data = data
         self.send_and_receive_data()
+        sleep(self.time_for_sim_update)
         return self.response_meta_data
 
 
@@ -376,6 +380,10 @@ class MultiverseAPI(MultiverseSocket):
     PROSPECTION_PORT: int = PORT + 3
     """
     The port of the Multiverse API client for the prospection world.
+    """
+    API_REQUEST_WAIT_TIME: float = 0.2
+    """
+    The wait time for the API request in seconds.
     """
 
     def __init__(self, simulation: str, is_prospection_world: Optional[bool] = False):
@@ -467,7 +475,7 @@ class MultiverseAPI(MultiverseSocket):
         param constraint: The constraint.
         return: The attachment pose as a string.
         """
-        pose = constraint.child_link.get_pose_wrt_link(constraint.parent_link)
+        pose = constraint.parent_to_child_transform.to_pose()
         return self._pose_to_string(pose)
 
     @staticmethod
@@ -629,7 +637,9 @@ class MultiverseAPI(MultiverseSocket):
         for api_name, params in api_data.items():
             self._add_api_request(api_name, *params)
         self._send_api_request()
-        return self._get_all_apis_responses()
+        responses = self._get_all_apis_responses()
+        sleep(self.API_REQUEST_WAIT_TIME)
+        return responses
 
     def _get_all_apis_responses(self) -> APIDataDict:
         """
