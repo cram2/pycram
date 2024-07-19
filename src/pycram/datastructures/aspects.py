@@ -5,7 +5,7 @@ from abc import abstractmethod
 
 from .enums import Arms
 from .pose import Pose
-from typing_extensions import List, Iterable, Dict, Any, Callable
+from typing_extensions import List, Iterable, Dict, Any, Callable, Type
 from anytree import NodeMixin, PreOrderIter, Node
 
 from ..designator import ObjectDesignatorDescription, ActionDesignatorDescription
@@ -26,7 +26,7 @@ class Aspect(NodeMixin):
     Aspects can be combined using logical operators to create complex pre-conditions, the resulting expression is a
     datastructure of a tree.
     """
-    resolved_aspect_function: Callable
+    resolved_aspect_instance: Type[Aspect]
     """
     Reference to the actual implementation of the aspect function in the KnowledgeSource. This reference is used when 
     evaluating the tree structure of aspects.
@@ -261,11 +261,12 @@ class ReachableAspect(Aspect):
         super().__init__(None, None, input, output)
         self.target_pose = pose
 
+    @abstractmethod
     def reachable(self, pose: Pose) -> bool:
         raise NotImplementedError
 
     def __call__(self, *args, **kwargs):
-        return self.manage_io(self.resolved_aspect_function, self.target_pose)
+        return self.manage_io(self.resolved_aspect_instance.reachable, self.target_pose)
 
 
 class GraspableAspect(Aspect):
@@ -279,7 +280,7 @@ class GraspableAspect(Aspect):
         raise NotImplementedError
 
     def __call__(self, *args, **kwargs):
-        return self.manage_io(self.resolved_aspect_function, self.object_designator)
+        return self.manage_io(self.resolved_aspect_instance.graspable, self.object_designator)
 
 
 class SpaceIsFreeAspect(Aspect):
@@ -293,7 +294,7 @@ class SpaceIsFreeAspect(Aspect):
         raise NotImplementedError
 
     def __call__(self, *args, **kwargs):
-        return self.manage_io(self.resolved_aspect_function, self.object_designator)
+        return self.manage_io(self.resolved_aspect_instance.space_is_free, self.object_designator)
 
 
 class GripperIsFreeAspect(Aspect):
@@ -306,7 +307,7 @@ class GripperIsFreeAspect(Aspect):
         raise NotImplementedError
 
     def __call__(self, *args, **kwargs):
-        return self.manage_io(self.resolved_aspect_function)
+        return self.manage_io(self.resolved_aspect_instance.gripper_is_free, *args, **kwargs)
 
 
 class VisibleAspect(Aspect):
@@ -320,5 +321,5 @@ class VisibleAspect(Aspect):
         raise NotImplementedError
 
     def __call__(self, *args, **kwargs):
-        return self.manage_io(self.resolved_aspect_function, self.object_designator)
+        return self.manage_io(self.resolved_aspect_instance.is_visible, self.object_designator)
 

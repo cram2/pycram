@@ -1,8 +1,8 @@
 import rospy
 
-from ..datastructures.knowledge_source import KnowledgeSource, QueryKnowledge, UpdateKnowledge
+from ..knowledge_source import KnowledgeSource, QueryKnowledge, UpdateKnowledge
 import rosservice
-from ..designator import DesignatorDescription
+from ...designator import DesignatorDescription
 try:
     from rosprolog_client import Prolog
 except ModuleNotFoundError as e:

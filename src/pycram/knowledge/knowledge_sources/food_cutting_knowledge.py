@@ -1,4 +1,4 @@
-from ..datastructures.knowledge_source import KnowledgeSource
+from ..knowledge_source import KnowledgeSource
 
 from rdflib import Graph, Namespace
 from rdflib.namespace import OWL, RDFS

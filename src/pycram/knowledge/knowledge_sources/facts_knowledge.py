@@ -1,16 +1,16 @@
 import numpy as np
 
-from ..datastructures.enums import Arms, ObjectType
-from ..datastructures.knowledge_source import KnowledgeSource, QueryKnowledge, UpdateKnowledge
-from ..datastructures.aspects import ReachableAspect, GraspableAspect, GripperIsFreeAspect
-from ..datastructures.pose import Pose
-from ..datastructures.world import World, UseProspectionWorld
-from ..designators.location_designator import CostmapLocation
-from ..designators.object_designator import BelieveObject
-from ..robot_description import RobotDescription
-from ..world_concepts.world_object import Object
-from ..world_reasoning import visible
-from ..costmaps import OccupancyCostmap
+from ...datastructures.enums import Arms, ObjectType
+from ..knowledge_source import KnowledgeSource
+from ...datastructures.aspects import ReachableAspect, GraspableAspect, GripperIsFreeAspect
+from ...datastructures.pose import Pose
+from ...datastructures.world import World, UseProspectionWorld
+from ...designators.location_designator import CostmapLocation
+from ...designators.object_designator import BelieveObject
+from ...robot_description import RobotDescription
+from ...world_concepts.world_object import Object
+from ...world_reasoning import visible
+from ...costmaps import OccupancyCostmap
 
 
 class FactsKnowledge(KnowledgeSource, ReachableAspect, GraspableAspect, GripperIsFreeAspect):

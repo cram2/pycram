@@ -1,14 +1,14 @@
-import inspect
-
 import rospy
 from anytree import PreOrderIter
 
-from .aspects import Aspect
+from ..datastructures.aspects import Aspect
 from .knowledge_source import KnowledgeSource
 from ..designator import DesignatorDescription, ActionDesignatorDescription
 from typing_extensions import Type, Callable, List
 
 from ..plan_failures import KnowledgeNotAvailable
+# This import is needed since the subclasses of KnowledgeSource need to be imported to be known at runtime
+from .knowledge_sources import *
 
 
 class KnowledgeEngine:
@@ -77,9 +77,9 @@ class KnowledgeEngine:
         for child in PreOrderIter(aspects):
             if child.is_leaf:
                 source = self.find_source_for_aspect(child)
-                resolved_aspect_function = source.__getattribute__(
-                    [fun for fun in child.__class__.__dict__.keys() if not fun.startswith("__")][0])
-                child.resolved_aspect_function = resolved_aspect_function
+                # resolved_aspect_function = source.__getattribute__(
+                #     [fun for fun in child.__class__.__dict__.keys() if not fun.startswith("__")][0])
+                child.resolved_aspect_instance = source
 
     def update(self):
         """
