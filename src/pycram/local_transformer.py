@@ -64,6 +64,19 @@ class LocalTransformer(TransformerROS):
             target_frame = world_object.tf_frame
         return self.transform_pose(pose, target_frame)
 
+    def update_transforms_for_objects(self, source_object_name: str, target_object_name: str) -> None:
+        """
+        Updates the transforms for objects affected by the transformation. The objects are identified by their names.
+
+        :param source_object_name: Name of the object of the source frame
+        :param target_object_name: Name of the object of the target frame
+        """
+        source_object = self.world.get_object_by_name(source_object_name)
+        target_object = self.world.get_object_by_name(target_object_name)
+        for obj in {source_object, target_object}:
+            if obj:
+                obj.update_link_transforms()
+
     def transform_pose(self, pose: Pose, target_frame: str) -> Union[Pose, None]:
         """
         Transforms a given pose to the target frame after updating the transforms for all objects in the current world.
@@ -72,7 +85,8 @@ class LocalTransformer(TransformerROS):
         :param target_frame: Name of the TF frame into which the Pose should be transformed
         :return: A transformed pose in the target frame
         """
-        self.world.update_transforms_for_objects_in_current_world()
+        self.update_transforms_for_objects(pose.frame.split("/")[0], target_frame.split("/")[0])
+
         copy_pose = pose.copy()
         copy_pose.header.stamp = rospy.Time(0)
         if not self.canTransform(target_frame, pose.frame, rospy.Time(0)):
@@ -93,9 +107,13 @@ class LocalTransformer(TransformerROS):
         Update the transforms for all world objects then Look up for the latest known transform that transforms a point
          from source frame to target frame. If no time is given the last common time between the two frames is used.
 
+        :param source_frame: The frame in which the point is currently represented
+        :param target_frame: The frame in which the point should be represented
         :param time: Time at which the transform should be looked up
+        :return: The transform from source_frame to target_frame
         """
-        self.world.update_transforms_for_objects_in_current_world()
+        self.update_transforms_for_objects(source_frame.split("/")[0], target_frame.split("/")[0])
+
         tf_time = time if time else self.getLatestCommonTime(source_frame, target_frame)
         translation, rotation = self.lookupTransform(source_frame, target_frame, tf_time)
         return Transform(translation, rotation, source_frame, target_frame)
