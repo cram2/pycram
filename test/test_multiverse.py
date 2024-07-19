@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import time
 import unittest
 
 import psutil
@@ -10,13 +9,12 @@ from pycram.datastructures.enums import ObjectType, Arms
 from pycram.datastructures.pose import Pose
 from pycram.designators.object_designator import BelieveObject
 from pycram.object_descriptors.urdf import ObjectDescription
-from pycram.robot_description import RobotDescription
 from pycram.world_concepts.world_object import Object
 
 multiverse_installed = True
 try:
     from pycram.worlds.multiverse import Multiverse
-    from pycram.world_concepts.multiverse_socket import SocketAddress
+    from pycram.worlds.multiverse_communication.socket import SocketAddress
 except ImportError:
     multiverse_installed = False
 
@@ -99,11 +97,11 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         milk = self.spawn_milk([1, 1, 0.1])
         milk.remove()
         self.assertTrue(milk not in self.multiverse.objects)
-        self.assertFalse(self.multiverse.check_object_exists_in_multiverse(milk.name))
+        self.assertFalse(self.multiverse.check_object_exists_in_multiverse(milk))
 
     def test_check_object_exists(self):
         milk = self.spawn_milk([1, 1, 0.1])
-        self.assertTrue(self.multiverse.check_object_exists_in_multiverse(milk.name))
+        self.assertTrue(self.multiverse.check_object_exists_in_multiverse(milk))
 
     def test_set_position(self):
         milk = self.spawn_milk([1, 1, 0.1])

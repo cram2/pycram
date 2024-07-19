@@ -2,18 +2,17 @@ import logging
 import os
 
 import numpy as np
-from tf.transformations import quaternion_matrix, euler_from_quaternion
+from tf.transformations import quaternion_matrix
 from typing_extensions import List, Dict, Optional
 
-from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint, \
-    VirtualMoveBaseJoints
+from .multiverse_communication.client_manager import MultiverseClientManager
+from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
 from ..datastructures.enums import WorldMode, JointType, ObjectType
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
 from ..description import Link, Joint
 from ..robot_description import RobotDescription
 from ..world_concepts.constraints import Constraint
-from ..world_concepts.multiverse_clients import MultiverseReader, MultiverseWriter, MultiverseAPI
 from ..world_concepts.world_object import Object
 
 
@@ -75,9 +74,11 @@ class Multiverse(World):
             self._spawn_floor()
 
     def _init_clients(self):
-        self.reader = MultiverseReader(is_prospection_world=self.is_prospection_world)
-        self.writer = MultiverseWriter(self.simulation, is_prospection_world=self.is_prospection_world)
-        self.api_requester = MultiverseAPI(self.simulation, is_prospection_world=self.is_prospection_world)
+        client_manager = MultiverseClientManager()
+        self.reader = client_manager.create_reader(is_prospection_world=self.is_prospection_world)
+        self.writer = client_manager.create_writer(self.simulation, is_prospection_world=self.is_prospection_world)
+        self.api_requester = client_manager.create_api_requester(self.simulation,
+                                                                 is_prospection_world=self.is_prospection_world)
 
     def _set_world_job_flags(self):
         self.let_pycram_move_attached_objects = False
@@ -150,7 +151,7 @@ class Multiverse(World):
 
     def get_object_joint_names(self, obj: Object) -> List[str]:
         return [joint.name for joint in obj.description.joints
-                           if joint.type in self._joint_type_to_position_name.keys()]
+                if joint.type in self._joint_type_to_position_name.keys()]
 
     def get_object_link_names(self, obj: Object) -> List[str]:
         return [link.name for link in obj.description.links]
@@ -224,10 +225,7 @@ class Multiverse(World):
         self.writer.set_body_pose(body_name, pose.position_as_list(), wxyz)
 
     def disconnect_from_physics_server(self) -> None:
-        self.writer.stop()
-        self.api_requester.stop()
-        self.reader.stop_thread = True
-        self.reader.join()
+        MultiverseClientManager.stop_all_clients()
 
     def join_threads(self) -> None:
         self.reader.stop_thread = True
@@ -391,8 +389,8 @@ class Multiverse(World):
         if obj not in self.objects:
             logging.warning(f"Object {obj} does not exist in the simulator")
 
-    def check_object_exists_in_multiverse(self, object_name: str) -> bool:
-        return self.api_requester.check_object_exists(object_name)
+    def check_object_exists_in_multiverse(self, obj: Object) -> bool:
+        return self.api_requester.check_object_exists(obj)
 
 
 def get_resource_paths(dirname: str) -> List[str]:
