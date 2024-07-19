@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING
-from .enums import JointType, Shape, VirtualMoveBaseJointNames
+from .enums import JointType, Shape, VirtualMoveBaseJointName
 from .pose import Pose, Point
 from abc import ABC, abstractmethod
 
@@ -454,9 +454,9 @@ class VirtualMoveBaseJoints:
     """
     Dataclass for storing the names, types and axes of the virtual move base joints of a mobile robot.
     """
-    translation_x: Optional[str] = VirtualMoveBaseJointNames.LINEAR_X.value
-    translation_y: Optional[str] = VirtualMoveBaseJointNames.LINEAR_Y.value
-    angular_z: Optional[str] = VirtualMoveBaseJointNames.ANGULAR_Z.value
+    translation_x: Optional[str] = VirtualMoveBaseJointName.LINEAR_X.value
+    translation_y: Optional[str] = VirtualMoveBaseJointName.LINEAR_Y.value
+    angular_z: Optional[str] = VirtualMoveBaseJointName.ANGULAR_Z.value
 
     def get_types(self) -> Dict[str, JointType]:
         """
