@@ -31,3 +31,5 @@ formatter = logging.Formatter('%(levelname)s - %(name)s  - Line:%(lineno)d - %(m
 ch.setFormatter(formatter)
 
 #from .specialized_designators import *
+
+__version__ = "0.0.2"
