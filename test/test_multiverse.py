@@ -6,10 +6,11 @@ import psutil
 from typing_extensions import Optional, List
 
 from pycram.datastructures.dataclasses import Color, ContactPointsList, ContactPoint
-from pycram.datastructures.enums import ObjectType
+from pycram.datastructures.enums import ObjectType, Arms
 from pycram.datastructures.pose import Pose
 from pycram.designators.object_designator import BelieveObject
 from pycram.object_descriptors.urdf import ObjectDescription
+from pycram.robot_description import RobotDescription
 from pycram.world_concepts.world_object import Object
 
 multiverse_installed = True
@@ -201,14 +202,15 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def test_attach_with_robot(self):
         milk = self.spawn_milk([1, 1, 0.1])
         robot = self.spawn_robot()
+        ee_link = self.multiverse.get_arm_tool_frame_link(Arms.RIGHT)
         # Get position of milk relative to robot end effector
-        milk_initial_pose = milk.root_link.get_pose_wrt_link(robot.tip_link)
-        robot.attach(milk, robot.tip_link_name)
+        robot.attach(milk, ee_link.name, coincide_the_objects=True)
         self.assertTrue(robot in milk.attachments)
-        robot_position = robot.get_joint_position("joint1")
+        milk_initial_pose = milk.root_link.get_pose_wrt_link(ee_link)
+        robot_position = robot.get_joint_position("arm_right_1_joint")
         robot_position += 1.57
-        robot.set_joint_position("joint1", robot_position)
-        milk_pose = milk.root_link.get_pose_wrt_link(robot.tip_link)
+        robot.set_joint_position("arm_right_1_joint", robot_position)
+        milk_pose = milk.root_link.get_pose_wrt_link(ee_link)
         self.assert_poses_are_equal(milk_initial_pose, milk_pose)
 
     def test_get_object_contact_points(self):
@@ -268,7 +270,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         return milk
 
     def spawn_robot(self, position: Optional[List[float]] = None,
-                    robot_name: Optional[str] = 'panda',
+                    robot_name: Optional[str] = 'tiago_dual',
                     replace: Optional[bool] = True) -> Object:
         if position is None:
             position = [-2, -2, 0.001]

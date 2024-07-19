@@ -11,18 +11,21 @@ from copy import copy
 import numpy as np
 import rospy
 from geometry_msgs.msg import Point
+from tf.transformations import euler_from_quaternion
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING
 from typing_extensions import Union
 
 from ..cache_manager import CacheManager
 from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
-                                         MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape, SphereVisualShape,
-                                         CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
-                                         ObjectState, State, WorldState, ClosestPointsList,
-                                         ContactPointsList)
-from ..datastructures.enums import JointType, ObjectType, WorldMode
+                                          MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape,
+                                          SphereVisualShape,
+                                          CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
+                                          ObjectState, State, WorldState, ClosestPointsList,
+                                          ContactPointsList, VirtualMoveBaseJoints)
+from ..datastructures.enums import JointType, ObjectType, WorldMode, Arms
 from ..datastructures.pose import Pose, Transform
 from ..local_transformer import LocalTransformer
+from ..robot_description import RobotDescription
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.event import Event
 
@@ -486,6 +489,60 @@ class World(StateEntity, ABC):
         """
         pass
 
+    def set_mobile_robot_pose(self, pose: Pose) -> None:
+        """
+        Set the goal for the move base joints of a mobile robot to reach a target pose. This is used for example when
+        the simulator does not support setting the pose of the robot directly (e.g. MuJoCo).
+        param pose: The target pose.
+        """
+        goal = self.get_move_base_joint_goal(pose)
+        self.robot.set_joint_positions(goal)
+
+    def get_move_base_joint_goal(self, pose: Pose) -> Dict[str, float]:
+        """
+        Get the goal for the move base joints of a mobile robot to reach a target pose.
+        param pose: The target pose.
+        return: The goal for the move base joints.
+        """
+        position_diff = self.get_position_diff(self.robot.get_position_as_list(), pose.position_as_list())[:2]
+        angle_diff = self.get_z_angle_diff(self.robot.get_orientation_as_list(), pose.orientation_as_list())
+        # Get the joints of the base link
+        move_base_joints = self.get_move_base_joints()
+        return {move_base_joints.translation_x: position_diff[0],
+                move_base_joints.translation_y: position_diff[1],
+                move_base_joints.angular_z: angle_diff}
+
+    @staticmethod
+    def get_move_base_joints() -> VirtualMoveBaseJoints:
+        """
+        Get the move base joints of the robot.
+
+        :return: The move base joints.
+        """
+        return RobotDescription.current_robot_description.virtual_move_base_joints
+
+    @staticmethod
+    def get_position_diff(current_position: List[float], target_position: List[float]) -> List[float]:
+        """
+        Get the difference between two positions.
+        param current_position: The current position.
+        param target_position: The target position.
+        return: The difference between the two positions.
+        """
+        return [target_position[i] - current_position[i] for i in range(3)]
+
+    @staticmethod
+    def get_z_angle_diff(current_quaternion: List[float], target_quaternion: List[float]) -> float:
+        """
+        Get the difference between the z angles of two quaternions.
+        param current_quaternion: The current quaternion.
+        param target_quaternion: The target quaternion.
+        return: The difference between the z angles of the two quaternions in euler angles.
+        """
+        current_angle = euler_from_quaternion(current_quaternion)[2]
+        target_angle = euler_from_quaternion(target_quaternion)[2]
+        return target_angle - current_angle
+
     @abstractmethod
     def perform_collision_detection(self) -> None:
         """
@@ -566,6 +623,16 @@ class World(StateEntity, ABC):
         Step the world simulation using forward dynamics
         """
         pass
+
+    def get_arm_tool_frame_link(self, arm: Arms) -> Link:
+        """
+        Get the tool frame link of the arm of the robot.
+
+        :param arm: The arm for which the tool frame link should be returned.
+        :return: The tool frame link of the arm.
+        """
+        ee_link_name = RobotDescription.current_robot_description.get_arm_tool_frame(arm)
+        return self.robot.get_link(ee_link_name)
 
     @abstractmethod
     def set_link_color(self, link: Link, rgba_color: Color):

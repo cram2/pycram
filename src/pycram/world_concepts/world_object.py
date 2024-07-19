@@ -78,10 +78,7 @@ class Object(WorldEntity):
         self.description.update_description_from_file(self.path)
 
         if self.obj_type == ObjectType.ROBOT and not self.world.is_prospection_world:
-            rdm = RobotDescriptionManager()
-            rdm.load_description(self.name)
-            World.robot = self
-            self._add_virtual_move_base_joints()
+            self._update_world_robot_and_description()
 
         self.tf_frame = (self.prospection_world_prefix if self.world.is_prospection_world else "") + self.name
 
@@ -140,8 +137,20 @@ class Object(WorldEntity):
             os.remove(path)
             raise e
 
+    def _update_world_robot_and_description(self):
+        """
+        Initializes the robot description of the object, loads the description from the RobotDescriptionManager and sets
+        the robot as the current robot in the World. Also adds the virtual move base joints to the robot.
+        """
+        rdm = RobotDescriptionManager()
+        rdm.load_description(self.name)
+        World.robot = self
+        self._add_virtual_move_base_joints()
+
     def _add_virtual_move_base_joints(self):
         virtual_joints = RobotDescription.current_robot_description.virtual_move_base_joints
+        if virtual_joints is None:
+            return
         child_link = self.root_link_name
         axes = virtual_joints.get_axes()
         for joint_name, joint_type in virtual_joints.get_types().items():
@@ -387,7 +396,8 @@ class Object(WorldEntity):
                child_object: Object,
                parent_link: Optional[str] = None,
                child_link: Optional[str] = None,
-               bidirectional: Optional[bool] = True) -> None:
+               bidirectional: Optional[bool] = True,
+               coincide_the_objects: Optional[bool] = False) -> None:
         """
         Attaches another object to this object. This is done by
         saving the transformation between the given link, if there is one, and
@@ -402,11 +412,16 @@ class Object(WorldEntity):
         :param parent_link: The link name of this object.
         :param child_link: The link name of the other object.
         :param bidirectional: If the attachment should be a loose attachment.
+        :param coincide_the_objects: If True the object frames will be coincided.
         """
         parent_link = self.links[parent_link] if parent_link else self.root_link
         child_link = child_object.links[child_link] if child_link else child_object.root_link
 
-        attachment = Attachment(parent_link, child_link, bidirectional)
+        if coincide_the_objects:
+            parent_to_child_transform = Transform()
+        else:
+            parent_to_child_transform = None
+        attachment = Attachment(parent_link, child_link, bidirectional, parent_to_child_transform)
 
         self.attachments[child_object] = attachment
         child_object.attachments[self] = attachment.get_inverse()

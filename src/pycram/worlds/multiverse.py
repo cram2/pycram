@@ -206,28 +206,9 @@ class Multiverse(World):
             return
         elif (obj.obj_type == ObjectType.ROBOT and
               RobotDescription.current_robot_description.virtual_move_base_joints is not None):
-            self.set_mobile_robot_pose(obj, pose)
+            self.set_mobile_robot_pose(pose)
         else:
             self._set_body_pose(obj.name, pose)
-
-    def set_mobile_robot_pose(self, robot: Object, pose: Pose):
-        """
-        Set the pose of a mobile robot in the simulator by setting the position of the virtual move base joints.
-        param robot: The robot object.
-        param pose: The pose of the robot.
-        """
-        current_position = robot.get_position()
-        position_diff = [pose.position.x - current_position.x,
-                         pose.position.y - current_position.y]
-        current_angle = euler_from_quaternion(robot.get_orientation_as_list())[2]
-        angle_diff = euler_from_quaternion(pose.orientation_as_list())[2] - current_angle
-        # Get the joints of the base link
-        base_link_joints: VirtualMoveBaseJoints = RobotDescription.current_robot_description.virtual_move_base_joints
-        joint_name_position_dict = {base_link_joints.translation_x: position_diff[0],
-                                    base_link_joints.translation_y: position_diff[1],
-                                    base_link_joints.angular_z: angle_diff}
-        # get the pose in the joint frame
-        self.set_multiple_joint_positions(robot, joint_name_position_dict)
 
     def multiverse_reset_world(self):
         self.writer.reset_world()

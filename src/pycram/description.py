@@ -213,16 +213,17 @@ class Link(ObjectEntity, LinkDescription, ABC):
     def current_state(self, link_state: LinkState) -> None:
         self.constraint_ids = link_state.constraint_ids
 
-    def add_fixed_constraint_with_link(self, child_link: 'Link') -> int:
+    def add_fixed_constraint_with_link(self, child_link: 'Link', transform: Optional[Transform] = None) -> int:
         """
         Adds a fixed constraint between this link and the given link, used to create attachments for example.
 
         :param child_link: The child link to which a fixed constraint should be added.
+        :param transform: The transformation between the two links.
         :return: The unique id of the constraint.
         """
-        constraint_id = self.world.add_fixed_constraint(self,
-                                                        child_link,
-                                                        child_link.get_transform_from_link(self))
+        if transform is None:
+            transform = child_link.get_transform_from_link(self)
+        constraint_id = self.world.add_fixed_constraint(self, child_link, transform)
         self.constraint_ids[child_link] = constraint_id
         child_link.constraint_ids[self] = constraint_id
         return constraint_id
