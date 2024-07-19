@@ -1069,6 +1069,9 @@ class UseProspectionWorld:
         # The previous world is saved to restore it after the with block is exited.
 
     def sync_worlds(self):
+        """
+        Synchronizes the state of the prospection world with the main world.
+        """
         for world_obj, prospection_obj in World.current_world.world_sync.object_mapping.items():
             prospection_obj.current_state = world_obj.current_state
 
@@ -1146,8 +1149,6 @@ class WorldSync(threading.Thread):
                 prospection_obj.remove()
                 del self.object_mapping[obj]
                 self.remove_obj_queue.task_done()
-            # for world_obj, prospection_obj in self.object_mapping.items():
-            #     prospection_obj.current_state = world_obj.current_state
             self.check_for_pause()
             time.sleep(wait_time_as_n_simulation_steps * self.world.simulation_time_step)
 
