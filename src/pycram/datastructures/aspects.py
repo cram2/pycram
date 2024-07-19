@@ -5,11 +5,19 @@ from abc import abstractmethod
 
 from .enums import Arms
 from .pose import Pose
-from typing_extensions import List, Iterable
+from typing_extensions import List, Iterable, Dict, Any, Callable
 from anytree import NodeMixin, PreOrderIter, Node
 
 from ..designator import ObjectDesignatorDescription, ActionDesignatorDescription
 from ..world_concepts.world_object import Object
+
+
+def managed_io(func: Callable) -> Callable:
+    def wrapper(*args, **kwargs):
+        print("test")
+        return func(*args, **kwargs)
+
+    return wrapper
 
 
 class Aspect(NodeMixin):
@@ -18,15 +26,24 @@ class Aspect(NodeMixin):
     Aspects can be combined using logical operators to create complex pre-conditions, the resulting expression is a
     datastructure of a tree.
     """
-    resolved_aspect: Aspect
+    resolved_aspect_function: Callable
     """
     Reference to the actual implementation of the aspect function in the KnowledgeSource. This reference is used when 
     evaluating the tree structure of aspects.
     """
+    variables: Dict[str, Any]
+    """
+    Dictionary of variables and their values which are used in the aspect tree. This dictionary is only to be used in 
+    the root node.
+    """
 
-    def __init__(self, parent: NodeMixin = None, children: Iterable[NodeMixin] = None):
+    def __init__(self, parent: NodeMixin = None, children: Iterable[NodeMixin] = None,
+                 input: str = None, output: str = None):
         super().__init__()
         self.parent = parent
+        self.input = input
+        self.output = output
+        self.variables = {}
         if children:
             self.children = children
 
@@ -63,18 +80,30 @@ class Aspect(NodeMixin):
         :return: A NotAspect containing this aspect
         """
         return NotAspect(self)
-    #
-    # @abstractmethod
-    # def __call__(self, designator: ActionDesignatorDescription, *args, **kwargs) -> bool:
-    #     """
-    #     Abstract method that is called when the aspect is evaluated. This method must be implemented in the subclass.
-    #
-    #     :param designator: The designator for which this aspect is part of the knowledge pre-condition
-    #     :param args: A list of arguments
-    #     :param kwargs: A dictionary of keyword arguments
-    #     :return: True if the aspect is fulfilled, False otherwise
-    #     """
-    #     raise NotImplementedError("The __call__ method must be implemented in the subclass")
+
+    def manage_io(self, func: Callable, *args, **kwargs) -> bool:
+        """
+        Manages the input and output variables across the whole aspect tree. If the aspect has an input variable, the
+        value of this variable will be taken from the variables dictionary of the root node. If an output is defined,
+        the result of the function will be stored in the variables dictionary of the root node.
+
+        :param func: Aspect function to call
+        :param args: args to pass to the function
+        :param kwargs: keyword args to pass to the function
+        :return: result of the function
+        """
+        if self.input:
+            if self.input not in self.root.variables.keys():
+                raise AttributeError(f"Variable {self.input} not found in variables")
+            input_var = self.root.variables[self.input]
+            result = func(input_var)
+            if self.output:
+                self.variables[self.output] = result
+        elif self.output:
+            result = func(*args, **kwargs)
+            self.variables[self.output] = result
+            return result
+        return func(*args, **kwargs)
 
 
 class AspectOperator(Aspect):
@@ -121,16 +150,6 @@ class AspectOperator(Aspect):
         node2.parent = None
         node1.children = node2.children + node1.children
 
-    def __call__(self, *args, **kwargs):
-        """
-        Implementation of the abstract method, since this class only acts as a parent class for logical operators there
-        is no implementation here.
-
-        :param args: A list of arguments
-        :param kwargs: A dictionary of keyword arguments
-        """
-        pass
-
 
 class AndAspect(AspectOperator):
     """
@@ -168,6 +187,7 @@ class AndAspect(AspectOperator):
                 child(*args, **kwargs)
             if not result:
                 return False
+        return result
 
 
 class OrAspect(AspectOperator):
@@ -206,6 +226,7 @@ class OrAspect(AspectOperator):
                 result = child(*args, **kwargs)
             if result:
                 return True
+        return result
 
 
 class NotAspect(AspectOperator):
@@ -231,60 +252,73 @@ class NotAspect(AspectOperator):
         :param kwargs: A dictionary of keyword arguments to pass to the child
         :return: The negation of the result of the child
         """
-        if self.children[0].is_leaf:
-            return not self.children[0].resolved_aspect(*args, **kwargs)
         return not self.children[0](*args, **kwargs)
 
 
 class ReachableAspect(Aspect):
 
-    def __init__(self, object_designator: ObjectDesignatorDescription):
-        super().__init__(None, None)
-        self.object_designator = object_designator
+    def __init__(self, pose: Pose, input: str = None, output: str = None):
+        super().__init__(None, None, input, output)
+        self.target_pose = pose
 
     def reachable(self, pose: Pose) -> bool:
         raise NotImplementedError
 
+    def __call__(self, *args, **kwargs):
+        return self.manage_io(self.resolved_aspect_function, self.target_pose)
+
 
 class GraspableAspect(Aspect):
 
-    def __init__(self, object_designator: ObjectDesignatorDescription):
-        super().__init__(None, None)
+    def __init__(self, object_designator: ObjectDesignatorDescription, input: str = None, output: str = None):
+        super().__init__(None, None, input, output)
         self.object_designator = object_designator
 
     @abstractmethod
     def graspable(self, obj: Object) -> bool:
         raise NotImplementedError
 
+    def __call__(self, *args, **kwargs):
+        return self.manage_io(self.resolved_aspect_function, self.object_designator)
+
 
 class SpaceIsFreeAspect(Aspect):
 
-    def __init__(self, object_designator: ObjectDesignatorDescription):
-        super().__init__(None, None)
+    def __init__(self, object_designator: ObjectDesignatorDescription, input: str = None, output: str = None):
+        super().__init__(None, None, input, output)
         self.object_designator = object_designator
 
     @abstractmethod
     def space_is_free(self, pose: Pose) -> bool:
         raise NotImplementedError
 
+    def __call__(self, *args, **kwargs):
+        return self.manage_io(self.resolved_aspect_function, self.object_designator)
+
 
 class GripperIsFreeAspect(Aspect):
 
-    def __init__(self, object_designator: ObjectDesignatorDescription):
-        super().__init__(None, None)
-        self.object_designator = object_designator
+    def __init__(self, input: str = None, output: str = None):
+        super().__init__(None, None, input, output)
 
     @abstractmethod
     def gripper_is_free(self, gripper: Arms) -> bool:
         raise NotImplementedError
 
+    def __call__(self, *args, **kwargs):
+        return self.manage_io(self.resolved_aspect_function)
+
 
 class VisibleAspect(Aspect):
 
-    def __init__(self, object_designator: ObjectDesignatorDescription):
-        super().__init__(None, None)
+    def __init__(self, object_designator: ObjectDesignatorDescription, input: str = None, output: str = None):
+        super().__init__(None, None, input, output)
         self.object_designator = object_designator
 
     @abstractmethod
     def is_visible(self, obj: Object) -> bool:
         raise NotImplementedError
+
+    def __call__(self, *args, **kwargs):
+        return self.manage_io(self.resolved_aspect_function, self.object_designator)
+

@@ -79,7 +79,7 @@ class KnowledgeEngine:
                 source = self.find_source_for_aspect(child)
                 resolved_aspect_function = source.__getattribute__(
                     [fun for fun in child.__class__.__dict__.keys() if not fun.startswith("__")][0])
-                child.resolved_aspect = resolved_aspect_function
+                child.resolved_aspect_function = resolved_aspect_function
 
     def update(self):
         """

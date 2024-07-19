@@ -1,10 +1,12 @@
 import numpy as np
 
-from ..datastructures.enums import Arms
+from ..datastructures.enums import Arms, ObjectType
 from ..datastructures.knowledge_source import KnowledgeSource, QueryKnowledge, UpdateKnowledge
 from ..datastructures.aspects import ReachableAspect, GraspableAspect, GripperIsFreeAspect
 from ..datastructures.pose import Pose
 from ..datastructures.world import World, UseProspectionWorld
+from ..designators.location_designator import CostmapLocation
+from ..designators.object_designator import BelieveObject
 from ..robot_description import RobotDescription
 from ..world_concepts.world_object import Object
 from ..world_reasoning import visible
@@ -16,6 +18,7 @@ class FactsKnowledge(KnowledgeSource, ReachableAspect, GraspableAspect, GripperI
     Knowledge source for hard coded facts, this knowledge source acts as a fallback if no other knowledge source is
     available.
     """
+
     def __init__(self):
         super().__init__(name="Facts", priority=99)
 
@@ -34,7 +37,10 @@ class FactsKnowledge(KnowledgeSource, ReachableAspect, GraspableAspect, GripperI
         pass
 
     def reachable(self, pose: Pose) -> bool:
-        pass
+        robot_desig = BelieveObject(types=[ObjectType.ROBOT])
+        c = CostmapLocation(pose, reachable_for=robot_desig.resolve()).resolve()
+        if c.pose:
+            return True
 
     def graspable(self, obj: Object) -> bool:
         with UseProspectionWorld():
@@ -45,13 +51,16 @@ class FactsKnowledge(KnowledgeSource, ReachableAspect, GraspableAspect, GripperI
             obj_x = bounding_box.max_x - bounding_box.min_x
             obj_y = bounding_box.max_y - bounding_box.min_y
             obj_z = bounding_box.max_z - bounding_box.min_z
-            # gripper_opening_dists = [ee.]
-
-            return
+            gripper_opening_dists = [ee.end_effector.opening_distance for ee in
+                                     RobotDescription.current_robot_description.get_manipulator_chains()]
+            for dist in gripper_opening_dists:
+                if dist > obj_x or dist > obj_y or dist > obj_z:
+                    return True
+            return False
 
     def space_is_free(self, pose: Pose) -> bool:
         om = OccupancyCostmap(0.35, False, 200, 0.02, pose)
-        origin_map = om.map[200//2 - 10: 200//2 + 10, 200//2 - 10: 200//2 + 10]
+        origin_map = om.map[200 // 2 - 10: 200 // 2 + 10, 200 // 2 - 10: 200 // 2 + 10]
         return np.sum(origin_map) > 400 * 0.9
 
     def gripper_is_free(self, gripper: Arms) -> bool:
@@ -64,5 +73,3 @@ class FactsKnowledge(KnowledgeSource, ReachableAspect, GraspableAspect, GripperI
     def is_visible(self, obj: Object) -> bool:
         cam_pose = World.robot.get_link_pose(RobotDescription.current_robot_description.get_camera_frame())
         return visible(obj, cam_pose)
-
-
