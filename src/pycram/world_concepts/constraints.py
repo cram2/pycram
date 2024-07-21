@@ -30,6 +30,14 @@ class AbstractConstraint:
         self.child_to_constraint = child_to_constraint
         self._parent_to_child = None
 
+    def get_child_object_pose(self) -> Pose:
+        """
+        Returns the pose of the child object.
+
+        :return: The pose of the child object.
+        """
+        return self.child_link.object.pose
+
     def get_child_object_pose_given_parent(self, pose: Pose) -> Pose:
         """
         Returns the pose of the child object given the parent pose.
