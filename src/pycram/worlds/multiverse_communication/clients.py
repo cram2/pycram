@@ -15,35 +15,41 @@ from ...world_concepts.world_object import Object, Link
 
 class MultiverseClient(MultiverseSocket):
 
-    def __init__(self, name: str, port: int, is_prospection_world: Optional[bool] = False, **kwargs):
+    def __init__(self, name: str, port: int, is_prospection_world: Optional[bool] = False,
+                 simulation_wait_time_factor: Optional[float] = 1.0, **kwargs):
         """
         Initialize the Multiverse client, which connects to the Multiverse server.
         param name: The name of the client.
         param port: The port of the client.
         param is_prospection_world: Whether the client is connected to the prospection world.
+        param simulation_wait_time_factor: The simulation wait time factor (default is 1.0), which can be used to
+            increase or decrease the wait time for the simulation.
         """
         meta_data = MultiverseMetaData()
         meta_data.simulation_name = (World.prospection_world_prefix if is_prospection_world else "") + name
         meta_data.world_name = (World.prospection_world_prefix if is_prospection_world else "") + meta_data.world_name
         super().__init__(SocketAddress(port=str(port)), meta_data)
+        self.simulation_wait_time_factor = simulation_wait_time_factor
         self.run()
 
 
 class MultiverseReader(MultiverseClient):
 
-    MAX_WAIT_TIME_FOR_DATA: Optional[float] = 1
+    MAX_WAIT_TIME_FOR_DATA: Optional[float] = 2
     """
     The maximum wait time for the data in seconds.
     """
 
-    def __init__(self, name: str, port: int, is_prospection_world: Optional[bool] = False, **kwargs):
+    def __init__(self, name: str, port: int, is_prospection_world: Optional[bool] = False,
+                 simulation_wait_time_factor: Optional[float] = 1.0, **kwargs):
         """
         Initialize the Multiverse reader, which reads the data from the Multiverse server in a separate thread.
         This class provides methods to get data (e.g., position, orientation) from the Multiverse server.
         param port: The port of the Multiverse reader client.
         param is_prospection_world: Whether the reader is connected to the prospection world.
+        param simulation_wait_time_factor: The simulation wait time factor.
         """
-        super().__init__(name, port, is_prospection_world)
+        super().__init__(name, port, is_prospection_world, simulation_wait_time_factor=simulation_wait_time_factor)
 
         self.request_meta_data["receive"][""] = [""]
 
@@ -60,9 +66,22 @@ class MultiverseReader(MultiverseClient):
         param wait: Whether to wait for the data.
         return: The position and orientation of the body.
         """
-        data = self.get_body_data(name, ["position", "quaternion"], wait=wait)
+        data = self.get_multiple_body_poses([name], wait=wait)
         if data is not None:
-            return Pose(data["position"], self.wxyz_to_xyzw(data["quaternion"]))
+            return data[name]
+
+    def get_multiple_body_poses(self, body_names: List[str], wait: Optional[bool] = True) -> Optional[Dict[str, Pose]]:
+        """
+        Get the body poses from the multiverse server for multiple bodies.
+        param body_names: The names of the bodies.
+        param wait: Whether to wait for the data.
+        return: The positions and orientations of the bodies as a dictionary.
+        """
+        data = self.get_multiple_body_data(body_names, {name: ["position", "quaternion"] for name in body_names},
+                                           wait=wait)
+        if data is not None:
+            return {name: Pose(data[name]["position"], self.wxyz_to_xyzw(data[name]["quaternion"]))
+                    for name in body_names}
 
     def get_body_position(self, name: str, wait: Optional[bool] = True) -> Optional[List[float]]:
         """
@@ -71,7 +90,17 @@ class MultiverseReader(MultiverseClient):
         param wait: Whether to wait for the data.
         return: The position of the body.
         """
-        return self.get_body_data(name, ["position"], wait=wait)
+        return self.get_multiple_body_positions([name], wait=wait)[name]
+
+    def get_multiple_body_positions(self, body_names: List[str],
+                                    wait: Optional[bool] = True) -> Optional[Dict[str, List[float]]]:
+        """
+        Get the body positions from the multiverse server for multiple bodies.
+        param body_names: The names of the bodies.
+        param wait: Whether to wait for the data.
+        return: The positions of the bodies as a dictionary.
+        """
+        return self.get_multiple_body_properties(body_names, ["position"], wait=wait)
 
     def get_body_orientation(self, name: str, wait: Optional[bool] = True) -> Optional[List[float]]:
         """
@@ -80,9 +109,19 @@ class MultiverseReader(MultiverseClient):
         param wait: Whether to wait for the data.
         return: The orientation of the body.
         """
-        data = self.get_body_property(name, "quaternion", wait=wait)
+        return self.get_multiple_body_orientations([name], wait=wait)[name]
+
+    def get_multiple_body_orientations(self, body_names: List[str],
+                                       wait: Optional[bool] = True) -> Optional[Dict[str, List[float]]]:
+        """
+        Get the body orientations from the multiverse server for multiple bodies.
+        param body_names: The names of the bodies.
+        param wait: Whether to wait for the data.
+        return: The orientations of the bodies as a dictionary.
+        """
+        data = self.get_multiple_body_properties(body_names, ["quaternion"], wait=wait)
         if data is not None:
-            return self.wxyz_to_xyzw(data)
+            return {name: self.wxyz_to_xyzw(data[name]["quaternion"]) for name in body_names}
 
     def get_body_property(self, name: str, property_name: str, wait: Optional[bool] = True) -> Optional[List[float]]:
         """
@@ -92,9 +131,20 @@ class MultiverseReader(MultiverseClient):
         param wait: Whether to wait for the data.
         return: The property of the body.
         """
-        data = self.get_body_data(name, [property_name], wait=wait)
+        data = self.get_multiple_body_properties([name], [property_name], wait=wait)
         if data is not None:
-            return data[property_name]
+            return data[name][property_name]
+
+    def get_multiple_body_properties(self, body_names: List[str], properties: List[str],
+                                     wait: Optional[bool] = True) -> Dict[str, Dict[str, List[float]]]:
+        """
+        Get the body properties from the multiverse server for multiple bodies.
+        param body_names: The names of the bodies.
+        param properties: The properties of the bodies.
+        param wait: Whether to wait for the data.
+        return: The properties of the bodies as a dictionary.
+        """
+        return self.get_multiple_body_data(body_names, {name: properties for name in body_names}, wait=wait)
 
     @staticmethod
     def wxyz_to_xyzw(quaternion: List[float]) -> List[float]:
@@ -115,24 +165,60 @@ class MultiverseReader(MultiverseClient):
         param wait: Whether to wait for the data.
         return: The body data as a dictionary.
         """
-        if wait:
-            return self.wait_for_body_data(name, properties)
-        elif self.check_for_body_data(name, self.get_received_data(), properties):
-            return self.get_received_data()[name]
+        properties = {name: properties} if properties is not None else None
+        return self.get_multiple_body_data([name], properties, wait=wait)[name]
 
-    def wait_for_body_data(self, name: str, properties: Optional[List[str]] = None) -> Dict:
+    def get_multiple_body_data(self, body_names: List[str], properties: Optional[Dict[str, List[str]]] = None,
+                               wait: Optional[bool] = True) -> Dict:
         """
-        Wait for the body data from the multiverse server.
-        param name: The name of the body.
-        param properties: The properties of the body.
+        Get the body data from the multiverse server for multiple bodies.
+        param body_names: The names of the bodies.
+        param properties: The properties of the bodies.
+        param wait: Whether to wait for the data.
+        return: The body data as a dictionary.
+        """
+
+        if wait:
+            return self.wait_for_multiple_body_data(body_names, properties)
+
+        data = self.get_received_data()
+        if self.check_multiple_body_data(body_names, data, properties):
+            return {name: data[name] for name in body_names}
+
+    def wait_for_multiple_body_data(self, body_names: List[str],
+                                    properties: Optional[Dict[str, List[str]]] = None) -> Dict:
+        """
+        Wait for the body data from the multiverse server for multiple bodies.
+        param body_names: The names of the bodies.
+        param properties: The properties of the bodies.
         return: The body data as a dictionary.
         """
         start = time()
+        data_received_flag = False
         while time() - start < self.MAX_WAIT_TIME_FOR_DATA:
             received_data = self.get_received_data()
-            data_received_flag = self.check_for_body_data(name, received_data, properties)
+            data_received_flag = self.check_multiple_body_data(body_names, received_data, properties)
             if data_received_flag:
-                return received_data[name]
+                return {name: received_data[name] for name in body_names}
+        if not data_received_flag:
+            properties_str = "Data" if properties is None else f"Properties {properties}"
+            msg = f"{properties_str} for bodies {body_names} not received within {self.MAX_WAIT_TIME_FOR_DATA} seconds"
+            logging.error(msg)
+            raise ValueError(msg)
+
+    def check_multiple_body_data(self, body_names: List[str], data: Dict,
+                                 properties: Optional[Dict[str, List[str]]] = None) -> bool:
+        """
+        Check if the body data is received from the multiverse server for multiple bodies.
+        param body_names: The names of the bodies.
+        param data: The data received from the multiverse server.
+        param properties: The properties of the bodies.
+        return: Whether the body data is received.
+        """
+        if properties is None:
+            return all([self.check_for_body_data(name, data) for name in body_names])
+        else:
+            return all([self.check_for_body_data(name, data, properties[name]) for name in body_names])
 
     @staticmethod
     def check_for_body_data(name: str, data: Dict, properties: Optional[List[str]] = None) -> bool:
@@ -175,16 +261,17 @@ class MultiverseReader(MultiverseClient):
 
 class MultiverseWriter(MultiverseClient):
 
-    time_for_sim_update: Optional[float] = 0.02
+    time_for_sim_update: Optional[float] = 0.0  # 0.02
     """
     Wait time for the sent data to be applied in the simulator.
     """
-    time_for_setting_body_data: Optional[float] = 0.01
+    time_for_setting_body_data: Optional[float] = 0.0  # 0.01
     """
     Wait time for setting body data.
     """
 
-    def __init__(self, name: str, port: int, simulation: str, is_prospection_world: Optional[bool] = False, **kwargs):
+    def __init__(self, name: str, port: int, simulation: str, is_prospection_world: Optional[bool] = False,
+                 simulation_wait_time_factor: Optional[float] = 1.0, **kwargs):
         """
         Initialize the Multiverse writer, which writes the data to the Multiverse server.
         This class provides methods to send data (e.g., position, orientation) to the Multiverse server.
@@ -192,8 +279,10 @@ class MultiverseWriter(MultiverseClient):
         param simulation: The name of the simulation that the writer is connected to
          (usually the name defined in the .muv file).
         param is_prospection_world: Whether the writer is connected to the prospection world.
+        param simulation_wait_time_factor: The wait time factor for the simulation (default is 1.0), which can be used
+         to increase or decrease the wait time for the simulation.
         """
-        super().__init__(name, port, is_prospection_world)
+        super().__init__(name, port, is_prospection_world, simulation_wait_time_factor=simulation_wait_time_factor)
         self.simulation = simulation
         self.time_start = time()
 
@@ -217,7 +306,8 @@ class MultiverseWriter(MultiverseClient):
         """
         self.send_body_data_to_server(body_name,
                                       {"position": position,
-                                       "quaternion": orientation})
+                                       "quaternion": orientation,
+                                       "relative_velocity": [0]*6})
 
     def set_body_position(self, body_name: str, position: List[float]) -> None:
         """
@@ -272,7 +362,7 @@ class MultiverseWriter(MultiverseClient):
                           for value in data]
         self.send_data = [time() - self.time_start, *flattened_data]
         self.send_and_receive_data()
-        sleep(self.time_for_setting_body_data)
+        sleep(self.time_for_setting_body_data * self.simulation_wait_time_factor)
         return self.response_meta_data
 
     def send_meta_data_and_get_response(self, send_meta_data: Dict) -> Dict:
@@ -304,7 +394,7 @@ class MultiverseWriter(MultiverseClient):
         self.send_and_receive_meta_data()
         self.send_data = data
         self.send_and_receive_data()
-        sleep(self.time_for_sim_update)
+        sleep(self.time_for_sim_update * self.simulation_wait_time_factor)
         return self.response_meta_data
 
 
@@ -319,7 +409,8 @@ class MultiverseAPI(MultiverseClient):
     The wait time for the API request in seconds.
     """
 
-    def __init__(self, name: str, port: int, simulation: str, is_prospection_world: Optional[bool] = False):
+    def __init__(self, name: str, port: int, simulation: str, is_prospection_world: Optional[bool] = False,
+                 simulation_wait_time_factor: Optional[float] = 1.0):
         """
         Initialize the Multiverse API, which sends API requests to the Multiverse server.
         This class provides methods like attach and detach objects, get contact points, and other API requests.
@@ -327,8 +418,10 @@ class MultiverseAPI(MultiverseClient):
         param simulation: The name of the simulation that the API is connected to
          (usually the name defined in the .muv file).
         param is_prospection_world: Whether the API is connected to the prospection world.
+        param simulation_wait_time_factor: The simulation wait time factor, which can be used to increase or decrease
+            the wait time for the simulation.
         """
-        super().__init__(name, port, is_prospection_world)
+        super().__init__(name, port, is_prospection_world, simulation_wait_time_factor=simulation_wait_time_factor)
         self.simulation = simulation
 
     def attach(self, constraint: Constraint) -> None:
@@ -534,7 +627,7 @@ class MultiverseAPI(MultiverseClient):
             self._add_api_request(api_name.value, *params)
         self._send_api_request()
         responses = self._get_all_apis_responses()
-        sleep(self.API_REQUEST_WAIT_TIME)
+        sleep(self.API_REQUEST_WAIT_TIME * self.simulation_wait_time_factor)
         return responses
 
     def _get_all_apis_responses(self) -> Dict[API, List[str]]:
