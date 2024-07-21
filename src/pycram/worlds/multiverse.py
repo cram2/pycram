@@ -102,8 +102,7 @@ class Multiverse(World):
         if not self.added_multiverse_resources:
             World.cache_manager.clear_cache()
             dirname = find_multiverse_resources_path()
-            resources_paths = get_resource_paths(dirname)
-            World.data_directory = resources_paths + self.data_directory
+            World.data_directory = [dirname] + self.data_directory
             World.cache_manager.data_directory = World.data_directory
             self.added_multiverse_resources = True
 
