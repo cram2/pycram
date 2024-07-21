@@ -137,7 +137,7 @@ class World(StateEntity, ABC):
      the objects.
     """
 
-    data_directory: List[str] = [resources_path, os.path.join(resources_path, 'robots')]
+    data_directory: List[str] = [resources_path]
     """
     Global reference for the data directories, this is used to search for the description files of the robot,
      the objects, and the cached files.
@@ -498,7 +498,7 @@ class World(StateEntity, ABC):
         goal = self.get_move_base_joint_goal(pose)
         self.robot.set_joint_positions(goal)
 
-    def get_move_base_joint_goal(self, pose: Pose) -> Dict[str, float]:
+    def get_move_base_joint_goal(self, pose: Pose) -> Dict[Joint, float]:
         """
         Get the goal for the move base joints of a mobile robot to reach a target pose.
         param pose: The target pose.
@@ -508,9 +508,9 @@ class World(StateEntity, ABC):
         angle_diff = self.get_z_angle_diff(self.robot.get_orientation_as_list(), pose.orientation_as_list())
         # Get the joints of the base link
         move_base_joints = self.get_move_base_joints()
-        return {move_base_joints.translation_x: position_diff[0],
-                move_base_joints.translation_y: position_diff[1],
-                move_base_joints.angular_z: angle_diff}
+        return {self.robot.joints[move_base_joints.translation_x]: position_diff[0],
+                self.robot.joints[move_base_joints.translation_y]: position_diff[1],
+                self.robot.joints[move_base_joints.angular_z]: angle_diff}
 
     @staticmethod
     def get_move_base_joints() -> VirtualMoveBaseJoints:
@@ -1196,11 +1196,10 @@ class World(StateEntity, ABC):
         self.exit()
 
     @abstractmethod
-    def set_multiple_joint_positions(self, obj: Object, joint_poses: Dict[str, float]) -> None:
+    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> None:
         """
         Set the positions of multiple joints of an articulated object.
-        :param obj: The object.
-        :param joint_poses: A dictionary with joint names as keys and joint positions as values.
+        :param joint_positions: A dictionary with joint objects as keys and joint positions as values.
         """
         pass
 

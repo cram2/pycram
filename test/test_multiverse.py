@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import unittest
 
 import psutil
@@ -42,7 +43,6 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             return
         cls.multiverse = Multiverse(simulation="pycram_test",
                                     is_prospection=False)
-        # cls.big_bowl = cls.spawn_big_bowl()
 
     @classmethod
     def tearDownClass(cls):
@@ -164,8 +164,8 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assert_list_is_equal(robot_position[:2], new_position[:2], delta=0.2)
 
     def test_attach_object(self):
-        milk = self.spawn_milk([1, 0, 0.1])
-        cup = self.spawn_cup([1, 1, 0.1])
+        milk = self.spawn_milk([1, 0.1, 0.1])
+        cup = self.spawn_cup([1, 1.1, 0.1])
         milk.attach(cup)
         self.assertTrue(cup in milk.attachments)
         milk_position = milk.get_position_as_list()

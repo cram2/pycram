@@ -92,6 +92,31 @@ class Object(WorldEntity):
 
         self.world.objects.append(self)
 
+
+    def get_target_poses_of_attached_objects(self) -> Dict[Object, Pose]:
+        """
+        Get the target poses of the attached objects.
+        return: The target poses of the attached objects
+        """
+        return self.get_target_poses_of_attached_objects_given_parent(self.get_pose())
+
+    def get_poses_of_attached_objects(self) -> Dict[Object, Pose]:
+        """
+        Get the poses of the attached objects.
+        return: The poses of the attached objects
+        """
+        return {child_object: attachment.get_child_object_pose()
+                for child_object, attachment in self.attachments.items() if not attachment.loose}
+
+    def get_target_poses_of_attached_objects_given_parent(self, pose: Pose) -> Dict[Object, Pose]:
+        """
+        Get the target poses of the attached objects of an object. Given the pose of the parent object.
+        param pose: The pose of the parent object.
+        return: The target poses of the attached objects
+        """
+        return {child_object: attachment.get_child_object_pose_given_parent(pose) for child_object, attachment
+                in self.attachments.items() if not attachment.loose}
+
     @property
     def pose(self):
         return self.get_pose()
@@ -195,8 +220,20 @@ class Object(WorldEntity):
         """
         self.joints = {}
         for joint_name, joint_id in self.joint_name_to_id.items():
-            joint_description = self.description.get_joint_by_name(joint_name)
-            self.joints[joint_name] = self.description.Joint(joint_id, joint_description, self)
+            parsed_joint_description = self.description.get_joint_by_name(joint_name)
+            is_virtual = self.is_joint_virtual(joint_name)
+            self.joints[joint_name] = self.description.Joint(joint_id, parsed_joint_description, self, is_virtual)
+
+    def is_joint_virtual(self, name: str):
+        return self.description.is_joint_virtual(name)
+
+    @property
+    def virtual_joint_names(self):
+        return self.description.virtual_joint_names
+
+    @property
+    def virtual_joints(self):
+        return [joint for joint in self.joints.values() if joint.is_virtual]
 
     @property
     def has_one_link(self) -> bool:
@@ -420,7 +457,7 @@ class Object(WorldEntity):
         if coincide_the_objects:
             parent_to_child_transform = Transform()
         else:
-            parent_to_child_transform = None
+            parent_to_child_transform = parent_link.get_transform_to_link(child_link)
         attachment = Attachment(parent_link, child_link, bidirectional, parent_to_child_transform)
 
         self.attachments[child_object] = attachment
@@ -694,8 +731,7 @@ class Object(WorldEntity):
                 child.update_attachment_with_object(self)
 
             else:
-                link_to_object = attachment.parent_to_child_transform
-                child.set_pose(link_to_object.to_pose(), set_attachments=False)
+                child.set_pose(attachment.get_child_link_target_pose(), set_attachments=False)
                 child._set_attached_objects_poses(already_moved_objects + [self])
 
     def set_position(self, position: Union[Pose, Point, List], base=False) -> None:
@@ -833,21 +869,23 @@ class Object(WorldEntity):
         """
         Sets the current position of all joints to 0. This is useful if the joints should be reset to their default
         """
-        joint_names = list(self.joint_name_to_id.keys())
+        joint_names = [joint.name for joint in self.joints.values() if not joint.is_virtual]
         if len(joint_names) == 0:
             return
         joint_positions = [0] * len(joint_names)
         self.set_joint_positions(dict(zip(joint_names, joint_positions)))
 
-    def set_joint_positions(self, joint_poses: dict) -> None:
+    def set_joint_positions(self, joint_positions: Dict[str, float]) -> None:
         """
         Sets the current position of multiple joints at once, this method should be preferred when setting
         multiple joints at once instead of running :func:`~Object.set_joint_position` in a loop.
 
-        :param joint_poses:
+        :param joint_positions: A dictionary with the joint names as keys and the target positions as values.
         """
-        self.world.set_multiple_joint_positions(self, joint_poses)
-        # self.update_pose()
+        joint_positions = {self.joints[joint_name]: joint_position
+                           for joint_name, joint_position in joint_positions.items()}
+        self.world.set_multiple_joint_positions(joint_positions)
+        self.update_pose()
         self._update_all_links_poses()
         self.update_link_transforms()
         self._set_attached_objects_poses()
