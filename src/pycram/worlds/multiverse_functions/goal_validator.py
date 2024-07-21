@@ -1,7 +1,7 @@
 from abc import abstractmethod, ABC
 
 import numpy as np
-from typing_extensions import List, Union, Any, Callable
+from typing_extensions import List, Union, Any, Callable, Optional
 
 from pycram.datastructures.pose import Pose
 
@@ -12,7 +12,7 @@ class GoalValidator(ABC):
     """
 
     def __init__(self, initial_value: Any, goal_value: Any, current_value_getter: Callable[[], Any], name: str,
-                 acceptable_percentage_of_goal_achieved: float = 0.1):
+                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.01):
         self.initial_value: Any = initial_value
         self.current_value_getter: Callable[[], Any] = current_value_getter
         self.goal_value: Any = goal_value
@@ -73,7 +73,7 @@ class SingleValueGoalValidator(GoalValidator):
 
     def __init__(self, initial_value: Union[float, int], goal_value: Union[float, int],
                  current_value_getter: Callable[[], Union[float, int]], name: str,
-                 acceptable_percentage_of_goal_achieved: float = 0.1):
+                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.01):
         super().__init__(initial_value, goal_value, current_value_getter, name, acceptable_percentage_of_goal_achieved)
 
     def calculate_error(self, value_1: Union[float, int], value_2: Union[float, int]) -> Union[float, int]:
@@ -87,7 +87,7 @@ class SingleValueGoalValidator(GoalValidator):
 class JointGoalValidator(SingleValueGoalValidator):
     def __init__(self, initial_value: Union[float, int], goal_value: Union[float, int],
                  current_value_getter: Callable[[], Union[float, int]], name: str,
-                 acceptable_percentage_of_goal_achieved: float = 0.1):
+                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.01):
         super().__init__(initial_value, goal_value, current_value_getter, name, acceptable_percentage_of_goal_achieved)
 
 
@@ -98,7 +98,7 @@ class IterableGoalValidator(GoalValidator):
 
     def __init__(self, initial_value: List[Any], goal_value: List[Any],
                  current_value_getter: Callable[[], List[Any]], name: str,
-                 acceptable_percentage_of_goal_achieved: float = 0.1):
+                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.01):
         super().__init__(initial_value, goal_value, current_value_getter, name, acceptable_percentage_of_goal_achieved)
 
     def calculate_error(self, iterable_1: List[Any], iterable_2: List[Any]) -> float:
@@ -120,7 +120,7 @@ def get_combined_goal_validator(goal_validators: List[GoalValidator], combined_n
     class CombinedGoalValidator(IterableGoalValidator):
         def __init__(self, initial_value: List[Any], goal_value: List[Any],
                      current_value_getter: Callable[[], List[Any]],
-                     name: str, acceptable_percentage_of_goal_achieved: float = 0.1):
+                     name: str, acceptable_percentage_of_goal_achieved: Optional[float] = 0.01):
             super().__init__(initial_value, goal_value, current_value_getter, name,
                              acceptable_percentage_of_goal_achieved)
 
@@ -142,21 +142,21 @@ def get_combined_goal_validator(goal_validators: List[GoalValidator], combined_n
 class PositionGoalValidator(IterableGoalValidator):
     def __init__(self, initial_value: List[float], goal_value: List[float],
                  current_value_getter: Callable[[], List[float]],
-                 name: str, acceptable_percentage_of_goal_achieved: float = 0.1):
+                 name: str, acceptable_percentage_of_goal_achieved: Optional[float] = 0.01):
         super().__init__(initial_value, goal_value, current_value_getter, name, acceptable_percentage_of_goal_achieved)
 
 
 class OrientationGoalValidator(IterableGoalValidator):
     def __init__(self, initial_value: List[float], goal_value: List[float],
                  current_value_getter: Callable[[], List[float]],
-                 name: str, acceptable_percentage_of_goal_achieved: float = 0.1):
+                 name: str, acceptable_percentage_of_goal_achieved: Optional[float] = 0.01):
         super().__init__(initial_value, goal_value, current_value_getter, name, acceptable_percentage_of_goal_achieved)
 
 
 class MultiJointGoalValidator(IterableGoalValidator):
     def __init__(self, initial_value: List[float], goal_value: List[float],
                  current_value_getter: Callable[[], List[float]], name: str,
-                 acceptable_percentage_of_goal_achieved: float = 0.1):
+                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.01):
         super().__init__(initial_value, goal_value, current_value_getter, name, acceptable_percentage_of_goal_achieved)
 
 
@@ -166,7 +166,7 @@ class PoseGoalValidator(GoalValidator):
     """
 
     def __init__(self, initial_value: Pose, goal_value: Pose, current_value_getter: Callable[[], Pose], name: str,
-                 acceptable_percentage_of_goal_achieved: float = 0.1):
+                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.01):
         super().__init__(initial_value, goal_value, current_value_getter, name, acceptable_percentage_of_goal_achieved)
 
     def calculate_error(self, pose_1: Pose, pose_2: Pose) -> float:
@@ -180,7 +180,7 @@ class PoseGoalValidator(GoalValidator):
 class MultiPoseGoalValidator(IterableGoalValidator):
     def __init__(self, initial_value: List[Pose], goal_value: List[Pose],
                  current_value_getter: Callable[[], List[Pose]], name: str,
-                 acceptable_percentage_of_goal_achieved: float = 0.1):
+                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.01):
         super().__init__(initial_value, goal_value, current_value_getter, name, acceptable_percentage_of_goal_achieved)
 
     def calculate_error(self, iterable_1: List[Pose], iterable_2: List[Pose]) -> float:

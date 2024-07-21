@@ -323,10 +323,10 @@ class Multiverse(World):
         while not goal_validator.goal_achieved:
             sleep(0.01)
             if time() - start_time > self.reader.MAX_WAIT_TIME_FOR_DATA:
-                msg = f"Failed to achieve {goal_validator.name} from {goal_validator.initial_value} to"\
-                      f" {goal_validator.goal_value} within {self.reader.MAX_WAIT_TIME_FOR_DATA}"\
-                      f" seconds, the current value is {current}, error is {goal_validator.current_error}, percentage"\
-                        f" of goal achieved is {goal_validator.percentage_of_goal_achieved}"
+                msg = f"Failed to achieve {goal_validator.name} from {goal_validator.initial_value} to" \
+                      f" {goal_validator.goal_value} within {self.reader.MAX_WAIT_TIME_FOR_DATA}" \
+                      f" seconds, the current value is {current}, error is {goal_validator.current_error}, percentage" \
+                      f" of goal achieved is {goal_validator.percentage_of_goal_achieved}"
                 logging.error(msg)
                 raise TimeoutError(msg)
             current = goal_validator.current_value

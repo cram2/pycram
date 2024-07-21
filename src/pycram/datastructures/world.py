@@ -508,9 +508,9 @@ class World(StateEntity, ABC):
         angle_diff = self.get_z_angle_diff(self.robot.get_orientation_as_list(), pose.orientation_as_list())
         # Get the joints of the base link
         move_base_joints = self.get_move_base_joints()
-        return {self.robot.joints[move_base_joints.translation_x]: position_diff[0],
-                self.robot.joints[move_base_joints.translation_y]: position_diff[1],
-                self.robot.joints[move_base_joints.angular_z]: angle_diff}
+        return {move_base_joints.translation_x: position_diff[0],
+                move_base_joints.translation_y: position_diff[1],
+                move_base_joints.angular_z: angle_diff}
 
     @staticmethod
     def get_move_base_joints() -> VirtualMoveBaseJoints:
