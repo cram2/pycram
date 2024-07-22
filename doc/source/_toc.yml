@@ -4,47 +4,50 @@
 format: jb-book
 root: index.rst
 parts:
-- caption: Getting Started
-  chapters:
-  - file: installation.rst
+  - caption: Getting Started
+    chapters:
+    - file: installation.rst
 
-- caption: Concepts
-  chapters:
-  - file: ros_utils.rst
-  - file: new_robot.rst
-
-- caption: Trouble Shooting
-  chapters:
-  - file: troubleshooting.rst
-  - file: remarks.rst
-
-
-- caption: Examples
-  chapters:
+  - caption: Concepts
+    chapters:
+    - file: ros_utils.rst
+    - file: new_robot.rst
+    - file: notebooks.rst
     - file: designators.rst
-      sections:
-      - file: notebooks/action_designator
-      - file: notebooks/object_designator
-      - file: notebooks/location_designator
-      - file: notebooks/motion_designator
-    - file: notebooks/intro
-    - file: orm.rst
-      sections:
-      - file: notebooks/orm_example
-      - file: notebooks/orm_querying_examples
-      - file: notebooks/migrate_neems
-    - file: datastructures.rst
-      sections:
+
+  - caption: Trouble Shooting
+    chapters:
+    - file: troubleshooting.rst
+    - file: remarks.rst
+
+
+  - caption: Examples
+    chapters:
+      - file: notebooks/intro
+      - file: notebooks/bullet_world
       - file: notebooks/language
       - file: notebooks/local_transformer
-      - file: notebooks/pose
-      - file: notebooks/ontology
-      - file: notebooks/robot_description
+      - file: designator_example.rst
+        sections:
+        - file: notebooks/action_designator
+        - file: notebooks/object_designator
+        - file: notebooks/location_designator
+        - file: notebooks/motion_designator
+      - file: orm
+        sections:
+        - file: notebooks/orm_example
+        - file: notebooks/orm_querying_examples
+        - file: notebooks/migrate_neems
+      - file: datastructures.rst
+        sections:
+        - file: notebooks/pose
+        - file: notebooks/robot_description
+      - file: external_interfaces.rst
+        sections:
+        - file: notebooks/interface_examples/giskard.md
+        - file: notebooks/interface_examples/robokudo.md
+        - file: notebooks/ontology
 
-
-#      - caption: World
-#      - file: notebooks/bullet_world
-
-- caption: API
-  chapters:
-  - file: autoapi/index
+  - caption: API
+    chapters:
+    - file: autoapi/pycram/index.rst
