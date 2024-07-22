@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import math
 import datetime
-from typing_extensions import List, Union, Optional
+from typing_extensions import List, Union, Optional, Sized
 
 import numpy as np
 import rospy
@@ -144,14 +144,17 @@ class Pose(PoseStamped):
 
         :param value: New orientation, either a list or geometry_msgs/Quaternion
         """
-        if not isinstance(value, list) and not isinstance(value, tuple) and not isinstance(value, GeoQuaternion):
-            rospy.logwarn("Orientation can only be a list or geometry_msgs/Quaternion")
+        if not isinstance(value, Sized) and not isinstance(value, GeoQuaternion):
+            rospy.logwarn("Orientation can only be an iterable (list, tuple, ...etc.) or a geometry_msgs/Quaternion")
             return
 
-        if isinstance(value, list) or isinstance(value, tuple) and len(value) == 4:
+        if isinstance(value, Sized) and len(value) == 4:
             orientation = np.array(value)
-        else:
+        elif isinstance(value, GeoQuaternion):
             orientation = np.array([value.x, value.y, value.z, value.w])
+        else:
+            rospy.logerr("Orientation has to be a list or geometry_msgs/Quaternion")
+            raise TypeError("Orientation has to be a list or geometry_msgs/Quaternion")
         # This is used instead of np.linalg.norm since numpy is too slow on small arrays
         self.pose.orientation = get_normalized_quaternion(orientation)
 

@@ -1,30 +1,35 @@
-from abc import abstractmethod, ABC
-
 import numpy as np
-from typing_extensions import List, Union, Any, Callable, Optional
+from typing_extensions import Any, Callable, Optional, List, Union
 
-from pycram.datastructures.pose import Pose
+from pycram.worlds.multiverse_functions.error_checkers import ErrorChecker
 
 
-class GoalValidator(ABC):
+class GoalValidator:
     """
     A class to validate the goal by tracking the goal achievement progress.
     """
 
-    def __init__(self, initial_value: Any, goal_value: Any, current_value_getter: Callable[[], Any], name: str,
-                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.01):
-        self.initial_value: Any = initial_value
+    def __init__(self, goal_value: Any, current_value_getter: Callable[[], Any], error_checker: ErrorChecker,
+                 initial_value: Any = None,
+                 acceptable_percentage_of_goal_achieved: Optional[float] = None):
+        """
+        Initialize the goal validator.
+        :param goal_value: The goal value.
+        :param current_value_getter: The current value getter.
+        :param error_checker: The error checker object.
+        :param initial_value: The initial value.
+        :param acceptable_percentage_of_goal_achieved: The acceptable percentage of goal achieved, if given, will be
+        used to check if this percentage is achieved instead of the complete goal.
+        """
+        self.error_checker: ErrorChecker = error_checker
         self.current_value_getter: Callable[[], Any] = current_value_getter
         self.goal_value: Any = goal_value
-        self.name: str = name
-        self.acceptable_percentage_of_goal_achieved: float = acceptable_percentage_of_goal_achieved
-        self.initial_error: float = self.calculate_initial_error()
-
-    def calculate_initial_error(self) -> float:
-        """
-        Calculate the initial error.
-        """
-        return self.calculate_error(self.goal_value, self.initial_value)
+        if initial_value is None:
+            self.initial_error: List[Union[float, List[float]]] = self.current_error
+        else:
+            self.initial_error: List[Union[float, List[float]]] = self.calculate_error(goal_value, initial_value)
+        self.acceptable_percentage_of_goal_achieved: Optional[float] = acceptable_percentage_of_goal_achieved
+        self.acceptable_error = self.error_checker.get_acceptable_error(self.initial_error)
 
     @property
     def current_value(self) -> Any:
@@ -34,28 +39,64 @@ class GoalValidator(ABC):
         return self.current_value_getter()
 
     @property
-    def current_error(self) -> float:
+    def current_error(self) -> np.ndarray:
         """
         Calculate the current error.
         """
         return self.calculate_error(self.goal_value, self.current_value)
 
-    @abstractmethod
-    def calculate_error(self, value_1: Any, value_2: Any) -> float:
+    def calculate_error(self, value_1: Any, value_2: Any) -> np.ndarray:
         """
         Calculate the error between two values.
         """
-        pass
+        return np.array(self.error_checker.calculate_error(value_1, value_2)).flatten()
 
     @property
     def percentage_of_goal_achieved(self) -> float:
         """
         Calculate the percentage of goal achieved.
         """
-        if self.initial_error > 1e-3:
-            return 1 - self.current_error / self.initial_error
-        else:
+        percent_array = 1 - self.relative_current_error / self.relative_initial_error
+        percent_array_filtered = percent_array[self.relative_initial_error > self.acceptable_error]
+        if len(percent_array_filtered) == 0:
             return 1
+        else:
+            return np.mean(percent_array_filtered)
+
+    @property
+    def actual_percentage_of_goal_achieved(self) -> float:
+        """
+        Calculate the percentage of goal achieved.
+        """
+        percent_array = 1 - self.current_error / np.maximum(self.initial_error, 1e-3)
+        percent_array_filtered = percent_array[self.initial_error > self.acceptable_error]
+        if len(percent_array_filtered) == 0:
+            return 1
+        else:
+            return np.mean(percent_array_filtered)
+
+    @property
+    def relative_current_error(self) -> np.ndarray:
+        """
+        Get the relative current error.
+        """
+        return self.get_relative_error(self.current_error, threshold=0)
+
+    @property
+    def relative_initial_error(self) -> np.ndarray:
+        """
+        Get the relative initial error.
+        """
+        return self.get_relative_error(self.initial_error)
+
+    def get_relative_error(self, error: Any, threshold: Optional[float] = 1e-3) -> np.ndarray:
+        """
+        Get the relative error by comparing the error with the acceptable error and filtering out the errors that are
+        less than the threshold.
+        :param error: The error.
+        :param threshold: The threshold.
+        """
+        return np.maximum(error-self.acceptable_error, threshold)
 
     @property
     def goal_achieved(self) -> bool:
@@ -63,139 +104,15 @@ class GoalValidator(ABC):
         Check if the goal is achieved.
         return: Whether the goal is achieved.
         """
-        return self.percentage_of_goal_achieved >= self.acceptable_percentage_of_goal_achieved
+        if self.acceptable_percentage_of_goal_achieved is None:
+            return self.is_error_acceptable
+        else:
+            return self.percentage_of_goal_achieved >= self.acceptable_percentage_of_goal_achieved
 
-
-class SingleValueGoalValidator(GoalValidator):
-    """
-    A class to validate the goal by tracking the goal achievement progress for a single value.
-    """
-
-    def __init__(self, initial_value: Union[float, int], goal_value: Union[float, int],
-                 current_value_getter: Callable[[], Union[float, int]], name: str,
-                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.01):
-        super().__init__(initial_value, goal_value, current_value_getter, name, acceptable_percentage_of_goal_achieved)
-
-    def calculate_error(self, value_1: Union[float, int], value_2: Union[float, int]) -> Union[float, int]:
+    @property
+    def is_error_acceptable(self) -> bool:
         """
-        Calculate the error between two values.
-        return: The error between the two values.
+        Check if the error is acceptable.
+        return: Whether the error is acceptable.
         """
-        return abs(value_1 - value_2)
-
-
-class JointGoalValidator(SingleValueGoalValidator):
-    def __init__(self, initial_value: Union[float, int], goal_value: Union[float, int],
-                 current_value_getter: Callable[[], Union[float, int]], name: str,
-                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.01):
-        super().__init__(initial_value, goal_value, current_value_getter, name, acceptable_percentage_of_goal_achieved)
-
-
-class IterableGoalValidator(GoalValidator):
-    """
-    A class to validate the goal by tracking the goal achievement progress for an iterable goal.
-    """
-
-    def __init__(self, initial_value: List[Any], goal_value: List[Any],
-                 current_value_getter: Callable[[], List[Any]], name: str,
-                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.01):
-        super().__init__(initial_value, goal_value, current_value_getter, name, acceptable_percentage_of_goal_achieved)
-
-    def calculate_error(self, iterable_1: List[Any], iterable_2: List[Any]) -> float:
-        """
-        Calculate the error between two iterables.
-        return: The error between the two iterables.
-        """
-        return np.linalg.norm(np.array(iterable_1) - np.array(iterable_2))
-
-
-def get_combined_goal_validator(goal_validators: List[GoalValidator], combined_name: str):
-    """
-    Get a combined goal validator.
-    :param goal_validators: The goal validators to combine.
-    :param combined_name: The name of the combined goal validator.
-    return: The combined goal validator.
-    """
-
-    class CombinedGoalValidator(IterableGoalValidator):
-        def __init__(self, initial_value: List[Any], goal_value: List[Any],
-                     current_value_getter: Callable[[], List[Any]],
-                     name: str, acceptable_percentage_of_goal_achieved: Optional[float] = 0.01):
-            super().__init__(initial_value, goal_value, current_value_getter, name,
-                             acceptable_percentage_of_goal_achieved)
-
-        def calculate_error(self, iterable_1: List[Any], iterable_2: List[Any]) -> float:
-            """
-            Calculate the error between two iterables.
-            return: The error between the two iterables.
-            """
-            return (sum([goal_validator.calculate_error(value_1, value_2)
-                        for goal_validator, value_1, value_2 in zip(goal_validators, iterable_1, iterable_2)]) /
-                    len(goal_validators))
-
-    return CombinedGoalValidator([goal_validator.initial_value for goal_validator in goal_validators],
-                                 [goal_validator.goal_value for goal_validator in goal_validators],
-                                 [goal_validator.current_value_getter for goal_validator in goal_validators],
-                                 combined_name, 0.5)
-
-
-class PositionGoalValidator(IterableGoalValidator):
-    def __init__(self, initial_value: List[float], goal_value: List[float],
-                 current_value_getter: Callable[[], List[float]],
-                 name: str, acceptable_percentage_of_goal_achieved: Optional[float] = 0.01):
-        super().__init__(initial_value, goal_value, current_value_getter, name, acceptable_percentage_of_goal_achieved)
-
-
-class OrientationGoalValidator(IterableGoalValidator):
-    def __init__(self, initial_value: List[float], goal_value: List[float],
-                 current_value_getter: Callable[[], List[float]],
-                 name: str, acceptable_percentage_of_goal_achieved: Optional[float] = 0.01):
-        super().__init__(initial_value, goal_value, current_value_getter, name, acceptable_percentage_of_goal_achieved)
-
-
-class MultiJointGoalValidator(IterableGoalValidator):
-    def __init__(self, initial_value: List[float], goal_value: List[float],
-                 current_value_getter: Callable[[], List[float]], name: str,
-                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.01):
-        super().__init__(initial_value, goal_value, current_value_getter, name, acceptable_percentage_of_goal_achieved)
-
-
-class PoseGoalValidator(GoalValidator):
-    """
-    A class to validate the goal by tracking the goal achievement progress for a pose goal.
-    """
-
-    def __init__(self, initial_value: Pose, goal_value: Pose, current_value_getter: Callable[[], Pose], name: str,
-                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.01):
-        super().__init__(initial_value, goal_value, current_value_getter, name, acceptable_percentage_of_goal_achieved)
-
-    def calculate_error(self, pose_1: Pose, pose_2: Pose) -> float:
-        """
-        Calculate the error between two poses.
-        return: The error between the two poses.
-        """
-        return calculate_pose_error(pose_1, pose_2)
-
-
-class MultiPoseGoalValidator(IterableGoalValidator):
-    def __init__(self, initial_value: List[Pose], goal_value: List[Pose],
-                 current_value_getter: Callable[[], List[Pose]], name: str,
-                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.01):
-        super().__init__(initial_value, goal_value, current_value_getter, name, acceptable_percentage_of_goal_achieved)
-
-    def calculate_error(self, iterable_1: List[Pose], iterable_2: List[Pose]) -> float:
-        """
-        Calculate the error between two iterables.
-        return: The error between the two iterables.
-        """
-        return (sum([calculate_pose_error(pose_1, pose_2) for pose_1, pose_2 in zip(iterable_1, iterable_2)]) /
-                len(iterable_1))
-
-
-def calculate_pose_error(pose_1: Pose, pose_2: Pose) -> float:
-    """
-    Calculate the error between two poses.
-    return: The error between the two poses.
-    """
-    return (np.linalg.norm(np.array(pose_1.position_as_list()) - np.array(pose_2.position_as_list()))
-            + np.linalg.norm(np.array(pose_1.orientation_as_list()) - np.array(pose_2.orientation_as_list())))
+        return self.error_checker.is_error_acceptable(self.current_value, self.goal_value)

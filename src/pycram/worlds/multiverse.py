@@ -255,7 +255,8 @@ class Multiverse(World):
         param initial_poses: The list of initial poses of the attached objects.
         """
         target_poses = obj.get_target_poses_of_attached_objects()
-        self._wait_until_all_pose_goals_are_achieved(list(target_poses.keys()), list(target_poses.values()),
+        body_names = [obj.name for obj in target_poses.keys()]
+        self._wait_until_all_pose_goals_are_achieved(body_names, list(target_poses.values()),
                                                      initial_poses)
 
     def _wait_until_all_pose_goals_are_achieved(self, body_names: List[str], poses: List[Pose],

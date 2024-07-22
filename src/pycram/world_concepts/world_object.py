@@ -92,7 +92,6 @@ class Object(WorldEntity):
 
         self.world.objects.append(self)
 
-
     def get_target_poses_of_attached_objects(self) -> Dict[Object, Pose]:
         """
         Get the target poses of the attached objects.
