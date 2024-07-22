@@ -4,11 +4,12 @@ from time import sleep, time
 
 import numpy as np
 from tf.transformations import quaternion_matrix
-from typing_extensions import List, Dict, Optional, Iterable, Tuple
+from typing_extensions import List, Dict, Optional
 
 from .multiverse_communication.client_manager import MultiverseClientManager
-from .multiverse_functions.goal_validator import GoalValidator, PoseGoalValidator, \
-    MultiPoseGoalValidator, JointGoalValidator, MultiJointGoalValidator
+from .multiverse_functions.error_checkers import PoseErrorChecker, MultiJointPositionErrorChecker, \
+    RevoluteJointPositionErrorChecker, PrismaticJointPositionErrorChecker
+from .multiverse_functions.goal_validator import GoalValidator
 from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
 from ..datastructures.enums import WorldMode, JointType, ObjectType
 from ..datastructures.pose import Pose
@@ -197,13 +198,15 @@ class Multiverse(World):
         self._wait_until_goal_is_achieved(goal_validator)
 
     def _get_multi_joint_goal_validator(self, joint_positions: Dict[Joint, float],
-                                        initial_joint_positions: Dict[Joint, float]) -> MultiJointGoalValidator:
+                                        initial_joint_positions: Dict[Joint, float]) -> GoalValidator:
         joints = list(joint_positions.keys())
+        joint_types = [joint.type for joint in joints]
         target_joint_positions = list(joint_positions.values())
         initial_joint_positions = list(initial_joint_positions.values())
-        goal_validator = MultiJointGoalValidator(initial_joint_positions, target_joint_positions,
-                                                 lambda: list(self.get_multiple_joint_positions(joints).values()),
-                                                 joints[0].object_name + "_joint_goal")
+        goal_validator = GoalValidator(target_joint_positions,
+                                       lambda: list(self.get_multiple_joint_positions(joints).values()),
+                                       MultiJointPositionErrorChecker(joint_types),
+                                       initial_value=initial_joint_positions)
         return goal_validator
 
     def get_joint_position(self, joint: Joint) -> float:
@@ -221,8 +224,10 @@ class Multiverse(World):
 
     def _wait_until_joint_goal_is_achieved(self, joint: Joint, joint_position: float,
                                            initial_joint_position: float) -> None:
-        goal_validator = JointGoalValidator(initial_joint_position, joint_position,
-                                            lambda: self.get_joint_position(joint), joint.name + "_joint_goal")
+        error_checker = RevoluteJointPositionErrorChecker() if joint.type == JointType.REVOLUTE else \
+            PrismaticJointPositionErrorChecker()
+        goal_validator = GoalValidator(joint_position, lambda: self.get_joint_position(joint),
+                                       error_checker, initial_value=initial_joint_position)
         self._wait_until_goal_is_achieved(goal_validator)
 
     def get_link_pose(self, link: Link) -> Pose:
@@ -260,16 +265,14 @@ class Multiverse(World):
                                                      initial_poses)
 
     def _wait_until_all_pose_goals_are_achieved(self, body_names: List[str], poses: List[Pose],
-                                                initial_poses: List[Pose],
-                                                name: Optional[str] = "all_poses_goal") -> None:
+                                                initial_poses: List[Pose]) -> None:
         """
         Wait until all poses are set to the desired poses.
         param poses: The dictionary of the desired poses
         param initial_poses: The dictionary of the initial poses
-        param name: The name of the goal.
         """
-        goal_validator = MultiPoseGoalValidator(initial_poses, poses,
-                                                lambda: list(self._get_multiple_body_poses(body_names).values()), name)
+        goal_validator = GoalValidator(poses, lambda: list(self._get_multiple_body_poses(body_names).values()),
+                                       PoseErrorChecker(), initial_value=initial_poses)
         self._wait_until_goal_is_achieved(goal_validator)
 
     def _get_body_pose(self, body_name: str, wait: Optional[bool] = True) -> Optional[Pose]:
@@ -310,8 +313,8 @@ class Multiverse(World):
         param target_pose: The target pose of the body.
         param initial_pose: The initial pose of the body.
         """
-        goal_validator = PoseGoalValidator(initial_pose, target_pose, lambda: self._get_body_pose(body_name),
-                                           body_name + "_pose_goal")
+        goal_validator = GoalValidator(target_pose, lambda: self._get_body_pose(body_name),
+                                       PoseErrorChecker(), initial_value=initial_pose)
         self._wait_until_goal_is_achieved(goal_validator)
 
     def _wait_until_goal_is_achieved(self, goal_validator: GoalValidator) -> None:
@@ -324,8 +327,8 @@ class Multiverse(World):
         while not goal_validator.goal_achieved:
             sleep(0.01)
             if time() - start_time > self.reader.MAX_WAIT_TIME_FOR_DATA:
-                msg = f"Failed to achieve {goal_validator.name} from {goal_validator.initial_value} to" \
-                      f" {goal_validator.goal_value} within {self.reader.MAX_WAIT_TIME_FOR_DATA}" \
+                msg = f"Failed to achieve goal from initial error {goal_validator.initial_error} with" \
+                      f" goal {goal_validator.goal_value} within {self.reader.MAX_WAIT_TIME_FOR_DATA}" \
                       f" seconds, the current value is {current}, error is {goal_validator.current_error}, percentage" \
                       f" of goal achieved is {goal_validator.percentage_of_goal_achieved}"
                 logging.error(msg)
