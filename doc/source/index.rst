@@ -98,16 +98,6 @@ The code for this plan can be seen below.
 
 
 
-Authors
--------
-
- * **Jonas Dech** <jdech@uni-bremen.de>
- * **Andy Augsten** <a.augsten@uni-bremen.de>
- * **Dustin Augsten** <augsten@uni-bremen.de>
- * **Christopher Pollok** <cpollok@uni-bremen.de>
- * **Thomas Lipps** <tlipps@uni-bremen.de>
- * **Benjamin Alt** <benjamin.alt@uni-bremen.de>
-
 
 Indices and tables
 ==================
