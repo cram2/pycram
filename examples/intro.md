@@ -20,11 +20,12 @@ import pycram
 
 # Bullet World
 
-The BulletWorld is the internal simulation of PyCRAM. You can simulate different actions and reason about the outcome of different actions. 
+The BulletWorld is the internal simulation of PyCRAM. You can simulate different actions and reason about the outcome of
+different actions.
 
-It is possible to spawn objects and robots into the BulletWorld, these objects can come from URDF, OBJ or STL files. 
+It is possible to spawn objects and robots into the BulletWorld, these objects can come from URDF, OBJ or STL files.
 
-A BulletWorld can be created by simply creating an object of the BulletWorld class. 
+A BulletWorld can be created by simply creating an object of the BulletWorld class.
 
 ```python
 from pycram.worlds.bullet_world import BulletWorld
@@ -35,44 +36,53 @@ from pycram.datastructures.pose import Pose
 world = BulletWorld()
 ```
 
-The BulletWorld allows to render images from arbitrary positions. In the following example we render images with the camera at the position [0.3, 0, 1] and pointing towards [1, 0, 1], so we are looking upwards along the x-axis. 
+The BulletWorld allows to render images from arbitrary positions. In the following example we render images with the
+camera at the position [0.3, 0, 1] and pointing towards [1, 0, 1], so we are looking upwards along the x-axis.
 
-The renderer returns 3 different kinds of images which are also shown on the left side of the BulletWorld window. (If these winodws are missing, click the BulletWorld window to focus it, and press "g") These images are:
-* An RGB image which shows everything like it is rendered in the BulletWorld window, just from another perspective. 
-* A depth image which consists of distance values from the camera towards the objects in the field of view. 
-* A segmentation mask image which segments the image into the different objects displayed. The segmentation is done by assigning every pixel the unique id of the object that is displayed there. 
+The renderer returns 3 different kinds of images which are also shown on the left side of the BulletWorld window. (If
+these winodws are missing, click the BulletWorld window to focus it, and press "g") These images are:
+
+* An RGB image which shows everything like it is rendered in the BulletWorld window, just from another perspective.
+* A depth image which consists of distance values from the camera towards the objects in the field of view.
+* A segmentation mask image which segments the image into the different objects displayed. The segmentation is done by
+  assigning every pixel the unique id of the object that is displayed there.
 
 ```python
 world.get_images_for_target(Pose([1, 0, 1], [0, 0, 0, 1]), Pose([0.3, 0, 1], [0, 0, 0, 1]))
 ```
 
 ## Objects
-Everything that is located inside the BulletWorld is an Object. 
-Objects can be created from URDF, OBJ or STL files. Since everything is of type Object a robot might share the same methods as a milk (with some limitations).
+
+Everything that is located inside the BulletWorld is an Object.
+Objects can be created from URDF, OBJ or STL files. Since everything is of type Object a robot might share the same
+methods as a milk (with some limitations).
 
 Signature:
 Object:
-* Name 
+
+* Name
 * Type
 * Filename or Filepath
 
- Optional:
- * Position
- * Orientation
- * World 
- * Color 
- * Ignore Cached Files
+Optional:
 
-If there is only a filename and no path, PyCRAM will check in the resource directory if there is a matching file. 
+* Position
+* Orientation
+* World
+* Color
+* Ignore Cached Files
 
+If there is only a filename and no path, PyCRAM will check in the resource directory if there is a matching file.
 
 ```python
 milk = Object("Milk", ObjectType.MILK, "milk.stl")
 ```
 
-Objects provide methods to change the position and rotation, change the color, attach other objects, set the state of joints if the objects has any or get the position and orientation of a link. 
+Objects provide methods to change the position and rotation, change the color, attach other objects, set the state of
+joints if the objects has any or get the position and orientation of a link.
 
-These methods are the same for every Object, however since some Objects may not have joints or more than one link methods related to these will not work. 
+These methods are the same for every Object, however since some Objects may not have joints or more than one link
+methods related to these will not work.
 
 ```python
 milk.set_position(Pose([1, 0, 0]))
@@ -84,7 +94,8 @@ To remove an Object from the BulletWorld just call the 'remove' method on the Ob
 milk.remove()
 ```
 
-Since everything inside the BulletWorld is an Object, even a complex environment Object like the kitchen can be spawned in the same way as the milk.
+Since everything inside the BulletWorld is an Object, even a complex environment Object like the kitchen can be spawned
+in the same way as the milk.
 
 ```python
 kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
@@ -92,21 +103,24 @@ kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
 
 ## Costmaps
 
-Costmaps are a way to get positions with respect to certain criterias. 
+Costmaps are a way to get positions with respect to certain criterias.
 The currently available costmaps are:
+
 * Occupancy Costmap
 * Visibility Costmap
-* Semantic Costmap 
+* Semantic Costmap
 * Gaussian Costmap
 
 It is also possible to merge multiple costmaps to combine different criteria.
 
-
 ### Visibility Costmaps
-Visibility costmaps determine every position, around a target position, from which the target is visible. Visibility Costmaps are able to work with cameras that are movable in height for example, if the robot has a movable torso. 
+
+Visibility costmaps determine every position, around a target position, from which the target is visible. Visibility
+Costmaps are able to work with cameras that are movable in height for example, if the robot has a movable torso.
 
 ```python
 import pycram.costmaps as cm
+
 v = cm.VisibilityCostmap(1.27, 1.60, size=300, resolution=0.02, origin=Pose([0, 0, 0.1], [0, 0, 0, 1]))
 ```
 
@@ -119,6 +133,7 @@ v.close_visualization()
 ```
 
 ### Occupancy Costmap
+
 Is valid for every position where the robot can be placed without colliding with an object.
 
 ```python
@@ -131,7 +146,8 @@ s = cm.SemanticCostmap(kitchen, "kitchen_island_surface", size=100, resolution=0
 g = cm.GaussianCostmap(200, 15, resolution=0.02)
 ```
 
-You can visualize the costmap in the BulletWorld to get an impression what information is actually contained in the costmap. With this you could also check if the costmap was created correctly. 
+You can visualize the costmap in the BulletWorld to get an impression what information is actually contained in the
+costmap. With this you could also check if the costmap was created correctly.
 Visualization can be done via the 'visualize' method of each costmap.
 
 ```python
@@ -142,7 +158,10 @@ o.visualize()
 o.close_visualization()
 ```
 
-It is also possible to combine two costmap, this will result in a new costmap with the same size which contains the information of both previous costmaps. Combination is done by checking for each position in the two costmaps if they are zero, in this case to same position in the new costmap will also be zero in any other case the new position will be the normalized product of the two combined costmaps.
+It is also possible to combine two costmap, this will result in a new costmap with the same size which contains the
+information of both previous costmaps. Combination is done by checking for each position in the two costmaps if they are
+zero, in this case to same position in the new costmap will also be zero in any other case the new position will be the
+normalized product of the two combined costmaps.
 
 ```python
 ov = o + v
@@ -156,13 +175,15 @@ ov.visualize()
 ov.close_visualization()
 ```
 
-## Bullet World Reasoning 
+## Bullet World Reasoning
+
 Allows for geometric reasoning in the BulletWorld. At the moment the following types of reasoning are supported:
+
 * Stable
 * Contact
-* Visible 
-* Occluding 
-* Reachable 
+* Visible
+* Occluding
+* Reachable
 * Blocking
 * Supporting
 
@@ -170,14 +191,15 @@ To show the geometric reasoning we first spawn a robot as well as the milk Objec
 
 ```python
 import pycram.world_reasoning as btr
+
 milk = Object("Milk", ObjectType.MILK, "milk.stl", pose=Pose([1, 0, 1]))
 pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
 ```
 
-We start with testing for visibility 
+We start with testing for visibility
 
 ```python
-milk.set_position(Pose([1,0,1]))
+milk.set_position(Pose([1, 0, 1]))
 visible = btr.visible(milk, pr2.get_link_pose("wide_stereo_optical_frame"))
 print(f"Milk visible: {visible}")
 ```
@@ -198,18 +220,23 @@ print(f"Milk is reachable for the PR2: {reachable}")
 ```
 
 # Designators
-Designators are symbolic descriptions of Actions, Motions, Objects or Locations. In PyCRAM the different types of designators are represented by a class which takes a description, the description then tells the designator what to do. 
 
-For example, let's look at a Motion Designator to move the robot to a specific location. 
+Designators are symbolic descriptions of Actions, Motions, Objects or Locations. In PyCRAM the different types of
+designators are represented by a class which takes a description, the description then tells the designator what to do.
 
-
-
+For example, let's look at a Motion Designator to move the robot to a specific location.
 
 ## Motion Designators
 
-When using a Motion Designator you need to specify which Process Module needs to be used, either the Process Module for the real or the simulated robot. A Process Module is the interface between a real or simulated robot, and PyCRAM designators. By exchanging the Process Module, one can quickly change the robot the plan is executed on, allowing PyCRAM plans to be re-used across multiple robot platforms. This can be done either with a decorator which can be added to a function and then every designator executed within this function, will be executed on the specified robot. The other possibility is a "with" scope which wraps a code piece.
+When using a Motion Designator you need to specify which Process Module needs to be used, either the Process Module for
+the real or the simulated robot. A Process Module is the interface between a real or simulated robot, and PyCRAM
+designators. By exchanging the Process Module, one can quickly change the robot the plan is executed on, allowing PyCRAM
+plans to be re-used across multiple robot platforms. This can be done either with a decorator which can be added to a
+function and then every designator executed within this function, will be executed on the specified robot. The other
+possibility is a "with" scope which wraps a code piece.
 
-These two ways can also be combined, you could write a function which should be executed on the real robot and the function contains a "with" scope which executes something on the simulated robot for reasoning purposes. 
+These two ways can also be combined, you could write a function which should be executed on the real robot and the
+function contains a "with" scope which executes something on the simulated robot for reasoning purposes.
 
 ```python
 from pycram.designators.motion_designator import *
@@ -219,33 +246,36 @@ description = MoveMotion(target=Pose([1, 0, 0], [0, 0, 0, 1]))
 
 with simulated_robot:
     description.perform()
-    
+
 
 ```
 
 ```python
 from pycram.process_module import with_simulated_robot
 
+
 @with_simulated_robot
 def move():
     MoveMotion(target=Pose([0, 0, 0], [0, 0, 0, 1])).perform()
+
 
 move()
 ```
 
 Other implemented Motion Designator descriptions are:
+
 * Accessing
 * Move TCP
 * Looking
 * Move Gripper
 * Detecting
-* Move Arm Joint 
-* World State Detecting 
-
+* Move Arm Joint
+* World State Detecting
 
 ## Object Designators
 
-An Object Designator represents objects. These objects could either be from the BulletWorld or the real world. Object Designators are used, for example, by the PickUpAction to know which object should be picked up.
+An Object Designator represents objects. These objects could either be from the BulletWorld or the real world. Object
+Designators are used, for example, by the PickUpAction to know which object should be picked up.
 
 ```python
 from pycram.designators.object_designator import *
@@ -255,6 +285,7 @@ milk_desig.resolve()
 ```
 
 ## Location Designator
+
 Location Designator can create a position in cartisian space from a symbolic desctiption
 
 ```python
@@ -265,6 +296,7 @@ milk_desig.resolve()
 ```
 
 ## Location Designators
+
 Location Designators can create a position in cartesian space from a symbolic description.
 
 ```python
@@ -280,11 +312,13 @@ print()
 
 for pose in location_desig:
     print(pose)
-                              
+
 ```
 
 # Action Designator
-Action Designators are used to describe high-level actions. Action Designators are usually composed of other Designators to describe the high-level action in detail. 
+
+Action Designators are used to describe high-level actions. Action Designators are usually composed of other Designators
+to describe the high-level action in detail.
 
 ```python
 from pycram.designators.action_designator import *
@@ -296,10 +330,13 @@ with simulated_robot:
 ```
 
 # Making a simple plan
-To get familiar with the PyCRAM Framework we will write a simple pick and place plan. This plan will let the robot grasp a cereal box from the kitchen counter and place it on the kitchen island. This is a simple pick and place plan.
+
+To get familiar with the PyCRAM Framework we will write a simple pick and place plan. This plan will let the robot grasp
+a cereal box from the kitchen counter and place it on the kitchen island. This is a simple pick and place plan.
 
 ```python
 from pycram.designators.object_designator import *
+
 cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", pose=Pose([1.4, 1, 0.95]))
 
 ```
@@ -322,7 +359,8 @@ with simulated_robot:
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-    place_island = SemanticCostmapLocation("kitchen_island_surface", kitchen_desig.resolve(), cereal_desig.resolve()).resolve()
+    place_island = SemanticCostmapLocation("kitchen_island_surface", kitchen_desig.resolve(),
+                                           cereal_desig.resolve()).resolve()
 
     place_stand = CostmapLocation(place_island.pose, reachable_for=robot_desig, reachable_arm=pickup_arm).resolve()
 
@@ -331,28 +369,31 @@ with simulated_robot:
     PlaceAction(cereal_desig, target_locations=[place_island.pose], arms=[pickup_arm]).resolve().perform()
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
-    
-    
-    
+
+
+
 ```
 
 # Task Trees
-Task trees are a hierarchical representation of all Actions involved in a plan. The Task tree can later be used to inspect and restructure the execution order of Actions in the plan.
+
+Task trees are a hierarchical representation of all Actions involved in a plan. The Task tree can later be used to
+inspect and restructure the execution order of Actions in the plan.
 
 ```python
 import pycram.task
 import anytree
+
 tt = pycram.task.task_tree
 print(anytree.RenderTree(tt))
 ```
 
 ```python
 from anytree.dotexport import RenderTreeGraph, DotExporter
+
 RenderTreeGraph(tt).to_picture("tree.png")
 ```
 
 # ORM
-
 
 ```python
 import sqlalchemy.orm
@@ -367,7 +408,6 @@ session = sqlalchemy.orm.Session(bind=engine)
 pycram.orm.base.Base.metadata.create_all(engine)
 session.commit()
 
-
 tt.insert(session)
 ```
 
@@ -379,10 +419,11 @@ print(*navigations, sep="\n")
 ```
 
 ```python
-navigations = (session.scalars(select(pycram.orm.action_designator.NavigateAction, pycram.orm.base.Position, pycram.orm.base.Quaternion).
-                               join(pycram.orm.action_designator.NavigateAction.pose).
-                               join(pycram.orm.base.Pose.position).
-                               join(pycram.orm.base.Pose.orientation)).all())
+navigations = (session.scalars(
+    select(pycram.orm.action_designator.NavigateAction, pycram.orm.base.Position, pycram.orm.base.Quaternion).
+    join(pycram.orm.action_designator.NavigateAction.pose).
+    join(pycram.orm.base.Pose.position).
+    join(pycram.orm.base.Pose.orientation)).all())
 print(*navigations, sep="\n")
 ```
 

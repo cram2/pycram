@@ -14,12 +14,13 @@ jupyter:
 
 # Improving Actions using Probabilities
 
-In this tutorial we will look at probabilistic specifications of actions and especially at an advance plan to pick up objects.
+In this tutorial we will look at probabilistic specifications of actions and especially at an advance plan to pick up
+objects.
 After this tutorial you will know:
-- Why are probabilities useful for robotics 
+
+- Why are probabilities useful for robotics
 - How to use probabilistic models to specify actions
 - How to use probabilistic machine learning to improve actions
-
 
 Let's start by importing all the necessary modules.
 
@@ -32,6 +33,7 @@ import pandas as pd
 import sqlalchemy.orm
 
 import plotly
+
 plotly.offline.init_notebook_mode()
 import plotly.graph_objects as go
 import tqdm
@@ -80,10 +82,12 @@ viz_marker_publisher = VizMarkerPublisher()
 milk_description = ObjectDesignatorDescription(types=[ObjectType.MILK]).ground()
 ```
 
-Next, we create a default, probabilistic model that describes how to pick up objects. We visualize the default policy. The default policy tries to pick up the object by standing close to it, but not too close. 
+Next, we create a default, probabilistic model that describes how to pick up objects. We visualize the default policy.
+The default policy tries to pick up the object by standing close to it, but not too close.
 
 ```python
-fpa = MoveAndPickUp(milk_description, arms=[Arms.LEFT, Arms.RIGHT], grasps=[Grasp.FRONT.value, Grasp.LEFT.value, Grasp.RIGHT.value, Grasp.TOP.value])
+fpa = MoveAndPickUp(milk_description, arms=[Arms.LEFT, Arms.RIGHT],
+                    grasps=[Grasp.FRONT.value, Grasp.LEFT.value, Grasp.RIGHT.value, Grasp.TOP.value])
 print(world.current_world)
 p_xy = fpa.policy.marginal([fpa.variables.relative_x, fpa.variables.relative_y])
 fig = go.Figure(p_xy.root.plot(), p_xy.root.plotly_layout())
@@ -92,7 +96,8 @@ fig.show()
 ```
 
 Next, we will perform pick up tasks using the default policy and observe the success rate.
-The robot will now experiment with the behaviour specified by the default policy and observe his success rate in doing so.
+The robot will now experiment with the behaviour specified by the default policy and observe his success rate in doing
+so.
 After finishing the experiments, we insert the results into the database.
 
 ```python
@@ -127,10 +132,11 @@ model = model.probabilistic_circuit
 arm, grasp, relative_x, relative_y = model.variables
 ```
 
-Let's have a look at how the model looks like. We will visualize the model density when we condition on grasping the object from the front with the left arm.
+Let's have a look at how the model looks like. We will visualize the model density when we condition on grasping the
+object from the front with the left arm.
 
 ```python
-event = SimpleEvent({arm:Arms.LEFT, grasp: Grasp.FRONT}).as_composite_set()
+event = SimpleEvent({arm: Arms.LEFT, grasp: Grasp.FRONT}).as_composite_set()
 conditional_model, conditional_probability = model.conditional(event)
 p_xy = conditional_model.marginal([relative_x, relative_y])
 fig = go.Figure(p_xy.plot(), p_xy.plotly_layout())
@@ -146,17 +152,19 @@ with simulated_robot:
     fpa.batch_rollout()
 ```
 
-We can see, that our new and improved model has a success probability of 60% as opposed to the 30% from the standard policy.
+We can see, that our new and improved model has a success probability of 60% as opposed to the 30% from the standard
+policy.
 
-
-Next, we put the learned model to the test in a complex environment, where the milk is placed in a difficult to access area.
+Next, we put the learned model to the test in a complex environment, where the milk is placed in a difficult to access
+area.
 
 ```python
 kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "apartment.urdf")
 
 milk.set_pose(Pose([0.5, 3.15, 1.04]))
 milk_description = ObjectDesignatorDescription(types=[ObjectType.MILK]).ground()
-fpa = MoveAndPickUp(milk_description, arms=[Arms.LEFT, Arms.RIGHT], grasps=[Grasp.FRONT, Grasp.LEFT, Grasp.RIGHT, Grasp.TOP], policy=model)
+fpa = MoveAndPickUp(milk_description, arms=[Arms.LEFT, Arms.RIGHT],
+                    grasps=[Grasp.FRONT, Grasp.LEFT, Grasp.RIGHT, Grasp.TOP], policy=model)
 fpa.sample_amount = 200
 
 ```
@@ -167,7 +175,8 @@ fig = go.Figure(p_xy.plot(), p_xy.plotly_layout())
 fig.show()
 ```
 
-Let's look at the density of the relative x and y position of the robot with respect to the milk. We can see that he would like to access the object from the right front area.
+Let's look at the density of the relative x and y position of the robot with respect to the milk. We can see that he
+would like to access the object from the right front area.
 
 ```python
 grounded_model = fpa.ground_model()
@@ -186,7 +195,6 @@ from pycram.designators.action_designator import ParkArmsActionPerformable
 world.reset_world()
 milk.set_pose(Pose([0.5, 3.15, 1.04]))
 with simulated_robot:
-    
     MoveTorsoActionPerformable(0.3).perform()
     for sample in fpa:
         try:
