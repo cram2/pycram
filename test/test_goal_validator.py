@@ -17,7 +17,8 @@ class TestGoalValidator(BulletWorldTestCase):
 
     def test_single_pose_goal(self):
         milk_goal_pose = Pose([1.3, 1.5, 0.9])
-        goal_validator = GoalValidator(milk_goal_pose, self.milk.get_pose, PoseErrorChecker())
+        goal_validator = GoalValidator(PoseErrorChecker(), self.milk.get_pose)
+        goal_validator.register_goal_value(milk_goal_pose)
         self.assertFalse(goal_validator.goal_achieved)
         self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
         self.assertAlmostEqual(goal_validator.current_error[0], 0.5, places=5)
@@ -32,7 +33,8 @@ class TestGoalValidator(BulletWorldTestCase):
 
     def test_single_position_goal(self):
         cereal_goal_position = [1.3, 1.5, 0.95]
-        goal_validator = GoalValidator(cereal_goal_position, self.cereal.get_position_as_list, PositionErrorChecker())
+        goal_validator = GoalValidator(PositionErrorChecker(), self.cereal.get_position_as_list)
+        goal_validator.register_goal_value(cereal_goal_position)
         self.assertFalse(goal_validator.goal_achieved)
         self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
         self.assertEqual(goal_validator.current_error, 0.8)
@@ -44,8 +46,8 @@ class TestGoalValidator(BulletWorldTestCase):
 
     def test_single_orientation_goal(self):
         cereal_goal_orientation = quaternion_from_euler(0, 0, np.pi/2)
-        goal_validator = GoalValidator(cereal_goal_orientation, self.cereal.get_orientation_as_list,
-                                       OrientationErrorChecker())
+        goal_validator = GoalValidator(OrientationErrorChecker(), self.cereal.get_orientation_as_list)
+        goal_validator.register_goal_value(cereal_goal_orientation)
         self.assertFalse(goal_validator.goal_achieved)
         self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
         self.assertEqual(goal_validator.current_error, [np.pi/2])
@@ -58,9 +60,9 @@ class TestGoalValidator(BulletWorldTestCase):
 
     def test_single_revolute_joint_position_goal(self):
         goal_joint_position = -np.pi/4
-        goal_validator = GoalValidator(goal_joint_position,
-                                       lambda: self.robot.get_joint_position('l_shoulder_lift_joint'),
-                                       RevoluteJointPositionErrorChecker())
+        goal_validator = GoalValidator(RevoluteJointPositionErrorChecker(),
+                                       lambda: self.robot.get_joint_position('l_shoulder_lift_joint'))
+        goal_validator.register_goal_value(goal_joint_position)
         self.assertFalse(goal_validator.goal_achieved)
         self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
         self.assertEqual(goal_validator.current_error, abs(goal_joint_position))
@@ -78,9 +80,9 @@ class TestGoalValidator(BulletWorldTestCase):
     def test_single_prismatic_joint_position_goal(self):
         goal_joint_position = 0.2
         torso = RobotDescription.current_robot_description.torso_joint
-        goal_validator = GoalValidator(goal_joint_position,
-                                       lambda: self.robot.get_joint_position(torso),
-                                       PrismaticJointPositionErrorChecker())
+        goal_validator = GoalValidator(PrismaticJointPositionErrorChecker(),
+                                       lambda: self.robot.get_joint_position(torso))
+        goal_validator.register_goal_value(goal_joint_position)
         self.assertFalse(goal_validator.goal_achieved)
         self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
         self.assertEqual(goal_validator.current_error, abs(goal_joint_position))
@@ -99,10 +101,10 @@ class TestGoalValidator(BulletWorldTestCase):
         goal_joint_positions = [0.2, -np.pi/4]
         joint_names = ['torso_lift_joint', 'l_shoulder_lift_joint']
         joint_types = [JointType.PRISMATIC, JointType.REVOLUTE]
-        goal_validator = GoalValidator(goal_joint_positions,
+        goal_validator = GoalValidator(MultiJointPositionErrorChecker(joint_types),
                                        lambda: [self.robot.get_joint_position('torso_lift_joint'),
-                                                self.robot.get_joint_position('l_shoulder_lift_joint')],
-                                       MultiJointPositionErrorChecker(joint_types))
+                                                self.robot.get_joint_position('l_shoulder_lift_joint')])
+        goal_validator.register_goal_value(goal_joint_positions)
         self.assertFalse(goal_validator.goal_achieved)
         self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
         self.assertTrue(np.allclose(goal_validator.current_error, np.array([0.2, abs(-np.pi/4)]), atol=0.001))
@@ -127,8 +129,9 @@ class TestGoalValidator(BulletWorldTestCase):
         orientation_goal = np.array([0, 0, np.pi/2])
         poses_goal = [Pose(position_goal, quaternion_from_euler(*orientation_goal.tolist())),
                       Pose(position_goal, quaternion_from_euler(*orientation_goal.tolist()))]
-        goal_validator = GoalValidator(poses_goal, lambda: [self.robot.get_pose(), self.robot.get_pose()],
-                                       PoseErrorChecker(is_iterable=True))
+        goal_validator = GoalValidator(PoseErrorChecker(is_iterable=True),
+                                       lambda: [self.robot.get_pose(), self.robot.get_pose()])
+        goal_validator.register_goal_value(poses_goal)
         self.assertFalse(goal_validator.goal_achieved)
         self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
         self.assertTrue(np.allclose(goal_validator.current_error, np.array([1.0, np.pi/2, 1.0, np.pi/2]), atol=0.001))
@@ -155,8 +158,9 @@ class TestGoalValidator(BulletWorldTestCase):
     def test_list_of_positions_goal(self):
         position_goal = [0.0, 1.0, 0.0]
         positions_goal = [position_goal, position_goal]
-        goal_validator = GoalValidator(positions_goal, lambda: [self.robot.get_position_as_list(), self.robot.get_position_as_list()],
-                                       PositionErrorChecker(is_iterable=True))
+        goal_validator = GoalValidator(PositionErrorChecker(is_iterable=True),
+                                       lambda: [self.robot.get_position_as_list(), self.robot.get_position_as_list()])
+        goal_validator.register_goal_value(positions_goal)
         self.assertFalse(goal_validator.goal_achieved)
         self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
         self.assertTrue(np.allclose(goal_validator.current_error, np.array([1.0, 1.0]), atol=0.001))
@@ -177,9 +181,10 @@ class TestGoalValidator(BulletWorldTestCase):
         orientation_goal = np.array([0, 0, np.pi/2])
         orientations_goals = [quaternion_from_euler(*orientation_goal.tolist()),
                              quaternion_from_euler(*orientation_goal.tolist())]
-        goal_validator = GoalValidator(orientations_goals, lambda: [self.robot.get_orientation_as_list(),
-                                                                   self.robot.get_orientation_as_list()],
-                                       OrientationErrorChecker(is_iterable=True))
+        goal_validator = GoalValidator(OrientationErrorChecker(is_iterable=True),
+                                       lambda: [self.robot.get_orientation_as_list(),
+                                                self.robot.get_orientation_as_list()])
+        goal_validator.register_goal_value(orientations_goals)
         self.assertFalse(goal_validator.goal_achieved)
         self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
         self.assertTrue(np.allclose(goal_validator.current_error, np.array([np.pi/2, np.pi/2]), atol=0.001))
@@ -201,10 +206,10 @@ class TestGoalValidator(BulletWorldTestCase):
     def test_list_of_revolute_joint_positions_goal(self):
         goal_joint_position = -np.pi/4
         goal_joint_positions = [goal_joint_position, goal_joint_position]
-        goal_validator = GoalValidator(goal_joint_positions,
+        goal_validator = GoalValidator(RevoluteJointPositionErrorChecker(is_iterable=True),
                                        lambda: [self.robot.get_joint_position('l_shoulder_lift_joint'),
-                                                self.robot.get_joint_position('l_shoulder_lift_joint')],
-                                       RevoluteJointPositionErrorChecker(is_iterable=True))
+                                                self.robot.get_joint_position('l_shoulder_lift_joint')])
+        goal_validator.register_goal_value(goal_joint_positions)
         self.assertFalse(goal_validator.goal_achieved)
         self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
         self.assertTrue(np.allclose(goal_validator.current_error,
