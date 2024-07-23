@@ -59,7 +59,7 @@ class MultiverseReader(MultiverseClient):
 
         self.thread.start()
 
-    def get_body_pose(self, name: str, wait: Optional[bool] = True) -> Optional[Pose]:
+    def get_body_pose(self, name: str, wait: Optional[bool] = False) -> Optional[Pose]:
         """
         Get the body pose from the multiverse server.
         param name: The name of the body.
@@ -70,7 +70,7 @@ class MultiverseReader(MultiverseClient):
         if data is not None:
             return data[name]
 
-    def get_multiple_body_poses(self, body_names: List[str], wait: Optional[bool] = True) -> Optional[Dict[str, Pose]]:
+    def get_multiple_body_poses(self, body_names: List[str], wait: Optional[bool] = False) -> Optional[Dict[str, Pose]]:
         """
         Get the body poses from the multiverse server for multiple bodies.
         param body_names: The names of the bodies.
@@ -83,7 +83,7 @@ class MultiverseReader(MultiverseClient):
             return {name: Pose(data[name]["position"], self.wxyz_to_xyzw(data[name]["quaternion"]))
                     for name in body_names}
 
-    def get_body_position(self, name: str, wait: Optional[bool] = True) -> Optional[List[float]]:
+    def get_body_position(self, name: str, wait: Optional[bool] = False) -> Optional[List[float]]:
         """
         Get the body position from the multiverse server.
         param name: The name of the body.
@@ -93,7 +93,7 @@ class MultiverseReader(MultiverseClient):
         return self.get_multiple_body_positions([name], wait=wait)[name]
 
     def get_multiple_body_positions(self, body_names: List[str],
-                                    wait: Optional[bool] = True) -> Optional[Dict[str, List[float]]]:
+                                    wait: Optional[bool] = False) -> Optional[Dict[str, List[float]]]:
         """
         Get the body positions from the multiverse server for multiple bodies.
         param body_names: The names of the bodies.
@@ -102,7 +102,7 @@ class MultiverseReader(MultiverseClient):
         """
         return self.get_multiple_body_properties(body_names, ["position"], wait=wait)
 
-    def get_body_orientation(self, name: str, wait: Optional[bool] = True) -> Optional[List[float]]:
+    def get_body_orientation(self, name: str, wait: Optional[bool] = False) -> Optional[List[float]]:
         """
         Get the body orientation from the multiverse server.
         param name: The name of the body.
@@ -112,7 +112,7 @@ class MultiverseReader(MultiverseClient):
         return self.get_multiple_body_orientations([name], wait=wait)[name]
 
     def get_multiple_body_orientations(self, body_names: List[str],
-                                       wait: Optional[bool] = True) -> Optional[Dict[str, List[float]]]:
+                                       wait: Optional[bool] = False) -> Optional[Dict[str, List[float]]]:
         """
         Get the body orientations from the multiverse server for multiple bodies.
         param body_names: The names of the bodies.
@@ -123,7 +123,7 @@ class MultiverseReader(MultiverseClient):
         if data is not None:
             return {name: self.wxyz_to_xyzw(data[name]["quaternion"]) for name in body_names}
 
-    def get_body_property(self, name: str, property_name: str, wait: Optional[bool] = True) -> Optional[List[float]]:
+    def get_body_property(self, name: str, property_name: str) -> Optional[List[float]]:
         """
         Get the body property from the multiverse server.
         param name: The name of the body.
@@ -131,12 +131,12 @@ class MultiverseReader(MultiverseClient):
         param wait: Whether to wait for the data.
         return: The property of the body.
         """
-        data = self.get_multiple_body_properties([name], [property_name], wait=wait)
-        if data is not None:
+        data = self.get_received_data()
+        if self.check_for_body_data(name, data, [property_name]):
             return data[name][property_name]
 
     def get_multiple_body_properties(self, body_names: List[str], properties: List[str],
-                                     wait: Optional[bool] = True) -> Dict[str, Dict[str, List[float]]]:
+                                     wait: Optional[bool] = False) -> Optional[Dict[str, Dict[str, List[float]]]]:
         """
         Get the body properties from the multiverse server for multiple bodies.
         param body_names: The names of the bodies.
@@ -156,8 +156,7 @@ class MultiverseReader(MultiverseClient):
         return quaternion[1:] + [quaternion[0]]
 
     def get_body_data(self, name: str,
-                      properties: Optional[List[str]] = None,
-                      wait: Optional[bool] = True) -> Optional[Dict]:
+                      properties: Optional[List[str]] = None) -> Optional[Dict]:
         """
         Get the body data from the multiverse server.
         param name: The name of the body.
@@ -165,11 +164,12 @@ class MultiverseReader(MultiverseClient):
         param wait: Whether to wait for the data.
         return: The body data as a dictionary.
         """
-        properties = {name: properties} if properties is not None else None
-        return self.get_multiple_body_data([name], properties, wait=wait)[name]
+        data = self.get_received_data()
+        if self.check_for_body_data(name, data, properties):
+            return data[name]
 
     def get_multiple_body_data(self, body_names: List[str], properties: Optional[Dict[str, List[str]]] = None,
-                               wait: Optional[bool] = True) -> Dict:
+                               wait: Optional[bool] = False) -> Optional[Dict]:
         """
         Get the body data from the multiverse server for multiple bodies.
         param body_names: The names of the bodies.
@@ -347,7 +347,9 @@ class MultiverseWriter(MultiverseClient):
         param data: The data to be sent.
         return: The response from the server.
         """
-        return self.send_multiple_body_data_to_server({body_name: data})
+        flattened_data = [value for values in data.values() for value in values]
+        return self.send_data_to_server([time() - self.time_start, *flattened_data],
+                                        send_meta_data={body_name: list(data.keys())})
 
     def send_multiple_body_data_to_server(self, body_data: Dict[str, Dict[str, List[float]]]) -> Dict:
         """

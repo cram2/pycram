@@ -8,17 +8,22 @@ import rospy
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
-from ..description import ObjectDescription, LinkDescription, Joint, JointDescription
-from ..object_descriptors.urdf import ObjectDescription as URDFObject
-from ..datastructures.world import WorldEntity, World
-from ..world_concepts.constraints import Attachment
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
                                           ContactPointsList)
 from ..datastructures.enums import ObjectType, JointType
-from ..local_transformer import LocalTransformer
 from ..datastructures.pose import Pose, Transform
+from ..datastructures.world import WorldEntity, World
+from ..description import ObjectDescription, LinkDescription, Joint
+from ..local_transformer import LocalTransformer
+from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..robot_description import RobotDescriptionManager, RobotDescription
+from ..world_concepts.constraints import Attachment
+from ..worlds.multiverse_functions.error_checkers import PoseErrorChecker, PositionErrorChecker, \
+    OrientationErrorChecker, RevoluteJointPositionErrorChecker, PrismaticJointPositionErrorChecker, IterableErrorChecker
+from ..worlds.multiverse_functions.goal_validator import GoalValidator, PoseGoalValidator, OrientationGoalValidator, \
+    PositionGoalValidator, MultiPoseGoalValidator, MultiPositionGoalValidator, MultiOrientationGoalValidator, \
+    MultiJointPositionGoalValidator, JointPositionGoalValidator
 
 Link = ObjectDescription.Link
 
@@ -63,6 +68,7 @@ class Object(WorldEntity):
         if name in [obj.name for obj in self.world.objects]:
             rospy.logerr(f"An object with the name {name} already exists in the world.")
             raise ValueError(f"An object with the name {name} already exists in the world.")
+
         self.name: str = name
         self.obj_type: ObjectType = obj_type
         self.color: Color = color
@@ -91,6 +97,30 @@ class Object(WorldEntity):
         self.attachments: Dict[Object, Attachment] = {}
 
         self.world.objects.append(self)
+
+    def get_multiple_link_positions(self, links: List[Link]) -> Dict[str, List[float]]:
+        """
+        Get the positions of multiple links of the object.
+        param link_names: The names of the links.
+        return: The positions of the links.
+        """
+        return self.world.get_multiple_link_positions(links)
+
+    def get_multiple_link_orientations(self, links: List[Link]) -> Dict[str, List[float]]:
+        """
+        Get the orientations of multiple links of the object.
+        param link_names: The names of the links.
+        return: The orientations of the links.
+        """
+        return self.world.get_multiple_link_orientations(links)
+
+    def get_multiple_link_poses(self, links: List[Link]) -> Dict[str, Pose]:
+        """
+        Get the poses of multiple links of the object.
+        param link_names: The names of the links.
+        return: The poses of the links.
+        """
+        return self.world.get_multiple_link_poses(links)
 
     def get_target_poses_of_attached_objects(self) -> Dict[Object, Pose]:
         """
@@ -614,7 +644,8 @@ class Object(WorldEntity):
 
     @property
     def current_state(self) -> ObjectState:
-        return ObjectState(self.get_pose().copy(), self.attachments.copy(), self.link_states.copy(), self.joint_states.copy())
+        return ObjectState(self.get_pose().copy(), self.attachments.copy(), self.link_states.copy(),
+                           self.joint_states.copy())
 
     @current_state.setter
     def current_state(self, state: ObjectState) -> None:
@@ -875,16 +906,17 @@ class Object(WorldEntity):
         joint_positions = [0] * len(joint_names)
         self.set_joint_positions(dict(zip(joint_names, joint_positions)))
 
-    def set_joint_positions(self, joint_positions: Dict[str, float]) -> None:
+    def set_joint_positions(self, joint_positions: Dict[str, float], validate: Optional[bool] = True) -> None:
         """
         Sets the current position of multiple joints at once, this method should be preferred when setting
         multiple joints at once instead of running :func:`~Object.set_joint_position` in a loop.
 
         :param joint_positions: A dictionary with the joint names as keys and the target positions as values.
+        :param validate: If True the joint position goals will be validated.
         """
         joint_positions = {self.joints[joint_name]: joint_position
                            for joint_name, joint_position in joint_positions.items()}
-        self.world.set_multiple_joint_positions(joint_positions)
+        self.world.set_multiple_joint_positions(joint_positions, validate)
         self.update_pose()
         self._update_all_links_poses()
         self.update_link_transforms()
