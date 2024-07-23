@@ -951,7 +951,7 @@ class World(StateEntity, ABC):
         :param exclude_objects: A list of objects that should not be removed.
         """
         self.reset_world()
-        objs_copy = copy(self.objects)
+        objs_copy = [obj for obj in self.objects]
         exclude_objects = [] if exclude_objects is None else exclude_objects
         [self.remove_object(obj) for obj in objs_copy if obj not in exclude_objects]
 

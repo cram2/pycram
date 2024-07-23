@@ -272,7 +272,7 @@ class Multiverse(World):
         param initial_poses: The dictionary of the initial poses
         """
         goal_validator = GoalValidator(poses, lambda: list(self._get_multiple_body_poses(body_names).values()),
-                                       PoseErrorChecker(), initial_value=initial_poses)
+                                       PoseErrorChecker(is_iterable=True), initial_value=initial_poses)
         self._wait_until_goal_is_achieved(goal_validator)
 
     def _get_body_pose(self, body_name: str, wait: Optional[bool] = True) -> Optional[Pose]:
