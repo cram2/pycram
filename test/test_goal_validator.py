@@ -19,15 +19,15 @@ class TestGoalValidator(BulletWorldTestCase):
         goal_validator.register_goal(milk_goal_pose)
         self.assertFalse(goal_validator.goal_achieved)
         self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
-        self.assertAlmostEqual(goal_validator.current_error[0], 0.5, places=5)
-        self.assertAlmostEqual(goal_validator.current_error[1], 0, places=5)
+        self.assertAlmostEqual(goal_validator.current_error.tolist()[0], 0.5, places=5)
+        self.assertAlmostEqual(goal_validator.current_error.tolist()[1], 0, places=5)
         self.milk.set_pose(milk_goal_pose)
         self.assertEqual(self.milk.get_pose(), milk_goal_pose)
         self.assertTrue(goal_validator.goal_achieved)
         print(goal_validator.current_error)
         self.assertEqual(goal_validator.percentage_of_goal_achieved, 1)
-        self.assertAlmostEqual(goal_validator.current_error[0], 0, places=5)
-        self.assertAlmostEqual(goal_validator.current_error[1], 0, places=5)
+        self.assertAlmostEqual(goal_validator.current_error.tolist()[0], 0, places=5)
+        self.assertAlmostEqual(goal_validator.current_error.tolist()[1], 0, places=5)
 
     def test_single_position_goal(self):
         cereal_goal_position = [1.3, 1.5, 0.95]
@@ -54,13 +54,13 @@ class TestGoalValidator(BulletWorldTestCase):
             self.assertAlmostEqual(v1, v2, places=5)
         self.assertTrue(goal_validator.goal_achieved)
         self.assertEqual(goal_validator.percentage_of_goal_achieved, 1)
-        self.assertAlmostEqual(goal_validator.current_error[0], 0, places=5)
+        self.assertAlmostEqual(goal_validator.current_error.tolist()[0], 0, places=5)
 
     def test_single_revolute_joint_position_goal(self):
         goal_joint_position = -np.pi / 4
-        goal_validator = GoalValidator(RevoluteJointPositionErrorChecker(),
-                                       lambda: self.robot.get_joint_position('l_shoulder_lift_joint'))
-        goal_validator.register_goal(goal_joint_position)
+        joint_name = 'l_shoulder_lift_joint'
+        goal_validator = GoalValidator(RevoluteJointPositionErrorChecker(), self.robot.get_joint_position)
+        goal_validator.register_goal(goal_joint_position, joint_name)
         self.assertFalse(goal_validator.goal_achieved)
         self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
         self.assertEqual(goal_validator.current_error, abs(goal_joint_position))
@@ -73,14 +73,14 @@ class TestGoalValidator(BulletWorldTestCase):
             else:
                 self.assertFalse(goal_validator.goal_achieved)
             self.assertAlmostEqual(goal_validator.actual_percentage_of_goal_achieved, percent, places=5)
-            self.assertAlmostEqual(goal_validator.current_error[0], abs(goal_joint_position) * (1 - percent), places=5)
+            self.assertAlmostEqual(goal_validator.current_error.tolist()[0], abs(goal_joint_position) * (1 - percent),
+                                   places=5)
 
     def test_single_prismatic_joint_position_goal(self):
         goal_joint_position = 0.2
         torso = RobotDescription.current_robot_description.torso_joint
-        goal_validator = GoalValidator(PrismaticJointPositionErrorChecker(),
-                                       lambda: self.robot.get_joint_position(torso))
-        goal_validator.register_goal(goal_joint_position)
+        goal_validator = GoalValidator(PrismaticJointPositionErrorChecker(), self.robot.get_joint_position)
+        goal_validator.register_goal(goal_joint_position, torso)
         self.assertFalse(goal_validator.goal_achieved)
         self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
         self.assertEqual(goal_validator.current_error, abs(goal_joint_position))
@@ -93,7 +93,8 @@ class TestGoalValidator(BulletWorldTestCase):
             else:
                 self.assertFalse(goal_validator.goal_achieved)
             self.assertAlmostEqual(goal_validator.actual_percentage_of_goal_achieved, percent, places=5)
-            self.assertAlmostEqual(goal_validator.current_error[0], abs(goal_joint_position) * (1 - percent), places=5)
+            self.assertAlmostEqual(goal_validator.current_error.tolist()[0], abs(goal_joint_position) * (1 - percent),
+                                   places=5)
 
     def test_multi_joint_goal(self):
         goal_joint_positions = np.array([0.2, -np.pi / 4])
@@ -119,8 +120,8 @@ class TestGoalValidator(BulletWorldTestCase):
             else:
                 self.assertFalse(goal_validator.goal_achieved)
             self.assertAlmostEqual(goal_validator.actual_percentage_of_goal_achieved, percent, places=5)
-            self.assertAlmostEqual(goal_validator.current_error[0], abs(0.2) * (1 - percent), places=5)
-            self.assertAlmostEqual(goal_validator.current_error[1], abs(-np.pi / 4) * (1 - percent), places=5)
+            self.assertAlmostEqual(goal_validator.current_error.tolist()[0], abs(0.2) * (1 - percent), places=5)
+            self.assertAlmostEqual(goal_validator.current_error.tolist()[1], abs(-np.pi / 4) * (1 - percent), places=5)
 
     def test_list_of_poses_goal(self):
         position_goal = [0.0, 1.0, 0.0]
@@ -149,10 +150,10 @@ class TestGoalValidator(BulletWorldTestCase):
             else:
                 self.assertFalse(goal_validator.goal_achieved)
             self.assertAlmostEqual(goal_validator.actual_percentage_of_goal_achieved, percent, places=5)
-            self.assertAlmostEqual(goal_validator.current_error[0], 1 - percent, places=5)
-            self.assertAlmostEqual(goal_validator.current_error[1], np.pi * (1 - percent) / 2, places=5)
-            self.assertAlmostEqual(goal_validator.current_error[2], (1 - percent), places=5)
-            self.assertAlmostEqual(goal_validator.current_error[3], np.pi * (1 - percent) / 2, places=5)
+            self.assertAlmostEqual(goal_validator.current_error.tolist()[0], 1 - percent, places=5)
+            self.assertAlmostEqual(goal_validator.current_error.tolist()[1], np.pi * (1 - percent) / 2, places=5)
+            self.assertAlmostEqual(goal_validator.current_error.tolist()[2], (1 - percent), places=5)
+            self.assertAlmostEqual(goal_validator.current_error.tolist()[3], np.pi * (1 - percent) / 2, places=5)
 
     def test_list_of_positions_goal(self):
         position_goal = [0.0, 1.0, 0.0]
@@ -173,8 +174,8 @@ class TestGoalValidator(BulletWorldTestCase):
             else:
                 self.assertFalse(goal_validator.goal_achieved)
             self.assertAlmostEqual(goal_validator.actual_percentage_of_goal_achieved, percent, places=5)
-            self.assertAlmostEqual(goal_validator.current_error[0], 1 - percent, places=5)
-            self.assertAlmostEqual(goal_validator.current_error[1], 1 - percent, places=5)
+            self.assertAlmostEqual(goal_validator.current_error.tolist()[0], 1 - percent, places=5)
+            self.assertAlmostEqual(goal_validator.current_error.tolist()[1], 1 - percent, places=5)
 
     def test_list_of_orientations_goal(self):
         orientation_goal = np.array([0, 0, np.pi / 2])
@@ -199,8 +200,8 @@ class TestGoalValidator(BulletWorldTestCase):
             else:
                 self.assertFalse(goal_validator.goal_achieved)
             self.assertAlmostEqual(goal_validator.actual_percentage_of_goal_achieved, percent, places=5)
-            self.assertAlmostEqual(goal_validator.current_error[0], np.pi * (1 - percent) / 2, places=5)
-            self.assertAlmostEqual(goal_validator.current_error[1], np.pi * (1 - percent) / 2, places=5)
+            self.assertAlmostEqual(goal_validator.current_error.tolist()[0], np.pi * (1 - percent) / 2, places=5)
+            self.assertAlmostEqual(goal_validator.current_error.tolist()[1], np.pi * (1 - percent) / 2, places=5)
 
     def test_list_of_revolute_joint_positions_goal(self):
         goal_joint_position = -np.pi / 4
@@ -224,5 +225,7 @@ class TestGoalValidator(BulletWorldTestCase):
             else:
                 self.assertFalse(goal_validator.goal_achieved)
             self.assertAlmostEqual(goal_validator.actual_percentage_of_goal_achieved, percent, places=5)
-            self.assertAlmostEqual(goal_validator.current_error[0], abs(goal_joint_position) * (1 - percent), places=5)
-            self.assertAlmostEqual(goal_validator.current_error[1], abs(goal_joint_position) * (1 - percent), places=5)
+            self.assertAlmostEqual(goal_validator.current_error.tolist()[0], abs(goal_joint_position) * (1 - percent),
+                                   places=5)
+            self.assertAlmostEqual(goal_validator.current_error.tolist()[1], abs(goal_joint_position) * (1 - percent),
+                                   places=5)
