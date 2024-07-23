@@ -9,7 +9,7 @@ from pycram.designators.action_designator import PickUpAction, PickUpActionPerfo
 from pycram.local_transformer import LocalTransformer
 from pycram.datastructures.world import World
 from pycram.datastructures.pose import Transform
-from pycram.robot_descriptions import robot_description
+from pycram.robot_description import RobotDescription
 from pycram.designator import ObjectDesignatorDescription
 
 
@@ -40,8 +40,10 @@ class DualArmPickupAction(PickUpAction):
         self.object_designator_description: Union[
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
 
-        left_gripper_frame = World.robot.get_link_tf_frame(robot_description.get_tool_frame('left'))
-        right_gripper_frame = World.robot.get_link_tf_frame(robot_description.get_tool_frame('right'))
+        left_gripper_frame = World.robot.get_link_tf_frame(
+            RobotDescription.current_robot_description.kinematic_chains.get('left').get_tool_frame())
+        right_gripper_frame = World.robot.get_link_tf_frame(
+            RobotDescription.current_robot_description.kinematic_chains.get('right').get_tool_frame())
         self.gripper_list: List[str] = [left_gripper_frame, right_gripper_frame]
 
 
@@ -66,9 +68,9 @@ class DualArmPickupAction(PickUpAction):
         min_index = distances.index(min(distances))
         winner_frame = self.gripper_list[min_index]
 
-        if winner_frame == robot_description.get_tool_frame('left'):
+        if winner_frame == RobotDescription.current_robot_description.kinematic_chains.get('left').get_tool_frame():
             winner = "left"
-        elif winner_frame == robot_description.get_tool_frame('right'):
+        elif winner_frame == RobotDescription.current_robot_description.kinematic_chains.get('right').get_tool_frame():
             winner = "right"
         else:
             raise ValueError(f"Could not determine the winner arm for the pickup action. Winner: {winner_frame}")
