@@ -3,7 +3,7 @@ from collections.abc import Iterable
 
 import numpy as np
 from tf.transformations import quaternion_multiply, quaternion_inverse
-from typing_extensions import List, Union, Optional, Any, Iterable as TypingIterable, Sized
+from typing_extensions import List, Union, Optional, Any, Sized, Iterable as T_Iterable
 
 from pycram.datastructures.enums import JointType
 from pycram.datastructures.pose import Pose
@@ -14,32 +14,34 @@ class ErrorChecker(ABC):
     An abstract class that resembles an error checker. It has two main methods, one for calculating the error between
     two values and another for checking if the error is acceptable.
     """
-    def __init__(self, acceptable_error: Union[float, TypingIterable[float]], is_iterable: Optional[bool] = False):
+    def __init__(self, acceptable_error: Union[float, T_Iterable[float]], is_iterable: Optional[bool] = False):
         """
         Initialize the error checker.
         :param acceptable_error: The acceptable error.
         :param is_iterable: Whether the error is iterable (i.e. list of errors).
         """
-        self.acceptable_error = np.array(acceptable_error)
+        self.acceptable_error: np.ndarray = np.array(acceptable_error)
+        self.tiled_acceptable_error: Optional[np.ndarray] = None
         self.is_iterable = is_iterable
 
-    def get_acceptable_error(self, tile_to_match: Optional[Sized] = None) -> np.ndarray:
+    def update_acceptable_error(self, new_acceptable_error: Optional[T_Iterable[float]] = None,
+                                tile_to_match: Optional[Sized] = None,) -> None:
         """
-        Get the acceptable error.
-        :return: The acceptable error.
+        Update the acceptable error with a new value, and tile it to match the length of the error if needed.
         """
+        if new_acceptable_error is not None:
+            self.acceptable_error = np.array(new_acceptable_error)
         if tile_to_match is not None and self.is_iterable:
-            return self.tiled_acceptable_error(tile_to_match)
-        else:
-            return self.acceptable_error
+            self.update_tiled_acceptable_error(tile_to_match)
 
-    def tiled_acceptable_error(self, tile_to_match: Sized) -> np.ndarray:
+    def update_tiled_acceptable_error(self, tile_to_match: Sized) -> None:
         """
         Tile the acceptable error to match the length of the error.
         :param tile_to_match: The object to match the length of the error.
         :return: The tiled acceptable error.
         """
-        return np.tile(np.array(self.acceptable_error).flatten(), len(tile_to_match) // self.acceptable_error.size)
+        self.tiled_acceptable_error = np.tile(self.acceptable_error.flatten(),
+                                              len(tile_to_match) // self.acceptable_error.size)
 
     @abstractmethod
     def _calculate_error(self, value_1: Any, value_2: Any) -> Union[float, List[float]]:
@@ -73,14 +75,17 @@ class ErrorChecker(ABC):
         error = self.calculate_error(value_1, value_2)
         if self.is_iterable:
             error = np.array(error).flatten()
-            return np.all(error <= self.tiled_acceptable_error(error))
+            if self.tiled_acceptable_error is None or\
+                    len(error) != len(self.tiled_acceptable_error):
+                self.update_tiled_acceptable_error(error)
+            return np.all(error <= self.tiled_acceptable_error)
         else:
             return is_error_acceptable(error, self.acceptable_error)
 
 
 class PoseErrorChecker(ErrorChecker):
 
-    def __init__(self, acceptable_error: Union[float, TypingIterable[float]] = (1e-3, np.pi / 180),
+    def __init__(self, acceptable_error: Union[float, T_Iterable[float]] = (1e-3, np.pi / 180),
                  is_iterable: Optional[bool] = False):
         super().__init__(acceptable_error, is_iterable)
 
@@ -117,7 +122,7 @@ class OrientationErrorChecker(ErrorChecker):
 
 class MultiJointPositionErrorChecker(ErrorChecker):
 
-    def __init__(self, joint_types: List[JointType], acceptable_error: Optional[List[float]] = None):
+    def __init__(self, joint_types: List[JointType], acceptable_error: Optional[T_Iterable[float]] = None):
         self.joint_types = joint_types
         if acceptable_error is None:
             acceptable_error = [np.pi/180 if jt == JointType.REVOLUTE else 1e-3 for jt in joint_types]
@@ -187,8 +192,8 @@ def calculate_joint_position_error(joint_position_1: float, joint_position_2: fl
     return abs(joint_position_1 - joint_position_2)
 
 
-def is_error_acceptable(error: Union[float, TypingIterable[float]],
-                        acceptable_error: Union[float, TypingIterable[float]]) -> bool:
+def is_error_acceptable(error: Union[float, T_Iterable[float]],
+                        acceptable_error: Union[float, T_Iterable[float]]) -> bool:
     """
     Check if the error is acceptable.
     :param error: The error.
