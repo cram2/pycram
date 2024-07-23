@@ -34,7 +34,7 @@ around:
 * Press the middle mouse button (scroll wheel) and move the mouse up or down to zoom
 
 At the moment the BulletWorld only contains a floor, this is spawned by default when creating the BulletWorld.
-Furthermore, the gravity is set to 9.8 m^2, which is the same gravitation as the one on earth.
+Furthermore, the gravity is set to 9.8 $m^2$, which is the same gravitation as the one on earth.
 
 To spawn new things in the BulletWorld we need to import the Object class and create and instance of it.
 
@@ -46,7 +46,7 @@ milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([0, 0, 1]))
 
 <!-- #region -->
 As you can see this spawns a milk floating in the air. What we did here was create a new Object which has the name "
-milk" as well as the type ```ObjectType.MILK ``` , is spawned from the file "milk.stl" and is at the position [0, 0, 1].
+milk" as well as the type {attr}`~pycram.datastructures.enums.ObjectType.MILK`, is spawned from the file "milk.stl" and is at the position [0, 0, 1].
 
 The type of an Object can either be from the enum ObjectType or a string. However, it is recommended to use the enum
 since this would make for a more consistent naming of types which makes it easier to work with types. But since the
@@ -154,8 +154,8 @@ print(f"New Joint state: {pr2.get_joint_position('torso_lift_joint')}")
 
 ## Misc Methods
 
-There are a few methods that don't fit any category but could be helpful anyway. The first two are ```get_color```
-and ```set_color```, as the name implies they can be used to get or set the color for specific links or the whole
+There are a few methods that don't fit any category but could be helpful anyway. The first two are {meth}`~pycram.description.Link.get_color`
+and {meth}`~pycram.description.Link.set_color`, as the name implies they can be used to get or set the color for specific links or the whole
 Object.
 
 ```python

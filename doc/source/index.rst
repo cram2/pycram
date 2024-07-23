@@ -97,6 +97,20 @@ The code for this plan can be seen below.
     world.exit()
 
 
+Citing PyCRAM
+=============
+
+If you want to cite PyCRAM in your work, you can use the following bibtex entry:
+
+.. code-block:: bibtex
+
+        @software{dech2024pycram,
+        author = {Dech, Jonas},
+        title = {PyCRAM: A Python framework for cognition-enbabled robtics},
+        url = {https://github.com/cram2/pycram},
+        version = {0.2.0},
+        }
+
 
 
 Indices and tables

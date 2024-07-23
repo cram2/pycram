@@ -12,7 +12,7 @@ jupyter:
     name: python3
 ---
 
-# PyCRAM Presentation
+# PyCRAM Introduction
 
 ```python
 import pycram
@@ -106,10 +106,10 @@ kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
 Costmaps are a way to get positions with respect to certain criterias.
 The currently available costmaps are:
 
-* Occupancy Costmap
-* Visibility Costmap
-* Semantic Costmap
-* Gaussian Costmap
+* {class}`~pycram.costmaps.OccupancyCostmap`
+* {class}`~pycram.costmaps.VisibilityCostmap`
+* {class}`~pycram.costmaps.SemanticCostmap`
+* {class}`~pycram.costmaps.GaussianCostmap`
 
 It is also possible to merge multiple costmaps to combine different criteria.
 
@@ -179,13 +179,13 @@ ov.close_visualization()
 
 Allows for geometric reasoning in the BulletWorld. At the moment the following types of reasoning are supported:
 
-* Stable
-* Contact
-* Visible
-* Occluding
-* Reachable
-* Blocking
-* Supporting
+* {meth}`~pycram.world_reasoning.stable`
+* {meth}`~pycram.world_reasoning.contact`
+* {meth}`~pycram.world_reasoning.visible`
+* {meth}`~pycram.world_reasoning.occluding`
+* {meth}`~pycram.world_reasoning.reachable`
+* {meth}`~pycram.world_reasoning.blocking`
+* {meth}`~pycram.world_reasoning.supporting`
 
 To show the geometric reasoning we first spawn a robot as well as the milk Object again.
 

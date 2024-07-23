@@ -42,7 +42,6 @@ world first.
 ```python
 # Create an instance of the BulletWorld
 world = BulletWorld(WorldMode.GUI)
-
 ```
 
 ## Adding Objects to the World
@@ -112,17 +111,12 @@ transformed_pose = l.transform_pose(p, "test_frame")
 
 ## Transformation frames
 
-As you can see in the example above the frame_id of the object is not 'milk' but 'milk_4'. This is done since frame_ids
-need to be unique, however, the name of an Object does not. To solve this problem the name of an Object is concatenated
-with a unique id therefore making it unique.
-
-Furthermore, links of an Object are represented by the Object frame_id + '/' + link name. Since link names need to be
+Links of an Object are represented by the Object frame_id + '/' + link name. Since link names need to be
 unique for an URDF this is no problem.
 
 These frames need to be used in whenever you are transforming something with the local transformer. To get the base
-frame of an Object, meaning the frame name without any link there is the attribute tf_frame and for the frame of a link
-there is the collection links from which you can access all link objects by name, link objects also have the attribute
-tf_frame which gives the tf_frame of the link.
+frame of an Object, meaning the frame name without any link, there is the attribute tf_frame and for the frame of a link
+there is a method which returns the frame name of a link given the link name.
 
 ```python
 print(milk.tf_frame)

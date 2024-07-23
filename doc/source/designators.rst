@@ -111,17 +111,17 @@ Creating your own Designator
 ============================
 Creating your own designator is fairly easy, you only need to extend the base class of the respective description.
 
- - :mod:`~pycram.designators.action_designator.ActionDesignatorDescription`
- - :mod:`~pycram.designators.object_designator.ObjectDesignatorDescription`
- - :mod:`~pycram.designators.location_designator.LocationDesignatorDescription`
- - :mod:`~pycram.designators.motion_designator.MotionDesignatorDescription`
+ - :mod:`~pycram.designator.ActionDesignatorDescription`
+ - :mod:`~pycram.designator.ObjectDesignatorDescription`
+ - :mod:`~pycram.designator.LocationDesignatorDescription`
+ - :mod:`~pycram.designator.BaseMotion`
 
 Afterwards you need to implement your own ``ground`` method which is the default resolver and for location and object
 designator it makes sense to also implement a ``__iter__`` method. The ``ground`` and ``__iter__`` methods should return
 the designator sub-class so you also need to implement these with the parameter your designator needs.
 
 The sub-class can already contain some parameters, this is usually the case if the parameter is the same for every designator
-of this type. For example, :meth:`~pycram.designator.LocationDesignatorDescription.Location`
+of this type. For example, :class:`~pycram.designator.LocationDesignatorDescription.Location`
 contains a ``pose`` parameter since every location designator contains a resolved pose.
 
 For action and motion designator the sub-class is also the place where the ``perform`` method is written which contains
