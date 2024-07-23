@@ -607,6 +607,21 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
+    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> None:
+        """
+        Set the positions of multiple joints of an articulated object.
+        :param joint_positions: A dictionary with joint objects as keys and joint positions as values.
+        """
+        pass
+
+    @abstractmethod
+    def get_multiple_joint_positions(self, joints: List[Joint]) -> Dict[str, float]:
+        """
+        Get the positions of multiple joints of an articulated object.
+        """
+        pass
+
+    @abstractmethod
     def reset_object_base_pose(self, obj: Object, pose: Pose):
         """
         Reset the world position and orientation of the base of the object instantaneously,
@@ -1194,14 +1209,6 @@ class World(StateEntity, ABC):
 
     def __del__(self):
         self.exit()
-
-    @abstractmethod
-    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> None:
-        """
-        Set the positions of multiple joints of an articulated object.
-        :param joint_positions: A dictionary with joint objects as keys and joint positions as values.
-        """
-        pass
 
 
 class UseProspectionWorld:

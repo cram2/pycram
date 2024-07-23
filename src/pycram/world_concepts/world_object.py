@@ -984,6 +984,15 @@ class Object(WorldEntity):
             rospy.logwarn(f"No joint of type {joint_type} found above link {link_name}")
         return container_joint
 
+    def get_multiple_joint_positions(self, joint_names: List[str]) -> Dict[str, float]:
+        """
+        Returns the positions of multiple joints at once.
+
+        :param joint_names: A list of joint names.
+        :return: A dictionary with the joint names as keys and the joint positions as values.
+        """
+        return self.world.get_multiple_joint_positions([self.joints[joint_name] for joint_name in joint_names])
+
     def get_positions_of_all_joints(self) -> Dict[str, float]:
         """
         Returns the positions of all joints of the object as a dictionary of joint names and joint positions.

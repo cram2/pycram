@@ -171,6 +171,9 @@ class BulletWorld(World):
         for joint, joint_position in joint_positions.items():
             self.reset_joint_position(joint, joint_position)
 
+    def get_multiple_joint_positions(self, joints: List[Joint]) -> Dict[str, float]:
+        return {joint.name: self.get_joint_position(joint) for joint in joints}
+
     def reset_joint_position(self, joint: ObjectDescription.Joint, joint_position: float) -> None:
         p.resetJointState(joint.object_id, joint.id, joint_position, physicsClientId=self.id)
 

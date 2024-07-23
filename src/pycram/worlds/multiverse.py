@@ -313,8 +313,8 @@ class Multiverse(World):
         param target_pose: The target pose of the body.
         param initial_pose: The initial pose of the body.
         """
-        goal_validator = GoalValidator(target_pose, lambda: self._get_body_pose(body_name),
-                                       PoseErrorChecker(), initial_value=initial_pose)
+        goal_validator = GoalValidator(PoseErrorChecker(), lambda: self._get_body_pose(body_name))
+        goal_validator.register_goal(target_pose, initial_pose)
         self._wait_until_goal_is_achieved(goal_validator)
 
     def _wait_until_goal_is_achieved(self, goal_validator: GoalValidator) -> None:
