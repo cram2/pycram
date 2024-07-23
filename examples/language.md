@@ -14,9 +14,9 @@ jupyter:
 
 # Plan Language
 
-The PyCRAM plan language is a way to structure the execuition of your plan. In generall the plan language allows to
-execute designators either sequential or in parallel. Furthermore, excpetions that occur during execution of a plan with
-the plan language do not interupt the execution instead they are catched and saved to a dictionary for later analysis.
+The PyCRAM plan language is a way to structure the execution of your plan. In generally the plan language allows to
+execute designators either sequential or in parallel. Furthermore, exceptions that occur during execution of a plan with
+the plan language do not interrupt the execution instead they are caught and saved to a dictionary for later analysis.
 All language expressions return a State, this can either be SUCCEDED or FAILED.
 
 There are 4 language expressions:
@@ -24,7 +24,7 @@ There are 4 language expressions:
 | Expression | Name             | Description                                                                                                                                                                                                                                                                                | 
 |------------|------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | +          | **Sequential**   | Executes the designators one after another, if one of the designators raises an exception the execution is aborted and the state FAILED will be returned.                                                                                                                                  |
-| -          | **Try In Order** | Executes the designators one after another, if one designator raises an exception the exception is catched and saved but the execution is not interrupted and the other designators are executed. Returns the state SUCCEDED if at least one designator can be executed without exception. |
+| -          | **Try In Order** | Executes the designators one after another, if one designator raises an exception the exception is caught and saved but the execution is not interrupted and the other designators are executed. Returns the state SUCCEDED if at least one designator can be executed without exception. |
 | *          | **Repeat**       | Repeat the previous language expression a number of time. Has to be used with a language expression and an integer.                                                                                                                                                                        | 
 | \|         | **Parallel**     | Executes all designators in parallel. For each designator there will be a new thread created and the designator is executed in this thread. If one of the designators raises an exception the returned state will be FAILED.                                                               |
 | ^          | **Try All**      | Executes all designators in parallel with a designated thread for each designator. Returns the state SUCCEDED if at least one designator can be executed without an exception                                                                                                              |
@@ -67,7 +67,7 @@ As you can see there is the root node which is the language expression and then 
 designators. When executing this plan the Sequential node will try to execute the NavigateAction and if that is finished
 without any error the ParkArmsAction will be executed.
 
-The plan can be executed by wrapping it inside a ```with simulated_robot``` envirionment and calling perform on the
+The plan can be executed by wrapping it inside a ```with simulated_robot``` environment and calling perform on the
 plan.
 
 If you are performing a plan with a simulated robot, you need a BulletWorld.
@@ -96,7 +96,7 @@ Try in order is similar to Sequential, it also executes all designators one afte
 an exception in one of the designators does not terminate the whole execution. Furthermore, the state FAILED will only
 be returned if all designator executions raise an error.
 
-Besides the described differnce in behaviour this language expression can be used in the same way as Sequential.
+Besides the described difference in behaviour this language expression can be used in the same way as Sequential.
 
 ```python
 from pycram.designators.action_designator import *
@@ -119,7 +119,7 @@ with simulated_robot:
 
 Parallel executes all designator at once in dedicated threads. The execution of other designators is not aborted when a
 exception is raised, this is the case since threads can not be killed from the outside and this would also cause
-unforseen problems. The state returned will be SUCCEDED if all designators could be executed without an exception raised
+unforeseen problems. The state returned will be SUCCEDED if all designators could be executed without an exception raised
 in any other case FAILED will be returned.
 
 Since executing designators in parallel can get chaotic especially with complex actions like PickUp or Transport. For
@@ -180,7 +180,7 @@ with simulated_robot:
 ## Combination of Expressions
 
 You can also combine different language expressions to further structure your plans. If you combine sequential and
-paralle expression please keep in mind that sequential expressions bind stringer than parallel ones. For example:
+parallel expression please keep in mind that sequential expressions bind stringer than parallel ones. For example:
 
 ```
 navigate | park + move_torso
@@ -240,7 +240,7 @@ with simulated_robot:
 ## Exception Handling
 
 If an exception is raised during the execution of a designator when it is used in a language expression the exception
-will be catched and saved to a dictionary. In general all designators in a language expression are executed regardless
+will be caught and saved to a dictionary. In general all designators in a language expression are executed regardless
 of exceptions raised, the only exception from this is the Sequential expression which stops after it encountered an
 exception.
 
@@ -274,7 +274,7 @@ print(plan.exceptions)
 
 ## Repeat
 
-Repeat simply repeats a language expression a number of times. As all other language expressions Repeat capturtes
+Repeat simply repeats a language expression a number of times. As all other language expressions Repeat captures
 exceptions that occur during execution and saves them to the dictionary in the root of the plan.
 
 Since Repeat uses the \* operator you should keep in mind that it will be evaluated before any other operator, so use

@@ -109,3 +109,15 @@ real_robot environments. This is also explained in the `Action Designator Exampl
    with simulated_robot:
       NavigateAction([Pose()]).resolve().perform()
 
+Missing pr2_arm_kinematics
+==========================
+
+Aptitudes autoremove likes to also remove the arm kinematics. Reinstall the missing libraries with
+
+.. code-block:: shell
+
+    sudo apt-get install ros-noetic-moveit
+
+Then rebuild your workspace.
+
+
