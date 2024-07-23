@@ -306,8 +306,8 @@ class MultiverseWriter(MultiverseClient):
         """
         self.send_body_data_to_server(body_name,
                                       {"position": position,
-                                       "quaternion": orientation,
-                                       "relative_velocity": [0]*6})
+                                       "quaternion": orientation}
+                                      )
 
     def set_body_position(self, body_name: str, position: List[float]) -> None:
         """

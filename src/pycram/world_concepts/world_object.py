@@ -456,7 +456,8 @@ class Object(WorldEntity):
         if coincide_the_objects:
             parent_to_child_transform = Transform()
         else:
-            parent_to_child_transform = parent_link.get_transform_to_link(child_link)
+            # parent_to_child_transform = parent_link.get_transform_to_link(child_link)
+            parent_to_child_transform = None
         attachment = Attachment(parent_link, child_link, bidirectional, parent_to_child_transform)
 
         self.attachments[child_object] = attachment

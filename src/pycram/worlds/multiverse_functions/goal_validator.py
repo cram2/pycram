@@ -11,7 +11,7 @@ class GoalValidator:
 
     def __init__(self, goal_value: Any, current_value_getter: Callable[[], Any], error_checker: ErrorChecker,
                  initial_value: Any = None,
-                 acceptable_percentage_of_goal_achieved: Optional[float] = None):
+                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.8):
         """
         Initialize the goal validator.
         :param goal_value: The goal value.
