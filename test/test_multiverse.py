@@ -49,9 +49,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         cls.multiverse.exit()
 
     def tearDown(self):
-        # self.multiverse.multiverse_reset_world()
         self.multiverse.reset_world_and_remove_objects()
-        # MultiversePyCRAMTestCase.big_bowl = self.spawn_big_bowl()
 
     def test_demo(self):
         extension = ObjectDescription.get_file_extension()

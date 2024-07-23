@@ -7,9 +7,7 @@ from tf.transformations import quaternion_matrix
 from typing_extensions import List, Dict, Optional
 
 from .multiverse_communication.client_manager import MultiverseClientManager
-from .multiverse_functions.error_checkers import PoseErrorChecker, MultiJointPositionErrorChecker, \
-    RevoluteJointPositionErrorChecker, PrismaticJointPositionErrorChecker
-from .multiverse_functions.goal_validator import GoalValidator
+
 from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
 from ..datastructures.enums import WorldMode, JointType, ObjectType
 from ..datastructures.pose import Pose
@@ -182,37 +180,42 @@ class Multiverse(World):
     def get_object_link_names(self, obj: Object) -> List[str]:
         return [link.name for link in obj.description.links]
 
-    def reset_joint_position(self, joint: Joint, joint_position: float) -> None:
-        self.set_multiple_joint_positions({joint: joint_position})
+    def get_link_position(self, link: Link) -> List[float]:
+        return self.reader.get_body_position(link.name)
 
-    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> None:
-        initial_joint_positions = {joint: self.get_joint_position(joint) for joint in joint_positions.keys()}
+    def get_link_orientation(self, link: Link) -> List[float]:
+        return self.reader.get_body_orientation(link.name)
+
+    def get_multiple_link_positions(self, links: List[Link]) -> Dict[str, List[float]]:
+        return self.reader.get_multiple_body_positions([link.name for link in links])
+
+    def get_multiple_link_orientations(self, links: List[Link]) -> Dict[str, List[float]]:
+        return self.reader.get_multiple_body_orientations([link.name for link in links])
+
+    def reset_joint_position(self, joint: Joint, joint_position: float) -> None:
+        self.joint_position_goal_validator.register_goal(joint_position, joint.type, joint)
+        self.writer.send_body_data_to_server(joint.name,
+                                             {self.get_joint_position_name(joint): [joint_position]})
+        self.joint_position_goal_validator.wait_until_goal_is_achieved()
+
+    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float],
+                                     validate: Optional[bool] = True) -> None:
         data = {joint.name: {self.get_joint_position_name(joint): [position]}
                 for joint, position in joint_positions.items()}
+
+        if validate:
+            self.multi_joint_position_goal_validator.register_goal(list(joint_positions.values()),
+                                                                   [joint.type for joint in joint_positions.keys()],
+                                                                   list(joint_positions.keys()))
         self.writer.send_multiple_body_data_to_server(data)
-        self._wait_until_multiple_joint_goals_are_achieved(joint_positions, initial_joint_positions)
 
-    def _wait_until_multiple_joint_goals_are_achieved(self, joint_positions: Dict[Joint, float],
-                                                      initial_joint_positions: Dict[Joint, float]) -> None:
-        goal_validator = self._get_multi_joint_goal_validator(joint_positions, initial_joint_positions)
-        self._wait_until_goal_is_achieved(goal_validator)
-
-    def _get_multi_joint_goal_validator(self, joint_positions: Dict[Joint, float],
-                                        initial_joint_positions: Dict[Joint, float]) -> GoalValidator:
-        joints = list(joint_positions.keys())
-        joint_types = [joint.type for joint in joints]
-        target_joint_positions = list(joint_positions.values())
-        initial_joint_positions = list(initial_joint_positions.values())
-        goal_validator = GoalValidator(target_joint_positions,
-                                       lambda: list(self.get_multiple_joint_positions(joints).values()),
-                                       MultiJointPositionErrorChecker(joint_types),
-                                       initial_value=initial_joint_positions)
-        return goal_validator
+        if validate:
+            self.multi_joint_position_goal_validator.wait_until_goal_is_achieved()
 
     def get_joint_position(self, joint: Joint) -> float:
-        data = self.get_multiple_joint_positions([joint])
+        data = self.reader.get_body_data(joint.name, [self.get_joint_position_name(joint)])
         if data is not None:
-            return data[joint.name]
+            return data[self.get_joint_position_name(joint)][0]
 
     def get_multiple_joint_positions(self, joints: List[Joint]) -> Optional[Dict[str, float]]:
         self.check_object_exists_and_issue_warning_if_not(joints[0].object)
@@ -222,17 +225,12 @@ class Multiverse(World):
         if data is not None:
             return {joint_name: list(data[joint_name].values())[0][0] for joint_name in joint_names}
 
-    def _wait_until_joint_goal_is_achieved(self, joint: Joint, joint_position: float,
-                                           initial_joint_position: float) -> None:
-        error_checker = RevoluteJointPositionErrorChecker() if joint.type == JointType.REVOLUTE else \
-            PrismaticJointPositionErrorChecker()
-        goal_validator = GoalValidator(joint_position, lambda: self.get_joint_position(joint),
-                                       error_checker, initial_value=initial_joint_position)
-        self._wait_until_goal_is_achieved(goal_validator)
-
     def get_link_pose(self, link: Link) -> Pose:
         self.check_object_exists_and_issue_warning_if_not(link.object)
         return self._get_body_pose(link.name)
+
+    def get_multiple_link_poses(self, links: List[Link]) -> Dict[str, Pose]:
+        return self._get_multiple_body_poses([link.name for link in links])
 
     def get_object_pose(self, obj: Object) -> Pose:
         self.check_object_exists_and_issue_warning_if_not(obj)
@@ -240,18 +238,32 @@ class Multiverse(World):
             return Pose()
         return self._get_body_pose(obj.name)
 
+    def get_multiple_object_poses(self, objects: List[Object]) -> Dict[str, Pose]:
+        return self._get_multiple_body_poses([obj.name for obj in objects])
+
     def reset_object_base_pose(self, obj: Object, pose: Pose):
         self.check_object_exists_and_issue_warning_if_not(obj)
         if obj.obj_type == ObjectType.ENVIRONMENT:
             return
+
+        self.pose_goal_validator.register_goal(pose, obj)
+        initial_attached_objects_poses = list(obj.get_poses_of_attached_objects().values())
+
         if (obj.obj_type == ObjectType.ROBOT and
                 RobotDescription.current_robot_description.virtual_move_base_joints is not None):
             self.set_mobile_robot_pose(pose)
         else:
-            initial_attached_objects_poses = list(obj.get_poses_of_attached_objects().values())
             self._set_body_pose(obj.name, pose)
-            if len(initial_attached_objects_poses) > 0:
-                self._wait_until_all_attached_objects_poses_are_set(obj, initial_attached_objects_poses)
+
+        self.pose_goal_validator.wait_until_goal_is_achieved()
+        if len(initial_attached_objects_poses) > 0:
+            self._wait_until_all_attached_objects_poses_are_set(obj, initial_attached_objects_poses)
+
+    def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> None:
+        # TODO: Implement a more efficient way to reset multiple objects' poses by sending all the poses at once,
+        #  instead of sending them one by one, this can be done constructing the metadata and data dictionaries.
+        for obj, pose in objects.items():
+            self.reset_object_base_pose(obj, pose)
 
     def _wait_until_all_attached_objects_poses_are_set(self, obj: Object, initial_poses: List[Pose]) -> None:
         """
@@ -260,20 +272,9 @@ class Multiverse(World):
         param initial_poses: The list of initial poses of the attached objects.
         """
         target_poses = obj.get_target_poses_of_attached_objects()
-        body_names = [obj.name for obj in target_poses.keys()]
-        self._wait_until_all_pose_goals_are_achieved(body_names, list(target_poses.values()),
-                                                     initial_poses)
-
-    def _wait_until_all_pose_goals_are_achieved(self, body_names: List[str], poses: List[Pose],
-                                                initial_poses: List[Pose]) -> None:
-        """
-        Wait until all poses are set to the desired poses.
-        param poses: The dictionary of the desired poses
-        param initial_poses: The dictionary of the initial poses
-        """
-        goal_validator = GoalValidator(poses, lambda: list(self._get_multiple_body_poses(body_names).values()),
-                                       PoseErrorChecker(is_iterable=True), initial_value=initial_poses)
-        self._wait_until_goal_is_achieved(goal_validator)
+        self.multi_pose_goal_validator.register_goal_and_wait_until_achieved(list(target_poses.values()),
+                                                                             list(target_poses.keys()),
+                                                                             initial_poses)
 
     def _get_body_pose(self, body_name: str, wait: Optional[bool] = True) -> Optional[Pose]:
         """
@@ -284,11 +285,20 @@ class Multiverse(World):
         """
         return self.reader.get_body_pose(body_name, wait)
 
-    def get_multiple_object_poses(self, objects: List[Object]) -> Dict[str, Pose]:
-        return self._get_multiple_body_poses([obj.name for obj in objects])
-
     def _get_multiple_body_poses(self, body_names: List[str]) -> Dict[str, Pose]:
         return self.reader.get_multiple_body_poses(body_names)
+
+    def get_multiple_object_positions(self, objects: List[Object]) -> Dict[str, List[float]]:
+        return self.reader.get_multiple_body_positions([obj.name for obj in objects])
+
+    def get_object_position(self, obj: Object) -> List[float]:
+        return self.reader.get_body_position(obj.name)
+
+    def get_multiple_object_orientations(self, objects: List[Object]) -> Dict[str, List[float]]:
+        return self.reader.get_multiple_body_orientations([obj.name for obj in objects])
+
+    def get_object_orientation(self, obj: Object) -> List[float]:
+        return self.reader.get_body_orientation(obj.name)
 
     def multiverse_reset_world(self):
         self.writer.reset_world()
@@ -301,39 +311,7 @@ class Multiverse(World):
         """
         xyzw = pose.orientation_as_list()
         wxyz = [xyzw[3], *xyzw[:3]]
-        initial_pose = self._get_body_pose(body_name, wait=False)
         self.writer.set_body_pose(body_name, pose.position_as_list(), wxyz)
-        if initial_pose is not None:
-            self._wait_until_pose_goal_is_achieved(body_name, pose, initial_pose)
-
-    def _wait_until_pose_goal_is_achieved(self, body_name: str, target_pose: Pose, initial_pose: Pose):
-        """
-        Wait until the pose of a body is set.
-        param body_name: The name of the body.
-        param target_pose: The target pose of the body.
-        param initial_pose: The initial pose of the body.
-        """
-        goal_validator = GoalValidator(PoseErrorChecker(), lambda: self._get_body_pose(body_name))
-        goal_validator.register_goal(target_pose, initial_pose)
-        self._wait_until_goal_is_achieved(goal_validator)
-
-    def _wait_until_goal_is_achieved(self, goal_validator: GoalValidator) -> None:
-        """
-        Wait until the target is reached.
-        param goal_validator: The goal validator object to validate and keep track of the goal achievement progress.
-        """
-        start_time = time()
-        current = goal_validator.current_value
-        while not goal_validator.goal_achieved:
-            sleep(0.01)
-            if time() - start_time > self.reader.MAX_WAIT_TIME_FOR_DATA:
-                msg = f"Failed to achieve goal from initial error {goal_validator.initial_error} with" \
-                      f" goal {goal_validator.goal_value} within {self.reader.MAX_WAIT_TIME_FOR_DATA}" \
-                      f" seconds, the current value is {current}, error is {goal_validator.current_error}, percentage" \
-                      f" of goal achieved is {goal_validator.percentage_of_goal_achieved}"
-                logging.error(msg)
-                raise TimeoutError(msg)
-            current = goal_validator.current_value
 
     def disconnect_from_physics_server(self) -> None:
         MultiverseClientManager.stop_all_clients()

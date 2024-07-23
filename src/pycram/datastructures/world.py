@@ -7,7 +7,6 @@ import time
 from abc import ABC, abstractmethod
 from copy import copy
 
-
 import numpy as np
 import rospy
 from geometry_msgs.msg import Point
@@ -28,6 +27,9 @@ from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.event import Event
+from ..worlds.multiverse_functions.goal_validator import GoalValidator, MultiPoseGoalValidator, \
+    MultiPositionGoalValidator, MultiOrientationGoalValidator, PoseGoalValidator, PositionGoalValidator, \
+    OrientationGoalValidator, JointPositionGoalValidator, MultiJointPositionGoalValidator
 
 if TYPE_CHECKING:
     from ..world_concepts.world_object import Object
@@ -158,6 +160,13 @@ class World(StateEntity, ABC):
     The prefix for the prospection world name.
     """
 
+    acceptable_position_error: float = 1e-2
+    acceptable_orientation_error: float = 5*np.pi / 180
+    acceptable_pose_error: Tuple[float, float] = (acceptable_position_error, acceptable_orientation_error)
+    """
+    The acceptable error for the position and orientation of an object.
+    """
+
     def __init__(self, mode: WorldMode, is_prospection_world: bool, simulation_frequency: float):
         """
        Creates a new simulation, the mode decides if the simulation should be a rendered window or just run in the
@@ -203,6 +212,45 @@ class World(StateEntity, ABC):
         self._init_events()
 
         self._current_state: Optional[WorldState] = None
+
+        self._init_goal_validators()
+
+    def _init_goal_validators(self):
+        """
+        Initializes the goal validators for the World objects' poses, positions, and orientations.
+        """
+        # Goal validators for multiple objects
+        self.multi_pose_goal_validator = MultiPoseGoalValidator(
+            lambda x: list(self.get_multiple_object_poses(x).values()), self.acceptable_pose_error)
+        self.multi_position_goal_validator = MultiPositionGoalValidator(
+            lambda x: list(self.get_multiple_object_positions(x).values()), self.acceptable_position_error)
+        self.multi_orientation_goal_validator = MultiOrientationGoalValidator(
+            lambda x: list(self.get_multiple_object_orientations(x).values()), self.acceptable_orientation_error)
+
+        # Goal validators for an object
+        self.pose_goal_validator = PoseGoalValidator(self.get_object_pose, self.acceptable_pose_error)
+        self.position_goal_validator = PositionGoalValidator(self.get_object_position, self.acceptable_position_error)
+        self.orientation_goal_validator = OrientationGoalValidator(self.get_object_orientation,
+                                                                   self.acceptable_orientation_error)
+
+        # Goal validators for the links of an object
+        self.link_pose_goal_validator = PoseGoalValidator(self.get_link_pose, self.acceptable_pose_error)
+        self.link_position_goal_validator = PositionGoalValidator(self.get_link_position,
+                                                                  self.acceptable_position_error)
+        self.link_orientation_goal_validator = OrientationGoalValidator(self.get_link_orientation,
+                                                                        self.acceptable_orientation_error)
+
+        self.multi_link_pose_goal_validator = MultiPoseGoalValidator(
+            lambda x: list(self.get_multiple_link_poses(x).values()), self.acceptable_pose_error)
+        self.multi_link_position_goal_validator = MultiPositionGoalValidator(
+            lambda x: list(self.get_multiple_link_positions(x).values()), self.acceptable_position_error)
+        self.multi_link_orientation_goal_validator = MultiOrientationGoalValidator(
+            lambda x: list(self.get_multiple_link_orientations(x).values()), self.acceptable_orientation_error)
+
+        # Goal validators for the joints of an object
+        self.joint_position_goal_validator = JointPositionGoalValidator(self.get_joint_position)
+        self.multi_joint_position_goal_validator = MultiJointPositionGoalValidator(
+            lambda x: list(self.get_multiple_joint_positions(x).values()))
 
     @abstractmethod
     def _init_world(self, mode: WorldMode):
@@ -441,6 +489,56 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
+    def get_multiple_link_poses(self, links: List[Link]) -> Dict[str, Pose]:
+        """
+        Get the poses of multiple links of an articulated object with respect to the world frame.
+
+        :param links: The links as a list of AbstractLink objects.
+        :return: A dictionary with link names as keys and Pose objects as values.
+        """
+        pass
+
+    @abstractmethod
+    def get_link_position(self, link: Link) -> List[float]:
+        """
+        Get the position of a link of an articulated object with respect to the world frame.
+
+        :param link: The link as a AbstractLink object.
+        :return: The position of the link as a list of floats.
+        """
+        pass
+
+    @abstractmethod
+    def get_link_orientation(self, link: Link) -> List[float]:
+        """
+        Get the orientation of a link of an articulated object with respect to the world frame.
+
+        :param link: The link as a AbstractLink object.
+        :return: The orientation of the link as a list of floats.
+        """
+        pass
+
+    @abstractmethod
+    def get_multiple_link_positions(self, links: List[Link]) -> Dict[str, List[float]]:
+        """
+        Get the positions of multiple links of an articulated object with respect to the world frame.
+
+        :param links: The links as a list of AbstractLink objects.
+        :return: A dictionary with link names as keys and lists of floats as values.
+        """
+        pass
+
+    @abstractmethod
+    def get_multiple_link_orientations(self, links: List[Link]) -> Dict[str, List[float]]:
+        """
+        Get the orientations of multiple links of an articulated object with respect to the world frame.
+
+        :param links: The links as a list of AbstractLink objects.
+        :return: A dictionary with link names as keys and lists of floats as values.
+        """
+        pass
+
+    @abstractmethod
     def get_object_link_names(self, obj: Object) -> List[str]:
         """
         Returns the names of all links of this object.
@@ -489,6 +587,41 @@ class World(StateEntity, ABC):
         """
         pass
 
+    @abstractmethod
+    def get_multiple_object_poses(self, objects: List[Object]) -> Dict[str, Pose]:
+        """
+        Get the poses of multiple objects in the world frame from the current object poses in the simulator.
+        """
+        pass
+
+    @abstractmethod
+    def get_multiple_object_positions(self, objects: List[Object]) -> Dict[str, List[float]]:
+        """
+        Get the positions of multiple objects in the world frame from the current object poses in the simulator.
+        """
+        pass
+
+    @abstractmethod
+    def get_object_position(self, obj: Object) -> List[float]:
+        """
+        Get the position of an object in the world frame from the current object pose in the simulator.
+        """
+        pass
+
+    @abstractmethod
+    def get_multiple_object_orientations(self, objects: List[Object]) -> Dict[str, List[float]]:
+        """
+        Get the orientations of multiple objects in the world frame from the current object poses in the simulator.
+        """
+        pass
+
+    @abstractmethod
+    def get_object_orientation(self, obj: Object) -> List[float]:
+        """
+        Get the orientation of an object in the world frame from the current object pose in the simulator.
+        """
+        pass
+
     def set_mobile_robot_pose(self, pose: Pose) -> None:
         """
         Set the goal for the move base joints of a mobile robot to reach a target pose. This is used for example when
@@ -496,9 +629,9 @@ class World(StateEntity, ABC):
         param pose: The target pose.
         """
         goal = self.get_move_base_joint_goal(pose)
-        self.robot.set_joint_positions(goal)
+        self.robot.set_joint_positions(goal, validate=False)
 
-    def get_move_base_joint_goal(self, pose: Pose) -> Dict[Joint, float]:
+    def get_move_base_joint_goal(self, pose: Pose) -> Dict[str, float]:
         """
         Get the goal for the move base joints of a mobile robot to reach a target pose.
         param pose: The target pose.
@@ -607,10 +740,12 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> None:
+    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float],
+                                     validate: Optional[bool] = True) -> None:
         """
         Set the positions of multiple joints of an articulated object.
         :param joint_positions: A dictionary with joint objects as keys and joint positions as values.
+        :param validate: If the joint position goals should be validated.
         """
         pass
 
@@ -629,6 +764,16 @@ class World(StateEntity, ABC):
 
         :param obj: The object.
         :param pose: The new pose as a Pose object.
+        """
+        pass
+
+    @abstractmethod
+    def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> None:
+        """
+        Reset the world position and orientation of the base of multiple objects instantaneously,
+        not through physics simulation. (x,y,z) position vector and (x,y,z,w) quaternion orientation.
+
+        :param objects: A dictionary with objects as keys and poses as values.
         """
         pass
 

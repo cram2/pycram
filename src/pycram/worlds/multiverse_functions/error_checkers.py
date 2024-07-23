@@ -20,9 +20,17 @@ class ErrorChecker(ABC):
         :param acceptable_error: The acceptable error.
         :param is_iterable: Whether the error is iterable (i.e. list of errors).
         """
-        self.acceptable_error: np.ndarray = np.array(acceptable_error)
+        self._acceptable_error: np.ndarray = np.array(acceptable_error)
         self.tiled_acceptable_error: Optional[np.ndarray] = None
         self.is_iterable = is_iterable
+
+    @property
+    def acceptable_error(self) -> np.ndarray:
+        return self._acceptable_error
+
+    @acceptable_error.setter
+    def acceptable_error(self, new_acceptable_error: Union[float, T_Iterable[float]]) -> None:
+        self._acceptable_error = np.array(new_acceptable_error)
 
     def update_acceptable_error(self, new_acceptable_error: Optional[T_Iterable[float]] = None,
                                 tile_to_match: Optional[Sized] = None,) -> None:
@@ -30,7 +38,7 @@ class ErrorChecker(ABC):
         Update the acceptable error with a new value, and tile it to match the length of the error if needed.
         """
         if new_acceptable_error is not None:
-            self.acceptable_error = np.array(new_acceptable_error)
+            self.acceptable_error = new_acceptable_error
         if tile_to_match is not None and self.is_iterable:
             self.update_tiled_acceptable_error(tile_to_match)
 
@@ -120,37 +128,49 @@ class OrientationErrorChecker(ErrorChecker):
         return calculate_orientation_error(value_1, value_2)
 
 
-class MultiJointPositionErrorChecker(ErrorChecker):
+class SingleValueErrorChecker(ErrorChecker):
+
+    def __init__(self, acceptable_error: Optional[float] = 1e-3, is_iterable: Optional[bool] = False):
+        super().__init__(acceptable_error, is_iterable)
+
+    def _calculate_error(self, value_1: Any, value_2: Any) -> float:
+        """
+        Calculate the error between two values.
+        """
+        return abs(value_1 - value_2)
+
+
+class RevoluteJointPositionErrorChecker(SingleValueErrorChecker):
+
+    def __init__(self, acceptable_error: Optional[float] = np.pi / 180, is_iterable: Optional[bool] = False):
+        super().__init__(acceptable_error, is_iterable)
+
+
+class PrismaticJointPositionErrorChecker(SingleValueErrorChecker):
+
+    def __init__(self, acceptable_error: Optional[float] = 1e-3, is_iterable: Optional[bool] = False):
+        super().__init__(acceptable_error, is_iterable)
+
+
+class IterableErrorChecker(ErrorChecker):
+
+    def __init__(self, acceptable_error: Optional[T_Iterable[float]] = None):
+        super().__init__(acceptable_error, True)
+
+    def _calculate_error(self, value_1: Any, value_2: Any) -> float:
+        """
+        Calculate the error between two values.
+        """
+        return abs(value_1 - value_2)
+
+
+class MultiJointPositionErrorChecker(IterableErrorChecker):
 
     def __init__(self, joint_types: List[JointType], acceptable_error: Optional[T_Iterable[float]] = None):
         self.joint_types = joint_types
         if acceptable_error is None:
             acceptable_error = [np.pi/180 if jt == JointType.REVOLUTE else 1e-3 for jt in joint_types]
-        super().__init__(acceptable_error, True)
-
-    def _calculate_error(self, value_1: Any, value_2: Any) -> float:
-        """
-        Calculate the error between two joint positions.
-        """
-        return calculate_joint_position_error(value_1, value_2)
-
-
-class RevoluteJointPositionErrorChecker(ErrorChecker):
-
-    def __init__(self, acceptable_error: Optional[float] = np.pi / 180, is_iterable: Optional[bool] = False):
-        super().__init__(acceptable_error, is_iterable)
-
-    def _calculate_error(self, value_1: Any, value_2: Any) -> float:
-        """
-        Calculate the error between two joint positions.
-        """
-        return calculate_joint_position_error(value_1, value_2)
-
-
-class PrismaticJointPositionErrorChecker(ErrorChecker):
-
-    def __init__(self, acceptable_error: Optional[float] = 1e-3, is_iterable: Optional[bool] = False):
-        super().__init__(acceptable_error, is_iterable)
+        super().__init__(acceptable_error)
 
     def _calculate_error(self, value_1: Any, value_2: Any) -> float:
         """
