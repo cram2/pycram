@@ -1,12 +1,21 @@
-import logging
 from time import sleep, time
 
 import numpy as np
-from typing_extensions import Any, Callable, Optional, Union, Iterable
+import rospy
+from typing_extensions import Any, Callable, Optional, Union, Iterable, Dict, TYPE_CHECKING
 
 from pycram.datastructures.enums import JointType
 from pycram.worlds.multiverse_functions.error_checkers import ErrorChecker, PoseErrorChecker, PositionErrorChecker, \
     OrientationErrorChecker, SingleValueErrorChecker
+
+if TYPE_CHECKING:
+    from pycram.datastructures.world import World
+    from pycram.world_concepts.world_object import Object
+    from pycram.datastructures.pose import Pose
+    from pycram.description import ObjectDescription
+
+    Joint = ObjectDescription.Joint
+    Link = ObjectDescription.Link
 
 OptionalArgCallable = Union[Callable[[], Any], Callable[[Any], Any]]
 
@@ -14,6 +23,11 @@ OptionalArgCallable = Union[Callable[[], Any], Callable[[Any], Any]]
 class GoalValidator:
     """
     A class to validate the goal by tracking the goal achievement progress.
+    """
+
+    raise_error: Optional[bool] = False
+    """
+    Whether to raise an error if the goal is not achieved.
     """
 
     def __init__(self, error_checker: ErrorChecker, current_value_getter: OptionalArgCallable,
@@ -37,7 +51,7 @@ class GoalValidator:
                                               current_value_getter_input: Optional[Any] = None,
                                               initial_value: Optional[Any] = None,
                                               acceptable_error: Optional[Union[float, Iterable[float]]] = None,
-                                              max_wait_time: Optional[float] = 2,
+                                              max_wait_time: Optional[float] = 1,
                                               time_per_read: Optional[float] = 0.01) -> None:
         """
         Register the goal value and wait until the target is reached.
@@ -51,7 +65,7 @@ class GoalValidator:
         self.register_goal(goal_value, current_value_getter_input, initial_value, acceptable_error)
         self.wait_until_goal_is_achieved(max_wait_time, time_per_read)
 
-    def wait_until_goal_is_achieved(self, max_wait_time: Optional[float] = 2,
+    def wait_until_goal_is_achieved(self, max_wait_time: Optional[float] = 1,
                                     time_per_read: Optional[float] = 0.01) -> None:
         """
         Wait until the target is reached.
@@ -69,8 +83,12 @@ class GoalValidator:
                       f" goal {self.goal_value} within {max_wait_time}" \
                       f" seconds, the current value is {current}, error is {self.current_error}, percentage" \
                       f" of goal achieved is {self.percentage_of_goal_achieved}"
-                logging.error(msg)
-                raise TimeoutError(msg)
+                if self.raise_error:
+                    rospy.logerr(msg)
+                    raise TimeoutError(msg)
+                else:
+                    rospy.logwarn(msg)
+                    break
             current = self.current_value
         self.reset()
 
@@ -250,7 +268,7 @@ class MultiPoseGoalValidator(PoseGoalValidator):
     """
 
     def __init__(self, current_poses_getter: OptionalArgCallable = None,
-                 acceptable_error: Union[float, Iterable[float]] = (1e-2, 5*np.pi / 180),
+                 acceptable_error: Union[float, Iterable[float]] = (1e-2, 5 * np.pi / 180),
                  acceptable_percentage_of_goal_achieved: Optional[float] = 0.8):
         """
         Initialize the multi-pose goal validator.
@@ -406,3 +424,53 @@ class MultiJointPositionGoalValidator(GoalValidator):
             self.error_checker.acceptable_error = [np.pi / 180 if jt == JointType.REVOLUTE else 1e-3 for jt in
                                                    joint_type]
         super().register_goal(goal_value, current_value_getter_input, initial_value, acceptable_error)
+
+
+def validate_object_pose(pose_setter_func):
+    """
+    A decorator to validate the object pose.
+    :param pose_setter_func: The function to set the pose of the object.
+    """
+
+    def wrapper(world: 'World', obj: 'Object', pose: 'Pose'):
+        attachments_pose_goal = obj.get_target_poses_of_attached_objects_given_parent(pose)
+        if len(attachments_pose_goal) == 0:
+            world.pose_goal_validator.register_goal(pose, obj)
+        else:
+            world.multi_pose_goal_validator.register_goal([pose, *list(attachments_pose_goal.values())],
+                                                          [obj, *list(attachments_pose_goal.keys())])
+        if not pose_setter_func(world, obj, pose):
+            world.pose_goal_validator.reset()
+            world.multi_pose_goal_validator.reset()
+            return False
+
+        world.pose_goal_validator.wait_until_goal_is_achieved()
+        world.multi_pose_goal_validator.wait_until_goal_is_achieved()
+        return True
+
+    return wrapper
+
+
+def validate_multiple_joint_positions(position_setter_func):
+    """
+    A decorator to validate the joint positions, this function does not validate the virtual joints,
+    as in multiverse the virtual joints take command velocities and not positions, so after their goals
+    are set, they are zeroed thus can't be validated. (They are actually validated by the robot pose in case
+    of virtual move base joints)
+    :param position_setter_func: The function to set the joint positions.
+    """
+
+    def wrapper(world: 'World', joint_positions: Dict['Joint', float]):
+        joint_positions_to_validate = {joint: position for joint, position in joint_positions.items()
+                                       if not joint.is_virtual}
+        joint_types = [joint.type for joint in joint_positions_to_validate.keys()]
+        world.multi_joint_position_goal_validator.register_goal(list(joint_positions_to_validate.values()), joint_types,
+                                                                list(joint_positions_to_validate.keys()))
+        if not position_setter_func(world, joint_positions):
+            world.multi_joint_position_goal_validator.reset()
+            return False
+
+        world.multi_joint_position_goal_validator.wait_until_goal_is_achieved()
+        return True
+
+    return wrapper

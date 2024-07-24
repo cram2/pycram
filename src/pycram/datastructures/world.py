@@ -11,8 +11,7 @@ import numpy as np
 import rospy
 from geometry_msgs.msg import Point
 from tf.transformations import euler_from_quaternion
-from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING
-from typing_extensions import Union
+from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union
 
 from ..cache_manager import CacheManager
 from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
@@ -27,9 +26,9 @@ from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.event import Event
-from ..worlds.multiverse_functions.goal_validator import GoalValidator, MultiPoseGoalValidator, \
+from ..worlds.multiverse_functions.goal_validator import MultiPoseGoalValidator, \
     MultiPositionGoalValidator, MultiOrientationGoalValidator, PoseGoalValidator, PositionGoalValidator, \
-    OrientationGoalValidator, JointPositionGoalValidator, MultiJointPositionGoalValidator
+    OrientationGoalValidator, JointPositionGoalValidator, MultiJointPositionGoalValidator, GoalValidator
 
 if TYPE_CHECKING:
     from ..world_concepts.world_object import Object
@@ -169,6 +168,11 @@ class World(StateEntity, ABC):
     The acceptable error for the position and orientation of an object/link.
     """
 
+    raise_goal_validator_error: Optional[bool] = False
+    """
+    Whether to raise an error if the goals are not achieved.
+    """
+
     def __init__(self, mode: WorldMode, is_prospection_world: bool, simulation_frequency: float):
         """
        Creates a new simulation, the mode decides if the simulation should be a rendered window or just run in the
@@ -185,6 +189,7 @@ class World(StateEntity, ABC):
         self.let_pycram_handle_spawning = True
         self.let_pycram_handle_world_sync = True
         self.update_poses_from_sim_on_get = True
+        GoalValidator.raise_error = World.raise_goal_validator_error
 
         if World.current_world is None:
             World.current_world = self
@@ -261,10 +266,17 @@ class World(StateEntity, ABC):
 
         # Goal validators for the joints of an object
         self.joint_position_goal_validator = JointPositionGoalValidator(
-            self.get_joint_position, acceptable_percentage_of_goal_achieved= self.acceptable_percentage_of_goal)
+            self.get_joint_position, acceptable_percentage_of_goal_achieved=self.acceptable_percentage_of_goal)
         self.multi_joint_position_goal_validator = MultiJointPositionGoalValidator(
             lambda x: list(self.get_multiple_joint_positions(x).values()),
-            acceptable_percentage_of_goal_achieved= self.acceptable_percentage_of_goal)
+            acceptable_percentage_of_goal_achieved=self.acceptable_percentage_of_goal)
+
+    def check_object_exists(self, obj: Object):
+        """
+        Checks if the object exists in the simulator and issues a warning if it does not.
+        :param obj: The object to check.
+        """
+        return obj not in self.objects
 
     @abstractmethod
     def _init_world(self, mode: WorldMode):
@@ -643,7 +655,7 @@ class World(StateEntity, ABC):
         param pose: The target pose.
         """
         goal = self.get_move_base_joint_goal(pose)
-        self.robot.set_joint_positions(goal, validate=False)
+        self.robot.set_joint_positions(goal)
 
     def get_move_base_joint_goal(self, pose: Pose) -> Dict[str, float]:
         """
@@ -754,12 +766,11 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float],
-                                     validate: Optional[bool] = True) -> None:
+    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
         """
         Set the positions of multiple joints of an articulated object.
         :param joint_positions: A dictionary with joint objects as keys and joint positions as values.
-        :param validate: If the joint position goals should be validated.
+        :return: True if the set was successful, False otherwise.
         """
         pass
 
@@ -771,13 +782,14 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def reset_object_base_pose(self, obj: Object, pose: Pose):
+    def reset_object_base_pose(self, obj: Object, pose: Pose) -> bool:
         """
         Reset the world position and orientation of the base of the object instantaneously,
         not through physics simulation. (x,y,z) position vector and (x,y,z,w) quaternion orientation.
 
         :param obj: The object.
         :param pose: The new pose as a Pose object.
+        :return: True if the reset was successful, False otherwise.
         """
         pass
 
@@ -1235,7 +1247,8 @@ class World(StateEntity, ABC):
         """
         Creates a box visual shape in the physics simulator and returns the unique id of the created shape.
 
-        :param shape_data: The parameters that define the box visual shape to be created, uses the BoxVisualShape dataclass defined in world_dataclasses.
+        :param shape_data: The parameters that define the box visual shape to be created, uses the BoxVisualShape
+         dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
         """
         raise NotImplementedError
@@ -1244,7 +1257,8 @@ class World(StateEntity, ABC):
         """
         Creates a cylinder visual shape in the physics simulator and returns the unique id of the created shape.
 
-        :param shape_data: The parameters that define the cylinder visual shape to be created, uses the CylinderVisualShape dataclass defined in world_dataclasses.
+        :param shape_data: The parameters that define the cylinder visual shape to be created, uses the
+         CylinderVisualShape dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
         """
         raise NotImplementedError
@@ -1253,7 +1267,8 @@ class World(StateEntity, ABC):
         """
         Creates a sphere visual shape in the physics simulator and returns the unique id of the created shape.
 
-        :param shape_data: The parameters that define the sphere visual shape to be created, uses the SphereVisualShape dataclass defined in world_dataclasses.
+        :param shape_data: The parameters that define the sphere visual shape to be created, uses the SphereVisualShape
+         dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
         """
         raise NotImplementedError
@@ -1262,7 +1277,8 @@ class World(StateEntity, ABC):
         """
         Creates a capsule visual shape in the physics simulator and returns the unique id of the created shape.
 
-        :param shape_data: The parameters that define the capsule visual shape to be created, uses the CapsuleVisualShape dataclass defined in world_dataclasses.
+        :param shape_data: The parameters that define the capsule visual shape to be created, uses the
+         CapsuleVisualShape dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
         """
         raise NotImplementedError
@@ -1271,7 +1287,8 @@ class World(StateEntity, ABC):
         """
         Creates a plane visual shape in the physics simulator and returns the unique id of the created shape.
 
-        :param shape_data: The parameters that define the plane visual shape to be created, uses the PlaneVisualShape dataclass defined in world_dataclasses.
+        :param shape_data: The parameters that define the plane visual shape to be created, uses the PlaneVisualShape
+         dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
         """
         raise NotImplementedError
@@ -1294,10 +1311,13 @@ class World(StateEntity, ABC):
 
         :param text: The text to be added.
         :param position: The position of the text in the world.
-        :param orientation: By default, debug text will always face the camera, automatically rotation. By specifying a text orientation (quaternion), the orientation will be fixed in world space or local space (when parent is specified).
+        :param orientation: By default, debug text will always face the camera, automatically rotation. By specifying a
+         text orientation (quaternion), the orientation will be fixed in world space or local space
+          (when parent is specified).
         :param size: The size of the text.
         :param color: The color of the text.
-        :param life_time: The lifetime in seconds of the text to remain in the world, if 0 the text will remain in the world until it is removed manually.
+        :param life_time: The lifetime in seconds of the text to remain in the world, if 0 the text will remain in the
+         world until it is removed manually.
         :param parent_object_id: The id of the object to which the text should be attached.
         :param parent_link_id: The id of the link to which the text should be attached.
         :return: The id of the added text.

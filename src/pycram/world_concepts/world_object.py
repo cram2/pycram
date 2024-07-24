@@ -61,8 +61,10 @@ class Object(WorldEntity):
         if pose is None:
             pose = Pose()
         if name in [obj.name for obj in self.world.objects]:
-            rospy.logerr(f"An object with the name {name} already exists in the world.")
-            raise ValueError(f"An object with the name {name} already exists in the world.")
+            msg = f"An object with the name {name} already exists in the world,"\
+                  f" is_prospection_world: {self.world.is_prospection_world}"
+            rospy.logerr(msg)
+            raise ValueError(msg)
 
         self.name: str = name
         self.obj_type: ObjectType = obj_type
@@ -203,7 +205,7 @@ class Object(WorldEntity):
         child_link = self.root_link_name
         axes = virtual_joints.get_axes()
         for joint_name, joint_type in virtual_joints.get_types().items():
-            self.description.add_joint(joint_name, child_link, joint_type, axes[joint_name])
+            self.description.add_joint(joint_name, child_link, joint_type, axes[joint_name], is_virtual=True)
 
     def _init_joint_name_and_id_map(self) -> None:
         """
@@ -590,8 +592,8 @@ class Object(WorldEntity):
             self._set_attached_objects_poses()
 
     def reset_base_pose(self, pose: Pose):
-        self.world.reset_object_base_pose(self, pose)
-        self.update_pose()
+        if self.world.reset_object_base_pose(self, pose):
+            self.update_pose()
 
     def update_pose(self):
         """
@@ -908,21 +910,20 @@ class Object(WorldEntity):
         joint_positions = [0] * len(joint_names)
         self.set_joint_positions(dict(zip(joint_names, joint_positions)))
 
-    def set_joint_positions(self, joint_positions: Dict[str, float], validate: Optional[bool] = True) -> None:
+    def set_joint_positions(self, joint_positions: Dict[str, float]) -> None:
         """
         Sets the current position of multiple joints at once, this method should be preferred when setting
         multiple joints at once instead of running :func:`~Object.set_joint_position` in a loop.
 
         :param joint_positions: A dictionary with the joint names as keys and the target positions as values.
-        :param validate: If True the joint position goals will be validated.
         """
         joint_positions = {self.joints[joint_name]: joint_position
                            for joint_name, joint_position in joint_positions.items()}
-        self.world.set_multiple_joint_positions(joint_positions, validate)
-        self.update_pose()
-        self._update_all_links_poses()
-        self.update_link_transforms()
-        self._set_attached_objects_poses()
+        if self.world.set_multiple_joint_positions(joint_positions):
+            self.update_pose()
+            self._update_all_links_poses()
+            self.update_link_transforms()
+            self._set_attached_objects_poses()
 
     def set_joint_position(self, joint_name: str, joint_position: float) -> None:
         """
