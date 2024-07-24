@@ -1,4 +1,4 @@
-name: Build Sphinx documentation 📖
+name: Build Jupyter-Book documentation 📖
 
 on:
   push:
@@ -18,8 +18,8 @@ defaults:
 
 jobs:
   test-and-build:
-    name: Build Sphinx documentation
-    runs-on: ubuntu-20.04
+    name: Build Jupyter-Book  documentation
+    runs-on: ubuntu-22.04
 
     steps:
 
@@ -33,20 +33,20 @@ jobs:
 
       # ----------------------------------------------------------------------------------------------------------------
 
-      - name: Install PyCRAM dependencies 🍼
+      - name: Install Jupyter-Book  dependencies 🍼
         uses: py-actions/py-dependency-install@v4
         with:
           path: "requirements.txt"
 
       # ----------------------------------------------------------------------------------------------------------------
-      - name: Install Sphinx dependencies 📚
+      - name: Install Jupyter-Book  dependencies 📚
         uses: py-actions/py-dependency-install@v4
         with:
           path: "doc/requirements.txt"
 
       # ----------------------------------------------------------------------------------------------------------------
-      - name: Build Sphinx documentation 📝
+      - name: Build Jupyter-Book  documentation 📝
         working-directory: ./doc
         run: |
-          sudo apt install pandoc
-          make html
+          cd source
+          jupyter-book build .
