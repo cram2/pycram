@@ -1,7 +1,6 @@
 from pathlib import Path
 
 from bullet_world_testcase import BulletWorldTestCase
-from pycram.datastructures.enums import ObjectType
 from pycram.object_descriptors.urdf import ObjectDescription as URDFObject
 import pathlib
 
