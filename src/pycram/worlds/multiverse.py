@@ -249,7 +249,9 @@ class Multiverse(World):
             return
 
         self.pose_goal_validator.register_goal(pose, obj)
-        initial_attached_objects_poses = list(obj.get_poses_of_attached_objects().values())
+        attachments_pose_goal = obj.get_target_poses_of_attached_objects_given_parent(pose)
+        self.multi_pose_goal_validator.register_goal(list(attachments_pose_goal.values()),
+                                                     list(attachments_pose_goal.keys()))
 
         if (obj.obj_type == ObjectType.ROBOT and
                 RobotDescription.current_robot_description.virtual_move_base_joints is not None):
@@ -258,8 +260,7 @@ class Multiverse(World):
             self._set_body_pose(obj.name, pose)
 
         self.pose_goal_validator.wait_until_goal_is_achieved()
-        if len(initial_attached_objects_poses) > 0:
-            self._wait_until_all_attached_objects_poses_are_set(obj, initial_attached_objects_poses)
+        self.multi_pose_goal_validator.wait_until_goal_is_achieved()
 
     def is_object_a_child_in_a_fixed_joint_constraint(self, obj: Object) -> bool:
         """
@@ -279,17 +280,6 @@ class Multiverse(World):
         #  instead of sending them one by one, this can be done constructing the metadata and data dictionaries.
         for obj, pose in objects.items():
             self.reset_object_base_pose(obj, pose)
-
-    def _wait_until_all_attached_objects_poses_are_set(self, obj: Object, initial_poses: List[Pose]) -> None:
-        """
-        Wait until all attached objects are set to the desired poses.
-        param obj: The object to which the attached objects belong.
-        param initial_poses: The list of initial poses of the attached objects.
-        """
-        target_poses = obj.get_target_poses_of_attached_objects()
-        self.multi_pose_goal_validator.register_goal_and_wait_until_achieved(list(target_poses.values()),
-                                                                             list(target_poses.keys()),
-                                                                             initial_poses)
 
     def _get_body_pose(self, body_name: str, wait: Optional[bool] = True) -> Optional[Pose]:
         """

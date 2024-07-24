@@ -24,6 +24,12 @@ class ErrorChecker(ABC):
         self.tiled_acceptable_error: Optional[np.ndarray] = None
         self.is_iterable = is_iterable
 
+    def reset(self) -> None:
+        """
+        Reset the error checker.
+        """
+        self.tiled_acceptable_error = None
+
     @property
     def acceptable_error(self) -> np.ndarray:
         return self._acceptable_error

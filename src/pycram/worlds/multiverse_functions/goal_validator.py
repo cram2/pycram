@@ -58,6 +58,8 @@ class GoalValidator:
         :param max_wait_time: The maximum time to wait.
         :param time_per_read: The time to wait between each read.
         """
+        if self.goal_value is None:
+            return  # Skip if goal value is None
         start_time = time()
         current = self.current_value
         while not self.goal_achieved:
@@ -70,6 +72,16 @@ class GoalValidator:
                 logging.error(msg)
                 raise TimeoutError(msg)
             current = self.current_value
+        self.reset()
+
+    def reset(self) -> None:
+        """
+        Reset the goal validator.
+        """
+        self.goal_value = None
+        self.initial_error = None
+        self.current_value_getter_input = None
+        self.error_checker.reset()
 
     @property
     def _acceptable_error(self) -> np.ndarray:
@@ -106,6 +118,8 @@ class GoalValidator:
         :param initial_value: The initial value.
         :param acceptable_error: The acceptable error.
         """
+        if goal_value is None or hasattr(goal_value, '__len__') and len(goal_value) == 0:
+            return  # Skip if goal value is None or empty
         self.goal_value = goal_value
         self.current_value_getter_input = current_value_getter_input
         self.update_initial_error(goal_value, initial_value=initial_value)
