@@ -26,6 +26,8 @@ from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.event import Event
+from ..worlds.multiverse_functions.error_checkers import calculate_angle_between_quaternions, \
+    calculate_quaternion_difference
 from ..worlds.multiverse_functions.goal_validator import MultiPoseGoalValidator, \
     MultiPositionGoalValidator, MultiOrientationGoalValidator, PoseGoalValidator, PositionGoalValidator, \
     OrientationGoalValidator, JointPositionGoalValidator, MultiJointPositionGoalValidator, GoalValidator
@@ -698,9 +700,8 @@ class World(StateEntity, ABC):
         param target_quaternion: The target quaternion.
         return: The difference between the z angles of the two quaternions in euler angles.
         """
-        current_angle = euler_from_quaternion(current_quaternion)[2]
-        target_angle = euler_from_quaternion(target_quaternion)[2]
-        return target_angle - current_angle
+        quat_diff = calculate_quaternion_difference(current_quaternion, target_quaternion)
+        return euler_from_quaternion(quat_diff)[2]
 
     @abstractmethod
     def perform_collision_detection(self) -> None:
