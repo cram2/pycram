@@ -161,12 +161,12 @@ class World(StateEntity, ABC):
     """
 
     acceptable_position_error: float = 5e-3  # 5 cm
-    acceptable_orientation_error: float = 10 * np.pi / 180  # 5 degrees
+    acceptable_orientation_error: float = 10 * np.pi / 180  # 10 degrees
     acceptable_pose_error: Tuple[float, float] = (acceptable_position_error, acceptable_orientation_error)
     use_percentage_of_goal: bool = True
-    acceptable_percentage_of_goal: float = 0.5 if use_percentage_of_goal else None
+    acceptable_percentage_of_goal: float = 0.5 if use_percentage_of_goal else None  # 50%
     """
-    The acceptable error for the position and orientation of an object.
+    The acceptable error for the position and orientation of an object/link.
     """
 
     def __init__(self, mode: WorldMode, is_prospection_world: bool, simulation_frequency: float):

@@ -28,13 +28,13 @@ class TestGoalValidator(BulletWorldTestCase):
         milk_goal_pose = Pose([1.3, 1.5, 0.9])
         goal_validator.register_goal(milk_goal_pose)
         self.assertFalse(goal_validator.goal_achieved)
-        self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
+        self.assertEqual(goal_validator.actual_percentage_of_goal_achieved, 0)
         self.assertAlmostEqual(goal_validator.current_error.tolist()[0], 0.5, places=5)
         self.assertAlmostEqual(goal_validator.current_error.tolist()[1], 0, places=5)
         self.milk.set_pose(milk_goal_pose)
         self.assertEqual(self.milk.get_pose(), milk_goal_pose)
         self.assertTrue(goal_validator.goal_achieved)
-        self.assertEqual(goal_validator.percentage_of_goal_achieved, 1)
+        self.assertEqual(goal_validator.actual_percentage_of_goal_achieved, 1)
         self.assertAlmostEqual(goal_validator.current_error.tolist()[0], 0, places=5)
         self.assertAlmostEqual(goal_validator.current_error.tolist()[1], 0, places=5)
 
@@ -50,12 +50,12 @@ class TestGoalValidator(BulletWorldTestCase):
         cereal_goal_position = [1.3, 1.5, 0.95]
         goal_validator.register_goal(cereal_goal_position)
         self.assertFalse(goal_validator.goal_achieved)
-        self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
+        self.assertEqual(goal_validator.actual_percentage_of_goal_achieved, 0)
         self.assertEqual(goal_validator.current_error, 0.8)
         self.cereal.set_position(cereal_goal_position)
         self.assertEqual(self.cereal.get_position_as_list(), cereal_goal_position)
         self.assertTrue(goal_validator.goal_achieved)
-        self.assertEqual(goal_validator.percentage_of_goal_achieved, 1)
+        self.assertEqual(goal_validator.actual_percentage_of_goal_achieved, 1)
         self.assertEqual(goal_validator.current_error, 0)
 
     def test_single_orientation_goal_generic(self):
@@ -70,13 +70,13 @@ class TestGoalValidator(BulletWorldTestCase):
         cereal_goal_orientation = quaternion_from_euler(0, 0, np.pi / 2)
         goal_validator.register_goal(cereal_goal_orientation)
         self.assertFalse(goal_validator.goal_achieved)
-        self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
+        self.assertEqual(goal_validator.actual_percentage_of_goal_achieved, 0)
         self.assertEqual(goal_validator.current_error, [np.pi / 2])
         self.cereal.set_orientation(cereal_goal_orientation)
         for v1, v2 in zip(self.cereal.get_orientation_as_list(), cereal_goal_orientation.tolist()):
             self.assertAlmostEqual(v1, v2, places=5)
         self.assertTrue(goal_validator.goal_achieved)
-        self.assertEqual(goal_validator.percentage_of_goal_achieved, 1)
+        self.assertAlmostEqual(goal_validator.actual_percentage_of_goal_achieved, 1, places=5)
         self.assertAlmostEqual(goal_validator.current_error.tolist()[0], 0, places=5)
 
     def test_single_revolute_joint_position_goal_generic(self):
@@ -95,7 +95,7 @@ class TestGoalValidator(BulletWorldTestCase):
         else:
             goal_validator.register_goal(goal_joint_position, joint_name)
         self.assertFalse(goal_validator.goal_achieved)
-        self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
+        self.assertEqual(goal_validator.actual_percentage_of_goal_achieved, 0)
         self.assertEqual(goal_validator.current_error, abs(goal_joint_position))
 
         for percent in [0.5, 1]:
@@ -125,7 +125,7 @@ class TestGoalValidator(BulletWorldTestCase):
         else:
             goal_validator.register_goal(goal_joint_position, torso)
         self.assertFalse(goal_validator.goal_achieved)
-        self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
+        self.assertEqual(goal_validator.actual_percentage_of_goal_achieved, 0)
         self.assertEqual(goal_validator.current_error, abs(goal_joint_position))
 
         for percent in [0.5, 1]:
@@ -159,7 +159,7 @@ class TestGoalValidator(BulletWorldTestCase):
         else:
             goal_validator.register_goal(goal_joint_positions, joint_names)
         self.assertFalse(goal_validator.goal_achieved)
-        self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
+        self.assertEqual(goal_validator.actual_percentage_of_goal_achieved, 0)
         self.assertTrue(np.allclose(goal_validator.current_error, np.array([0.2, abs(-np.pi / 4)]), atol=0.001))
 
         for percent in [0.5, 1]:
@@ -194,7 +194,7 @@ class TestGoalValidator(BulletWorldTestCase):
                       Pose(position_goal, quaternion_from_euler(*orientation_goal.tolist()))]
         goal_validator.register_goal(poses_goal)
         self.assertFalse(goal_validator.goal_achieved)
-        self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
+        self.assertEqual(goal_validator.actual_percentage_of_goal_achieved, 0)
         self.assertTrue(
             np.allclose(goal_validator.current_error, np.array([1.0, np.pi / 2, 1.0, np.pi / 2]), atol=0.001))
 
@@ -232,7 +232,7 @@ class TestGoalValidator(BulletWorldTestCase):
         positions_goal = [position_goal, position_goal]
         goal_validator.register_goal(positions_goal)
         self.assertFalse(goal_validator.goal_achieved)
-        self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
+        self.assertEqual(goal_validator.actual_percentage_of_goal_achieved, 0)
         self.assertTrue(np.allclose(goal_validator.current_error, np.array([1.0, 1.0]), atol=0.001))
 
         for percent in [0.5, 1]:
@@ -264,7 +264,7 @@ class TestGoalValidator(BulletWorldTestCase):
                               quaternion_from_euler(*orientation_goal.tolist())]
         goal_validator.register_goal(orientations_goals)
         self.assertFalse(goal_validator.goal_achieved)
-        self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
+        self.assertEqual(goal_validator.actual_percentage_of_goal_achieved, 0)
         self.assertTrue(np.allclose(goal_validator.current_error, np.array([np.pi / 2, np.pi / 2]), atol=0.001))
 
         for percent in [0.5, 1]:
@@ -301,7 +301,7 @@ class TestGoalValidator(BulletWorldTestCase):
         else:
             goal_validator.register_goal(goal_joint_positions, joint_names)
         self.assertFalse(goal_validator.goal_achieved)
-        self.assertEqual(goal_validator.percentage_of_goal_achieved, 0)
+        self.assertEqual(goal_validator.actual_percentage_of_goal_achieved, 0)
         self.assertTrue(np.allclose(goal_validator.current_error,
                                     np.array([abs(goal_joint_position), abs(goal_joint_position)]), atol=0.001))
 
