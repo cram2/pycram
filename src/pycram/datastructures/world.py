@@ -160,9 +160,11 @@ class World(StateEntity, ABC):
     The prefix for the prospection world name.
     """
 
-    acceptable_position_error: float = 1e-2
-    acceptable_orientation_error: float = 5*np.pi / 180
+    acceptable_position_error: float = 5e-3  # 5 cm
+    acceptable_orientation_error: float = 10 * np.pi / 180  # 5 degrees
     acceptable_pose_error: Tuple[float, float] = (acceptable_position_error, acceptable_orientation_error)
+    use_percentage_of_goal: bool = True
+    acceptable_percentage_of_goal: float = 0.5 if use_percentage_of_goal else None
     """
     The acceptable error for the position and orientation of an object.
     """
@@ -221,36 +223,48 @@ class World(StateEntity, ABC):
         """
         # Goal validators for multiple objects
         self.multi_pose_goal_validator = MultiPoseGoalValidator(
-            lambda x: list(self.get_multiple_object_poses(x).values()), self.acceptable_pose_error)
+            lambda x: list(self.get_multiple_object_poses(x).values()),
+            self.acceptable_pose_error, self.acceptable_percentage_of_goal)
         self.multi_position_goal_validator = MultiPositionGoalValidator(
-            lambda x: list(self.get_multiple_object_positions(x).values()), self.acceptable_position_error)
+            lambda x: list(self.get_multiple_object_positions(x).values()),
+            self.acceptable_position_error, self.acceptable_percentage_of_goal)
         self.multi_orientation_goal_validator = MultiOrientationGoalValidator(
-            lambda x: list(self.get_multiple_object_orientations(x).values()), self.acceptable_orientation_error)
+            lambda x: list(self.get_multiple_object_orientations(x).values()),
+            self.acceptable_orientation_error, self.acceptable_percentage_of_goal)
 
         # Goal validators for an object
-        self.pose_goal_validator = PoseGoalValidator(self.get_object_pose, self.acceptable_pose_error)
-        self.position_goal_validator = PositionGoalValidator(self.get_object_position, self.acceptable_position_error)
+        self.pose_goal_validator = PoseGoalValidator(self.get_object_pose, self.acceptable_pose_error,
+                                                     self.acceptable_percentage_of_goal)
+        self.position_goal_validator = PositionGoalValidator(self.get_object_position, self.acceptable_position_error,
+                                                             self.acceptable_percentage_of_goal)
         self.orientation_goal_validator = OrientationGoalValidator(self.get_object_orientation,
-                                                                   self.acceptable_orientation_error)
+                                                                   self.acceptable_orientation_error,
+                                                                   self.acceptable_percentage_of_goal)
 
         # Goal validators for the links of an object
         self.link_pose_goal_validator = PoseGoalValidator(self.get_link_pose, self.acceptable_pose_error)
         self.link_position_goal_validator = PositionGoalValidator(self.get_link_position,
                                                                   self.acceptable_position_error)
         self.link_orientation_goal_validator = OrientationGoalValidator(self.get_link_orientation,
-                                                                        self.acceptable_orientation_error)
+                                                                        self.acceptable_orientation_error,
+                                                                        self.acceptable_percentage_of_goal)
 
         self.multi_link_pose_goal_validator = MultiPoseGoalValidator(
-            lambda x: list(self.get_multiple_link_poses(x).values()), self.acceptable_pose_error)
+            lambda x: list(self.get_multiple_link_poses(x).values()), self.acceptable_pose_error,
+            self.acceptable_percentage_of_goal)
         self.multi_link_position_goal_validator = MultiPositionGoalValidator(
-            lambda x: list(self.get_multiple_link_positions(x).values()), self.acceptable_position_error)
+            lambda x: list(self.get_multiple_link_positions(x).values()), self.acceptable_position_error,
+            self.acceptable_percentage_of_goal)
         self.multi_link_orientation_goal_validator = MultiOrientationGoalValidator(
-            lambda x: list(self.get_multiple_link_orientations(x).values()), self.acceptable_orientation_error)
+            lambda x: list(self.get_multiple_link_orientations(x).values()), self.acceptable_orientation_error,
+            self.acceptable_percentage_of_goal)
 
         # Goal validators for the joints of an object
-        self.joint_position_goal_validator = JointPositionGoalValidator(self.get_joint_position)
+        self.joint_position_goal_validator = JointPositionGoalValidator(
+            self.get_joint_position, acceptable_percentage_of_goal_achieved= self.acceptable_percentage_of_goal)
         self.multi_joint_position_goal_validator = MultiJointPositionGoalValidator(
-            lambda x: list(self.get_multiple_joint_positions(x).values()))
+            lambda x: list(self.get_multiple_joint_positions(x).values()),
+            acceptable_percentage_of_goal_achieved= self.acceptable_percentage_of_goal)
 
     @abstractmethod
     def _init_world(self, mode: WorldMode):

@@ -458,6 +458,13 @@ class Object(WorldEntity):
         if remove_saved_states:
             self.remove_saved_states()
 
+    def has_type_environment(self) -> bool:
+        """
+        Check if the object is of type environment.
+        :return: True if the object is of type environment, False otherwise.
+        """
+        return self.obj_type == ObjectType.ENVIRONMENT
+
     def attach(self,
                child_object: Object,
                parent_link: Optional[str] = None,

@@ -131,8 +131,8 @@ class MultiverseReader(MultiverseClient):
         param wait: Whether to wait for the data.
         return: The property of the body.
         """
-        data = self.get_received_data()
-        if self.check_for_body_data(name, data, [property_name]):
+        data = self.get_multiple_body_properties([name], [property_name])
+        if data is not None:
             return data[name][property_name]
 
     def get_multiple_body_properties(self, body_names: List[str], properties: List[str],
@@ -164,8 +164,9 @@ class MultiverseReader(MultiverseClient):
         param wait: Whether to wait for the data.
         return: The body data as a dictionary.
         """
-        data = self.get_received_data()
-        if self.check_for_body_data(name, data, properties):
+        properties = {name: properties} if properties is not None else None
+        data = self.get_multiple_body_data([name], properties)
+        if data is not None:
             return data[name]
 
     def get_multiple_body_data(self, body_names: List[str], properties: Optional[Dict[str, List[str]]] = None,
