@@ -1,3 +1,4 @@
+-r requirements-setuptools.txt
 gitpython>=3.1.37
 pybullet~=3.2.5
 rospkg~=1.4.0
