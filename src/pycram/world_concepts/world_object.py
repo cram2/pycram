@@ -19,11 +19,6 @@ from ..local_transformer import LocalTransformer
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
-from ..worlds.multiverse_functions.error_checkers import PoseErrorChecker, PositionErrorChecker, \
-    OrientationErrorChecker, RevoluteJointPositionErrorChecker, PrismaticJointPositionErrorChecker, IterableErrorChecker
-from ..worlds.multiverse_functions.goal_validator import GoalValidator, PoseGoalValidator, OrientationGoalValidator, \
-    PositionGoalValidator, MultiPoseGoalValidator, MultiPositionGoalValidator, MultiOrientationGoalValidator, \
-    MultiJointPositionGoalValidator, JointPositionGoalValidator
 
 Link = ObjectDescription.Link
 
