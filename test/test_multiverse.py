@@ -59,12 +59,12 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
         milk = Object("milk_box", ObjectType.MILK, f"milk_box{extension}", pose=Pose([2.5, 2, 1.02]),
                       color=Color(1, 0, 0, 1))
-        spoon = Object("soup_spoon", ObjectType.SPOON, f"SoupSpoon.obj", pose=Pose([2.5, 2.5, 1.02]),
-                       color=Color(0, 0, 1, 1))
-        bowl = Object("big_bowl", ObjectType.BOWL, f"BigBowl.obj", pose=Pose([2.5, 2.2, 1.02]),
+        bowl = Object("big_bowl", ObjectType.BOWL, f"BigBowl.obj", pose=Pose([2.5, 2.3, 1]),
                       color=Color(1, 1, 0, 1))
+        spoon = Object("soup_spoon", ObjectType.SPOON, f"SoupSpoon.obj", pose=Pose([2.6, 2.6, 1]),
+                       color=Color(0, 0, 1, 1))
         bowl.attach(spoon)
-        bowl.set_position([2.5, 2.3, 1.02])
+        bowl.set_position([2.5, 2.4, 1.02])
 
         pick_pose = Pose([2.7, 2.15, 1])
 

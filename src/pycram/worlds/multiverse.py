@@ -212,10 +212,10 @@ class Multiverse(World):
         if validate:
             self.multi_joint_position_goal_validator.wait_until_goal_is_achieved()
 
-    def get_joint_position(self, joint: Joint) -> float:
-        data = self.reader.get_body_data(joint.name, [self.get_joint_position_name(joint)])
-        if data is not None:
-            return data[self.get_joint_position_name(joint)][0]
+    def get_joint_position(self, joint: Joint) -> Optional[float]:
+        data = self.reader.get_body_property(joint.name, self.get_joint_position_name(joint))
+        if data is not None and len(data) > 0:
+            return data[0]
 
     def get_multiple_joint_positions(self, joints: List[Joint]) -> Optional[Dict[str, float]]:
         self.check_object_exists_and_issue_warning_if_not(joints[0].object)
@@ -242,8 +242,10 @@ class Multiverse(World):
         return self._get_multiple_body_poses([obj.name for obj in objects])
 
     def reset_object_base_pose(self, obj: Object, pose: Pose):
+
         self.check_object_exists_and_issue_warning_if_not(obj)
-        if obj.obj_type == ObjectType.ENVIRONMENT:
+
+        if obj.has_type_environment():
             return
 
         self.pose_goal_validator.register_goal(pose, obj)
@@ -258,6 +260,19 @@ class Multiverse(World):
         self.pose_goal_validator.wait_until_goal_is_achieved()
         if len(initial_attached_objects_poses) > 0:
             self._wait_until_all_attached_objects_poses_are_set(obj, initial_attached_objects_poses)
+
+    def is_object_a_child_in_a_fixed_joint_constraint(self, obj: Object) -> bool:
+        """
+        Check if the object is a child in a fixed joint constraint. This means that the object is not free to move.
+        It should be moved according to the parent object.
+        :param obj: The object to check.
+        :return: True if the object is a child in a fixed joint constraint, False otherwise.
+        """
+        constraints = list(self.constraints.values())
+        for c in constraints:
+            if c.child_link.object == obj and c.type == JointType.FIXED:
+                return True
+        return False
 
     def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> None:
         # TODO: Implement a more efficient way to reset multiple objects' poses by sending all the poses at once,

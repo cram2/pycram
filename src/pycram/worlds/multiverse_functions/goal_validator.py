@@ -179,7 +179,7 @@ class GoalValidator:
         """
         Get the relative initial error.
         """
-        return self.get_relative_error(self.initial_error)
+        return np.maximum(self.initial_error, 1e-3)
 
     def get_relative_error(self, error: Any, threshold: Optional[float] = 1e-3) -> np.ndarray:
         """
