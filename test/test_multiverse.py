@@ -200,11 +200,10 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         robot = self.spawn_robot()
         ee_link = self.multiverse.get_arm_tool_frame_link(Arms.RIGHT)
         # Get position of milk relative to robot end effector
-        robot.attach(milk, ee_link.name, coincide_the_objects=True)
+        robot.attach(milk, ee_link.name, coincide_the_objects=False)
         self.assertTrue(robot in milk.attachments)
         milk_initial_pose = milk.root_link.get_pose_wrt_link(ee_link)
-        robot_position = robot.get_joint_position("arm_right_2_joint")
-        robot_position += 1.57
+        robot_position = 1.57
         robot.set_joint_position("arm_right_2_joint", robot_position)
         milk_pose = milk.root_link.get_pose_wrt_link(ee_link)
         self.assert_poses_are_equal(milk_initial_pose, milk_pose)

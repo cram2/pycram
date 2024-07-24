@@ -3,10 +3,12 @@ import os
 from time import sleep, time
 
 import numpy as np
+import rospy
 from tf.transformations import quaternion_matrix
 from typing_extensions import List, Dict, Optional
 
 from .multiverse_communication.client_manager import MultiverseClientManager
+from .multiverse_functions.goal_validator import validate_object_pose, validate_multiple_joint_positions
 
 from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
 from ..datastructures.enums import WorldMode, JointType, ObjectType
@@ -198,19 +200,12 @@ class Multiverse(World):
                                              {self.get_joint_position_name(joint): [joint_position]})
         self.joint_position_goal_validator.wait_until_goal_is_achieved()
 
-    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float],
-                                     validate: Optional[bool] = True) -> None:
+    @validate_multiple_joint_positions
+    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
         data = {joint.name: {self.get_joint_position_name(joint): [position]}
                 for joint, position in joint_positions.items()}
-
-        if validate:
-            self.multi_joint_position_goal_validator.register_goal(list(joint_positions.values()),
-                                                                   [joint.type for joint in joint_positions.keys()],
-                                                                   list(joint_positions.keys()))
         self.writer.send_multiple_body_data_to_server(data)
-
-        if validate:
-            self.multi_joint_position_goal_validator.wait_until_goal_is_achieved()
+        return True
 
     def get_joint_position(self, joint: Joint) -> Optional[float]:
         data = self.reader.get_body_property(joint.name, self.get_joint_position_name(joint))
@@ -218,22 +213,19 @@ class Multiverse(World):
             return data[0]
 
     def get_multiple_joint_positions(self, joints: List[Joint]) -> Optional[Dict[str, float]]:
-        self.check_object_exists_and_issue_warning_if_not(joints[0].object)
         joint_names = [joint.name for joint in joints]
         data = self.reader.get_multiple_body_data(joint_names, {joint.name: [self.get_joint_position_name(joint)]
                                                                 for joint in joints})
         if data is not None:
             return {joint_name: list(data[joint_name].values())[0][0] for joint_name in joint_names}
 
-    def get_link_pose(self, link: Link) -> Pose:
-        self.check_object_exists_and_issue_warning_if_not(link.object)
+    def get_link_pose(self, link: Link) -> Optional[Pose]:
         return self._get_body_pose(link.name)
 
     def get_multiple_link_poses(self, links: List[Link]) -> Dict[str, Pose]:
         return self._get_multiple_body_poses([link.name for link in links])
 
     def get_object_pose(self, obj: Object) -> Pose:
-        self.check_object_exists_and_issue_warning_if_not(obj)
         if obj.obj_type == ObjectType.ENVIRONMENT:
             return Pose()
         return self._get_body_pose(obj.name)
@@ -241,17 +233,10 @@ class Multiverse(World):
     def get_multiple_object_poses(self, objects: List[Object]) -> Dict[str, Pose]:
         return self._get_multiple_body_poses([obj.name for obj in objects])
 
-    def reset_object_base_pose(self, obj: Object, pose: Pose):
-
-        self.check_object_exists_and_issue_warning_if_not(obj)
-
+    @validate_object_pose
+    def reset_object_base_pose(self, obj: Object, pose: Pose) -> bool:
         if obj.has_type_environment():
-            return
-
-        self.pose_goal_validator.register_goal(pose, obj)
-        attachments_pose_goal = obj.get_target_poses_of_attached_objects_given_parent(pose)
-        self.multi_pose_goal_validator.register_goal(list(attachments_pose_goal.values()),
-                                                     list(attachments_pose_goal.keys()))
+            return False
 
         if (obj.obj_type == ObjectType.ROBOT and
                 RobotDescription.current_robot_description.virtual_move_base_joints is not None):
@@ -259,8 +244,7 @@ class Multiverse(World):
         else:
             self._set_body_pose(obj.name, pose)
 
-        self.pose_goal_validator.wait_until_goal_is_achieved()
-        self.multi_pose_goal_validator.wait_until_goal_is_achieved()
+        return True
 
     def is_object_a_child_in_a_fixed_joint_constraint(self, obj: Object) -> bool:
         """
@@ -339,9 +323,6 @@ class Multiverse(World):
             logging.error("Only fixed constraints are supported in Multiverse")
             raise ValueError
 
-        self.check_object_exists_and_issue_warning_if_not(constraint.parent_link.object)
-        self.check_object_exists_and_issue_warning_if_not(constraint.child_link.object)
-
         if not self.let_pycram_move_attached_objects:
             self.api_requester.attach(constraint)
 
@@ -368,7 +349,6 @@ class Multiverse(World):
         """
         Note: Currently Multiverse only gets one contact point per contact objects.
         """
-        self.check_object_exists_and_issue_warning_if_not(obj)
         multiverse_contact_points = self.api_requester.get_contact_points(obj)
         contact_points = ContactPointsList([])
         body_link = None
@@ -411,8 +391,6 @@ class Multiverse(World):
         return contact_force_array.flatten().tolist()[2]
 
     def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> ContactPointsList:
-        self.check_object_exists_and_issue_warning_if_not(obj1)
-        self.check_object_exists_and_issue_warning_if_not(obj2)
         obj1_contact_points = self.get_object_contact_points(obj1)
         return obj1_contact_points.get_points_of_object(obj2)
 
@@ -450,26 +428,21 @@ class Multiverse(World):
         raise NotImplementedError
 
     def set_link_color(self, link: Link, rgba_color: Color):
-        self.check_object_exists_and_issue_warning_if_not(link.object)
         logging.warning("set_link_color is not implemented in Multiverse")
 
     def get_link_color(self, link: Link) -> Color:
-        self.check_object_exists_and_issue_warning_if_not(link.object)
         logging.warning("get_link_color is not implemented in Multiverse")
         return Color()
 
     def get_colors_of_object_links(self, obj: Object) -> Dict[str, Color]:
-        self.check_object_exists_and_issue_warning_if_not(obj)
         logging.warning("get_colors_of_object_links is not implemented in Multiverse")
         return {}
 
     def get_object_axis_aligned_bounding_box(self, obj: Object) -> AxisAlignedBoundingBox:
-        self.check_object_exists_and_issue_warning_if_not(obj)
         logging.error("get_object_axis_aligned_bounding_box is not implemented in Multiverse")
         raise NotImplementedError
 
     def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
-        self.check_object_exists_and_issue_warning_if_not(link.object)
         logging.error("get_link_axis_aligned_bounding_box is not implemented in Multiverse")
         raise NotImplementedError
 
@@ -478,11 +451,6 @@ class Multiverse(World):
 
     def set_gravity(self, gravity_vector: List[float]) -> None:
         logging.warning("set_gravity is not implemented in Multiverse")
-
-    def check_object_exists_and_issue_warning_if_not(self, obj: Object):
-        if obj not in self.objects:
-            msg = f"Object {obj} does not exist in the simulator"
-            logging.warning(msg)
 
     def check_object_exists_in_multiverse(self, obj: Object) -> bool:
         return self.api_requester.check_object_exists(obj)

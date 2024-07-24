@@ -182,10 +182,10 @@ class BulletWorld(World):
                 "lateral_friction_1": LateralFriction(point[10], point[11]),
                 "lateral_friction_2": LateralFriction(point[12], point[13])}
 
-    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float],
-                                     validate: Optional[bool] = True) -> None:
+    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
         for joint, joint_position in joint_positions.items():
             self.reset_joint_position(joint, joint_position)
+        return True
 
     def get_multiple_joint_positions(self, joints: List[Joint]) -> Dict[str, float]:
         return {joint.name: self.get_joint_position(joint) for joint in joints}
