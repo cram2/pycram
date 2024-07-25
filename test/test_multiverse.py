@@ -156,12 +156,14 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     # @unittest.skip("This will cause respawning of the robot.")
     def test_set_robot_position(self):
-        self.spawn_robot()
-        new_position = [-3, -3, 0.001]
-        # self.multiverse.writer.send_multiple_body_data_to_server({"odom_vel_lin_x_joint": {"joint_tvalue": [-4]}})
-        self.multiverse.robot.set_position(new_position)
-        robot_position = self.multiverse.robot.get_position_as_list()
-        self.assert_list_is_equal(robot_position[:2], new_position[:2], delta=0.2)
+        for i in range(10):
+            self.spawn_robot()
+            new_position = [-3, -3, 0.001]
+            # self.multiverse.writer.send_multiple_body_data_to_server({"odom_vel_lin_x_joint": {"joint_tvalue": [-4]}})
+            self.multiverse.robot.set_position(new_position)
+            robot_position = self.multiverse.robot.get_position_as_list()
+            self.assert_list_is_equal(robot_position[:2], new_position[:2], delta=0.2)
+            self.tearDown()
 
     def test_attach_object(self):
         milk = self.spawn_milk([1, 0, 0.1])
