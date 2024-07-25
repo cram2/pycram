@@ -268,9 +268,13 @@ class World(StateEntity, ABC):
 
         # Goal validators for the joints of an object
         self.joint_position_goal_validator = JointPositionGoalValidator(
-            self.get_joint_position, acceptable_percentage_of_goal_achieved=self.acceptable_percentage_of_goal)
+            self.get_joint_position, acceptable_orientation_error=self.acceptable_orientation_error,
+            acceptable_position_error=self.acceptable_position_error,
+            acceptable_percentage_of_goal_achieved=self.acceptable_percentage_of_goal)
         self.multi_joint_position_goal_validator = MultiJointPositionGoalValidator(
             lambda x: list(self.get_multiple_joint_positions(x).values()),
+            acceptable_orientation_error=self.acceptable_orientation_error,
+            acceptable_position_error=self.acceptable_position_error,
             acceptable_percentage_of_goal_achieved=self.acceptable_percentage_of_goal)
 
     def check_object_exists(self, obj: Object):
@@ -666,12 +670,12 @@ class World(StateEntity, ABC):
         return: The goal for the move base joints.
         """
         position_diff = self.get_position_diff(self.robot.get_position_as_list(), pose.position_as_list())[:2]
-        angle_diff = self.get_z_angle_diff(self.robot.get_orientation_as_list(), pose.orientation_as_list())
+        target_angle = self.get_z_angle(pose.orientation_as_list())
         # Get the joints of the base link
         move_base_joints = self.get_move_base_joints()
         return {move_base_joints.translation_x: position_diff[0],
                 move_base_joints.translation_y: position_diff[1],
-                move_base_joints.angular_z: angle_diff}
+                move_base_joints.angular_z: target_angle}
 
     @staticmethod
     def get_move_base_joints() -> VirtualMoveBaseJoints:
@@ -693,15 +697,13 @@ class World(StateEntity, ABC):
         return [target_position[i] - current_position[i] for i in range(3)]
 
     @staticmethod
-    def get_z_angle_diff(current_quaternion: List[float], target_quaternion: List[float]) -> float:
+    def get_z_angle(target_quaternion: List[float]) -> float:
         """
-        Get the difference between the z angles of two quaternions.
-        param current_quaternion: The current quaternion.
+        Get the z angle from a quaternion by converting it to euler angles.
         param target_quaternion: The target quaternion.
-        return: The difference between the z angles of the two quaternions in euler angles.
+        return: The z angle.
         """
-        quat_diff = calculate_quaternion_difference(current_quaternion, target_quaternion)
-        return euler_from_quaternion(quat_diff)[2]
+        return euler_from_quaternion(target_quaternion)[2]
 
     @abstractmethod
     def perform_collision_detection(self) -> None:

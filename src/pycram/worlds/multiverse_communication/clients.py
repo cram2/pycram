@@ -262,15 +262,6 @@ class MultiverseReader(MultiverseClient):
 
 class MultiverseWriter(MultiverseClient):
 
-    time_for_sim_update: Optional[float] = 0.0  # 0.02
-    """
-    Wait time for the sent data to be applied in the simulator.
-    """
-    time_for_setting_body_data: Optional[float] = 0.0  # 0.01
-    """
-    Wait time for setting body data.
-    """
-
     def __init__(self, name: str, port: int, simulation: str, is_prospection_world: Optional[bool] = False,
                  simulation_wait_time_factor: Optional[float] = 1.0, **kwargs):
         """
@@ -365,7 +356,6 @@ class MultiverseWriter(MultiverseClient):
                           for value in data]
         self.send_data = [time() - self.time_start, *flattened_data]
         self.send_and_receive_data()
-        sleep(self.time_for_setting_body_data * self.simulation_wait_time_factor)
         return self.response_meta_data
 
     def send_meta_data_and_get_response(self, send_meta_data: Dict) -> Dict:
@@ -397,7 +387,6 @@ class MultiverseWriter(MultiverseClient):
         self.send_and_receive_meta_data()
         self.send_data = data
         self.send_and_receive_data()
-        sleep(self.time_for_sim_update * self.simulation_wait_time_factor)
         return self.response_meta_data
 
 
@@ -411,6 +400,7 @@ class MultiverseAPI(MultiverseClient):
     """
     The wait time for the API request in seconds.
     """
+    APIs_THAT_NEED_WAIT_TIME: List[API] = [API.ATTACH]
 
     def __init__(self, name: str, port: int, simulation: str, is_prospection_world: Optional[bool] = False,
                  simulation_wait_time_factor: Optional[float] = 1.0):
@@ -426,12 +416,14 @@ class MultiverseAPI(MultiverseClient):
         """
         super().__init__(name, port, is_prospection_world, simulation_wait_time_factor=simulation_wait_time_factor)
         self.simulation = simulation
+        self.wait: Optional[bool] = False  # Whether to wait after sending the API request.
 
     def attach(self, constraint: Constraint) -> None:
         """
         Request to attach the child link to the parent link.
         param constraint: The constraint.
         """
+        self.wait = True
         parent_link_name, child_link_name = self.get_constraint_link_names(constraint)
         attachment_pose = self._get_attachment_pose_as_string(constraint)
         self._attach(child_link_name, parent_link_name, attachment_pose)
@@ -630,7 +622,9 @@ class MultiverseAPI(MultiverseClient):
             self._add_api_request(api_name.value, *params)
         self._send_api_request()
         responses = self._get_all_apis_responses()
-        sleep(self.API_REQUEST_WAIT_TIME * self.simulation_wait_time_factor)
+        if self.wait:
+            sleep(self.API_REQUEST_WAIT_TIME * self.simulation_wait_time_factor)
+            self.wait = False
         return responses
 
     def _get_all_apis_responses(self) -> Dict[API, List[str]]:
