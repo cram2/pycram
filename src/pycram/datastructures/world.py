@@ -137,7 +137,7 @@ class World(StateEntity, ABC):
      the objects.
     """
 
-    data_directory: List[str] = [resources_path, os.path.join(resources_path, 'robots')]
+    data_directory: List[str] = [resources_path]
     """
     Global reference for the data directories, this is used to search for the description files of the robot,
      the objects, and the cached files.
