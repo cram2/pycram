@@ -2,12 +2,12 @@ import logging
 import threading
 from time import time, sleep
 
-from typing_extensions import List, Dict, Tuple, Optional
+from typing_extensions import List, Dict, Tuple, Optional, Callable, Union
 
 from .socket import MultiverseSocket, MultiverseMetaData, SocketAddress
+from ..multiverse_datastructures.dataclasses import RayResult, MultiverseContactPoint
 from ..multiverse_datastructures.enums import (MultiverseAPIName as API, MultiverseBodyProperty as BodyProperty,
                                                MultiverseProperty as Property)
-from ..multiverse_datastructures.dataclasses import RayResult, MultiverseContactPoint
 from ...datastructures.pose import Pose
 from ...datastructures.world import World
 from ...world_concepts.constraints import Constraint
@@ -35,7 +35,6 @@ class MultiverseClient(MultiverseSocket):
 
 
 class MultiverseReader(MultiverseClient):
-
     MAX_WAIT_TIME_FOR_DATA: Optional[float] = 2
     """
     The maximum wait time for the data in seconds.
@@ -60,16 +59,14 @@ class MultiverseReader(MultiverseClient):
 
         self.thread.start()
 
-    def get_body_pose(self, name: str, wait: Optional[bool] = False) -> Optional[Pose]:
+    def get_body_pose(self, name: str, wait: Optional[bool] = False) -> Optional[Dict[str, List[float]]]:
         """
         Get the body pose from the multiverse server.
         param name: The name of the body.
         param wait: Whether to wait for the data.
         return: The position and orientation of the body.
         """
-        data = self.get_multiple_body_poses([name], wait=wait)
-        if data is not None:
-            return data[name]
+        return self.get_body_data(name, [BodyProperty.POSITION, BodyProperty.ORIENTATION], wait=wait)
 
     def get_multiple_body_poses(self, body_names: List[str], wait: Optional[bool] = False) -> Optional[Dict[str, Pose]]:
         """
@@ -95,7 +92,7 @@ class MultiverseReader(MultiverseClient):
         param wait: Whether to wait for the data.
         return: The position of the body.
         """
-        return self.get_multiple_body_positions([name], wait=wait)[name]
+        return self.get_body_property(name, BodyProperty.POSITION, wait=wait)
 
     def get_multiple_body_positions(self, body_names: List[str],
                                     wait: Optional[bool] = False) -> Optional[Dict[str, List[float]]]:
@@ -114,7 +111,7 @@ class MultiverseReader(MultiverseClient):
         param wait: Whether to wait for the data.
         return: The orientation of the body.
         """
-        return self.get_multiple_body_orientations([name], wait=wait)[name]
+        return self.get_body_property(name, BodyProperty.ORIENTATION, wait=wait)
 
     def get_multiple_body_orientations(self, body_names: List[str],
                                        wait: Optional[bool] = False) -> Optional[Dict[str, List[float]]]:
@@ -128,7 +125,7 @@ class MultiverseReader(MultiverseClient):
         if data is not None:
             return {name: self.wxyz_to_xyzw(data[name][BodyProperty.ORIENTATION.value]) for name in body_names}
 
-    def get_body_property(self, name: str, property_: Property) -> Optional[List[float]]:
+    def get_body_property(self, name: str, property_: Property, wait: Optional[bool] = False) -> Optional[List[float]]:
         """
         Get the body property from the multiverse server.
         param name: The name of the body.
@@ -136,9 +133,9 @@ class MultiverseReader(MultiverseClient):
         param wait: Whether to wait for the data.
         return: The property of the body.
         """
-        data = self.get_multiple_body_properties([name], [property_])
+        data = self.get_body_data(name, [property_], wait=wait)
         if data is not None:
-            return data[name][property_.value]
+            return data[property_.value]
 
     def get_multiple_body_properties(self, body_names: List[str], properties: List[Property],
                                      wait: Optional[bool] = False) -> Optional[Dict[str, Dict[str, List[float]]]]:
@@ -161,7 +158,8 @@ class MultiverseReader(MultiverseClient):
         return quaternion[1:] + [quaternion[0]]
 
     def get_body_data(self, name: str,
-                      properties: Optional[List[str]] = None) -> Optional[Dict]:
+                      properties: Optional[List[Property]] = None,
+                      wait: Optional[bool] = False) -> Optional[Dict]:
         """
         Get the body data from the multiverse server.
         param name: The name of the body.
@@ -169,9 +167,11 @@ class MultiverseReader(MultiverseClient):
         param wait: Whether to wait for the data.
         return: The body data as a dictionary.
         """
-        properties = {name: properties} if properties is not None else None
-        data = self.get_multiple_body_data([name], properties)
-        if data is not None:
+        if wait:
+            return self.wait_for_body_data(name, properties)
+
+        data = self.get_received_data()
+        if self.check_for_body_data(name, data, properties):
             return data[name]
 
     def get_multiple_body_data(self, body_names: List[str],
@@ -192,6 +192,15 @@ class MultiverseReader(MultiverseClient):
         if self.check_multiple_body_data(body_names, data, properties):
             return {name: data[name] for name in body_names}
 
+    def wait_for_body_data(self, name: str, properties: Optional[List[Property]] = None) -> Dict:
+        """
+        Wait for the body data from the multiverse server.
+        param name: The name of the body.
+        param properties: The properties of the body.
+        return: The body data as a dictionary.
+        """
+        return self._wait_for_body_data_template(name, self.check_for_body_data, properties)[name]
+
     def wait_for_multiple_body_data(self, body_names: List[str],
                                     properties: Optional[Dict[str, List[Property]]] = None) -> Dict:
         """
@@ -200,16 +209,29 @@ class MultiverseReader(MultiverseClient):
         param properties: The properties of the bodies.
         return: The body data as a dictionary.
         """
+        return self._wait_for_body_data_template(body_names, self.check_multiple_body_data, properties)
+
+    def _wait_for_body_data_template(self, body_names: Union[str, List[str]],
+                                     check_func: Callable[[Union[str, List[str]], Dict, Union[Dict, List]], bool],
+                                     properties: Optional[Union[Dict, List]] = None) -> Dict:
+        """
+        Wait for the body data from the multiverse server for multiple bodies.
+        param body_names: The names of the bodies.
+        param properties: The properties of the bodies.
+        param check_func: The function to check if the data is received.
+        param return_func: The function to return the data.
+        return: The body data as a dictionary.
+        """
         start = time()
         data_received_flag = False
         while time() - start < self.MAX_WAIT_TIME_FOR_DATA:
             received_data = self.get_received_data()
-            data_received_flag = self.check_multiple_body_data(body_names, received_data, properties)
+            data_received_flag = check_func(body_names, received_data, properties)
             if data_received_flag:
-                return {name: received_data[name] for name in body_names}
+                return received_data
         if not data_received_flag:
             properties_str = "Data" if properties is None else f"Properties {properties}"
-            msg = f"{properties_str} for bodies {body_names} not received within {self.MAX_WAIT_TIME_FOR_DATA} seconds"
+            msg = f"{properties_str} for {body_names} not received within {self.MAX_WAIT_TIME_FOR_DATA} seconds"
             logging.error(msg)
             raise ValueError(msg)
 
@@ -303,8 +325,9 @@ class MultiverseWriter(MultiverseClient):
         param position: The position of the body.
         param orientation: The orientation of the body.
         """
-        self.set_multiple_body_poses({body_name: {BodyProperty.POSITION: position,
-                                                  BodyProperty.ORIENTATION: orientation}})
+        self.send_body_data_to_server(body_name,
+                                      {BodyProperty.POSITION: position,
+                                       BodyProperty.ORIENTATION: orientation})
 
     def set_multiple_body_poses(self, body_data: Dict[str, Dict[BodyProperty, List[float]]]) -> None:
         """
@@ -319,7 +342,7 @@ class MultiverseWriter(MultiverseClient):
         param body_name: The name of the body.
         param position: The position of the body.
         """
-        self.send_body_data_to_server(body_name, {BodyProperty.POSITION: position})
+        self.set_body_property(body_name, BodyProperty.POSITION, position)
 
     def set_body_orientation(self, body_name: str, orientation: List[float]) -> None:
         """
@@ -327,7 +350,16 @@ class MultiverseWriter(MultiverseClient):
         param body_name: The name of the body.
         param orientation: The orientation of the body.
         """
-        self.send_body_data_to_server(body_name, {BodyProperty.ORIENTATION: orientation})
+        self.set_body_property(body_name, BodyProperty.ORIENTATION, orientation)
+
+    def set_body_property(self, body_name: str, property_: Property, value: List[float]) -> None:
+        """
+        Set the body property in the simulation.
+        param body_name: The name of the body.
+        param property_: The property of the body.
+        param value: The value of the property.
+        """
+        self.send_body_data_to_server(body_name, {property_: value})
 
     def remove_body(self, body_name: str) -> None:
         """
@@ -344,14 +376,16 @@ class MultiverseWriter(MultiverseClient):
         """
         self.send_data_to_server([0])
 
-    def send_body_data_to_server(self, body_name: str, data: Dict[Property, List[float]]) -> Dict:
+    def send_body_data_to_server(self, body_name: str, body_data: Dict[Property, List[float]]) -> Dict:
         """
         Send data to the multiverse server.
         param body_name: The name of the body.
-        param data: The data to be sent.
+        param body_data: The data to be sent.
         return: The response from the server.
         """
-        return self.send_multiple_body_data_to_server({body_name: data})
+        send_meta_data = {body_name: list(map(str, body_data.keys()))}
+        flattened_data = [value for data in body_data.values() for value in data]
+        return self.send_data_to_server([time() - self.time_start, *flattened_data], send_meta_data)
 
     def send_multiple_body_data_to_server(self, body_data: Dict[str, Dict[Property, List[float]]]) -> Dict:
         """
@@ -410,7 +444,6 @@ class MultiverseWriter(MultiverseClient):
 
 
 class MultiverseAPI(MultiverseClient):
-
     BASE_NAME: str = "api_requester"
     """
     The base name of the Multiverse reader.
