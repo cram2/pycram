@@ -63,11 +63,12 @@ class DualArmPickupAction(PickUpAction):
         distances = []
         # Iterate over possible grippers
         for gripper in self.gripper_list:
-            transform: Transform = local_transformer.lookup_transform_from_source_to_target_frame(gripper,
-                                                                                                  object_frame)
-            translation: Vector3 = transform.translation
-            distance = norm(array([translation.x, translation.y, translation.z]))
-            rospy.loginfo("Distance between {} and {}: {}".format(gripper, obj_desig.name, str(distance)))
+            # Object pose in gripper frame
+            object_T_gripper: Transform = local_transformer.lookup_transform_from_source_to_target_frame(gripper,
+                                                                                            object_frame)
+            object_V_gripper: Vector3 = object_T_gripper.translation  # translation vector
+            distance = norm(array([object_V_gripper.x, object_V_gripper.y, object_V_gripper.z]))
+            rospy.loginfo(f"Distance between {gripper} and {obj_desig.name}: {distance}")
             distances.append(distance)
 
         min_index = distances.index(min(distances))
