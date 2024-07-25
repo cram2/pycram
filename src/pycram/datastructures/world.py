@@ -228,49 +228,17 @@ class World(StateEntity, ABC):
         """
         Initializes the goal validators for the World objects' poses, positions, and orientations.
         """
-        # Goal validators for multiple objects
-        self.multi_pose_goal_validator = MultiPoseGoalValidator(
-            lambda x: list(self.get_multiple_object_poses(x).values()),
-            self.acceptable_pose_error, self.acceptable_percentage_of_goal)
-        self.multi_position_goal_validator = MultiPositionGoalValidator(
-            lambda x: list(self.get_multiple_object_positions(x).values()),
-            self.acceptable_position_error, self.acceptable_percentage_of_goal)
-        self.multi_orientation_goal_validator = MultiOrientationGoalValidator(
-            lambda x: list(self.get_multiple_object_orientations(x).values()),
-            self.acceptable_orientation_error, self.acceptable_percentage_of_goal)
 
         # Goal validators for an object
         self.pose_goal_validator = PoseGoalValidator(self.get_object_pose, self.acceptable_pose_error,
                                                      self.acceptable_percentage_of_goal)
-        self.position_goal_validator = PositionGoalValidator(self.get_object_position, self.acceptable_position_error,
-                                                             self.acceptable_percentage_of_goal)
-        self.orientation_goal_validator = OrientationGoalValidator(self.get_object_orientation,
-                                                                   self.acceptable_orientation_error,
-                                                                   self.acceptable_percentage_of_goal)
 
-        # Goal validators for the links of an object
-        self.link_pose_goal_validator = PoseGoalValidator(self.get_link_pose, self.acceptable_pose_error)
-        self.link_position_goal_validator = PositionGoalValidator(self.get_link_position,
-                                                                  self.acceptable_position_error)
-        self.link_orientation_goal_validator = OrientationGoalValidator(self.get_link_orientation,
-                                                                        self.acceptable_orientation_error,
-                                                                        self.acceptable_percentage_of_goal)
+        # Goal validators for multiple objects
+        self.multi_pose_goal_validator = MultiPoseGoalValidator(
+            lambda x: list(self.get_multiple_object_poses(x).values()),
+            self.acceptable_pose_error, self.acceptable_percentage_of_goal)
 
-        self.multi_link_pose_goal_validator = MultiPoseGoalValidator(
-            lambda x: list(self.get_multiple_link_poses(x).values()), self.acceptable_pose_error,
-            self.acceptable_percentage_of_goal)
-        self.multi_link_position_goal_validator = MultiPositionGoalValidator(
-            lambda x: list(self.get_multiple_link_positions(x).values()), self.acceptable_position_error,
-            self.acceptable_percentage_of_goal)
-        self.multi_link_orientation_goal_validator = MultiOrientationGoalValidator(
-            lambda x: list(self.get_multiple_link_orientations(x).values()), self.acceptable_orientation_error,
-            self.acceptable_percentage_of_goal)
-
-        # Goal validators for the joints of an object
-        self.joint_position_goal_validator = JointPositionGoalValidator(
-            self.get_joint_position, acceptable_orientation_error=self.acceptable_orientation_error,
-            acceptable_position_error=self.acceptable_position_error,
-            acceptable_percentage_of_goal_achieved=self.acceptable_percentage_of_goal)
+        # Goal validator for the joints of an object
         self.multi_joint_position_goal_validator = MultiJointPositionGoalValidator(
             lambda x: list(self.get_multiple_joint_positions(x).values()),
             acceptable_orientation_error=self.acceptable_orientation_error,
@@ -661,7 +629,7 @@ class World(StateEntity, ABC):
         param pose: The target pose.
         """
         goal = self.get_move_base_joint_goal(pose)
-        self.robot.set_joint_positions(goal)
+        self.robot.set_multiple_joint_positions(goal)
 
     def get_move_base_joint_goal(self, pose: Pose) -> Dict[str, float]:
         """
@@ -758,15 +726,15 @@ class World(StateEntity, ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
-    def reset_joint_position(self, joint: Joint, joint_position: float) -> None:
+    def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
         """
         Reset the joint position instantly without physics simulation
 
         :param joint: The joint to reset the position for.
         :param joint_position: The new joint pose.
+        :return: True if the reset was successful, False otherwise
         """
-        pass
+        return self.set_multiple_joint_positions({joint: joint_position})
 
     @abstractmethod
     def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
@@ -784,7 +752,6 @@ class World(StateEntity, ABC):
         """
         pass
 
-    @abstractmethod
     def reset_object_base_pose(self, obj: Object, pose: Pose) -> bool:
         """
         Reset the world position and orientation of the base of the object instantaneously,
@@ -794,15 +761,16 @@ class World(StateEntity, ABC):
         :param pose: The new pose as a Pose object.
         :return: True if the reset was successful, False otherwise.
         """
-        pass
+        return self.reset_multiple_objects_base_poses({obj: pose})
 
     @abstractmethod
-    def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> None:
+    def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> bool:
         """
         Reset the world position and orientation of the base of multiple objects instantaneously,
         not through physics simulation. (x,y,z) position vector and (x,y,z,w) quaternion orientation.
 
         :param objects: A dictionary with objects as keys and poses as values.
+        :return: True if the reset was successful, False otherwise.
         """
         pass
 
@@ -951,7 +919,7 @@ class World(StateEntity, ABC):
         """
         for obj in self.objects:
             obj.set_pose(obj.original_pose)
-            obj.set_joint_positions(dict(zip(list(obj.joint_names), [0] * len(obj.joint_names))))
+            obj.set_multiple_joint_positions(dict(zip(list(obj.joint_names), [0] * len(obj.joint_names))))
 
     def reset_robot(self) -> None:
         """

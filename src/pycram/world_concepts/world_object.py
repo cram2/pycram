@@ -908,9 +908,18 @@ class Object(WorldEntity):
         if len(joint_names) == 0:
             return
         joint_positions = [0] * len(joint_names)
-        self.set_joint_positions(dict(zip(joint_names, joint_positions)))
+        self.set_multiple_joint_positions(dict(zip(joint_names, joint_positions)))
 
-    def set_joint_positions(self, joint_positions: Dict[str, float]) -> None:
+    def set_joint_position(self, joint_name: str, joint_position: float) -> None:
+        """
+        Sets the position of the given joint to the given joint pose and updates the poses of all attached objects.
+
+        :param joint_name: The name of the joint
+        :param joint_position: The target pose for this joint
+        """
+        self.world.reset_joint_position(self.joints[joint_name], joint_position)
+
+    def set_multiple_joint_positions(self, joint_positions: Dict[str, float]) -> None:
         """
         Sets the current position of multiple joints at once, this method should be preferred when setting
         multiple joints at once instead of running :func:`~Object.set_joint_position` in a loop.
@@ -924,18 +933,6 @@ class Object(WorldEntity):
             self._update_all_links_poses()
             self.update_link_transforms()
             self._set_attached_objects_poses()
-
-    def set_joint_position(self, joint_name: str, joint_position: float) -> None:
-        """
-        Sets the position of the given joint to the given joint pose and updates the poses of all attached objects.
-
-        :param joint_name: The name of the joint
-        :param joint_position: The target pose for this joint
-        """
-        self.joints[joint_name].position = joint_position
-        self._update_all_links_poses()
-        self.update_link_transforms()
-        self._set_attached_objects_poses()
 
     def get_joint_position(self, joint_name: str) -> float:
         """

@@ -234,7 +234,7 @@ def request_giskard_ik(target_pose: Pose, robot: Object, gripper: str) -> Tuple[
             robot_joint_states[joint_name] = state
 
     with UseProspectionWorld():
-        prospection_robot.set_joint_positions(robot_joint_states)
+        prospection_robot.set_multiple_joint_positions(robot_joint_states)
         prospection_robot.set_pose(pose)
 
         tip_pose = prospection_robot.get_link_pose(gripper)

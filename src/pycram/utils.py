@@ -46,7 +46,7 @@ def _apply_ik(robot: 'pycram.world_concepts.WorldObject', pose_and_joint_poses: 
     """
     pose, joint_states = pose_and_joint_poses
     robot.set_pose(pose)
-    robot.set_joint_positions(joint_states)
+    robot.set_multiple_joint_positions(joint_states)
 
 
 class GeneratorList:

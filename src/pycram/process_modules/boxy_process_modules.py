@@ -89,13 +89,13 @@ class BoxyMoveHead(ProcessModule):
         pose_in_shoulder = local_transformer.transform_pose(target, robot.get_link_tf_frame("neck_shoulder_link"))
 
         if pose_in_shoulder.position.x >= 0 and pose_in_shoulder.position.x >= abs(pose_in_shoulder.position.y):
-            robot.set_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("neck", "front"))
+            robot.set_multiple_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("neck", "front"))
         if pose_in_shoulder.position.y >= 0 and pose_in_shoulder.position.y >= abs(pose_in_shoulder.position.x):
-            robot.set_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("neck", "neck_right"))
+            robot.set_multiple_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("neck", "neck_right"))
         if pose_in_shoulder.position.x <= 0 and abs(pose_in_shoulder.position.x) > abs(pose_in_shoulder.position.y):
-            robot.set_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("neck", "back"))
+            robot.set_multiple_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("neck", "back"))
         if pose_in_shoulder.position.y <= 0 and abs(pose_in_shoulder.position.y) > abs(pose_in_shoulder.position.x):
-            robot.set_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("neck", "neck_left"))
+            robot.set_multiple_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("neck", "neck_left"))
 
         pose_in_shoulder = local_transformer.transform_pose(target, robot.get_link_tf_frame("neck_shoulder_link"))
 
@@ -115,7 +115,7 @@ class BoxyMoveGripper(ProcessModule):
         robot = World.robot
         gripper = desig.gripper
         motion = desig.motion
-        robot.set_joint_positions(RobotDescription.current_robot_description.kinematic_chains[gripper].get_static_gripper_state(motion))
+        robot.set_multiple_joint_positions(RobotDescription.current_robot_description.kinematic_chains[gripper].get_static_gripper_state(motion))
 
 
 class BoxyDetecting(ProcessModule):
@@ -160,9 +160,9 @@ class BoxyMoveArmJoints(ProcessModule):
 
         robot = World.robot
         if desig.right_arm_poses:
-            robot.set_joint_positions(desig.right_arm_poses)
+            robot.set_multiple_joint_positions(desig.right_arm_poses)
         if desig.left_arm_poses:
-            robot.set_joint_positions(desig.left_arm_poses)
+            robot.set_multiple_joint_positions(desig.left_arm_poses)
 
 
 class BoxyWorldStateDetecting(ProcessModule):

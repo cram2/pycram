@@ -164,7 +164,7 @@ class TestGoalValidator(BulletWorldTestCase):
 
         for percent in [0.5, 1]:
             current_joint_positions = goal_joint_positions * percent
-            self.robot.set_joint_positions(dict(zip(joint_names, current_joint_positions.tolist())))
+            self.robot.set_multiple_joint_positions(dict(zip(joint_names, current_joint_positions.tolist())))
             self.assertTrue(np.allclose(self.robot.get_joint_position('torso_lift_joint'), current_joint_positions[0],
                                         atol=0.001))
             self.assertTrue(
@@ -307,7 +307,7 @@ class TestGoalValidator(BulletWorldTestCase):
 
         for percent in [0.5, 1]:
             current_joint_position = goal_joint_positions * percent
-            self.robot.set_joint_positions(dict(zip(joint_names, current_joint_position)))
+            self.robot.set_multiple_joint_positions(dict(zip(joint_names, current_joint_position)))
             self.assertTrue(np.allclose(list(self.robot.get_multiple_joint_positions(joint_names).values()),
                                         current_joint_position, atol=0.001))
             if percent == 1:
