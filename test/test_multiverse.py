@@ -2,7 +2,10 @@
 import os
 import unittest
 
+import numpy as np
 import psutil
+from tf.transformations import quaternion_from_euler, euler_from_quaternion, quaternion_multiply, quaternion_inverse, \
+    quaternion_conjugate
 from typing_extensions import Optional, List
 
 from pycram.datastructures.dataclasses import Color, ContactPointsList, ContactPoint
@@ -11,6 +14,8 @@ from pycram.datastructures.pose import Pose
 from pycram.designators.object_designator import BelieveObject
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.world_concepts.world_object import Object
+from pycram.worlds.multiverse_functions.error_checkers import calculate_angle_between_quaternions, \
+    calculate_quaternion_difference
 
 multiverse_installed = True
 try:
@@ -136,7 +141,6 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assertTrue(robot in self.multiverse.objects)
         self.assertTrue(self.multiverse.robot.name == robot.name)
 
-    # @unittest.skip("Not implemented feature yet.")
     def test_destroy_robot(self):
         if self.multiverse.robot is None:
             self.spawn_robot()
@@ -152,14 +156,27 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.spawn_robot()
         self.assertTrue(self.multiverse.robot in self.multiverse.objects)
 
-    # @unittest.skip("This will cause respawning of the robot.")
     def test_set_robot_position(self):
+        for i in range(3):
+            self.spawn_robot()
+            new_position = [-3, -3, 0.001]
+            self.multiverse.robot.set_position(new_position)
+            robot_position = self.multiverse.robot.get_position_as_list()
+            self.assert_list_is_equal(robot_position[:2], new_position[:2], delta=0.2)
+            self.tearDown()
+
+    def test_set_robot_orientation(self):
         self.spawn_robot()
-        new_position = [-3, -3, 0.001]
-        # self.multiverse.writer.send_multiple_body_data_to_server({"odom_vel_lin_x_joint": {"joint_tvalue": [-4]}})
-        self.multiverse.robot.set_position(new_position)
-        robot_position = self.multiverse.robot.get_position_as_list()
-        self.assert_list_is_equal(robot_position[:2], new_position[:2], delta=0.2)
+        for i in range(3):
+            current_quaternion = self.multiverse.robot.get_orientation_as_list()
+            # rotate by 45 degrees without using euler angles
+            rotation_quaternion = quaternion_from_euler(0, 0, np.pi / 4)
+            new_quaternion = quaternion_multiply(current_quaternion, rotation_quaternion)
+            self.multiverse.robot.set_orientation(new_quaternion)
+            robot_orientation = self.multiverse.robot.get_orientation_as_list()
+            quaternion_difference = calculate_angle_between_quaternions(new_quaternion, robot_orientation)
+            self.assertAlmostEqual(quaternion_difference, 0, delta=0.01)
+        # self.tearDown()
 
     def test_attach_object(self):
         milk = self.spawn_milk([1, 0.1, 0.1])
@@ -175,7 +192,6 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         new_cup_position = cup.get_position_as_list()
         self.assert_list_is_equal(new_cup_position[:2], estimated_cup_position[:2])
 
-    # @unittest.skip("Not implemented feature yet.")
     def test_detach_object(self):
         for i in range(2):
             milk = self.spawn_milk([1, 0, 0.1])

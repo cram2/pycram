@@ -904,7 +904,7 @@ class Object(WorldEntity):
         """
         Sets the current position of all joints to 0. This is useful if the joints should be reset to their default
         """
-        joint_names = [joint.name for joint in self.joints.values() if not joint.is_virtual]
+        joint_names = [joint.name for joint in self.joints.values()]  # if not joint.is_virtual]
         if len(joint_names) == 0:
             return
         joint_positions = [0] * len(joint_names)
