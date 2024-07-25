@@ -282,7 +282,7 @@ To verify that it works, you can execute any Testcase.
 **Useful tips**
 
 - `Keyboard shortcuts <https://www.jetbrains.com/help/pycharm/mastering-keyboard-shortcuts.html>`_
-    - `Keymap <https://www.jetbrains.com/help/pycharm/mastering-keyboard-shortcuts.html#ws_print_keymap>`_
+    - `Keymap <https://www.jetbrains.com/help/pycharm/mastering-keyboard-shortcuts.html#ws_print_keymap>`_, which can be configured in **Settings | Keymap**. The default is GNOME.
 
 - `Python interpreter <https://www.jetbrains.com/help/pycharm/configuring-python-interpreter.html>`_
     - `Python virtual environment <https://www.jetbrains.com/help/pycharm/creating-virtual-environment.html>`_
@@ -296,6 +296,8 @@ To verify that it works, you can execute any Testcase.
 - **F12**: Open terminal
 
 - **Double Shift**: Quick file search
+
+- **Alt + Shift + 1**: Reveal/Select current file in Project View
 
 - **Ctrl F/R**: Find/Replace text in current file
 
