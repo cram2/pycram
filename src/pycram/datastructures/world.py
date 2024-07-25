@@ -726,6 +726,7 @@ class World(StateEntity, ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
     def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
         """
         Reset the joint position instantly without physics simulation
@@ -734,7 +735,7 @@ class World(StateEntity, ABC):
         :param joint_position: The new joint pose.
         :return: True if the reset was successful, False otherwise
         """
-        return self.set_multiple_joint_positions({joint: joint_position})
+        pass
 
     @abstractmethod
     def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
@@ -752,6 +753,7 @@ class World(StateEntity, ABC):
         """
         pass
 
+    @abstractmethod
     def reset_object_base_pose(self, obj: Object, pose: Pose) -> bool:
         """
         Reset the world position and orientation of the base of the object instantaneously,
@@ -761,7 +763,7 @@ class World(StateEntity, ABC):
         :param pose: The new pose as a Pose object.
         :return: True if the reset was successful, False otherwise.
         """
-        return self.reset_multiple_objects_base_poses({obj: pose})
+        pass
 
     @abstractmethod
     def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> bool:

@@ -191,6 +191,10 @@ class Multiverse(World):
     def get_multiple_link_orientations(self, links: List[Link]) -> Dict[str, List[float]]:
         return self.reader.get_multiple_body_orientations([link.name for link in links])
 
+    def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
+        self.writer.set_body_property(joint.name, self.get_joint_position_name(joint), [joint_position])
+        return True
+
     @validate_multiple_joint_positions
     def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
         data = {joint.name: {self.get_joint_position_name(joint): [position]}
@@ -199,9 +203,10 @@ class Multiverse(World):
         return True
 
     def get_joint_position(self, joint: Joint) -> Optional[float]:
-        data = self.get_multiple_joint_positions([joint])
+        joint_position_name = self.get_joint_position_name(joint)
+        data = self.reader.get_body_data(joint.name, [joint_position_name])
         if data is not None:
-            return data[joint.name]
+            return data[joint_position_name.value][0]
 
     def get_multiple_joint_positions(self, joints: List[Joint]) -> Optional[Dict[str, float]]:
         joint_names = [joint.name for joint in joints]
@@ -282,7 +287,15 @@ class Multiverse(World):
         :param wait: Whether to wait until the pose is received.
         return: The pose of the body.
         """
-        return self.reader.get_body_pose(body_name, wait)
+        data = self.reader.get_body_pose(body_name, wait)
+        return Pose(data[MultiverseBodyProperty.POSITION.value],
+                    self.wxyz_to_xyzw(data[MultiverseBodyProperty.ORIENTATION.value]))
+
+    def wxyz_to_xyzw(self, wxyz: List[float]) -> List[float]:
+        """
+        Convert a quaternion from WXYZ to XYZW format.
+        """
+        return [wxyz[1], wxyz[2], wxyz[3], wxyz[0]]
 
     def _get_multiple_body_poses(self, body_names: List[str]) -> Dict[str, Pose]:
         return self.reader.get_multiple_body_poses(body_names)
