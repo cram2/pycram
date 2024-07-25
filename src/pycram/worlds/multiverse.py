@@ -1,15 +1,13 @@
 import logging
 import os
-from time import sleep, time
 
 import numpy as np
-import rospy
 from tf.transformations import quaternion_matrix
 from typing_extensions import List, Dict, Optional
 
 from .multiverse_communication.client_manager import MultiverseClientManager
+from .multiverse_datastructures.enums import MultiverseJointProperty, MultiverseBodyProperty
 from .multiverse_functions.goal_validator import validate_object_pose, validate_multiple_joint_positions
-
 from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
 from ..datastructures.enums import WorldMode, JointType, ObjectType
 from ..datastructures.pose import Pose
@@ -25,9 +23,9 @@ class Multiverse(World):
     This class implements an interface between Multiverse and PyCRAM.
     """
 
-    _joint_type_to_position_name: Dict[JointType, str] = {
-        JointType.REVOLUTE: "joint_rvalue",
-        JointType.PRISMATIC: "joint_tvalue",
+    _joint_type_to_position_name: Dict[JointType, MultiverseJointProperty] = {
+        JointType.REVOLUTE: MultiverseJointProperty.REVOLUTE_JOINT_POSITION,
+        JointType.PRISMATIC: MultiverseJointProperty.PRISMATIC_JOINT_POSITION,
     }
     """
     A dictionary to map JointType to the corresponding multiverse attribute name.
@@ -140,10 +138,9 @@ class Multiverse(World):
         self.floor = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf",
                             world=self)
 
-    def get_joint_position_name(self, joint: Joint) -> str:
+    def get_joint_position_name(self, joint: Joint) -> MultiverseJointProperty:
         if joint.type not in self._joint_type_to_position_name:
-            logging.warning(f"Invalid joint type: {joint.type}")
-            return "joint_rvalue"
+            raise ValueError(f"Joint type {joint.type} is not supported in Multiverse")
         return self._joint_type_to_position_name[joint.type]
 
     def load_object_and_get_id(self, name: Optional[str] = None,
@@ -194,12 +191,6 @@ class Multiverse(World):
     def get_multiple_link_orientations(self, links: List[Link]) -> Dict[str, List[float]]:
         return self.reader.get_multiple_body_orientations([link.name for link in links])
 
-    def reset_joint_position(self, joint: Joint, joint_position: float) -> None:
-        self.joint_position_goal_validator.register_goal(joint_position, joint.type, joint)
-        self.writer.send_body_data_to_server(joint.name,
-                                             {self.get_joint_position_name(joint): [joint_position]})
-        self.joint_position_goal_validator.wait_until_goal_is_achieved()
-
     @validate_multiple_joint_positions
     def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
         data = {joint.name: {self.get_joint_position_name(joint): [position]}
@@ -208,16 +199,16 @@ class Multiverse(World):
         return True
 
     def get_joint_position(self, joint: Joint) -> Optional[float]:
-        data = self.reader.get_body_property(joint.name, self.get_joint_position_name(joint))
-        if data is not None and len(data) > 0:
-            return data[0]
+        data = self.get_multiple_joint_positions([joint])
+        if data is not None:
+            return data[joint.name]
 
     def get_multiple_joint_positions(self, joints: List[Joint]) -> Optional[Dict[str, float]]:
         joint_names = [joint.name for joint in joints]
         data = self.reader.get_multiple_body_data(joint_names, {joint.name: [self.get_joint_position_name(joint)]
                                                                 for joint in joints})
         if data is not None:
-            return {joint_name: list(data[joint_name].values())[0][0] for joint_name in joint_names}
+            return {name: list(value.values())[0][0] for name, value in data.items()}
 
     def get_link_pose(self, link: Link) -> Optional[Pose]:
         return self._get_body_pose(link.name)
@@ -260,10 +251,29 @@ class Multiverse(World):
         return False
 
     def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> None:
-        # TODO: Implement a more efficient way to reset multiple objects' poses by sending all the poses at once,
-        #  instead of sending them one by one, this can be done constructing the metadata and data dictionaries.
-        for obj, pose in objects.items():
-            self.reset_object_base_pose(obj, pose)
+        """
+        Reset the poses of multiple objects in the simulator.
+        param objects: The dictionary of objects and poses.
+        """
+        self._set_multiple_body_poses({obj.name: pose for obj, pose in objects.items()})
+
+    def _set_body_pose(self, body_name: str, pose: Pose) -> None:
+        """
+        Reset the pose of a body (object, link, or joint) in the simulator.
+        param body_name: The name of the body.
+        param pose: The pose of the body.
+        """
+        self._set_multiple_body_poses({body_name: pose})
+
+    def _set_multiple_body_poses(self, body_poses: Dict[str, Pose]) -> None:
+        """
+        Reset the poses of multiple bodies in the simulator.
+        param body_poses: The dictionary of body names and poses.
+        """
+        self.writer.set_multiple_body_poses({name: {MultiverseBodyProperty.POSITION: pose.position_as_list(),
+                                                    MultiverseBodyProperty.ORIENTATION:
+                                                        self.xyzw_to_wxyz(pose.orientation_as_list())}
+                                             for name, pose in body_poses.items()})
 
     def _get_body_pose(self, body_name: str, wait: Optional[bool] = True) -> Optional[Pose]:
         """
@@ -292,15 +302,9 @@ class Multiverse(World):
     def multiverse_reset_world(self):
         self.writer.reset_world()
 
-    def _set_body_pose(self, body_name: str, pose: Pose) -> None:
-        """
-        Reset the pose of a body (object, link, or joint) in the simulator.
-        param body_name: The name of the body.
-        param pose: The pose of the body.
-        """
-        xyzw = pose.orientation_as_list()
-        wxyz = [xyzw[3], *xyzw[:3]]
-        self.writer.set_body_pose(body_name, pose.position_as_list(), wxyz)
+    @staticmethod
+    def xyzw_to_wxyz(xyzw: List[float]) -> List[float]:
+        return [xyzw[3], *xyzw[:3]]
 
     def disconnect_from_physics_server(self) -> None:
         MultiverseClientManager.stop_all_clients()

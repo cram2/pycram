@@ -184,22 +184,16 @@ class BulletWorld(World):
 
     def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
         for joint, joint_position in joint_positions.items():
-            self.reset_joint_position(joint, joint_position)
+            p.resetJointState(joint.object_id, joint.id, joint_position, physicsClientId=self.id)
         return True
 
     def get_multiple_joint_positions(self, joints: List[Joint]) -> Dict[str, float]:
         return {joint.name: self.get_joint_position(joint) for joint in joints}
 
-    def reset_joint_position(self, joint: ObjectDescription.Joint, joint_position: float) -> None:
-        p.resetJointState(joint.object_id, joint.id, joint_position, physicsClientId=self.id)
-
-    def reset_object_base_pose(self, obj: Object, pose: Pose) -> None:
-        p.resetBasePositionAndOrientation(obj.id, pose.position_as_list(), pose.orientation_as_list(),
-                                          physicsClientId=self.id)
-
     def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> None:
         for obj, pose in objects.items():
-            self.reset_object_base_pose(obj, pose)
+            p.resetBasePositionAndOrientation(obj.id, pose.position_as_list(), pose.orientation_as_list(),
+                                              physicsClientId=self.id)
 
     def step(self):
         p.stepSimulation(physicsClientId=self.id)
