@@ -229,16 +229,19 @@ class World(StateEntity, ABC):
         Initializes the goal validators for the World objects' poses, positions, and orientations.
         """
 
-        # Goal validators for an object
+        # Objects Pose goal validators
         self.pose_goal_validator = PoseGoalValidator(self.get_object_pose, self.acceptable_pose_error,
                                                      self.acceptable_percentage_of_goal)
-
-        # Goal validators for multiple objects
         self.multi_pose_goal_validator = MultiPoseGoalValidator(
             lambda x: list(self.get_multiple_object_poses(x).values()),
             self.acceptable_pose_error, self.acceptable_percentage_of_goal)
 
-        # Goal validator for the joints of an object
+        # Joint Goal validators
+        self.joint_position_goal_validator = JointPositionGoalValidator(
+            self.get_joint_position,
+            acceptable_orientation_error=self.acceptable_orientation_error,
+            acceptable_position_error=self.acceptable_position_error,
+            acceptable_percentage_of_goal_achieved=self.acceptable_percentage_of_goal)
         self.multi_joint_position_goal_validator = MultiJointPositionGoalValidator(
             lambda x: list(self.get_multiple_joint_positions(x).values()),
             acceptable_orientation_error=self.acceptable_orientation_error,

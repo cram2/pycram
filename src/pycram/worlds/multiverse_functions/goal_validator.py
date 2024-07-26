@@ -446,12 +446,14 @@ def validate_object_pose(pose_setter_func):
     """
 
     def wrapper(world: 'World', obj: 'Object', pose: 'Pose'):
+
         attachments_pose_goal = obj.get_target_poses_of_attached_objects_given_parent(pose)
         if len(attachments_pose_goal) == 0:
             world.pose_goal_validator.register_goal(pose, obj)
         else:
             world.multi_pose_goal_validator.register_goal([pose, *list(attachments_pose_goal.values())],
                                                           [obj, *list(attachments_pose_goal.keys())])
+
         if not pose_setter_func(world, obj, pose):
             world.pose_goal_validator.reset()
             world.multi_pose_goal_validator.reset()
@@ -459,6 +461,27 @@ def validate_object_pose(pose_setter_func):
 
         world.pose_goal_validator.wait_until_goal_is_achieved()
         world.multi_pose_goal_validator.wait_until_goal_is_achieved()
+        return True
+
+    return wrapper
+
+
+def validate_joint_position(position_setter_func):
+    """
+    A decorator to validate the joint position.
+    :param position_setter_func: The function to set the joint position.
+    """
+
+    def wrapper(world: 'World', joint: 'Joint', position: float):
+
+        joint_type = joint.type
+        world.joint_position_goal_validator.register_goal(position, joint_type, joint)
+
+        if not position_setter_func(world, joint, position):
+            world.joint_position_goal_validator.reset()
+            return False
+
+        world.joint_position_goal_validator.wait_until_goal_is_achieved()
         return True
 
     return wrapper
