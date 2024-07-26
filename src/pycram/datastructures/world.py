@@ -18,7 +18,7 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
                                           MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape,
                                           SphereVisualShape,
                                           CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
-                                          ObjectState, State, WorldState, ClosestPointsList,
+                                          ObjectState, WorldState, ClosestPointsList,
                                           ContactPointsList, VirtualMoveBaseJoints)
 from ..datastructures.enums import JointType, ObjectType, WorldMode, Arms
 from ..datastructures.pose import Pose, Transform
@@ -26,86 +26,14 @@ from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.event import Event
-from ..worlds.multiverse_functions.error_checkers import calculate_angle_between_quaternions, \
-    calculate_quaternion_difference
-from ..worlds.multiverse_functions.goal_validator import MultiPoseGoalValidator, \
-    MultiPositionGoalValidator, MultiOrientationGoalValidator, PoseGoalValidator, PositionGoalValidator, \
-    OrientationGoalValidator, JointPositionGoalValidator, MultiJointPositionGoalValidator, GoalValidator
+from ..worlds.multiverse_extras.goal_validator import (MultiPoseGoalValidator, PoseGoalValidator,
+                                                       JointPositionGoalValidator, MultiJointPositionGoalValidator,
+                                                       GoalValidator)
+from ..datastructures.world_entity import StateEntity
 
 if TYPE_CHECKING:
     from ..world_concepts.world_object import Object
     from ..description import Link, Joint
-
-
-class StateEntity:
-    """
-    The StateEntity class is used to store the state of an object or the physics simulator. This is used to save and
-    restore the state of the World.
-    """
-
-    def __init__(self):
-        self._saved_states: Dict[int, State] = {}
-
-    @property
-    def saved_states(self) -> Dict[int, State]:
-        """
-        Returns the saved states of this entity.
-        """
-        return self._saved_states
-
-    def save_state(self, state_id: int) -> int:
-        """
-        Saves the state of this entity with the given state id.
-
-        :param state_id: The unique id of the state.
-        """
-        self._saved_states[state_id] = self.current_state
-        return state_id
-
-    @property
-    @abstractmethod
-    def current_state(self) -> State:
-        """
-        Returns the current state of this entity.
-
-        :return: The current state of this entity.
-        """
-        pass
-
-    @current_state.setter
-    @abstractmethod
-    def current_state(self, state: State) -> None:
-        """
-        Sets the current state of this entity.
-
-        :param state: The new state of this entity.
-        """
-        pass
-
-    def restore_state(self, state_id: int) -> None:
-        """
-        Restores the state of this entity from a saved state using the given state id.
-
-        :param state_id: The unique id of the state.
-        """
-        self.current_state = self.saved_states[state_id]
-
-    def remove_saved_states(self) -> None:
-        """
-        Removes all saved states of this entity.
-        """
-        self._saved_states = {}
-
-
-class WorldEntity(StateEntity, ABC):
-    """
-    A data class that represents an entity of the world, such as an object or a link.
-    """
-
-    def __init__(self, _id: int, world: Optional[World] = None):
-        StateEntity.__init__(self)
-        self.id = _id
-        self.world: World = world if world is not None else World.current_world
 
 
 class World(StateEntity, ABC):
@@ -161,7 +89,7 @@ class World(StateEntity, ABC):
     The prefix for the prospection world name.
     """
 
-    acceptable_position_error: float = 5e-3  # 5 cm
+    acceptable_position_error: float = 5e-2  # 5 cm
     acceptable_orientation_error: float = 10 * np.pi / 180  # 10 degrees
     acceptable_pose_error: Tuple[float, float] = (acceptable_position_error, acceptable_orientation_error)
     use_percentage_of_goal: bool = True
@@ -223,6 +151,33 @@ class World(StateEntity, ABC):
         self._current_state: Optional[WorldState] = None
 
         self._init_goal_validators()
+
+    @property
+    def robot_description(self) -> RobotDescription:
+        """
+        Returns the current robot description.
+        """
+        return RobotDescription.current_robot_description
+
+    @property
+    def robot_has_actuators(self) -> bool:
+        """
+        Returns whether the robot has actuators.
+        """
+        return self.robot_description.has_actuators
+
+    def get_actuator_for_joint(self, joint: Joint) -> str:
+        """
+        Get the actuator name for a given joint.
+        """
+        return self.robot_joint_actuators.get(joint.name, joint.name)
+
+    @property
+    def robot_joint_actuators(self) -> Dict[str, str]:
+        """
+        Returns the joint actuators of the robot.
+        """
+        return self.robot_description.joint_actuators
 
     def _init_goal_validators(self):
         """
@@ -648,14 +603,13 @@ class World(StateEntity, ABC):
                 move_base_joints.translation_y: position_diff[1],
                 move_base_joints.angular_z: target_angle}
 
-    @staticmethod
-    def get_move_base_joints() -> VirtualMoveBaseJoints:
+    def get_move_base_joints(self) -> VirtualMoveBaseJoints:
         """
         Get the move base joints of the robot.
 
         :return: The move base joints.
         """
-        return RobotDescription.current_robot_description.virtual_move_base_joints
+        return self.robot_description.virtual_move_base_joints
 
     @staticmethod
     def get_position_diff(current_position: List[float], target_position: List[float]) -> List[float]:
@@ -793,7 +747,7 @@ class World(StateEntity, ABC):
         :param arm: The arm for which the tool frame link should be returned.
         :return: The tool frame link of the arm.
         """
-        ee_link_name = RobotDescription.current_robot_description.get_arm_tool_frame(arm)
+        ee_link_name = self.robot_description.get_arm_tool_frame(arm)
         return self.robot.get_link(ee_link_name)
 
     @abstractmethod

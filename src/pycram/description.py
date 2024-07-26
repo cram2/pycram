@@ -11,7 +11,7 @@ from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHEC
 from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape
 from .datastructures.enums import JointType
 from .datastructures.pose import Pose, Transform
-from .datastructures.world import WorldEntity
+from .datastructures.world_entity import WorldEntity
 from .local_transformer import LocalTransformer
 
 if TYPE_CHECKING:
@@ -120,7 +120,7 @@ class JointDescription(EntityDescription):
 
     @property
     @abstractmethod
-    def parent_link_name(self) -> str:
+    def parent(self) -> str:
         """
         :return: The name of the parent link of this joint.
         """
@@ -128,7 +128,7 @@ class JointDescription(EntityDescription):
 
     @property
     @abstractmethod
-    def child_link_name(self) -> str:
+    def child(self) -> str:
         """
         :return: The name of the child link of this joint.
         """
@@ -504,7 +504,7 @@ class Joint(ObjectEntity, JointDescription, ABC):
 
         :return: The parent link as a AbstractLink object.
         """
-        return self.object.get_link(self.parent_link_name)
+        return self.object.get_link(self.parent)
 
     @property
     def child_link(self) -> Link:
@@ -513,7 +513,7 @@ class Joint(ObjectEntity, JointDescription, ABC):
 
         :return: The child link as a AbstractLink object.
         """
-        return self.object.get_link(self.child_link_name)
+        return self.object.get_link(self.child)
 
     @property
     def position(self) -> float:
@@ -612,12 +612,51 @@ class ObjectDescription(EntityDescription):
         """
         :param path: The path of the file to update the description data from.
         """
+
+        self._links: Optional[List[LinkDescription]] = None
+        self._joints: Optional[List[JointDescription]] = None
+        self._link_map: Optional[Dict[str, Any]] = None
+        self._joint_map: Optional[Dict[str, Any]] = None
+
         if path:
             self.update_description_from_file(path)
         else:
             self._parsed_description = None
 
         self.virtual_joint_names: List[str] = []
+
+    @property
+    @abstractmethod
+    def child_map(self) -> Dict[str, List[Tuple[str, str]]]:
+        """
+        :return: A dictionary mapping the name of a link to its children which are represented as a tuple of the child
+            joint name and the link name.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def parent_map(self) -> Dict[str, Tuple[str, str]]:
+        """
+        :return: A dictionary mapping the name of a link to its parent joint and link as a tuple.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def link_map(self) -> Dict[str, LinkDescription]:
+        """
+        :return: A dictionary mapping the name of a link to its description.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def joint_map(self) -> Dict[str, JointDescription]:
+        """
+        :return: A dictionary mapping the name of a joint to its description.
+        """
+        pass
 
     def is_joint_virtual(self, name: str) -> bool:
         """
@@ -770,12 +809,11 @@ class ObjectDescription(EntityDescription):
         """
         pass
 
-    @abstractmethod
     def get_link_by_name(self, link_name: str) -> LinkDescription:
         """
         :return: The link description with the given name.
         """
-        pass
+        return self.link_map[link_name]
 
     @property
     @abstractmethod
@@ -785,12 +823,11 @@ class ObjectDescription(EntityDescription):
         """
         pass
 
-    @abstractmethod
     def get_joint_by_name(self, joint_name: str) -> JointDescription:
         """
         :return: The joint description with the given name.
         """
-        pass
+        return self.joint_map[joint_name]
 
     @abstractmethod
     def get_root(self) -> str:
@@ -806,7 +843,8 @@ class ObjectDescription(EntityDescription):
         raise NotImplementedError
 
     @abstractmethod
-    def get_chain(self, start_link_name: str, end_link_name: str) -> List[str]:
+    def get_chain(self, start_link_name: str, end_link_name: str, joints: Optional[bool] = True,
+                  links: Optional[bool] = True, fixed: Optional[bool] = True) -> List[str]:
         """
         :return: the chain of links from 'start_link_name' to 'end_link_name'.
         """

@@ -3,11 +3,12 @@ from __future__ import annotations
 
 import rospy
 from typing_extensions import List, Dict, Union, Optional
-from urdf_parser_py.urdf import URDF
 
 from .datastructures.dataclasses import VirtualMoveBaseJoints
+from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType
+from .object_descriptors.urdf import ObjectDescription as URDFObject
 from .utils import suppress_stdout_stderr
-from .datastructures.enums import Arms, Grasp, GripperState, GripperType
+from .worlds.multiverse_extras.helpers import parse_mjcf_actuators
 
 
 class RobotDescriptionManager:
@@ -82,7 +83,7 @@ class RobotDescription:
     """
     Torso joint of the robot
     """
-    urdf_object: URDF
+    urdf_object: URDFObject
     """
     Parsed URDF of the robot
     """
@@ -113,7 +114,7 @@ class RobotDescription:
     """
 
     def __init__(self, name: str, base_link: str, torso_link: str, torso_joint: str, urdf_path: str,
-                 virtual_move_base_joints: Optional[VirtualMoveBaseJoints] = None):
+                 virtual_move_base_joints: Optional[VirtualMoveBaseJoints] = None, mjcf_path: Optional[str] = None):
         """
         Initialize the RobotDescription. The URDF is loaded from the given path and used as basis for the kinematic
         chains.
@@ -123,6 +124,8 @@ class RobotDescription:
         :param torso_link: Torso link of the robot
         :param torso_joint: Torso joint of the robot, this is the joint that moves the torso upwards if there is one
         :param urdf_path: Path to the URDF file of the robot
+        :param virtual_move_base_joints: Virtual move base joint names for mobile robots
+        :param mjcf_path: Path to the MJCF file of the robot
         """
         self.name = name
         self.base_link = base_link
@@ -130,13 +133,35 @@ class RobotDescription:
         self.torso_joint = torso_joint
         with suppress_stdout_stderr():
             # Since parsing URDF causes a lot of warning messages which can't be deactivated, we suppress them
-            self.urdf_object = URDF.from_xml_file(urdf_path)
+            self.urdf_object = URDFObject(urdf_path)
+        self.joint_types = {joint.name: joint.type for joint in self.urdf_object.joints}
+        self.joint_actuators: Optional[Dict] = parse_mjcf_actuators(mjcf_path) if mjcf_path is not None else None
         self.kinematic_chains: Dict[str, KinematicChainDescription] = {}
         self.cameras: Dict[str, CameraDescription] = {}
         self.grasps: Dict[Grasp, List[float]] = {}
         self.links: List[str] = [l.name for l in self.urdf_object.links]
         self.joints: List[str] = [j.name for j in self.urdf_object.joints]
         self.virtual_move_base_joints: Optional[VirtualMoveBaseJoints] = virtual_move_base_joints
+
+    @property
+    def has_actuators(self):
+        """
+        Property to check if the robot has actuators defined in the MJCF file.
+
+        :return: True if the robot has actuators, False otherwise
+        """
+        return self.joint_actuators is not None
+
+    def get_actuator_for_joint(self, joint: str) -> Optional[str]:
+        """
+        Returns the actuator name for a given joint.
+
+        :param joint: Name of the joint
+        :return: Name of the actuator
+        """
+        if self.has_actuators:
+            return self.joint_actuators.get(joint)
+        return None
 
     def add_kinematic_chain_description(self, chain: KinematicChainDescription):
         """
@@ -347,7 +372,7 @@ class KinematicChainDescription:
     """
     Last link of the chain
     """
-    urdf_object: URDF
+    urdf_object: URDFObject
     """
     Parsed URDF of the robot
     """
@@ -376,7 +401,7 @@ class KinematicChainDescription:
     Dictionary of static joint states for the chain
     """
 
-    def __init__(self, name: str, start_link: str, end_link: str, urdf_object: URDF, arm_type: Arms = None,
+    def __init__(self, name: str, start_link: str, end_link: str, urdf_object: URDFObject, arm_type: Arms = None,
                  include_fixed_joints=False):
         """
         Initialize the KinematicChainDescription object.
@@ -391,7 +416,7 @@ class KinematicChainDescription:
         self.name: str = name
         self.start_link: str = start_link
         self.end_link: str = end_link
-        self.urdf_object: URDF = urdf_object
+        self.urdf_object: URDFObject = urdf_object
         self.include_fixed_joints: bool = include_fixed_joints
         self.link_names: List[str] = []
         self.joint_names: List[str] = []
@@ -413,7 +438,8 @@ class KinematicChainDescription:
         Initializes the joints of the chain by getting the chain from the URDF object.
         """
         joints = self.urdf_object.get_chain(self.start_link, self.end_link, links=False)
-        self.joint_names = list(filter(lambda j: self.urdf_object.joint_map[j].type != "fixed" or self.include_fixed_joints, joints))
+        self.joint_names = list(filter(lambda j: self.urdf_object.joint_map[j].type != JointType.FIXED
+                                                 or self.include_fixed_joints, joints))
 
     def get_joints(self) -> List[str]:
         """
@@ -570,7 +596,7 @@ class EndEffectorDescription:
     """
     Name of the tool frame link in the URDf
     """
-    urdf_object: URDF
+    urdf_object: URDFObject
     """
     Parsed URDF of the robot
     """
@@ -595,7 +621,7 @@ class EndEffectorDescription:
     Distance the gripper can open, in cm
     """
 
-    def __init__(self, name: str, start_link: str, tool_frame: str, urdf_object: URDF):
+    def __init__(self, name: str, start_link: str, tool_frame: str, urdf_object: URDFObject):
         """
         Initialize the EndEffectorDescription object.
 
@@ -607,7 +633,7 @@ class EndEffectorDescription:
         self.name: str = name
         self.start_link: str = start_link
         self.tool_frame: str = tool_frame
-        self.urdf_object: URDF = urdf_object
+        self.urdf_object: URDFObject = urdf_object
         self.link_names: List[str] = []
         self.joint_names: List[str] = []
         self.static_joint_states: Dict[GripperState, Dict[str, float]] = {}

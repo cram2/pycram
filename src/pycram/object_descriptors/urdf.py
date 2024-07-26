@@ -5,7 +5,7 @@ import rospkg
 import rospy
 from geometry_msgs.msg import Point
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
-from typing_extensions import Union, List, Optional
+from typing_extensions import Union, List, Optional, Dict, Tuple
 from urdf_parser_py import urdf
 from urdf_parser_py.urdf import (URDF, Collision, Box as URDF_Box, Cylinder as URDF_Cylinder,
                                  Sphere as URDF_Sphere, Mesh as URDF_Mesh)
@@ -132,14 +132,14 @@ class JointDescription(AbstractJointDescription):
             return None
 
     @property
-    def parent_link_name(self) -> str:
+    def parent(self) -> str:
         """
         :return: The name of the parent link of this joint.
         """
         return self.parsed_description.parent
 
     @property
-    def child_link_name(self) -> str:
+    def child(self) -> str:
         """
         :return: The name of the child link of this joint.
         """
@@ -173,6 +173,39 @@ class ObjectDescription(AbstractObjectDescription):
 
     class Joint(AbstractObjectDescription.Joint, JointDescription):
         ...
+
+    @property
+    def child_map(self) -> Dict[str, List[Tuple[str, str]]]:
+        """
+        :return: A dictionary mapping the name of a link to its children which are represented as a tuple of the child
+            joint name and the link name.
+        """
+        return self.parsed_description.child_map
+
+    @property
+    def parent_map(self) -> Dict[str, Tuple[str, str]]:
+        """
+        :return: A dictionary mapping the name of a link to its parent joint and link as a tuple.
+        """
+        return self.parsed_description.parent_map
+
+    @property
+    def link_map(self) -> Dict[str, LinkDescription]:
+        """
+        :return: A dictionary mapping the name of a link to its description.
+        """
+        if self._link_map is None:
+            self._link_map = {link.name: link for link in self.links}
+        return self._link_map
+
+    @property
+    def joint_map(self) -> Dict[str, JointDescription]:
+        """
+        :return: A dictionary mapping the name of a joint to its description.
+        """
+        if self._joint_map is None:
+            self._joint_map = {joint.name: joint for joint in self.joints}
+        return self._joint_map
 
     def add_joint(self, name: str, child: str, joint_type: JointType,
                   axis: Point, parent: Optional[str] = None, origin: Optional[Pose] = None,
@@ -256,37 +289,23 @@ class ObjectDescription(AbstractObjectDescription):
         urdf_string = rospy.get_param(name)
         return self.correct_urdf_string(urdf_string)
 
-    def get_link_by_name(self, link_name: str) -> LinkDescription:
-        """
-        :return: The link description with the given name.
-        """
-        for link in self.links:
-            if link.name == link_name:
-                return link
-        raise ValueError(f"Link with name {link_name} not found")
-
-    @property
-    def links(self) -> List[LinkDescription]:
-        """
-        :return: A list of links descriptions of this object.
-        """
-        return [LinkDescription(link) for link in self.parsed_description.links]
-
-    def get_joint_by_name(self, joint_name: str) -> JointDescription:
-        """
-        :return: The joint description with the given name.
-        """
-        for joint in self.joints:
-            if joint.name == joint_name:
-                return joint
-        raise ValueError(f"Joint with name {joint_name} not found")
-
     @property
     def joints(self) -> List[JointDescription]:
         """
         :return: A list of joints descriptions of this object.
         """
-        return [JointDescription(joint) for joint in self.parsed_description.joints]
+        if self._joints is None:
+            self._joints = [JointDescription(joint) for joint in self.parsed_description.joints]
+        return self._joints
+
+    @property
+    def links(self) -> List[LinkDescription]:
+        """
+        :return: A list of link descriptions of this object.
+        """
+        if self._links is None:
+            self._links = [LinkDescription(link) for link in self.parsed_description.links]
+        return self._links
 
     def get_root(self) -> str:
         """
@@ -306,11 +325,17 @@ class ObjectDescription(AbstractObjectDescription):
                 link = child
         return link
 
-    def get_chain(self, start_link_name: str, end_link_name: str) -> List[str]:
+    def get_chain(self, start_link_name: str, end_link_name: str, joints: Optional[bool] = True,
+                  links: Optional[bool] = True, fixed: Optional[bool] = True) -> List[str]:
         """
+        :param start_link_name: The name of the start link of the chain.
+        :param end_link_name: The name of the end link of the chain.
+        :param joints: Whether to include joints in the chain.
+        :param links: Whether to include links in the chain.
+        :param fixed: Whether to include fixed joints in the chain.
         :return: the chain of links from 'start_link_name' to 'end_link_name'.
         """
-        return self.parsed_description.get_chain(start_link_name, end_link_name)
+        return self.parsed_description.get_chain(start_link_name, end_link_name, joints, links, fixed)
 
     def correct_urdf_string(self, urdf_string: str) -> str:
         """
