@@ -6,6 +6,9 @@ from tf.transformations import quaternion_matrix
 from typing_extensions import List, Dict, Optional
 
 from .multiverse_communication.client_manager import MultiverseClientManager
+from .multiverse_datastructures.enums import MultiverseJointProperty, MultiverseBodyProperty
+from .multiverse_functions.goal_validator import validate_object_pose, validate_multiple_joint_positions, \
+    validate_joint_position
 from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
 from ..datastructures.enums import WorldMode, JointType, ObjectType
 from ..datastructures.pose import Pose
@@ -21,9 +24,9 @@ class Multiverse(World):
     This class implements an interface between Multiverse and PyCRAM.
     """
 
-    _joint_type_to_position_name: Dict[JointType, str] = {
-        JointType.REVOLUTE: "joint_rvalue",
-        JointType.PRISMATIC: "joint_tvalue",
+    _joint_type_to_position_name: Dict[JointType, MultiverseJointProperty] = {
+        JointType.REVOLUTE: MultiverseJointProperty.REVOLUTE_JOINT_POSITION,
+        JointType.PRISMATIC: MultiverseJointProperty.PRISMATIC_JOINT_POSITION,
     }
     """
     A dictionary to map JointType to the corresponding multiverse attribute name.
@@ -40,6 +43,28 @@ class Multiverse(World):
      the multiverse configuration file).
     """
 
+    try:
+        simulation_wait_time_factor = float(os.environ['Multiverse_Simulation_Wait_Time_Factor'])
+    except KeyError:
+        simulation_wait_time_factor = 1.0
+    """
+    The factor to multiply the simulation wait time with, this is used to adjust the simulation wait time to account for
+    the time taken by the simulation to process the request, this depends on the computational power of the machine
+    running the simulation.
+    TODO: This should be replaced by a feedback mechanism that waits until a certain condition is met, e.g. the action
+    is completed.
+    """
+
+    position_tol: float = 2e-3
+    """
+    The tolerance for position comparison. (e.g. for checking if the object has reached the desired position)
+    """
+
+    orientation_tol: float = 2e-3
+    """
+    The tolerance for orientation comparison. (e.g. for checking if the object has reached the desired orientation)
+    """
+
     def __init__(self, mode: Optional[WorldMode] = WorldMode.DIRECT,
                  is_prospection: Optional[bool] = False,
                  simulation_frequency: Optional[float] = 60.0,
@@ -50,6 +75,7 @@ class Multiverse(World):
         param is_prospection: Whether the world is prospection or not.
         param simulation_frequency: The frequency of the simulation.
         param client_addr: The address of the multiverse client.
+        param simulation: The name of the simulation.
         """
 
         self._make_sure_multiverse_resources_are_added()
@@ -74,7 +100,7 @@ class Multiverse(World):
             self._spawn_floor()
 
     def _init_clients(self):
-        client_manager = MultiverseClientManager()
+        client_manager = MultiverseClientManager(self.simulation_wait_time_factor)
         self.reader = client_manager.create_reader(is_prospection_world=self.is_prospection_world)
         self.writer = client_manager.create_writer(self.simulation, is_prospection_world=self.is_prospection_world)
         self.api_requester = client_manager.create_api_requester(self.simulation,
@@ -113,10 +139,9 @@ class Multiverse(World):
         self.floor = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf",
                             world=self)
 
-    def get_joint_position_name(self, joint: Joint) -> str:
+    def get_joint_position_name(self, joint: Joint) -> MultiverseJointProperty:
         if joint.type not in self._joint_type_to_position_name:
-            logging.warning(f"Invalid joint type: {joint.type}")
-            return "joint_rvalue"
+            raise ValueError(f"Joint type {joint.type} is not supported in Multiverse")
         return self._joint_type_to_position_name[joint.type]
 
     def load_object_and_get_id(self, name: Optional[str] = None,
@@ -155,63 +180,89 @@ class Multiverse(World):
     def get_object_link_names(self, obj: Object) -> List[str]:
         return [link.name for link in obj.description.links]
 
-    def get_joint_position(self, joint: Joint) -> float:
-        self.check_object_exists_and_issue_warning_if_not(joint.object)
-        property_name = self.get_joint_position_name(joint)
-        return self.get_body_property(joint.name, property_name)
+    def get_link_position(self, link: Link) -> List[float]:
+        return self.reader.get_body_position(link.name)
 
-    def get_body_property(self, body_name: str, property_name: str) -> float:
-        return self.reader.get_body_property(body_name, property_name)[0]
+    def get_link_orientation(self, link: Link) -> List[float]:
+        return self.reader.get_body_orientation(link.name)
 
-    def reset_joint_position(self, joint: Joint, joint_position: float) -> None:
-        attribute = self.get_joint_position_name(joint)
-        self.send_body_data_to_server(joint.name, {attribute: [joint_position]})
+    def get_multiple_link_positions(self, links: List[Link]) -> Dict[str, List[float]]:
+        return self.reader.get_multiple_body_positions([link.name for link in links])
 
-    def set_multiple_joint_positions(self, obj: Object, joint_poses: Dict[str, float]) -> None:
-        data = {joint.name: {self.get_joint_position_name(joint): [joint_poses[joint.name]]}
-                for joint in obj.joints.values() if joint.name in joint_poses.keys()}
-        if len(data) > 0:
-            self.writer.send_multiple_body_data_to_server(data)
-        else:
-            logging.warning(f"No joints found in object {obj.name}")
-            raise ValueError(f"No joints found in object {obj.name}")
+    def get_multiple_link_orientations(self, links: List[Link]) -> Dict[str, List[float]]:
+        return self.reader.get_multiple_body_orientations([link.name for link in links])
 
-    def send_body_data_to_server(self, body_name: str, data: Dict[str, List[float]]):
-        self.writer.send_body_data_to_server(body_name, data)
+    @validate_joint_position
+    def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
+        self.writer.set_body_property(joint.name, self.get_joint_position_name(joint), [joint_position])
+        return True
 
-    def sent_data_to_server(self, data: Dict[str, List[float]]):
-        self.writer.send_data_to_server(list(data.values()))
+    @validate_multiple_joint_positions
+    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
+        data = {joint.name: {self.get_joint_position_name(joint): [position]}
+                for joint, position in joint_positions.items()}
+        self.writer.send_multiple_body_data_to_server(data)
+        return True
 
-    def get_link_pose(self, link: Link) -> Pose:
-        self.check_object_exists_and_issue_warning_if_not(link.object)
+    def get_joint_position(self, joint: Joint) -> Optional[float]:
+        joint_position_name = self.get_joint_position_name(joint)
+        data = self.reader.get_body_data(joint.name, [joint_position_name])
+        if data is not None:
+            return data[joint_position_name.value][0]
+
+    def get_multiple_joint_positions(self, joints: List[Joint]) -> Optional[Dict[str, float]]:
+        joint_names = [joint.name for joint in joints]
+        data = self.reader.get_multiple_body_data(joint_names, {joint.name: [self.get_joint_position_name(joint)]
+                                                                for joint in joints})
+        if data is not None:
+            return {name: list(value.values())[0][0] for name, value in data.items()}
+
+    def get_link_pose(self, link: Link) -> Optional[Pose]:
         return self._get_body_pose(link.name)
 
+    def get_multiple_link_poses(self, links: List[Link]) -> Dict[str, Pose]:
+        return self._get_multiple_body_poses([link.name for link in links])
+
     def get_object_pose(self, obj: Object) -> Pose:
-        self.check_object_exists_and_issue_warning_if_not(obj)
         if obj.obj_type == ObjectType.ENVIRONMENT:
             return Pose()
         return self._get_body_pose(obj.name)
 
-    def _get_body_pose(self, body_name: str) -> Pose:
-        """
-        Get the pose of a body in the simulator.
-        param body_name: The name of the body.
-        return: The pose of the body.
-        """
-        return self.reader.get_body_pose(body_name)
+    def get_multiple_object_poses(self, objects: List[Object]) -> Dict[str, Pose]:
+        return self._get_multiple_body_poses([obj.name for obj in objects])
 
-    def reset_object_base_pose(self, obj: Object, pose: Pose):
-        self.check_object_exists_and_issue_warning_if_not(obj)
-        if obj.obj_type == ObjectType.ENVIRONMENT:
-            return
-        elif (obj.obj_type == ObjectType.ROBOT and
-              RobotDescription.current_robot_description.virtual_move_base_joints is not None):
+    @validate_object_pose
+    def reset_object_base_pose(self, obj: Object, pose: Pose) -> bool:
+        if obj.has_type_environment():
+            return False
+
+        if (obj.obj_type == ObjectType.ROBOT and
+                RobotDescription.current_robot_description.virtual_move_base_joints is not None):
             self.set_mobile_robot_pose(pose)
         else:
             self._set_body_pose(obj.name, pose)
 
-    def multiverse_reset_world(self):
-        self.writer.reset_world()
+        return True
+
+    def is_object_a_child_in_a_fixed_joint_constraint(self, obj: Object) -> bool:
+        """
+        Check if the object is a child in a fixed joint constraint. This means that the object is not free to move.
+        It should be moved according to the parent object.
+        :param obj: The object to check.
+        :return: True if the object is a child in a fixed joint constraint, False otherwise.
+        """
+        constraints = list(self.constraints.values())
+        for c in constraints:
+            if c.child_link.object == obj and c.type == JointType.FIXED:
+                return True
+        return False
+
+    def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> None:
+        """
+        Reset the poses of multiple objects in the simulator.
+        param objects: The dictionary of objects and poses.
+        """
+        self._set_multiple_body_poses({obj.name: pose for obj, pose in objects.items()})
 
     def _set_body_pose(self, body_name: str, pose: Pose) -> None:
         """
@@ -219,9 +270,56 @@ class Multiverse(World):
         param body_name: The name of the body.
         param pose: The pose of the body.
         """
-        xyzw = pose.orientation_as_list()
-        wxyz = [xyzw[3], *xyzw[:3]]
-        self.writer.set_body_pose(body_name, pose.position_as_list(), wxyz)
+        self._set_multiple_body_poses({body_name: pose})
+
+    def _set_multiple_body_poses(self, body_poses: Dict[str, Pose]) -> None:
+        """
+        Reset the poses of multiple bodies in the simulator.
+        param body_poses: The dictionary of body names and poses.
+        """
+        self.writer.set_multiple_body_poses({name: {MultiverseBodyProperty.POSITION: pose.position_as_list(),
+                                                    MultiverseBodyProperty.ORIENTATION:
+                                                        self.xyzw_to_wxyz(pose.orientation_as_list())}
+                                             for name, pose in body_poses.items()})
+
+    def _get_body_pose(self, body_name: str, wait: Optional[bool] = True) -> Optional[Pose]:
+        """
+        Get the pose of a body in the simulator.
+        param body_name: The name of the body.
+        :param wait: Whether to wait until the pose is received.
+        return: The pose of the body.
+        """
+        data = self.reader.get_body_pose(body_name, wait)
+        return Pose(data[MultiverseBodyProperty.POSITION.value],
+                    self.wxyz_to_xyzw(data[MultiverseBodyProperty.ORIENTATION.value]))
+
+    def wxyz_to_xyzw(self, wxyz: List[float]) -> List[float]:
+        """
+        Convert a quaternion from WXYZ to XYZW format.
+        """
+        return [wxyz[1], wxyz[2], wxyz[3], wxyz[0]]
+
+    def _get_multiple_body_poses(self, body_names: List[str]) -> Dict[str, Pose]:
+        return self.reader.get_multiple_body_poses(body_names)
+
+    def get_multiple_object_positions(self, objects: List[Object]) -> Dict[str, List[float]]:
+        return self.reader.get_multiple_body_positions([obj.name for obj in objects])
+
+    def get_object_position(self, obj: Object) -> List[float]:
+        return self.reader.get_body_position(obj.name)
+
+    def get_multiple_object_orientations(self, objects: List[Object]) -> Dict[str, List[float]]:
+        return self.reader.get_multiple_body_orientations([obj.name for obj in objects])
+
+    def get_object_orientation(self, obj: Object) -> List[float]:
+        return self.reader.get_body_orientation(obj.name)
+
+    def multiverse_reset_world(self):
+        self.writer.reset_world()
+
+    @staticmethod
+    def xyzw_to_wxyz(xyzw: List[float]) -> List[float]:
+        return [xyzw[3], *xyzw[:3]]
 
     def disconnect_from_physics_server(self) -> None:
         MultiverseClientManager.stop_all_clients()
@@ -243,9 +341,6 @@ class Multiverse(World):
         if constraint.type != JointType.FIXED:
             logging.error("Only fixed constraints are supported in Multiverse")
             raise ValueError
-
-        self.check_object_exists_and_issue_warning_if_not(constraint.parent_link.object)
-        self.check_object_exists_and_issue_warning_if_not(constraint.child_link.object)
 
         if not self.let_pycram_move_attached_objects:
             self.api_requester.attach(constraint)
@@ -273,7 +368,6 @@ class Multiverse(World):
         """
         Note: Currently Multiverse only gets one contact point per contact objects.
         """
-        self.check_object_exists_and_issue_warning_if_not(obj)
         multiverse_contact_points = self.api_requester.get_contact_points(obj)
         contact_points = ContactPointsList([])
         body_link = None
@@ -316,8 +410,6 @@ class Multiverse(World):
         return contact_force_array.flatten().tolist()[2]
 
     def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> ContactPointsList:
-        self.check_object_exists_and_issue_warning_if_not(obj1)
-        self.check_object_exists_and_issue_warning_if_not(obj2)
         obj1_contact_points = self.get_object_contact_points(obj1)
         return obj1_contact_points.get_points_of_object(obj2)
 
@@ -355,26 +447,21 @@ class Multiverse(World):
         raise NotImplementedError
 
     def set_link_color(self, link: Link, rgba_color: Color):
-        self.check_object_exists_and_issue_warning_if_not(link.object)
         logging.warning("set_link_color is not implemented in Multiverse")
 
     def get_link_color(self, link: Link) -> Color:
-        self.check_object_exists_and_issue_warning_if_not(link.object)
         logging.warning("get_link_color is not implemented in Multiverse")
         return Color()
 
     def get_colors_of_object_links(self, obj: Object) -> Dict[str, Color]:
-        self.check_object_exists_and_issue_warning_if_not(obj)
         logging.warning("get_colors_of_object_links is not implemented in Multiverse")
         return {}
 
     def get_object_axis_aligned_bounding_box(self, obj: Object) -> AxisAlignedBoundingBox:
-        self.check_object_exists_and_issue_warning_if_not(obj)
         logging.error("get_object_axis_aligned_bounding_box is not implemented in Multiverse")
         raise NotImplementedError
 
     def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
-        self.check_object_exists_and_issue_warning_if_not(link.object)
         logging.error("get_link_axis_aligned_bounding_box is not implemented in Multiverse")
         raise NotImplementedError
 
@@ -383,10 +470,6 @@ class Multiverse(World):
 
     def set_gravity(self, gravity_vector: List[float]) -> None:
         logging.warning("set_gravity is not implemented in Multiverse")
-
-    def check_object_exists_and_issue_warning_if_not(self, obj: Object):
-        if obj not in self.objects:
-            logging.warning(f"Object {obj} does not exist in the simulator")
 
     def check_object_exists_in_multiverse(self, obj: Object) -> bool:
         return self.api_requester.check_object_exists(obj)

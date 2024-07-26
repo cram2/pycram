@@ -81,8 +81,8 @@ class JointDescription(AbstractJointDescription):
 
     pycram_type_map = {pycram_type: urdf_type for urdf_type, pycram_type in urdf_type_map.items()}
 
-    def __init__(self, urdf_description: urdf.Joint):
-        super().__init__(urdf_description)
+    def __init__(self, urdf_description: urdf.Joint, is_virtual: Optional[bool] = False):
+        super().__init__(urdf_description, is_virtual=is_virtual)
 
     @property
     def origin(self) -> Pose:
@@ -176,7 +176,8 @@ class ObjectDescription(AbstractObjectDescription):
 
     def add_joint(self, name: str, child: str, joint_type: JointType,
                   axis: Point, parent: Optional[str] = None, origin: Optional[Pose] = None,
-                  lower_limit: Optional[float] = None, upper_limit: Optional[float] = None) -> None:
+                  lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
+                  is_virtual: Optional[bool] = False) -> None:
         if lower_limit is not None or upper_limit is not None:
             limit = urdf.JointLimit(lower=lower_limit, upper=upper_limit)
         else:
@@ -195,6 +196,8 @@ class ObjectDescription(AbstractObjectDescription):
                            JointDescription.pycram_type_map[joint_type],
                            axis, origin, limit)
         self.parsed_description.add_joint(joint)
+        if is_virtual:
+            self.virtual_joint_names.append(name)
 
     def load_description(self, path) -> URDF:
         with open(path, 'r') as file:

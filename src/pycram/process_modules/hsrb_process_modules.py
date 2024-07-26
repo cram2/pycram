@@ -152,9 +152,9 @@ class HSRBMoveArmJoints(ProcessModule):
 
         robot = World.robot
         if desig.right_arm_poses:
-            robot.set_joint_positions(desig.right_arm_poses)
+            robot.set_multiple_joint_positions(desig.right_arm_poses)
         if desig.left_arm_poses:
-            robot.set_joint_positions(desig.left_arm_poses)
+            robot.set_multiple_joint_positions(desig.left_arm_poses)
 
 
 class HSRBMoveJoints(ProcessModule):
@@ -164,7 +164,7 @@ class HSRBMoveJoints(ProcessModule):
 
     def _execute(self, desig: MoveJointsMotion):
         robot = World.robot
-        robot.set_joint_positions(dict(zip(desig.names, desig.positions)))
+        robot.set_multiple_joint_positions(dict(zip(desig.names, desig.positions)))
 
 
 class HSRBWorldStateDetecting(ProcessModule):

@@ -30,6 +30,46 @@ class AbstractConstraint:
         self.child_to_constraint = child_to_constraint
         self._parent_to_child = None
 
+    def get_child_object_pose(self) -> Pose:
+        """
+        Returns the pose of the child object.
+
+        :return: The pose of the child object.
+        """
+        return self.child_link.object.pose
+
+    def get_child_object_pose_given_parent(self, pose: Pose) -> Pose:
+        """
+        Returns the pose of the child object given the parent pose.
+
+        :param pose: The parent object pose.
+        :return: The pose of the child object.
+        """
+        pose = self.parent_link.get_pose_given_object_pose(pose)
+        child_link_pose = self.get_child_link_target_pose_given_parent(pose)
+        return self.child_link.get_object_pose_given_link_pose(child_link_pose)
+
+    def set_child_link_pose(self):
+        """
+        Sets the target pose of the child object to the current pose of the child object in the parent object frame.
+        """
+        self.child_link.set_pose(self.get_child_link_target_pose())
+
+    def get_child_link_target_pose(self) -> Pose:
+        """
+        Returns the target pose of the child object. (The pose of the child object in the parent object frame)
+        """
+        return self.parent_to_child_transform.to_pose()
+
+    def get_child_link_target_pose_given_parent(self, parent_pose: Pose) -> Pose:
+        """
+        Returns the target pose of the child object link given the parent link pose.
+
+        :param parent_pose: The parent link pose.
+        :return: The target pose of the child object link.
+        """
+        return (parent_pose.to_transform(self.parent_link.tf_frame) * self.parent_to_child_transform).to_pose()
+
     @property
     def parent_to_child_transform(self) -> Union[Transform, None]:
         if self._parent_to_child is None:
@@ -190,6 +230,14 @@ class Attachment(AbstractConstraint):
         if self.id is None:
             self.add_fixed_constraint()
 
+    @property
+    def parent_object(self):
+        return self.parent_link.object
+
+    @property
+    def child_object(self):
+        return self.child_link.object
+
     def update_transform_and_constraint(self) -> None:
         """
         Updates the transform and constraint of this attachment.
@@ -214,7 +262,8 @@ class Attachment(AbstractConstraint):
         """
         Adds a fixed constraint between the parent link and the child link.
         """
-        self.id = self.parent_link.add_fixed_constraint_with_link(self.child_link, self.parent_to_child_transform)
+        self.id = self.parent_link.add_fixed_constraint_with_link(self.child_link,
+                                                                  self.parent_to_child_transform.invert())
 
     def calculate_transform(self) -> Transform:
         """

@@ -62,8 +62,9 @@ class JointDescription(EntityDescription):
     A class that represents the description of a joint.
     """
 
-    def __init__(self, parsed_joint_description: Optional[Any] = None):
+    def __init__(self, parsed_joint_description: Optional[Any] = None, is_virtual: bool = False):
         self.parsed_description = parsed_joint_description
+        self.is_virtual: Optional[bool] = is_virtual
 
     @property
     @abstractmethod
@@ -159,6 +160,13 @@ class ObjectEntity(WorldEntity):
         self.object: Object = obj
 
     @property
+    def object_name(self) -> str:
+        """
+        The name of the object to which this joint belongs.
+        """
+        return self.object.name
+
+    @property
     @abstractmethod
     def pose(self) -> Pose:
         """
@@ -205,6 +213,27 @@ class Link(ObjectEntity, LinkDescription, ABC):
         self.constraint_ids: Dict[Link, int] = {}
         self._update_pose()
 
+    def set_pose(self, pose: Pose) -> None:
+        """
+        Sets the pose of this link to the given pose.
+        NOTE: This will move the entire object such that the link is at the given pose, it will not consider any joints
+        that can allow the link to be at the given pose.
+        :param pose: The target pose for this link.
+        """
+        self.object.set_pose(self.get_object_pose_given_link_pose(pose))
+
+    def get_object_pose_given_link_pose(self, pose):
+        return (pose.to_transform(self.tf_frame) * self.get_transform_to_root_link()).to_pose()
+
+    def get_pose_given_object_pose(self, pose):
+        return (pose.to_transform(self.object.tf_frame) * self.get_transform_from_root_link()).to_pose()
+
+    def get_transform_from_root_link(self) -> Transform:
+        return self.get_transform_from_link(self.object.root_link)
+
+    def get_transform_to_root_link(self) -> Transform:
+        return self.get_transform_to_link(self.object.root_link)
+
     @property
     def current_state(self) -> LinkState:
         return LinkState(self.constraint_ids.copy())
@@ -213,17 +242,18 @@ class Link(ObjectEntity, LinkDescription, ABC):
     def current_state(self, link_state: LinkState) -> None:
         self.constraint_ids = link_state.constraint_ids
 
-    def add_fixed_constraint_with_link(self, child_link: 'Link', transform: Optional[Transform] = None) -> int:
+    def add_fixed_constraint_with_link(self, child_link: 'Link',
+                                       child_to_parent_transform: Optional[Transform] = None) -> int:
         """
         Adds a fixed constraint between this link and the given link, used to create attachments for example.
 
         :param child_link: The child link to which a fixed constraint should be added.
-        :param transform: The transformation between the two links.
+        :param child_to_parent_transform: The transformation between the two links.
         :return: The unique id of the constraint.
         """
-        if transform is None:
-            transform = child_link.get_transform_from_link(self)
-        constraint_id = self.world.add_fixed_constraint(self, child_link, transform)
+        if child_to_parent_transform is None:
+            child_to_parent_transform = child_link.get_transform_to_link(self)
+        constraint_id = self.world.add_fixed_constraint(self, child_link, child_to_parent_transform)
         self.constraint_ids[child_link] = constraint_id
         child_link.constraint_ids[self] = constraint_id
         return constraint_id
@@ -256,17 +286,6 @@ class Link(ObjectEntity, LinkDescription, ABC):
         :return: True if this link is the root link, False otherwise.
         """
         return self.object.get_root_link_id() == self.id
-
-    def set_pose(self, pose: Pose) -> None:
-        """
-        Sets the pose of this link to the given pose.
-        NOTE: This will move the entire object such that the link is at the given pose, it will not consider any joints
-        that can allow the link to be at the given pose.
-        :param pose: The target pose for this link.
-        """
-        self.object.set_pose(
-            (pose.to_transform(self.tf_frame) * self.get_transform_to_link(self.object.root_link)).to_pose()
-        )
 
     def update_transform(self, transform_time: Optional[rospy.Time] = None) -> None:
         """
@@ -451,9 +470,9 @@ class Joint(ObjectEntity, JointDescription, ABC):
 
     def __init__(self, _id: int,
                  joint_description: JointDescription,
-                 obj: Object):
+                 obj: Object, is_virtual: Optional[bool] = False):
         ObjectEntity.__init__(self, _id, obj)
-        JointDescription.__init__(self, joint_description.parsed_description)
+        JointDescription.__init__(self, joint_description.parsed_description, is_virtual)
         self._update_position()
 
     @property
@@ -598,10 +617,22 @@ class ObjectDescription(EntityDescription):
         else:
             self._parsed_description = None
 
+        self.virtual_joint_names: List[str] = []
+
+    def is_joint_virtual(self, name: str) -> bool:
+        """
+        Returns whether the joint with the given name is virtual.
+
+        :param name: The name of the joint.
+        :return: True if the joint is virtual, False otherwise.
+        """
+        return name in self.virtual_joint_names
+
     @abstractmethod
     def add_joint(self, name: str, child: str, joint_type: JointType,
                   axis: Point, parent: Optional[str] = None, origin: Optional[Pose] = None,
-                  lower_limit: Optional[float] = None, upper_limit: Optional[float] = None) -> None:
+                  lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
+                  is_virtual: Optional[bool] = False) -> None:
         """
         Adds a joint to this object.
 
@@ -613,6 +644,7 @@ class ObjectDescription(EntityDescription):
         :param origin: The origin of the joint.
         :param lower_limit: The lower limit of the joint.
         :param upper_limit: The upper limit of the joint.
+        :param is_virtual: True if the joint is virtual, False otherwise.
         """
         pass
 
