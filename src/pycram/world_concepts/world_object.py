@@ -8,17 +8,17 @@ import rospy
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
-from ..description import ObjectDescription, LinkDescription, Joint, JointDescription
-from ..object_descriptors.urdf import ObjectDescription as URDFObject
-from ..datastructures.world import WorldEntity, World
-from ..world_concepts.constraints import Attachment
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
                                           ContactPointsList)
 from ..datastructures.enums import ObjectType, JointType
-from ..local_transformer import LocalTransformer
 from ..datastructures.pose import Pose, Transform
+from ..datastructures.world import WorldEntity, World
+from ..description import ObjectDescription, LinkDescription, Joint
+from ..local_transformer import LocalTransformer
+from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..robot_description import RobotDescriptionManager, RobotDescription
+from ..world_concepts.constraints import Attachment
 
 Link = ObjectDescription.Link
 
@@ -61,8 +61,11 @@ class Object(WorldEntity):
         if pose is None:
             pose = Pose()
         if name in [obj.name for obj in self.world.objects]:
-            rospy.logerr(f"An object with the name {name} already exists in the world.")
-            raise ValueError(f"An object with the name {name} already exists in the world.")
+            msg = f"An object with the name {name} already exists in the world,"\
+                  f" is_prospection_world: {self.world.is_prospection_world}"
+            rospy.logerr(msg)
+            raise ValueError(msg)
+
         self.name: str = name
         self.obj_type: ObjectType = obj_type
         self.color: Color = color
@@ -91,6 +94,54 @@ class Object(WorldEntity):
         self.attachments: Dict[Object, Attachment] = {}
 
         self.world.objects.append(self)
+
+    def get_multiple_link_positions(self, links: List[Link]) -> Dict[str, List[float]]:
+        """
+        Get the positions of multiple links of the object.
+        param link_names: The names of the links.
+        return: The positions of the links.
+        """
+        return self.world.get_multiple_link_positions(links)
+
+    def get_multiple_link_orientations(self, links: List[Link]) -> Dict[str, List[float]]:
+        """
+        Get the orientations of multiple links of the object.
+        param link_names: The names of the links.
+        return: The orientations of the links.
+        """
+        return self.world.get_multiple_link_orientations(links)
+
+    def get_multiple_link_poses(self, links: List[Link]) -> Dict[str, Pose]:
+        """
+        Get the poses of multiple links of the object.
+        param link_names: The names of the links.
+        return: The poses of the links.
+        """
+        return self.world.get_multiple_link_poses(links)
+
+    def get_target_poses_of_attached_objects(self) -> Dict[Object, Pose]:
+        """
+        Get the target poses of the attached objects.
+        return: The target poses of the attached objects
+        """
+        return self.get_target_poses_of_attached_objects_given_parent(self.get_pose())
+
+    def get_poses_of_attached_objects(self) -> Dict[Object, Pose]:
+        """
+        Get the poses of the attached objects.
+        return: The poses of the attached objects
+        """
+        return {child_object: attachment.get_child_object_pose()
+                for child_object, attachment in self.attachments.items() if not attachment.loose}
+
+    def get_target_poses_of_attached_objects_given_parent(self, pose: Pose) -> Dict[Object, Pose]:
+        """
+        Get the target poses of the attached objects of an object. Given the pose of the parent object.
+        param pose: The pose of the parent object.
+        return: The target poses of the attached objects
+        """
+        return {child_object: attachment.get_child_object_pose_given_parent(pose) for child_object, attachment
+                in self.attachments.items() if not attachment.loose}
 
     @property
     def pose(self):
@@ -154,7 +205,7 @@ class Object(WorldEntity):
         child_link = self.root_link_name
         axes = virtual_joints.get_axes()
         for joint_name, joint_type in virtual_joints.get_types().items():
-            self.description.add_joint(joint_name, child_link, joint_type, axes[joint_name])
+            self.description.add_joint(joint_name, child_link, joint_type, axes[joint_name], is_virtual=True)
 
     def _init_joint_name_and_id_map(self) -> None:
         """
@@ -195,8 +246,20 @@ class Object(WorldEntity):
         """
         self.joints = {}
         for joint_name, joint_id in self.joint_name_to_id.items():
-            joint_description = self.description.get_joint_by_name(joint_name)
-            self.joints[joint_name] = self.description.Joint(joint_id, joint_description, self)
+            parsed_joint_description = self.description.get_joint_by_name(joint_name)
+            is_virtual = self.is_joint_virtual(joint_name)
+            self.joints[joint_name] = self.description.Joint(joint_id, parsed_joint_description, self, is_virtual)
+
+    def is_joint_virtual(self, name: str):
+        return self.description.is_joint_virtual(name)
+
+    @property
+    def virtual_joint_names(self):
+        return self.description.virtual_joint_names
+
+    @property
+    def virtual_joints(self):
+        return [joint for joint in self.joints.values() if joint.is_virtual]
 
     @property
     def has_one_link(self) -> bool:
@@ -392,6 +455,13 @@ class Object(WorldEntity):
         if remove_saved_states:
             self.remove_saved_states()
 
+    def has_type_environment(self) -> bool:
+        """
+        Check if the object is of type environment.
+        :return: True if the object is of type environment, False otherwise.
+        """
+        return self.obj_type == ObjectType.ENVIRONMENT
+
     def attach(self,
                child_object: Object,
                parent_link: Optional[str] = None,
@@ -420,6 +490,7 @@ class Object(WorldEntity):
         if coincide_the_objects:
             parent_to_child_transform = Transform()
         else:
+            # parent_to_child_transform = parent_link.get_transform_to_link(child_link)
             parent_to_child_transform = None
         attachment = Attachment(parent_link, child_link, bidirectional, parent_to_child_transform)
 
@@ -521,8 +592,8 @@ class Object(WorldEntity):
             self._set_attached_objects_poses()
 
     def reset_base_pose(self, pose: Pose):
-        self.world.reset_object_base_pose(self, pose)
-        self.update_pose()
+        if self.world.reset_object_base_pose(self, pose):
+            self.update_pose()
 
     def update_pose(self):
         """
@@ -577,7 +648,8 @@ class Object(WorldEntity):
 
     @property
     def current_state(self) -> ObjectState:
-        return ObjectState(self.get_pose().copy(), self.attachments.copy(), self.link_states.copy(), self.joint_states.copy())
+        return ObjectState(self.get_pose().copy(), self.attachments.copy(), self.link_states.copy(),
+                           self.joint_states.copy())
 
     @current_state.setter
     def current_state(self, state: ObjectState) -> None:
@@ -694,8 +766,7 @@ class Object(WorldEntity):
                 child.update_attachment_with_object(self)
 
             else:
-                link_to_object = attachment.parent_to_child_transform
-                child.set_pose(link_to_object.to_pose(), set_attachments=False)
+                child.set_pose(attachment.get_child_link_target_pose(), set_attachments=False)
                 child._set_attached_objects_poses(already_moved_objects + [self])
 
     def set_position(self, position: Union[Pose, Point, List], base=False) -> None:
@@ -833,24 +904,11 @@ class Object(WorldEntity):
         """
         Sets the current position of all joints to 0. This is useful if the joints should be reset to their default
         """
-        joint_names = list(self.joint_name_to_id.keys())
+        joint_names = [joint.name for joint in self.joints.values()]  # if not joint.is_virtual]
         if len(joint_names) == 0:
             return
         joint_positions = [0] * len(joint_names)
-        self.set_joint_positions(dict(zip(joint_names, joint_positions)))
-
-    def set_joint_positions(self, joint_poses: dict) -> None:
-        """
-        Sets the current position of multiple joints at once, this method should be preferred when setting
-        multiple joints at once instead of running :func:`~Object.set_joint_position` in a loop.
-
-        :param joint_poses:
-        """
-        self.world.set_multiple_joint_positions(self, joint_poses)
-        # self.update_pose()
-        self._update_all_links_poses()
-        self.update_link_transforms()
-        self._set_attached_objects_poses()
+        self.set_multiple_joint_positions(dict(zip(joint_names, joint_positions)))
 
     def set_joint_position(self, joint_name: str, joint_position: float) -> None:
         """
@@ -859,10 +917,22 @@ class Object(WorldEntity):
         :param joint_name: The name of the joint
         :param joint_position: The target pose for this joint
         """
-        self.joints[joint_name].position = joint_position
-        self._update_all_links_poses()
-        self.update_link_transforms()
-        self._set_attached_objects_poses()
+        self.world.reset_joint_position(self.joints[joint_name], joint_position)
+
+    def set_multiple_joint_positions(self, joint_positions: Dict[str, float]) -> None:
+        """
+        Sets the current position of multiple joints at once, this method should be preferred when setting
+        multiple joints at once instead of running :func:`~Object.set_joint_position` in a loop.
+
+        :param joint_positions: A dictionary with the joint names as keys and the target positions as values.
+        """
+        joint_positions = {self.joints[joint_name]: joint_position
+                           for joint_name, joint_position in joint_positions.items()}
+        if self.world.set_multiple_joint_positions(joint_positions):
+            self.update_pose()
+            self._update_all_links_poses()
+            self.update_link_transforms()
+            self._set_attached_objects_poses()
 
     def get_joint_position(self, joint_name: str) -> float:
         """
@@ -945,6 +1015,15 @@ class Object(WorldEntity):
         if not container_joint:
             rospy.logwarn(f"No joint of type {joint_type} found above link {link_name}")
         return container_joint
+
+    def get_multiple_joint_positions(self, joint_names: List[str]) -> Dict[str, float]:
+        """
+        Returns the positions of multiple joints at once.
+
+        :param joint_names: A list of joint names.
+        :return: A dictionary with the joint names as keys and the joint positions as values.
+        """
+        return self.world.get_multiple_joint_positions([self.joints[joint_name] for joint_name in joint_names])
 
     def get_positions_of_all_joints(self) -> Dict[str, float]:
         """

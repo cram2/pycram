@@ -113,6 +113,21 @@ class BulletWorld(World):
         return [p.getJointInfo(obj.id, i, physicsClientId=self.id)[1].decode('utf-8')
                 for i in range(self.get_object_number_of_joints(obj))]
 
+    def get_multiple_link_poses(self, links: List[Link]) -> Dict[str, Pose]:
+        return {link.name: self.get_link_pose(link) for link in links}
+
+    def get_multiple_link_positions(self, links: List[Link]) -> Dict[str, List[float]]:
+        return {link.name: self.get_link_position(link) for link in links}
+
+    def get_multiple_link_orientations(self, links: List[Link]) -> Dict[str, List[float]]:
+        return {link.name: self.get_link_orientation(link) for link in links}
+
+    def get_link_position(self, link: Link) -> List[float]:
+        return self.get_link_pose(link).position_as_list()
+
+    def get_link_orientation(self, link: Link) -> List[float]:
+        return self.get_link_pose(link).orientation_as_list()
+
     def get_link_pose(self, link: ObjectDescription.Link) -> Pose:
         bullet_link_state = p.getLinkState(link.object_id, link.id, physicsClientId=self.id)
         return Pose(*bullet_link_state[4:6])
@@ -167,19 +182,44 @@ class BulletWorld(World):
                 "lateral_friction_1": LateralFriction(point[10], point[11]),
                 "lateral_friction_2": LateralFriction(point[12], point[13])}
 
-    def set_multiple_joint_positions(self, obj: Object, joint_poses: Dict[str, float]) -> None:
-        for joint_name, joint_position in joint_poses.items():
-            self.reset_joint_position(obj.joints[joint_name], joint_position)
+    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
+        for joint, joint_position in joint_positions.items():
+            self.reset_joint_position(joint, joint_position)
+        return True
 
-    def reset_joint_position(self, joint: ObjectDescription.Joint, joint_position: float) -> None:
+    def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
         p.resetJointState(joint.object_id, joint.id, joint_position, physicsClientId=self.id)
+        return True
 
-    def reset_object_base_pose(self, obj: Object, pose: Pose) -> None:
+    def get_multiple_joint_positions(self, joints: List[Joint]) -> Dict[str, float]:
+        return {joint.name: self.get_joint_position(joint) for joint in joints}
+
+    def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> None:
+        for obj, pose in objects.items():
+            self.reset_object_base_pose(obj, pose)
+
+    def reset_object_base_pose(self, obj: Object, pose: Pose) -> bool:
         p.resetBasePositionAndOrientation(obj.id, pose.position_as_list(), pose.orientation_as_list(),
                                           physicsClientId=self.id)
+        return True
 
     def step(self):
         p.stepSimulation(physicsClientId=self.id)
+
+    def get_multiple_object_poses(self, objects: List[Object]) -> Dict[str, Pose]:
+        return {obj.name: self.get_object_pose(obj) for obj in objects}
+
+    def get_multiple_object_positions(self, objects: List[Object]) -> Dict[str, List[float]]:
+        return {obj.name: self.get_object_pose(obj).position_as_list() for obj in objects}
+
+    def get_multiple_object_orientations(self, objects: List[Object]) -> Dict[str, List[float]]:
+        return {obj.name: self.get_object_pose(obj).orientation_as_list() for obj in objects}
+
+    def get_object_position(self, obj: Object) -> List[float]:
+        return self.get_object_pose(obj).position_as_list()
+
+    def get_object_orientation(self, obj: Object) -> List[float]:
+        return self.get_object_pose(obj).orientation_as_list()
 
     def get_object_pose(self, obj: Object) -> Pose:
         return Pose(*p.getBasePositionAndOrientation(obj.id, physicsClientId=self.id))
