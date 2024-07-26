@@ -7,7 +7,8 @@ from typing_extensions import List, Dict, Optional
 
 from .multiverse_communication.client_manager import MultiverseClientManager
 from .multiverse_datastructures.enums import MultiverseJointProperty, MultiverseBodyProperty
-from .multiverse_functions.goal_validator import validate_object_pose, validate_multiple_joint_positions
+from .multiverse_functions.goal_validator import validate_object_pose, validate_multiple_joint_positions, \
+    validate_joint_position
 from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
 from ..datastructures.enums import WorldMode, JointType, ObjectType
 from ..datastructures.pose import Pose
@@ -191,6 +192,7 @@ class Multiverse(World):
     def get_multiple_link_orientations(self, links: List[Link]) -> Dict[str, List[float]]:
         return self.reader.get_multiple_body_orientations([link.name for link in links])
 
+    @validate_joint_position
     def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
         self.writer.set_body_property(joint.name, self.get_joint_position_name(joint), [joint_position])
         return True
