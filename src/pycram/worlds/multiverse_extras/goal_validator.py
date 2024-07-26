@@ -5,7 +5,7 @@ import rospy
 from typing_extensions import Any, Callable, Optional, Union, Iterable, Dict, TYPE_CHECKING
 
 from pycram.datastructures.enums import JointType
-from pycram.worlds.multiverse_functions.error_checkers import ErrorChecker, PoseErrorChecker, PositionErrorChecker, \
+from pycram.worlds.multiverse_extras.error_checkers import ErrorChecker, PoseErrorChecker, PositionErrorChecker, \
     OrientationErrorChecker, SingleValueErrorChecker
 
 if TYPE_CHECKING:
@@ -65,7 +65,7 @@ class GoalValidator:
         self.register_goal(goal_value, current_value_getter_input, initial_value, acceptable_error)
         self.wait_until_goal_is_achieved(max_wait_time, time_per_read)
 
-    def wait_until_goal_is_achieved(self, max_wait_time: Optional[float] = 1,
+    def wait_until_goal_is_achieved(self, max_wait_time: Optional[float] = 2,
                                     time_per_read: Optional[float] = 0.01) -> None:
         """
         Wait until the target is reached.

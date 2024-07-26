@@ -13,12 +13,13 @@ from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointSt
                                           ContactPointsList)
 from ..datastructures.enums import ObjectType, JointType
 from ..datastructures.pose import Pose, Transform
-from ..datastructures.world import WorldEntity, World
+from ..datastructures.world import World
 from ..description import ObjectDescription, LinkDescription, Joint
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
+from ..datastructures.world_entity import WorldEntity
 
 Link = ObjectDescription.Link
 
@@ -56,7 +57,7 @@ class Object(WorldEntity):
         :param ignore_cached_files: If true the file will be spawned while ignoring cached files.
         """
 
-        super().__init__(-1, world)
+        super().__init__(-1, world if world is not None else World.current_world)
 
         if pose is None:
             pose = Pose()
@@ -76,12 +77,15 @@ class Object(WorldEntity):
         self.original_pose = self.local_transformer.transform_pose(pose, "map")
         self._current_pose = self.original_pose
 
+        if self.obj_type == ObjectType.ROBOT and not self.world.is_prospection_world:
+            self._update_world_robot_and_description()
+
         self.id, self.path = self._load_object_and_get_id(path, ignore_cached_files)
 
         self.description.update_description_from_file(self.path)
 
         if self.obj_type == ObjectType.ROBOT and not self.world.is_prospection_world:
-            self._update_world_robot_and_description()
+            self._add_virtual_move_base_joints()
 
         self.tf_frame = (self.prospection_world_prefix if self.world.is_prospection_world else "") + self.name
 
@@ -94,6 +98,37 @@ class Object(WorldEntity):
         self.attachments: Dict[Object, Attachment] = {}
 
         self.world.objects.append(self)
+
+    @property
+    def joint_actuators(self) -> Optional[Dict[str, str]]:
+        """
+        Returns the joint actuators of the robot.
+        """
+        if self.obj_type == ObjectType.ROBOT:
+            return self.robot_description.joint_actuators
+        return None
+
+    @property
+    def has_actuators(self) -> bool:
+        """
+        Returns True if the object has actuators, otherwise False.
+        """
+        return self.robot_description.has_actuators
+
+    @property
+    def robot_description(self) -> RobotDescription:
+        """
+        Returns the current robot description.
+        """
+        return self.world.robot_description
+
+    def get_actuator_for_joint(self, joint: Joint) -> Optional[str]:
+        """
+        Get the actuator name for a joint.
+        :param joint: The joint object for which to get the actuator.
+        :return: The name of the actuator.
+        """
+        return self.robot_description.get_actuator_for_joint(joint.name)
 
     def get_multiple_link_positions(self, links: List[Link]) -> Dict[str, List[float]]:
         """
@@ -191,15 +226,14 @@ class Object(WorldEntity):
     def _update_world_robot_and_description(self):
         """
         Initializes the robot description of the object, loads the description from the RobotDescriptionManager and sets
-        the robot as the current robot in the World. Also adds the virtual move base joints to the robot.
+        the robot as the current robot in the World.
         """
         rdm = RobotDescriptionManager()
         rdm.load_description(self.name)
         World.robot = self
-        self._add_virtual_move_base_joints()
 
     def _add_virtual_move_base_joints(self):
-        virtual_joints = RobotDescription.current_robot_description.virtual_move_base_joints
+        virtual_joints = self.robot_description.virtual_move_base_joints
         if virtual_joints is None:
             return
         child_link = self.root_link_name
