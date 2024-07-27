@@ -92,7 +92,7 @@ class World(StateEntity, ABC):
     acceptable_position_error: float = 5e-2  # 5 cm
     acceptable_orientation_error: float = 10 * np.pi / 180  # 10 degrees
     acceptable_pose_error: Tuple[float, float] = (acceptable_position_error, acceptable_orientation_error)
-    use_percentage_of_goal: bool = True
+    use_percentage_of_goal: bool = False
     acceptable_percentage_of_goal: float = 0.5 if use_percentage_of_goal else None  # 50%
     """
     The acceptable error for the position and orientation of an object/link.
