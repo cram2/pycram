@@ -47,7 +47,8 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         if not multiverse_installed:
             return
         cls.multiverse = Multiverse(simulation="pycram_test",
-                                    is_prospection=False)
+                                    is_prospection=False,
+                                    use_controller=False)
 
     @classmethod
     def tearDownClass(cls):
@@ -109,7 +110,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         robot_name = "tiago_dual"
         rdm = RobotDescriptionManager()
         rdm.load_description(robot_name)
-        self.multiverse.spawn_robot(robot_name, Pose([-2, -2, 0.001]))
+        self.multiverse.spawn_robot_with_controller(robot_name, Pose([-2, -2, 0.001]))
 
     def test_spawn_object(self):
         milk = self.spawn_milk([1, 1, 0.1])

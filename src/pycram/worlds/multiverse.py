@@ -65,20 +65,16 @@ class Multiverse(World):
     is completed.
     """
 
-    position_tol: float = 2e-3
-    """
-    The tolerance for position comparison. (e.g. for checking if the object has reached the desired position)
-    """
-
-    orientation_tol: float = 2e-3
-    """
-    The tolerance for orientation comparison. (e.g. for checking if the object has reached the desired orientation)
+    use_controller: Optional[bool] = None
+    """ 
+    Whether to use the joint controller or not.
     """
 
     def __init__(self, mode: Optional[WorldMode] = WorldMode.DIRECT,
                  is_prospection: Optional[bool] = False,
                  simulation_frequency: Optional[float] = 60.0,
-                 simulation: Optional[str] = None):
+                 simulation: Optional[str] = None,
+                 use_controller: Optional[bool] = None):
         """
         Initialize the Multiverse Socket and the PyCram World.
         param mode: The mode of the world (DIRECT or GUI).
@@ -86,6 +82,7 @@ class Multiverse(World):
         param simulation_frequency: The frequency of the simulation.
         param client_addr: The address of the multiverse client.
         param simulation: The name of the simulation.
+        param use_controller: Whether to use the controller or not.
         """
 
         self._make_sure_multiverse_resources_are_added()
@@ -97,6 +94,9 @@ class Multiverse(World):
             Multiverse.simulation = simulation
 
         self.simulation = (self.prospection_world_prefix if is_prospection else "") + Multiverse.simulation
+
+        if Multiverse.use_controller is None:
+            Multiverse.use_controller = use_controller
 
         World.__init__(self, mode, is_prospection, simulation_frequency)
 
@@ -117,8 +117,10 @@ class Multiverse(World):
         self.api_requester: MultiverseAPI = client_manager.create_api_requester(
             self.simulation,
             is_prospection_world=self.is_prospection_world)
-        # self.joint_controller: MultiverseController = client_manager.create_controller(
-        #     is_prospection_world=self.is_prospection_world)
+        self.joint_controller: Optional[MultiverseController] = None
+        if Multiverse.use_controller:
+            self.joint_controller: MultiverseController = client_manager.create_controller(
+                is_prospection_world=self.is_prospection_world)
 
     def _set_world_job_flags(self):
         self.let_pycram_move_attached_objects = False
@@ -153,21 +155,21 @@ class Multiverse(World):
         self.floor = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf",
                             world=self)
 
-    def spawn_robot(self, name: str, pose: Pose) -> None:
+    def spawn_robot_with_controller(self, name: str, pose: Pose) -> None:
         """
         Spawn the robot in the simulator.
         param robot_description: The robot description.
         param pose: The pose of the robot.
         return: The object of the robot.
         """
-        # actuator_joint_commands = {
-        #     actuator_name: [self.get_joint_cmd_name(self.robot_description.joint_types[joint_name]).value]
-        #     for joint_name, actuator_name in self.robot_joint_actuators.items()
-        # }
-        # self.joint_controller.init_controller(actuator_joint_commands)
+        actuator_joint_commands = {
+            actuator_name: [self.get_joint_cmd_name(self.robot_description.joint_types[joint_name]).value]
+            for joint_name, actuator_name in self.robot_joint_actuators.items()
+        }
+        self.joint_controller.init_controller(actuator_joint_commands)
         self.writer.spawn_robot_with_actuators(name, pose.position_as_list(),
-                                               self.xyzw_to_wxyz(pose.orientation_as_list()))
-                                               # actuator_joint_commands)
+                                               self.xyzw_to_wxyz(pose.orientation_as_list()),
+                                               actuator_joint_commands)
 
     def get_joint_position_name(self, joint_type: JointType) -> MultiverseJointProperty:
         return self._joint_type_to_position_name[joint_type]
@@ -202,8 +204,8 @@ class Multiverse(World):
         param pose: The pose of the object.
         return: The object id.
         """
-        if object_type == ObjectType.ROBOT:
-            self.spawn_robot(name, pose)
+        if object_type == ObjectType.ROBOT and Multiverse.use_controller:
+            self.spawn_robot_with_controller(name, pose)
         else:
             self._set_body_pose(name, pose)
 
@@ -239,20 +241,32 @@ class Multiverse(World):
 
     @validate_joint_position
     def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
-        self.writer.set_body_property(joint.name, self.get_joint_position_name(joint.type),
-                                      [joint_position])
-        # self.joint_controller.set_body_property(self.get_actuator_for_joint(joint), self.get_joint_cmd_name(joint.type),
-        #                                         [joint_position])
+        if Multiverse.use_controller:
+            return self._reset_joint_position_using_controller(joint, joint_position)
+        else:
+            self.writer.set_body_property(joint.name, self.get_joint_position_name(joint.type),
+                                          [joint_position])
+        return True
+
+    def _reset_joint_position_using_controller(self, joint: Joint, joint_position: float) -> bool:
+        self.joint_controller.set_body_property(self.get_actuator_for_joint(joint), self.get_joint_cmd_name(joint.type),
+                                                [joint_position])
         return True
 
     @validate_multiple_joint_positions
     def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
-        data = {joint.name: {self.get_joint_position_name(joint.type): [position]}
+        if self.use_controller:
+            return self._set_multiple_joint_positions_using_controller(joint_positions)
+        else:
+            data = {joint.name: {self.get_joint_position_name(joint.type): [position]}
+                    for joint, position in joint_positions.items()}
+            self.writer.send_multiple_body_data_to_server(data)
+        return True
+
+    def _set_multiple_joint_positions_using_controller(self, joint_positions: Dict[Joint, float]) -> bool:
+        data = {self.get_actuator_for_joint(joint): {self.get_joint_cmd_name(joint.type): [position]}
                 for joint, position in joint_positions.items()}
-        self.writer.send_multiple_body_data_to_server(data)
-        # data = {self.get_actuator_for_joint(joint): {self.get_joint_cmd_name(joint.type): [position]}
-        #         for joint, position in joint_positions.items()}
-        # self.joint_controller.send_multiple_body_data_to_server(data)
+        self.joint_controller.send_multiple_body_data_to_server(data)
         return True
 
     def get_joint_position(self, joint: Joint) -> Optional[float]:

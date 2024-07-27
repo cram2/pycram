@@ -473,7 +473,7 @@ class MultiverseController(MultiverseWriter):
         :param actuator_joint_commands: A dictionary mapping actuator names to joint command names.
         """
         self.send_data_to_server([self.sim_time] + [0.0]*len(actuator_joint_commands),
-                                 send_meta_data={key: value for key, value in actuator_joint_commands.items()})
+                                 send_meta_data=actuator_joint_commands)
 
 
 class MultiverseAPI(MultiverseClient):
