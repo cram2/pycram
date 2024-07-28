@@ -458,6 +458,13 @@ class VirtualMoveBaseJoints:
     translation_y: Optional[str] = VirtualMoveBaseJointName.LINEAR_Y.value
     angular_z: Optional[str] = VirtualMoveBaseJointName.ANGULAR_Z.value
 
+    @property
+    def names(self) -> List[str]:
+        """
+        Returns the names of the virtual move base joints.
+        """
+        return [self.translation_x, self.translation_y, self.angular_z]
+
     def get_types(self) -> Dict[str, JointType]:
         """
         Returns the joint types of the virtual move base joints.

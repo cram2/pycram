@@ -48,7 +48,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             return
         cls.multiverse = Multiverse(simulation="pycram_test",
                                     is_prospection=False,
-                                    use_controller=False)
+                                    use_controller=True)
 
     @classmethod
     def tearDownClass(cls):
@@ -244,7 +244,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             self.tearDown()
 
     def test_attach_with_robot(self):
-        milk = self.spawn_milk([1, 1, 0.1])
+        milk = self.spawn_milk([-1, -1, 0.1])
         robot = self.spawn_robot()
         ee_link = self.multiverse.get_arm_tool_frame_link(Arms.RIGHT)
         # Get position of milk relative to robot end effector
