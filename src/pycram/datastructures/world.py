@@ -580,6 +580,20 @@ class World(StateEntity, ABC):
         """
         pass
 
+    @property
+    def robot_virtual_joints(self) -> List[Joint]:
+        """
+        Returns the virtual joints of the robot.
+        """
+        return [self.robot.joints[name] for name in self.robot_virtual_joints_names]
+
+    @property
+    def robot_virtual_joints_names(self) -> List[str]:
+        """
+        Returns the virtual joints of the robot.
+        """
+        return self.robot_description.virtual_move_base_joints.names
+
     def set_mobile_robot_pose(self, pose: Pose) -> None:
         """
         Set the goal for the move base joints of a mobile robot to reach a target pose. This is used for example when
@@ -587,7 +601,17 @@ class World(StateEntity, ABC):
         param pose: The target pose.
         """
         goal = self.get_move_base_joint_goal(pose)
-        self.robot.set_multiple_joint_positions(goal)
+        self.robot.set_move_base_joint_positions(goal)
+
+    @abstractmethod
+    def set_multiple_joint_positions_without_controller(self, joint_positions: Dict[Joint, float]) -> bool:
+        """
+        Set the positions of multiple joints of an articulated object without using the controller.
+
+        :param joint_positions: A dictionary with joint objects as keys and joint positions as values.
+        :return: True if the set was successful, False otherwise.
+        """
+        pass
 
     def get_move_base_joint_goal(self, pose: Pose) -> Dict[str, float]:
         """

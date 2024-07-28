@@ -36,3 +36,7 @@ class MultiverseJointProperty(MultiverseProperty):
     PRISMATIC_JOINT_POSITION = "joint_tvalue"
     REVOLUTE_JOINT_CMD = "cmd_joint_rvalue"
     PRISMATIC_JOINT_CMD = "cmd_joint_tvalue"
+
+    def is_cmd(self):
+        return self in [MultiverseJointProperty.REVOLUTE_JOINT_CMD,
+                        MultiverseJointProperty.PRISMATIC_JOINT_CMD]

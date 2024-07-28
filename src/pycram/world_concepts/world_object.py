@@ -14,12 +14,12 @@ from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointSt
 from ..datastructures.enums import ObjectType, JointType
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world import World
+from ..datastructures.world_entity import WorldEntity
 from ..description import ObjectDescription, LinkDescription, Joint
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
-from ..datastructures.world_entity import WorldEntity
 
 Link = ObjectDescription.Link
 
@@ -62,7 +62,7 @@ class Object(WorldEntity):
         if pose is None:
             pose = Pose()
         if name in [obj.name for obj in self.world.objects]:
-            msg = f"An object with the name {name} already exists in the world,"\
+            msg = f"An object with the name {name} already exists in the world," \
                   f" is_prospection_world: {self.world.is_prospection_world}"
             rospy.logerr(msg)
             raise ValueError(msg)
@@ -953,6 +953,12 @@ class Object(WorldEntity):
         """
         self.world.reset_joint_position(self.joints[joint_name], joint_position)
 
+    def set_move_base_joint_positions(self, joint_positions: Dict[str, float]) -> None:
+        joint_positions = {self.joints[joint_name]: joint_position
+                           for joint_name, joint_position in joint_positions.items()}
+        if self.world.set_multiple_joint_positions_without_controller(joint_positions):
+            self._update_on_joint_position_change()
+
     def set_multiple_joint_positions(self, joint_positions: Dict[str, float]) -> None:
         """
         Sets the current position of multiple joints at once, this method should be preferred when setting
@@ -963,10 +969,13 @@ class Object(WorldEntity):
         joint_positions = {self.joints[joint_name]: joint_position
                            for joint_name, joint_position in joint_positions.items()}
         if self.world.set_multiple_joint_positions(joint_positions):
-            self.update_pose()
-            self._update_all_links_poses()
-            self.update_link_transforms()
-            self._set_attached_objects_poses()
+            self._update_on_joint_position_change()
+
+    def _update_on_joint_position_change(self):
+        self.update_pose()
+        self._update_all_links_poses()
+        self.update_link_transforms()
+        self._set_attached_objects_poses()
 
     def get_joint_position(self, joint_name: str) -> float:
         """
