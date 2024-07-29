@@ -84,7 +84,7 @@ class Object(WorldEntity):
 
         self.description.update_description_from_file(self.path)
 
-        if self.obj_type == ObjectType.ROBOT and not self.world.is_prospection_world:
+        if self.obj_type == ObjectType.ROBOT:
             self._add_virtual_move_base_joints()
 
         self.tf_frame = (self.prospection_world_prefix if self.world.is_prospection_world else "") + self.name
