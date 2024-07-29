@@ -291,7 +291,8 @@ class MultiverseReader(MultiverseClient):
 
 class MultiverseWriter(MultiverseClient):
 
-    def __init__(self, name: str, port: int, simulation: Optional[str] = None, is_prospection_world: Optional[bool] = False,
+    def __init__(self, name: str, port: int, simulation: Optional[str] = None,
+                 is_prospection_world: Optional[bool] = False,
                  simulation_wait_time_factor: Optional[float] = 1.0, **kwargs):
         """
         Initialize the Multiverse writer, which writes the data to the Multiverse server.
@@ -472,7 +473,7 @@ class MultiverseController(MultiverseWriter):
         Initialize the controller by sending the controller data to the multiverse server.
         :param actuator_joint_commands: A dictionary mapping actuator names to joint command names.
         """
-        self.send_data_to_server([self.sim_time] + [0.0]*len(actuator_joint_commands),
+        self.send_data_to_server([self.sim_time] + [0.0] * len(actuator_joint_commands),
                                  send_meta_data=actuator_joint_commands)
 
 

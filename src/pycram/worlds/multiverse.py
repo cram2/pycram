@@ -1,5 +1,6 @@
 import logging
 import os
+from time import sleep
 
 import numpy as np
 from tf.transformations import quaternion_matrix
@@ -70,11 +71,16 @@ class Multiverse(World):
     Whether to use the joint controller or not.
     """
 
+    REMOVE_ROBOT_WAIT_TIME: float = 0.5
+    """
+    The time to wait after removing the robot from the simulator.
+    """
+
     def __init__(self, mode: Optional[WorldMode] = WorldMode.DIRECT,
                  is_prospection: Optional[bool] = False,
                  simulation_frequency: Optional[float] = 60.0,
                  simulation: Optional[str] = None,
-                 use_controller: Optional[bool] = None):
+                 use_controller: Optional[bool] = False):
         """
         Initialize the Multiverse Socket and the PyCram World.
         param mode: The mode of the world (DIRECT or GUI).
@@ -233,11 +239,12 @@ class Multiverse(World):
 
     @validate_joint_position
     def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
-        if Multiverse.use_controller:
+        if Multiverse.use_controller and self.joint_has_actuator(joint):
             self._reset_joint_position_using_controller(joint, joint_position)
         else:
-            self.writer.set_body_property(joint.name, self.get_joint_position_name(joint.type),
-                                          [joint_position])
+            self._set_multiple_joint_positions_without_controller({joint: joint_position})
+            # self.writer.set_body_property(joint.name, self.get_joint_position_name(joint.type),
+            #                               [joint_position])
         return True
 
     def _reset_joint_position_using_controller(self, joint: Joint, joint_position: float) -> bool:
@@ -266,14 +273,13 @@ class Multiverse(World):
         return [joint for joint in joints if self.joint_has_actuator(joint)]
 
     def _set_multiple_joint_positions_without_controller(self, joint_positions: Dict[Joint, float]) -> bool:
-        not_controlled_joints_data = {joint.name: {self.get_joint_position_name(joint.type): [position]}
-                                      for joint, position in joint_positions.items()}
-        self.writer.send_multiple_body_data_to_server(not_controlled_joints_data)
-        return True
+        joints_data = {joint.name: {self.get_joint_position_name(joint.type): [position]}
+                       for joint, position in joint_positions.items()}
+        self.writer.send_multiple_body_data_to_server(joints_data)
 
     def _set_multiple_joint_positions_using_controller(self, joint_positions: Dict[Joint, float]) -> bool:
         controlled_joints_data = {self.get_actuator_for_joint(joint):
-                                      {self.get_joint_cmd_name(joint.type): [position]}
+                                  {self.get_joint_cmd_name(joint.type): [position]}
                                   for joint, position in joint_positions.items()}
         self.joint_controller.send_multiple_body_data_to_server(controlled_joints_data)
         return True
@@ -416,6 +422,8 @@ class Multiverse(World):
     def remove_object_from_simulator(self, obj: Object) -> None:
         if obj.obj_type != ObjectType.ENVIRONMENT:
             self.writer.remove_body(obj.name)
+        if obj.obj_type == ObjectType.ROBOT:
+            sleep(self.REMOVE_ROBOT_WAIT_TIME)
 
     def add_constraint(self, constraint: Constraint) -> int:
 
@@ -495,7 +503,7 @@ class Multiverse(World):
         return obj1_contact_points.get_points_of_object(obj2)
 
     def ray_test(self, from_position: List[float], to_position: List[float]) -> Optional[int]:
-        ray_test_result = self.ray_test_batch([from_position], [to_position])
+        ray_test_result = self.ray_test_batch([from_position], [to_position])[0]
         return ray_test_result[0] if ray_test_result[0] != -1 else None
 
     def ray_test_batch(self, from_positions: List[List[float]], to_positions: List[List[float]],
@@ -506,11 +514,20 @@ class Multiverse(World):
         ray_results = self.api_requester.get_objects_intersected_with_rays(from_positions, to_positions)
         results = []
         for ray_result in ray_results:
+            results.append([])
             if ray_result.intersected():
-                results.append(self.floor.id if ray_result.body_name == "world" else
-                               self.object_name_to_id[ray_result.body_name])
+                body_name = ray_result.body_name
+                if body_name == "world":
+                    results[-1].append(self.floor.id)
+                elif body_name in self.object_name_to_id.keys():
+                    results[-1].append(self.object_name_to_id[body_name])
+                else:
+                    for obj in self.objects:
+                        if body_name in obj.links.keys():
+                            results[-1].append(obj.id)
+                            break
             else:
-                results.append(-1)
+                results[-1].append(-1)
         return results
 
     def step(self):
@@ -554,3 +571,6 @@ class Multiverse(World):
 
     def check_object_exists_in_multiverse(self, obj: Object) -> bool:
         return self.api_requester.check_object_exists(obj)
+
+    def add_vis_axis(self, pose: Pose) -> None:
+        logging.warning("add_vis_axis is not implemented in Multiverse")
