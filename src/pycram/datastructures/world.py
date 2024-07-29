@@ -599,14 +599,15 @@ class World(StateEntity, ABC):
         """
         return self.robot_description.virtual_move_base_joints.names
 
-    def set_mobile_robot_pose(self, pose: Pose) -> None:
+    def set_mobile_robot_pose(self, robot_obj: Object, pose: Pose) -> None:
         """
         Set the goal for the move base joints of a mobile robot to reach a target pose. This is used for example when
         the simulator does not support setting the pose of the robot directly (e.g. MuJoCo).
-        param pose: The target pose.
+        :param robot_obj: The robot object.
+        :param pose: The target pose.
         """
         goal = self.get_move_base_joint_goal(pose)
-        self.robot.set_multiple_joint_positions(goal)
+        robot_obj.set_multiple_joint_positions(goal)
 
     def get_move_base_joint_goal(self, pose: Pose) -> Dict[str, float]:
         """

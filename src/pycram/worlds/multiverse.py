@@ -326,7 +326,7 @@ class Multiverse(World):
 
         if (obj.obj_type == ObjectType.ROBOT and
                 RobotDescription.current_robot_description.virtual_move_base_joints is not None):
-            self.set_mobile_robot_pose(pose)
+            self.set_mobile_robot_pose(obj ,pose)
         else:
             self._set_body_pose(obj.name, pose)
 
