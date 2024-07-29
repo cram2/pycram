@@ -688,13 +688,25 @@ class MultiverseAPI(MultiverseClient):
                                              API.GET_CONSTRAINT_EFFORT: [object_name]
                                              })
 
+    def pause_simulation(self) -> None:
+        """
+        Pause the simulation.
+        """
+        self._request_single_api_callback(API.PAUSE)
+
+    def unpause_simulation(self) -> None:
+        """
+        Unpause the simulation.
+        """
+        self._request_single_api_callback(API.UNPAUSE)
+
     def _request_single_api_callback(self, api_name: API, *params) -> List[str]:
         """
         Request a single API callback from the server.
         param api_data: The API data to request the callback.
         return: The API response as a list of strings.
         """
-        response = self._request_apis_callbacks({api_name: list(params)})
+        response = self._request_apis_callbacks({api_name: params})
         return response[api_name]
 
     def _request_apis_callbacks(self, api_data: Dict[API, List]) -> Dict[API, List[str]]:

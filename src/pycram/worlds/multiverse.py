@@ -115,6 +115,8 @@ class Multiverse(World):
         if not self.is_prospection_world:
             self._spawn_floor()
 
+        self.api_requester.pause_simulation()
+
     def _init_clients(self):
         client_manager = MultiverseClientManager(self.simulation_wait_time_factor)
         self.reader: MultiverseReader = client_manager.create_reader(is_prospection_world=self.is_prospection_world)
@@ -451,12 +453,13 @@ class Multiverse(World):
         self.api_requester.detach(constraint)
 
     def perform_collision_detection(self) -> None:
-        logging.warning("perform_collision_detection is not implemented in Multiverse")
+        self.step()
 
     def get_object_contact_points(self, obj: Object) -> ContactPointsList:
         """
         Note: Currently Multiverse only gets one contact point per contact objects.
         """
+        self.step()
         multiverse_contact_points = self.api_requester.get_contact_points(obj)
         contact_points = ContactPointsList([])
         body_link = None
@@ -531,7 +534,9 @@ class Multiverse(World):
         return results
 
     def step(self):
-        logging.warning("step is not implemented in Multiverse")
+        self.api_requester.unpause_simulation()
+        sleep(30 / self.simulation_frequency)
+        self.api_requester.pause_simulation()
 
     def save_physics_simulator_state(self) -> int:
         logging.warning("save_physics_simulator_state is not implemented in Multiverse")

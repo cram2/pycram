@@ -52,7 +52,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             return
         cls.multiverse = Multiverse(simulation="pycram_test",
                                     is_prospection=False,
-                                    use_controller=True)
+                                    use_controller=False)
 
     @classmethod
     def tearDownClass(cls):
@@ -81,9 +81,9 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         extension = ObjectDescription.get_file_extension()
 
         robot = self.spawn_robot(robot_name='tiago_dual', position=[1.3, 2, 0.01])
-        # apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")
+        apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")
 
-        milk = Object("milk_box", ObjectType.MILK, f"milk_box{extension}", pose=Pose([2.5, 2, 1.02]),
+        milk = Object("milk_box", ObjectType.MILK, f"milk_box{extension}", pose=Pose([2.4, 2, 1.02]),
                       color=Color(1, 0, 0, 1))
         # bowl = Object("big_bowl", ObjectType.BOWL, f"BigBowl.obj", pose=Pose([2.5, 2.3, 1]),
         #               color=Color(1, 1, 0, 1))
@@ -92,15 +92,15 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         # bowl.attach(spoon)
         # bowl.set_position([2.5, 2.4, 1.02])
 
-        pick_pose = Pose([2.7, 2.15, 1])
+        pick_pose = Pose([2.6, 2.15, 1])
 
         robot_desig = BelieveObject(names=["tiago_dual"])
-        # apartment_desig = BelieveObject(names=["apartment"])
+        apartment_desig = BelieveObject(names=["apartment"])
 
         with simulated_robot:
             ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-            MoveTorsoAction([0.25]).resolve().perform()
+            MoveTorsoAction([0.3]).resolve().perform()
 
             milk_desig = self.move_and_detect(ObjectType.MILK, pick_pose)
 
@@ -298,7 +298,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     def test_get_contact_points_between_two_objects(self):
         for i in range(3):
-            milk = self.spawn_milk([1, 1, 0.1], [0, -0.707, 0, 0.707])
+            milk = self.spawn_milk([1, 1, 0.01], [0, -0.707, 0, 0.707])
             cup = self.spawn_cup([1, 1, 0.1])
             contact_points = self.multiverse.get_contact_points_between_two_objects(milk, cup)
             self.assertIsInstance(contact_points, ContactPointsList)
