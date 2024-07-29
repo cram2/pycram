@@ -170,7 +170,13 @@ class World(StateEntity, ABC):
         """
         Get the actuator name for a given joint.
         """
-        return self.robot_joint_actuators.get(joint.name, joint.name)
+        return self.robot_joint_actuators[joint.name]
+
+    def joint_has_actuator(self, joint: Joint) -> bool:
+        """
+        Returns whether the joint has an actuator.
+        """
+        return joint.name in self.robot_joint_actuators
 
     @property
     def robot_joint_actuators(self) -> Dict[str, str]:
@@ -601,10 +607,10 @@ class World(StateEntity, ABC):
         param pose: The target pose.
         """
         goal = self.get_move_base_joint_goal(pose)
-        self.robot.set_move_base_joint_positions(goal)
+        self.robot.set_multiple_joint_positions(goal)
 
     @abstractmethod
-    def set_multiple_joint_positions_without_controller(self, joint_positions: Dict[Joint, float]) -> bool:
+    def _set_multiple_joint_positions_without_controller(self, joint_positions: Dict[Joint, float]) -> bool:
         """
         Set the positions of multiple joints of an articulated object without using the controller.
 

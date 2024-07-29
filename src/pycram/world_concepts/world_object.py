@@ -953,12 +953,6 @@ class Object(WorldEntity):
         """
         self.world.reset_joint_position(self.joints[joint_name], joint_position)
 
-    def set_move_base_joint_positions(self, joint_positions: Dict[str, float]) -> None:
-        joint_positions = {self.joints[joint_name]: joint_position
-                           for joint_name, joint_position in joint_positions.items()}
-        if self.world.set_multiple_joint_positions_without_controller(joint_positions):
-            self._update_on_joint_position_change()
-
     def set_multiple_joint_positions(self, joint_positions: Dict[str, float]) -> None:
         """
         Sets the current position of multiple joints at once, this method should be preferred when setting
