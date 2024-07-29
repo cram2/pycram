@@ -12,6 +12,8 @@ class MultiverseAPIName(Enum):
     DETACH = "detach"
     GET_RAYS = "get_rays"
     EXIST = "exist"
+    PAUSE = "pause"
+    UNPAUSE = "unpause"
 
 
 class MultiverseProperty(Enum):
