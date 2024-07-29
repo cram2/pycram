@@ -161,22 +161,13 @@ class Multiverse(World):
         return: The object of the robot.
         """
         actuator_joint_commands = {
-            actuator_name: [self.get_joint_cmd_name(joint_name, self.robot_description.joint_types[joint_name]).value]
+            actuator_name: [self.get_joint_cmd_name(self.robot_description.joint_types[joint_name]).value]
             for joint_name, actuator_name in self.robot_joint_actuators.items()
         }
         self.joint_controller.init_controller(actuator_joint_commands)
         self.writer.spawn_robot_with_actuators(name, pose.position_as_list(),
                                                self.xyzw_to_wxyz(pose.orientation_as_list()),
                                                actuator_joint_commands)
-
-    def get_joint_position_name(self, joint_type: JointType) -> MultiverseJointProperty:
-        return self._joint_type_to_position_name[joint_type]
-
-    def get_joint_cmd_name(self, joint_name: str, joint_type: JointType) -> MultiverseJointProperty:
-        if joint_name in self.robot_virtual_joints_names:
-            return self.get_joint_position_name(joint_type)
-        else:
-            return self._joint_type_to_cmd_name[joint_type]
 
     def load_object_and_get_id(self, name: Optional[str] = None,
                                pose: Optional[Pose] = None,
@@ -243,7 +234,7 @@ class Multiverse(World):
     @validate_joint_position
     def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
         if Multiverse.use_controller:
-            return self._reset_joint_position_using_controller(joint, joint_position)
+            self._reset_joint_position_using_controller(joint, joint_position)
         else:
             self.writer.set_body_property(joint.name, self.get_joint_position_name(joint.type),
                                           [joint_position])
@@ -251,34 +242,30 @@ class Multiverse(World):
 
     def _reset_joint_position_using_controller(self, joint: Joint, joint_position: float) -> bool:
         self.joint_controller.set_body_property(self.get_actuator_for_joint(joint),
-                                                self.get_joint_cmd_name(joint.name, joint.type),
+                                                self.get_joint_cmd_name(joint.type),
                                                 [joint_position])
         return True
 
     @validate_multiple_joint_positions
     def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
 
-        virtual_joint_positions = self.get_virtual_joint_positions(joint_positions)
-        if len(virtual_joint_positions) > 0:
-            self.set_multiple_joint_positions_without_controller(virtual_joint_positions)
-
-        physical_joint_positions = self.get_physical_joint_positions(joint_positions)
-
         if Multiverse.use_controller:
-            self._set_multiple_joint_positions_using_controller(physical_joint_positions)
-        else:
-            self._set_multiple_joint_positions_using_controller(physical_joint_positions)
+            controlled_joints = self.get_controlled_joints(list(joint_positions.keys()))
+            if len(controlled_joints) > 0:
+                controlled_joint_positions = {joint: joint_positions[joint] for joint in controlled_joints}
+                self._set_multiple_joint_positions_using_controller(controlled_joint_positions)
+                joint_positions = {joint: joint_positions[joint] for joint in joint_positions.keys()
+                                   if joint not in controlled_joints}
+        if len(joint_positions) > 0:
+            self._set_multiple_joint_positions_without_controller(joint_positions)
 
         return True
 
-    def get_physical_joint_positions(self, joint_positions: Dict[Joint, float]) -> Dict[str, float]:
-        return {joint: joint_positions[joint] for joint in joint_positions.keys() if
-                joint.name not in self.robot_virtual_joints_names}
+    def get_controlled_joints(self, joints: Optional[List[Joint]] = None) -> List[Joint]:
+        joints = self.robot.joints if joints is None else joints
+        return [joint for joint in joints if self.joint_has_actuator(joint)]
 
-    def get_virtual_joint_positions(self, joint_positions: Dict[Joint, float]) -> Dict[str, float]:
-        return {joint: joint_positions[joint] for joint in self.robot_virtual_joints if joint in joint_positions}
-
-    def set_multiple_joint_positions_without_controller(self, joint_positions: Dict[Joint, float]) -> bool:
+    def _set_multiple_joint_positions_without_controller(self, joint_positions: Dict[Joint, float]) -> bool:
         not_controlled_joints_data = {joint.name: {self.get_joint_position_name(joint.type): [position]}
                                       for joint, position in joint_positions.items()}
         self.writer.send_multiple_body_data_to_server(not_controlled_joints_data)
@@ -286,9 +273,8 @@ class Multiverse(World):
 
     def _set_multiple_joint_positions_using_controller(self, joint_positions: Dict[Joint, float]) -> bool:
         controlled_joints_data = {self.get_actuator_for_joint(joint):
-                                      {self.get_joint_cmd_name(joint.name, joint.type): [position]}
-                                  for joint, position in joint_positions.items()
-                                  if joint.name not in self.robot_virtual_joints_names}
+                                      {self.get_joint_cmd_name(joint.type): [position]}
+                                  for joint, position in joint_positions.items()}
         self.joint_controller.send_multiple_body_data_to_server(controlled_joints_data)
         return True
 
@@ -304,6 +290,12 @@ class Multiverse(World):
                                                                 for joint in joints})
         if data is not None:
             return {name: list(value.values())[0][0] for name, value in data.items()}
+
+    def get_joint_position_name(self, joint_type: JointType) -> MultiverseJointProperty:
+        return self._joint_type_to_position_name[joint_type]
+
+    def get_joint_cmd_name(self, joint_type: JointType) -> MultiverseJointProperty:
+        return self._joint_type_to_cmd_name[joint_type]
 
     def get_link_pose(self, link: Link) -> Optional[Pose]:
         return self._get_body_pose(link.name)
