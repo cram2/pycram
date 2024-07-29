@@ -366,19 +366,18 @@ class World(StateEntity, ABC):
 
         :param obj: The object to be removed.
         """
+
         while self.object_lock.locked():
             time.sleep(0.1)
         self.object_lock.acquire()
-        obj.detach_all()
 
+        obj.detach_all()
         if obj.name != "floor":
             self.objects.remove(obj)
-
-        if obj.name != "floor":
             self.remove_object_from_simulator(obj)
-
         if World.robot == obj:
             World.robot = None
+
         self.object_lock.release()
 
     def add_fixed_constraint(self, parent_link: Link, child_link: Link,
@@ -1466,7 +1465,7 @@ class WorldSync(threading.Thread):
 
         :param obj: The object to be added.
         """
-        self.object_to_prospection_object_map[obj] = copy(obj)
+        self.object_to_prospection_object_map[obj] = obj.copy_to_prospection()
 
     def remove_object(self, obj: Object) -> None:
         """

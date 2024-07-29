@@ -702,7 +702,7 @@ class Object(WorldEntity):
         """
         for obj, attachment in attachments.items():
             if self.world.is_prospection_world and not obj.world.is_prospection_world:
-                # In case this object is in the prospection world and the other object is not, the attachment will no
+                # In case this object is in the prospection world and the other object is not, the attachment will not
                 # be set.
                 continue
             if obj in self.attachments:
@@ -1188,19 +1188,17 @@ class Object(WorldEntity):
 
         :return: The copied object in the prospection world.
         """
-        obj = Object(self.name, self.obj_type, self.path, type(self.description), self.get_pose(),
-                     self.world.prospection_world, self.color)
-        obj.current_state = self.current_state
-        return obj
+        return self.copy_to_world(self.world.prospection_world)
 
-    def __copy__(self) -> Object:
+    def copy_to_world(self, world: World) -> Object:
         """
-        Returns a copy of this object. The copy will have the same name, type, path, description, pose, world and color.
+        Copies this object to the given world.
 
-        :return: A copy of this object.
+        :param world: The world to which the object should be copied.
+        :return: The copied object in the given world.
         """
         obj = Object(self.name, self.obj_type, self.path, type(self.description), self.get_pose(),
-                     self.world.prospection_world, self.color)
+                     world, self.color)
         obj.current_state = self.current_state
         return obj
 

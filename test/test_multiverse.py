@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import unittest
+from time import sleep
 
 import numpy as np
 import psutil
@@ -8,14 +9,17 @@ from tf.transformations import quaternion_from_euler, quaternion_multiply
 from typing_extensions import Optional, List
 
 from pycram.datastructures.dataclasses import Color, ContactPointsList, ContactPoint
-from pycram.datastructures.enums import ObjectType, Arms, JointType
+from pycram.datastructures.enums import ObjectType, Arms, JointType, Grasp
 from pycram.datastructures.pose import Pose
+from pycram.designators.action_designator import ParkArmsAction, MoveTorsoAction, NavigateAction, LookAtAction, \
+    DetectAction, TransportAction, PickUpAction
 from pycram.designators.object_designator import BelieveObject
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.robot_description import RobotDescriptionManager
 from pycram.world_concepts.world_object import Object
 from pycram.worlds.multiverse_extras.error_checkers import calculate_angle_between_quaternions
 from pycram.worlds.multiverse_extras.helpers import parse_mjcf_actuators, get_robot_mjcf_path
+from pycram.process_module import simulated_robot, with_simulated_robot
 
 multiverse_installed = True
 try:
@@ -76,22 +80,43 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def test_demo(self):
         extension = ObjectDescription.get_file_extension()
 
-        robot = self.spawn_robot(robot_name='tiago_dual', position=[1, 2, 0.01])
-        apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")
+        robot = self.spawn_robot(robot_name='tiago_dual', position=[1.3, 2, 0.01])
+        # apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")
 
         milk = Object("milk_box", ObjectType.MILK, f"milk_box{extension}", pose=Pose([2.5, 2, 1.02]),
                       color=Color(1, 0, 0, 1))
-        bowl = Object("big_bowl", ObjectType.BOWL, f"BigBowl.obj", pose=Pose([2.5, 2.3, 1]),
-                      color=Color(1, 1, 0, 1))
-        spoon = Object("soup_spoon", ObjectType.SPOON, f"SoupSpoon.obj", pose=Pose([2.6, 2.6, 1]),
-                       color=Color(0, 0, 1, 1))
-        bowl.attach(spoon)
-        bowl.set_position([2.5, 2.4, 1.02])
+        # bowl = Object("big_bowl", ObjectType.BOWL, f"BigBowl.obj", pose=Pose([2.5, 2.3, 1]),
+        #               color=Color(1, 1, 0, 1))
+        # spoon = Object("soup_spoon", ObjectType.SPOON, f"SoupSpoon.obj", pose=Pose([2.6, 2.6, 1]),
+        #                color=Color(0, 0, 1, 1))
+        # bowl.attach(spoon)
+        # bowl.set_position([2.5, 2.4, 1.02])
 
         pick_pose = Pose([2.7, 2.15, 1])
 
         robot_desig = BelieveObject(names=["tiago_dual"])
-        apartment_desig = BelieveObject(names=["apartment"])
+        # apartment_desig = BelieveObject(names=["apartment"])
+
+        with simulated_robot:
+            ParkArmsAction([Arms.BOTH]).resolve().perform()
+
+            MoveTorsoAction([0.25]).resolve().perform()
+
+            milk_desig = self.move_and_detect(ObjectType.MILK, pick_pose)
+
+            # TransportAction(milk_desig, [Arms.LEFT], [Pose([4.8, 3.55, 0.8])]).resolve().perform()
+
+    @staticmethod
+    @with_simulated_robot
+    def move_and_detect(obj_type: ObjectType, pick_pose: Pose):
+        NavigateAction(target_locations=[Pose([1.7, 2, 0])]).resolve().perform()
+
+        LookAtAction(targets=[pick_pose]).resolve().perform()
+
+        # object_desig = DetectAction(BelieveObject(types=[obj_type])).resolve().perform()
+        object_desig = BelieveObject(types=[obj_type]).resolve()
+
+        return object_desig
 
     def test_reset_world(self):
         set_position = [1, 1, 0.1]
@@ -294,8 +319,8 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         milk = self.spawn_milk([1, 1, 0.1])
         intersected_objects = self.multiverse.ray_test_batch([[1, 2, 0.1], [1, 2, 0.1]],
                                                              [[1, 1.5, 0.1], [1, 1, 0.1]])
-        self.assertTrue(intersected_objects[0] == -1)
-        self.assertTrue(intersected_objects[1] == milk.id)
+        self.assertTrue(intersected_objects[0][0] == -1)
+        self.assertTrue(intersected_objects[1][0] == milk.id)
 
     @staticmethod
     def spawn_big_bowl() -> Object:
