@@ -104,7 +104,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
             milk_desig = self.move_and_detect(ObjectType.MILK, pick_pose)
 
-            # TransportAction(milk_desig, [Arms.LEFT], [Pose([4.8, 3.55, 0.8])]).resolve().perform()
+            TransportAction(milk_desig, [Arms.LEFT], [Pose([4.8, 3.55, 0.8])]).resolve().perform()
 
     @staticmethod
     @with_simulated_robot
