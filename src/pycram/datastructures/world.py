@@ -609,16 +609,6 @@ class World(StateEntity, ABC):
         goal = self.get_move_base_joint_goal(pose)
         self.robot.set_multiple_joint_positions(goal)
 
-    @abstractmethod
-    def _set_multiple_joint_positions_without_controller(self, joint_positions: Dict[Joint, float]) -> bool:
-        """
-        Set the positions of multiple joints of an articulated object without using the controller.
-
-        :param joint_positions: A dictionary with joint objects as keys and joint positions as values.
-        :return: True if the set was successful, False otherwise.
-        """
-        pass
-
     def get_move_base_joint_goal(self, pose: Pose) -> Dict[str, float]:
         """
         Get the goal for the move base joints of a mobile robot to reach a target pose.
