@@ -263,12 +263,12 @@ class World(StateEntity, ABC):
         """
         pass
 
-    def get_object_by_name(self, name: str) -> List[Object]:
+    def get_object_by_name(self, name: str) -> Optional[Object]:
         """
-        Returns a list of all Objects in this World with the same name as the given one.
+        Returns the object with the given name. If there is no object with the given name, None is returned.
 
         :param name: The name of the returned Objects.
-        :return: A list of all Objects with the name 'name'.
+        :return: The object with the given name, if there is one.
         """
 
         object = list(filter(lambda obj: obj.name == name, self.objects))
