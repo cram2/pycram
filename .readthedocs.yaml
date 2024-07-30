@@ -18,11 +18,11 @@ build:
       # Generate the Sphinx configuration for this Jupyter Book so it builds.
       - "jupyter-book config sphinx doc/source"
 
-#python:
-#  install:
-#    - requirements: doc/requirements.txt
-#    - method: pip
-#      path: .
+python:
+  install:
+    - requirements: doc/requirements.txt
+    - method: pip
+      path: .
 #      extra_requirements:
 #      - catkin_pkg
 #      - sphinx
