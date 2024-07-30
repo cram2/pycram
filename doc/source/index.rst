@@ -96,39 +96,20 @@ The code for this plan can be seen below.
 
     world.exit()
 
-Tutorials
----------
 
-There are a handful of tutorials to get you started on using PyCRAM. These tutorials are:
+Citing PyCRAM
+=============
 
- * `Setup your Python REPL <http://cram-system.org/tutorials/pycram/repl>`_
- * `Interact with the BulletWorld <http://cram-system.org/tutorials/pycram/bullet_world>`_
- * `Add your own robot <http://cram-system.org/tutorials/pycram/own_robot)>`_
+If you want to cite PyCRAM in your work, you can use the following bibtex entry:
 
+.. code-block:: bibtex
 
-
-Authors
--------
-
- * **Jonas Dech** <jdech@uni-bremen.de>
- * **Andy Augsten** <a.augsten@uni-bremen.de>
- * **Dustin Augsten** <augsten@uni-bremen.de>
- * **Christopher Pollok** <cpollok@uni-bremen.de>
- * **Thomas Lipps** <tlipps@uni-bremen.de>
- * **Benjamin Alt** <benjamin.alt@uni-bremen.de>
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-   installation
-   designators
-   resolvers
-   new_robot
-   examples
-   troubleshooting
-   ros_utils
-   remarks
+        @software{dech2024pycram,
+        author = {Dech, Jonas},
+        title = {PyCRAM: A Python framework for cognition-enbabled robtics},
+        url = {https://github.com/cram2/pycram},
+        version = {0.2.0},
+        }
 
 
 

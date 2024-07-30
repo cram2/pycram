@@ -4,40 +4,6 @@ Examples
 
 All types of examples
 
-Intro Example
-=============
-
-.. nbgallery::
-    notebooks/intro
-
-
-Designator
-==========
-
-.. nbgallery::
-    notebooks/location_designator
-    notebooks/object_designator
-    notebooks/action_designator
-    notebooks/motion_designator
-
-Misc
-====
-
-.. nbgallery::
-    notebooks/bullet_world
-    notebooks/minimal_task_tree
-    notebooks/pose
-    notebooks/improving_actions
-    notebooks/language
-    notebooks/local_transformer
-
-Interface Examples
-==================
-
-.. nbgallery::
-    notebooks/interface_examples/giskard
-    notebooks/interface_examples/robokudo
-
 Object Relational Mapping
 =========================
 
@@ -60,15 +26,3 @@ to fill out the description. For this, check the documentation of :meth:`pycram.
 
 ORM Examples
 ------------
-
-.. nbgallery::
-
-    notebooks/orm_example
-    notebooks/migrate_neems
-    notebooks/orm_querying_examples
-
-Ontology
-==========
-
-.. nbgallery::
-    notebooks/ontology
