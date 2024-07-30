@@ -5,7 +5,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.3
+      jupytext_version: 1.16.2
   kernelspec:
     display_name: Python 3
     language: python
@@ -25,8 +25,7 @@ robot motion plan.
 
 ```python jupyter={"outputs_hidden": false}
 from pathlib import Path
-from typing import Type, TYPE_CHECKING
-import pycram
+from typing import Type
 from pycram.designator import ObjectDesignatorDescription
 ```
 
@@ -44,7 +43,6 @@ and [Pellet](https://github.com/stardog-union/pellet).
 import logging
 
 try:
-    import owlready2
     from owlready2 import *
 except ImportError:
     owlready2 = None
@@ -81,16 +79,25 @@ soma = ontology_manager.soma
 dul = ontology_manager.dul
 ```
 
+[General class axioms](https://owlready2.readthedocs.io/en/latest/general_class_axioms.html) of the loaded ontologies
+can be queried by
+
+```python
+print(f"{main_ontology.name}: ", ontology_manager.get_ontology_general_class_axioms(main_ontology))
+print(f"{soma.name}: ", ontology_manager.get_ontology_general_class_axioms(soma))
+print(f"{dul.name}: ", ontology_manager.get_ontology_general_class_axioms(dul))
+```
+
 <!-- #region jupyter={"outputs_hidden": false} -->
 
 ## Ontology Concept Holder
 
-{class}`~pycram.ontology.ontology_common.OntologyConceptHolder` class, encapsulating an __owlready2.Thing__ instance, is used primarily as the binding
+__OntologyConceptHolder__ class, encapsulating an __owlready2.Thing__ instance, is used primarily as the binding
 connection between the `owlready2.Thing` ontology concept to PyCram designators. We make it that way, instead of
 creating a custom concept class that inherits from `owlready2.Thing` for the reasons below:
 
 - `owlready2` API does not have very robust support for client classes to inherit from theirs with added (non-semantic)
-  attributes, particularly in our case, where classes like `DesignatorDescription` have their `metaclass` as `ABCMeta`,
+  attributes, particularly in our case, where classes like {class}`~pycram.designator.DesignatorDescription` have their `metaclass` as `ABCMeta`,
   while it is `EntityClass` that is the metaclass used for basically all concepts (classes, properties) in `owlready2`.
   Since those two metaclasses just bear no relationship, for the inheritance to work, the only way is to create a child
   metaclass with both of those as parents, however without full support by `owlready2`, plus the second reason below
@@ -241,10 +248,12 @@ ontology_manager.create_ontology_triple_classes(ontology_subject_parent_class=so
                                                 subject_class_name="OntologyPlaceHolderObject",
                                                 ontology_object_parent_class=soma.Shape,
                                                 object_class_name="OntologyHandheldObject",
-                                                predicate_name=PLACEABLE_ON_PREDICATE_NAME,
-                                                inverse_predicate_name=HOLD_OBJ_PREDICATE_NAME,
+                                                predicate_class_name=PLACEABLE_ON_PREDICATE_NAME,
+                                                inverse_predicate_class_name=HOLD_OBJ_PREDICATE_NAME,
                                                 ontology_property_parent_class=soma.affordsBearer,
                                                 ontology_inverse_property_parent_class=soma.isBearerAffordedBy)
+ontology_manager.print_ontology_property(main_ontology.placeable_on)
+ontology_manager.print_ontology_property(main_ontology.hold_obj)
 ```
 
 <!-- #region jupyter={"outputs_hidden": false} -->
@@ -281,7 +290,7 @@ egg_tray = create_ontology_handheld_object_designator("egg_tray", main_ontology.
 ### Create ontology relations
 
 Now we will create ontology relations or predicates between __placeholder objects__ and __handheld objects__
-with {meth}`~pycram.ontology.ontology.OntologyManager.set_ontology_relation`
+with `ontology_manager.set_ontology_relation()`
 <!-- #endregion -->
 
 ```python jupyter={"outputs_hidden": false}
@@ -401,8 +410,8 @@ ontology_manager.create_ontology_triple_classes(ontology_subject_parent_class=so
                                                 subject_class_name="OntologyLiquidHolderObject",
                                                 ontology_object_parent_class=soma.Shape,
                                                 object_class_name="OntologyPourableObject",
-                                                predicate_name=POURABLE_INTO_PREDICATE_NAME,
-                                                inverse_predicate_name=HOLD_LIQUID_PREDICATE_NAME,
+                                                predicate_class_name=POURABLE_INTO_PREDICATE_NAME,
+                                                inverse_predicate_class_name=HOLD_LIQUID_PREDICATE_NAME,
                                                 ontology_property_parent_class=soma.affordsBearer,
                                                 ontology_inverse_property_parent_class=soma.isBearerAffordedBy)
 ```

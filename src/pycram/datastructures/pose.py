@@ -22,7 +22,7 @@ def get_normalized_quaternion(quaternion: np.ndarray) -> GeoQuaternion:
     :return: The normalized quaternion
     """
     mag = math.sqrt(sum(v**2 for v in quaternion))
-    normed_rotation = quaternion / mag
+    normed_rotation = [f / mag for f in quaternion]
 
     geo_quaternion = GeoQuaternion()
     geo_quaternion.x = normed_rotation[0]
