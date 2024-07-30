@@ -18,3 +18,4 @@ psutil==5.9.7
 lxml==4.9.1
 typing_extensions==4.9.0
 owlready2>=0.45
+catkin_pkg
