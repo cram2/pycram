@@ -263,14 +263,18 @@ class World(StateEntity, ABC):
         """
         pass
 
-    def get_object_by_name(self, name: str) -> List[Object]:
+    def get_object_by_name(self, name: str) -> Optional[Object]:
         """
-        Returns a list of all Objects in this World with the same name as the given one.
+        Returns the object with the given name. If there is no object with the given name, None is returned.
 
         :param name: The name of the returned Objects.
-        :return: A list of all Objects with the name 'name'.
+        :return: The object with the given name, if there is one.
         """
-        return list(filter(lambda obj: obj.name == name, self.objects))[0]
+
+        object = list(filter(lambda obj: obj.name == name, self.objects))
+        if len(object) > 0:
+            return object[0]
+        return None
 
     def get_object_by_type(self, obj_type: ObjectType) -> List[Object]:
         """
@@ -1064,6 +1068,13 @@ class UseProspectionWorld:
         self.prev_world: Optional[World] = None
         # The previous world is saved to restore it after the with block is exited.
 
+    def sync_worlds(self):
+        """
+        Synchronizes the state of the prospection world with the main world.
+        """
+        for world_obj, prospection_obj in World.current_world.world_sync.object_mapping.items():
+            prospection_obj.current_state = world_obj.current_state
+
     def __enter__(self):
         """
         This method is called when entering the with block, it will set the current world to the prospection world
@@ -1072,6 +1083,7 @@ class UseProspectionWorld:
             time.sleep(self.WAIT_TIME_FOR_ADDING_QUEUE * World.current_world.simulation_time_step)
             # blocks until the adding queue is ready
             World.current_world.world_sync.add_obj_queue.join()
+            self.sync_worlds()
 
             self.prev_world = World.current_world
             World.current_world.world_sync.pause_sync = True
@@ -1137,8 +1149,6 @@ class WorldSync(threading.Thread):
                 prospection_obj.remove()
                 del self.object_mapping[obj]
                 self.remove_obj_queue.task_done()
-            for world_obj, prospection_obj in self.object_mapping.items():
-                prospection_obj.current_state = world_obj.current_state
             self.check_for_pause()
             time.sleep(wait_time_as_n_simulation_steps * self.world.simulation_time_step)
 

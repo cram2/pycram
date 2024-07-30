@@ -1,4 +1,3 @@
-import itertools
 from typing_extensions import List, Tuple, Optional, Union, Dict
 
 import numpy as np
@@ -117,8 +116,8 @@ def visible(
                 obj.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]), set_attachments=False)
 
         seg_mask, target_point = get_visible_objects(camera_pose, front_facing_axis)
-        flat_list = list(itertools.chain.from_iterable(seg_mask))
-        max_pixel = sum(list(map(lambda x: 1 if x == prospection_obj.id else 0, flat_list)))
+        max_pixel = np.array(seg_mask == prospection_obj.id).sum()
+
         World.current_world.restore_state(state_id)
 
         if max_pixel == 0:
@@ -126,8 +125,7 @@ def visible(
             return False
 
         seg_mask = World.current_world.get_images_for_target(target_point, camera_pose)[2]
-        flat_list = list(itertools.chain.from_iterable(seg_mask))
-        real_pixel = sum(list(map(lambda x: 1 if x == prospection_obj.id else 0, flat_list)))
+        real_pixel = np.array(seg_mask == prospection_obj.id).sum()
 
         return real_pixel / max_pixel > threshold > 0
 
