@@ -28,6 +28,7 @@ from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.event import Event
+from ..config import world_conf as conf
 
 if TYPE_CHECKING:
     from ..world_concepts.world_object import Object
@@ -131,7 +132,7 @@ class World(StateEntity, ABC):
      the URDF with the name of the URDF on the parameter server. 
     """
 
-    resources_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'resources')
+    resources_path = conf.resources_path
     """
     Global reference for the resources path, this is used to search for the description files of the robot and
      the objects.
@@ -143,7 +144,7 @@ class World(StateEntity, ABC):
      the objects, and the cached files.
     """
 
-    cache_dir: str = os.path.join(resources_path, 'cached')
+    cache_dir: str = conf.cache_dir
     """
     Global reference for the cache directory, this is used to cache the description files of the robot and the objects.
     """
@@ -153,7 +154,7 @@ class World(StateEntity, ABC):
     Global reference for the cache manager, this is used to cache the description files of the robot and the objects.
     """
 
-    prospection_world_prefix: str = "prospection_"
+    prospection_world_prefix: str = conf.prospection_world_prefix
     """
     The prefix for the prospection world name.
     """
