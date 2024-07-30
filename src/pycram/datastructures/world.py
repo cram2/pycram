@@ -1197,7 +1197,7 @@ class UseProspectionWorld:
         with UseProspectionWorld():
             NavigateAction.Action([[1, 0, 0], [0, 0, 0, 1]]).perform()
     """
-    WAIT_TIME_AS_N_SIMULATION_STEPS = 20
+    WAIT_TIME_AS_N_SIMULATION_STEPS: int = 20
     """
     The time in simulation steps to wait before switching to the prospection world
     """
