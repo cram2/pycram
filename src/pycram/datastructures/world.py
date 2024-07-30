@@ -1,7 +1,6 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-import os
 import threading
 import time
 from abc import ABC, abstractmethod
@@ -24,6 +23,7 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
                                           ContactPointsList, VirtualMoveBaseJoints)
 from ..datastructures.enums import JointType, ObjectType, WorldMode, Arms
 from ..datastructures.pose import Pose, Transform
+from ..exceptions import ProspectionObjectNotFound, WorldObjectNotFound
 from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
 from ..world_concepts.constraints import Constraint
@@ -915,16 +915,7 @@ class World(StateEntity, ABC):
         :return: The corresponding object in the prospection world.
         """
         with UseProspectionWorld():
-            try:
-                if obj.world.is_prospection_world:
-                    return obj
-                else:
-                    return self.world_sync.get_prospection_object(obj)
-            except KeyError:
-                raise KeyError(
-                    f"There is no prospection object for the given object: {obj.name}, this could be the case if"
-                    f" the object isn't anymore in the main (graphical) World"
-                    f" or if the given object is already a prospection object. ")
+            return self.world_sync.get_prospection_object(obj)
 
     def get_object_for_prospection_object(self, prospection_object: Object) -> Object:
         """
@@ -935,14 +926,7 @@ class World(StateEntity, ABC):
         :param prospection_object: The object for which the corresponding object in the main World should be found.
         :return: The object in the main World.
         """
-        with UseProspectionWorld():
-            try:
-                if not prospection_object.world.is_prospection_world:
-                    return prospection_object
-                else:
-                    return self.world_sync.get_world_object(prospection_object)
-            except KeyError:
-                raise KeyError(f"The given object {prospection_object.name} is not in the prospection world.")
+        return self.world_sync.get_world_object(prospection_object)
 
     def reset_world_and_remove_objects(self, exclude_objects: Optional[List[Object]] = None) -> None:
         """
@@ -1290,7 +1274,12 @@ class WorldSync(threading.Thread):
         :param prospection_object: The object for which the corresponding object in the main World should be found.
         :return: The object in the main World.
         """
-        return self.prospection_object_to_object_map[prospection_object]
+        try:
+            return self.prospection_object_to_object_map[prospection_object]
+        except KeyError:
+            if prospection_object in self.world.objects:
+                return prospection_object
+            raise WorldObjectNotFound(prospection_object)
 
     def get_prospection_object(self, obj: Object) -> Object:
         """
@@ -1299,7 +1288,12 @@ class WorldSync(threading.Thread):
         :param obj: The object for which the corresponding object in the prospection World should be found.
         :return: The corresponding object in the prospection world.
         """
-        return self.object_to_prospection_object_map[obj]
+        try:
+            return self.object_to_prospection_object_map[obj]
+        except KeyError:
+            if obj in self.prospection_world.objects:
+                return obj
+            raise ProspectionObjectNotFound(obj)
 
     def sync_worlds(self):
         """
