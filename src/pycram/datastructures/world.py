@@ -355,8 +355,6 @@ class World(StateEntity, ABC):
 
         :param obj: The object to be removed.
         """
-        while self.object_lock.locked():
-            time.sleep(0.1)
         self.object_lock.acquire()
         obj.detach_all()
 
