@@ -24,6 +24,7 @@ python:
     - method: pip
       path: .
       extra_requirements:
+      - catkin_pkg
       - sphinx
 
 sphinx:
