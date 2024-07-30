@@ -9,6 +9,7 @@ from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
 from ..description import ObjectDescription, LinkDescription, Joint, JointDescription
+from ..exceptions import ObjectAlreadyExists
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..datastructures.world import WorldEntity, World
 from ..world_concepts.constraints import Attachment
@@ -58,11 +59,8 @@ class Object(WorldEntity):
 
         super().__init__(-1, world)
 
-        if pose is None:
-            pose = Pose()
-        if name in [obj.name for obj in self.world.objects]:
-            rospy.logerr(f"An object with the name {name} already exists in the world.")
-            raise ValueError(f"An object with the name {name} already exists in the world.")
+        pose = Pose() if pose is None else pose
+
         self.name: str = name
         self.obj_type: ObjectType = obj_type
         self.color: Color = color
@@ -93,6 +91,16 @@ class Object(WorldEntity):
         self.world.objects.append(self)
 
     @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, name: str):
+        self._name = name
+        if name in [obj.name for obj in self.world.objects]:
+            raise ObjectAlreadyExists(self)
+
+    @property
     def pose(self):
         return self.get_pose()
 
@@ -119,11 +127,7 @@ class Object(WorldEntity):
         :param ignore_cached_files: Whether to ignore files in the cache directory.
         :return: The unique id of the object and the path of the file that was loaded.
         """
-        try:
-            self.path = self.world.update_cache_dir_with_object(path, ignore_cached_files, self)
-        except FileNotFoundError as e:
-            logging.error("Could not generate description from file.")
-            raise e
+        self.path = self.world.update_cache_dir_with_object(path, ignore_cached_files, self)
 
         try:
             path = self.path if self.world.let_pycram_handle_spawning else self.name

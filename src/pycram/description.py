@@ -12,6 +12,7 @@ from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Colo
 from .datastructures.enums import JointType
 from .datastructures.pose import Pose, Transform
 from .datastructures.world import WorldEntity
+from .exceptions import ObjectDescriptionNotFound
 from .local_transformer import LocalTransformer
 
 if TYPE_CHECKING:
@@ -701,11 +702,10 @@ class ObjectDescription(EntityDescription):
                 # Using the description from the parameter server
                 description_string = self.generate_from_parameter_server(path)
             except KeyError:
-                logging.warning(f"Couldn't find dile data in the ROS parameter server")
+                logging.warning(f"Couldn't find file data in the ROS parameter server")
+
         if description_string is None:
-            logging.error(f"Could not find file with path {path} in the resources directory nor"
-                          f" in the ros parameter server.")
-            raise FileNotFoundError
+            raise ObjectDescriptionNotFound(name, path, extension)
 
         return description_string
 
