@@ -148,6 +148,7 @@ class BulletWorldTest(BulletWorldTestCase):
         try:
             prospection_milk_2 = self.world.get_prospection_object_for_object(milk_2)
             self.world.remove_object(milk_2)
+            time.sleep(0.1)
             self.world.get_prospection_object_for_object(milk_2)
             self.assertFalse(True)
         except KeyError as e:
