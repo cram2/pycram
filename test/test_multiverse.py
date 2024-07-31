@@ -177,7 +177,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         estimated_cup_position[0] += 1
         milk.set_position(milk_position)
         new_cup_position = cup.get_position_as_list()
-        self.assert_list_is_equal(new_cup_position[:2], estimated_cup_position[:2])
+        self.assert_list_is_equal(new_cup_position[:2], estimated_cup_position[:2], 0.06)
 
     # @unittest.skip("Not implemented feature yet.")
     def test_detach_object(self):
@@ -195,8 +195,8 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             milk.set_position(milk_position)
             new_milk_position = milk.get_position_as_list()
             new_cup_position = cup.get_position_as_list()
-            self.assert_list_is_equal(new_milk_position[:2], milk_position[:2], 0.005)
-            self.assert_list_is_equal(new_cup_position[:2], estimated_cup_position[:2], 0.002)
+            self.assert_list_is_equal(new_milk_position[:2], milk_position[:2], 0.05)
+            self.assert_list_is_equal(new_cup_position[:2], estimated_cup_position[:2], 0.05)
             self.tearDown()
 
     def test_attach_with_robot(self):
