@@ -5,7 +5,7 @@ from time import time, sleep
 
 from typing_extensions import List, Dict, Tuple, Optional
 
-from .socket import MultiverseSocket, MultiverseMetaData, SocketAddress
+from .socket import MultiverseSocket, MultiverseMetaData
 from ..multiverse_datastructures.enums import MultiverseAPIName as API
 from ..multiverse_datastructures.dataclasses import RayResult, MultiverseContactPoint
 from ...datastructures.pose import Pose
@@ -26,7 +26,7 @@ class MultiverseClient(MultiverseSocket):
         meta_data = MultiverseMetaData()
         meta_data.simulation_name = (World.prospection_world_prefix if is_prospection_world else "") + name
         meta_data.world_name = (World.prospection_world_prefix if is_prospection_world else "") + meta_data.world_name
-        super().__init__(SocketAddress(port=str(port)), meta_data)
+        super().__init__(port=str(port), meta_data=meta_data)
         self.run()
 
 

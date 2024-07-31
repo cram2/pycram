@@ -5,7 +5,7 @@ from typing import List, Dict, TypeVar
 import logging
 
 from multiverse_client_pybind import MultiverseClientPybind  # noqa
-from typing_extensions import Optional
+from ...config import multiverse_conf as conf
 
 T = TypeVar("T")
 
@@ -21,30 +21,23 @@ class MultiverseMetaData:
     handedness: str = "rhs"
 
 
-class SocketAddress:
-    host: str = "tcp://127.0.0.1"
-    port: str = ""
-
-    def __init__(self, port: str) -> None:
-        self.port = port
-
-
 class MultiverseSocket:
-    _server_addr: SocketAddress = SocketAddress(port="7000")
 
     def __init__(
             self,
-            client_addr: SocketAddress,
-            multiverse_meta_data: MultiverseMetaData = MultiverseMetaData(),
+            port: str,
+            host: str = conf.HOST,
+            meta_data: MultiverseMetaData = MultiverseMetaData(),
     ) -> None:
-        if not isinstance(client_addr.port, str) or client_addr.port == "":
+        if not isinstance(port, str) or port == "":
             raise ValueError(f"Must specify client port for {self.__class__.__name__}")
         self._send_data = None
-        self._client_addr = client_addr
-        self._meta_data = multiverse_meta_data
+        self.port = port
+        self.host = host
+        self._meta_data = meta_data
         self.client_name = self._meta_data.simulation_name
         self._multiverse_socket = MultiverseClientPybind(
-            f"{self._server_addr.host}:{self._server_addr.port}"
+            f"{conf.SERVER_HOST}:{conf.SERVER_PORT}"
         )
         self.request_meta_data = {
             "meta_data": self._meta_data.__dict__,
@@ -53,7 +46,7 @@ class MultiverseSocket:
         }
 
     def run(self) -> None:
-        message = f"[Client {self._client_addr.port}] Start {self.__class__.__name__}{self._client_addr.port}"
+        message = f"[Client {self.port}] Start {self.__class__.__name__}{self.port}"
         logging.info(message)
         self._connect_and_start()
 
@@ -79,7 +72,7 @@ class MultiverseSocket:
     def response_meta_data(self) -> Dict:
         response_meta_data = self._multiverse_socket.get_response_meta_data()
         if not response_meta_data:
-            message = f"[Client {self._client_addr.port}] Receive empty response meta data."
+            message = f"[Client {self.port}] Receive empty response meta data."
             logging.warning(message)
         return response_meta_data
 
@@ -96,12 +89,12 @@ class MultiverseSocket:
     def receive_data(self) -> List[float]:
         receive_data = self._multiverse_socket.get_receive_data()
         if not receive_data:
-            message = f"[Client {self._client_addr.port}] Receive empty data."
+            message = f"[Client {self.port}] Receive empty data."
             logging.warning(message)
         return receive_data
 
     def _connect_and_start(self) -> None:
-        self._multiverse_socket.connect(self._client_addr.host, self._client_addr.port)
+        self._multiverse_socket.connect(self.host, self.port)
         self._multiverse_socket.start()
 
     def _disconnect(self) -> None:
