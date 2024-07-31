@@ -1,10 +1,11 @@
+import datetime
 import logging
 import threading
 from time import time, sleep
 
 from typing_extensions import List, Dict, Tuple, Optional, Callable, Union
 
-from .socket import MultiverseSocket, MultiverseMetaData, SocketAddress
+from .socket import MultiverseSocket, MultiverseMetaData
 from ..multiverse_datastructures.dataclasses import RayResult, MultiverseContactPoint
 from ..multiverse_datastructures.enums import (MultiverseAPIName as API, MultiverseBodyProperty as BodyProperty,
                                                MultiverseProperty as Property)
@@ -29,13 +30,14 @@ class MultiverseClient(MultiverseSocket):
         meta_data = MultiverseMetaData()
         meta_data.simulation_name = (World.prospection_world_prefix if is_prospection_world else "") + name
         meta_data.world_name = (World.prospection_world_prefix if is_prospection_world else "") + meta_data.world_name
-        super().__init__(SocketAddress(port=str(port)), meta_data)
+        super().__init__(port=str(port), meta_data=meta_data)
         self.simulation_wait_time_factor = simulation_wait_time_factor
         self.run()
 
 
 class MultiverseReader(MultiverseClient):
-    MAX_WAIT_TIME_FOR_DATA: Optional[float] = 2
+
+    MAX_WAIT_TIME_FOR_DATA: datetime.timedelta = datetime.timedelta(milliseconds=1000)
     """
     The maximum wait time for the data in seconds.
     """
@@ -224,7 +226,7 @@ class MultiverseReader(MultiverseClient):
         """
         start = time()
         data_received_flag = False
-        while time() - start < self.MAX_WAIT_TIME_FOR_DATA:
+        while time() - start < self.MAX_WAIT_TIME_FOR_DATA.total_seconds():
             received_data = self.get_received_data()
             data_received_flag = check_func(body_names, received_data, properties)
             if data_received_flag:
@@ -444,18 +446,15 @@ class MultiverseWriter(MultiverseClient):
 
 
 class MultiverseAPI(MultiverseClient):
-    BASE_NAME: str = "api_requester"
-    """
-    The base name of the Multiverse reader.
-    """
-    API_REQUEST_WAIT_TIME: float = 0.2
+
+    API_REQUEST_WAIT_TIME: datetime.timedelta = datetime.timedelta(milliseconds=200)
     """
     The wait time for the API request in seconds.
     """
     APIs_THAT_NEED_WAIT_TIME: List[API] = [API.ATTACH]
 
     def __init__(self, name: str, port: int, simulation: str, is_prospection_world: Optional[bool] = False,
-                 simulation_wait_time_factor: Optional[float] = 1.0):
+                 simulation_wait_time_factor: float = 1.0):
         """
         Initialize the Multiverse API, which sends API requests to the Multiverse server.
         This class provides methods like attach and detach objects, get contact points, and other API requests.
@@ -675,7 +674,7 @@ class MultiverseAPI(MultiverseClient):
         self._send_api_request()
         responses = self._get_all_apis_responses()
         if self.wait:
-            sleep(self.API_REQUEST_WAIT_TIME * self.simulation_wait_time_factor)
+            sleep(self.API_REQUEST_WAIT_TIME.total_seconds() * self.simulation_wait_time_factor)
             self.wait = False
         return responses
 

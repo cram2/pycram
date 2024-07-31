@@ -25,7 +25,6 @@ class MultiverseClientManager:
     def create_reader(self, is_prospection_world: Optional[bool] = False) -> 'MultiverseReader':
         """
         Create a Multiverse reader client.
-        param max_wait_time_for_data: The maximum wait time for the data in seconds.
         param is_prospection_world: Whether the reader is connected to the prospection world.
         """
         return self.create_client(MultiverseReader, "reader", is_prospection_world)
@@ -57,7 +56,10 @@ class MultiverseClientManager:
                                          MultiverseReader, MultiverseWriter]:
         """
         Create a Multiverse client.
-        param kwargs: The keyword arguments.
+        param client_type: The type of the client to create.
+        param name: The name of the client.
+        param is_prospection_world: Whether the client is connected to the prospection world.
+        param kwargs: Any other keyword arguments that should be passed to the client constructor.
         """
         MultiverseClientManager.last_used_port += 1
         name = (name or client_type.__name__) + f"_{self.last_used_port}"

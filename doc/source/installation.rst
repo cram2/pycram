@@ -1,5 +1,3 @@
-.. _installation:
-
 ============
 Installation
 ============
@@ -147,20 +145,21 @@ IK solver.
 Building the documentation
 ==========================
 
-The documentation uses sphinx as engine.
-Building sphinx based documentations requires pandoc
-to be installed. Pandoc can be installed via the package manager of Ubuntu.
+The documentation uses jupyter-book as engine.
+Building the documentation requires Python 3.9 to avoid dependency conflicts.
+To install Python 3.9 on Ubuntu 20.04, use the following commands:
 
 .. code-block:: shell
 
-    sudo apt install pandoc
+    sudo apt install python3.9
 
-After installing pandoc, install sphinx on your device.
+It is recommended to use a virtual environment to avoid conflicts with the system Python.
 
 .. code-block:: shell
 
-    sudo apt install python3-sphinx
-
+    apt-get install python3-virtualenv
+    virtualenv -p python3.9 --system-site-packages build-doc
+    source build-doc/bin/activate
 
 Install the requirements in your python interpreter.
 
@@ -175,14 +174,14 @@ Run pycram and build the docs.
 
     cd ~/workspace/ros
     roslaunch pycram ik_and_description.launch
-    cd src/pycram/doc
-    make html
+    cd src/pycram/doc/source
+    jupyter-book build .
 
 Show the index.
 
 .. code-block::
 
-    firefox build/html/index.html
+    firefox _build/html/index.html
 
 
 
@@ -282,7 +281,7 @@ To verify that it works, you can execute any Testcase.
 **Useful tips**
 
 - `Keyboard shortcuts <https://www.jetbrains.com/help/pycharm/mastering-keyboard-shortcuts.html>`_
-    - `Keymap <https://www.jetbrains.com/help/pycharm/mastering-keyboard-shortcuts.html#ws_print_keymap>`_
+    - `Keymap <https://www.jetbrains.com/help/pycharm/mastering-keyboard-shortcuts.html#ws_print_keymap>`_, which can be configured in **Settings | Keymap**. The default is GNOME.
 
 - `Python interpreter <https://www.jetbrains.com/help/pycharm/configuring-python-interpreter.html>`_
     - `Python virtual environment <https://www.jetbrains.com/help/pycharm/creating-virtual-environment.html>`_
@@ -296,6 +295,8 @@ To verify that it works, you can execute any Testcase.
 - **F12**: Open terminal
 
 - **Double Shift**: Quick file search
+
+- **Alt + Shift + 1**: Reveal/Select current file in Project View
 
 - **Ctrl F/R**: Find/Replace text in current file
 
