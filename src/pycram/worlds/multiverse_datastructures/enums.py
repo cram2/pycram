@@ -1,5 +1,7 @@
-from abc import ABC
 from enum import Enum
+
+from pycram.datastructures.enums import JointType
+from ..multiverse_functions.exceptions import UnsupportedJointType
 
 
 class MultiverseAPIName(Enum):
@@ -36,3 +38,12 @@ class MultiverseJointProperty(MultiverseProperty):
     PRISMATIC_JOINT_POSITION = "joint_tvalue"
     REVOLUTE_JOINT_CMD = "cmd_joint_rvalue"
     PRISMATIC_JOINT_CMD = "cmd_joint_tvalue"
+
+    @classmethod
+    def from_pycram_joint_type(cls, joint_type: 'JointType') -> 'MultiverseJointProperty':
+        if joint_type == JointType.REVOLUTE:
+            return MultiverseJointProperty.REVOLUTE_JOINT_POSITION
+        elif joint_type == JointType.PRISMATIC:
+            return MultiverseJointProperty.PRISMATIC_JOINT_POSITION
+        else:
+            raise UnsupportedJointType(joint_type)
