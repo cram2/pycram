@@ -24,12 +24,9 @@ class Multiverse(World):
     This class implements an interface between Multiverse and PyCRAM.
     """
 
-    _joint_type_to_position_name: Dict[JointType, MultiverseJointProperty] = {
-        JointType.REVOLUTE: MultiverseJointProperty.REVOLUTE_JOINT_POSITION,
-        JointType.PRISMATIC: MultiverseJointProperty.PRISMATIC_JOINT_POSITION,
-    }
+    supported_joint_types = (JointType.REVOLUTE, JointType.PRISMATIC)
     """
-    A dictionary to map JointType to the corresponding multiverse attribute name.
+    A Tuple for the supported pycram joint types in Multiverse.
     """
 
     added_multiverse_resources: bool = False
@@ -139,10 +136,9 @@ class Multiverse(World):
         self.floor = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf",
                             world=self)
 
-    def get_joint_position_name(self, joint: Joint) -> MultiverseJointProperty:
-        if joint.type not in self._joint_type_to_position_name:
-            raise ValueError(f"Joint type {joint.type} is not supported in Multiverse")
-        return self._joint_type_to_position_name[joint.type]
+    @staticmethod
+    def get_joint_position_name(joint: Joint) -> MultiverseJointProperty:
+        return MultiverseJointProperty.from_pycram_joint_type(joint.type)
 
     def load_object_and_get_id(self, name: Optional[str] = None,
                                pose: Optional[Pose] = None,
@@ -174,8 +170,7 @@ class Multiverse(World):
         return self.last_object_id
 
     def get_object_joint_names(self, obj: Object) -> List[str]:
-        return [joint.name for joint in obj.description.joints
-                if joint.type in self._joint_type_to_position_name.keys()]
+        return [joint.name for joint in obj.description.joints if joint.type in self.supported_joint_types]
 
     def get_object_link_names(self, obj: Object) -> List[str]:
         return [link.name for link in obj.description.links]
