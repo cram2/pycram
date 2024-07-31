@@ -299,16 +299,16 @@ class World(StateEntity, ABC):
 
     def get_object_by_name(self, name: str) -> Optional[Object]:
         """
-        Returns the object in this World with the same name as the given one.
+        Return the object with the given name. If there is no object with the given name, None is returned.
 
-        :param name: The name of the returned object.
-        :return: the object with the name 'name'.
+        :param name: The name of the returned Objects.
+        :return: The object with the given name, if there is one.
         """
-        obj = [obj for obj in self.objects if obj.name == name]
-        if len(obj) == 0:
-            return None
-        else:
-            return obj[0]
+
+        object = list(filter(lambda obj: obj.name == name, self.objects))
+        if len(object) > 0:
+            return object[0]
+        return None
 
     def get_object_by_type(self, obj_type: ObjectType) -> List[Object]:
         """
@@ -1205,6 +1205,13 @@ class UseProspectionWorld:
     def __init__(self):
         self.prev_world: Optional[World] = None
         # The previous world is saved to restore it after the with block is exited.
+
+    def sync_worlds(self):
+        """
+        Synchronizes the state of the prospection world with the main world.
+        """
+        for world_obj, prospection_obj in World.current_world.world_sync.object_mapping.items():
+            prospection_obj.current_state = world_obj.current_state
 
     def __enter__(self):
         """

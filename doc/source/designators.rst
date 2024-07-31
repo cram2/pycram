@@ -1,5 +1,3 @@
-.. _designators:
-
 ===========
 Designators
 ===========
@@ -22,7 +20,7 @@ poses.
 
 .. code-block:: python
 
-    poses = [[[1, 0, 0], [0, 0, 0, 1]], [[1.2, 0.2, 0], [0, 0, 1, 0]]]
+    poses = [Pose([1, 0, 0], [0, 0, 0, 1]), Pose([1.2, 0.2, 0], [0, 0, 1, 0])]
     NavigateAction(target_locations=poses)
 
 This is a description of an action which moves the robot to a pose in the environment.
@@ -45,7 +43,7 @@ action looks like this:
 
 .. code-block:: python
 
-    NavigateActionPerformable(robot_position=((0.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0)), target_location=[[1, 0, 0], [0, 0, 0, 1]])
+    NavigateActionPerformable(robot_position=(Pose([0.0, 0.0, 0.0] [0.0, 0.0, 0.0, 1.0]), target_location=Pose([1, 0, 0], [0, 0, 0, 1]))
 
 
 A visual representation of the whole idea of designator and designator descriptions can be
@@ -68,15 +66,15 @@ Object Designator
 
 Object designators represent objects in (simulated) world.
 The description of object designators can take names and types that the object should match.
-The :meth:`~pycram.designators.object_designator.ObjectDesignatorDescription.ground` method returns an object with all
+The :meth:`~pycram.designator.ObjectDesignatorDescription.ground` method returns an object with all
 its data attached that matches the description.
-The :meth:`~pycram.designators.object_designator.ObjectDesignatorDescription.__iter__` method iterates over all objects
+The :meth:`~pycram.designator.ObjectDesignatorDescription.__iter__` method iterates over all objects
 that match the description.
 
 Contributing Object Designators
 -------------------------------
 Object Designators should always be part of an object designator description.
-The general class structure is seen in :mod:`~pycram.designators.object_designator.ObjectDesignatorDescription`.
+The general class structure is seen in :mod:`~pycram.designator.ObjectDesignatorDescription`.
 New object description need to inherit from the general object description. If the object they ground to differs from
 the base object, a `dataclass <https://docs.python.org/3/library/dataclasses.html>`_. should be created inside the new
 description. The dataclass is one element that matches the description.
@@ -94,7 +92,7 @@ resolving the description to a single designator one parameter out of the given 
 Motion Designator
 =================
 Motion designators describe atomic actions that are executable for an agent. In contrast to action
-designators there is no failure handling or other action designators. Furthermore, the :meth:`~pycram.designators.motion_designator.MotionDesignatorDescription.Motion.perform`
+designators there is no failure handling or other action designators. Furthermore, the :meth:`~pycram.designator.MotionDesignatorDescription.Motion.perform`
 method passes the resolved motion designator to the respective Process Module for execution on the robot.
 
 Another difference to action designator is that motion designators only take a single parameter instead of a
@@ -113,17 +111,17 @@ Creating your own Designator
 ============================
 Creating your own designator is fairly easy, you only need to extend the base class of the respective description.
 
- - :mod:`~pycram.designators.action_designator.ActionDesignatorDescription`
- - :mod:`~pycram.designators.object_designator.ObjectDesignatorDescription`
- - :mod:`~pycram.designators.location_designator.LocationDesignatorDescription`
- - :mod:`~pycram.designators.motion_designator.MotionDesignatorDescription`
+ - :mod:`~pycram.designator.ActionDesignatorDescription`
+ - :mod:`~pycram.designator.ObjectDesignatorDescription`
+ - :mod:`~pycram.designator.LocationDesignatorDescription`
+ - :mod:`~pycram.designator.BaseMotion`
 
 Afterwards you need to implement your own ``ground`` method which is the default resolver and for location and object
 designator it makes sense to also implement a ``__iter__`` method. The ``ground`` and ``__iter__`` methods should return
 the designator sub-class so you also need to implement these with the parameter your designator needs.
 
 The sub-class can already contain some parameters, this is usually the case if the parameter is the same for every designator
-of this type. For example, :mod:`pycram.designators.location_designator.LocationDesignatorDescription.Location`
+of this type. For example, :class:`~pycram.designator.LocationDesignatorDescription.Location`
 contains a ``pose`` parameter since every location designator contains a resolved pose.
 
 For action and motion designator the sub-class is also the place where the ``perform`` method is written which contains

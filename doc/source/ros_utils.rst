@@ -7,6 +7,8 @@ PyCRAM provides a number of utils to interact with the ROS network. The utils ar
 * A TF Broadcaster
 * A Joint State Publisher
 * A Simulated Force Torque Sensor
+* A Visualisation Marker Publisher
+* A Robot State Updater
 
 These site will go over all utils what they do and how to use them. All ROS utils presented here
 will publish continuously in a new thread. You can either stop the publishing by calling the
