@@ -903,6 +903,7 @@ class Object(WorldEntity):
         joint_positions = [0] * len(joint_names)
         self.set_multiple_joint_positions(dict(zip(joint_names, joint_positions)))
 
+
     def set_joint_position(self, joint_name: str, joint_position: float) -> None:
         """
         Set the position of the given joint to the given joint pose and updates the poses of all attached objects.
@@ -911,6 +912,7 @@ class Object(WorldEntity):
         :param joint_position: The target pose for this joint
         """
         self.world.reset_joint_position(self.joints[joint_name], joint_position)
+
 
     def set_multiple_joint_positions(self, joint_positions: Dict[str, float]) -> None:
         """

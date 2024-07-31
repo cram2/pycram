@@ -27,9 +27,11 @@ from ..robot_description import RobotDescription
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.event import Event
 from ..config import world_conf as conf
-from ..worlds.multiverse_functions.goal_validator import (MultiPoseGoalValidator,
-                                                          PoseGoalValidator, JointPositionGoalValidator,
-                                                          MultiJointPositionGoalValidator, GoalValidator)
+from pycram.validation.goal_validator import (MultiPoseGoalValidator,
+                                              PoseGoalValidator, JointPositionGoalValidator,
+                                              MultiJointPositionGoalValidator, GoalValidator,
+                                              validate_joint_position, validate_multiple_joint_positions,
+                                              validate_object_pose)
 
 if TYPE_CHECKING:
     from ..world_concepts.world_object import Object
@@ -354,10 +356,8 @@ class World(StateEntity, ABC):
         :return: The object with the given name, if there is one.
         """
 
-        object = list(filter(lambda obj: obj.name == name, self.objects))
-        if len(object) > 0:
-            return object[0]
-        return None
+        matching_objects = list(filter(lambda obj: obj.name == name, self.objects))
+        return matching_objects[0] if len(matching_objects) > 0 else None
 
     def get_object_by_type(self, obj_type: ObjectType) -> List[Object]:
         """
@@ -726,21 +726,26 @@ class World(StateEntity, ABC):
         """
         raise NotImplementedError
 
+    @validate_joint_position
     @abstractmethod
     def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
         """
         Reset the joint position instantly without physics simulation
-
+        NOTE: It is recommended to use the validate_joint_position decorator to validate the joint position for
+        the implementation of this method.
         :param joint: The joint to reset the position for.
         :param joint_position: The new joint pose.
         :return: True if the reset was successful, False otherwise
         """
         pass
 
+    @validate_multiple_joint_positions
     @abstractmethod
     def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
         """
         Set the positions of multiple joints of an articulated object.
+        NOTE: It is recommended to use the validate_multiple_joint_positions decorator to validate the
+         joint positions for the implementation of this method.
         :param joint_positions: A dictionary with joint objects as keys and joint positions as values.
         :return: True if the set was successful, False otherwise.
         """
@@ -753,12 +758,14 @@ class World(StateEntity, ABC):
         """
         pass
 
+    @validate_object_pose
     @abstractmethod
     def reset_object_base_pose(self, obj: Object, pose: Pose) -> bool:
         """
         Reset the world position and orientation of the base of the object instantaneously,
         not through physics simulation. (x,y,z) position vector and (x,y,z,w) quaternion orientation.
-
+        NOTE: It is recommended to use the validate_object_pose decorator to validate the object pose for the
+        implementation of this method.
         :param obj: The object.
         :param pose: The new pose as a Pose object.
         :return: True if the reset was successful, False otherwise.
@@ -1365,7 +1372,8 @@ class UseProspectionWorld:
         self.prev_world: Optional[World] = None
         # The previous world is saved to restore it after the with block is exited.
 
-    def sync_worlds(self):
+    @staticmethod
+    def sync_worlds():
         """
         Synchronizes the state of the prospection world with the main world.
         """

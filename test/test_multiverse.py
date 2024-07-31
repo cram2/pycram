@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import time
 import unittest
 
 import numpy as np
@@ -13,7 +12,7 @@ from pycram.datastructures.pose import Pose
 from pycram.designators.object_designator import BelieveObject
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.world_concepts.world_object import Object
-from pycram.worlds.multiverse_functions.error_checkers import calculate_angle_between_quaternions
+from pycram.validation.error_checkers import calculate_angle_between_quaternions
 
 multiverse_installed = True
 try:

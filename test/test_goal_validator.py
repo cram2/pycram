@@ -6,10 +6,10 @@ from bullet_world_testcase import BulletWorldTestCase
 from pycram.datastructures.enums import JointType
 from pycram.datastructures.pose import Pose
 from pycram.robot_description import RobotDescription
-from pycram.worlds.multiverse_functions.error_checkers import PoseErrorChecker, PositionErrorChecker, \
+from pycram.validation.error_checkers import PoseErrorChecker, PositionErrorChecker, \
     OrientationErrorChecker, RevoluteJointPositionErrorChecker, PrismaticJointPositionErrorChecker, \
     MultiJointPositionErrorChecker
-from pycram.worlds.multiverse_functions.goal_validator import GoalValidator, PoseGoalValidator, \
+from pycram.validation.goal_validator import GoalValidator, PoseGoalValidator, \
     PositionGoalValidator, OrientationGoalValidator, JointPositionGoalValidator, MultiJointPositionGoalValidator, \
     MultiPoseGoalValidator, MultiPositionGoalValidator, MultiOrientationGoalValidator
 

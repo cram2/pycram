@@ -7,7 +7,7 @@ from typing_extensions import List, Dict, Optional
 
 from .multiverse_communication.client_manager import MultiverseClientManager
 from .multiverse_datastructures.enums import MultiverseJointProperty, MultiverseBodyProperty
-from .multiverse_functions.goal_validator import validate_object_pose, validate_multiple_joint_positions, \
+from pycram.validation.goal_validator import validate_object_pose, validate_multiple_joint_positions, \
     validate_joint_position
 from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
 from ..datastructures.enums import WorldMode, JointType, ObjectType
