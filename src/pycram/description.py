@@ -204,7 +204,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
         LinkDescription.__init__(self, link_description.parsed_description)
         self.local_transformer: LocalTransformer = LocalTransformer()
         self.constraint_ids: Dict[Link, int] = {}
-        self._update_pose()
+        self.update_pose()
 
     def set_pose(self, pose: Pose) -> None:
         """
@@ -369,7 +369,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
         """
         return self.pose.orientation_as_list()
 
-    def _update_pose(self) -> None:
+    def update_pose(self) -> None:
         """
         Update the current pose of this link from the world.
         """
@@ -383,7 +383,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
         :return: A Pose object containing the pose of the link relative to the world frame.
         """
         if self.world.update_poses_from_sim_on_get:
-            self._update_pose()
+            self.update_pose()
         return self._current_pose
 
     @property
@@ -459,7 +459,7 @@ class RootLink(Link, ABC):
         """
         return self.object.tf_frame
 
-    def _update_pose(self) -> None:
+    def update_pose(self) -> None:
         self._current_pose = self.world.get_object_pose(self.object)
 
     def __copy__(self):
