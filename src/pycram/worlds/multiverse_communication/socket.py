@@ -3,9 +3,10 @@
 """Multiverse Client base class."""
 
 import dataclasses
-from typing import List, Dict, Callable, TypeVar
 
 from multiverse_client_pybind import MultiverseClientPybind  # noqa
+from typing_extensions import Optional, List, Dict, Callable, TypeVar
+from ...config import multiverse_conf as conf
 
 T = TypeVar("T")
 
@@ -22,44 +23,29 @@ class MultiverseMetaData:
     handedness: str = "rhs"
 
 
-class SocketAddress:
-    """Socket address for the Multiverse Server and the Multiverse Client"""
-    host: str = "tcp://127.0.0.1"
-    port: str = ""
-
-    def __init__(self, port: str) -> None:
-        self.port = port
-
-
-class MultiverseClient:
-    """Base class for the Multiverse Client"""
-    _server_addr: SocketAddress = SocketAddress(port="7000")
-    _client_addr: SocketAddress
-    _meta_data: MultiverseMetaData
-    _multiverse_socket: MultiverseClientPybind
-    _start_time: float
-    _api_callbacks: Dict[str, Callable[[List[str]], List[str]]]
+class MultiverseSocket:
 
     def __init__(
             self,
-            client_addr: SocketAddress,
-            multiverse_meta_data: MultiverseMetaData,
+            port: str,
+            host: str = conf.HOST,
+            meta_data: MultiverseMetaData = MultiverseMetaData(),
     ) -> None:
         """
-
-        Args:
-            client_addr (SocketAddress): The address of the client.
-            multiverse_meta_data (MultiverseMetaData): The meta data for the Multiverse Client.
+        Initialize the MultiverseSocket, connect to the Multiverse Server and start the communication.
+        :param port: The port of the client.
+        :param host: The host of the client.
+        :param meta_data: The metadata for the Multiverse Client as MultiverseMetaData.
         """
-        if not isinstance(client_addr.port, str) or client_addr.port == "":
-            raise ValueError(f"Must specify client port for {self.__class__.__name__}.")
-        if multiverse_meta_data.simulation_name == "":
-            raise ValueError(f"Must specify simulation name.")
+        if not isinstance(port, str) or port == "":
+            raise ValueError(f"Must specify client port for {self.__class__.__name__}")
         self._send_data = None
-        self._client_addr = client_addr
-        self._meta_data = multiverse_meta_data
+        self.port = port
+        self.host = host
+        self._meta_data = meta_data
+        self.client_name = self._meta_data.simulation_name
         self._multiverse_socket = MultiverseClientPybind(
-            f"{self._server_addr.host}:{self._server_addr.port}"
+            f"{conf.SERVER_HOST}:{conf.SERVER_PORT}"
         )
         self.request_meta_data = {
             "meta_data": self._meta_data.__dict__,
@@ -96,7 +82,7 @@ class MultiverseClient:
         Returns:
             None
         """
-        message = f"[Client {self._client_addr.port}] Start {self.__class__.__name__}{self._client_addr.port}."
+        message = f"[Client {self.port}] Start {self.__class__.__name__}{self.port}"
         self.loginfo(message)
         self._run()
 
@@ -134,7 +120,7 @@ class MultiverseClient:
         response_meta_data = self._multiverse_socket.get_response_meta_data()
         assert isinstance(response_meta_data, dict)
         if response_meta_data == {}:
-            message = f"[Client {self._client_addr.port}] Receive empty response meta data."
+            message = f"[Client {self.port}] Receive empty response meta data."
             self.logwarn(message)
         return response_meta_data
 
@@ -228,7 +214,7 @@ class MultiverseClient:
         Returns:
             None
         """
-        self._multiverse_socket.connect(self._client_addr.host, self._client_addr.port)
+        self._multiverse_socket.connect(self.host, self.port)
         self._multiverse_socket.start()
         self._start_time = self._multiverse_socket.get_time_now()
 

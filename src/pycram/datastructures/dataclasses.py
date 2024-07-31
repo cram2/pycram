@@ -348,6 +348,9 @@ class ContactPoint:
 
 
 ClosestPoint = ContactPoint
+"""
+The closest point between two objects which has the same structure as ContactPoint.
+"""
 
 
 class ContactPointsList(list):
@@ -436,6 +439,9 @@ class ContactPointsList(list):
 
 
 ClosestPointsList = ContactPointsList
+"""
+The list of closest points which has same structure as ContactPointsList.
+"""
 
 
 @dataclass
@@ -467,7 +473,7 @@ class VirtualMoveBaseJoints:
 
     def get_types(self) -> Dict[str, JointType]:
         """
-        Returns the joint types of the virtual move base joints.
+        Return the joint types of the virtual move base joints.
         """
         return {self.translation_x: JointType.PRISMATIC,
                 self.translation_y: JointType.PRISMATIC,
@@ -475,7 +481,7 @@ class VirtualMoveBaseJoints:
 
     def get_axes(self) -> Dict[str, Point]:
         """
-        Returns the axes (i.e. The axis on which the joint moves) of the virtual move base joints.
+        Return the axes (i.e. The axis on which the joint moves) of the virtual move base joints.
         """
         return {self.translation_x: Point(1, 0, 0),
                 self.translation_y: Point(0, 1, 0),
