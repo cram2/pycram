@@ -50,7 +50,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             return
         cls.multiverse = Multiverse(simulation="pycram_test",
                                     is_prospection=False,
-                                    use_controller=False)
+                                    use_controller=True)
 
     @classmethod
     def tearDownClass(cls):
