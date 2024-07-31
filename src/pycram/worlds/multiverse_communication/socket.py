@@ -29,6 +29,12 @@ class MultiverseSocket:
             host: str = conf.HOST,
             meta_data: MultiverseMetaData = MultiverseMetaData(),
     ) -> None:
+        """
+        Initialize the MultiverseSocket, connect to the Multiverse Server and start the communication.
+        :param port: The port of the client.
+        :param host: The host of the client.
+        :param meta_data: The metadata for the Multiverse Client as MultiverseMetaData.
+        """
         if not isinstance(port, str) or port == "":
             raise ValueError(f"Must specify client port for {self.__class__.__name__}")
         self._send_data = None
