@@ -5,7 +5,7 @@ import rospy
 from typing_extensions import Any, Callable, Optional, Union, Iterable, Dict, TYPE_CHECKING
 
 from pycram.datastructures.enums import JointType
-from pycram.worlds.multiverse_extras.error_checkers import ErrorChecker, PoseErrorChecker, PositionErrorChecker, \
+from pycram.validation.error_checkers import ErrorChecker, PoseErrorChecker, PositionErrorChecker, \
     OrientationErrorChecker, SingleValueErrorChecker
 
 if TYPE_CHECKING:
@@ -368,10 +368,10 @@ class JointPositionGoalValidator(GoalValidator):
 
     def __init__(self, current_position_getter: OptionalArgCallable = None,
                  acceptable_error: Optional[float] = None,
-                 acceptable_orientation_error: Optional[Iterable[float]] = np.pi / 180,
-                 acceptable_position_error: Optional[Iterable[float]] = 1e-3,
-                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.8,
-                 is_iterable: Optional[bool] = False):
+                 acceptable_orientation_error: float = np.pi / 180,
+                 acceptable_position_error: float = 1e-3,
+                 acceptable_percentage_of_goal_achieved: float = 0.8,
+                 is_iterable: bool = False):
         """
         Initialize the joint position goal validator.
         :param current_position_getter: The current position getter function which takes an optional input and returns
@@ -412,9 +412,9 @@ class MultiJointPositionGoalValidator(GoalValidator):
 
     def __init__(self, current_positions_getter: OptionalArgCallable = None,
                  acceptable_error: Optional[Iterable[float]] = None,
-                 acceptable_orientation_error: Optional[Iterable[float]] = np.pi / 180,
-                 acceptable_position_error: Optional[Iterable[float]] = 1e-3,
-                 acceptable_percentage_of_goal_achieved: Optional[float] = 0.8):
+                 acceptable_orientation_error: float = np.pi / 180,
+                 acceptable_position_error: float = 1e-3,
+                 acceptable_percentage_of_goal_achieved: float = 0.8):
         """
         Initialize the multi-joint position goal validator.
         :param current_positions_getter: The current positions getter function which takes an optional input and

@@ -9,7 +9,7 @@ from typing_extensions import List, Dict, Optional
 from .multiverse_communication.client_manager import MultiverseClientManager
 from .multiverse_communication.clients import MultiverseController, MultiverseReader, MultiverseWriter, MultiverseAPI
 from .multiverse_datastructures.enums import MultiverseJointProperty, MultiverseBodyProperty
-from .multiverse_extras.goal_validator import validate_object_pose, validate_multiple_joint_positions, \
+from ..validation.goal_validator import validate_object_pose, validate_multiple_joint_positions, \
     validate_joint_position
 from .multiverse_extras.helpers import find_multiverse_resources_path
 from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
@@ -27,12 +27,9 @@ class Multiverse(World):
     This class implements an interface between Multiverse and PyCRAM.
     """
 
-    _joint_type_to_position_name: Dict[JointType, MultiverseJointProperty] = {
-        JointType.REVOLUTE: MultiverseJointProperty.REVOLUTE_JOINT_POSITION,
-        JointType.PRISMATIC: MultiverseJointProperty.PRISMATIC_JOINT_POSITION
-    }
+    supported_joint_types = (JointType.REVOLUTE, JointType.PRISMATIC)
     """
-    A dictionary to map JointType to the corresponding multiverse joint position attribute name.
+    A Tuple for the supported pycram joint types in Multiverse.
     """
 
     _joint_type_to_cmd_name: Dict[JointType, MultiverseJointProperty] = {
@@ -161,6 +158,10 @@ class Multiverse(World):
         self.floor = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf",
                             world=self)
 
+    @staticmethod
+    def get_joint_position_name(joint: Joint) -> MultiverseJointProperty:
+        return MultiverseJointProperty.from_pycram_joint_type(joint.type)
+
     def spawn_robot_with_controller(self, name: str, pose: Pose) -> None:
         """
         Spawn the robot in the simulator.
@@ -197,7 +198,7 @@ class Multiverse(World):
 
         return self._update_object_id_name_maps_and_get_latest_id(name)
 
-    def spawn_object(self, name: str, object_type: ObjectType, pose: Pose) -> int:
+    def spawn_object(self, name: str, object_type: ObjectType, pose: Pose) -> None:
         """
         Spawn the object in the simulator and return the object id.
         param obj: The object to be spawned.
@@ -221,8 +222,7 @@ class Multiverse(World):
         return self.last_object_id
 
     def get_object_joint_names(self, obj: Object) -> List[str]:
-        return [joint.name for joint in obj.description.joints
-                if joint.type in self._joint_type_to_position_name.keys()]
+        return [joint.name for joint in obj.description.joints if joint.type in self.supported_joint_types]
 
     def get_object_link_names(self, obj: Object) -> List[str]:
         return [link.name for link in obj.description.links]
@@ -274,8 +274,8 @@ class Multiverse(World):
         joints = self.robot.joints if joints is None else joints
         return [joint for joint in joints if self.joint_has_actuator(joint)]
 
-    def _set_multiple_joint_positions_without_controller(self, joint_positions: Dict[Joint, float]) -> bool:
-        joints_data = {joint.name: {self.get_joint_position_name(joint.type): [position]}
+    def _set_multiple_joint_positions_without_controller(self, joint_positions: Dict[Joint, float]) -> None:
+        joints_data = {joint.name: {self.get_joint_position_name(joint): [position]}
                        for joint, position in joint_positions.items()}
         self.writer.send_multiple_body_data_to_server(joints_data)
 
@@ -287,20 +287,17 @@ class Multiverse(World):
         return True
 
     def get_joint_position(self, joint: Joint) -> Optional[float]:
-        joint_position_name = self.get_joint_position_name(joint.type)
+        joint_position_name = self.get_joint_position_name(joint)
         data = self.reader.get_body_data(joint.name, [joint_position_name])
         if data is not None:
             return data[joint_position_name.value][0]
 
     def get_multiple_joint_positions(self, joints: List[Joint]) -> Optional[Dict[str, float]]:
         joint_names = [joint.name for joint in joints]
-        data = self.reader.get_multiple_body_data(joint_names, {joint.name: [self.get_joint_position_name(joint.type)]
+        data = self.reader.get_multiple_body_data(joint_names, {joint.name: [self.get_joint_position_name(joint)]
                                                                 for joint in joints})
         if data is not None:
             return {name: list(value.values())[0][0] for name, value in data.items()}
-
-    def get_joint_position_name(self, joint_type: JointType) -> MultiverseJointProperty:
-        return self._joint_type_to_position_name[joint_type]
 
     def get_joint_cmd_name(self, joint_type: JointType) -> MultiverseJointProperty:
         return self._joint_type_to_cmd_name[joint_type]
@@ -510,7 +507,7 @@ class Multiverse(World):
         return ray_test_result[0] if ray_test_result[0] != -1 else None
 
     def ray_test_batch(self, from_positions: List[List[float]], to_positions: List[List[float]],
-                       num_threads: int = 1) -> List[int]:
+                       num_threads: int = 1) -> List[List[int]]:
         """
         Note: Currently, num_threads is not used in Multiverse.
         """
@@ -577,5 +574,6 @@ class Multiverse(World):
     def check_object_exists_in_multiverse(self, obj: Object) -> bool:
         return self.api_requester.check_object_exists(obj)
 
-    def add_vis_axis(self, pose: Pose) -> None:
+    @staticmethod
+    def add_vis_axis(pose: Pose) -> None:
         logging.warning("add_vis_axis is not implemented in Multiverse")

@@ -12,6 +12,7 @@ from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Colo
 from .datastructures.enums import JointType
 from .datastructures.pose import Pose, Transform
 from .datastructures.world_entity import WorldEntity
+from .exceptions import ObjectDescriptionNotFound
 from .local_transformer import LocalTransformer
 
 if TYPE_CHECKING:
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
 
 class EntityDescription(ABC):
     """
-    A class that represents a description of an entity. This can be a link, joint or object description.
+    A description of an entity. This can be a link, joint or object description.
     """
 
     @property
@@ -42,7 +43,7 @@ class EntityDescription(ABC):
 
 class LinkDescription(EntityDescription):
     """
-    A class that represents a link description of an object.
+    A link description of an object.
     """
 
     def __init__(self, parsed_link_description: Any):
@@ -52,7 +53,7 @@ class LinkDescription(EntityDescription):
     @abstractmethod
     def geometry(self) -> Union[VisualShape, None]:
         """
-        Returns the geometry type of the collision element of this link.
+        The geometry type of the collision element of this link.
         """
         pass
 
@@ -86,7 +87,7 @@ class JointDescription(EntityDescription):
     @abstractmethod
     def has_limits(self) -> bool:
         """
-        Checks if this joint has limits.
+        Check if this joint has limits.
 
         :return: True if the joint has limits, False otherwise.
         """
@@ -177,7 +178,7 @@ class ObjectEntity(WorldEntity):
     @property
     def transform(self) -> Transform:
         """
-        Returns the transform of this entity.
+        The transform of this entity.
 
         :return: The transform of this entity.
         """
@@ -187,7 +188,7 @@ class ObjectEntity(WorldEntity):
     @abstractmethod
     def tf_frame(self) -> str:
         """
-        Returns the tf frame of this entity.
+        The tf frame of this entity.
 
         :return: The tf frame of this entity.
         """
@@ -203,7 +204,7 @@ class ObjectEntity(WorldEntity):
 
 class Link(ObjectEntity, LinkDescription, ABC):
     """
-    Represents a link of an Object in the World.
+    A link of an Object in the World.
     """
 
     def __init__(self, _id: int, link_description: LinkDescription, obj: Object):
@@ -211,7 +212,28 @@ class Link(ObjectEntity, LinkDescription, ABC):
         LinkDescription.__init__(self, link_description.parsed_description)
         self.local_transformer: LocalTransformer = LocalTransformer()
         self.constraint_ids: Dict[Link, int] = {}
-        self._update_pose()
+        self.update_pose()
+
+    def set_pose(self, pose: Pose) -> None:
+        """
+        Set the pose of this link to the given pose.
+        NOTE: This will move the entire object such that the link is at the given pose, it will not consider any joints
+        that can allow the link to be at the given pose.
+        :param pose: The target pose for this link.
+        """
+        self.object.set_pose(self.get_object_pose_given_link_pose(pose))
+
+    def get_object_pose_given_link_pose(self, pose):
+        return (pose.to_transform(self.tf_frame) * self.get_transform_to_root_link()).to_pose()
+
+    def get_pose_given_object_pose(self, pose):
+        return (pose.to_transform(self.object.tf_frame) * self.get_transform_from_root_link()).to_pose()
+
+    def get_transform_from_root_link(self) -> Transform:
+        return self.get_transform_from_link(self.object.root_link)
+
+    def get_transform_to_root_link(self) -> Transform:
+        return self.get_transform_to_link(self.object.root_link)
 
     def set_pose(self, pose: Pose) -> None:
         """
@@ -245,7 +267,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
     def add_fixed_constraint_with_link(self, child_link: 'Link',
                                        child_to_parent_transform: Optional[Transform] = None) -> int:
         """
-        Adds a fixed constraint between this link and the given link, used to create attachments for example.
+        Add a fixed constraint between this link and the given link, to create attachments for example.
 
         :param child_link: The child link to which a fixed constraint should be added.
         :param child_to_parent_transform: The transformation between the two links.
@@ -260,7 +282,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
 
     def remove_constraint_with_link(self, child_link: 'Link') -> None:
         """
-        Removes the constraint between this link and the given link.
+        Remove the constraint between this link and the given link.
 
         :param child_link: The child link of the constraint that should be removed.
         """
@@ -272,7 +294,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
     @property
     def is_only_link(self) -> bool:
         """
-        Returns whether this link is the only link of the object.
+        Whether this link is the only link of the object.
 
         :return: True if this link is the only link, False otherwise.
         """
@@ -281,7 +303,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
     @property
     def is_root(self) -> bool:
         """
-        Returns whether this link is the root link of the object.
+        Whether this link is the root link of the object.
 
         :return: True if this link is the root link, False otherwise.
         """
@@ -289,7 +311,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
 
     def update_transform(self, transform_time: Optional[rospy.Time] = None) -> None:
         """
-        Updates the transformation of this link at the given time.
+        Update the transformation of this link at the given time.
 
         :param transform_time: The time at which the transformation should be updated.
         """
@@ -297,7 +319,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
 
     def get_transform_to_link(self, link: 'Link') -> Transform:
         """
-        Returns the transformation from this link to the given link.
+        Return the transformation from this link to the given link.
 
         :param link: The link to which the transformation should be returned.
         :return: A Transform object with the transformation from this link to the given link.
@@ -306,7 +328,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
 
     def get_transform_from_link(self, link: 'Link') -> Transform:
         """
-        Returns the transformation from the given link to this link.
+        Return the transformation from the given link to this link.
 
         :param link: The link from which the transformation should be returned.
         :return: A Transform object with the transformation from the given link to this link.
@@ -315,7 +337,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
 
     def get_pose_wrt_link(self, link: 'Link') -> Pose:
         """
-        Returns the pose of this link with respect to the given link.
+        Return the pose of this link with respect to the given link.
 
         :param link: The link with respect to which the pose should be returned.
         :return: A Pose object with the pose of this link with respect to the given link.
@@ -324,7 +346,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
 
     def get_axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
         """
-        Returns the axis aligned bounding box of this link.
+        Return the axis aligned bounding box of this link.
 
         :return: An AxisAlignedBoundingBox object with the axis aligned bounding box of this link.
         """
@@ -333,7 +355,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
     @property
     def position(self) -> Point:
         """
-        The getter for the position of the link relative to the world frame.
+        The position of the link relative to the world frame.
 
         :return: A Point object containing the position of the link relative to the world frame.
         """
@@ -342,7 +364,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
     @property
     def position_as_list(self) -> List[float]:
         """
-        The getter for the position of the link relative to the world frame as a list.
+        The position of the link relative to the world frame as a list.
 
         :return: A list containing the position of the link relative to the world frame.
         """
@@ -351,7 +373,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
     @property
     def orientation(self) -> Quaternion:
         """
-        The getter for the orientation of the link relative to the world frame.
+        The orientation of the link relative to the world frame.
 
         :return: A Quaternion object containing the orientation of the link relative to the world frame.
         """
@@ -360,15 +382,15 @@ class Link(ObjectEntity, LinkDescription, ABC):
     @property
     def orientation_as_list(self) -> List[float]:
         """
-        The getter for the orientation of the link relative to the world frame as a list.
+        The orientation of the link relative to the world frame as a list.
 
         :return: A list containing the orientation of the link relative to the world frame.
         """
         return self.pose.orientation_as_list()
 
-    def _update_pose(self) -> None:
+    def update_pose(self) -> None:
         """
-        Updates the current pose of this link from the world.
+        Update the current pose of this link from the world.
         """
         self._current_pose = self.world.get_link_pose(self)
 
@@ -380,7 +402,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
         :return: A Pose object containing the pose of the link relative to the world frame.
         """
         if self.world.update_poses_from_sim_on_get:
-            self._update_pose()
+            self.update_pose()
         return self._current_pose
 
     @property
@@ -401,7 +423,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
     @property
     def color(self) -> Color:
         """
-        The getter for the rgba_color of this link.
+        The rgba_color of this link.
 
         :return: A Color object containing the rgba_color of this link.
         """
@@ -410,7 +432,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
     @color.setter
     def color(self, color: Color) -> None:
         """
-        The setter for the color of this link, could be rgb or rgba.
+        Set the color of this link, could be rgb or rgba.
 
         :param color: The color as a list of floats, either rgb or rgba.
         """
@@ -442,8 +464,8 @@ class Link(ObjectEntity, LinkDescription, ABC):
 
 class RootLink(Link, ABC):
     """
-    Represents the root link of an Object in the World.
-    It differs from the normal AbstractLink class in that the pose ande the tf_frame is the same as that of the object.
+    The root link of an Object in the World.
+    This differs from the normal AbstractLink class in that the pose and the tf_frame is the same as that of the object.
     """
 
     def __init__(self, obj: Object):
@@ -452,11 +474,11 @@ class RootLink(Link, ABC):
     @property
     def tf_frame(self) -> str:
         """
-        Returns the tf frame of the root link, which is the same as the tf frame of the object.
+        Return the tf frame of the root link, which is the same as the tf frame of the object.
         """
         return self.object.tf_frame
 
-    def _update_pose(self) -> None:
+    def update_pose(self) -> None:
         self._current_pose = self.world.get_object_pose(self.object)
 
     def __copy__(self):
@@ -465,7 +487,7 @@ class RootLink(Link, ABC):
 
 class Joint(ObjectEntity, JointDescription, ABC):
     """
-    Represents a joint of an Object in the World.
+    Represent a joint of an Object in the World.
     """
 
     def __init__(self, _id: int,
@@ -485,7 +507,7 @@ class Joint(ObjectEntity, JointDescription, ABC):
     @property
     def pose(self) -> Pose:
         """
-        Returns the pose of this joint. The pose is the pose of the child link of this joint.
+        Return the pose of this joint. The pose is the pose of the child link of this joint.
 
         :return: The pose of this joint.
         """
@@ -493,14 +515,14 @@ class Joint(ObjectEntity, JointDescription, ABC):
 
     def _update_position(self) -> None:
         """
-        Updates the current position of the joint from the physics simulator.
+        Update the current position of the joint from the physics simulator.
         """
         self._current_position = self.world.get_joint_position(self)
 
     @property
     def parent_link(self) -> Link:
         """
-        Returns the parent link of this joint.
+        Return the parent link of this joint.
 
         :return: The parent link as a AbstractLink object.
         """
@@ -509,7 +531,7 @@ class Joint(ObjectEntity, JointDescription, ABC):
     @property
     def child_link(self) -> Link:
         """
-        Returns the child link of this joint.
+        Return the child link of this joint.
 
         :return: The child link as a AbstractLink object.
         """
@@ -527,7 +549,7 @@ class Joint(ObjectEntity, JointDescription, ABC):
 
     def get_object_id(self) -> int:
         """
-        Returns the id of the object to which this joint belongs.
+        Return the id of the object to which this joint belongs.
 
         :return: The integer id of the object to which this joint belongs.
         """
@@ -536,8 +558,8 @@ class Joint(ObjectEntity, JointDescription, ABC):
     @position.setter
     def position(self, joint_position: float) -> None:
         """
-        Sets the position of the given joint to the given joint pose. If the pose is outside the joint limits,
-         an error will be printed. However, the joint will be set either way.
+        Set the position of the given joint to the given joint pose. If the pose is outside the joint limits,
+         issue a warning. However, set the joint either way.
 
         :param joint_position: The target pose for this joint
         """
@@ -572,7 +594,7 @@ class Joint(ObjectEntity, JointDescription, ABC):
     @current_state.setter
     def current_state(self, joint_state: JointState) -> None:
         """
-        Updates the current state of this joint from the given joint state if the position is different.
+        Update the current state of this joint from the given joint state if the position is different.
 
         :param joint_state: The joint state to update from.
         """
@@ -660,7 +682,7 @@ class ObjectDescription(EntityDescription):
 
     def is_joint_virtual(self, name: str) -> bool:
         """
-        Returns whether the joint with the given name is virtual.
+        Return whether the joint with the given name is virtual.
 
         :param name: The name of the joint.
         :return: True if the joint is virtual, False otherwise.
@@ -673,7 +695,7 @@ class ObjectDescription(EntityDescription):
                   lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
                   is_virtual: Optional[bool] = False) -> None:
         """
-        Adds a joint to this object.
+        Add a joint to this object.
 
         :param name: The name of the joint.
         :param child: The name of the child link.
@@ -689,7 +711,7 @@ class ObjectDescription(EntityDescription):
 
     def update_description_from_file(self, path: str) -> None:
         """
-        Updates the description of this object from the file at the given path.
+        Update the description of this object from the file at the given path.
 
         :param path: The path of the file to update from.
         """
@@ -712,7 +734,7 @@ class ObjectDescription(EntityDescription):
     @abstractmethod
     def load_description(self, path: str) -> Any:
         """
-        Loads the description from the file at the given path.
+        Load the description from the file at the given path.
 
         :param path: The path to the source file, if only a filename is provided then the resources directories will be
          searched.
@@ -721,7 +743,7 @@ class ObjectDescription(EntityDescription):
 
     def generate_description_from_file(self, path: str, name: str, extension: str) -> str:
         """
-        Generates and preprocesses the description from the file at the given path and returns the preprocessed
+        Generate and preprocess the description from the file at the given path and return the preprocessed
         description as a string.
 
         :param path: The path of the file to preprocess.
@@ -740,17 +762,16 @@ class ObjectDescription(EntityDescription):
                 # Using the description from the parameter server
                 description_string = self.generate_from_parameter_server(path)
             except KeyError:
-                logging.warning(f"Couldn't find dile data in the ROS parameter server")
+                logging.warning(f"Couldn't find file data in the ROS parameter server")
+
         if description_string is None:
-            logging.error(f"Could not find file with path {path} in the resources directory nor"
-                          f" in the ros parameter server.")
-            raise FileNotFoundError
+            raise ObjectDescriptionNotFound(name, path, extension)
 
         return description_string
 
     def get_file_name(self, path_object: pathlib.Path, extension: str, object_name: str) -> str:
         """
-        Returns the file name of the description file.
+        Return the file name of the description file.
 
         :param path_object: The path object of the description file or the mesh file.
         :param extension: The file extension of the description file or the mesh file.
@@ -770,8 +791,8 @@ class ObjectDescription(EntityDescription):
     @abstractmethod
     def generate_from_mesh_file(cls, path: str, name: str) -> str:
         """
-        Generates a description file from one of the mesh types defined in the mesh_extensions and
-        returns the path of the generated file.
+        Generate a description file from one of the mesh types defined in the mesh_extensions and
+        return the path of the generated file.
 
         :param path: The path to the .obj file.
         :param name: The name of the object.
@@ -781,11 +802,12 @@ class ObjectDescription(EntityDescription):
 
     @classmethod
     @abstractmethod
-    def generate_from_description_file(cls, path: str) -> str:
+    def generate_from_description_file(cls, path: str, make_mesh_paths_absolute: bool = True) -> str:
         """
-        Preprocesses the given file and returns the preprocessed description string.
+        Preprocess the given file and return the preprocessed description string.
 
         :param path: The path of the file to preprocess.
+        :param make_mesh_paths_absolute: Whether to make the mesh paths absolute.
         :return: The preprocessed description string.
         """
         pass
@@ -794,7 +816,7 @@ class ObjectDescription(EntityDescription):
     @abstractmethod
     def generate_from_parameter_server(cls, name: str) -> str:
         """
-        Preprocesses the description from the ROS parameter server and returns the preprocessed description string.
+        Preprocess the description from the ROS parameter server and return the preprocessed description string.
 
         :param name: The name of the description on the parameter server.
         :return: The preprocessed description string.

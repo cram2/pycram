@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import os
 import unittest
 from time import sleep
 
@@ -17,14 +16,12 @@ from pycram.designators.object_designator import BelieveObject
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.robot_description import RobotDescriptionManager
 from pycram.world_concepts.world_object import Object
-from pycram.worlds.multiverse_extras.error_checkers import calculate_angle_between_quaternions
-from pycram.worlds.multiverse_extras.helpers import parse_mjcf_actuators, get_robot_mjcf_path
+from pycram.validation.error_checkers import calculate_angle_between_quaternions
 from pycram.process_module import simulated_robot, with_simulated_robot
 
 multiverse_installed = True
 try:
     from pycram.worlds.multiverse import Multiverse
-    from pycram.worlds.multiverse_communication.socket import SocketAddress
 except ImportError:
     multiverse_installed = False
 
