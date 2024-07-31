@@ -8,7 +8,7 @@ import rospy
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
-from ..description import ObjectDescription, LinkDescription, Joint, JointDescription
+from ..description import ObjectDescription, LinkDescription, Joint
 from ..exceptions import ObjectAlreadyExists
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..datastructures.world import WorldEntity, World
@@ -35,11 +35,11 @@ class Object(WorldEntity):
     """
 
     def __init__(self, name: str, obj_type: ObjectType, path: str,
-                 description: Optional[Type[ObjectDescription]] = URDFObject,
+                 description: Type[ObjectDescription] = URDFObject,
                  pose: Optional[Pose] = None,
                  world: Optional[World] = None,
-                 color: Optional[Color] = Color(),
-                 ignore_cached_files: Optional[bool] = False):
+                 color: Color = Color(),
+                 ignore_cached_files: bool = False):
         """
         The constructor loads the description file into the given World, if no World is specified the
         :py:attr:`~World.current_world` will be used. It is also possible to load .obj and .stl file into the World.
@@ -52,7 +52,8 @@ class Object(WorldEntity):
          searched.
         :param description: The ObjectDescription of the object, this contains the joints and links of the object.
         :param pose: The pose at which the Object should be spawned
-        :param world: The World in which the object should be spawned, if no world is specified the :py:attr:`~World.current_world` will be used.
+        :param world: The World in which the object should be spawned, if no world is specified the
+         :py:attr:`~World.current_world` will be used.
         :param color: The rgba_color with which the object should be spawned.
         :param ignore_cached_files: If true the file will be spawned while ignoring cached files.
         """
@@ -113,7 +114,7 @@ class Object(WorldEntity):
         return self.get_pose().to_transform(self.tf_frame)
 
     def _load_object_and_get_id(self, path: str,
-                                ignore_cached_files: Optional[bool] = False) -> Tuple[int, Union[str, None]]:
+                                ignore_cached_files: bool = False) -> Tuple[int, Union[str, None]]:
         """
         Loads an object to the given World with the given position and orientation. The rgba_color will only be
         used when an .obj or .stl file is given.
@@ -121,7 +122,7 @@ class Object(WorldEntity):
         and this URDf file will be loaded instead.
         When spawning a URDf file a new file will be created in the cache directory, if there exists none.
         This new file will have resolved mesh file paths, meaning there will be no references
-        to ROS packges instead there will be absolute file paths.
+        to ROS packages instead there will be absolute file paths.
 
         :param path: The path to the description file.
         :param ignore_cached_files: Whether to ignore files in the cache directory.
@@ -143,8 +144,8 @@ class Object(WorldEntity):
 
     def _update_world_robot_and_description(self):
         """
-        Initializes the robot description of the object, loads the description from the RobotDescriptionManager and sets
-        the robot as the current robot in the World. Also adds the virtual move base joints to the robot.
+        Initialize the robot description of the object, load the description from the RobotDescriptionManager and set
+        the robot as the current robot in the World. Also add the virtual move base joints to the robot.
         """
         rdm = RobotDescriptionManager()
         rdm.load_description(self.name)
@@ -152,17 +153,20 @@ class Object(WorldEntity):
         self._add_virtual_move_base_joints()
 
     def _add_virtual_move_base_joints(self):
+        """
+        Add the virtual move base joints to the robot description.
+        """
         virtual_joints = RobotDescription.current_robot_description.virtual_move_base_joints
         if virtual_joints is None:
             return
-        child_link = self.root_link_name
+        child_link = self.description.get_root()
         axes = virtual_joints.get_axes()
         for joint_name, joint_type in virtual_joints.get_types().items():
             self.description.add_joint(joint_name, child_link, joint_type, axes[joint_name])
 
     def _init_joint_name_and_id_map(self) -> None:
         """
-        Creates a dictionary which maps the joint names to their unique ids and vice versa.
+        Create a dictionary which maps the joint names to their unique ids and vice versa.
         """
         n_joints = len(self.joint_names)
         self.joint_name_to_id = dict(zip(self.joint_names, range(n_joints)))
@@ -170,22 +174,22 @@ class Object(WorldEntity):
 
     def _init_link_name_and_id_map(self) -> None:
         """
-        Creates a dictionary which maps the link names to their unique ids and vice versa.
+        Create a dictionary which maps the link names to their unique ids and vice versa.
         """
         n_links = len(self.link_names)
         self.link_name_to_id: Dict[str, int] = dict(zip(self.link_names, range(n_links)))
-        self.link_name_to_id[self.root_link_name] = -1
+        self.link_name_to_id[self.description.get_root()] = -1
         self.link_id_to_name: Dict[int, str] = dict(zip(self.link_name_to_id.values(), self.link_name_to_id.keys()))
 
     def _init_links_and_update_transforms(self) -> None:
         """
-        Initializes the link objects from the URDF file and creates a dictionary which maps the link names to the
+        Initialize the link objects from the URDF file and creates a dictionary which maps the link names to the
         corresponding link objects.
         """
         self.links = {}
         for link_name, link_id in self.link_name_to_id.items():
             link_description = self.description.get_link_by_name(link_name)
-            if link_name == self.root_link_name:
+            if link_name == self.description.get_root():
                 self.links[link_name] = self.description.RootLink(self)
             else:
                 self.links[link_name] = self.description.Link(link_id, link_description, self)
@@ -205,7 +209,7 @@ class Object(WorldEntity):
     @property
     def has_one_link(self) -> bool:
         """
-        Returns True if the object has only one link, otherwise False.
+        Return True if the object has only one link, otherwise False.
         """
         return len(self.links) == 1
 
@@ -225,7 +229,7 @@ class Object(WorldEntity):
 
     def get_link(self, link_name: str) -> ObjectDescription.Link:
         """
-        Returns the link object with the given name.
+        Return the link object with the given name.
 
         :param link_name: The name of the link.
         :return: The link object.
@@ -234,7 +238,7 @@ class Object(WorldEntity):
 
     def get_link_pose(self, link_name: str) -> Pose:
         """
-        Returns the pose of the link with the given name.
+        Return the pose of the link with the given name.
 
         :param link_name: The name of the link.
         :return: The pose of the link.
@@ -243,7 +247,7 @@ class Object(WorldEntity):
 
     def get_link_position(self, link_name: str) -> Point:
         """
-        Returns the position of the link with the given name.
+        Return the position of the link with the given name.
 
         :param link_name: The name of the link.
         :return: The position of the link.
@@ -252,7 +256,7 @@ class Object(WorldEntity):
 
     def get_link_position_as_list(self, link_name: str) -> List[float]:
         """
-        Returns the position of the link with the given name.
+        Return the position of the link with the given name.
 
         :param link_name: The name of the link.
         :return: The position of the link.
@@ -261,7 +265,7 @@ class Object(WorldEntity):
 
     def get_link_orientation(self, link_name: str) -> Quaternion:
         """
-        Returns the orientation of the link with the given name.
+        Return the orientation of the link with the given name.
 
         :param link_name: The name of the link.
         :return: The orientation of the link.
@@ -270,7 +274,7 @@ class Object(WorldEntity):
 
     def get_link_orientation_as_list(self, link_name: str) -> List[float]:
         """
-        Returns the orientation of the link with the given name.
+        Return the orientation of the link with the given name.
 
         :param link_name: The name of the link.
         :return: The orientation of the link.
@@ -279,7 +283,7 @@ class Object(WorldEntity):
 
     def get_link_tf_frame(self, link_name: str) -> str:
         """
-        Returns the tf frame of the link with the given name.
+        Return the tf frame of the link with the given name.
 
         :param link_name: The name of the link.
         :return: The tf frame of the link.
@@ -288,7 +292,7 @@ class Object(WorldEntity):
 
     def get_link_axis_aligned_bounding_box(self, link_name: str) -> AxisAlignedBoundingBox:
         """
-        Returns the axis aligned bounding box of the link with the given name.
+        Return the axis aligned bounding box of the link with the given name.
 
         :param link_name: The name of the link.
         :return: The axis aligned bounding box of the link.
@@ -297,7 +301,7 @@ class Object(WorldEntity):
 
     def get_transform_between_links(self, from_link: str, to_link: str) -> Transform:
         """
-        Returns the transform between two links.
+        Return the transform between two links.
 
         :param from_link: The name of the link from which the transform should be calculated.
         :param to_link: The name of the link to which the transform should be calculated.
@@ -306,7 +310,7 @@ class Object(WorldEntity):
 
     def get_link_color(self, link_name: str) -> Color:
         """
-        Returns the color of the link with the given name.
+        Return the color of the link with the given name.
 
         :param link_name: The name of the link.
         :return: The color of the link.
@@ -315,7 +319,7 @@ class Object(WorldEntity):
 
     def set_link_color(self, link_name: str, color: List[float]) -> None:
         """
-        Sets the color of the link with the given name.
+        Set the color of the link with the given name.
 
         :param link_name: The name of the link.
         :param color: The new color of the link.
@@ -324,7 +328,7 @@ class Object(WorldEntity):
 
     def get_link_geometry(self, link_name: str) -> Union[VisualShape, None]:
         """
-        Returns the geometry of the link with the given name.
+        Return the geometry of the link with the given name.
 
         :param link_name: The name of the link.
         :return: The geometry of the link.
@@ -333,7 +337,7 @@ class Object(WorldEntity):
 
     def get_link_transform(self, link_name: str) -> Transform:
         """
-        Returns the transform of the link with the given name.
+        Return the transform of the link with the given name.
 
         :param link_name: The name of the link.
         :return: The transform of the link.
@@ -342,7 +346,7 @@ class Object(WorldEntity):
 
     def get_link_origin(self, link_name: str) -> Pose:
         """
-        Returns the origin of the link with the given name.
+        Return the origin of the link with the given name.
 
         :param link_name: The name of the link.
         :return: The origin of the link as a 'Pose'.
@@ -351,7 +355,7 @@ class Object(WorldEntity):
 
     def get_link_origin_transform(self, link_name: str) -> Transform:
         """
-        Returns the origin transform of the link with the given name.
+        Return the origin transform of the link with the given name.
 
         :param link_name: The name of the link.
         :return: The origin transform of the link.
@@ -374,16 +378,16 @@ class Object(WorldEntity):
 
     def remove(self) -> None:
         """
-        Removes this object from the World it currently resides in.
+        Remove this object from the World it currently resides in.
         For the object to be removed it has to be detached from all objects it
-        is currently attached to. After this is done a call to world remove object is done
+        is currently attached to. After this call world remove object
         to remove this Object from the simulation/world.
         """
         self.world.remove_object(self)
 
     def reset(self, remove_saved_states=True) -> None:
         """
-        Resets the Object to the state it was first spawned in.
+        Reset the Object to the state it was first spawned in.
         All attached objects will be detached, all joints will be set to the
         default position of 0 and the object will be set to the position and
         orientation in which it was spawned.
@@ -400,10 +404,10 @@ class Object(WorldEntity):
                child_object: Object,
                parent_link: Optional[str] = None,
                child_link: Optional[str] = None,
-               bidirectional: Optional[bool] = True,
-               coincide_the_objects: Optional[bool] = False) -> None:
+               bidirectional: bool = True,
+               coincide_the_objects: bool = False) -> None:
         """
-        Attaches another object to this object. This is done by
+        Attach another object to this object. This is done by
         saving the transformation between the given link, if there is one, and
         the base pose of the other object. Additionally, the name of the link, to
         which the object is attached, will be saved.
@@ -434,7 +438,7 @@ class Object(WorldEntity):
 
     def detach(self, child_object: Object) -> None:
         """
-        Detaches another object from this object. This is done by
+        Detache another object from this object. This is done by
         deleting the attachment from the attachments dictionary of both objects
         and deleting the constraint of the simulator.
         Afterward the detachment event of the corresponding World will be fired.
@@ -459,7 +463,7 @@ class Object(WorldEntity):
 
     def get_position(self) -> Point:
         """
-        Returns the position of this Object as a list of xyz.
+        Return the position of this Object as a list of xyz.
 
         :return: The current position of this object
         """
@@ -467,7 +471,7 @@ class Object(WorldEntity):
 
     def get_orientation(self) -> Pose.orientation:
         """
-        Returns the orientation of this object as a list of xyzw, representing a quaternion.
+        Return the orientation of this object as a list of xyzw, representing a quaternion.
 
         :return: A list of xyzw
         """
@@ -475,7 +479,7 @@ class Object(WorldEntity):
 
     def get_position_as_list(self) -> List[float]:
         """
-        Returns the position of this Object as a list of xyz.
+        Return the position of this Object as a list of xyz.
 
         :return: The current position of this object
         """
@@ -483,7 +487,7 @@ class Object(WorldEntity):
 
     def get_base_position_as_list(self) -> List[float]:
         """
-        Returns the position of this Object as a list of xyz.
+        Return the position of this Object as a list of xyz.
 
         :return: The current position of this object
         """
@@ -491,7 +495,7 @@ class Object(WorldEntity):
 
     def get_orientation_as_list(self) -> List[float]:
         """
-        Returns the orientation of this object as a list of xyzw, representing a quaternion.
+        Return the orientation of this object as a list of xyzw, representing a quaternion.
 
         :return: A list of xyzw
         """
@@ -499,7 +503,7 @@ class Object(WorldEntity):
 
     def get_pose(self) -> Pose:
         """
-        Returns the position of this object as a list of xyz. Alias for :func:`~Object.get_position`.
+        Return the position of this object as a list of xyz. Alias for :func:`~Object.get_position`.
 
         :return: The current pose of this object
         """
@@ -507,9 +511,9 @@ class Object(WorldEntity):
             self.update_pose()
         return self._current_pose
 
-    def set_pose(self, pose: Pose, base: Optional[bool] = False, set_attachments: Optional[bool] = True) -> None:
+    def set_pose(self, pose: Pose, base: bool = False, set_attachments: bool = True) -> None:
         """
-        Sets the Pose of the object.
+        Set the Pose of the object.
 
         :param pose: New Pose for the object
         :param base: If True places the object base instead of origin at the specified position and orientation
@@ -530,7 +534,7 @@ class Object(WorldEntity):
 
     def update_pose(self):
         """
-        Updates the current pose of this object from the world, and updates the poses of all links.
+        Update the current pose of this object from the world, and updates the poses of all links.
         """
         self._current_pose = self.world.get_object_pose(self)
         # TODO: Probably not needed, need to test
@@ -539,10 +543,10 @@ class Object(WorldEntity):
 
     def _update_all_links_poses(self):
         """
-        Updates the poses of all links by getting them from the simulator.
+        Update the poses of all links by getting them from the simulator.
         """
         for link in self.links.values():
-            link._update_pose()
+            link.update_pose()
 
     def move_base_to_origin_pose(self) -> None:
         """
@@ -553,7 +557,7 @@ class Object(WorldEntity):
 
     def save_state(self, state_id) -> None:
         """
-        Saves the state of this object by saving the state of all links and attachments.
+        Save the state of this object by saving the state of all links and attachments.
 
         :param state_id: The unique id of the state.
         """
@@ -563,7 +567,7 @@ class Object(WorldEntity):
 
     def save_links_states(self, state_id: int) -> None:
         """
-        Saves the state of all links of this object.
+        Save the state of all links of this object.
 
         :param state_id: The unique id of the state.
         """
@@ -572,7 +576,7 @@ class Object(WorldEntity):
 
     def save_joints_states(self, state_id: int) -> None:
         """
-        Saves the state of all joints of this object.
+        Save the state of all joints of this object.
 
         :param state_id: The unique id of the state.
         """
@@ -581,10 +585,17 @@ class Object(WorldEntity):
 
     @property
     def current_state(self) -> ObjectState:
-        return ObjectState(self.get_pose().copy(), self.attachments.copy(), self.link_states.copy(), self.joint_states.copy())
+        """
+        The current state of this object as an ObjectState.
+        """
+        return ObjectState(self.get_pose().copy(), self.attachments.copy(), self.link_states.copy(),
+                           self.joint_states.copy())
 
     @current_state.setter
     def current_state(self, state: ObjectState) -> None:
+        """
+        Set the current state of this object to the given state.
+        """
         if self.get_pose().dist(state.pose) != 0.0:
             self.set_pose(state.pose, base=False, set_attachments=False)
 
@@ -594,13 +605,13 @@ class Object(WorldEntity):
 
     def set_attachments(self, attachments: Dict[Object, Attachment]) -> None:
         """
-        Sets the attachments of this object to the given attachments.
+        Set the attachments of this object to the given attachments.
 
         :param attachments: A dictionary with the object as key and the attachment as value.
         """
         for obj, attachment in attachments.items():
             if self.world.is_prospection_world and not obj.world.is_prospection_world:
-                # In case this object is in the prospection world and the other object is not, the attachment will no
+                # In case this object is in the prospection world and the other object is not, the attachment will not
                 # be set.
                 continue
             if obj in self.attachments:
@@ -614,7 +625,7 @@ class Object(WorldEntity):
     @property
     def link_states(self) -> Dict[int, LinkState]:
         """
-        Returns the current state of all links of this object.
+        The current state of all links of this object.
 
         :return: A dictionary with the link id as key and the current state of the link as value.
         """
@@ -623,7 +634,7 @@ class Object(WorldEntity):
     @link_states.setter
     def link_states(self, link_states: Dict[int, LinkState]) -> None:
         """
-        Sets the current state of all links of this object.
+        Set the current state of all links of this object.
 
         :param link_states: A dictionary with the link id as key and the current state of the link as value.
         """
@@ -633,7 +644,7 @@ class Object(WorldEntity):
     @property
     def joint_states(self) -> Dict[int, JointState]:
         """
-        Returns the current state of all joints of this object.
+        The current state of all joints of this object.
 
         :return: A dictionary with the joint id as key and the current state of the joint as value.
         """
@@ -642,7 +653,7 @@ class Object(WorldEntity):
     @joint_states.setter
     def joint_states(self, joint_states: Dict[int, JointState]) -> None:
         """
-        Sets the current state of all joints of this object.
+        Set the current state of all joints of this object.
 
         :param joint_states: A dictionary with the joint id as key and the current state of the joint as value.
         """
@@ -651,7 +662,7 @@ class Object(WorldEntity):
 
     def remove_saved_states(self) -> None:
         """
-        Removes all saved states of this object.
+        Remove all saved states of this object.
         """
         super().remove_saved_states()
         self.remove_links_saved_states()
@@ -659,27 +670,27 @@ class Object(WorldEntity):
 
     def remove_links_saved_states(self) -> None:
         """
-        Removes all saved states of the links of this object.
+        Remove all saved states of the links of this object.
         """
         for link in self.links.values():
             link.remove_saved_states()
 
     def remove_joints_saved_states(self) -> None:
         """
-        Removes all saved states of the joints of this object.
+        Remove all saved states of the joints of this object.
         """
         for joint in self.joints.values():
             joint.remove_saved_states()
 
     def _set_attached_objects_poses(self, already_moved_objects: Optional[List[Object]] = None) -> None:
         """
-        Updates the positions of all attached objects. This is done
+        Update the positions of all attached objects. This is done
         by calculating the new pose in world coordinate frame and setting the
         base pose of the attached objects to this new pose.
-        After this the _set_attached_objects method of all attached objects
-        will be called.
+        After this call _set_attached_objects method for all attached objects.
 
-        :param already_moved_objects: A list of Objects that were already moved, these will be excluded to prevent loops in the update.
+        :param already_moved_objects: A list of Objects that were already moved, these will be excluded to prevent loops
+         in the update.
         """
         if not self.world.let_pycram_move_attached_objects:
             return
@@ -704,7 +715,7 @@ class Object(WorldEntity):
 
     def set_position(self, position: Union[Pose, Point, List], base=False) -> None:
         """
-        Sets this Object to the given position, if base is true the bottom of the Object will be placed at the position
+        Set this Object to the given position, if base is true, place the bottom of the Object at the position
         instead of the origin in the center of the Object. The given position can either be a Pose,
         in this case only the position is used or a geometry_msgs.msg/Point which is the position part of a Pose.
 
@@ -731,7 +742,7 @@ class Object(WorldEntity):
 
     def set_orientation(self, orientation: Union[Pose, Quaternion, List, Tuple, np.ndarray]) -> None:
         """
-        Sets the orientation of the Object to the given orientation. Orientation can either be a Pose, in this case only
+        Set the orientation of the Object to the given orientation. Orientation can either be a Pose, in this case only
         the orientation of this pose is used or a geometry_msgs.msg/Quaternion which is the orientation of a Pose.
 
         :param orientation: Target orientation given as a list of xyzw.
@@ -754,7 +765,7 @@ class Object(WorldEntity):
 
     def get_joint_id(self, name: str) -> int:
         """
-        Returns the unique id for a joint name. As used by the world/simulator.
+        Return the unique id for a joint name. As used by the world/simulator.
 
         :param name: The joint name
         :return: The unique id
@@ -763,61 +774,43 @@ class Object(WorldEntity):
 
     def get_root_link_description(self) -> LinkDescription:
         """
-        Returns the root link of the URDF of this object.
+        Return the root link of the URDF of this object.
 
         :return: The root link as defined in the URDF of this object.
         """
         for link_description in self.description.links:
-            if link_description.name == self.root_link_name:
+            if link_description.name == self.description.get_root():
                 return link_description
 
     @property
     def root_link(self) -> ObjectDescription.Link:
         """
-        Returns the root link of this object.
+        The root link of this object.
 
         :return: The root link of this object.
         """
-        return self.links[self.root_link_name]
+        return self.links[self.description.get_root()]
 
     @property
     def tip_link(self) -> ObjectDescription.Link:
         """
-        Returns the tip link of this object.
+        The tip link of this object.
 
         :return: The tip link of this object.
         """
-        return self.links[self.tip_link_name]
-
-    @property
-    def root_link_name(self) -> str:
-        """
-        Returns the name of the root link of this object.
-
-        :return: The name of the root link of this object.
-        """
-        return self.description.get_root()
-
-    @property
-    def tip_link_name(self) -> str:
-        """
-        Returns the name of the tip link of this object.
-
-        :return: The name of the tip link of this object.
-        """
-        return self.description.get_tip()
+        return self.links[self.description.get_tip()]
 
     def get_root_link_id(self) -> int:
         """
-        Returns the unique id of the root link of this object.
+        Return the unique id of the root link of this object.
 
         :return: The unique id of the root link of this object.
         """
-        return self.get_link_id(self.root_link_name)
+        return self.get_link_id(self.description.get_root())
 
     def get_link_id(self, link_name: str) -> int:
         """
-        Returns a unique id for a link name.
+        Return a unique id for a link name.
 
         :param link_name: The name of the link.
         :return: The unique id of the link.
@@ -826,7 +819,7 @@ class Object(WorldEntity):
 
     def get_link_by_id(self, link_id: int) -> ObjectDescription.Link:
         """
-        Returns the link for a given unique link id
+        Return the link for a given unique link id
 
         :param link_id: The unique id of the link.
         :return: The link object.
@@ -835,7 +828,7 @@ class Object(WorldEntity):
 
     def reset_all_joints_positions(self) -> None:
         """
-        Sets the current position of all joints to 0. This is useful if the joints should be reset to their default
+        Set the current position of all joints to 0. This is useful if the joints should be reset to their default
         """
         joint_names = list(self.joint_name_to_id.keys())
         if len(joint_names) == 0:
@@ -845,7 +838,7 @@ class Object(WorldEntity):
 
     def set_joint_positions(self, joint_poses: dict) -> None:
         """
-        Sets the current position of multiple joints at once, this method should be preferred when setting
+        Set the current position of multiple joints at once, this method should be preferred when setting
         multiple joints at once instead of running :func:`~Object.set_joint_position` in a loop.
 
         :param joint_poses:
@@ -858,7 +851,7 @@ class Object(WorldEntity):
 
     def set_joint_position(self, joint_name: str, joint_position: float) -> None:
         """
-        Sets the position of the given joint to the given joint pose and updates the poses of all attached objects.
+        Set the position of the given joint to the given joint pose and updates the poses of all attached objects.
 
         :param joint_name: The name of the joint
         :param joint_position: The target pose for this joint
@@ -870,6 +863,7 @@ class Object(WorldEntity):
 
     def get_joint_position(self, joint_name: str) -> float:
         """
+        Return the current position of the given joint.
         :param joint_name: The name of the joint
         :return: The current position of the given joint
         """
@@ -877,6 +871,7 @@ class Object(WorldEntity):
 
     def get_joint_damping(self, joint_name: str) -> float:
         """
+        Return the damping of the given joint (friction).
         :param joint_name: The name of the joint
         :return: The damping of the given joint
         """
@@ -884,6 +879,7 @@ class Object(WorldEntity):
 
     def get_joint_upper_limit(self, joint_name: str) -> float:
         """
+        Return the upper limit of the given joint.
         :param joint_name: The name of the joint
         :return: The upper limit of the given joint
         """
@@ -891,6 +887,7 @@ class Object(WorldEntity):
 
     def get_joint_lower_limit(self, joint_name: str) -> float:
         """
+        Return the lower limit of the given joint.
         :param joint_name: The name of the joint
         :return: The lower limit of the given joint
         """
@@ -898,6 +895,7 @@ class Object(WorldEntity):
 
     def get_joint_axis(self, joint_name: str) -> Point:
         """
+        Return the axis of the given joint.
         :param joint_name: The name of the joint
         :return: The axis of the given joint
         """
@@ -905,6 +903,7 @@ class Object(WorldEntity):
 
     def get_joint_type(self, joint_name: str) -> JointType:
         """
+        Return the type of the given joint.
         :param joint_name: The name of the joint
         :return: The type of the given joint
         """
@@ -912,6 +911,7 @@ class Object(WorldEntity):
 
     def get_joint_limits(self, joint_name: str) -> Tuple[float, float]:
         """
+        Return the lower and upper limits of the given joint.
         :param joint_name: The name of the joint
         :return: The lower and upper limits of the given joint
         """
@@ -919,6 +919,7 @@ class Object(WorldEntity):
 
     def get_joint_child_link(self, joint_name: str) -> ObjectDescription.Link:
         """
+        Return the child link of the given joint.
         :param joint_name: The name of the joint
         :return: The child link of the given joint
         """
@@ -926,6 +927,8 @@ class Object(WorldEntity):
 
     def get_joint_parent_link(self, joint_name: str) -> ObjectDescription.Link:
         """
+
+
         :param joint_name: The name of the joint
         :return: The parent link of the given joint
         """
@@ -933,13 +936,13 @@ class Object(WorldEntity):
 
     def find_joint_above_link(self, link_name: str, joint_type: JointType) -> str:
         """
-        Traverses the chain from 'link' to the URDF origin and returns the first joint that is of type 'joint_type'.
+        Traverse the chain from 'link' to the URDF origin and return the first joint that is of type 'joint_type'.
 
         :param link_name: AbstractLink name above which the joint should be found
         :param joint_type: Joint type that should be searched for
         :return: Name of the first joint which has the given type
         """
-        chain = self.description.get_chain(self.root_link_name, link_name)
+        chain = self.description.get_chain(self.description.get_root(), link_name)
         reversed_chain = reversed(chain)
         container_joint = None
         for element in reversed_chain:
@@ -952,7 +955,7 @@ class Object(WorldEntity):
 
     def get_positions_of_all_joints(self) -> Dict[str, float]:
         """
-        Returns the positions of all joints of the object as a dictionary of joint names and joint positions.
+        Return the positions of all joints of the object as a dictionary of joint names and joint positions.
 
         :return: A dictionary with all joints positions'.
         """
@@ -960,14 +963,14 @@ class Object(WorldEntity):
 
     def update_link_transforms(self, transform_time: Optional[rospy.Time] = None) -> None:
         """
-        Updates the transforms of all links of this object using time 'transform_time' or the current ros time.
+        Update the transforms of all links of this object using time 'transform_time' or the current ros time.
         """
         for link in self.links.values():
             link.update_transform(transform_time)
 
     def contact_points(self) -> ContactPointsList:
         """
-        Returns a list of contact points of this Object with other Objects.
+        Return a list of contact points of this Object with other Objects.
 
         :return: A list of all contact points with other objects
         """
@@ -975,7 +978,7 @@ class Object(WorldEntity):
 
     def contact_points_simulated(self) -> ContactPointsList:
         """
-        Returns a list of all contact points between this Object and other Objects after stepping the simulation once.
+        Return a list of all contact points between this Object and other Objects after stepping the simulation once.
 
         :return: A list of contact points between this Object and other Objects
         """
@@ -987,7 +990,7 @@ class Object(WorldEntity):
 
     def closest_points(self, max_distance: float) -> ClosestPointsList:
         """
-        Returns a list of closest points between this Object and other Objects.
+        Return a list of closest points between this Object and other Objects.
 
         :param max_distance: The maximum distance between the closest points
         :return: A list of closest points between this Object and other Objects
@@ -996,7 +999,7 @@ class Object(WorldEntity):
 
     def closest_points_with_obj(self, other_object: Object, max_distance: float) -> ClosestPointsList:
         """
-        Returns a list of closest points between this Object and another Object.
+        Return a list of closest points between this Object and another Object.
 
         :param other_object: The other object
         :param max_distance: The maximum distance between the closest points
@@ -1006,7 +1009,7 @@ class Object(WorldEntity):
 
     def set_color(self, rgba_color: Color) -> None:
         """
-        Changes the color of this object, the color has to be given as a list
+        Change the color of this object, the color has to be given as a list
         of RGBA values.
 
         :param rgba_color: The color as Color object with RGBA values between 0 and 1
@@ -1021,7 +1024,7 @@ class Object(WorldEntity):
 
     def get_color(self) -> Union[Color, Dict[str, Color]]:
         """
-        This method returns the rgba_color of this object. The return is either:
+        Return the rgba_color of this object. The return is either:
 
             1. A Color object with RGBA values, this is the case if the object only has one link (this
                 happens for example if the object is spawned from a .obj or .stl file)
@@ -1029,7 +1032,8 @@ class Object(WorldEntity):
                 Please keep in mind that not every link may have a rgba_color. This is dependent on the URDF from which
                  the object is spawned.
 
-        :return: The rgba_color as Color object with RGBA values between 0 and 1 or a dict with the link name as key and the rgba_color as value.
+        :return: The rgba_color as Color object with RGBA values between 0 and 1 or a dict with the link name as key and
+         the rgba_color as value.
         """
         link_to_color_dict = self.links_colors
 
@@ -1047,12 +1051,14 @@ class Object(WorldEntity):
 
     def get_axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
         """
+        Return the axis aligned bounding box of this object.
         :return: The axis aligned bounding box of this object.
         """
         return self.world.get_object_axis_aligned_bounding_box(self)
 
     def get_base_origin(self) -> Pose:
         """
+        Return the origin of the base/bottom of this object.
         :return: the origin of the base/bottom of this object.
         """
         aabb = self.get_axis_aligned_bounding_box()
@@ -1063,7 +1069,7 @@ class Object(WorldEntity):
 
     def get_joint_by_id(self, joint_id: int) -> Joint:
         """
-        Returns the joint object with the given id.
+        Return the joint object with the given id.
 
         :param joint_id: The unique id of the joint.
         :return: The joint object.
@@ -1072,7 +1078,7 @@ class Object(WorldEntity):
 
     def copy_to_prospection(self) -> Object:
         """
-        Copies this object to the prospection world.
+        Copy this object to the prospection world.
 
         :return: The copied object in the prospection world.
         """
@@ -1083,7 +1089,7 @@ class Object(WorldEntity):
 
     def __copy__(self) -> Object:
         """
-        Returns a copy of this object. The copy will have the same name, type, path, description, pose, world and color.
+        Return a copy of this object. The copy will have the same name, type, path, description, pose, world and color.
 
         :return: A copy of this object.
         """
@@ -1093,10 +1099,7 @@ class Object(WorldEntity):
         return obj
 
     def __eq__(self, other):
-        if not isinstance(other, Object):
-            return False
-        return (self.id == other.id and self.world == other.world and self.name == other.name
-                and self.obj_type == other.obj_type)
+        return (self.id == other.id and self.world == other.world) if isinstance(other, Object) else False
 
     def __hash__(self):
-        return hash((self.name, self.obj_type, self.id, self.world.id))
+        return hash((self.id, self.world))
