@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 from time import sleep
@@ -68,7 +69,7 @@ class Multiverse(World):
     Whether to use the joint controller or not.
     """
 
-    REMOVE_ROBOT_WAIT_TIME: float = 0.5
+    REMOVE_ROBOT_WAIT_TIME: datetime.timedelta = datetime.timedelta(milliseconds=700)
     """
     The time to wait after removing the robot from the simulator.
     """
@@ -422,7 +423,7 @@ class Multiverse(World):
         if obj.obj_type != ObjectType.ENVIRONMENT:
             self.writer.remove_body(obj.name)
         if obj.obj_type == ObjectType.ROBOT:
-            sleep(self.REMOVE_ROBOT_WAIT_TIME)
+            sleep(self.REMOVE_ROBOT_WAIT_TIME.total_seconds())
 
     def add_constraint(self, constraint: Constraint) -> int:
 
