@@ -14,7 +14,6 @@ from pycram.world_concepts.world_object import Object
 multiverse_installed = True
 try:
     from pycram.worlds.multiverse import Multiverse
-    from pycram.worlds.multiverse_communication.socket import SocketAddress
 except ImportError:
     multiverse_installed = False
 
