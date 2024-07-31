@@ -1,3 +1,4 @@
+-r requirements-setuptools.txt
 gitpython>=3.1.37
 pybullet~=3.2.5
 rospkg~=1.4.0
@@ -17,3 +18,4 @@ psutil==5.9.7
 lxml==4.9.1
 typing_extensions==4.9.0
 owlready2>=0.45
+catkin_pkg
