@@ -1,3 +1,4 @@
+import datetime
 import logging
 import threading
 from time import time, sleep
@@ -31,7 +32,7 @@ class MultiverseClient(MultiverseSocket):
 
 class MultiverseReader(MultiverseClient):
 
-    MAX_WAIT_TIME_FOR_DATA: Optional[float] = 1
+    MAX_WAIT_TIME_FOR_DATA: datetime.timedelta = datetime.timedelta(milliseconds=1000)
     """
     The maximum wait time for the data in seconds.
     """
@@ -128,7 +129,7 @@ class MultiverseReader(MultiverseClient):
         return: The body data as a dictionary.
         """
         start = time()
-        while time() - start < self.MAX_WAIT_TIME_FOR_DATA:
+        while time() - start < self.MAX_WAIT_TIME_FOR_DATA.total_seconds():
             received_data = self.get_received_data()
             data_received_flag = self.check_for_body_data(name, received_data, properties)
             if data_received_flag:
@@ -175,11 +176,11 @@ class MultiverseReader(MultiverseClient):
 
 class MultiverseWriter(MultiverseClient):
 
-    time_for_sim_update: Optional[float] = 0.02
+    TIME_FOR_SIMULATION_TO_UPDATE: datetime.timedelta = datetime.timedelta(milliseconds=20)
     """
     Wait time for the sent data to be applied in the simulator.
     """
-    time_for_setting_body_data: Optional[float] = 0.01
+    TIME_FOR_SETTING_BODY_DATA: datetime.timedelta = datetime.timedelta(milliseconds=10)
     """
     Wait time for setting body data.
     """
@@ -272,7 +273,7 @@ class MultiverseWriter(MultiverseClient):
                           for value in data]
         self.send_data = [time() - self.time_start, *flattened_data]
         self.send_and_receive_data()
-        sleep(self.time_for_setting_body_data)
+        sleep(self.TIME_FOR_SETTING_BODY_DATA.total_seconds())
         return self.response_meta_data
 
     def send_meta_data_and_get_response(self, send_meta_data: Dict) -> Dict:
@@ -304,17 +305,13 @@ class MultiverseWriter(MultiverseClient):
         self.send_and_receive_meta_data()
         self.send_data = data
         self.send_and_receive_data()
-        sleep(self.time_for_sim_update)
+        sleep(self.TIME_FOR_SIMULATION_TO_UPDATE.total_seconds())
         return self.response_meta_data
 
 
 class MultiverseAPI(MultiverseClient):
 
-    BASE_NAME: str = "api_requester"
-    """
-    The base name of the Multiverse reader.
-    """
-    API_REQUEST_WAIT_TIME: float = 0.2
+    API_REQUEST_WAIT_TIME: datetime.timedelta = datetime.timedelta(milliseconds=200)
     """
     The wait time for the API request in seconds.
     """
@@ -534,7 +531,7 @@ class MultiverseAPI(MultiverseClient):
             self._add_api_request(api_name.value, *params)
         self._send_api_request()
         responses = self._get_all_apis_responses()
-        sleep(self.API_REQUEST_WAIT_TIME)
+        sleep(self.API_REQUEST_WAIT_TIME.total_seconds())
         return responses
 
     def _get_all_apis_responses(self) -> Dict[API, List[str]]:
