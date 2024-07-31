@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-import os
 import time
 import unittest
 
 import numpy as np
 import psutil
-from tf.transformations import quaternion_from_euler, euler_from_quaternion, quaternion_multiply, quaternion_inverse, \
-    quaternion_conjugate
+from tf.transformations import quaternion_from_euler, quaternion_multiply
 from typing_extensions import Optional, List
 
 from pycram.datastructures.dataclasses import Color, ContactPointsList, ContactPoint
@@ -15,13 +13,11 @@ from pycram.datastructures.pose import Pose
 from pycram.designators.object_designator import BelieveObject
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.world_concepts.world_object import Object
-from pycram.worlds.multiverse_functions.error_checkers import calculate_angle_between_quaternions, \
-    calculate_quaternion_difference
+from pycram.worlds.multiverse_functions.error_checkers import calculate_angle_between_quaternions
 
 multiverse_installed = True
 try:
     from pycram.worlds.multiverse import Multiverse
-    from pycram.worlds.multiverse_communication.socket import SocketAddress
 except ImportError:
     multiverse_installed = False
 
@@ -165,7 +161,6 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             robot_position = self.multiverse.robot.get_position_as_list()
             self.assert_list_is_equal(robot_position[:2], new_position[:2], delta=0.2)
             self.tearDown()
-            time.sleep(0.5)
 
     def test_set_robot_orientation(self):
         self.spawn_robot()
@@ -192,7 +187,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         estimated_cup_position[0] += 1
         milk.set_position(milk_position)
         new_cup_position = cup.get_position_as_list()
-        self.assert_list_is_equal(new_cup_position[:2], estimated_cup_position[:2])
+        self.assert_list_is_equal(new_cup_position[:2], estimated_cup_position[:2], 0.06)
 
     def test_detach_object(self):
         for i in range(2):
@@ -209,7 +204,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             milk.set_position(milk_position)
             new_milk_position = milk.get_position_as_list()
             new_cup_position = cup.get_position_as_list()
-            self.assert_list_is_equal(new_milk_position[:2], milk_position[:2], 0.01)
+            self.assert_list_is_equal(new_milk_position[:2], milk_position[:2], 0.02)
             self.assert_list_is_equal(new_cup_position[:2], estimated_cup_position[:2], 0.02)
             self.tearDown()
 

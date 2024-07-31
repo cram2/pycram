@@ -16,8 +16,9 @@ descriptions of the cameras mounted on the robot.
 An overview of the different components of the robot description as well as how these are created can be found in the
 following example:
 
-.. nbgallery::
-    notebooks/robot_description.ipynb
+:ref:`Robot Description example<robot_description_header>`
+
+
 
 
 --------------------------------
