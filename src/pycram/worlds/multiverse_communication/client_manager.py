@@ -1,6 +1,6 @@
-from typing_extensions import Optional, Type, Union, List, Dict
+from typing_extensions import Optional, Type, Union, Dict
 
-from pycram.worlds.multiverse_communication.clients import MultiverseWriter, MultiverseAPI, MultiverseClient, \
+from ...worlds.multiverse_communication.clients import MultiverseWriter, MultiverseAPI, MultiverseClient, \
     MultiverseReader, MultiverseController
 
 

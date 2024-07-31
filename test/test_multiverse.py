@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
+import os
 import unittest
-from time import sleep
 
 import numpy as np
 import psutil
@@ -18,6 +18,7 @@ from pycram.robot_description import RobotDescriptionManager
 from pycram.world_concepts.world_object import Object
 from pycram.validation.error_checkers import calculate_angle_between_quaternions
 from pycram.process_module import simulated_robot, with_simulated_robot
+from pycram.worlds.multiverse_extras.helpers import get_robot_mjcf_path, parse_mjcf_actuators
 
 multiverse_installed = True
 try:
@@ -360,11 +361,11 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             position_delta = self.multiverse.acceptable_position_error
         if orientation_delta is None:
             orientation_delta = self.multiverse.acceptable_orientation_error
-        self.assert_positon_is_equal(pose1.position_as_list(), pose2.position_as_list(), delta=position_delta)
+        self.assert_position_is_equal(pose1.position_as_list(), pose2.position_as_list(), delta=position_delta)
         self.assert_orientation_is_equal(pose1.orientation_as_list(), pose2.orientation_as_list(),
                                          delta=orientation_delta)
 
-    def assert_positon_is_equal(self, position1: List[float], position2: List[float], delta: Optional[float] = None):
+    def assert_position_is_equal(self, position1: List[float], position2: List[float], delta: Optional[float] = None):
         if delta is None:
             delta = self.multiverse.acceptable_position_error
         self.assert_list_is_equal(position1, position2, delta=delta)

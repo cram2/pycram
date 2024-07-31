@@ -1,7 +1,7 @@
 from enum import Enum
 
 from pycram.datastructures.enums import JointType
-from ..multiverse_functions.exceptions import UnsupportedJointType
+from ..multiverse_extras.exceptions import UnsupportedJointType
 
 
 class MultiverseAPIName(Enum):
