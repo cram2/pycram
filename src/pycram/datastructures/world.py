@@ -92,41 +92,60 @@ class World(StateEntity, ABC):
     The prefix for the prospection world name.
     """
 
-    acceptable_position_error: float = 5e-2  # 5 cm
-    acceptable_orientation_error: float = 10 * np.pi / 180  # 10 degrees
-    acceptable_pose_error: Tuple[float, float] = (acceptable_position_error, acceptable_orientation_error)
-    use_percentage_of_goal: bool = False
-    acceptable_percentage_of_goal: float = 0.5 if use_percentage_of_goal else None  # 50%
+    let_pycram_move_attached_objects: bool = conf.JobHandling.let_pycram_move_attached_objects
+    let_pycram_handle_spawning: bool = conf.JobHandling.let_pycram_handle_spawning
+    let_pycram_handle_world_sync: bool = conf.JobHandling.let_pycram_handle_world_sync
+    """
+    Whether to let PyCRAM handle the movement of attached objects, the spawning of objects,
+     and the world synchronization.
+    """
+
+    update_poses_from_sim_on_get: bool = conf.update_poses_from_sim_on_get
+    """
+    Whether to update the poses from the simulator when getting the object poses.
+    """
+
+    acceptable_position_error: float = conf.ErrorTolerance.acceptable_position_error
+    acceptable_orientation_error: float = conf.ErrorTolerance.acceptable_orientation_error
+    acceptable_pose_error: Tuple[float, float] = conf.ErrorTolerance.acceptable_pose_error
+    acceptable_revolute_joint_position_error: float = conf.ErrorTolerance.acceptable_revolute_joint_position_error
+    acceptable_prismatic_joint_position_error: float = conf.ErrorTolerance.acceptable_prismatic_joint_position_error
+    use_percentage_of_goal: bool = conf.ErrorTolerance.use_percentage_of_goal
+    acceptable_percentage_of_goal: float = conf.ErrorTolerance.acceptable_percentage_of_goal
     """
     The acceptable error for the position and orientation of an object/link.
     """
 
-    raise_goal_validator_error: Optional[bool] = False
+    raise_goal_validator_error: Optional[bool] = conf.ErrorTolerance.raise_goal_validator_error
     """
     Whether to raise an error if the goals are not achieved.
     """
 
-    def __init__(self, mode: WorldMode, is_prospection_world: bool, simulation_frequency: float):
+    def __init__(self, mode: WorldMode, is_prospection_world: bool, simulation_frequency: float,
+                 **config_kwargs):
         """
-       Creates a new simulation, the mode decides if the simulation should be a rendered window or just run in the
-       background. There can only be one rendered simulation.
-       The World object also initializes the Events for attachment, detachment and for manipulating the world.
+        Creates a new simulation, the mode decides if the simulation should be a rendered window or just run in the
+        background. There can only be one rendered simulation.
+        The World object also initializes the Events for attachment, detachment and for manipulating the world.
 
-       :param mode: Can either be "GUI" for rendered window or "DIRECT" for non-rendered. The default parameter is "GUI"
-       :param is_prospection_world: For internal usage, decides if this World should be used as a prospection world.
+        :param mode: Can either be "GUI" for rendered window or "DIRECT" for non-rendered. The default parameter is
+         "GUI"
+        :param is_prospection_world: For internal usage, decides if this World should be used as a prospection world.
+        :param simulation_frequency: The frequency of the simulation in Hz.
+        :param config_kwargs: Additional configuration parameters.
         """
 
         StateEntity.__init__(self)
 
-        self.let_pycram_move_attached_objects = True
-        self.let_pycram_handle_spawning = True
-        self.let_pycram_handle_world_sync = True
-        self.update_poses_from_sim_on_get = True
+        # Parse config_kwargs
+        for key, value in config_kwargs.items():
+            setattr(self, key, value)
+
         GoalValidator.raise_error = World.raise_goal_validator_error
+        World.simulation_frequency = simulation_frequency
 
         if World.current_world is None:
             World.current_world = self
-        World.simulation_frequency = simulation_frequency
 
         self.object_lock: threading.Lock = threading.Lock()
 
@@ -203,13 +222,13 @@ class World(StateEntity, ABC):
         # Joint Goal validators
         self.joint_position_goal_validator = JointPositionGoalValidator(
             self.get_joint_position,
-            acceptable_orientation_error=self.acceptable_orientation_error,
-            acceptable_position_error=self.acceptable_position_error,
+            acceptable_revolute_joint_position_error=self.acceptable_revolute_joint_position_error,
+            acceptable_prismatic_joint_position_error=self.acceptable_prismatic_joint_position_error,
             acceptable_percentage_of_goal_achieved=self.acceptable_percentage_of_goal)
         self.multi_joint_position_goal_validator = MultiJointPositionGoalValidator(
             lambda x: list(self.get_multiple_joint_positions(x).values()),
-            acceptable_orientation_error=self.acceptable_orientation_error,
-            acceptable_position_error=self.acceptable_position_error,
+            acceptable_revolute_joint_position_error=self.acceptable_revolute_joint_position_error,
+            acceptable_prismatic_joint_position_error=self.acceptable_prismatic_joint_position_error,
             acceptable_percentage_of_goal_achieved=self.acceptable_percentage_of_goal)
 
     def check_object_exists(self, obj: Object):
@@ -941,12 +960,14 @@ class World(StateEntity, ABC):
     def current_state(self) -> WorldState:
         if self._current_state is None:
             self._current_state = WorldState(self.save_physics_simulator_state(), self.object_states)
-        return self._current_state
+        return WorldState(self._current_state.simulator_state_id, self.object_states)
 
     @current_state.setter
     def current_state(self, state: WorldState) -> None:
-        self.restore_physics_simulator_state(state.simulator_state_id)
-        self.object_states = state.object_states
+        if self.current_state != state:
+            self.restore_physics_simulator_state(state.simulator_state_id)
+            for obj in self.objects:
+                self.get_object_by_name(obj.name).current_state = state.object_states[obj.name]
 
     @property
     def object_states(self) -> Dict[str, ObjectState]:

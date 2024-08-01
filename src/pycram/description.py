@@ -262,7 +262,8 @@ class Link(ObjectEntity, LinkDescription, ABC):
 
     @current_state.setter
     def current_state(self, link_state: LinkState) -> None:
-        self.constraint_ids = link_state.constraint_ids
+        if self.current_state != link_state:
+            self.constraint_ids = link_state.constraint_ids
 
     def add_fixed_constraint_with_link(self, child_link: 'Link',
                                        child_to_parent_transform: Optional[Transform] = None) -> int:
@@ -495,6 +496,8 @@ class Joint(ObjectEntity, JointDescription, ABC):
                  obj: Object, is_virtual: Optional[bool] = False):
         ObjectEntity.__init__(self, _id, obj)
         JointDescription.__init__(self, joint_description.parsed_description, is_virtual)
+        self.acceptable_error = (self.world.acceptable_revolute_joint_position_error if self.type == JointType.REVOLUTE
+                                 else self.world.acceptable_prismatic_joint_position_error)
         self._update_position()
 
     @property
@@ -589,7 +592,7 @@ class Joint(ObjectEntity, JointDescription, ABC):
 
     @property
     def current_state(self) -> JointState:
-        return JointState(self.position)
+        return JointState(self.position, self.acceptable_error)
 
     @current_state.setter
     def current_state(self, joint_state: JointState) -> None:
@@ -598,7 +601,7 @@ class Joint(ObjectEntity, JointDescription, ABC):
 
         :param joint_state: The joint state to update from.
         """
-        if self._current_position != joint_state.position:
+        if self.current_state != joint_state:
             self.position = joint_state.position
 
     def __copy__(self):
