@@ -705,7 +705,7 @@ class MultiverseAPI(MultiverseClient):
         param api_data: The API data to request the callback.
         return: The API response as a list of strings.
         """
-        response = self._request_apis_callbacks({api_name: params})
+        response = self._request_apis_callbacks({api_name: list(params)})
         return response[api_name]
 
     def _request_apis_callbacks(self, api_data: Dict[API, List]) -> Dict[API, List[str]]:

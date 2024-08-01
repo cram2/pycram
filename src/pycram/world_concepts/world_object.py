@@ -691,19 +691,18 @@ class Object(WorldEntity):
         The current state of this object as an ObjectState.
         """
         return ObjectState(self.get_pose().copy(), self.attachments.copy(), self.link_states.copy(),
-                           self.joint_states.copy())
+                           self.joint_states.copy(), self.world.acceptable_pose_error)
 
     @current_state.setter
     def current_state(self, state: ObjectState) -> None:
         """
         Set the current state of this object to the given state.
         """
-        if self.get_pose().dist(state.pose) != 0.0:
+        if self.current_state != state:
             self.set_pose(state.pose, base=False, set_attachments=False)
-
-        self.set_attachments(state.attachments)
-        self.link_states = state.link_states
-        self.joint_states = state.joint_states
+            self.set_attachments(state.attachments)
+            self.link_states = state.link_states
+            self.joint_states = state.joint_states
 
     def set_attachments(self, attachments: Dict[Object, Attachment]) -> None:
         """
