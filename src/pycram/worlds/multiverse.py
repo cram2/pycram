@@ -65,11 +65,6 @@ class Multiverse(World):
     is completed.
     """
 
-    REMOVE_ROBOT_WAIT_TIME: datetime.timedelta = datetime.timedelta(milliseconds=700)
-    """
-    The time to wait after removing the robot from the simulator.
-    """
-
     def __init__(self, mode: Optional[WorldMode] = WorldMode.DIRECT,
                  is_prospection: Optional[bool] = False,
                  simulation_frequency: float = conf.simulation_frequency,
@@ -357,8 +352,7 @@ class Multiverse(World):
         """
         self.writer.set_multiple_body_poses({name: {MultiverseBodyProperty.POSITION: pose.position_as_list(),
                                                     MultiverseBodyProperty.ORIENTATION:
-                                                        self.xyzw_to_wxyz(pose.orientation_as_list()),
-                                                    MultiverseBodyProperty.RELATIVE_VELOCITY: [0, 0, 0, 0, 0, 0]}
+                                                        self.xyzw_to_wxyz(pose.orientation_as_list())}
                                              for name, pose in body_poses.items()})
 
     def _get_body_pose(self, body_name: str, wait: Optional[bool] = True) -> Optional[Pose]:
@@ -413,12 +407,8 @@ class Multiverse(World):
         self.remove_object_from_simulator(obj)
 
     def remove_object_from_simulator(self, obj: Object) -> None:
-        if obj.obj_type == ObjectType.ROBOT:
-            sleep(self.REMOVE_ROBOT_WAIT_TIME.total_seconds())
         if obj.obj_type != ObjectType.ENVIRONMENT:
             self.writer.remove_body(obj.name)
-        if obj.obj_type == ObjectType.ROBOT:
-            sleep(self.REMOVE_ROBOT_WAIT_TIME.total_seconds())
 
     def add_constraint(self, constraint: Constraint) -> int:
 
