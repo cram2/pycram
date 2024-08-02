@@ -13,7 +13,7 @@ If True, the simulation will always be in paused state unless the simulate() fun
 similar to bullet_world which uses the bullet physics engine.
 """
 
-use_controller: bool = False
+use_controller: bool = True
 """
 Only used when use_bullet_mode is False. This turns on the controller for the robot joints.
 """
