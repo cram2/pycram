@@ -1,13 +1,18 @@
+from ..datastructures.dataclasses import VirtualMoveBaseJoints
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
 from ..datastructures.enums import Arms, Grasp, GripperState, GripperType
 import rospkg
 
+from ..worlds.multiverse_extras.helpers import get_robot_mjcf_path
+
 rospack = rospkg.RosPack()
 filename = rospack.get_path('pycram') + '/resources/robots/' + "pr2" + '.urdf'
 
+mjcf_filename = get_robot_mjcf_path("willow_garage", "pr2")
+
 pr2_description = RobotDescription("pr2", "base_link", "torso_lift_link", "torso_lift_joint",
-                                   filename)
+                                   filename, virtual_move_base_joints=VirtualMoveBaseJoints(), mjcf_path=mjcf_filename)
 
 ################################## Left Arm ##################################
 left_arm = KinematicChainDescription("left", "torso_lift_link", "l_wrist_roll_link",

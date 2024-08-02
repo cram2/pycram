@@ -76,11 +76,10 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     def test_demo(self):
         extension = ObjectDescription.get_file_extension()
-
-        robot = self.spawn_robot(robot_name='tiago_dual', position=[1.3, 2, 0.01])
+        robot = self.spawn_robot(robot_name='pr2', position=[1.3, 2, 0.01])
         apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")
 
-        milk = Object("milk_box", ObjectType.MILK, f"milk_box{extension}", pose=Pose([2.4, 2, 1.02]),
+        milk = Object("pycram_milk", ObjectType.MILK, f"pycram_milk{extension}", pose=Pose([2.4, 2, 1.02]),
                       color=Color(1, 0, 0, 1))
         # bowl = Object("big_bowl", ObjectType.BOWL, f"BigBowl.obj", pose=Pose([2.5, 2.3, 1]),
         #               color=Color(1, 1, 0, 1))
@@ -91,17 +90,17 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
         pick_pose = Pose([2.6, 2.15, 1])
 
-        robot_desig = BelieveObject(names=["tiago_dual"])
-        apartment_desig = BelieveObject(names=["apartment"])
+        robot_desig = BelieveObject(names=[robot.name])
+        apartment_desig = BelieveObject(names=[apartment.name])
 
         with simulated_robot:
             ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-            MoveTorsoAction([0.3]).resolve().perform()
+            MoveTorsoAction([0.25]).resolve().perform()
 
             milk_desig = self.move_and_detect(ObjectType.MILK, pick_pose)
 
-            # TransportAction(milk_desig, [Arms.LEFT], [Pose([4.8, 3.55, 0.8])]).resolve().perform()
+            TransportAction(milk_desig, [Arms.LEFT], [Pose([4.8, 3.55, 0.8])]).resolve().perform()
 
     @staticmethod
     @with_simulated_robot
@@ -187,7 +186,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         if self.multiverse.robot is not None:
             robot = self.multiverse.robot
         else:
-            robot = self.spawn_robot()
+            robot = self.spawn_robot(robot_name="pr2")
         self.assertIsInstance(robot, Object)
         self.assertTrue(robot in self.multiverse.objects)
         self.assertTrue(self.multiverse.robot.name == robot.name)
