@@ -1,4 +1,3 @@
-import datetime
 import logging
 import os
 from time import sleep
@@ -53,7 +52,13 @@ class Multiverse(World):
      the multiverse configuration file).
     """
 
-    use_controller: bool = conf.use_controller
+    use_bullet_mode: bool = conf.use_bullet_mode
+    """
+    If True, the simulation will always be in paused state unless the simulate() function is called, this behaves 
+    similar to bullet_world which uses the bullet physics engine.
+    """
+
+    use_controller: bool = conf.use_controller and not use_bullet_mode
     """
     Whether to use the controller for the robot joints or not.
     """
@@ -104,7 +109,8 @@ class Multiverse(World):
         if not self.is_prospection_world:
             self._spawn_floor()
 
-        self.api_requester.pause_simulation()
+        if self.use_bullet_mode:
+            self.api_requester.pause_simulation()
 
     def _init_clients(self):
         self.reader: MultiverseReader = self.client_manager.create_reader(
@@ -268,7 +274,7 @@ class Multiverse(World):
 
     def _set_multiple_joint_positions_using_controller(self, joint_positions: Dict[Joint, float]) -> bool:
         controlled_joints_data = {self.get_actuator_for_joint(joint):
-                                      {self.get_joint_cmd_name(joint.type): [position]}
+                                  {self.get_joint_cmd_name(joint.type): [position]}
                                   for joint, position in joint_positions.items()}
         self.joint_controller.send_multiple_body_data_to_server(controlled_joints_data)
         return True
@@ -310,7 +316,7 @@ class Multiverse(World):
 
         if (obj.obj_type == ObjectType.ROBOT and
                 RobotDescription.current_robot_description.virtual_move_base_joints is not None):
-            self.set_mobile_robot_pose(obj ,pose)
+            self.set_mobile_robot_pose(obj, pose)
         else:
             self._set_body_pose(obj.name, pose)
 
@@ -441,7 +447,8 @@ class Multiverse(World):
         """
         Note: Currently Multiverse only gets one contact point per contact objects.
         """
-        self.simulate(0.1)
+        if self.use_bullet_mode:
+            self.simulate(0.1)
         multiverse_contact_points = self.api_requester.get_contact_points(obj)
         contact_points = ContactPointsList([])
         body_link = None
@@ -516,9 +523,13 @@ class Multiverse(World):
         return results
 
     def step(self):
-        self.api_requester.unpause_simulation()
-        sleep(self.simulation_time_step)
-        self.api_requester.pause_simulation()
+        """
+        Perform a simulation step in the simulator, this is useful when use_bullet_mode is True.
+        """
+        if self.use_bullet_mode:
+            self.api_requester.unpause_simulation()
+            sleep(self.simulation_time_step)
+            self.api_requester.pause_simulation()
 
     def save_physics_simulator_state(self) -> int:
         logging.warning("save_physics_simulator_state is not implemented in Multiverse")
