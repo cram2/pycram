@@ -623,21 +623,23 @@ class World(StateEntity, ABC):
         :param robot_obj: The robot object.
         :param pose: The target pose.
         """
-        goal = self.get_move_base_joint_goal(pose)
+        goal = self.get_move_base_joint_goal(robot_obj, pose)
         robot_obj.set_multiple_joint_positions(goal)
 
-    def get_move_base_joint_goal(self, pose: Pose) -> Dict[str, float]:
+    def get_move_base_joint_goal(self, robot_obj: Object, pose: Pose) -> Dict[str, float]:
         """
         Get the goal for the move base joints of a mobile robot to reach a target pose.
-        param pose: The target pose.
+        :param robot_obj: The robot object.
+        :param pose: The target pose.
         return: The goal for the move base joints.
         """
-        position_diff = self.get_position_diff(self.robot.get_position_as_list(), pose.position_as_list())[:2]
+        position_diff = self.get_position_diff(robot_obj.get_position_as_list(), pose.position_as_list())
+        target_x, target_y = position_diff[0], position_diff[1]
         target_angle = self.get_z_angle(pose.orientation_as_list())
         # Get the joints of the base link
         move_base_joints = self.get_move_base_joints()
-        return {move_base_joints.translation_x: position_diff[0],
-                move_base_joints.translation_y: position_diff[1],
+        return {move_base_joints.translation_x: target_x,
+                move_base_joints.translation_y: target_y,
                 move_base_joints.angular_z: target_angle}
 
     def get_move_base_joints(self) -> VirtualMoveBaseJoints:
