@@ -357,7 +357,8 @@ class Multiverse(World):
         """
         self.writer.set_multiple_body_poses({name: {MultiverseBodyProperty.POSITION: pose.position_as_list(),
                                                     MultiverseBodyProperty.ORIENTATION:
-                                                        self.xyzw_to_wxyz(pose.orientation_as_list())}
+                                                        self.xyzw_to_wxyz(pose.orientation_as_list()),
+                                                    MultiverseBodyProperty.RELATIVE_VELOCITY: [0.0]*6}
                                              for name, pose in body_poses.items()})
 
     def _get_body_pose(self, body_name: str, wait: Optional[bool] = True) -> Optional[Pose]:

@@ -318,8 +318,10 @@ class MultiverseWriter(MultiverseClient):
         :param orientation: The orientation of the robot.
         :param actuator_joint_commands: A dictionary mapping actuator names to joint command names.
         """
-        send_meta_data = {robot_name: [BodyProperty.POSITION.value, BodyProperty.ORIENTATION.value]}
-        data = [self.sim_time, *position, *orientation]
+        send_meta_data = {robot_name: [BodyProperty.POSITION.value, BodyProperty.ORIENTATION.value,
+                                       BodyProperty.RELATIVE_VELOCITY.value]}
+        relative_velocity = [0.0] * 6
+        data = [self.sim_time, *position, *orientation, *relative_velocity]
         self.send_data_to_server(data, send_meta_data=send_meta_data, receive_meta_data=actuator_joint_commands)
 
     def _reset_request_meta_data(self):
@@ -343,7 +345,8 @@ class MultiverseWriter(MultiverseClient):
         """
         self.send_body_data_to_server(body_name,
                                       {BodyProperty.POSITION: position,
-                                       BodyProperty.ORIENTATION: orientation})
+                                       BodyProperty.ORIENTATION: orientation,
+                                       BodyProperty.RELATIVE_VELOCITY: [0.0] * 6})
 
     def set_multiple_body_poses(self, body_data: Dict[str, Dict[BodyProperty, List[float]]]) -> None:
         """
