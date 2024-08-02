@@ -17,6 +17,7 @@ from ..datastructures.enums import ObjectType, WorldMode, JointType
 from ..datastructures.pose import Pose
 from ..object_descriptors.urdf import ObjectDescription
 from ..datastructures.world import World
+from ..validation.goal_validator import validate_multiple_joint_positions, validate_joint_position, validate_object_pose
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.world_object import Object
 
@@ -182,11 +183,13 @@ class BulletWorld(World):
                 "lateral_friction_1": LateralFriction(point[10], point[11]),
                 "lateral_friction_2": LateralFriction(point[12], point[13])}
 
+    @validate_multiple_joint_positions
     def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
         for joint, joint_position in joint_positions.items():
             self.reset_joint_position(joint, joint_position)
         return True
 
+    @validate_joint_position
     def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
         p.resetJointState(joint.object_id, joint.id, joint_position, physicsClientId=self.id)
         return True
@@ -198,6 +201,7 @@ class BulletWorld(World):
         for obj, pose in objects.items():
             self.reset_object_base_pose(obj, pose)
 
+    @validate_object_pose
     def reset_object_base_pose(self, obj: Object, pose: Pose) -> bool:
         p.resetBasePositionAndOrientation(obj.id, pose.position_as_list(), pose.orientation_as_list(),
                                           physicsClientId=self.id)

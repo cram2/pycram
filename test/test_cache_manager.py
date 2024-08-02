@@ -1,18 +1,17 @@
+import os
 from pathlib import Path
 
 from bullet_world_testcase import BulletWorldTestCase
 from pycram.object_descriptors.urdf import ObjectDescription as URDFObject
-import pathlib
 
 
 class TestCacheManager(BulletWorldTestCase):
 
     def test_generate_description_and_write_to_cache(self):
         cache_manager = self.world.cache_manager
-        file_path = pathlib.Path(__file__).parent.resolve()
-        path = str(file_path) + "/../resources/apartment.urdf"
+        path = os.path.join(self.world.resources_path, "objects/apartment.urdf")
         extension = Path(path).suffix
-        cache_path = self.world.cache_dir + "/apartment.urdf"
+        cache_path = os.path.join(self.world.cache_dir, "apartment.urdf")
         apartment = URDFObject(path)
         cache_manager.generate_description_and_write_to_cache(path, "apartment", extension, cache_path,
                                                               apartment)

@@ -1,0 +1,52 @@
+name: Build Jupyter-Book documentation 📖
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - master
+      - dev
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+defaults:
+  run:
+    shell: bash
+    working-directory: .
+
+jobs:
+  test-and-build:
+    name: Build Jupyter-Book  documentation
+    runs-on: ubuntu-22.04
+
+    steps:
+
+      - name: Checkout 🛎
+        uses: actions/checkout@v3
+
+      - name: Install PyCRAM dependencies 🍼
+        uses: py-actions/py-dependency-install@v4
+        with:
+          path: "requirements-setuptools.txt"
+
+      # ----------------------------------------------------------------------------------------------------------------
+
+      - name: Install Jupyter-Book  dependencies 🍼
+        uses: py-actions/py-dependency-install@v4
+        with:
+          path: "requirements.txt"
+
+      # ----------------------------------------------------------------------------------------------------------------
+      - name: Install Jupyter-Book  dependencies 📚
+        uses: py-actions/py-dependency-install@v4
+        with:
+          path: "doc/requirements.txt"
+
+      # ----------------------------------------------------------------------------------------------------------------
+      - name: Build Jupyter-Book  documentation 📝
+        working-directory: ./doc
+        run: |
+          cd source
+          jupyter-book build .

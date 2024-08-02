@@ -4,7 +4,7 @@ import numpy as np
 from tf.transformations import quaternion_from_euler
 
 from pycram.datastructures.enums import JointType
-from pycram.worlds.multiverse_extras.error_checkers import calculate_angle_between_quaternions, \
+from pycram.validation.error_checkers import calculate_angle_between_quaternions, \
     PoseErrorChecker, PositionErrorChecker, OrientationErrorChecker, RevoluteJointPositionErrorChecker, \
     PrismaticJointPositionErrorChecker, MultiJointPositionErrorChecker
 

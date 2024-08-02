@@ -44,8 +44,6 @@ class VizMarkerPublisher:
         Constantly publishes the Marker Array. To the given topic name at a fixed rate.
         """
         while not self.kill_event.is_set():
-            while self.lock.locked():
-                time.sleep(0.1)
             self.lock.acquire()
             marker_array = self._make_marker_array()
             self.lock.release()
