@@ -860,7 +860,7 @@ class TransportActionPerformable(ActionAbstract):
         ParkArmsActionPerformable(Arms.BOTH).perform()
         pickup_loc = CostmapLocation(target=self.object_designator, reachable_for=robot_desig.resolve(),
                                      reachable_arm=self.arm)
-        # Tries to find a pick-up posotion for the robot that uses the given arm
+        # Tries to find a pick-up position for the robot that uses the given arm
         pickup_pose = None
         for pose in pickup_loc:
             if self.arm in pose.reachable_arms:

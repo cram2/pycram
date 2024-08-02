@@ -30,6 +30,7 @@ class MultiverseClient(MultiverseSocket):
         meta_data = MultiverseMetaData()
         meta_data.simulation_name = (World.prospection_world_prefix if is_prospection_world else "") + name
         meta_data.world_name = (World.prospection_world_prefix if is_prospection_world else "") + meta_data.world_name
+        self.is_prospection_world = is_prospection_world
         super().__init__(port=str(port), meta_data=meta_data)
         self.simulation_wait_time_factor = simulation_wait_time_factor
         self.run()
@@ -420,15 +421,6 @@ class MultiverseWriter(MultiverseClient):
         self.send_data = [self.sim_time, *flattened_data]
         self.send_and_receive_data()
         return self.response_meta_data
-
-    @staticmethod
-    def get_actuator_name(body_name: str) -> str:
-        """
-        Get the actuator name from the body name.
-        param body_name: The name of the body.
-        return: The actuator name.
-        """
-        return body_name.replace("_joint", "_actuator")
 
     def send_meta_data_and_get_response(self, send_meta_data: Dict) -> Dict:
         """

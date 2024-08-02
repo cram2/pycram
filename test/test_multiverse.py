@@ -228,6 +228,18 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             quaternion_difference = calculate_angle_between_quaternions(new_quaternion, robot_orientation)
             self.assertAlmostEqual(quaternion_difference, 0, delta=self.multiverse.acceptable_orientation_error)
 
+    def test_set_robot_pose(self):
+        self.spawn_robot()
+        new_position = [-3, -3, 0.001]
+        # rotate by 45 degrees without using euler angles
+        rotation_quaternion = quaternion_from_euler(0, 0, np.pi / 4)
+        new_quaternion = quaternion_multiply(self.multiverse.robot.get_orientation_as_list(), rotation_quaternion)
+        new_pose = Pose(new_position, new_quaternion)
+        self.multiverse.robot.set_pose(new_pose)
+        robot_pose = self.multiverse.robot.get_pose()
+        self.assert_poses_are_equal(new_pose, robot_pose, position_delta=self.multiverse.acceptable_position_error,
+                                    orientation_delta=self.multiverse.acceptable_orientation_error)
+
     def test_attach_object(self):
         milk = self.spawn_milk([1, 0.1, 0.1])
         cup = self.spawn_cup([1, 1.1, 0.1])
