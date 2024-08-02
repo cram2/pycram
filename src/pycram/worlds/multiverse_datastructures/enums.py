@@ -33,23 +33,38 @@ class MultiverseBodyProperty(MultiverseProperty):
 
 
 class MultiverseJointProperty(MultiverseProperty):
+    pass
+
+
+class MultiverseJointPosition(MultiverseJointProperty):
     """
-    Enum for the different properties of a joint the Multiverse.
+    Enum for the Position names of the different joint types in the Multiverse.
     """
     REVOLUTE_JOINT_POSITION = "joint_rvalue"
     PRISMATIC_JOINT_POSITION = "joint_tvalue"
+
+    @classmethod
+    def from_pycram_joint_type(cls, joint_type: 'JointType') -> 'MultiverseJointPosition':
+        if joint_type in [JointType.REVOLUTE, JointType.CONTINUOUS]:
+            return MultiverseJointPosition.REVOLUTE_JOINT_POSITION
+        elif joint_type == JointType.PRISMATIC:
+            return MultiverseJointPosition.PRISMATIC_JOINT_POSITION
+        else:
+            raise UnsupportedJointType(joint_type)
+
+
+class MultiverseJointCMD(MultiverseJointProperty):
+    """
+    Enum for the Command names of the different joint types in the Multiverse.
+    """
     REVOLUTE_JOINT_CMD = "cmd_joint_rvalue"
     PRISMATIC_JOINT_CMD = "cmd_joint_tvalue"
 
-    def is_cmd(self):
-        return self in [MultiverseJointProperty.REVOLUTE_JOINT_CMD,
-                        MultiverseJointProperty.PRISMATIC_JOINT_CMD]
-
     @classmethod
-    def from_pycram_joint_type(cls, joint_type: 'JointType') -> 'MultiverseJointProperty':
-        if joint_type == JointType.REVOLUTE:
-            return MultiverseJointProperty.REVOLUTE_JOINT_POSITION
+    def from_pycram_joint_type(cls, joint_type: 'JointType') -> 'MultiverseJointCMD':
+        if joint_type in [JointType.REVOLUTE, JointType.CONTINUOUS]:
+            return MultiverseJointCMD.REVOLUTE_JOINT_CMD
         elif joint_type == JointType.PRISMATIC:
-            return MultiverseJointProperty.PRISMATIC_JOINT_POSITION
+            return MultiverseJointCMD.PRISMATIC_JOINT_CMD
         else:
             raise UnsupportedJointType(joint_type)

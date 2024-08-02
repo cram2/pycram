@@ -8,7 +8,8 @@ from typing_extensions import List, Dict, Optional
 
 from .multiverse_communication.client_manager import MultiverseClientManager
 from .multiverse_communication.clients import MultiverseController, MultiverseReader, MultiverseWriter, MultiverseAPI
-from .multiverse_datastructures.enums import MultiverseJointProperty, MultiverseBodyProperty
+from .multiverse_datastructures.enums import MultiverseBodyProperty, MultiverseJointPosition, \
+    MultiverseJointCMD
 from .multiverse_extras.helpers import find_multiverse_resources_path
 from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
 from ..datastructures.enums import WorldMode, JointType, ObjectType
@@ -28,17 +29,9 @@ class Multiverse(World):
     This class implements an interface between Multiverse and PyCRAM.
     """
 
-    supported_joint_types = (JointType.REVOLUTE, JointType.PRISMATIC)
+    supported_joint_types = (JointType.REVOLUTE, JointType.CONTINUOUS, JointType.PRISMATIC)
     """
     A Tuple for the supported pycram joint types in Multiverse.
-    """
-
-    _joint_type_to_cmd_name: Dict[JointType, MultiverseJointProperty] = {
-        JointType.REVOLUTE: MultiverseJointProperty.REVOLUTE_JOINT_CMD,
-        JointType.PRISMATIC: MultiverseJointProperty.PRISMATIC_JOINT_CMD,
-    }
-    """
-    A dictionary to map JointType to the corresponding multiverse joint command attribute name.
     """
 
     added_multiverse_resources: bool = False
@@ -154,8 +147,8 @@ class Multiverse(World):
                             world=self)
 
     @staticmethod
-    def get_joint_position_name(joint: Joint) -> MultiverseJointProperty:
-        return MultiverseJointProperty.from_pycram_joint_type(joint.type)
+    def get_joint_position_name(joint: Joint) -> MultiverseJointPosition:
+        return MultiverseJointPosition.from_pycram_joint_type(joint.type)
 
     def spawn_robot_with_controller(self, name: str, pose: Pose) -> None:
         """
@@ -292,8 +285,9 @@ class Multiverse(World):
         if data is not None:
             return {name: list(value.values())[0][0] for name, value in data.items()}
 
-    def get_joint_cmd_name(self, joint_type: JointType) -> MultiverseJointProperty:
-        return self._joint_type_to_cmd_name[joint_type]
+    @staticmethod
+    def get_joint_cmd_name(joint_type: JointType) -> MultiverseJointCMD:
+        return MultiverseJointCMD.from_pycram_joint_type(joint_type)
 
     def get_link_pose(self, link: Link) -> Optional[Pose]:
         return self._get_body_pose(link.name)
@@ -449,7 +443,8 @@ class Multiverse(World):
         Note: Currently Multiverse only gets one contact point per contact objects.
         """
         if self.use_bullet_mode:
-            self.simulate(0.1)
+            # self.simulate(0.01)
+            pass
         multiverse_contact_points = self.api_requester.get_contact_points(obj)
         contact_points = ContactPointsList([])
         body_link = None
@@ -528,9 +523,10 @@ class Multiverse(World):
         Perform a simulation step in the simulator, this is useful when use_bullet_mode is True.
         """
         if self.use_bullet_mode:
-            self.api_requester.unpause_simulation()
-            sleep(self.simulation_time_step)
-            self.api_requester.pause_simulation()
+            # self.api_requester.unpause_simulation()
+            # sleep(self.simulation_time_step)
+            # self.api_requester.pause_simulation()
+            pass
 
     def save_physics_simulator_state(self) -> int:
         logging.warning("save_physics_simulator_state is not implemented in Multiverse")

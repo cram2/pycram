@@ -23,6 +23,7 @@ def parse_mjcf_actuators(file_path: str) -> Dict[str, str]:
 
     return joint_actuators
 
+
 def get_robot_mjcf_path(company_name: str, robot_name: str, xml_name: Optional[str] = None) -> Optional[str]:
     """
     Get the path to the MJCF file of a robot.

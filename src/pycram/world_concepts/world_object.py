@@ -930,12 +930,11 @@ class Object(WorldEntity):
         """
         Set the current position of all joints to 0. This is useful if the joints should be reset to their default
         """
-        joint_names = [joint.name for joint in self.joints.values()]  # if not joint.is_virtual]
+        joint_names = [joint.name for joint in self.joints.values()]
         if len(joint_names) == 0:
             return
         joint_positions = [0] * len(joint_names)
         self.set_multiple_joint_positions(dict(zip(joint_names, joint_positions)))
-
 
     def set_joint_position(self, joint_name: str, joint_position: float) -> None:
         """
