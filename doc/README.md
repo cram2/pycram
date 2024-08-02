@@ -7,17 +7,24 @@ the instructions below.
 ## Building the documentation
 
 
-The documentation uses sphinx as engine.
-Building sphinx based documentations requires `pandoc <https://pandoc.org/installing.html>`_
-to be installed. Pandoc can be installed via the Ubunutu package manager:
+The documentation uses jupyter-book as engine. Building the documentation requires Python 3.9 or higher to avoid 
+dependency conflicts. On Ubuntu 20.04 you can install Python 3.9 with the following commands.
 ~~~
-sudo apt install pandoc
+apt-get install python3.9
 ~~~
-After installing pandoc, install sphinx on your device.
 
+It is recommended to create a virtual environment to avoid conflicts with the system python interpreter.
 ~~~
-sudo apt install python3-sphinx
+apt-get install python3.9-virtualenv
+virtualenv -p python3.9 --system-site-packages build-doc
 ~~~
+
+Activate the virtual environment.
+~~~
+source build-doc/bin/activate
+~~~
+
+
 Install the requirements in your python interpreter.
 
 ~~~
@@ -26,10 +33,11 @@ pip install -r requirements.txt
 Run pycram and build the docs.
 
 ~~~
-make html
+cd doc/source 
+jupyter-book build .
 ~~~
 Show the index.
 
 ~~~
-firefox build/html/index.html
+firefox _build/html/index.html
 ~~~
