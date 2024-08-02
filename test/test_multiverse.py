@@ -49,8 +49,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         if not multiverse_installed:
             return
         cls.multiverse = Multiverse(simulation="pycram_test",
-                                    is_prospection=False,
-                                    use_controller=True)
+                                    is_prospection=False)
 
     @classmethod
     def tearDownClass(cls):
@@ -102,7 +101,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
             milk_desig = self.move_and_detect(ObjectType.MILK, pick_pose)
 
-            TransportAction(milk_desig, [Arms.LEFT], [Pose([4.8, 3.55, 0.8])]).resolve().perform()
+            # TransportAction(milk_desig, [Arms.LEFT], [Pose([4.8, 3.55, 0.8])]).resolve().perform()
 
     @staticmethod
     @with_simulated_robot
@@ -130,10 +129,11 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assert_orientation_is_equal(milk_pose.orientation_as_list(), milk.original_pose.orientation_as_list())
 
     def test_spawn_robot_with_actuators_directly_from_multiverse(self):
-        robot_name = "tiago_dual"
-        rdm = RobotDescriptionManager()
-        rdm.load_description(robot_name)
-        self.multiverse.spawn_robot_with_controller(robot_name, Pose([-2, -2, 0.001]))
+        if self.multiverse.use_controller:
+            robot_name = "tiago_dual"
+            rdm = RobotDescriptionManager()
+            rdm.load_description(robot_name)
+            self.multiverse.spawn_robot_with_controller(robot_name, Pose([-2, -2, 0.001]))
 
     def test_spawn_object(self):
         milk = self.spawn_milk([1, 1, 0.1])

@@ -53,6 +53,11 @@ class Multiverse(World):
      the multiverse configuration file).
     """
 
+    use_controller: bool = conf.use_controller
+    """
+    Whether to use the controller for the robot joints or not.
+    """
+
     try:
         simulation_wait_time_factor = float(os.environ['Multiverse_Simulation_Wait_Time_Factor'])
     except KeyError:
@@ -68,8 +73,7 @@ class Multiverse(World):
     def __init__(self, mode: Optional[WorldMode] = WorldMode.DIRECT,
                  is_prospection: Optional[bool] = False,
                  simulation_frequency: float = conf.simulation_frequency,
-                 simulation: Optional[str] = None,
-                 use_controller: bool = conf.use_controller):
+                 simulation: Optional[str] = None):
         """
         Initialize the Multiverse Socket and the PyCram World.
         param mode: The mode of the world (DIRECT or GUI).
@@ -77,7 +81,6 @@ class Multiverse(World):
         param simulation_frequency: The frequency of the simulation.
         param client_addr: The address of the multiverse client.
         param simulation: The name of the simulation.
-        param use_controller: Whether to use the controller or not.
         """
 
         self._make_sure_multiverse_resources_are_added()
@@ -89,9 +92,6 @@ class Multiverse(World):
             Multiverse.simulation = simulation
 
         self.simulation = (self.prospection_world_prefix if is_prospection else "") + Multiverse.simulation
-
-        # Whether to use the controller for the robot joints or not.
-        self.use_controller = use_controller
 
         World.__init__(self, mode, is_prospection, simulation_frequency, **conf.job_handling.as_dict(),
                        **conf.error_tolerance.as_dict())
@@ -115,8 +115,9 @@ class Multiverse(World):
         self.api_requester: MultiverseAPI = self.client_manager.create_api_requester(
             self.simulation,
             is_prospection_world=self.is_prospection_world)
-        self.joint_controller: MultiverseController = self.client_manager.create_controller(
-            is_prospection_world=self.is_prospection_world)
+        if self.use_controller:
+            self.joint_controller: MultiverseController = self.client_manager.create_controller(
+                is_prospection_world=self.is_prospection_world)
 
     def _init_constraint_and_object_id_name_map_collections(self):
         self.last_object_id: int = -1
@@ -233,8 +234,6 @@ class Multiverse(World):
             self._reset_joint_position_using_controller(joint, joint_position)
         else:
             self._set_multiple_joint_positions_without_controller({joint: joint_position})
-            # self.writer.set_body_property(joint.name, self.get_joint_position_name(joint.type),
-            #                               [joint_position])
         return True
 
     def _reset_joint_position_using_controller(self, joint: Joint, joint_position: float) -> bool:
@@ -442,7 +441,7 @@ class Multiverse(World):
         """
         Note: Currently Multiverse only gets one contact point per contact objects.
         """
-        self.step()
+        self.simulate(0.1)
         multiverse_contact_points = self.api_requester.get_contact_points(obj)
         contact_points = ContactPointsList([])
         body_link = None
@@ -518,7 +517,7 @@ class Multiverse(World):
 
     def step(self):
         self.api_requester.unpause_simulation()
-        sleep(30 / self.simulation_frequency)
+        sleep(self.simulation_time_step)
         self.api_requester.pause_simulation()
 
     def save_physics_simulator_state(self) -> int:
@@ -552,7 +551,8 @@ class Multiverse(World):
         raise NotImplementedError
 
     def set_realtime(self, real_time: bool) -> None:
-        logging.warning("set_realtime is not implemented in Multiverse")
+        logging.warning("set_realtime is not implemented as an API in Multiverse, it is configured in the"
+                        "multiverse configuration file (.muv file) as rtf_required where a value of 1 means real-time")
 
     def set_gravity(self, gravity_vector: List[float]) -> None:
         logging.warning("set_gravity is not implemented in Multiverse")
