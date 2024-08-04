@@ -8,7 +8,7 @@ from pycram.robot_description import RobotDescription
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import Pose
 from pycram.datastructures.enums import ObjectType, Arms, GripperState, Grasp
-from bullet_world_testcase import BulletWorldTestCase, TiagoBulletWorldTestCase
+from bullet_world_testcase import BulletWorldTestCase
 import numpy as np
 
 
@@ -162,11 +162,3 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             FaceAtPerformable(self.milk.pose).perform()
             milk_in_robot_frame = LocalTransformer().transform_to_object_frame(self.milk.pose, self.robot)
             self.assertAlmostEqual(milk_in_robot_frame.position.y, 0.)
-
-
-class TiagoTestActionDesignatorGrounding(TiagoBulletWorldTestCase, TestActionDesignatorGrounding):
-    pass
-
-
-if __name__ == '__main__':
-    unittest.main()
