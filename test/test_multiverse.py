@@ -207,9 +207,10 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assertTrue(self.multiverse.robot in self.multiverse.objects)
 
     def test_set_robot_position(self):
+        step = -1
         for i in range(3):
             self.spawn_robot()
-            new_position = [-3, -3, 0.001]
+            new_position = [-3 + step*i, -3 + step*i, 0.001]
             self.multiverse.robot.set_position(new_position)
             robot_position = self.multiverse.robot.get_position_as_list()
             self.assert_list_is_equal(robot_position[:2], new_position[:2],
@@ -229,16 +230,28 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             self.assertAlmostEqual(quaternion_difference, 0, delta=self.multiverse.acceptable_orientation_error)
 
     def test_set_robot_pose(self):
-        self.spawn_robot()
-        new_position = [-3, -3, 0.001]
-        # rotate by 45 degrees without using euler angles
-        rotation_quaternion = quaternion_from_euler(0, 0, np.pi / 4)
-        new_quaternion = quaternion_multiply(self.multiverse.robot.get_orientation_as_list(), rotation_quaternion)
-        new_pose = Pose(new_position, new_quaternion)
-        self.multiverse.robot.set_pose(new_pose)
-        robot_pose = self.multiverse.robot.get_pose()
-        self.assert_poses_are_equal(new_pose, robot_pose, position_delta=self.multiverse.acceptable_position_error,
-                                    orientation_delta=self.multiverse.acceptable_orientation_error)
+        self.spawn_robot(orientation=quaternion_from_euler(0, 0, np.pi / 4))
+        position_step = -1
+        angle_step = np.pi / 4
+        num_steps = 10
+        self.step_robot_pose(self.multiverse.robot, position_step, angle_step, num_steps)
+        position_step = 1
+        angle_step = -np.pi / 4
+        self.step_robot_pose(self.multiverse.robot, position_step, angle_step, num_steps)
+
+    def step_robot_pose(self, robot, position_step, angle_step, num_steps):
+        original_position = robot.get_position_as_list()
+        original_orientation = robot.get_orientation_as_list()
+        for i in range(num_steps):
+            new_position = [original_position[0] + position_step * (i + 1),
+                            original_position[1] + position_step * (i + 1), original_position[2]]
+            rotation_quaternion = quaternion_from_euler(0, 0, angle_step * (i + 1))
+            new_quaternion = quaternion_multiply(original_orientation, rotation_quaternion)
+            new_pose = Pose(new_position, new_quaternion)
+            self.multiverse.robot.set_pose(new_pose)
+            robot_pose = self.multiverse.robot.get_pose()
+            self.assert_poses_are_equal(new_pose, robot_pose, position_delta=self.multiverse.acceptable_position_error,
+                                        orientation_delta=self.multiverse.acceptable_orientation_error)
 
     def test_attach_object(self):
         milk = self.spawn_milk([1, 0.1, 0.1])
@@ -346,10 +359,13 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         return milk
 
     def spawn_robot(self, position: Optional[List[float]] = None,
+                    orientation: Optional[List[float]] = None,
                     robot_name: Optional[str] = 'tiago_dual',
                     replace: Optional[bool] = True) -> Object:
         if position is None:
             position = [-2, -2, 0.001]
+        if orientation is None:
+            orientation = [0, 0, 0, 1]
         if self.multiverse.robot is None or replace:
             if self.multiverse.robot is not None:
                 self.multiverse.robot.remove()

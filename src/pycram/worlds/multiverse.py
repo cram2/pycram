@@ -567,7 +567,3 @@ class Multiverse(World):
 
     def check_object_exists_in_multiverse(self, obj: Object) -> bool:
         return self.api_requester.check_object_exists(obj)
-
-    @staticmethod
-    def add_vis_axis(pose: Pose) -> None:
-        logging.warning("add_vis_axis is not implemented in Multiverse")
