@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from typing_extensions import Optional, TYPE_CHECKING, Dict
+from typing_extensions import TYPE_CHECKING, Dict
 
 from .dataclasses import State
 

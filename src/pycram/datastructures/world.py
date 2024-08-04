@@ -9,7 +9,7 @@ from copy import copy
 import numpy as np
 import rospy
 from geometry_msgs.msg import Point
-from tf.transformations import euler_from_quaternion
+from tf.transformations import euler_from_quaternion, quaternion_multiply, quaternion_from_euler
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union
 
 from ..cache_manager import CacheManager
@@ -633,14 +633,26 @@ class World(StateEntity, ABC):
         :param pose: The target pose.
         return: The goal for the move base joints.
         """
-        position_diff = self.get_position_diff(robot_obj.get_position_as_list(), pose.position_as_list())
+        position_diff = self.get_position_diff(robot_obj.original_pose.position_as_list(), pose.position_as_list())
         target_x, target_y = position_diff[0], position_diff[1]
-        target_angle = self.get_z_angle(pose.orientation_as_list())
+        target_angle = self.get_z_angle_difference(robot_obj.original_pose.orientation_as_list(),
+                                                   pose.orientation_as_list())
         # Get the joints of the base link
         move_base_joints = self.get_move_base_joints()
         return {move_base_joints.translation_x: target_x,
                 move_base_joints.translation_y: target_y,
                 move_base_joints.angular_z: target_angle}
+
+    def get_z_angle_difference(self, original_orientation: List[float], target_orientation: List[float]) -> float:
+        """
+        Get the difference between two z angles.
+        param original_orientation: The original orientation.
+        param target_orientation: The target orientation.
+        return: The difference between the two z angles.
+        """
+        # rotation_quaternion = quaternion_from_euler(0, 0, np.pi / 4)
+        # new_quaternion = quaternion_multiply(original_orientation, rotation_quaternion)
+        return self.get_z_angle(target_orientation) - self.get_z_angle(original_orientation)
 
     def get_move_base_joints(self) -> VirtualMoveBaseJoints:
         """
@@ -1284,7 +1296,7 @@ class World(StateEntity, ABC):
         :param parent_link_id: The id of the link to which the text should be attached.
         :return: The id of the added text.
         """
-        raise NotImplementedError
+        rospy.logwarn(f"add_text is not implemented in {self.__class__.__name__}")
 
     def remove_text(self, text_id: Optional[int] = None) -> None:
         """
@@ -1292,7 +1304,7 @@ class World(StateEntity, ABC):
 
         :param text_id: The id of the text to be removed.
         """
-        raise NotImplementedError
+        rospy.logwarn(f"remove_text is not implemented in {self.__class__.__name__}")
 
     def enable_joint_force_torque_sensor(self, obj: Object, fts_joint_idx: int) -> None:
         """
@@ -1347,6 +1359,12 @@ class World(StateEntity, ABC):
         Resumes the world synchronization.
         """
         self.world_sync.sync_lock.release()
+
+    def add_vis_axis(self, pose: Pose) -> None:
+        rospy.logwarn(f"add_vis_axis is not implemented in {self.__class__.__name__}")
+
+    def remove_vis_axis(self) -> None:
+        rospy.logwarn(f"remove_vis_axis is not implemented in {self.__class__.__name__}")
 
     def __del__(self):
         self.exit()
