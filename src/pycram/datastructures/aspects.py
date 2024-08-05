@@ -9,6 +9,7 @@ from typing_extensions import List, Iterable, Dict, Any, Callable, Type
 from anytree import NodeMixin, PreOrderIter, Node
 
 from ..designator import ObjectDesignatorDescription, ActionDesignatorDescription
+from ..plan_failures import ObjectNotVisible, ManipulationPoseUnreachable, NavigationGoalInCollision, ObjectUnfetchable
 from ..world_concepts.world_object import Object
 
 
@@ -266,7 +267,10 @@ class ReachableAspect(Aspect):
         raise NotImplementedError
 
     def __call__(self, *args, **kwargs):
-        return self.manage_io(self.resolved_aspect_instance.reachable, self.target_pose)
+        res = self.manage_io(self.resolved_aspect_instance.reachable, self.target_pose)
+        if not res:
+            raise ManipulationPoseUnreachable(f"Pose {self.target_pose} is not reachable")
+        return res
 
 
 class GraspableAspect(Aspect):
@@ -280,34 +284,44 @@ class GraspableAspect(Aspect):
         raise NotImplementedError
 
     def __call__(self, *args, **kwargs):
-        return self.manage_io(self.resolved_aspect_instance.graspable, self.object_designator)
+        res = self.manage_io(self.resolved_aspect_instance.graspable, self.object_designator)
+        if not res:
+            raise ObjectUnfetchable(f"Object {self.object_designator} is not graspable")
+        return res
 
 
 class SpaceIsFreeAspect(Aspect):
 
-    def __init__(self, object_designator: ObjectDesignatorDescription, input: str = None, output: str = None):
+    def __init__(self, pose: Pose, input: str = None, output: str = None):
         super().__init__(None, None, input, output)
-        self.object_designator = object_designator
+        self.pose = pose
 
     @abstractmethod
     def space_is_free(self, pose: Pose) -> bool:
         raise NotImplementedError
 
     def __call__(self, *args, **kwargs):
-        return self.manage_io(self.resolved_aspect_instance.space_is_free, self.object_designator)
+        res = self.manage_io(self.resolved_aspect_instance.space_is_free, self.pose)
+        if not res:
+            raise NavigationGoalInCollision(f"Pose {self.pose} is not free")
+        return res
 
 
 class GripperIsFreeAspect(Aspect):
 
-    def __init__(self, input: str = None, output: str = None):
+    def __init__(self, gripper: Arms, input: str = None, output: str = None):
         super().__init__(None, None, input, output)
+        self.gripper = gripper
 
     @abstractmethod
     def gripper_is_free(self, gripper: Arms) -> bool:
         raise NotImplementedError
 
     def __call__(self, *args, **kwargs):
-        return self.manage_io(self.resolved_aspect_instance.gripper_is_free, *args, **kwargs)
+        res = self.manage_io(self.resolved_aspect_instance.gripper_is_free, self.gripper)
+        if not res:
+            raise ObjectNotVisible(f"Gripper {self.gripper} is not free")
+        return res
 
 
 class VisibleAspect(Aspect):
@@ -321,5 +335,7 @@ class VisibleAspect(Aspect):
         raise NotImplementedError
 
     def __call__(self, *args, **kwargs):
-        return self.manage_io(self.resolved_aspect_instance.is_visible, self.object_designator)
-
+        res = self.manage_io(self.resolved_aspect_instance.is_visible, self.object_designator)
+        if not res:
+            raise ObjectNotVisible(f"Object {self.object_designator} is not visible")
+        return res

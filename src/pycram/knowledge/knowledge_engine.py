@@ -64,8 +64,8 @@ class KnowledgeEngine:
         """
         self.update_sources()
 
-        conditions = designator.knowledge_conditions
-        conditions(designator)
+        condition = designator.knowledge_condition
+        condition(designator)
 
     def resolve_aspects(self, aspects: Aspect):
         """
