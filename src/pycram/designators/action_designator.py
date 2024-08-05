@@ -16,7 +16,8 @@ from .location_designator import CostmapLocation
 from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveArmJointsMotion, MoveTCPMotion, MoveMotion, \
     LookingMotion, DetectingMotion, OpeningMotion, ClosingMotion
 from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
-from ..datastructures.aspects import GraspableAspect, ReachableAspect
+from ..datastructures.aspects import GraspableAspect, ReachableAspect, GripperIsFreeAspect, SpaceIsFreeAspect, \
+    VisibleAspect
 from ..local_transformer import LocalTransformer
 from ..plan_failures import ObjectUnfetchable, ReachabilityFailure
 # from ..robot_descriptions import robot_description
@@ -49,16 +50,15 @@ class MoveTorsoAction(ActionDesignatorDescription):
     Action Designator for Moving the torso of the robot up and down
     """
 
-    def __init__(self, positions: List[float], resolver=None,
+    def __init__(self, positions: List[float],
                  ontology_concept_holders: Optional[List[OntologyConceptHolder]] = None):
         """
         Create a designator description to move the torso of the robot up and down.
 
         :param positions: List of possible positions of the robots torso, possible position is a float of height in metres
-        :param resolver: An optional specialized_designators that returns a performable designator for a designator description.
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
-        super().__init__(resolver, ontology_concept_holders)
+        super().__init__(ontology_concept_holders)
         self.positions: List[float] = positions
 
         if self.soma:
@@ -87,19 +87,25 @@ class SetGripperAction(ActionDesignatorDescription):
     Set the gripper state of the robot
     """
 
-    def __init__(self, grippers: List[Arms], motions: List[GripperState], resolver=None,
+    def __init__(self, grippers: List[Arms], motions: List[GripperState],
                  ontology_concept_holders: Optional[List[Thing]] = None):
         """
         Sets the gripper state, the desired state is given with the motion. Motion can either be 'open' or 'close'.
 
         :param grippers: A list of possible grippers
         :param motions: A list of possible motions
-        :param resolver: An alternative specialized_designators that returns a performable designator for a designator description
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
-        super().__init__(resolver, ontology_concept_holders)
+        super().__init__(ontology_concept_holders)
         self.grippers: List[Arms] = grippers
         self.motions: List[GripperState] = motions
+        if len(self.grippers) == 1:
+            self.knowledge_condition = GripperIsFreeAspect(self.grippers[0])
+        else:
+            root = GripperIsFreeAspect(self.grippers[0])
+            for gripper in grippers[1:]:
+                root |= GripperIsFreeAspect(gripper)
+            self.knowledge_condition = root
 
         if self.soma:
             self.init_ontology_concepts({"setting_gripper": self.soma.SettingGripper})
@@ -130,8 +136,8 @@ class ReleaseAction(ActionDesignatorDescription):
     """
 
     def __init__(self, grippers: List[Arms], object_designator_description: ObjectDesignatorDescription,
-                 resolver=None, ontology_concept_holders: Optional[List[Thing]] = None):
-        super().__init__(resolver, ontology_concept_holders)
+                 ontology_concept_holders: Optional[List[Thing]] = None):
+        super().__init__(ontology_concept_holders)
         self.grippers: List[Arms] = grippers
         self.object_designator_description = object_designator_description
 
@@ -154,8 +160,8 @@ class GripAction(ActionDesignatorDescription):
     """
 
     def __init__(self, grippers: List[Arms], object_designator_description: ObjectDesignatorDescription,
-                 efforts: List[float], resolver=None, ontology_concept_holders: Optional[List[Thing]] = None):
-        super().__init__(resolver, ontology_concept_holders)
+                 efforts: List[float], ontology_concept_holders: Optional[List[Thing]] = None):
+        super().__init__( ontology_concept_holders)
         self.grippers: List[Arms] = grippers
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
         self.efforts: List[float] = efforts
@@ -172,16 +178,15 @@ class ParkArmsAction(ActionDesignatorDescription):
     Park the arms of the robot.
     """
 
-    def __init__(self, arms: List[Arms], resolver=None,
+    def __init__(self, arms: List[Arms],
                  ontology_concept_holders: Optional[List[Thing]] = None):
         """
         Moves the arms in the pre-defined parking position. Arms are taken from pycram.enum.Arms
 
         :param arms: A list of possible arms, that could be used
-        :param resolver: An optional specialized_designators that returns a performable designator from the designator description
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
-        super().__init__(resolver, ontology_concept_holders)
+        super().__init__(ontology_concept_holders)
         self.arms: List[Arms] = arms
 
         if self.soma:
@@ -203,7 +208,7 @@ class PickUpAction(ActionDesignatorDescription):
 
     def __init__(self,
                  object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
-                 arms: List[Arms], grasps: List[Grasp], resolver=None,
+                 arms: List[Arms], grasps: List[Grasp],
                  ontology_concept_holders: Optional[List[Thing]] = None):
         """
         Lets the robot pick up an object. The description needs an object designator describing the object that should be
@@ -212,15 +217,15 @@ class PickUpAction(ActionDesignatorDescription):
         :param object_designator_description: List of possible object designator
         :param arms: List of possible arms that could be used
         :param grasps: List of possible grasps for the object
-        :param resolver: An optional specialized_designators that returns a performable designator with elements from the lists of possible paramter
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
-        super().__init__(resolver, ontology_concept_holders)
+        super().__init__(ontology_concept_holders)
         self.object_designator_description: Union[
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
         self.arms: List[Arms] = arms
         self.grasps: List[Grasp] = grasps
-        self.knowledge_conditions = GraspableAspect(self.object_designator_description) & ReachableAspect(self.object_designator_description)
+        self.knowledge_condition = GraspableAspect(self.object_designator_description) & ReachableAspect(
+            self.object_designator_description.resolve().pose)
 
         if self.soma:
             self.init_ontology_concepts({"picking_up": self.soma.PickingUp})
@@ -247,17 +252,16 @@ class PlaceAction(ActionDesignatorDescription):
     def __init__(self,
                  object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
                  target_locations: List[Pose],
-                 arms: List[Arms], resolver=None, ontology_concept_holders: Optional[List[Thing]] = None):
+                 arms: List[Arms], ontology_concept_holders: Optional[List[Thing]] = None):
         """
         Create an Action Description to place an object
 
         :param object_designator_description: Description of object to place.
         :param target_locations: List of possible positions/orientations to place the object
         :param arms: List of possible arms to use
-        :param resolver: Grounding method to resolve this designator
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
-        super().__init__(resolver, ontology_concept_holders)
+        super().__init__(ontology_concept_holders)
         self.object_designator_description: Union[
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
         self.target_locations: List[Pose] = target_locations
@@ -283,17 +287,23 @@ class NavigateAction(ActionDesignatorDescription):
     Navigates the Robot to a position.
     """
 
-    def __init__(self, target_locations: List[Pose], resolver=None,
+    def __init__(self, target_locations: List[Pose],
                  ontology_concept_holders: Optional[List[Thing]] = None):
         """
         Navigates the robot to a location.
 
         :param target_locations: A list of possible target locations for the navigation.
-        :param resolver: An alternative specialized_designators that creates a performable designator from the list of possible parameter
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
-        super().__init__(resolver, ontology_concept_holders)
+        super().__init__(ontology_concept_holders)
         self.target_locations: List[Pose] = target_locations
+        if len(self.target_locations) == 1:
+            self.knowledge_condition = SpaceIsFreeAspect(self.target_locations[0])
+        else:
+            root = SpaceIsFreeAspect(self.target_locations[0])
+            for location in self.target_locations[1:]:
+                root |= SpaceIsFreeAspect(location)
+            self.knowledge_condition = root
 
         if self.soma:
             self.init_ontology_concepts({"navigating": self.soma.Navigating})
@@ -315,7 +325,7 @@ class TransportAction(ActionDesignatorDescription):
     def __init__(self,
                  object_designator_description: Union[ObjectDesignatorDescription, ObjectDesignatorDescription.Object],
                  arms: List[Arms],
-                 target_locations: List[Pose], resolver=None,
+                 target_locations: List[Pose],
                  ontology_concept_holders: Optional[List[Thing]] = None):
         """
         Designator representing a pick and place plan.
@@ -323,10 +333,9 @@ class TransportAction(ActionDesignatorDescription):
         :param object_designator_description: Object designator description or a specified Object designator that should be transported
         :param arms: A List of possible arms that could be used for transporting
         :param target_locations: A list of possible target locations for the object to be placed
-        :param resolver: An alternative specialized_designators that returns a performable designator for the list of possible parameter
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
-        super().__init__(resolver, ontology_concept_holders)
+        super().__init__(ontology_concept_holders)
         self.object_designator_description: Union[
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
         self.arms: List[Arms] = arms
@@ -353,16 +362,15 @@ class LookAtAction(ActionDesignatorDescription):
     Lets the robot look at a position.
     """
 
-    def __init__(self, targets: List[Pose], resolver=None,
+    def __init__(self, targets: List[Pose],
                  ontology_concept_holders: Optional[List[Thing]] = None):
         """
         Moves the head of the robot such that it points towards the given target location.
 
         :param targets: A list of possible locations to look at
-        :param resolver: An alternative specialized_designators that returns a performable designator for a list of possible target locations
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
-        super().__init__(resolver, ontology_concept_holders)
+        super().__init__(ontology_concept_holders)
         self.targets: List[Pose] = targets
 
         if self.soma:
@@ -382,17 +390,17 @@ class DetectAction(ActionDesignatorDescription):
     Detects an object that fits the object description and returns an object designator describing the object.
     """
 
-    def __init__(self, object_designator_description: ObjectDesignatorDescription, resolver=None,
+    def __init__(self, object_designator_description: ObjectDesignatorDescription,
                  ontology_concept_holders: Optional[List[Thing]] = None):
         """
         Tries to detect an object in the field of view (FOV) of the robot.
 
         :param object_designator_description: Object designator describing the object
-        :param resolver: An alternative specialized_designators
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
-        super().__init__(resolver, ontology_concept_holders)
+        super().__init__(ontology_concept_holders)
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
+        self.knowledge_condition = VisibleAspect(self.object_designator_description)
 
         if self.soma:
             self.init_ontology_concepts({"looking_for": self.soma.LookingFor,
@@ -414,19 +422,20 @@ class OpenAction(ActionDesignatorDescription):
     Can currently not be used
     """
 
-    def __init__(self, object_designator_description: ObjectPart, arms: List[Arms], resolver=None,
+    def __init__(self, object_designator_description: ObjectPart, arms: List[Arms],
                  ontology_concept_holders: Optional[List[Thing]] = None):
         """
         Moves the arm of the robot to open a container.
 
         :param object_designator_description: Object designator describing the handle that should be used to open
         :param arms: A list of possible arms that should be used
-        :param resolver: A alternative specialized_designators that returns a performable designator for the lists of possible parameter.
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
-        super().__init__(resolver, ontology_concept_holders)
+        super().__init__(ontology_concept_holders)
         self.object_designator_description: ObjectPart = object_designator_description
         self.arms: List[Arms] = arms
+        self.knowledge_condition = ReachableAspect(
+            self.object_designator_description.resolve().pose) & GripperIsFreeAspect(self.arms[0])
 
         if self.soma:
             self.init_ontology_concepts({"opening": self.soma.Opening})
@@ -449,18 +458,19 @@ class CloseAction(ActionDesignatorDescription):
     """
 
     def __init__(self, object_designator_description: ObjectPart, arms: List[Arms],
-                 resolver=None, ontology_concept_holders: Optional[List[Thing]] = None):
+                 ontology_concept_holders: Optional[List[Thing]] = None):
         """
         Attempts to close an open container
 
         :param object_designator_description: Object designator description of the handle that should be used
         :param arms: A list of possible arms to use
-        :param resolver: An alternative specialized_designators that returns a performable designator for the list of possible parameter
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
-        super().__init__(resolver, ontology_concept_holders)
+        super().__init__(ontology_concept_holders)
         self.object_designator_description: ObjectPart = object_designator_description
         self.arms: List[Arms] = arms
+        self.knowledge_condition = ReachableAspect(
+            self.object_designator_description.resolve().pose) & GripperIsFreeAspect(self.arms[0])
 
         if self.soma:
             self.init_ontology_concepts({"closing": self.soma.Closing})
@@ -481,17 +491,16 @@ class GraspingAction(ActionDesignatorDescription):
     """
 
     def __init__(self, arms: List[Arms], object_description: Union[ObjectDesignatorDescription, ObjectPart],
-                 resolver: Callable = None, ontology_concept_holders: Optional[List[Thing]] = None):
+                 ontology_concept_holders: Optional[List[Thing]] = None):
         """
         Will try to grasp the object described by the given description. Grasping is done by moving into a pre grasp
         position 10 cm before the object, opening the gripper, moving to the object and then closing the gripper.
 
         :param arms: List of Arms that should be used for grasping
         :param object_description: Description of the object that should be grasped
-        :param resolver: An alternative specialized_designators to get a specified designator from the designator description
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
-        super().__init__(resolver, ontology_concept_holders)
+        super().__init__(ontology_concept_holders)
         self.arms: List[Arms] = arms
         self.object_description: ObjectDesignatorDescription = object_description
 
@@ -680,12 +689,14 @@ class ParkArmsActionPerformable(ActionAbstract):
         # add park left arm if wanted
         if self.arm in [Arms.LEFT, Arms.BOTH]:
             kwargs["left_arm_config"] = "park"
-            left_poses = RobotDescription.current_robot_description.get_arm_chain(Arms.LEFT).get_static_joint_states(kwargs["left_arm_config"])
+            left_poses = RobotDescription.current_robot_description.get_arm_chain(Arms.LEFT).get_static_joint_states(
+                kwargs["left_arm_config"])
 
         # add park right arm if wanted
         if self.arm in [Arms.RIGHT, Arms.BOTH]:
             kwargs["right_arm_config"] = "park"
-            right_poses = RobotDescription.current_robot_description.get_arm_chain(Arms.RIGHT).get_static_joint_states(kwargs["right_arm_config"])
+            right_poses = RobotDescription.current_robot_description.get_arm_chain(Arms.RIGHT).get_static_joint_states(
+                kwargs["right_arm_config"])
 
         MoveArmJointsMotion(left_poses, right_poses).perform()
 
@@ -741,7 +752,8 @@ class PickUpActionPerformable(ActionAbstract):
 
         # prepose depending on the gripper (its annoying we have to put pr2_1 here tbh
         # gripper_frame = "pr2_1/l_gripper_tool_frame" if self.arm == "left" else "pr2_1/r_gripper_tool_frame"
-        gripper_frame = robot.get_link_tf_frame(RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame())
+        gripper_frame = robot.get_link_tf_frame(
+            RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame())
         # First rotate the gripper, so the further calculations makes sense
         tmp_for_rotate_pose = object.local_transformer.transform_pose(adjusted_oTm, gripper_frame)
         tmp_for_rotate_pose.pose.position.x = 0
@@ -806,7 +818,8 @@ class PlaceActionPerformable(ActionAbstract):
         # Transformations such that the target position is the position of the object and not the tcp
         tcp_to_object = local_tf.transform_pose(object_pose,
                                                 World.robot.get_link_tf_frame(
-                                                    RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame()))
+                                                    RobotDescription.current_robot_description.get_arm_chain(
+                                                        self.arm).get_tool_frame()))
         target_diff = self.target_location.to_transform("target").inverse_times(
             tcp_to_object.to_transform("object")).to_pose()
 

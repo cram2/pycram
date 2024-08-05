@@ -24,14 +24,13 @@ class Location(LocationDesignatorDescription):
     class Location(LocationDesignatorDescription.Location):
         pass
 
-    def __init__(self, pose: Pose, resolver=None):
+    def __init__(self, pose: Pose):
         """
         Basic location designator that represents a single pose.
 
         :param pose: The pose that should be represented by this location designator
-        :param resolver: An alternative specialized_designators that returns a resolved location
         """
-        super().__init__(resolver)
+        super().__init__()
         self.pose: Pose = pose
 
     def ground(self) -> Location:
@@ -60,16 +59,14 @@ class ObjectRelativeLocation(LocationDesignatorDescription):
         Object to which the pose is relative
         """
 
-    def __init__(self, relative_pose: Pose = None, reference_object: ObjectDesignatorDescription = None,
-                 resolver=None):
+    def __init__(self, relative_pose: Pose = None, reference_object: ObjectDesignatorDescription = None):
         """
         Location designator representing a location relative to a given object.
 
         :param relative_pose: Pose that should be relative, in world coordinate frame
         :param reference_object: Object to which the pose should be relative
-        :param resolver: An alternative specialized_designators that returns a resolved location for the input parameter
         """
-        super().__init__(resolver)
+        super().__init__()
         self.relative_pose: Pose = relative_pose
         self.reference_object: ObjectDesignatorDescription = reference_object
 
@@ -115,7 +112,7 @@ class CostmapLocation(LocationDesignatorDescription):
     def __init__(self, target: Union[Pose, ObjectDesignatorDescription.Object],
                  reachable_for: Optional[ObjectDesignatorDescription.Object] = None,
                  visible_for: Optional[ObjectDesignatorDescription.Object] = None,
-                 reachable_arm: Optional[Arms] = None, resolver: Optional[Callable] = None):
+                 reachable_arm: Optional[Arms] = None):
         """
         Location designator that uses costmaps as base to calculate locations for complex constrains like reachable or
         visible. In case of reachable the resolved location contains a list of arms with which the location is reachable.
@@ -124,9 +121,8 @@ class CostmapLocation(LocationDesignatorDescription):
         :param reachable_for: Object for which the reachability should be calculated, usually a robot
         :param visible_for: Object for which the visibility should be calculated, usually a robot
         :param reachable_arm: An optional arm with which the target should be reached
-        :param resolver: An alternative specialized_designators that returns a resolved location for the given input of this description
         """
-        super().__init__(resolver)
+        super().__init__()
         self.target: Union[Pose, ObjectDesignatorDescription.Object] = target
         self.reachable_for: ObjectDesignatorDescription.Object = reachable_for
         self.visible_for: ObjectDesignatorDescription.Object = visible_for
@@ -211,16 +207,15 @@ class AccessingLocation(LocationDesignatorDescription):
         List of arms that can be used to for accessing from this pose
         """
 
-    def __init__(self, handle_desig: ObjectPart.Object, robot_desig: ObjectDesignatorDescription.Object, resolver=None):
+    def __init__(self, handle_desig: ObjectPart.Object, robot_desig: ObjectDesignatorDescription.Object):
         """
         Describes a position from where a drawer can be opened. For now this position should be calculated before the
         drawer will be opened. Calculating the pose while the drawer is open could lead to problems.
 
         :param handle_desig: ObjectPart designator for handle of the drawer
-        :param robot: Object designator for the robot which should open the drawer
-        :param resolver: An alternative specialized_designators to create the location
+        :param robot_desig: Object designator for the robot which should open the drawer
         """
-        super().__init__(resolver)
+        super().__init__()
         self.handle: ObjectPart.Object = handle_desig
         self.robot: ObjectDesignatorDescription.Object = robot_desig.world_object
 
@@ -296,7 +291,7 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
     class Location(LocationDesignatorDescription.Location):
         pass
 
-    def __init__(self, urdf_link_name, part_of, for_object=None, resolver=None):
+    def __init__(self, urdf_link_name, part_of, for_object=None):
         """
         Creates a distribution over a urdf link to sample poses which are on this link. Can be used, for example, to find
         poses that are on a table. Optionally an object can be given for which poses should be calculated, in that case
@@ -305,9 +300,8 @@ class SemanticCostmapLocation(LocationDesignatorDescription):
         :param urdf_link_name: Name of the urdf link for which a distribution should be calculated
         :param part_of: Object of which the urdf link is a part
         :param for_object: Optional object that should be placed at the found location
-        :param resolver: An alternative specialized_designators that creates a resolved location for the input parameter of this description
         """
-        super().__init__(resolver)
+        super().__init__()
         self.urdf_link_name: str = urdf_link_name
         self.part_of: ObjectDesignatorDescription.Object = part_of
         self.for_object: Optional[ObjectDesignatorDescription.Object] = for_object

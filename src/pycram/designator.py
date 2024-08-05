@@ -328,17 +328,18 @@ class DesignatorDescription(ABC):
     :ivar resolve: The specialized_designators function to use for this designator, defaults to self.ground
     """
 
-    def __init__(self, resolver: Optional[Callable] = None, ontology_concept_holders: Optional[List[OntologyConceptHolder]] = None):
+    def __init__(self, ontology_concept_holders: Optional[List[OntologyConceptHolder]] = None):
         """
         Create a Designator description.
 
-        :param resolver: The grounding method used for the description. The grounding method creates a location instance that matches the description.
         :param ontology_concept_holders: A list of holders of ontology concepts that the designator is categorized as or associated with
         """
 
-        if resolver is None:
-            self.resolve = self.ground
+        # self.resolve = self.ground
         self.ontology_concept_holders = [] if ontology_concept_holders is None else ontology_concept_holders
+
+    def resolve(self):
+        return self.ground()
 
     def make_dictionary(self, properties: List[str]):
         """
@@ -386,7 +387,7 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
     Descriptions hold possible parameter ranges for action designators.
     """
 
-    knowledge_conditions = None
+    knowledge_condition = None
     """
     Knowledge condition that have to be fulfilled before executing the action.
     """
@@ -459,14 +460,13 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
 
             return action
 
-    def __init__(self, resolver=None, ontology_concept_holders: Optional[List[OntologyConceptHolder]] = None):
+    def __init__(self, ontology_concept_holders: Optional[List[OntologyConceptHolder]] = None):
         """
         Base of all action designator descriptions.
 
-        :param resolver: An alternative resolver that returns an action designator
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
-        super().__init__(resolver, ontology_concept_holders)
+        super().__init__(ontology_concept_holders)
         Language.__init__(self)
         from .ontology.ontology import OntologyManager
         self.soma = OntologyManager().soma
@@ -516,8 +516,8 @@ class LocationDesignatorDescription(DesignatorDescription):
         The resolved pose of the location designator. Pose is inherited by all location designator.
         """
 
-    def __init__(self, resolver=None, ontology_concept_holders: Optional[List[owlready2.Thing]] = None):
-        super().__init__(resolver, ontology_concept_holders)
+    def __init__(self, ontology_concept_holders: Optional[List[owlready2.Thing]] = None):
+        super().__init__(ontology_concept_holders)
 
     def ground(self) -> Location:
         """
@@ -663,16 +663,15 @@ class ObjectDesignatorDescription(DesignatorDescription):
             return pose
 
     def __init__(self, names: Optional[List[str]] = None, types: Optional[List[ObjectType]] = None,
-                 resolver: Optional[Callable] = None, ontology_concept_holders: Optional[List[owlready2.Thing]] = None):
+                 ontology_concept_holders: Optional[List[owlready2.Thing]] = None):
         """
         Base of all object designator descriptions. Every object designator has the name and type of the object.
 
         :param names: A list of names that could describe the object
         :param types: A list of types that could represent the object
-        :param resolver: An alternative specialized_designators that returns an object designator for the list of names and types
         :param ontology_concept_holders: A list of ontology concepts that the object is categorized as or associated with
         """
-        super().__init__(resolver, ontology_concept_holders)
+        super().__init__(ontology_concept_holders)
         self.types: Optional[List[ObjectType]] = types
         self.names: Optional[List[str]] = names
 
