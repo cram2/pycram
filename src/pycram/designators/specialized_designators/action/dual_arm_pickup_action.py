@@ -6,13 +6,13 @@ from geometry_msgs.msg import Vector3
 
 from owlready2 import Thing
 
-from pycram.designators.action_designator import PickUpAction, PickUpActionPerformable
-from pycram.local_transformer import LocalTransformer
-from pycram.datastructures.world import World
-from pycram.datastructures.pose import Transform
-from pycram.datastructures.enums import Arms, Grasp
-from pycram.robot_description import RobotDescription
-from pycram.designator import ObjectDesignatorDescription
+from ...action_designator import PickUpAction, PickUpActionPerformable
+from ....local_transformer import LocalTransformer
+from ....datastructures.world import World
+from ....datastructures.pose import Pose, Transform
+from ....datastructures.enums import Arms, Grasp
+from ....robot_description import RobotDescription, KinematicChainDescription
+from ....designator import ObjectDesignatorDescription
 
 
 class DualArmPickupAction(PickUpAction):
@@ -27,6 +27,7 @@ class DualArmPickupAction(PickUpAction):
         """
         Specialized version of the PickUpAction designator which uses heuristics to solve for a dual pickup problem. The
         designator will choose the arm which is closest to the object that is to be picked up.
+
         :param object_designator_description: List of object designator which should be picked up
         :param grasps: List of possible grasps which should be used for the pickup
         :param resolver: Optional specialized_designators that returns a performable designator with elements from the
@@ -42,11 +43,9 @@ class DualArmPickupAction(PickUpAction):
         self.object_designator_description: Union[
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
 
-        left_gripper_frame = World.robot.get_link_tf_frame(
-            RobotDescription.current_robot_description.kinematic_chains.get('left').get_tool_frame())
-        right_gripper_frame = World.robot.get_link_tf_frame(
-            RobotDescription.current_robot_description.kinematic_chains.get('right').get_tool_frame())
-        self.gripper_list: List[str] = [left_gripper_frame, right_gripper_frame]
+        left_gripper = RobotDescription.current_robot_description.get_arm_chain(Arms.LEFT)
+        right_gripper = RobotDescription.current_robot_description.get_arm_chain(Arms.RIGHT)
+        self.gripper_list: List[KinematicChainDescription] = [left_gripper, right_gripper]
 
 
     def ground(self) -> PickUpActionPerformable:
@@ -59,30 +58,21 @@ class DualArmPickupAction(PickUpAction):
 
         local_transformer = LocalTransformer()
 
-        object_frame = obj_desig.world_object.tf_frame
+        object_pose: Pose = obj_desig.world_object.pose
         distances = []
         # Iterate over possible grippers
         for gripper in self.gripper_list:
             # Object pose in gripper frame
-            object_T_gripper: Transform = local_transformer.lookup_transform_from_source_to_target_frame(gripper,
-                                                                                            object_frame)
-            object_V_gripper: Vector3 = object_T_gripper.translation  # translation vector
+            gripper_frame = World.robot.get_link_tf_frame(gripper.get_tool_frame())
+
+            object_T_gripper: Pose = local_transformer.transform_pose(object_pose, gripper_frame)
+            object_V_gripper: Vector3 = object_T_gripper.pose.position  # translation vector
             distance = norm(array([object_V_gripper.x, object_V_gripper.y, object_V_gripper.z]))
             rospy.loginfo(f"Distance between {gripper} and {obj_desig.name}: {distance}")
             distances.append(distance)
 
         min_index = distances.index(min(distances))
-        winner_frame = self.gripper_list[min_index]
+        winner = self.gripper_list[min_index]
+        rospy.loginfo(f"Winner is {winner.arm_type.name} with distance {min(distances):.2f}")
 
-        if winner_frame == World.robot.get_link_tf_frame(
-                RobotDescription.current_robot_description.kinematic_chains.get('left').get_tool_frame()):
-            winner = Arms.LEFT
-            rospy.loginfo("Returning left arm as the winner")
-        elif winner_frame == World.robot.get_link_tf_frame(
-                RobotDescription.current_robot_description.kinematic_chains.get('right').get_tool_frame()):
-            winner = Arms.RIGHT
-            rospy.loginfo("Returning right arm as the winner")
-        else:
-            raise ValueError(f"Could not determine the winner arm for the pickup action. Winner: {winner_frame}")
-
-        return PickUpActionPerformable(object_designator=obj_desig, arm=winner, grasp=self.grasps[0])
+        return PickUpActionPerformable(object_designator=obj_desig, arm=winner.arm_type, grasp=self.grasps[0])
