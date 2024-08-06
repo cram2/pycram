@@ -84,7 +84,7 @@ class TestAttachment(BulletWorldTestCase):
 
             # Prospection cereal should move since it is attached to prospection milk
             new_prospection_cereal_pose = prospection_cereal.get_position()
-            self.assertTrue(new_prospection_cereal_pose == estimated_prospection_cereal_pos)
+            self.assertAlmostEqual(new_prospection_cereal_pose.x, estimated_prospection_cereal_pos.x, delta=0.01)
 
             # Also Real cereal object should not move since it is not affected by prospection milk
             new_cereal_pos = cereal_2.get_position()

@@ -54,6 +54,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.multiverse.exit()
+        cls.multiverse.remove_multiverse_resources()
 
     def tearDown(self):
         self.multiverse.reset_world_and_remove_objects()

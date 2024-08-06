@@ -11,6 +11,7 @@ from .multiverse_communication.clients import MultiverseController, MultiverseRe
 from .multiverse_datastructures.enums import MultiverseBodyProperty, MultiverseJointPosition, \
     MultiverseJointCMD
 from .multiverse_extras.helpers import find_multiverse_resources_path
+from ..config import multiverse_conf as conf
 from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
 from ..datastructures.enums import WorldMode, JointType, ObjectType
 from ..datastructures.pose import Pose
@@ -21,7 +22,6 @@ from ..validation.goal_validator import validate_object_pose, validate_multiple_
     validate_joint_position
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.world_object import Object
-from ..config import multiverse_conf as conf
 
 
 class Multiverse(World):
@@ -138,6 +138,16 @@ class Multiverse(World):
             World.data_directory = [dirname] + self.data_directory
             World.cache_manager.data_directory = World.data_directory
             self.added_multiverse_resources = True
+
+    def remove_multiverse_resources(self):
+        """
+        Remove the multiverse resources from the pycram world resources.
+        """
+        if self.added_multiverse_resources:
+            dirname = find_multiverse_resources_path()
+            World.data_directory.remove(dirname)
+            World.cache_manager.data_directory = World.data_directory
+            self.added_multiverse_resources = False
 
     def _spawn_floor(self):
         """
@@ -267,7 +277,7 @@ class Multiverse(World):
 
     def _set_multiple_joint_positions_using_controller(self, joint_positions: Dict[Joint, float]) -> bool:
         controlled_joints_data = {self.get_actuator_for_joint(joint):
-                                  {self.get_joint_cmd_name(joint.type): [position]}
+                                      {self.get_joint_cmd_name(joint.type): [position]}
                                   for joint, position in joint_positions.items()}
         self.joint_controller.send_multiple_body_data_to_server(controlled_joints_data)
         return True
@@ -334,6 +344,12 @@ class Multiverse(World):
         Reset the poses of multiple objects in the simulator.
         param objects: The dictionary of objects and poses.
         """
+        for obj in objects.keys():
+            if (obj.obj_type == ObjectType.ROBOT and
+                    RobotDescription.current_robot_description.virtual_move_base_joints is not None):
+                self.set_mobile_robot_pose(obj, objects[obj])
+        objects = {obj: pose for obj, pose in objects.items() if obj.obj_type not in [ObjectType.ENVIRONMENT,
+                                                                                      ObjectType.ROBOT]}
         self._set_multiple_body_poses({obj.name: pose for obj, pose in objects.items()})
 
     def _set_body_pose(self, body_name: str, pose: Pose) -> None:
@@ -352,7 +368,7 @@ class Multiverse(World):
         self.writer.set_multiple_body_poses({name: {MultiverseBodyProperty.POSITION: pose.position_as_list(),
                                                     MultiverseBodyProperty.ORIENTATION:
                                                         self.xyzw_to_wxyz(pose.orientation_as_list()),
-                                                    MultiverseBodyProperty.RELATIVE_VELOCITY: [0.0]*6}
+                                                    MultiverseBodyProperty.RELATIVE_VELOCITY: [0.0] * 6}
                                              for name, pose in body_poses.items()})
 
     def _get_body_pose(self, body_name: str, wait: Optional[bool] = True) -> Optional[Pose]:

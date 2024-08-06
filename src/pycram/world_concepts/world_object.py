@@ -506,7 +506,8 @@ class Object(WorldEntity):
                parent_link: Optional[str] = None,
                child_link: Optional[str] = None,
                bidirectional: bool = True,
-               coincide_the_objects: bool = False) -> None:
+               coincide_the_objects: bool = False,
+               parent_to_child_transform: Optional[Transform] = None) -> None:
         """
         Attach another object to this object. This is done by
         saving the transformation between the given link, if there is one, and
@@ -522,15 +523,13 @@ class Object(WorldEntity):
         :param child_link: The link name of the other object.
         :param bidirectional: If the attachment should be a loose attachment.
         :param coincide_the_objects: If True the object frames will be coincided.
+        :param parent_to_child_transform: The transform from the parent to the child object.
         """
         parent_link = self.links[parent_link] if parent_link else self.root_link
         child_link = child_object.links[child_link] if child_link else child_object.root_link
 
-        if coincide_the_objects:
+        if coincide_the_objects and parent_to_child_transform is None:
             parent_to_child_transform = Transform()
-        else:
-            # parent_to_child_transform = parent_link.get_transform_to_link(child_link)
-            parent_to_child_transform = None
         attachment = Attachment(parent_link, child_link, bidirectional, parent_to_child_transform)
 
         self.attachments[child_object] = attachment
@@ -737,6 +736,11 @@ class Object(WorldEntity):
         for obj, attachment in attachments.items():
             if self.world.is_prospection_world and not obj.world.is_prospection_world:
                 obj = self.world.get_prospection_object_for_object(obj)
+                # This variable indicates that the object is in the prospection world and the attachment is in the
+                # real world.
+                is_prospection = True
+            else:
+                is_prospection = False
             if obj in self.attachments:
                 if self.attachments[obj] != attachment:
                     if attachment.is_inverse:
@@ -745,11 +749,16 @@ class Object(WorldEntity):
                         self.detach(obj)
                 else:
                     continue
+            att_transform = attachment.parent_to_child_transform.copy()
+            if is_prospection:
+                att_transform.frame = self.prospection_world_prefix + att_transform.frame
+                att_transform.child_frame_id = self.prospection_world_prefix + att_transform.child_frame_id
             if attachment.is_inverse:
-                obj.attach(self, attachment.child_link.name, attachment.parent_link.name, attachment.bidirectional)
+                obj.attach(self, attachment.child_link.name, attachment.parent_link.name, attachment.bidirectional,
+                           parent_to_child_transform=att_transform.invert())
             else:
                 self.attach(obj, attachment.parent_link.name, attachment.child_link.name,
-                            attachment.bidirectional)
+                            attachment.bidirectional, parent_to_child_transform=att_transform)
 
     @property
     def link_states(self) -> Dict[int, LinkState]:
