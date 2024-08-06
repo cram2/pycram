@@ -739,8 +739,11 @@ class Object(WorldEntity):
                     self.detach(obj)
                 else:
                     continue
-            self.attach(obj, attachment.parent_link.name, attachment.child_link.name,
-                        attachment.bidirectional)
+            if attachment.loose:
+                obj.attach(self, attachment.child_link.name, attachment.parent_link.name, attachment.bidirectional)
+            else:
+                self.attach(obj, attachment.parent_link.name, attachment.child_link.name,
+                            attachment.bidirectional)
 
     @property
     def link_states(self) -> Dict[int, LinkState]:

@@ -2,6 +2,7 @@ import time
 import unittest
 
 import pycram.tasktree
+from pycram.datastructures.world import UseProspectionWorld
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.pose import Pose
@@ -36,6 +37,8 @@ class BulletWorldTestCase(unittest.TestCase):
 
     def setUp(self):
         self.world.reset_world()
+        with UseProspectionWorld():
+            pass
 
     # DO NOT WRITE TESTS HERE!!!
     # Test related to the BulletWorld should be written in test_bullet_world.py
@@ -45,6 +48,8 @@ class BulletWorldTestCase(unittest.TestCase):
         pycram.tasktree.reset_tree()
         time.sleep(0.05)
         self.world.reset_world()
+        with UseProspectionWorld():
+            pass
 
     @classmethod
     def tearDownClass(cls):
