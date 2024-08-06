@@ -523,9 +523,9 @@ class Multiverse(World):
         Perform a simulation step in the simulator, this is useful when use_bullet_mode is True.
         """
         if self.use_bullet_mode:
-            # self.api_requester.unpause_simulation()
-            # sleep(self.simulation_time_step)
-            # self.api_requester.pause_simulation()
+            self.api_requester.unpause_simulation()
+            sleep(self.simulation_time_step)
+            self.api_requester.pause_simulation()
             pass
 
     def save_physics_simulator_state(self) -> int:
