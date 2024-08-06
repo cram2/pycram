@@ -13,10 +13,10 @@ from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointSt
                                           ContactPointsList)
 from ..datastructures.enums import ObjectType, JointType
 from ..datastructures.pose import Pose, Transform
-from ..exceptions import ObjectAlreadyExists
 from ..datastructures.world import World
 from ..datastructures.world_entity import WorldEntity
 from ..description import ObjectDescription, LinkDescription, Joint
+from ..exceptions import ObjectAlreadyExists
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..robot_description import RobotDescriptionManager, RobotDescription
@@ -707,14 +707,33 @@ class Object(WorldEntity):
     def set_attachments(self, attachments: Dict[Object, Attachment]) -> None:
         """
         Set the attachments of this object to the given attachments.
+        :param attachments: A dictionary with the object as key and the attachment as value.
+        """
+        self.detach_not_attached_objects(attachments)
+        self.attach_not_attached_objects(attachments)
 
+    def detach_not_attached_objects(self, attachments: Dict[Object, Attachment]) -> None:
+        """
+        Detach objects that are not in the attachments list and are in the current attachments list.
+        :param attachments: A dictionary with the object as key and the attachment as value.
+        """
+        copy_of_attachments = self.attachments.copy()
+        for obj, attachment in copy_of_attachments.items():
+            original_obj = obj
+            if self.world.is_prospection_world and len(attachments) > 0 \
+                    and not list(attachments.keys())[0].world.is_prospection_world:
+                obj = self.world.get_object_for_prospection_object(obj)
+            if obj not in attachments:
+                self.detach(original_obj)
+
+    def attach_not_attached_objects(self, attachments: Dict[Object, Attachment]) -> None:
+        """
+        Attach objects that are in the given attachments list but not in the current attachments list.
         :param attachments: A dictionary with the object as key and the attachment as value.
         """
         for obj, attachment in attachments.items():
             if self.world.is_prospection_world and not obj.world.is_prospection_world:
-                # In case this object is in the prospection world and the other object is not, the attachment will not
-                # be set.
-                continue
+                obj = self.world.get_prospection_object_for_object(obj)
             if obj in self.attachments:
                 if self.attachments[obj] != attachment:
                     self.detach(obj)
@@ -1204,7 +1223,6 @@ class Object(WorldEntity):
         """
         obj = Object(self.name, self.obj_type, self.path, type(self.description), self.get_pose(),
                      world, self.color)
-        obj.current_state = self.current_state
         return obj
 
     def __eq__(self, other):

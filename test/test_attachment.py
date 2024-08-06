@@ -20,6 +20,19 @@ class TestAttachment(BulletWorldTestCase):
         self.assertTrue(self.robot not in self.milk.attachments)
         self.assertTrue(self.milk not in self.robot.attachments)
 
+    def test_detach_sync_in_prospection_world(self):
+        self.milk.attach(self.robot)
+        with UseProspectionWorld():
+            pass
+        self.milk.detach(self.robot)
+        with UseProspectionWorld():
+            self.assertTrue(self.milk not in self.robot.attachments)
+            self.assertTrue(self.robot not in self.milk.attachments)
+            prospection_milk = self.world.get_prospection_object_for_object(self.milk)
+            prospection_robot = self.world.get_prospection_object_for_object(self.robot)
+            self.assertTrue(prospection_milk not in prospection_robot.attachments)
+            self.assertTrue(prospection_robot not in prospection_milk.attachments)
+
     def test_attachment_behavior(self):
         self.robot.attach(self.milk)
 
@@ -79,23 +92,6 @@ class TestAttachment(BulletWorldTestCase):
 
         self.world.remove_object(milk_2)
         self.world.remove_object(cereal_2)
-
-    def test_no_attachment_in_prospection_world(self):
-            milk_2 = Object("milk_2", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-            cereal_2 = Object("cereal_2", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl",
-                              pose=Pose([1.3, 0.7, 0.95]))
-
-            milk_2.attach(cereal_2)
-
-            with UseProspectionWorld():
-                prospection_milk = self.world.get_prospection_object_for_object(milk_2)
-                prospection_cereal = self.world.get_prospection_object_for_object(cereal_2)
-
-                self.assertTrue(prospection_milk.attachments == {})
-                self.assertTrue(prospection_cereal.attachments == {})
-
-            self.world.remove_object(milk_2)
-            self.world.remove_object(cereal_2)
 
     def test_attaching_to_robot_and_moving(self):
         self.robot.attach(self.milk)
