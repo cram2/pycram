@@ -324,6 +324,7 @@ class Attachment(AbstractConstraint):
         return (self.parent_link.name == other.parent_link.name
                 and self.child_link.name == other.child_link.name
                 and self.bidirectional == other.bidirectional
+                and self.loose == other.loose
                 and np.allclose(self.parent_to_child_transform.translation_as_list(),
                                 other.parent_to_child_transform.translation_as_list(), rtol=0, atol=1e-4)
                 and np.allclose(self.parent_to_child_transform.rotation_as_list(),
