@@ -724,7 +724,10 @@ class Object(WorldEntity):
                     and not list(attachments.keys())[0].world.is_prospection_world:
                 obj = self.world.get_object_for_prospection_object(obj)
             if obj not in attachments:
-                self.detach(original_obj)
+                if attachment.loose:
+                    original_obj.detach(self)
+                else:
+                    self.detach(original_obj)
 
     def attach_not_attached_objects(self, attachments: Dict[Object, Attachment]) -> None:
         """
