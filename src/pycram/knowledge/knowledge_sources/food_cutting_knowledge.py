@@ -28,7 +28,8 @@ class FoodCuttingKnowledge(KnowledgeSource):
 
     @property
     def is_available(self) -> bool:
-        return request.urlopen("https://api.krr.triply.cc/datasets/mkumpel/FruitCuttingKG/services/FoodCuttingKG/sparql?query=SELECT%20?subject%20?predicate%20?objectWHERE%20{?subject%20?predicate%20?object%20.}").getcode() != 404
+        pass
+        # return request.urlopen("https://api.krr.triply.cc/datasets/mkumpel/FruitCuttingKG/services/FoodCuttingKG/sparql?query=SELECT%20?subject%20?predicate%20?objectWHERE%20{?subject%20?predicate%20?object%20.}").getcode() != 404
 
     @property
     def is_connected(self) -> bool:
@@ -38,6 +39,9 @@ class FoodCuttingKnowledge(KnowledgeSource):
         pass
 
     def query(self, designator):
+        pass
+
+    def clear_state(self):
         pass
 
     def get_repetitions(self, task, task_object) -> Iterable[str]:

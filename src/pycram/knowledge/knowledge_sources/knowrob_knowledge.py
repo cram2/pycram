@@ -2,7 +2,7 @@ import rospy
 
 from ..knowledge_source import KnowledgeSource, QueryKnowledge, UpdateKnowledge
 import rosservice
-from ...designator import DesignatorDescription
+# from ...designator import DesignatorDescription
 try:
     from rosprolog_client import Prolog
 except ModuleNotFoundError as e:
@@ -29,6 +29,9 @@ class KnowrobKnowledge(KnowledgeSource, QueryKnowledge, UpdateKnowledge):
             self.prolog_client.once(f"tripledb_load('package://iai_apartment/owl/iai-apartment.owl').")
             return True
 
-    def query_pose_for_object(self, designator: DesignatorDescription) -> DesignatorDescription:
+    def query_pose_for_object(self, designator: 'DesignatorDescription') -> 'DesignatorDescription':
         print("test")
         result = self.prolog_client.once(f"")
+
+    def clear_state(self) -> None:
+        pass

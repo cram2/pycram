@@ -3,7 +3,7 @@ from anytree import PreOrderIter
 
 from ..datastructures.aspects import Aspect
 from .knowledge_source import KnowledgeSource
-from ..designator import DesignatorDescription, ActionDesignatorDescription
+# from ..designator import DesignatorDescription, ActionDesignatorDescription
 from typing_extensions import Type, Callable, List
 
 from ..plan_failures import KnowledgeNotAvailable
@@ -56,7 +56,7 @@ class KnowledgeEngine:
             elif not source.is_connected and source.is_available:
                 source.connect()
 
-    def query(self, designator: Type[ActionDesignatorDescription]):
+    def query(self, designator: Type['ActionDesignatorDescription']):
         """
         Query to fill parameters of a designator from the knowledge sources
 
@@ -65,6 +65,7 @@ class KnowledgeEngine:
         self.update_sources()
 
         condition = designator.knowledge_condition
+        self.resolve_aspects(condition)
         condition(designator)
 
     def resolve_aspects(self, aspects: Aspect):
@@ -89,7 +90,7 @@ class KnowledgeEngine:
         """
         ...
 
-    def ground_solution(self, designator: Type[DesignatorDescription]) -> bool:
+    def ground_solution(self, designator: Type['DesignatorDescription']) -> bool:
         """
         Try to ground a solution from the knowledge sources in the belief state
 

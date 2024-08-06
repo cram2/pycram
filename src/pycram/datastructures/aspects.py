@@ -8,8 +8,9 @@ from .pose import Pose
 from typing_extensions import List, Iterable, Dict, Any, Callable, Type
 from anytree import NodeMixin, PreOrderIter, Node
 
-from ..designator import ObjectDesignatorDescription, ActionDesignatorDescription
-from ..plan_failures import ObjectNotVisible, ManipulationPoseUnreachable, NavigationGoalInCollision, ObjectUnfetchable
+# from ..designator import ObjectDesignatorDescription
+from ..plan_failures import ObjectNotVisible, ManipulationPoseUnreachable, NavigationGoalInCollision, ObjectUnfetchable, \
+    GripperOccupied
 from ..world_concepts.world_object import Object
 
 
@@ -275,12 +276,12 @@ class ReachableAspect(Aspect):
 
 class GraspableAspect(Aspect):
 
-    def __init__(self, object_designator: ObjectDesignatorDescription, input: str = None, output: str = None):
+    def __init__(self, object_designator: 'ObjectDesignatorDescription', input: str = None, output: str = None):
         super().__init__(None, None, input, output)
         self.object_designator = object_designator
 
     @abstractmethod
-    def graspable(self, obj: Object) -> bool:
+    def graspable(self, object_designator: 'ObjectDesignatorDescription') -> bool:
         raise NotImplementedError
 
     def __call__(self, *args, **kwargs):
@@ -320,18 +321,18 @@ class GripperIsFreeAspect(Aspect):
     def __call__(self, *args, **kwargs):
         res = self.manage_io(self.resolved_aspect_instance.gripper_is_free, self.gripper)
         if not res:
-            raise ObjectNotVisible(f"Gripper {self.gripper} is not free")
+            raise GripperOccupied(f"Gripper {self.gripper} is not free")
         return res
 
 
 class VisibleAspect(Aspect):
 
-    def __init__(self, object_designator: ObjectDesignatorDescription, input: str = None, output: str = None):
+    def __init__(self, object_designator: 'ObjectDesignatorDescription', input: str = None, output: str = None):
         super().__init__(None, None, input, output)
         self.object_designator = object_designator
 
     @abstractmethod
-    def is_visible(self, obj: Object) -> bool:
+    def is_visible(self, object_designator: 'ObjectDesignatorDescription') -> bool:
         raise NotImplementedError
 
     def __call__(self, *args, **kwargs):

@@ -6,6 +6,9 @@ from abc import ABC, abstractmethod
 from inspect import isgenerator, isgeneratorfunction
 
 import rospy
+
+from .knowledge.knowledge_engine import KnowledgeEngine
+
 try:
     import owlready2
 except ImportError:
@@ -471,6 +474,12 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
         from .ontology.ontology import OntologyManager
         self.soma = OntologyManager().soma
         self.knowledge_conditions = None
+
+    def resolve(self):
+        if self.knowledge_condition:
+            ke = KnowledgeEngine()
+            ke.query(self)
+        return self.ground()
 
     def ground(self) -> Action:
         """Fill all missing parameters and chose plan to execute. """

@@ -62,12 +62,12 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             self.assertEqual(self.world.robot.get_joint_position(joint), pose)
 
     def test_navigate(self):
-        description = action_designator.NavigateAction([Pose([1, 0, 0], [0, 0, 0, 1])])
+        description = action_designator.NavigateAction([Pose([0.3, 0, 0], [0, 0, 0, 1])])
         with simulated_robot:
             description.resolve().perform()
-        self.assertEqual(description.ground().target_location, Pose([1, 0, 0], [0, 0, 0, 1]))
+        self.assertEqual(description.ground().target_location, Pose([0.3, 0, 0], [0, 0, 0, 1]))
         self.assertTrue(description.ontology_concept_holders)
-        self.assertEqual(self.robot.get_pose(), Pose([1, 0, 0]))
+        self.assertEqual(self.robot.get_pose(), Pose([0.3, 0, 0]))
 
     def test_pick_up(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])

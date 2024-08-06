@@ -2,18 +2,18 @@ import numpy as np
 
 from ...datastructures.enums import Arms, ObjectType
 from ..knowledge_source import KnowledgeSource
-from ...datastructures.aspects import ReachableAspect, GraspableAspect, GripperIsFreeAspect
+from ...datastructures.aspects import ReachableAspect, GraspableAspect, GripperIsFreeAspect, VisibleAspect, SpaceIsFreeAspect
 from ...datastructures.pose import Pose
 from ...datastructures.world import World, UseProspectionWorld
-from ...designators.location_designator import CostmapLocation
-from ...designators.object_designator import BelieveObject
+# from ...designators.location_designator import CostmapLocation
+# from ...designators.object_designator import BelieveObject
 from ...robot_description import RobotDescription
 from ...world_concepts.world_object import Object
 from ...world_reasoning import visible
 from ...costmaps import OccupancyCostmap
 
 
-class FactsKnowledge(KnowledgeSource, ReachableAspect, GraspableAspect, GripperIsFreeAspect):
+class FactsKnowledge(KnowledgeSource, ReachableAspect, GraspableAspect, GripperIsFreeAspect, VisibleAspect, SpaceIsFreeAspect):
     """
     Knowledge source for hard coded facts, this knowledge source acts as a fallback if no other knowledge source is
     available.
@@ -36,15 +36,18 @@ class FactsKnowledge(KnowledgeSource, ReachableAspect, GraspableAspect, GripperI
     def clear_state(self) -> None:
         pass
 
-    def reachable(self, pose: Pose) -> bool:
-        robot_desig = BelieveObject(types=[ObjectType.ROBOT])
-        c = CostmapLocation(pose, reachable_for=robot_desig.resolve()).resolve()
-        if c.pose:
-            return True
+    # def reachable(self, pose: Pose) -> bool:
+    #     robot_desig = BelieveObject(types=[ObjectType.ROBOT])
+    #     c = CostmapLocation(pose, reachable_for=robot_desig.resolve()).resolve()
+    #     if c.pose:
+    #         return True
 
-    def graspable(self, obj: Object) -> bool:
+    def reachable(self, pose: Pose) -> bool:
+        return True
+
+    def graspable(self, object_designator: 'ObjectDesignatorDescription') -> bool:
         with UseProspectionWorld():
-            pro_obj = World.current_world.get_prospection_object_for_object(obj)
+            pro_obj = World.current_world.get_prospection_object_for_object(object_designator.resolve().world_object)
             pro_obj.set_pose(Pose([0, 0, 0], [0, 0, 0, 1]))
             bounding_box = pro_obj.get_axis_aligned_bounding_box()
 
@@ -67,9 +70,9 @@ class FactsKnowledge(KnowledgeSource, ReachableAspect, GraspableAspect, GripperI
         tool_frame_link = RobotDescription.current_robot_description.get_arm_chain(gripper).get_tool_frame()
         for att in World.robot.attachments.values():
             if att.parent_link == tool_frame_link or att.child_link == tool_frame_link:
-                return True
-        return False
+                return False
+        return True
 
-    def is_visible(self, obj: Object) -> bool:
+    def is_visible(self, object_designator: 'ObjectDesignatorDescription') -> bool:
         cam_pose = World.robot.get_link_pose(RobotDescription.current_robot_description.get_camera_frame())
-        return visible(obj, cam_pose)
+        return visible(object_designator.resolve().world_object, cam_pose)

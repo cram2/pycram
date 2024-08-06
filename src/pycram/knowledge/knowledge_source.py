@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from ..designator import DesignatorDescription
+# from ..designator import DesignatorDescription
 from ..plan_failures import KnowledgeNotAvailable
 
 
@@ -58,7 +58,7 @@ class KnowledgeSource(ABC):
 
 
 class QueryKnowledge:
-    def query_pose_for_object(self, designator: DesignatorDescription) -> DesignatorDescription:
+    def query_pose_for_object(self, designator: 'DesignatorDescription') -> 'DesignatorDescription':
         """
         Query the pose for an object from the knowledge source
 
@@ -68,7 +68,7 @@ class QueryKnowledge:
         """
         pass
 
-    def query_grasp_for_object(self, designator: DesignatorDescription) -> DesignatorDescription:
+    def query_grasp_for_object(self, designator: 'DesignatorDescription') -> 'DesignatorDescription':
         """
         Query the grasp for an object from the knowledge source
 
