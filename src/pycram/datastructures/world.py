@@ -1530,6 +1530,10 @@ class WorldSync(threading.Thread):
         """
         Synchronizes the state of all objects in the World with the prospection world.
         """
+        # Set the pose of the prospection objects to the pose of the world objects
+        for world_obj, prospection_obj in self.object_to_prospection_object_map.items():
+            prospection_obj.set_pose(world_obj.pose, base=False, set_attachments=False)
+        # Set the rest of the state of the prospection objects to the state of the world objects
         for world_obj, prospection_obj in self.object_to_prospection_object_map.items():
             prospection_obj.current_state = world_obj.current_state
 
