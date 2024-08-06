@@ -14,6 +14,7 @@ from ..external_interfaces.robokudo import query
 if TYPE_CHECKING:
     import owlready2
 
+
 class BelieveObject(ObjectDesignatorDescription):
     """
     Description for Objects that are only believed in.

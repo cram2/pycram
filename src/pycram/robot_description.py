@@ -40,9 +40,10 @@ class RobotDescriptionManager:
         :param name: Name of the robot to which the description should be loaded.
         :return: The loaded robot description.
         """
-        if name in self.descriptions.keys():
-            RobotDescription.current_robot_description = self.descriptions[name]
-            return self.descriptions[name]
+        for key in self.descriptions.keys():
+            if key in name.lower():
+                RobotDescription.current_robot_description = self.descriptions[key]
+                return self.descriptions[key]
         else:
             rospy.logerr(f"Robot description {name} not found")
 
