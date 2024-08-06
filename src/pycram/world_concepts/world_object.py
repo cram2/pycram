@@ -16,7 +16,7 @@ from ..datastructures.pose import Pose, Transform
 from ..datastructures.world import World
 from ..datastructures.world_entity import WorldEntity
 from ..description import ObjectDescription, LinkDescription, Joint
-from ..exceptions import ObjectAlreadyExists
+from ..exceptions import ObjectAlreadyExists, WorldMismatchErrorBetweenObjects
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..robot_description import RobotDescriptionManager, RobotDescription
@@ -734,13 +734,9 @@ class Object(WorldEntity):
         :param attachments: A dictionary with the object as key and the attachment as value.
         """
         for obj, attachment in attachments.items():
-            if self.world.is_prospection_world and not obj.world.is_prospection_world:
+            is_prospection = self.world.is_prospection_world and not obj.world.is_prospection_world
+            if is_prospection:
                 obj = self.world.get_prospection_object_for_object(obj)
-                # This variable indicates that the object is in the prospection world and the attachment is in the
-                # real world.
-                is_prospection = True
-            else:
-                is_prospection = False
             if obj in self.attachments:
                 if self.attachments[obj] != attachment:
                     if attachment.is_inverse:
@@ -749,16 +745,38 @@ class Object(WorldEntity):
                         self.detach(obj)
                 else:
                     continue
-            att_transform = attachment.parent_to_child_transform.copy()
-            if is_prospection:
-                att_transform.frame = self.prospection_world_prefix + att_transform.frame
-                att_transform.child_frame_id = self.prospection_world_prefix + att_transform.child_frame_id
-            if attachment.is_inverse:
-                obj.attach(self, attachment.child_link.name, attachment.parent_link.name, attachment.bidirectional,
-                           parent_to_child_transform=att_transform.invert())
-            else:
-                self.attach(obj, attachment.parent_link.name, attachment.child_link.name,
-                            attachment.bidirectional, parent_to_child_transform=att_transform)
+            self.mimic_attachment_with_object(attachment, obj)
+
+    def mimic_attachment_with_object(self, attachment: Attachment, child_object: Object) -> None:
+        """
+        Mimic the given attachment for this and the given child objects.
+        :param attachment: The attachment to mimic.
+        :param child_object: The child object.
+        """
+        att_transform = self.get_attachment_transform_with_object(attachment, child_object)
+        if attachment.is_inverse:
+            child_object.attach(self, attachment.child_link.name, attachment.parent_link.name,
+                                attachment.bidirectional,
+                                parent_to_child_transform=att_transform.invert())
+        else:
+            self.attach(child_object, attachment.parent_link.name, attachment.child_link.name,
+                        attachment.bidirectional, parent_to_child_transform=att_transform)
+
+    def get_attachment_transform_with_object(self, attachment: Attachment, child_object: Object) -> Transform:
+        """
+        Returns the attachment transform for the given parent and child objects, taking into account the prospection
+        world.
+        :param attachment: The attachment.
+        :param child_object: The child object.
+        :return: The attachment transform.
+        """
+        if self.world != child_object.world:
+            raise WorldMismatchErrorBetweenObjects(self, child_object)
+        att_transform = attachment.parent_to_child_transform.copy()
+        if self.world.is_prospection_world and not attachment.parent_object.world.is_prospection_world:
+            att_transform.frame = self.prospection_world_prefix + att_transform.frame
+            att_transform.child_frame_id = self.prospection_world_prefix + att_transform.child_frame_id
+        return att_transform
 
     @property
     def link_states(self) -> Dict[int, LinkState]:
