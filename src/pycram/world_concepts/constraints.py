@@ -202,9 +202,10 @@ class Attachment(AbstractConstraint):
     def __init__(self,
                  parent_link: Link,
                  child_link: Link,
-                 bidirectional: Optional[bool] = False,
+                 bidirectional: bool = False,
                  parent_to_child_transform: Optional[Transform] = None,
-                 constraint_id: Optional[int] = None):
+                 constraint_id: Optional[int] = None,
+                 is_inverse: bool = False):
         """
         Creates an attachment between the parent object link and the child object link.
         This could be a bidirectional attachment, meaning that both objects will move when one moves.
@@ -220,6 +221,7 @@ class Attachment(AbstractConstraint):
         self.id = constraint_id
         self.bidirectional: bool = bidirectional
         self._loose: bool = False
+        self.is_inverse: bool = is_inverse
 
         if parent_to_child_transform is not None:
             self.parent_to_child_transform = parent_to_child_transform
@@ -283,7 +285,7 @@ class Attachment(AbstractConstraint):
         :return: A new Attachment object with the parent and child links swapped.
         """
         attachment = Attachment(self.child_link, self.parent_link, self.bidirectional,
-                                constraint_id=self.id)
+                                constraint_id=self.id, is_inverse=not self.is_inverse)
         attachment.loose = not self._loose
         return attachment
 
@@ -303,13 +305,6 @@ class Attachment(AbstractConstraint):
         """
         self._loose = loose and not self.bidirectional
 
-    @property
-    def is_reversed(self) -> bool:
-        """
-        :return: True if the parent and child links are swapped.
-        """
-        return self.loose
-
     def __del__(self) -> None:
         """
         Removes the constraint between the parent and the child links if one exists when the attachment is deleted.
@@ -326,9 +321,9 @@ class Attachment(AbstractConstraint):
                 and self.bidirectional == other.bidirectional
                 and self.loose == other.loose
                 and np.allclose(self.parent_to_child_transform.translation_as_list(),
-                                other.parent_to_child_transform.translation_as_list(), rtol=0, atol=1e-4)
+                                other.parent_to_child_transform.translation_as_list(), rtol=0, atol=1e-3)
                 and np.allclose(self.parent_to_child_transform.rotation_as_list(),
-                                other.parent_to_child_transform.rotation_as_list(), rtol=0, atol=1e-4))
+                                other.parent_to_child_transform.rotation_as_list(), rtol=0, atol=1e-3))
 
     def __hash__(self):
         return hash((self.parent_link.name, self.child_link.name, self.bidirectional, self.parent_to_child_transform))

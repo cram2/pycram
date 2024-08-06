@@ -724,7 +724,7 @@ class Object(WorldEntity):
                     and not list(attachments.keys())[0].world.is_prospection_world:
                 obj = self.world.get_object_for_prospection_object(obj)
             if obj not in attachments:
-                if attachment.loose:
+                if attachment.is_inverse:
                     original_obj.detach(self)
                 else:
                     self.detach(original_obj)
@@ -739,10 +739,13 @@ class Object(WorldEntity):
                 obj = self.world.get_prospection_object_for_object(obj)
             if obj in self.attachments:
                 if self.attachments[obj] != attachment:
-                    self.detach(obj)
+                    if attachment.is_inverse:
+                        obj.detach(self)
+                    else:
+                        self.detach(obj)
                 else:
                     continue
-            if attachment.loose:
+            if attachment.is_inverse:
                 obj.attach(self, attachment.child_link.name, attachment.parent_link.name, attachment.bidirectional)
             else:
                 self.attach(obj, attachment.parent_link.name, attachment.child_link.name,
