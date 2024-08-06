@@ -70,22 +70,23 @@ class TestAttachment(BulletWorldTestCase):
             # self.assertTrue(cereal_2 not in prospection_milk.attachments)
             prospection_cereal = self.world.get_prospection_object_for_object(cereal_2)
             # self.assertTrue(prospection_cereal in prospection_milk.attachments)
-            self.assertTrue(prospection_milk.attachments == {})
+            self.assertTrue(prospection_cereal in prospection_milk.attachments.keys())
 
             # Assert that when prospection object is moved, the real object is not moved
             prospection_milk_pos = prospection_milk.get_position()
             cereal_pos = cereal_2.get_position()
-            prospection_cereal_pos = prospection_cereal.get_position()
+            estimated_prospection_cereal_pos = prospection_cereal.get_position()
+            estimated_prospection_cereal_pos.x += 1
 
             # Move prospection milk object
             prospection_milk_pos.x += 1
             prospection_milk.set_position(prospection_milk_pos)
 
-            # Prospection cereal should not move since it is not attached to prospection milk
+            # Prospection cereal should move since it is attached to prospection milk
             new_prospection_cereal_pose = prospection_cereal.get_position()
-            self.assertTrue(new_prospection_cereal_pose == prospection_cereal_pos)
+            self.assertTrue(new_prospection_cereal_pose == estimated_prospection_cereal_pos)
 
-            # Also Real cereal object should not move
+            # Also Real cereal object should not move since it is not affected by prospection milk
             new_cereal_pos = cereal_2.get_position()
             assumed_cereal_pos = cereal_pos
             self.assertTrue(new_cereal_pos == assumed_cereal_pos)

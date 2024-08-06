@@ -436,15 +436,12 @@ class Multiverse(World):
         self.api_requester.detach(constraint)
 
     def perform_collision_detection(self) -> None:
-        self.step()
+        pass
 
     def get_object_contact_points(self, obj: Object) -> ContactPointsList:
         """
         Note: Currently Multiverse only gets one contact point per contact objects.
         """
-        if self.use_bullet_mode:
-            # self.simulate(0.01)
-            pass
         multiverse_contact_points = self.api_requester.get_contact_points(obj)
         contact_points = ContactPointsList([])
         body_link = None
@@ -526,7 +523,6 @@ class Multiverse(World):
             self.api_requester.unpause_simulation()
             sleep(self.simulation_time_step)
             self.api_requester.pause_simulation()
-            pass
 
     def save_physics_simulator_state(self) -> int:
         logging.warning("save_physics_simulator_state is not implemented in Multiverse")
