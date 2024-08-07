@@ -814,7 +814,11 @@ class Object(WorldEntity):
         :param joint_states: A dictionary with the joint id as key and the current state of the joint as value.
         """
         for joint in self.joints.values():
-            joint.current_state = joint_states[joint.id]
+            if joint.name not in self.robot_virtual_move_base_joints_names():
+                joint.current_state = joint_states[joint.id]
+
+    def robot_virtual_move_base_joints_names(self):
+        return self.robot_description.virtual_move_base_joints.names
 
     def remove_saved_states(self) -> None:
         """
