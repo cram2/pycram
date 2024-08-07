@@ -1453,7 +1453,8 @@ class WorldSync(threading.Thread):
         """
         while not self.terminate:
             self.sync_lock.acquire()
-            self.sync_worlds()
+            if not self.terminate:
+                self.sync_worlds()
             self.sync_lock.release()
             time.sleep(WorldSync.WAIT_TIME_AS_N_SIMULATION_STEPS * self.world.simulation_time_step)
 
