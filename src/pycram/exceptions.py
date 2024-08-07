@@ -29,3 +29,8 @@ class WorldMismatchErrorBetweenObjects(Exception):
     def __init__(self, obj_1: 'Object', obj_2: 'Object'):
         super().__init__(f"World mismatch between the attached objects {obj_1.name} and {obj_2.name},"
                          f"obj_1.world: {obj_1.world}, obj_2.world: {obj_2.world}")
+
+
+class ObjectFrameNotFoundError(KeyError):
+    def __init__(self, frame_name: str):
+        super().__init__(f"Frame {frame_name} does not belong to any of the objects in the world.")

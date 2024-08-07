@@ -2,6 +2,7 @@
 import os
 import unittest
 
+import matplotlib.pyplot as plt
 import numpy as np
 import psutil
 from tf.transformations import quaternion_from_euler, quaternion_multiply
@@ -48,8 +49,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def setUpClass(cls):
         if not multiverse_installed:
             return
-        cls.multiverse = Multiverse(simulation="pycram_test",
-                                    is_prospection=False)
+        cls.multiverse = Multiverse(simulation="pycram_test")
 
     @classmethod
     def tearDownClass(cls):
@@ -110,10 +110,29 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
         LookAtAction(targets=[pick_pose]).resolve().perform()
 
-        # object_desig = DetectAction(BelieveObject(types=[obj_type])).resolve().perform()
-        object_desig = BelieveObject(types=[obj_type]).resolve()
+        object_desig = DetectAction(BelieveObject(types=[obj_type])).resolve().perform()
+        # object_desig = BelieveObject(types=[obj_type]).resolve()
 
         return object_desig
+
+    def test_get_images_for_target(self):
+        robot = self.spawn_robot(robot_name='pr2')
+        camera_description = self.multiverse.robot_description.get_default_camera()
+        camera_link_name = camera_description.link_name
+        camera_pose = robot.get_link_pose(camera_link_name)
+        camera_frame = self.multiverse.robot_description.get_camera_frame()
+        camera_front_facing_axis = camera_description.front_facing_axis
+        milk_spawn_position = np.array(camera_front_facing_axis) * 0.5
+        orientation = camera_pose.to_transform(camera_frame).invert().rotation_as_list()
+        milk = self.spawn_milk(milk_spawn_position.tolist(), orientation, frame=camera_frame)
+        _, depth, segmentation_mask = self.multiverse.get_images_for_target(milk.pose, camera_pose, plot=False)
+        self.assertIsInstance(depth, np.ndarray)
+        self.assertIsInstance(segmentation_mask, np.ndarray)
+        self.assertTrue(depth.shape == (256, 256))
+        self.assertTrue(segmentation_mask.shape == (256, 256))
+        self.assertAlmostEqual(np.max(depth), 0.5, delta=0.1)
+        self.assertTrue(np.unique(segmentation_mask).shape[0] == 2)
+        self.assertTrue(milk.id in np.unique(segmentation_mask).flatten().tolist())
 
     def test_reset_world(self):
         set_position = [1, 1, 0.1]
@@ -354,11 +373,11 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         return big_bowl
 
     @staticmethod
-    def spawn_milk(position: List, orientation: Optional[List] = None) -> Object:
+    def spawn_milk(position: List, orientation: Optional[List] = None, frame=None) -> Object:
         if orientation is None:
             orientation = [0, 0, 0, 1]
         milk = Object("milk_box", ObjectType.MILK, "milk_box.urdf",
-                      pose=Pose(position, orientation))
+                      pose=Pose(position, orientation, frame=frame))
         return milk
 
     def spawn_robot(self, position: Optional[List[float]] = None,
