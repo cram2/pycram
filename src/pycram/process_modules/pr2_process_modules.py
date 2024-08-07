@@ -87,14 +87,13 @@ class Pr2Detecting(ProcessModule):
         robot = World.robot
         object_type = desig.object_type
         # Should be "wide_stereo_optical_frame"
-        cam_frame_name = RobotDescription.current_robot_description.get_camera_frame()
+        camera_link_name = RobotDescription.current_robot_description.get_camera_link()
         # should be [0, 0, 1]
         camera_description = RobotDescription.current_robot_description.cameras[
             list(RobotDescription.current_robot_description.cameras.keys())[0]]
         front_facing_axis = camera_description.front_facing_axis
 
         objects = World.current_world.get_object_by_type(object_type)
-        camera_link_name = [link.name for link in robot.links.values() if link.tf_frame == cam_frame_name][0]
         for obj in objects:
             if btr.visible(obj, robot.get_link_pose(camera_link_name), front_facing_axis):
                 return obj
