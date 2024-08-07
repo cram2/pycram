@@ -7,7 +7,8 @@ __version__ = "0.0.2"
 
 
 def signal_handler(sig, frame):
-    World.current_world.exit()
+    if World.current_world:
+        World.current_world.exit()
     print("Exiting...")
     exit(0)
 
