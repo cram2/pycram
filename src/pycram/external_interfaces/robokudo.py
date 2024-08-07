@@ -1,6 +1,5 @@
 import rospy
 import actionlib
-from tmc_msgs.msg import Voice
 
 from ..designator import ObjectDesignatorDescription
 from ..datastructures.pose import Pose
