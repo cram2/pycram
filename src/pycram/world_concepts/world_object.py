@@ -708,10 +708,10 @@ class Object(WorldEntity):
         Set the attachments of this object to the given attachments.
         :param attachments: A dictionary with the object as key and the attachment as value.
         """
-        self.detach_not_attached_objects(attachments)
-        self.attach_not_attached_objects(attachments)
+        self.detach_objects_not_in_attachments(attachments)
+        self.attach_objects_in_attachments(attachments)
 
-    def detach_not_attached_objects(self, attachments: Dict[Object, Attachment]) -> None:
+    def detach_objects_not_in_attachments(self, attachments: Dict[Object, Attachment]) -> None:
         """
         Detach objects that are not in the attachments list and are in the current attachments list.
         :param attachments: A dictionary with the object as key and the attachment as value.
@@ -728,7 +728,7 @@ class Object(WorldEntity):
                 else:
                     self.detach(original_obj)
 
-    def attach_not_attached_objects(self, attachments: Dict[Object, Attachment]) -> None:
+    def attach_objects_in_attachments(self, attachments: Dict[Object, Attachment]) -> None:
         """
         Attach objects that are in the given attachments list but not in the current attachments list.
         :param attachments: A dictionary with the object as key and the attachment as value.
