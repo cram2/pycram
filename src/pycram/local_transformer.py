@@ -31,6 +31,7 @@ class LocalTransformer(TransformerROS):
     """
 
     _instance = None
+    prospection_prefix: str = "prospection/"
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
@@ -109,24 +110,23 @@ class LocalTransformer(TransformerROS):
         :param frame: The frame for which the object name should be returned
         :return: The name of the object associated with the frame
         """
+        world = self.prospection_world if self.prospection_prefix in frame else self.world
         if frame == "map":
             return None
-        obj_name = [obj.name for obj in self.world.objects if frame == obj.tf_frame]
+        obj_name = [obj.name for obj in world.objects if frame == obj.tf_frame]
         return obj_name[0] if len(obj_name) > 0 else self.get_object_name_for_link_frame(frame)
 
-    def get_object_name_for_link_frame(self, link_frame: str) -> str:
+    def get_object_name_for_link_frame(self, link_frame: str) -> Optional[str]:
         """
         Returns the name of the object that is associated with the given link frame.
 
         :param link_frame: The frame of the link for which the object name should be returned
         :return: The name of the object associated with the link frame
         """
-        object_name = [obj.name for obj in self.world.objects for link in obj.links.values()
+        world = self.prospection_world if self.prospection_prefix in link_frame else self.world
+        object_name = [obj.name for obj in world.objects for link in obj.links.values()
                        if link_frame in (link.name, link.tf_frame)]
-        if len(object_name) > 0:
-            return object_name[0]
-        else:
-            raise ObjectFrameNotFoundError(link_frame)
+        return object_name[0] if len(object_name) > 0 else None
 
     def lookup_transform_from_source_to_target_frame(self, source_frame: str, target_frame: str,
                                                      time: Optional[rospy.rostime.Time] = None) -> Transform:

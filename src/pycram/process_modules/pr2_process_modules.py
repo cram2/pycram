@@ -94,8 +94,9 @@ class Pr2Detecting(ProcessModule):
         front_facing_axis = camera_description.front_facing_axis
 
         objects = World.current_world.get_object_by_type(object_type)
+        camera_link_name = [link.name for link in robot.links.values() if link.tf_frame == cam_frame_name][0]
         for obj in objects:
-            if btr.visible(obj, robot.get_link_pose(cam_frame_name), front_facing_axis):
+            if btr.visible(obj, robot.get_link_pose(camera_link_name), front_facing_axis):
                 return obj
 
 

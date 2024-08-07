@@ -20,16 +20,16 @@ class TestCaseBulletWorldReasoning(BulletWorldTestCase):
         self.milk.set_pose(Pose([1.5, 0, 1.2]))
         self.robot.set_pose(Pose())
         time.sleep(1)
-        camera_frame = RobotDescription.current_robot_description.get_camera_frame()
-        self.world.add_vis_axis(self.robot.get_link_pose(camera_frame))
-        self.assertTrue(btr.visible(self.milk, self.robot.get_link_pose(camera_frame),
+        camera_link = RobotDescription.current_robot_description.get_camera_link()
+        self.world.add_vis_axis(self.robot.get_link_pose(camera_link))
+        self.assertTrue(btr.visible(self.milk, self.robot.get_link_pose(camera_link),
                                     RobotDescription.current_robot_description.get_default_camera().front_facing_axis))
 
     def test_occluding(self):
         self.milk.set_pose(Pose([3, 0, 1.2]))
         self.robot.set_pose(Pose())
         self.assertTrue(btr.occluding(self.milk, self.robot.get_link_pose(
-            RobotDescription.current_robot_description.get_camera_frame()),
+            RobotDescription.current_robot_description.get_camera_link()),
                                       RobotDescription.current_robot_description.get_default_camera().front_facing_axis) != [])
 
     def test_reachable(self):
