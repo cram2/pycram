@@ -7,7 +7,6 @@ __version__ = "0.0.2"
 
 
 def signal_handler(sig, frame):
-    logging.info('You pressed Ctrl+C!')
     World.current_world.exit()
     print("Exiting...")
     exit(0)
