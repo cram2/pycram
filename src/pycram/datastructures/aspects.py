@@ -10,7 +10,7 @@ from anytree import NodeMixin, PreOrderIter, Node
 
 # from ..designator import ObjectDesignatorDescription
 from ..plan_failures import ObjectNotVisible, ManipulationPoseUnreachable, NavigationGoalInCollision, ObjectUnfetchable, \
-    GripperOccupied
+    GripperOccupied, PlanFailure
 from ..world_concepts.world_object import Object
 
 
@@ -257,24 +257,39 @@ class NotAspect(AspectOperator):
         return not self.children[0](*args, **kwargs)
 
 
+class ResolvedAspect(Aspect):
+
+    resolved_aspect_function: Callable
+
+    aspect_exception: Type[PlanFailure]
+
+    def __init__(self, resolved_aspect_function: Callable, aspect_exception: Type[PlanFailure], parent: NodeMixin = None,
+                 input: str = None, output: str = None):
+        super().__init__(parent, None, input, output)
+        self.resolved_aspect_function = resolved_aspect_function
+        self.aspect_exception = aspect_exception
+        self.parameter = {}
+
+    def __call__(self, *args, **kwargs):
+        result = self.manage_io(self.resolved_aspect_function, **self.parameter)
+        if not result:
+            raise self.aspect_exception(f"Aspect function {self.resolved_aspect_function} returned False")
+
+
 class ReachableAspect(Aspect):
+    aspect_exception = ManipulationPoseUnreachable
 
     def __init__(self, pose: Pose, input: str = None, output: str = None):
         super().__init__(None, None, input, output)
-        self.target_pose = pose
+        self.pose = pose
 
     @abstractmethod
     def reachable(self, pose: Pose) -> bool:
         raise NotImplementedError
 
-    def __call__(self, *args, **kwargs):
-        res = self.manage_io(self.resolved_aspect_instance.reachable, self.target_pose)
-        if not res:
-            raise ManipulationPoseUnreachable(f"Pose {self.target_pose} is not reachable")
-        return res
-
 
 class GraspableAspect(Aspect):
+    aspect_exception = ObjectUnfetchable
 
     def __init__(self, object_designator: 'ObjectDesignatorDescription', input: str = None, output: str = None):
         super().__init__(None, None, input, output)
@@ -284,14 +299,9 @@ class GraspableAspect(Aspect):
     def graspable(self, object_designator: 'ObjectDesignatorDescription') -> bool:
         raise NotImplementedError
 
-    def __call__(self, *args, **kwargs):
-        res = self.manage_io(self.resolved_aspect_instance.graspable, self.object_designator)
-        if not res:
-            raise ObjectUnfetchable(f"Object {self.object_designator} is not graspable")
-        return res
-
 
 class SpaceIsFreeAspect(Aspect):
+    aspect_exception = NavigationGoalInCollision
 
     def __init__(self, pose: Pose, input: str = None, output: str = None):
         super().__init__(None, None, input, output)
@@ -301,14 +311,9 @@ class SpaceIsFreeAspect(Aspect):
     def space_is_free(self, pose: Pose) -> bool:
         raise NotImplementedError
 
-    def __call__(self, *args, **kwargs):
-        res = self.manage_io(self.resolved_aspect_instance.space_is_free, self.pose)
-        if not res:
-            raise NavigationGoalInCollision(f"Pose {self.pose} is not free")
-        return res
-
 
 class GripperIsFreeAspect(Aspect):
+    aspect_exception = GripperOccupied
 
     def __init__(self, gripper: Arms, input: str = None, output: str = None):
         super().__init__(None, None, input, output)
@@ -318,14 +323,9 @@ class GripperIsFreeAspect(Aspect):
     def gripper_is_free(self, gripper: Arms) -> bool:
         raise NotImplementedError
 
-    def __call__(self, *args, **kwargs):
-        res = self.manage_io(self.resolved_aspect_instance.gripper_is_free, self.gripper)
-        if not res:
-            raise GripperOccupied(f"Gripper {self.gripper} is not free")
-        return res
-
 
 class VisibleAspect(Aspect):
+    aspect_exception = ObjectNotVisible
 
     def __init__(self, object_designator: 'ObjectDesignatorDescription', input: str = None, output: str = None):
         super().__init__(None, None, input, output)
@@ -334,9 +334,3 @@ class VisibleAspect(Aspect):
     @abstractmethod
     def is_visible(self, object_designator: 'ObjectDesignatorDescription') -> bool:
         raise NotImplementedError
-
-    def __call__(self, *args, **kwargs):
-        res = self.manage_io(self.resolved_aspect_instance.is_visible, self.object_designator)
-        if not res:
-            raise ObjectNotVisible(f"Object {self.object_designator} is not visible")
-        return res

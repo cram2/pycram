@@ -12,8 +12,7 @@ from ...world_concepts.world_object import Object
 from ...world_reasoning import visible
 from ...costmaps import OccupancyCostmap
 
-
-class FactsKnowledge(KnowledgeSource, ReachableAspect, GraspableAspect, GripperIsFreeAspect, VisibleAspect, SpaceIsFreeAspect):
+class FactsKnowledge(KnowledgeSource, GripperIsFreeAspect, VisibleAspect, SpaceIsFreeAspect, GraspableAspect, ReachableAspect):
     """
     Knowledge source for hard coded facts, this knowledge source acts as a fallback if no other knowledge source is
     available.

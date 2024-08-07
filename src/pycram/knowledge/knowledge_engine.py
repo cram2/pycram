@@ -1,7 +1,9 @@
+import inspect
+
 import rospy
 from anytree import PreOrderIter
 
-from ..datastructures.aspects import Aspect
+from ..datastructures.aspects import Aspect, ResolvedAspect
 from .knowledge_source import KnowledgeSource
 # from ..designator import DesignatorDescription, ActionDesignatorDescription
 from typing_extensions import Type, Callable, List
@@ -64,8 +66,7 @@ class KnowledgeEngine:
         """
         self.update_sources()
 
-        condition = designator.knowledge_condition
-        self.resolve_aspects(condition)
+        condition = self.resolve_aspects(designator.knowledge_condition)
         condition(designator)
 
     def resolve_aspects(self, aspects: Aspect):
@@ -78,9 +79,16 @@ class KnowledgeEngine:
         for child in PreOrderIter(aspects):
             if child.is_leaf:
                 source = self.find_source_for_aspect(child)
-                # resolved_aspect_function = source.__getattribute__(
-                #     [fun for fun in child.__class__.__dict__.keys() if not fun.startswith("__")][0])
-                child.resolved_aspect_instance = source
+                resolved_aspect_function = source.__getattribute__(
+                    [fun for fun in child.__class__.__dict__.keys() if
+                     not fun.startswith("__") and not fun == "aspect_exception"][0])
+
+                # child.resolved_aspect_instance = source
+                node = ResolvedAspect(resolved_aspect_function, child.aspect_exception, child.parent, child.input, child.output)
+                for param in inspect.signature(resolved_aspect_function).parameters.keys():
+                    node.parameter[param] = child.__getattribute__(param)
+                child.parent = None
+        return node.root
 
     def update(self):
         """
