@@ -2,23 +2,17 @@
 import os
 import unittest
 
-import matplotlib.pyplot as plt
 import numpy as np
 import psutil
 from tf.transformations import quaternion_from_euler, quaternion_multiply
 from typing_extensions import Optional, List
 
-from pycram.datastructures.dataclasses import Color, ContactPointsList, ContactPoint
-from pycram.datastructures.enums import ObjectType, Arms, JointType, Grasp
+from pycram.datastructures.dataclasses import ContactPointsList, ContactPoint
+from pycram.datastructures.enums import ObjectType, Arms, JointType
 from pycram.datastructures.pose import Pose
-from pycram.designators.action_designator import ParkArmsAction, MoveTorsoAction, NavigateAction, LookAtAction, \
-    DetectAction, TransportAction, PickUpAction
-from pycram.designators.object_designator import BelieveObject
-from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.robot_description import RobotDescriptionManager
 from pycram.world_concepts.world_object import Object
 from pycram.validation.error_checkers import calculate_angle_between_quaternions
-from pycram.process_module import simulated_robot, with_simulated_robot
 from pycram.worlds.multiverse_extras.helpers import get_robot_mjcf_path, parse_mjcf_actuators
 
 multiverse_installed = True
@@ -74,46 +68,6 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         joint_name = "arm_right_1_joint"
         actuator_name = robot.get_actuator_for_joint(robot.joints[joint_name])
         self.assertEqual(actuator_name, "arm_right_1_actuator")
-
-    def test_demo(self):
-        extension = ObjectDescription.get_file_extension()
-        robot = self.spawn_robot(robot_name='pr2', position=[1.3, 2, 0.01])
-        apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")
-
-        milk = Object("pycram_milk", ObjectType.MILK, f"pycram_milk{extension}", pose=Pose([2.4, 2, 1.02]),
-                      color=Color(1, 0, 0, 1))
-        # bowl = Object("big_bowl", ObjectType.BOWL, f"BigBowl.obj", pose=Pose([2.5, 2.3, 1]),
-        #               color=Color(1, 1, 0, 1))
-        # spoon = Object("soup_spoon", ObjectType.SPOON, f"SoupSpoon.obj", pose=Pose([2.6, 2.6, 1]),
-        #                color=Color(0, 0, 1, 1))
-        # bowl.attach(spoon)
-        # bowl.set_position([2.5, 2.4, 1.02])
-
-        pick_pose = Pose([2.6, 2.15, 1])
-
-        robot_desig = BelieveObject(names=[robot.name])
-        apartment_desig = BelieveObject(names=[apartment.name])
-
-        with simulated_robot:
-            ParkArmsAction([Arms.BOTH]).resolve().perform()
-
-            MoveTorsoAction([0.25]).resolve().perform()
-
-            milk_desig = self.move_and_detect(ObjectType.MILK, pick_pose)
-
-            TransportAction(milk_desig, [Arms.LEFT], [Pose([2.4, 3, 1.02])]).resolve().perform()
-
-    @staticmethod
-    @with_simulated_robot
-    def move_and_detect(obj_type: ObjectType, pick_pose: Pose):
-        NavigateAction(target_locations=[Pose([1.7, 2, 0])]).resolve().perform()
-
-        LookAtAction(targets=[pick_pose]).resolve().perform()
-
-        object_desig = DetectAction(BelieveObject(types=[obj_type])).resolve().perform()
-        # object_desig = BelieveObject(types=[obj_type]).resolve()
-
-        return object_desig
 
     def test_get_images_for_target(self):
         robot = self.spawn_robot(robot_name='pr2')
@@ -331,7 +285,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             self.assertIsInstance(contact_points[0], ContactPoint)
             self.assertTrue(contact_points[0].link_b.object, self.multiverse.floor)
             cup = self.spawn_cup([1, 1, 0.1])
-            self.multiverse.simulate(0.1)
+            self.multiverse.simulate(0.2)
             contact_points = self.multiverse.get_object_contact_points(cup)
             self.assertIsInstance(contact_points, ContactPointsList)
             self.assertEqual(len(contact_points), 1)
@@ -373,7 +327,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         return big_bowl
 
     @staticmethod
-    def spawn_milk(position: List, orientation: Optional[List] = None, frame=None) -> Object:
+    def spawn_milk(position: List, orientation: Optional[List] = None, frame="map") -> Object:
         if orientation is None:
             orientation = [0, 0, 0, 1]
         milk = Object("milk_box", ObjectType.MILK, "milk_box.urdf",
