@@ -235,27 +235,6 @@ class Link(ObjectEntity, LinkDescription, ABC):
     def get_transform_to_root_link(self) -> Transform:
         return self.get_transform_to_link(self.object.root_link)
 
-    def set_pose(self, pose: Pose) -> None:
-        """
-        Sets the pose of this link to the given pose.
-        NOTE: This will move the entire object such that the link is at the given pose, it will not consider any joints
-        that can allow the link to be at the given pose.
-        :param pose: The target pose for this link.
-        """
-        self.object.set_pose(self.get_object_pose_given_link_pose(pose))
-
-    def get_object_pose_given_link_pose(self, pose):
-        return (pose.to_transform(self.tf_frame) * self.get_transform_to_root_link()).to_pose()
-
-    def get_pose_given_object_pose(self, pose):
-        return (pose.to_transform(self.object.tf_frame) * self.get_transform_from_root_link()).to_pose()
-
-    def get_transform_from_root_link(self) -> Transform:
-        return self.get_transform_from_link(self.object.root_link)
-
-    def get_transform_to_root_link(self) -> Transform:
-        return self.get_transform_to_link(self.object.root_link)
-
     @property
     def current_state(self) -> LinkState:
         return LinkState(self.constraint_ids.copy())

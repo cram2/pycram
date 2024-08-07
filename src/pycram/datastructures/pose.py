@@ -345,6 +345,17 @@ class Transform(TransformStamped):
 
         self.frame = frame
 
+    def get_homogeneous_matrix(self) -> np.ndarray:
+        """
+        Returns the homogeneous matrix of this Transform. The matrix can be used to transform points from the frame_id
+        to the child_frame_id.
+
+        :return: The homogeneous matrix of this Transform
+        """
+        translation = transformations.translation_matrix(self.translation_as_list())
+        rotation = transformations.quaternion_matrix(self.rotation_as_list())
+        return np.dot(translation, rotation)
+
     @classmethod
     def from_pose_and_child_frame(cls, pose: Pose, child_frame_name: str) -> Transform:
         return cls(pose.position_as_list(), pose.orientation_as_list(), pose.frame, child_frame_name,

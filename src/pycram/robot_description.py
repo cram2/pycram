@@ -254,7 +254,7 @@ class RobotDescription:
 
         :return: A name of the link of a camera
         """
-        return self.cameras[list(self.cameras.keys())[0]].link_name
+        return f"{self.name}/{self.cameras[list(self.cameras.keys())[0]].link_name}"
 
     def get_default_camera(self) -> CameraDescription:
         """

@@ -3,8 +3,10 @@ import os
 from time import sleep
 
 import numpy as np
+from matplotlib import pyplot as plt
+import matplotlib.colors as mcolors
 from tf.transformations import quaternion_matrix
-from typing_extensions import List, Dict, Optional
+from typing_extensions import List, Dict, Optional, Union, Tuple
 
 from .multiverse_communication.client_manager import MultiverseClientManager
 from .multiverse_communication.clients import MultiverseController, MultiverseReader, MultiverseWriter, MultiverseAPI
@@ -138,6 +140,124 @@ class Multiverse(World):
             World.data_directory = [dirname] + self.data_directory
             World.cache_manager.data_directory = World.data_directory
             self.added_multiverse_resources = True
+
+    def get_images_for_target(self,
+                              target_pose: Pose,
+                              cam_pose: Pose,
+                              size: Optional[int] = 256,
+                              camera_min_distance: float = 0.1,
+                              camera_max_distance: int = 3,
+                              plot: bool = False) -> List[np.ndarray]:
+        """
+        Calculates the view and projection Matrix and returns 3 images:
+
+        1. An RGB image
+        2. A depth image
+        3. A segmentation Mask, the segmentation mask indicates for every pixel the visible Object
+
+        :param target_pose: The pose to which the camera should point.
+        :param cam_pose: The pose of the camera.
+        :param size: The height and width of the images in pixels.
+        :param camera_min_distance: The near distance of the camera.
+        :param camera_max_distance: The maximum distance that the shot rays should travel.
+        :param plot: Whether to plot the segmentation mask and the depth image.
+        :return: A list containing an RGB and depth image as well as a segmentation mask, in this order.
+        """
+
+        # Make the start position start from the minimum distance of the camera relative to the camera frame
+        camera_description = RobotDescription.current_robot_description.get_default_camera()
+        camera_frame = RobotDescription.current_robot_description.get_camera_frame()
+        camera_pose_in_camera_frame = self.local_transformer.transform_pose(cam_pose, camera_frame)
+        start_position = (np.array(camera_description.front_facing_axis) * camera_min_distance
+                          + np.array(camera_pose_in_camera_frame.position_as_list()))
+        start_pose = Pose(start_position.tolist(), camera_pose_in_camera_frame.orientation, camera_frame)
+        start_pose = self.local_transformer.transform_pose(start_pose, "map")
+
+        # construct the list of start positions of the rays
+        rays_start_positions = np.repeat(np.array([start_pose.position_as_list()]), size * size, axis=0).tolist()
+
+        # get the camera description
+        camera_horizontal_fov = camera_description.horizontal_angle
+        camera_vertical_fov = camera_description.vertical_angle
+
+        # construct a 2d grid of rays angles
+        rays_horizontal_angles = np.linspace(-camera_horizontal_fov / 2, camera_horizontal_fov / 2, size)
+        rays_horizontal_angles = np.tile(rays_horizontal_angles, (size, 1))
+        rays_vertical_angles = np.linspace(-camera_vertical_fov / 2, camera_vertical_fov / 2, size)
+        rays_vertical_angles = np.tile(rays_vertical_angles, (size, 1)).T
+
+        # construct a 2d grid of rays end positions
+        rays_end_positions_x = camera_max_distance * np.cos(rays_vertical_angles) * np.sin(rays_horizontal_angles)
+        rays_end_positions_x = rays_end_positions_x.reshape(-1)
+        rays_end_positions_z = camera_max_distance * np.cos(rays_vertical_angles) * np.cos(rays_horizontal_angles)
+        rays_end_positions_z = rays_end_positions_z.reshape(-1)
+        rays_end_positions_y = camera_max_distance * np.sin(rays_vertical_angles)
+        rays_end_positions_y = rays_end_positions_y.reshape(-1)
+        rays_end_positions = np.stack((rays_end_positions_x, rays_end_positions_y, rays_end_positions_z), axis=1)
+
+        # transform the rays end positions from camera frame to world frame
+        cam_to_world_transform = cam_pose.to_transform(camera_frame).get_homogeneous_matrix()
+        # add the homogeneous coordinate, by adding a column of ones to the position vectors, becoming 4xN matrix
+        homogenous_end_positions = np.concatenate((rays_end_positions, np.ones((size * size, 1))), axis=1).T
+        rays_end_positions = cam_to_world_transform @ homogenous_end_positions
+        rays_end_positions = rays_end_positions[:3, :].T.tolist()
+
+        # apply the ray test
+        object_ids, distances = self.ray_test_batch(rays_start_positions, rays_end_positions, return_distance=True)
+        segmentation_mask = np.array(object_ids).squeeze(axis=1).reshape(size, size)
+        depth_image = np.array(distances).reshape(size, size) + camera_min_distance
+        normalized_depth_image = (depth_image - camera_min_distance) * 255 / (camera_max_distance - camera_min_distance)
+        color_depth_image = np.repeat(normalized_depth_image[:, :, np.newaxis], 3, axis=2).astype(np.uint8)
+        if plot:
+            self.plot_segmentation_mask(segmentation_mask)
+            self.plot_depth_image(depth_image)
+        return [color_depth_image, depth_image, segmentation_mask]
+
+    def plot_segmentation_mask(self, segmentation_mask):
+        # Create a custom color map
+        unique_ids = np.unique(segmentation_mask)
+        unique_ids = unique_ids[unique_ids != -1]  # Exclude -1 values
+
+        # Create a color map that assigns a unique color to each ID
+        colors = plt.cm.get_cmap('tab20', len(unique_ids))  # Use tab20 colormap for distinct colors
+        color_dict = {uid: colors(i) for i, uid in enumerate(unique_ids)}
+
+        # Map each ID to its corresponding color
+        segmentation_colored = np.zeros((256, 256, 3))
+
+        for uid in unique_ids:
+            segmentation_colored[segmentation_mask == uid] = color_dict[uid][:3]  # Ignore the alpha channel
+
+        # Create a colormap for the color bar
+        cmap = mcolors.ListedColormap([color_dict[uid][:3] for uid in unique_ids])
+        norm = mcolors.BoundaryNorm(boundaries=np.arange(len(unique_ids) + 1) - 0.5, ncolors=len(unique_ids))
+
+        # Plot the colored segmentation mask
+        fig, ax = plt.subplots()
+        cax = ax.imshow(segmentation_colored)
+        ax.axis('off')  # Hide axes
+        ax.set_title('Segmentation Mask with Different Colors for Each Object')
+
+        # Create color bar
+        cbar = fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax, ticks=np.arange(len(unique_ids)))
+        cbar.ax.set_yticklabels([self.get_object_by_id(uid).name for uid in unique_ids])  # Label the color bar with object IDs
+        cbar.set_label('Object Name')
+
+        plt.show()
+
+    @staticmethod
+    def plot_depth_image(depth_image):
+        # Plot the depth image
+        fig, ax = plt.subplots()
+        cax = ax.imshow(depth_image, cmap='viridis', vmin=0, vmax=np.max(depth_image))
+        ax.axis('off')  # Hide axes
+        ax.set_title('Depth Image')
+
+        # Create color bar
+        cbar = fig.colorbar(cax, ax=ax)
+        cbar.set_label('Depth Value')
+
+        plt.show()
 
     def remove_multiverse_resources(self):
         """
@@ -507,13 +627,17 @@ class Multiverse(World):
         ray_test_result = self.ray_test_batch([from_position], [to_position])[0]
         return ray_test_result[0] if ray_test_result[0] != -1 else None
 
-    def ray_test_batch(self, from_positions: List[List[float]], to_positions: List[List[float]],
-                       num_threads: int = 1) -> List[List[int]]:
+    def ray_test_batch(self, from_positions: List[List[float]],
+                       to_positions: List[List[float]],
+                       num_threads: int = 1,
+                       return_distance: bool = False) -> Union[List[List[int]],
+                                                         Optional[Tuple[List[List[int]], List[float]]]]:
         """
         Note: Currently, num_threads is not used in Multiverse.
         """
         ray_results = self.api_requester.get_objects_intersected_with_rays(from_positions, to_positions)
         results = []
+        distances = []
         for ray_result in ray_results:
             results.append([])
             if ray_result.intersected():
@@ -529,7 +653,12 @@ class Multiverse(World):
                             break
             else:
                 results[-1].append(-1)
-        return results
+            if return_distance:
+                distances.append(ray_result.distance)
+        if return_distance:
+            return results, distances
+        else:
+            return results
 
     def step(self):
         """
