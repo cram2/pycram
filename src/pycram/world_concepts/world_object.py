@@ -95,7 +95,7 @@ class Object(WorldEntity):
 
         if self.obj_type == ObjectType.ROBOT and not self.world.is_prospection_world:
             rdm = RobotDescriptionManager()
-            rdm.load_description(self.name)
+            rdm.load_description(self.description.name)
             World.robot = self
 
     @property
