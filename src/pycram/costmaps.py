@@ -812,7 +812,7 @@ class SemanticCostmap(Costmap):
             self.map = self.map[:, max(0, non_zero_cols[0] - left_trim):non_zero_cols[-1] + 1 + right_trim]
 
 
-def get_aabb_for_link(self) -> AxisAlignedBoundingBox:
+    def get_aabb_for_link(self) -> AxisAlignedBoundingBox:
         """
         Returns the axis aligned bounding box (AABB) of the link provided when creating this costmap. To try and let the
         AABB as close to the actual object as possible, the Object will be rotated such that the link will be in the
