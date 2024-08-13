@@ -781,7 +781,7 @@ class SemanticCostmap(Costmap):
         Generates the semantic costmap according to the provided parameters. To do this the axis aligned bounding box (AABB)
         for the link name will be used. Height and width of the final Costmap will be the x and y sizes of the AABB.
         """
-        aabb_min, aabb_max = self.get_aabb_for_link()  # Get the axis-aligned bounding box for the link
+        aabb_min, aabb_max = self.get_aabb_for_link().get_min_max()   # Get the axis-aligned bounding box for the link
         margin = int(self.margin_cm / self.resolution)  # Convert 20 cm margin to pixels based on the resolution
 
         # Calculate height and width considering the resolution
