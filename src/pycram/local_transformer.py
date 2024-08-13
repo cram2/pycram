@@ -1,8 +1,6 @@
 import sys
 import logging
 
-from .exceptions import ObjectFrameNotFoundError
-
 if 'world' in sys.modules:
     logging.warning("(publisher) Make sure that you are not loading this module from pycram.world.")
 import rospy
@@ -10,7 +8,6 @@ import rospy
 from tf import TransformerROS
 from rospy import Duration
 
-from geometry_msgs.msg import TransformStamped
 from .datastructures.pose import Pose, Transform
 from typing_extensions import List, Optional, Union, Iterable
 

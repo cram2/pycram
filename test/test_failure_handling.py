@@ -7,7 +7,7 @@ from pycram.designator import ActionDesignatorDescription
 from pycram.designators.action_designator import ParkArmsAction
 from pycram.datastructures.enums import ObjectType, Arms, WorldMode
 from pycram.failure_handling import Retry
-from pycram.plan_failures import PlanFailure
+from pycram.failures import PlanFailure
 from pycram.process_module import ProcessModule, simulated_robot
 from pycram.robot_description import RobotDescription
 from pycram.object_descriptors.urdf import ObjectDescription

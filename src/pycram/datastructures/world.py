@@ -23,7 +23,7 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
 from ..datastructures.enums import JointType, ObjectType, WorldMode, Arms
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world_entity import StateEntity
-from ..exceptions import ProspectionObjectNotFound, WorldObjectNotFound
+from ..failures import ProspectionObjectNotFound, WorldObjectNotFound
 from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
 from ..validation.goal_validator import (MultiPoseGoalValidator,

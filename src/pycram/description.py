@@ -12,7 +12,7 @@ from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Colo
 from .datastructures.enums import JointType
 from .datastructures.pose import Pose, Transform
 from .datastructures.world_entity import WorldEntity
-from .exceptions import ObjectDescriptionNotFound
+from .failures import ObjectDescriptionNotFound
 from .local_transformer import LocalTransformer
 
 if TYPE_CHECKING:

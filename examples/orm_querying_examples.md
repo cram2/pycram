@@ -20,7 +20,6 @@ In this tutorial, we will get to see more examples of ORM querying.
 First, we will gather a lot of data. In order to achieve that we will write a randomized experiment for grasping a couple of objects.
 In the experiment the robot will try to grasp a randomized object using random poses and torso heights.
 
-
 ```python
 from tf import transformations
 import itertools
@@ -36,9 +35,10 @@ import tqdm
 import pycram.orm.base
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object as BulletWorldObject
-from pycram.designators.action_designator import MoveTorsoAction, PickUpAction, NavigateAction, ParkArmsAction, ParkArmsActionPerformable, MoveTorsoActionPerformable
+from pycram.designators.action_designator import MoveTorsoAction, PickUpAction, NavigateAction, ParkArmsAction,
+    ParkArmsActionPerformable, MoveTorsoActionPerformable
 from pycram.designators.object_designator import ObjectDesignatorDescription
-from pycram.plan_failures import PlanFailure
+from pycram.failures import PlanFailure
 from pycram.process_module import ProcessModule
 from pycram.datastructures.enums import Arms, ObjectType, Grasp
 
@@ -81,10 +81,11 @@ class GraspingExplorer:
             self.robots: List[Tuple[str, str]] = [("pr2", "pr2.urdf")]
 
         if not objects:
-            self.objects: List[Tuple[str, ObjectType, str]] = [("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl"),
-                                                                            ("bowl", ObjectType.BOWL, "bowl.stl"),
-                                                                            ("milk", ObjectType.MILK, "milk.stl"),
-                                                                            ("spoon", ObjectType.SPOON, "spoon.stl")]
+            self.objects: List[Tuple[str, ObjectType, str]] = [
+                ("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl"),
+                ("bowl", ObjectType.BOWL, "bowl.stl"),
+                ("milk", ObjectType.MILK, "milk.stl"),
+                ("spoon", ObjectType.SPOON, "spoon.stl")]
 
         if not arms:
             self.arms: List[str] = [Arms.LEFT, Arms.RIGHT]

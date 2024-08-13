@@ -9,8 +9,7 @@ from .local_transformer import LocalTransformer
 from .datastructures.pose import Pose, Transform
 from .robot_description import RobotDescription
 from .external_interfaces.ik import request_ik
-from .plan_failures import IKError
-from .utils import _apply_ik
+from .failures import IKError
 from typing_extensions import Tuple, List, Union, Dict, Iterable
 
 
