@@ -773,7 +773,7 @@ class SemanticCostmap(Costmap):
         self.width: int = 0
         self.map: np.ndarray = []
         self.generate_map()
-        self.margin_cm = margin_cm
+        self.margin_cm: float = margin_cm
         Costmap.__init__(self, resolution, self.height, self.width, self.origin, self.map)
 
     def generate_map(self) -> None:
