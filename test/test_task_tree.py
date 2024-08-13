@@ -8,7 +8,7 @@ from pycram.tasktree import with_tree
 import unittest
 import anytree
 from bullet_world_testcase import BulletWorldTestCase
-import pycram.plan_failures
+import pycram.failures
 from pycram.designators import object_designator, action_designator
 
 
@@ -52,7 +52,7 @@ class TaskTreeTestCase(BulletWorldTestCase):
 
         pycram.tasktree.reset_tree()
 
-        self.assertRaises(pycram.plan_failures.PlanFailure, failing_plan)
+        self.assertRaises(pycram.failures.PlanFailure, failing_plan)
 
         tt = pycram.tasktree.task_tree
 

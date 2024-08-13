@@ -8,17 +8,14 @@ import itertools
 import numpy as np
 from sqlalchemy.orm import Session
 from tf import transformations
-from typing_extensions import Any, List, Union, Callable, Optional, Type
-
-import rospy
+from typing_extensions import List, Union, Callable, Optional, Type
 
 from .location_designator import CostmapLocation
 from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveArmJointsMotion, MoveTCPMotion, MoveMotion, \
     LookingMotion, DetectingMotion, OpeningMotion, ClosingMotion
 from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
 from ..local_transformer import LocalTransformer
-from ..plan_failures import ObjectUnfetchable, ReachabilityFailure
-# from ..robot_descriptions import robot_description
+from ..failures import ObjectUnfetchable, ReachabilityFailure
 from ..robot_description import RobotDescription
 from ..tasktree import with_tree
 

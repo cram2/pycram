@@ -17,7 +17,7 @@ import tqdm
 from .datastructures.world import World
 from .orm.tasktree import TaskTreeNode as ORMTaskTreeNode
 from .orm.base import ProcessMetaData
-from .plan_failures import PlanFailure
+from .failures import PlanFailure
 from .datastructures.enums import TaskStatus
 from .datastructures.dataclasses import Color
 

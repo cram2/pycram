@@ -16,7 +16,7 @@ from ..datastructures.pose import Pose, Transform
 from ..datastructures.world import World
 from ..datastructures.world_entity import WorldEntity
 from ..description import ObjectDescription, LinkDescription, Joint
-from ..exceptions import ObjectAlreadyExists, WorldMismatchErrorBetweenObjects
+from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenObjects
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..robot_description import RobotDescriptionManager, RobotDescription

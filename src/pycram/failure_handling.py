@@ -1,5 +1,5 @@
 from .designator import DesignatorDescription
-from .plan_failures import PlanFailure
+from .failures import PlanFailure
 
 
 class FailureHandling:
