@@ -139,6 +139,12 @@ class World(StateEntity, ABC):
     Global reference for the cache directory, this is used to cache the description files of the robot and the objects.
     """
 
+    environment: Object = None
+    """
+    Global reference to the spawned Object that represents the environment. 
+    """
+
+
     def __init__(self, mode: WorldMode, is_prospection_world: bool, simulation_frequency: float):
         """
        Creates a new simulation, the mode decides if the simulation should be a rendered window or just run in the

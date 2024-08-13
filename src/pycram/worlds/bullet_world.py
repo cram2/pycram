@@ -233,6 +233,28 @@ class BulletWorld(World):
 
         self.vis_axis.append(self.create_multi_body(multibody))
 
+    def add_rigid_box(self, pose, half_extents, color) -> object:
+        """
+        Creates a visual and collision box in the simulation.
+
+        :param pose: Pose object with position and orientation where the box should be spawned.
+        :param half_extents: A tuple of three floats representing half the size of the box in each dimension.
+        :param color: A tuple of four floats representing the RGBA color of the box.
+        """
+
+        # Create visual shape
+        vis_shape = p.createVisualShape(p.GEOM_BOX, halfExtents=half_extents, rgbaColor=color)
+
+        # Create collision shape
+        col_shape = p.createCollisionShape(p.GEOM_BOX, halfExtents=half_extents)
+
+        # Create MultiBody with both visual and collision shapes
+        obj = p.createMultiBody(baseMass=1.0, baseCollisionShapeIndex=col_shape, baseVisualShapeIndex=vis_shape,
+                                basePosition=pose.position, baseOrientation=pose.orientation)
+
+        # Assuming you have a list to keep track of created objects
+        return obj
+
     def remove_vis_axis(self) -> None:
         """
         Removes all spawned vis axis objects that are currently in this BulletWorld.
@@ -395,7 +417,7 @@ class Gui(threading.Thread):
                 width, height, dist = (p.getDebugVisualizerCamera()[0],
                                        p.getDebugVisualizerCamera()[1],
                                        p.getDebugVisualizerCamera()[10])
-                #print("width: ", width, "height: ", height, "dist: ", dist)
+                # print("width: ", width, "height: ", height, "dist: ", dist)
                 camera_target_position = p.getDebugVisualizerCamera(self.world.id)[11]
 
                 # Get vectors used for movement on x,y,z Vector
@@ -550,5 +572,6 @@ class Gui(threading.Thread):
                                              cameraTargetPosition=camera_target_position, physicsClientId=self.world.id)
                 if visible == 0:
                     camera_target_position = (0.0, -50, 50)
-                p.resetBasePositionAndOrientation(sphere_uid, camera_target_position, [0, 0, 0, 1], physicsClientId=self.world.id)
+                p.resetBasePositionAndOrientation(sphere_uid, camera_target_position, [0, 0, 0, 1],
+                                                  physicsClientId=self.world.id)
                 time.sleep(1. / 80.)

@@ -98,6 +98,9 @@ class Object(WorldEntity):
             rdm.load_description(self.name)
             World.robot = self
 
+        if self.obj_type == ObjectType.ENVIRONMENT and not self.world.is_prospection_world:
+            World.environment = self
+
     @property
     def pose(self):
         return self.get_pose()
@@ -740,6 +743,14 @@ class Object(WorldEntity):
         for link_description in self.description.links:
             if link_description.name == self.root_link_name:
                 return link_description
+
+    def get_all_objets_not_robot(self) -> List[Object]:
+        """
+        Returns a list of all Objects except robot and environment.
+        :return: A list of all Objects except robot and environment.
+        """
+        return list(filter
+                    (lambda obj: (obj.type != ObjectType.ROBOT and obj.type != ObjectType.ENVIRONMENT), self.objects))
 
     @property
     def root_link(self) -> ObjectDescription.Link:
