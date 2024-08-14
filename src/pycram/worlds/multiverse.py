@@ -3,6 +3,7 @@ import os
 from time import sleep
 
 import numpy as np
+import rospy
 from tf.transformations import quaternion_matrix
 from typing_extensions import List, Dict, Optional, Union, Tuple, Callable
 
@@ -466,13 +467,16 @@ class Multiverse(World):
         self.reader.stop_thread = True
         self.reader.join()
 
-    def remove_object_by_id(self, obj_id: int) -> None:
+    def remove_object_by_id(self, obj_id: int) -> bool:
         obj = self.get_object_by_id(obj_id)
-        self.remove_object_from_simulator(obj)
+        return self.remove_object_from_simulator(obj)
 
-    def remove_object_from_simulator(self, obj: Object) -> None:
+    def remove_object_from_simulator(self, obj: Object) -> bool:
         if obj.obj_type != ObjectType.ENVIRONMENT:
             self.writer.remove_body(obj.name)
+            return True
+        rospy.logwarn("Cannot remove environment objects")
+        return False
 
     def add_constraint(self, constraint: Constraint) -> int:
 

@@ -83,11 +83,12 @@ class BulletWorld(World):
                           basePosition=pose.position_as_list(),
                           baseOrientation=pose.orientation_as_list(), physicsClientId=self.id)
 
-    def remove_object_from_simulator(self, obj: Object) -> None:
-        p.removeBody(obj.id, self.id)
+    def remove_object_from_simulator(self, obj: Object) -> bool:
+        return self.remove_object_by_id(obj.id)
 
-    def remove_object_by_id(self, obj_id: int) -> None:
+    def remove_object_by_id(self, obj_id: int) -> True:
         p.removeBody(obj_id, self.id)
+        return True
 
     def add_constraint(self, constraint: Constraint) -> int:
 
