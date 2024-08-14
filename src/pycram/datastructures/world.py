@@ -615,49 +615,11 @@ class World(StateEntity, ABC):
     @property
     def robot_virtual_joints_names(self) -> List[str]:
         """
-        Returns the virtual joints of the robot.
+        Return the virtual joints of the robot.
         """
         return self.robot_description.virtual_move_base_joints.names
 
-    def set_mobile_robot_pose(self, robot_obj: Object, pose: Pose) -> None:
-        """
-        Set the goal for the move base joints of a mobile robot to reach a target pose. This is used for example when
-        the simulator does not support setting the pose of the robot directly (e.g. MuJoCo).
-        :param robot_obj: The robot object.
-        :param pose: The target pose.
-        """
-        goal = self.get_move_base_joint_goal(robot_obj, pose)
-        robot_obj.set_multiple_joint_positions(goal)
-
-    def get_move_base_joint_goal(self, robot_obj: Object, pose: Pose) -> Dict[str, float]:
-        """
-        Get the goal for the move base joints of a mobile robot to reach a target pose.
-        :param robot_obj: The robot object.
-        :param pose: The target pose.
-        return: The goal for the move base joints.
-        """
-        position_diff = self.get_position_diff(robot_obj.original_pose.position_as_list(), pose.position_as_list())
-        target_x, target_y = position_diff[0], position_diff[1]
-        target_angle = self.get_z_angle_difference(robot_obj.original_pose.orientation_as_list(),
-                                                   pose.orientation_as_list())
-        # Get the joints of the base link
-        move_base_joints = self.get_move_base_joints()
-        return {move_base_joints.translation_x: target_x,
-                move_base_joints.translation_y: target_y,
-                move_base_joints.angular_z: target_angle}
-
-    def get_z_angle_difference(self, original_orientation: List[float], target_orientation: List[float]) -> float:
-        """
-        Get the difference between two z angles.
-        param original_orientation: The original orientation.
-        param target_orientation: The target orientation.
-        return: The difference between the two z angles.
-        """
-        # rotation_quaternion = quaternion_from_euler(0, 0, np.pi / 4)
-        # new_quaternion = quaternion_multiply(original_orientation, rotation_quaternion)
-        return self.get_z_angle(target_orientation) - self.get_z_angle(original_orientation)
-
-    def get_move_base_joints(self) -> VirtualMoveBaseJoints:
+    def get_robot_move_base_joints(self) -> VirtualMoveBaseJoints:
         """
         Get the move base joints of the robot.
 
@@ -665,36 +627,17 @@ class World(StateEntity, ABC):
         """
         return self.robot_description.virtual_move_base_joints
 
-    @staticmethod
-    def get_position_diff(current_position: List[float], target_position: List[float]) -> List[float]:
-        """
-        Get the difference between two positions.
-        param current_position: The current position.
-        param target_position: The target position.
-        return: The difference between the two positions.
-        """
-        return [target_position[i] - current_position[i] for i in range(3)]
-
-    @staticmethod
-    def get_z_angle(target_quaternion: List[float]) -> float:
-        """
-        Get the z angle from a quaternion by converting it to euler angles.
-        param target_quaternion: The target quaternion.
-        return: The z angle.
-        """
-        return euler_from_quaternion(target_quaternion)[2]
-
     @abstractmethod
     def perform_collision_detection(self) -> None:
         """
-        Checks for collisions between all objects in the World and updates the contact points.
+        Check for collisions between all objects in the World and updates the contact points.
         """
         pass
 
     @abstractmethod
     def get_object_contact_points(self, obj: Object) -> ContactPointsList:
         """
-        Returns a list of contact points of this Object with all other Objects.
+        Return a list of contact points of this Object with all other Objects.
 
         :param obj: The object.
         :return: A list of all contact points with other objects
