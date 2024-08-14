@@ -360,20 +360,22 @@ class World(StateEntity, ABC):
         return list(filter(lambda obj: obj.id == obj_id, self.objects))[0]
 
     @abstractmethod
-    def remove_object_by_id(self, obj_id: int) -> None:
+    def remove_object_by_id(self, obj_id: int) -> bool:
         """
         Removes the object with the given id from the world.
 
         :param obj_id: The unique id of the object to be removed.
+        :return: Whether the object was removed successfully.
         """
         pass
 
     @abstractmethod
-    def remove_object_from_simulator(self, obj: Object) -> None:
+    def remove_object_from_simulator(self, obj: Object) -> bool:
         """
         Removes an object from the physics simulator.
 
         :param obj: The object to be removed.
+        :return: Whether the object was removed successfully.
         """
         pass
 
@@ -389,9 +391,10 @@ class World(StateEntity, ABC):
         self.object_lock.acquire()
 
         obj.detach_all()
-        if obj.name != "floor":
+
+        if self.remove_object_from_simulator(obj):
             self.objects.remove(obj)
-            self.remove_object_from_simulator(obj)
+
         if World.robot == obj:
             World.robot = None
 

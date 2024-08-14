@@ -2,26 +2,14 @@
 
 """Multiverse Client base class."""
 
-import dataclasses
-
 import rospy
 from multiverse_client_pybind import MultiverseClientPybind  # noqa
 from typing_extensions import Optional, List, Dict, Callable, TypeVar
+
+from ..multiverse_datastructures.dataclasses import MultiverseMetaData
 from ...config import multiverse_conf as conf
 
 T = TypeVar("T")
-
-
-@dataclasses.dataclass
-class MultiverseMetaData:
-    """Meta data for the Multiverse Client, the simulation_name should be non-empty and unique for each simulation"""
-    world_name: str = "world"
-    simulation_name: str = "cram"
-    length_unit: str = "m"
-    angle_unit: str = "rad"
-    mass_unit: str = "kg"
-    time_unit: str = "s"
-    handedness: str = "rhs"
 
 
 class MultiverseSocket:
@@ -101,13 +89,13 @@ class MultiverseSocket:
 
     def send_and_receive_meta_data(self):
         """
-        Send and receive the meta data, this should be called before sending and receiving data.
+        Send and receive the metadata, this should be called before sending and receiving data.
         """
         self._communicate(True)
 
     def send_and_receive_data(self):
         """
-        Send and receive the data, this should be called after sending and receiving the meta data.
+        Send and receive the data, this should be called after sending and receiving the metadata.
         """
         self._communicate(False)
 
@@ -161,7 +149,7 @@ class MultiverseSocket:
         """Bind the request_meta_data before sending it to the server.
 
         :param request_meta_data: The request_meta_data to bind.
-        :return: The binded request_meta_data.
+        :return: The bound request_meta_data.
         """
         pass
 
@@ -169,7 +157,7 @@ class MultiverseSocket:
         """Bind the response_meta_data after receiving it from the server.
 
         :param response_meta_data: The response_meta_data to bind.
-        :return: The binded response_meta_data.
+        :return: The bound response_meta_data.
         """
         pass
 
@@ -177,7 +165,7 @@ class MultiverseSocket:
         """Bind the send_data before sending it to the server.
 
         :param send_data: The send_data to bind.
-        :return: The binded send_data.
+        :return: The bound send_data.
         """
         pass
 
@@ -185,7 +173,7 @@ class MultiverseSocket:
         """Bind the receive_data after receiving it from the server.
 
         :param receive_data: The receive_data to bind.
-        :return: The binded receive_data.
+        :return: The bound receive_data.
         """
         pass
 
@@ -204,7 +192,7 @@ class MultiverseSocket:
     def _communicate(self, resend_request_meta_data: bool = False) -> bool:
         """Communicate with the server.
 
-        :param resend_request_meta_data: Resend the request meta data.
+        :param resend_request_meta_data: Resend the request metadata.
         :return: True if the communication was successful, False otherwise.
         """
         return self._multiverse_socket.communicate(resend_request_meta_data)
@@ -230,8 +218,8 @@ class MultiverseSocket:
         rospy.logwarn(self._message_template(message))
 
     def _message_template(self, message: str) -> str:
-        return f"[{self.__class__.__name__}:{self.port}]: {message} : sim time {self.sim_time}, world time {self.world_time}"
-
+        return (f"[{self.__class__.__name__}:{self.port}]: {message} : sim time {self.sim_time},"
+                f" world time {self.world_time}")
 
     @property
     def world_time(self) -> float:
