@@ -300,8 +300,6 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
     def batch_rollout(self):
         """
         Try the policy without conditioning on visibility and occupancy and count the successful tries.
-
-        :amount: The amount of tries
         """
 
         # initialize statistics
