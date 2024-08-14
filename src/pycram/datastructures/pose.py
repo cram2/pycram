@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import math
 import datetime
+
+from tf.transformations import euler_from_quaternion
 from typing_extensions import List, Union, Optional, Sized
 
 import numpy as np
@@ -85,6 +87,32 @@ class Pose(PoseStamped):
         p.header = pose_stamped.header
         p.pose = pose_stamped.pose
         return p
+
+    def get_position_diff(self, target_pose: 'Pose') -> Point:
+        """
+        Get the difference between the target and the current positions.
+
+        :param target_pose: The target pose.
+        :return: The difference between the two positions.
+        """
+        return Point(target_pose.position.x - self.position.x, target_pose.position.y - self.position.y,
+                     target_pose.position.z - self.position.z)
+
+    def get_z_angle_difference(self, target_pose: Pose) -> float:
+        """
+        Get the difference between two z angles.
+
+        :param target_pose: The target pose.
+        :return: The difference between the two z angles.
+        """
+        return target_pose.z_angle - self.z_angle
+
+    @property
+    def z_angle(self) -> float:
+        """
+        The z angle of the orientation of this Pose in radians.
+        """
+        return euler_from_quaternion(self.orientation_as_list())[2]
 
     @property
     def frame(self) -> str:
