@@ -177,6 +177,11 @@ class Multiverse(World):
 
     @staticmethod
     def get_joint_position_name(joint: Joint) -> MultiverseJointPosition:
+        """
+        Get the attribute name of the joint position in the Multiverse from the pycram joint type.
+
+        :param joint: The joint.
+        """
         return MultiverseJointPosition.from_pycram_joint_type(joint.type)
 
     def spawn_robot_with_controller(self, name: str, pose: Pose) -> None:
@@ -272,6 +277,10 @@ class Multiverse(World):
 
     @validate_multiple_joint_positions
     def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
+        """
+        Set the positions of multiple joints in the simulator. Also check if the joint is controlled by an actuator
+        and use the controller to set the joint position if the joint is controlled.
+        """
 
         if self.use_controller:
             controlled_joints = self.get_controlled_joints(list(joint_positions.keys()))
@@ -286,15 +295,30 @@ class Multiverse(World):
         return True
 
     def get_controlled_joints(self, joints: Optional[List[Joint]] = None) -> List[Joint]:
+        """
+        Get the joints that are controlled by an actuator from the list of joints.
+
+        :param joints: The list of joints to check.
+        """
         joints = self.robot.joints if joints is None else joints
         return [joint for joint in joints if self.joint_has_actuator(joint)]
 
     def _set_multiple_joint_positions_without_controller(self, joint_positions: Dict[Joint, float]) -> None:
+        """
+        Set the positions of multiple joints in the simulator without using the controller.
+
+        :param joint_positions: The dictionary of joints and positions.
+        """
         joints_data = {joint.name: {self.get_joint_position_name(joint): [position]}
                        for joint, position in joint_positions.items()}
         self.writer.send_multiple_body_data_to_server(joints_data)
 
     def _set_multiple_joint_positions_using_controller(self, joint_positions: Dict[Joint, float]) -> bool:
+        """
+        Set the positions of multiple joints in the simulator using the controller.
+
+        :param joint_positions: The dictionary of joints and positions.
+        """
         controlled_joints_data = {self.get_actuator_for_joint(joint):
                                       {self.get_joint_cmd_name(joint.type): [position]}
                                   for joint, position in joint_positions.items()}
@@ -316,6 +340,11 @@ class Multiverse(World):
 
     @staticmethod
     def get_joint_cmd_name(joint_type: JointType) -> MultiverseJointCMD:
+        """
+        Get the attribute name of the joint command in the Multiverse from the pycram joint type.
+
+        :param joint_type: The pycram joint type.
+        """
         return MultiverseJointCMD.from_pycram_joint_type(joint_type)
 
     def get_link_pose(self, link: Link) -> Optional[Pose]:
@@ -344,19 +373,6 @@ class Multiverse(World):
             self._set_body_pose(obj.name, pose)
 
         return True
-
-    def is_object_a_child_in_a_fixed_joint_constraint(self, obj: Object) -> bool:
-        """
-        Check if the object is a child in a fixed joint constraint. This means that the object is not free to move.
-        It should be moved according to the parent object.
-        :param obj: The object to check.
-        :return: True if the object is a child in a fixed joint constraint, False otherwise.
-        """
-        constraints = list(self.constraints.values())
-        for c in constraints:
-            if c.child_link.object == obj and c.type == JointType.FIXED:
-                return True
-        return False
 
     def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> None:
         """
@@ -409,6 +425,11 @@ class Multiverse(World):
         return [wxyz[1], wxyz[2], wxyz[3], wxyz[0]]
 
     def _get_multiple_body_poses(self, body_names: List[str]) -> Dict[str, Pose]:
+        """
+        Get the poses of multiple bodies in the simulator.
+
+        :param body_names: The list of body names.
+        """
         return self.reader.get_multiple_body_poses(body_names)
 
     def get_multiple_object_positions(self, objects: List[Object]) -> Dict[str, List[float]]:
@@ -424,10 +445,18 @@ class Multiverse(World):
         return self.reader.get_body_orientation(obj.name)
 
     def multiverse_reset_world(self):
+        """
+        Reset the world using the Multiverse API.
+        """
         self.writer.reset_world()
 
     @staticmethod
     def xyzw_to_wxyz(xyzw: List[float]) -> List[float]:
+        """
+        Convert a quaternion from XYZW to WXYZ format.
+
+        :param xyzw: The quaternion in XYZW format.
+        """
         return [xyzw[3], *xyzw[:3]]
 
     def disconnect_from_physics_server(self) -> None:
@@ -529,8 +558,7 @@ class Multiverse(World):
     def ray_test_batch(self, from_positions: List[List[float]],
                        to_positions: List[List[float]],
                        num_threads: int = 1,
-                       return_distance: bool = False) -> Union[List[List[int]],
-    Optional[Tuple[List[List[int]], List[float]]]]:
+                       return_distance: bool = False) -> Union[List, Tuple[List, List[float]]]:
         """
         Note: Currently, num_threads is not used in Multiverse.
         """
