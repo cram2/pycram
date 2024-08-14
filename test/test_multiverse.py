@@ -184,7 +184,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         step = -1
         for i in range(3):
             self.spawn_robot()
-            new_position = [-3 + step*i, -3 + step*i, 0.001]
+            new_position = [-3 + step * i, -3 + step * i, 0.001]
             self.multiverse.robot.set_position(new_position)
             robot_position = self.multiverse.robot.get_position_as_list()
             self.assert_list_is_equal(robot_position[:2], new_position[:2],
@@ -297,7 +297,9 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         for i in range(3):
             milk = self.spawn_milk([1, 1, 0.01], [0, -0.707, 0, 0.707])
             cup = self.spawn_cup([1, 1, 0.1])
-            self.multiverse.simulate(0.1)
+            # This is needed because the cup is spawned in the air so it needs to fall
+            # to get in contact with the milk
+            self.multiverse.simulate(0.2)
             contact_points = self.multiverse.get_contact_points_between_two_objects(milk, cup)
             self.assertIsInstance(contact_points, ContactPointsList)
             self.assertEqual(len(contact_points), 1)

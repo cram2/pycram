@@ -636,16 +636,7 @@ class MultiverseAPI(MultiverseClient):
         :param obj: The object.
         :return: Whether the object exists in the simulation.
         """
-        return self._object_exists(obj.name)
-
-    def _object_exists(self, object_name: str) -> bool:
-        """
-        Check if the object exists in the simulation.
-
-        :param object_name: The name of the object.
-        :return: Whether the object exists in the simulation.
-        """
-        return self._request_single_api_callback(API.EXIST, object_name)[0] == 'yes'
+        return self._request_single_api_callback(API.EXIST, obj.name)[0] == 'yes'
 
     def get_contact_points(self, obj: Object) -> List[MultiverseContactPoint]:
         """
