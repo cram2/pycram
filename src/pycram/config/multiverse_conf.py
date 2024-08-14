@@ -1,10 +1,20 @@
+import datetime
+
 from . import world_conf as conf
 
+# Multiverse Socket Configuration
 HOST: str = "tcp://127.0.0.1"
 SERVER_HOST: str = HOST
 SERVER_PORT: str = "7000"
 BASE_CLIENT_PORT: int = 9000
 
+# Multiverse Client Configuration
+READER_MAX_WAIT_TIME_FOR_DATA: datetime.timedelta = datetime.timedelta(milliseconds=1000)
+"""
+The maximum wait time for the data in seconds.
+"""
+
+# Multiverse Simulation Configuration
 simulation_time_step: float = 1e-2
 simulation_frequency: int = int(1 / simulation_time_step)
 
