@@ -345,6 +345,19 @@ class Transform(TransformStamped):
 
         self.frame = frame
 
+    def apply_transform_to_array_of_points(self, points: np.ndarray) -> np.ndarray:
+        """
+        Applies this Transform to an array of points. The points are given as a Nx3 matrix, where N is the number of
+        points. The points are transformed from the child_frame_id to the frame_id of this Transform.
+
+        :param points: The points that should be transformed, given as a Nx3 matrix.
+        """
+        homogeneous_transform = self.get_homogeneous_matrix()
+        # add the homogeneous coordinate, by adding a column of ones to the position vectors, becoming 4xN matrix
+        homogenous_points = np.concatenate((points, np.ones((points.shape[0], 1))), axis=1).T
+        rays_end_positions = homogeneous_transform @ homogenous_points
+        return rays_end_positions[:3, :].T
+
     def get_homogeneous_matrix(self) -> np.ndarray:
         """
         Returns the homogeneous matrix of this Transform. The matrix can be used to transform points from the frame_id
