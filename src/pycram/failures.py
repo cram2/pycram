@@ -1,4 +1,4 @@
-from typing_extensions import TYPE_CHECKING
+from typing_extensions import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
     from pycram.world_concepts.world_object import Object
@@ -439,3 +439,9 @@ class WorldMismatchErrorBetweenObjects(Exception):
 class ObjectFrameNotFoundError(KeyError):
     def __init__(self, frame_name: str):
         super().__init__(f"Frame {frame_name} does not belong to any of the objects in the world.")
+
+
+class MultiplePossibleTipLinks(Exception):
+    def __init__(self, object_name: str, start_link: str, tip_links: List[str]):
+        super().__init__(f"Multiple possible tip links found for object {object_name} with start link {start_link}:"
+                         f" {tip_links}")

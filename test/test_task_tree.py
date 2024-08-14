@@ -48,7 +48,7 @@ class TaskTreeTestCase(BulletWorldTestCase):
 
         @with_tree
         def failing_plan():
-            raise pycram.plan_failures.PlanFailure("PlanFailure for UnitTesting")
+            raise pycram.failures.PlanFailure("PlanFailure for UnitTesting")
 
         pycram.tasktree.reset_tree()
 
