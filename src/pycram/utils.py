@@ -334,12 +334,17 @@ class RayTestUtils:
         rays_vertical_angles = np.tile(rays_vertical_angles, (size, 1)).T
         return rays_horizontal_angles, rays_vertical_angles
 
-    def plot_segmentation_mask(self, segmentation_mask):
+    @staticmethod
+    def plot_segmentation_mask(segmentation_mask,
+                               object_id_to_name: Dict[int, str] = None):
         """
         Plot the segmentation mask with different colors for each object.
 
         :param segmentation_mask: The segmentation mask.
+        :param object_id_to_name: The mapping from object id to object name.
         """
+        if object_id_to_name is None:
+            object_id_to_name = {uid: str(uid) for uid in np.unique(segmentation_mask)}
 
         # Create a custom color map
         unique_ids = np.unique(segmentation_mask)
@@ -369,7 +374,7 @@ class RayTestUtils:
         # Create color bar
         cbar = fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax, ticks=np.arange(len(unique_ids)))
         cbar.ax.set_yticklabels(
-            [self.object_id_to_name[uid] for uid in unique_ids])  # Label the color bar with object IDs
+            [object_id_to_name[uid] for uid in unique_ids])  # Label the color bar with object IDs
         cbar.set_label('Object Name')
 
         plt.show()

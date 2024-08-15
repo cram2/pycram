@@ -447,19 +447,33 @@ def validate_object_pose(pose_setter_func):
 
     def wrapper(world: 'World', obj: 'Object', pose: 'Pose'):
 
-        attachments_pose_goal = obj.get_target_poses_of_attached_objects_given_parent(pose)
-        if len(attachments_pose_goal) == 0:
-            world.pose_goal_validator.register_goal(pose, obj)
-        else:
-            world.multi_pose_goal_validator.register_goal([pose, *list(attachments_pose_goal.values())],
-                                                          [obj, *list(attachments_pose_goal.keys())])
+        world.pose_goal_validator.register_goal(pose, obj)
 
         if not pose_setter_func(world, obj, pose):
             world.pose_goal_validator.reset()
-            world.multi_pose_goal_validator.reset()
             return False
 
         world.pose_goal_validator.wait_until_goal_is_achieved()
+        return True
+
+    return wrapper
+
+
+def validate_multiple_object_poses(pose_setter_func):
+    """
+    A decorator to validate multiple object poses.
+    :param pose_setter_func: The function to set multiple poses of the objects.
+    """
+
+    def wrapper(world: 'World', object_poses: Dict['Object', 'Pose']):
+
+        world.multi_pose_goal_validator.register_goal(list(object_poses.values()),
+                                                      list(object_poses.keys()))
+
+        if not pose_setter_func(world, object_poses):
+            world.multi_pose_goal_validator.reset()
+            return False
+
         world.multi_pose_goal_validator.wait_until_goal_is_achieved()
         return True
 

@@ -25,6 +25,11 @@ update_poses_from_sim_on_get: bool = True
 Whether to update the poses from the simulator when getting the object poses.
 """
 
+DEBUG: bool = False
+"""
+Whether to use in debug mode. (This is used to print debug messages, plot images, etc.)
+"""
+
 
 @dataclass
 class JobHandling:

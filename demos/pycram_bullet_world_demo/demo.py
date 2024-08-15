@@ -8,10 +8,13 @@ from pycram.process_module import simulated_robot, with_simulated_robot
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.dataclasses import Color
+from pycram.ros.viz_marker_publisher import VizMarkerPublisher
 
 extension = ObjectDescription.get_file_extension()
 
-world = BulletWorld(WorldMode.GUI)
+world = BulletWorld(WorldMode.DIRECT)
+viz_marker_publisher = VizMarkerPublisher()
+
 robot = Object("pr2", ObjectType.ROBOT, f"pr2{extension}", pose=Pose([1, 2, 0]))
 apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")
 
@@ -43,22 +46,22 @@ def move_and_detect(obj_type):
 
 
 with simulated_robot:
-    ParkArmsAction([Arms.BOTH]).resolve().perform()
-
-    MoveTorsoAction([0.25]).resolve().perform()
-
-    milk_desig = move_and_detect(ObjectType.MILK)
-
-    TransportAction(milk_desig, [Arms.LEFT], [Pose([4.8, 3.55, 0.8])]).resolve().perform()
-
-    cereal_desig = move_and_detect(ObjectType.BREAKFAST_CEREAL)
-
-    TransportAction(cereal_desig, [Arms.RIGHT], [Pose([5.2, 3.4, 0.8], [0, 0, 1, 1])]).resolve().perform()
-
-    bowl_desig = move_and_detect(ObjectType.BOWL)
-
-    TransportAction(bowl_desig, [Arms.LEFT], [Pose([5, 3.3, 0.8], [0, 0, 1, 1])]).resolve().perform()
-
+    # ParkArmsAction([Arms.BOTH]).resolve().perform()
+    #
+    # MoveTorsoAction([0.25]).resolve().perform()
+    #
+    # milk_desig = move_and_detect(ObjectType.MILK)
+    #
+    # TransportAction(milk_desig, [Arms.LEFT], [Pose([4.8, 3.55, 0.8])]).resolve().perform()
+    #
+    # cereal_desig = move_and_detect(ObjectType.BREAKFAST_CEREAL)
+    #
+    # TransportAction(cereal_desig, [Arms.RIGHT], [Pose([5.2, 3.4, 0.8], [0, 0, 1, 1])]).resolve().perform()
+    #
+    # bowl_desig = move_and_detect(ObjectType.BOWL)
+    #
+    # TransportAction(bowl_desig, [Arms.LEFT], [Pose([5, 3.3, 0.8], [0, 0, 1, 1])]).resolve().perform()
+    #
     # Finding and navigating to the drawer holding the spoon
     handle_desig = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig.resolve())
     drawer_open_loc = AccessingLocation(handle_desig=handle_desig.resolve(),
@@ -94,3 +97,6 @@ with simulated_robot:
     PlaceAction(spoon_desig, [spoon_target_pose], [pickup_arm]).resolve().perform()
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
+
+viz_marker_publisher._stop_publishing()
+world.exit()

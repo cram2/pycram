@@ -1073,7 +1073,8 @@ class Object(WorldEntity):
         :param joint_name: The name of the joint
         :param joint_position: The target pose for this joint
         """
-        self.world.reset_joint_position(self.joints[joint_name], joint_position)
+        if self.world.reset_joint_position(self.joints[joint_name], joint_position):
+            self._update_on_joint_position_change()
 
     def set_multiple_joint_positions(self, joint_positions: Dict[str, float]) -> None:
         """
