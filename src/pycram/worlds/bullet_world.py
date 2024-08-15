@@ -200,9 +200,10 @@ class BulletWorld(World):
         return {joint.name: self.get_joint_position(joint) for joint in joints}
 
     @validate_multiple_object_poses
-    def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> None:
+    def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> bool:
         for obj, pose in objects.items():
             self.reset_object_base_pose(obj, pose)
+        return True
 
     @validate_object_pose
     def reset_object_base_pose(self, obj: Object, pose: Pose) -> bool:

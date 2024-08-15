@@ -360,7 +360,11 @@ class Multiverse(World):
         return self._get_body_pose(obj.name)
 
     def get_multiple_object_poses(self, objects: List[Object]) -> Dict[str, Pose]:
-        return self._get_multiple_body_poses([obj.name for obj in objects])
+        env_objects = [obj for obj in objects if obj.obj_type == ObjectType.ENVIRONMENT]
+        non_env_objects = [obj for obj in objects if obj.obj_type != ObjectType.ENVIRONMENT]
+        all_poses = self._get_multiple_body_poses([obj.name for obj in non_env_objects])
+        all_poses.update({obj.name: Pose() for obj in env_objects})
+        return all_poses
 
     @validate_object_pose
     def reset_object_base_pose(self, obj: Object, pose: Pose) -> bool:
@@ -575,7 +579,7 @@ class Multiverse(World):
             if ray_result.intersected():
                 body_name = ray_result.body_name
                 if body_name == "world":
-                    results[-1].append(self.floor.id)
+                    results[-1].append(0)  # The floor id, which is always 0 since the floor is spawned first.
                 elif body_name in self.object_name_to_id.keys():
                     results[-1].append(self.object_name_to_id[body_name])
                 else:
@@ -610,7 +614,6 @@ class Multiverse(World):
 
     def restore_physics_simulator_state(self, state_id: int) -> None:
         logging.error("restore_physics_simulator_state is not implemented in Multiverse")
-        raise NotImplementedError
 
     def set_link_color(self, link: Link, rgba_color: Color):
         logging.warning("set_link_color is not implemented in Multiverse")
