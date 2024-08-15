@@ -136,7 +136,7 @@ class GoalValidator:
         :param initial_value: The initial value.
         :param acceptable_error: The acceptable error.
         """
-        if goal_value is None or hasattr(goal_value, '__len__') and len(goal_value) == 0:
+        if goal_value is None or (hasattr(goal_value, '__len__') and len(goal_value) == 0):
             return  # Skip if goal value is None or empty
         self.goal_value = goal_value
         self.current_value_getter_input = current_value_getter_input
