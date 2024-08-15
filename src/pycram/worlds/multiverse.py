@@ -20,7 +20,7 @@ from ..datastructures.world import World
 from ..description import Link, Joint
 from ..robot_description import RobotDescription
 from ..validation.goal_validator import validate_object_pose, validate_multiple_joint_positions, \
-    validate_joint_position
+    validate_joint_position, validate_multiple_object_poses
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.world_object import Object
 from ..utils import RayTestUtils
@@ -375,6 +375,7 @@ class Multiverse(World):
 
         return True
 
+    @validate_multiple_object_poses
     def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> None:
         """
         Reset the poses of multiple objects in the simulator.

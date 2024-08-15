@@ -17,7 +17,8 @@ from ..datastructures.enums import ObjectType, WorldMode, JointType
 from ..datastructures.pose import Pose
 from ..object_descriptors.urdf import ObjectDescription
 from ..datastructures.world import World
-from ..validation.goal_validator import validate_multiple_joint_positions, validate_joint_position, validate_object_pose
+from ..validation.goal_validator import (validate_multiple_joint_positions, validate_joint_position,
+                                         validate_object_pose, validate_multiple_object_poses)
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.world_object import Object
 
@@ -198,6 +199,7 @@ class BulletWorld(World):
     def get_multiple_joint_positions(self, joints: List[Joint]) -> Dict[str, float]:
         return {joint.name: self.get_joint_position(joint) for joint in joints}
 
+    @validate_multiple_object_poses
     def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> None:
         for obj, pose in objects.items():
             self.reset_object_base_pose(obj, pose)

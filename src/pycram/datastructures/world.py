@@ -30,7 +30,7 @@ from ..validation.goal_validator import (MultiPoseGoalValidator,
                                          PoseGoalValidator, JointPositionGoalValidator,
                                          MultiJointPositionGoalValidator, GoalValidator,
                                          validate_joint_position, validate_multiple_joint_positions,
-                                         validate_object_pose)
+                                         validate_object_pose, validate_multiple_object_poses)
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.event import Event
 
@@ -726,6 +726,7 @@ class World(StateEntity, ABC):
         """
         pass
 
+    @validate_multiple_object_poses
     @abstractmethod
     def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> bool:
         """
