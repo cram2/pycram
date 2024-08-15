@@ -227,6 +227,11 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             self.assert_poses_are_equal(new_pose, robot_pose, position_delta=self.multiverse.acceptable_position_error,
                                         orientation_delta=self.multiverse.acceptable_orientation_error)
 
+    def test_get_environment_pose(self):
+        apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
+        pose = apartment.get_pose()
+        self.assertIsInstance(pose, Pose)
+
     def test_attach_object(self):
         milk = self.spawn_milk([1, 0.1, 0.1])
         cup = self.spawn_cup([1, 1.1, 0.1])
