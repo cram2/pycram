@@ -386,7 +386,7 @@ class Transform(TransformStamped):
         self.header.frame_id = value
 
     @property
-    def translation(self) -> None:
+    def translation(self) -> Vector3:
         """
         Property that points to the translation of this Transform
         """
@@ -411,7 +411,7 @@ class Transform(TransformStamped):
             self.transform.translation = value
 
     @property
-    def rotation(self) -> None:
+    def rotation(self) -> Quaternion:
         """
         Property that points to the rotation of this Transform
         """

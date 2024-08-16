@@ -1,6 +1,7 @@
 import glob
 import os
 import pathlib
+import shutil
 
 from typing_extensions import List, TYPE_CHECKING
 
@@ -21,18 +22,33 @@ class CacheManager:
 
     def __init__(self, cache_dir: str, data_directory: List[str]):
         """
-        Initializes the CacheManager.
+        Initialize the CacheManager.
 
         :param cache_dir: The directory where the cached files are stored.
         :param data_directory: The directory where all resource files are stored.
         """
         self.cache_dir = cache_dir
         self.data_directory = data_directory
+        self.clear_cache()
+
+    def clear_cache(self):
+        """
+        Clear the cache directory.
+        """
+        self.delete_cache_dir()
+        self.create_cache_dir_if_not_exists()
+
+    def delete_cache_dir(self):
+        """
+        Delete the cache directory.
+        """
+        if pathlib.Path(self.cache_dir).exists():
+            shutil.rmtree(self.cache_dir)
 
     def update_cache_dir_with_object(self, path: str, ignore_cached_files: bool,
                                      object_description: 'ObjectDescription', object_name: str) -> str:
         """
-        Checks if the file is already in the cache directory, if not it will be preprocessed and saved in the cache.
+        Check if the file is already in the cache directory, if not preprocess and save in the cache.
 
         :param path: The path of the file to preprocess and save in the cache directory.
         :param ignore_cached_files: If True, the file will be preprocessed and saved in the cache directory even if it
@@ -46,7 +62,7 @@ class CacheManager:
         self.create_cache_dir_if_not_exists()
 
         # save correct path in case the file is already in the cache directory
-        cache_path = self.cache_dir + object_description.get_file_name(path_object, extension, object_name)
+        cache_path = os.path.join(self.cache_dir, object_description.get_file_name(path_object, extension, object_name))
 
         if not self.is_cached(path, object_description) or ignore_cached_files:
             # if file is not yet cached preprocess the description file and save it in the cache directory.
@@ -58,7 +74,7 @@ class CacheManager:
     def generate_description_and_write_to_cache(self, path: str, name: str, extension: str, cache_path: str,
                                                 object_description: 'ObjectDescription') -> None:
         """
-        Generates the description from the file at the given path and writes it to the cache directory.
+        Generate the description from the file at the given path and write it to the cache directory.
 
         :param path: The path of the file to preprocess.
         :param name: The name of the object.
@@ -72,7 +88,7 @@ class CacheManager:
     @staticmethod
     def write_to_cache(description_string: str, cache_path: str) -> None:
         """
-        Writes the description string to the cache directory.
+        Write the description string to the cache directory.
 
         :param description_string: The description string to write to the cache directory.
         :param cache_path: The path of the file in the cache directory.
@@ -82,8 +98,8 @@ class CacheManager:
 
     def look_for_file_in_data_dir(self, path_object: pathlib.Path) -> str:
         """
-        Looks for a file in the data directory of the World. If the file is not found in the data directory, this method
-        raises a FileNotFoundError.
+        Look for a file in the data directory of the World. If the file is not found in the data directory, raise a
+         FileNotFoundError.
 
         :param path_object: The pathlib object of the file to look for.
         """
@@ -101,14 +117,14 @@ class CacheManager:
 
     def create_cache_dir_if_not_exists(self):
         """
-        Creates the cache directory if it does not exist.
+        Create the cache directory if it does not exist.
         """
         if not pathlib.Path(self.cache_dir).exists():
             os.mkdir(self.cache_dir)
 
     def is_cached(self, path: str, object_description: 'ObjectDescription') -> bool:
         """
-        Checks if the file in the given path is already cached or if
+        Check if the file in the given path is already cached or if
         there is already a cached file with the given name, this is the case if a .stl, .obj file or a description from
         the parameter server is used.
 
@@ -120,18 +136,18 @@ class CacheManager:
 
     def check_with_extension(self, path: str) -> bool:
         """
-        Checks if the file in the given ath exists in the cache directory including file extension.
+        Check if the file in the given ath exists in the cache directory including file extension.
 
         :param path: The path of the file to check.
         """
         file_name = pathlib.Path(path).name
-        full_path = pathlib.Path(self.cache_dir + file_name)
+        full_path = pathlib.Path(os.path.join(self.cache_dir, file_name))
         return full_path.exists()
 
     def check_without_extension(self, path: str, object_description: 'ObjectDescription') -> bool:
         """
-        Checks if the file in the given path exists in the cache directory without file extension,
-        the extension is added after the file name manually in this case.
+        Check if the file in the given path exists in the cache directory the given file extension.
+        Instead, replace the given extension with the extension of the used ObjectDescription and check for that one.
 
         :param path: The path of the file to check.
         :param object_description: The object description of the file.

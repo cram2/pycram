@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING
-from .enums import JointType, Shape
+from .enums import JointType, Shape, VirtualMoveBaseJointName
 from .pose import Pose, Point
 from abc import ABC, abstractmethod
 
@@ -271,21 +271,33 @@ class PlaneVisualShape(VisualShape):
 
 @dataclass
 class State(ABC):
+    """
+    Abstract dataclass for storing the state of an entity (e.g. world, object, link, joint).
+    """
     pass
 
 
 @dataclass
 class LinkState(State):
+    """
+    Dataclass for storing the state of a link.
+    """
     constraint_ids: Dict[Link, int]
 
 
 @dataclass
 class JointState(State):
+    """
+    Dataclass for storing the state of a joint.
+    """
     position: float
 
 
 @dataclass
 class ObjectState(State):
+    """
+    Dataclass for storing the state of an object.
+    """
     pose: Pose
     attachments: Dict[Object, Attachment]
     link_states: Dict[int, LinkState]
@@ -294,5 +306,178 @@ class ObjectState(State):
 
 @dataclass
 class WorldState(State):
+    """
+    Dataclass for storing the state of the world.
+    """
     simulator_state_id: int
     object_states: Dict[str, ObjectState]
+
+
+@dataclass
+class LateralFriction:
+    """
+    Dataclass for storing the information of the lateral friction.
+    """
+    lateral_friction: float
+    lateral_friction_direction: List[float]
+
+
+@dataclass
+class ContactPoint:
+    """
+    Dataclass for storing the information of a contact point between two objects.
+    """
+    link_a: Link
+    link_b: Link
+    position_on_object_a: Optional[List[float]] = None
+    position_on_object_b: Optional[List[float]] = None
+    normal_on_b: Optional[List[float]] = None  # normal on object b pointing towards object a
+    distance: Optional[float] = None
+    normal_force: Optional[List[float]] = None  # normal force applied during last step simulation
+    lateral_friction_1: Optional[LateralFriction] = None
+    lateral_friction_2: Optional[LateralFriction] = None
+    force_x_in_world_frame: Optional[float] = None
+    force_y_in_world_frame: Optional[float] = None
+    force_z_in_world_frame: Optional[float] = None
+
+    def __str__(self):
+        return f"ContactPoint: {self.link_a.object.name} - {self.link_b.object.name}"
+
+    def __repr__(self):
+        return self.__str__()
+
+
+ClosestPoint = ContactPoint
+"""
+The closest point between two objects which has the same structure as ContactPoint.
+"""
+
+
+class ContactPointsList(list):
+    """
+    A list of contact points.
+    """
+
+    def __index__(self, index: int) -> ContactPoint:
+        return super().__getitem__(index)
+
+    def __getitem__(self, item) -> Union[ContactPoint, 'ContactPointsList']:
+        if isinstance(item, slice):
+            return ContactPointsList(super().__getitem__(item))
+        return super().__getitem__(item)
+
+    def get_normals_of_object(self, obj: Object) -> List[List[float]]:
+        """
+        Gets the normals of the object.
+        :param obj: An instance of the Object class that represents the object.
+        :return: A list of float vectors that represent the normals of the object.
+        """
+        return self.get_points_of_object(obj).get_normals()
+
+    def get_normals(self) -> List[List[float]]:
+        """
+        Gets the normals of the points.
+        :return: A list of float vectors that represent the normals of the contact points.
+        """
+        return [point.normal_on_b for point in self]
+
+    def get_links_in_contact_of_object(self, obj: Object) -> List[Link]:
+        """
+        Gets the links in contact of the object.
+        :param obj: An instance of the Object class that represents the object.
+        :return: A list of Link instances that represent the links in contact of the object.
+        """
+        return [point.link_b for point in self if point.link_b.object == obj]
+
+    def get_points_of_object(self, obj: Object) -> 'ContactPointsList':
+        """
+        Gets the points of the object.
+        :param obj:
+        :return:
+        """
+        return ContactPointsList([point for point in self if point.link_b.object == obj])
+
+    def get_objects_that_got_removed(self, previous_points: 'ContactPointsList') -> List[Object]:
+        """
+        Returns the object that is not in the current points list but was in the initial points list.
+        :param previous_points: The initial points list.
+        :return: A list of Object instances that represent the objects that got removed.
+        """
+        initial_objects_in_contact = previous_points.get_objects_that_have_points()
+        current_objects_in_contact = self.get_objects_that_have_points()
+        return [obj for obj in initial_objects_in_contact if obj not in current_objects_in_contact]
+
+    def get_new_objects(self, previous_points: 'ContactPointsList') -> List[Object]:
+        """
+        Returns the object that is not in the initial points list but is in the current points list.
+        :param previous_points: The initial points list.
+        :return: A list of Object instances that represent the new objects.
+        """
+        initial_objects_in_contact = previous_points.get_objects_that_have_points()
+        current_objects_in_contact = self.get_objects_that_have_points()
+        return [obj for obj in current_objects_in_contact if obj not in initial_objects_in_contact]
+
+    def is_object_in_the_list(self, obj: Object) -> bool:
+        """
+        Checks if the object is one of the objects that have points in the list.
+        :param obj: An instance of the Object class that represents the object.
+        :return: True if the object is in the list, False otherwise.
+        """
+        return obj in self.get_objects_that_have_points()
+
+    def get_objects_that_have_points(self) -> List[Object]:
+        return [point.link_b.object for point in self]
+
+    def get_names_of_objects_that_have_points(self) -> List[str]:
+        return [point.link_b.object.name for point in self]
+
+    def __str__(self):
+        return f"ContactPointsList: {', '.join(self.get_names_of_objects_that_have_points())}"
+
+    def __repr__(self):
+        return self.__str__()
+
+
+ClosestPointsList = ContactPointsList
+"""
+The list of closest points which has same structure as ContactPointsList.
+"""
+
+
+@dataclass
+class TextAnnotation:
+    """
+    Dataclass for storing text annotations that can be displayed in the simulation.
+    """
+    text: str
+    position: List[float]
+    color: Color
+    id: int
+
+
+@dataclass
+class VirtualMoveBaseJoints:
+    """
+    Dataclass for storing the names, types and axes of the virtual move base joints of a mobile robot.
+    """
+    translation_x: Optional[str] = VirtualMoveBaseJointName.LINEAR_X.value
+    translation_y: Optional[str] = VirtualMoveBaseJointName.LINEAR_Y.value
+    angular_z: Optional[str] = VirtualMoveBaseJointName.ANGULAR_Z.value
+
+    def get_types(self) -> Dict[str, JointType]:
+        """
+        Return the joint types of the virtual move base joints.
+        """
+        return {self.translation_x: JointType.PRISMATIC,
+                self.translation_y: JointType.PRISMATIC,
+                self.angular_z: JointType.REVOLUTE}
+
+    def get_axes(self) -> Dict[str, Point]:
+        """
+        Return the axes (i.e. The axis on which the joint moves) of the virtual move base joints.
+        """
+        return {self.translation_x: Point(1, 0, 0),
+                self.translation_y: Point(0, 1, 0),
+                self.angular_z: Point(0, 0, 1)}
+
+

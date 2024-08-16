@@ -245,8 +245,9 @@ def collision_check(robot: Object, allowed_collision: Dict[Object, List]):
     for obj in World.current_world.objects:
         if obj.name == "floor":
             continue
-        in_contact= _in_contact(robot, obj, allowed_collision, allowed_robot_links)
-
+        in_contact = _in_contact(robot, obj, allowed_collision, allowed_robot_links)
+        if in_contact:
+            break
     return in_contact
 
 
