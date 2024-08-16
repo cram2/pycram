@@ -53,7 +53,7 @@ class Multiverse(World):
     similar to bullet_world which uses the bullet physics engine.
     """
 
-    use_controller: bool = conf.use_controller and not use_bullet_mode
+    use_controller: bool = conf.use_controller and not conf.use_bullet_mode
     """
     Whether to use the controller for the robot joints or not.
     """
