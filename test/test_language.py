@@ -271,7 +271,7 @@ class LanguageTestCase(BulletWorldTestCase):
 
         plan = act + code
         with simulated_robot:
-            state = plan.perform()
+            state, _ = plan.perform()
         self.assertIsInstance(plan.exceptions[plan], PlanFailure)
         self.assertEqual(len(plan.exceptions.keys()), 1)
         self.assertEqual(state, State.FAILED)
@@ -284,7 +284,7 @@ class LanguageTestCase(BulletWorldTestCase):
 
         plan = act - code
         with simulated_robot:
-            state = plan.perform()
+            state, _ = plan.perform()
         self.assertIsInstance(plan.exceptions[plan], list)
         self.assertIsInstance(plan.exceptions[plan][0], PlanFailure)
         self.assertEqual(len(plan.exceptions.keys()), 1)
@@ -298,7 +298,7 @@ class LanguageTestCase(BulletWorldTestCase):
 
         plan = act | code
         with simulated_robot:
-            state = plan.perform()
+            state, _ = plan.perform()
         self.assertIsInstance(plan.exceptions[plan], list)
         self.assertIsInstance(plan.exceptions[plan][0], PlanFailure)
         self.assertEqual(len(plan.exceptions.keys()), 1)
@@ -312,7 +312,7 @@ class LanguageTestCase(BulletWorldTestCase):
 
         plan = act ^ code
         with simulated_robot:
-            state = plan.perform()
+            state, _ = plan.perform()
         self.assertIsInstance(plan.exceptions[plan], list)
         self.assertIsInstance(plan.exceptions[plan][0], PlanFailure)
         self.assertEqual(len(plan.exceptions.keys()), 1)
