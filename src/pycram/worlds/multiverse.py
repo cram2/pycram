@@ -104,7 +104,8 @@ class Multiverse(World):
         if not self.is_prospection_world:
             self._spawn_floor()
 
-        self.api_requester.pause_simulation()
+        if not self.use_controller:
+            self.api_requester.pause_simulation()
 
     def _init_clients(self):
         self.reader: MultiverseReader = self.client_manager.create_reader(
@@ -517,9 +518,10 @@ class Multiverse(World):
         return results
 
     def step(self):
-        self.api_requester.unpause_simulation()
-        sleep(30 / self.simulation_frequency)
-        self.api_requester.pause_simulation()
+        if not self.use_controller:
+            self.api_requester.unpause_simulation()
+            sleep(30 / self.simulation_frequency)
+            self.api_requester.pause_simulation()
 
     def save_physics_simulator_state(self) -> int:
         logging.warning("save_physics_simulator_state is not implemented in Multiverse")

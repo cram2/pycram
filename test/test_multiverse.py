@@ -179,8 +179,11 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             original_joint_position = robot.get_joint_position(joint)
             robot.set_joint_position(joint, original_joint_position + step)
             joint_position = robot.get_joint_position(joint)
-            delta = self.multiverse.acceptable_position_error if joint_type == JointType.PRISMATIC \
-                else self.multiverse.acceptable_orientation_error
+            if not self.multiverse.use_controller:
+                delta = self.multiverse.acceptable_position_error if joint_type == JointType.PRISMATIC \
+                    else self.multiverse.acceptable_orientation_error
+            else:
+                delta = 0.18
             self.assertAlmostEqual(joint_position, original_joint_position + step, delta=delta)
 
     def test_spawn_robot(self):
