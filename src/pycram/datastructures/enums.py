@@ -127,3 +127,34 @@ class VirtualMoveBaseJointName(Enum):
     LINEAR_X = "odom_vel_lin_x_joint"
     LINEAR_Y = "odom_vel_lin_y_joint"
     ANGULAR_Z = "odom_vel_ang_z_joint"
+
+
+class MJCFGeomType(Enum):
+    """
+    Enum for the different geom types in a MuJoCo XML file.
+    """
+    BOX = "box"
+    CYLINDER = "cylinder"
+    CAPSULE = "capsule"
+    SPHERE = "sphere"
+    PLANE = "plane"
+    MESH = "mesh"
+    ELLIPSOID = "ellipsoid"
+    HFIELD = "hfield"
+    SDF = "sdf"
+
+
+MJCFBodyType = MJCFGeomType
+"""
+Alias for MJCFGeomType. As the body type is the same as the geom type.
+"""
+
+
+class MJCFJointType(Enum):
+    """
+    Enum for the different joint types in a MuJoCo XML file.
+    """
+    FREE = "free"
+    BALL = "ball"
+    SLIDE = "slide"
+    HINGE = "hinge"
