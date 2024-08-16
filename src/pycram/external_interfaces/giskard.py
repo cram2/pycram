@@ -169,7 +169,7 @@ def spawn_object(object: Object) -> None:
     :param object: World object that should be spawned
     """
     if len(object.link_name_to_id) == 1:
-        geometry = object.get_link_geometry(object.root_link_name)
+        geometry = object.get_link_geometry(object.root_link.name)
         if isinstance(geometry, MeshVisualShape):
             filename = geometry.file_name
             spawn_mesh(object.name, filename, object.get_pose())

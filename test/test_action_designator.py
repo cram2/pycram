@@ -22,7 +22,8 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.assertEqual(description.ground().position, 0.3)
         with simulated_robot:
             description.resolve().perform()
-        self.assertEqual(self.world.robot.get_joint_position(RobotDescription.current_robot_description.torso_joint), 0.3)
+        self.assertEqual(self.world.robot.get_joint_position(RobotDescription.current_robot_description.torso_joint),
+                         0.3)
 
     def test_set_gripper(self):
         description = action_designator.SetGripperAction([Arms.LEFT], [GripperState.OPEN, GripperState.CLOSE])

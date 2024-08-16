@@ -1,30 +1,34 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-import os
 import threading
 import time
 from abc import ABC, abstractmethod
 from copy import copy
-from queue import Queue
 
 
 import numpy as np
 import rospy
 from geometry_msgs.msg import Point
+from tf.transformations import euler_from_quaternion
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING
 from typing_extensions import Union
 
 from ..cache_manager import CacheManager
-from .enums import JointType, ObjectType, WorldMode
-from ..world_concepts.event import Event
+from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
+                                          MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape,
+                                          SphereVisualShape,
+                                          CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
+                                          ObjectState, State, WorldState, ClosestPointsList,
+                                          ContactPointsList, VirtualMoveBaseJoints)
+from ..datastructures.enums import JointType, ObjectType, WorldMode, Arms
+from ..datastructures.pose import Pose, Transform
+from ..exceptions import ProspectionObjectNotFound, WorldObjectNotFound
 from ..local_transformer import LocalTransformer
-from .pose import Pose, Transform
+from ..robot_description import RobotDescription
 from ..world_concepts.constraints import Constraint
-from .dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
-                                               MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape, SphereVisualShape,
-                                               CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
-                                               ObjectState, State, WorldState)
+from ..world_concepts.event import Event
+from ..config import world_conf as conf
 
 if TYPE_CHECKING:
     from ..world_concepts.world_object import Object
@@ -128,15 +132,31 @@ class World(StateEntity, ABC):
      the URDF with the name of the URDF on the parameter server. 
     """
 
-    data_directory: List[str] = [os.path.join(os.path.dirname(__file__), '..', '..', '..', 'resources')]
+    resources_path = conf.resources_path
     """
-    Global reference for the data directories, this is used to search for the description files of the robot 
-    and the objects.
+    Global reference for the resources path, this is used to search for the description files of the robot and
+     the objects.
     """
 
-    cache_dir = data_directory[0] + '/cached/'
+    data_directory: List[str] = [resources_path]
+    """
+    Global reference for the data directories, this is used to search for the description files of the robot,
+     the objects, and the cached files.
+    """
+
+    cache_dir: str = conf.cache_dir
     """
     Global reference for the cache directory, this is used to cache the description files of the robot and the objects.
+    """
+
+    cache_manager: CacheManager = CacheManager(cache_dir, data_directory)
+    """
+    Global reference for the cache manager, this is used to cache the description files of the robot and the objects.
+    """
+
+    prospection_world_prefix: str = conf.prospection_world_prefix
+    """
+    The prefix for the prospection world name.
     """
 
     def __init__(self, mode: WorldMode, is_prospection_world: bool, simulation_frequency: float):
@@ -151,27 +171,30 @@ class World(StateEntity, ABC):
 
         StateEntity.__init__(self)
 
+        self.let_pycram_move_attached_objects = True
+        self.let_pycram_handle_spawning = True
+        self.let_pycram_handle_world_sync = True
+        self.update_poses_from_sim_on_get = True
+
         if World.current_world is None:
             World.current_world = self
         World.simulation_frequency = simulation_frequency
 
-        self.cache_manager = CacheManager(self.cache_dir, self.data_directory)
+        self.object_lock: threading.Lock = threading.Lock()
 
         self.id: Optional[int] = -1
         # This is used to connect to the physics server (allows multiple clients)
 
         self._init_world(mode)
 
+        self.objects: List[Object] = []
+        # List of all Objects in the World
+
         self.is_prospection_world: bool = is_prospection_world
         self._init_and_sync_prospection_world()
 
         self.local_transformer = LocalTransformer()
         self._update_local_transformer_worlds()
-
-        self.objects: List[Object] = []
-        # List of all Objects in the World
-
-
 
         self.mode: WorldMode = mode
         # The mode of the simulation, can be "GUI" or "DIRECT"
@@ -232,6 +255,7 @@ class World(StateEntity, ABC):
             self.world_sync = None
         else:
             self.world_sync: WorldSync = WorldSync(self, self.prospection_world)
+            self.pause_world_sync()
             self.world_sync.start()
 
     def update_cache_dir_with_object(self, path: str, ignore_cached_files: bool,
@@ -253,19 +277,29 @@ class World(StateEntity, ABC):
         return 1 / World.simulation_frequency
 
     @abstractmethod
-    def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[Pose] = None) -> int:
+    def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[Pose] = None,
+                               obj_type: Optional[ObjectType] = None) -> int:
         """
         Loads a description file (e.g. URDF) at the given pose and returns the id of the loaded object.
 
         :param path: The path to the description file, if None the description file is assumed to be already loaded.
         :param pose: The pose at which the object should be loaded.
+        :param obj_type: The type of the object.
         :return: The id of the loaded object.
         """
         pass
 
+    def get_object_names(self) -> List[str]:
+        """
+        Returns the names of all objects in the World.
+
+        :return: A list of object names.
+        """
+        return [obj.name for obj in self.objects]
+
     def get_object_by_name(self, name: str) -> Optional[Object]:
         """
-        Returns the object with the given name. If there is no object with the given name, None is returned.
+        Return the object with the given name. If there is no object with the given name, None is returned.
 
         :param name: The name of the returned Objects.
         :return: The object with the given name, if there is one.
@@ -321,20 +355,18 @@ class World(StateEntity, ABC):
 
         :param obj: The object to be removed.
         """
+        self.object_lock.acquire()
         obj.detach_all()
 
-        self.objects.remove(obj)
+        if obj.name != "floor":
+            self.objects.remove(obj)
 
-        # This means the current world of the object is not the prospection world, since it
-        # has a reference to the prospection world
-        if self.prospection_world is not None:
-            self.world_sync.remove_obj_queue.put(obj)
-            self.world_sync.remove_obj_queue.join()
-
-        self.remove_object_from_simulator(obj)
+        if obj.name != "floor":
+            self.remove_object_from_simulator(obj)
 
         if World.robot == obj:
             World.robot = None
+        self.object_lock.release()
 
     def add_fixed_constraint(self, parent_link: Link, child_link: Link,
                              child_to_parent_transform: Transform) -> int:
@@ -432,7 +464,7 @@ class World(StateEntity, ABC):
             self.step()
             for objects, callbacks in self.coll_callbacks.items():
                 contact_points = self.get_contact_points_between_two_objects(objects[0], objects[1])
-                if contact_points != ():
+                if len(contact_points) > 0:
                     callbacks.on_collision_cb()
                 elif callbacks.no_collision_cb is not None:
                     callbacks.no_collision_cb()
@@ -456,6 +488,60 @@ class World(StateEntity, ABC):
         """
         pass
 
+    def set_mobile_robot_pose(self, pose: Pose) -> None:
+        """
+        Set the goal for the move base joints of a mobile robot to reach a target pose. This is used for example when
+        the simulator does not support setting the pose of the robot directly (e.g. MuJoCo).
+        param pose: The target pose.
+        """
+        goal = self.get_move_base_joint_goal(pose)
+        self.robot.set_joint_positions(goal)
+
+    def get_move_base_joint_goal(self, pose: Pose) -> Dict[str, float]:
+        """
+        Get the goal for the move base joints of a mobile robot to reach a target pose.
+        param pose: The target pose.
+        return: The goal for the move base joints.
+        """
+        position_diff = self.get_position_diff(self.robot.get_position_as_list(), pose.position_as_list())[:2]
+        angle_diff = self.get_z_angle_diff(self.robot.get_orientation_as_list(), pose.orientation_as_list())
+        # Get the joints of the base link
+        move_base_joints = self.get_move_base_joints()
+        return {move_base_joints.translation_x: position_diff[0],
+                move_base_joints.translation_y: position_diff[1],
+                move_base_joints.angular_z: angle_diff}
+
+    @staticmethod
+    def get_move_base_joints() -> VirtualMoveBaseJoints:
+        """
+        Get the move base joints of the robot.
+
+        :return: The move base joints.
+        """
+        return RobotDescription.current_robot_description.virtual_move_base_joints
+
+    @staticmethod
+    def get_position_diff(current_position: List[float], target_position: List[float]) -> List[float]:
+        """
+        Get the difference between two positions.
+        param current_position: The current position.
+        param target_position: The target position.
+        return: The difference between the two positions.
+        """
+        return [target_position[i] - current_position[i] for i in range(3)]
+
+    @staticmethod
+    def get_z_angle_diff(current_quaternion: List[float], target_quaternion: List[float]) -> float:
+        """
+        Get the difference between the z angles of two quaternions.
+        param current_quaternion: The current quaternion.
+        param target_quaternion: The target quaternion.
+        return: The difference between the z angles of the two quaternions in euler angles.
+        """
+        current_angle = euler_from_quaternion(current_quaternion)[2]
+        target_angle = euler_from_quaternion(target_quaternion)[2]
+        return target_angle - current_angle
+
     @abstractmethod
     def perform_collision_detection(self) -> None:
         """
@@ -464,7 +550,7 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_object_contact_points(self, obj: Object) -> List:
+    def get_object_contact_points(self, obj: Object) -> ContactPointsList:
         """
         Returns a list of contact points of this Object with all other Objects.
 
@@ -474,15 +560,40 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
-    def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> List:
+    def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> ContactPointsList:
         """
-        Returns a list of contact points between obj1 and obj2.
+        Returns a list of contact points between obj_a and obj_b.
 
         :param obj1: The first object.
         :param obj2: The second object.
         :return: A list of all contact points between the two objects.
         """
         pass
+
+    def get_object_closest_points(self, obj: Object, max_distance: float) -> ClosestPointsList:
+        """
+        Returns the closest points of this object with all other objects in the world.
+
+        :param obj: The object.
+        :param max_distance: The maximum distance between the points.
+        :return: A list of the closest points.
+        """
+        all_obj_closest_points = [self.get_closest_points_between_objects(obj, other_obj, max_distance) for other_obj in
+                                  self.objects
+                                  if other_obj != obj]
+        return ClosestPointsList([point for closest_points in all_obj_closest_points for point in closest_points])
+
+    def get_closest_points_between_objects(self, object_a: Object, object_b: Object, max_distance: float) \
+            -> ClosestPointsList:
+        """
+        Returns the closest points between two objects.
+
+        :param object_a: The first object.
+        :param object_b: The second object.
+        :param max_distance: The maximum distance between the points.
+        :return: A list of the closest points.
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def reset_joint_position(self, joint: Joint, joint_position: float) -> None:
@@ -511,6 +622,16 @@ class World(StateEntity, ABC):
         Step the world simulation using forward dynamics
         """
         pass
+
+    def get_arm_tool_frame_link(self, arm: Arms) -> Link:
+        """
+        Get the tool frame link of the arm of the robot.
+
+        :param arm: The arm for which the tool frame link should be returned.
+        :return: The tool frame link of the arm.
+        """
+        ee_link_name = RobotDescription.current_robot_description.get_arm_tool_frame(arm)
+        return self.robot.get_link(ee_link_name)
 
     @abstractmethod
     def set_link_color(self, link: Link, rgba_color: Color):
@@ -660,6 +781,7 @@ class World(StateEntity, ABC):
         Terminates the world sync thread.
         """
         self.world_sync.terminate = True
+        self.resume_world_sync()
         self.world_sync.join()
 
     def save_state(self, state_id: Optional[int] = None) -> int:
@@ -792,18 +914,8 @@ class World(StateEntity, ABC):
         :param obj: The object for which the corresponding object in the prospection World should be found.
         :return: The corresponding object in the prospection world.
         """
-        self.world_sync.add_obj_queue.join()
-        try:
-            return self.world_sync.object_mapping[obj]
-        except KeyError:
-            prospection_world = self if self.is_prospection_world else self.prospection_world
-            if obj in prospection_world.objects:
-                return obj
-            else:
-                raise ValueError(
-                    f"There is no prospection object for the given object: {obj}, this could be the case if"
-                    f" the object isn't anymore in the main (graphical) World"
-                    f" or if the given object is already a prospection object. ")
+        with UseProspectionWorld():
+            return self.world_sync.get_prospection_object(obj)
 
     def get_object_for_prospection_object(self, prospection_object: Object) -> Object:
         """
@@ -814,11 +926,17 @@ class World(StateEntity, ABC):
         :param prospection_object: The object for which the corresponding object in the main World should be found.
         :return: The object in the main World.
         """
-        object_map = self.world_sync.object_mapping
-        try:
-            return list(object_map.keys())[list(object_map.values()).index(prospection_object)]
-        except ValueError:
-            raise ValueError("The given object is not in the prospection world.")
+        return self.world_sync.get_world_object(prospection_object)
+
+    def reset_world_and_remove_objects(self, exclude_objects: Optional[List[Object]] = None) -> None:
+        """
+        Resets the World to the state it was first spawned in and removes all objects from the World.
+        :param exclude_objects: A list of objects that should not be removed.
+        """
+        self.reset_world()
+        objs_copy = copy(self.objects)
+        exclude_objects = [] if exclude_objects is None else exclude_objects
+        [self.remove_object(obj) for obj in objs_copy if obj not in exclude_objects]
 
     def reset_world(self, remove_saved_states=True) -> None:
         """
@@ -1045,8 +1163,29 @@ class World(StateEntity, ABC):
         """
         raise NotImplementedError
 
+    def pause_world_sync(self) -> None:
+        """
+        Pauses the world synchronization.
+        """
+        self.world_sync.sync_lock.acquire()
+
+    def resume_world_sync(self) -> None:
+        """
+        Resumes the world synchronization.
+        """
+        self.world_sync.sync_lock.release()
+
     def __del__(self):
         self.exit()
+
+    @abstractmethod
+    def set_multiple_joint_positions(self, obj: Object, joint_poses: Dict[str, float]) -> None:
+        """
+        Set the positions of multiple joints of an articulated object.
+        :param obj: The object.
+        :param joint_poses: A dictionary with joint names as keys and joint positions as values.
+        """
+        pass
 
 
 class UseProspectionWorld:
@@ -1058,10 +1197,9 @@ class UseProspectionWorld:
         with UseProspectionWorld():
             NavigateAction.Action([[1, 0, 0], [0, 0, 0, 1]]).perform()
     """
-
-    WAIT_TIME_FOR_ADDING_QUEUE = 20
+    WAIT_TIME_AS_N_SIMULATION_STEPS: int = 20
     """
-    The time in seconds to wait for the adding queue to be ready.
+    The time in simulation steps to wait before switching to the prospection world
     """
 
     def __init__(self):
@@ -1080,14 +1218,11 @@ class UseProspectionWorld:
         This method is called when entering the with block, it will set the current world to the prospection world
         """
         if not World.current_world.is_prospection_world:
-            time.sleep(self.WAIT_TIME_FOR_ADDING_QUEUE * World.current_world.simulation_time_step)
-            # blocks until the adding queue is ready
-            World.current_world.world_sync.add_obj_queue.join()
-            self.sync_worlds()
-
             self.prev_world = World.current_world
-            World.current_world.world_sync.pause_sync = True
             World.current_world = World.current_world.prospection_world
+            World.current_world.resume_world_sync()
+            time.sleep(self.WAIT_TIME_AS_N_SIMULATION_STEPS * World.current_world.simulation_time_step)
+            World.current_world.pause_world_sync()
 
     def __exit__(self, *args):
         """
@@ -1095,7 +1230,6 @@ class UseProspectionWorld:
         """
         if self.prev_world is not None:
             World.current_world = self.prev_world
-            World.current_world.world_sync.pause_sync = False
 
 
 class WorldSync(threading.Thread):
@@ -1103,10 +1237,13 @@ class WorldSync(threading.Thread):
     Synchronizes the state between the World and its prospection world.
     Meaning the cartesian and joint position of everything in the prospection world will be
     synchronized with the main World.
-    Adding and removing objects is done via queues, such that loading times of objects
-    in the prospection world does not affect the World.
     The class provides the possibility to pause the synchronization, this can be used
     if reasoning should be done in the prospection world.
+    """
+
+    WAIT_TIME_AS_N_SIMULATION_STEPS = 20
+    """
+    The time in simulation steps to wait between each iteration of the syncing loop.
     """
 
     def __init__(self, world: World, prospection_world: World):
@@ -1116,48 +1253,102 @@ class WorldSync(threading.Thread):
         self.prospection_world.world_sync = self
 
         self.terminate: bool = False
-        self.add_obj_queue: Queue = Queue()
-        self.remove_obj_queue: Queue = Queue()
         self.pause_sync: bool = False
         # Maps world to prospection world objects
-        self.object_mapping: Dict[Object, Object] = {}
+        self.object_to_prospection_object_map: Dict[Object, Object] = {}
+        self.prospection_object_to_object_map: Dict[Object, Object] = {}
         self.equal_states = False
+        self.sync_lock: threading.Lock = threading.Lock()
 
-    def run(self, wait_time_as_n_simulation_steps: Optional[int] = 1):
+    def run(self):
         """
         Main method of the synchronization, this thread runs in a loop until the
         terminate flag is set.
         While this loop runs it continuously checks the cartesian and joint position of
         every object in the World and updates the corresponding object in the
-        prospection world. When there are entries in the adding or removing queue the corresponding objects will
-        be added or removed in the same iteration.
-
-        :param wait_time_as_n_simulation_steps: The time in simulation steps to wait between each iteration of
-         the syncing loop.
+        prospection world.
         """
         while not self.terminate:
-            self.check_for_pause()
-            while not self.add_obj_queue.empty():
-                obj = self.add_obj_queue.get()
-                # Maps the World object to the prospection world object
-                self.object_mapping[obj] = copy(obj)
-                self.add_obj_queue.task_done()
-            while not self.remove_obj_queue.empty():
-                obj = self.remove_obj_queue.get()
-                # Get prospection world object reference from object mapping
-                prospection_obj = self.object_mapping[obj]
-                prospection_obj.remove()
-                del self.object_mapping[obj]
-                self.remove_obj_queue.task_done()
-            self.check_for_pause()
-            time.sleep(wait_time_as_n_simulation_steps * self.world.simulation_time_step)
+            self.sync_lock.acquire()
+            self.sync_worlds()
+            self.sync_lock.release()
+            time.sleep(WorldSync.WAIT_TIME_AS_N_SIMULATION_STEPS * self.world.simulation_time_step)
 
-    def check_for_pause(self) -> None:
+    def get_world_object(self, prospection_object: Object) -> Object:
         """
-        Checks if :py:attr:`~self.pause_sync` is true and sleeps this thread until it isn't anymore.
+        Returns the corresponding object from the main World for a given object in the prospection world.
+
+        :param prospection_object: The object for which the corresponding object in the main World should be found.
+        :return: The object in the main World.
         """
-        while self.pause_sync:
-            time.sleep(0.1)
+        try:
+            return self.prospection_object_to_object_map[prospection_object]
+        except KeyError:
+            if prospection_object in self.world.objects:
+                return prospection_object
+            raise WorldObjectNotFound(prospection_object)
+
+    def get_prospection_object(self, obj: Object) -> Object:
+        """
+        Returns the corresponding object from the prospection world for a given object in the main world.
+
+        :param obj: The object for which the corresponding object in the prospection World should be found.
+        :return: The corresponding object in the prospection world.
+        """
+        try:
+            return self.object_to_prospection_object_map[obj]
+        except KeyError:
+            if obj in self.prospection_world.objects:
+                return obj
+            raise ProspectionObjectNotFound(obj)
+
+    def sync_worlds(self):
+        """
+        Syncs the prospection world with the main world by adding and removing objects and synchronizing their states.
+        """
+        self.remove_objects_not_in_world()
+        self.add_objects_not_in_prospection_world()
+        self.prospection_object_to_object_map = {prospection_obj: obj for obj, prospection_obj in
+                                                 self.object_to_prospection_object_map.items()}
+        self.sync_objects_states()
+
+    def remove_objects_not_in_world(self):
+        """
+        Removes all objects that are not in the main world from the prospection world.
+        """
+        obj_map_copy = copy(self.object_to_prospection_object_map)
+        [self.remove_object(obj) for obj in obj_map_copy.keys() if obj not in self.world.objects]
+
+    def add_objects_not_in_prospection_world(self):
+        """
+        Adds all objects that are in the main world but not in the prospection world to the prospection world.
+        """
+        [self.add_object(obj) for obj in self.world.objects if obj not in self.object_to_prospection_object_map]
+
+    def add_object(self, obj: Object) -> None:
+        """
+        Adds an object to the prospection world.
+
+        :param obj: The object to be added.
+        """
+        self.object_to_prospection_object_map[obj] = copy(obj)
+
+    def remove_object(self, obj: Object) -> None:
+        """
+        Removes an object from the prospection world.
+
+        :param obj: The object to be removed.
+        """
+        prospection_obj = self.object_to_prospection_object_map[obj]
+        prospection_obj.remove()
+        del self.object_to_prospection_object_map[obj]
+
+    def sync_objects_states(self) -> None:
+        """
+        Synchronizes the state of all objects in the World with the prospection world.
+        """
+        for world_obj, prospection_obj in self.object_to_prospection_object_map.items():
+            prospection_obj.current_state = world_obj.current_state
 
     def check_for_equal(self) -> bool:
         """
@@ -1167,7 +1358,12 @@ class WorldSync(threading.Thread):
         :return: True if both Worlds have the same state, False otherwise.
         """
         eql = True
-        for obj, prospection_obj in self.object_mapping.items():
+        prospection_names = self.prospection_world.get_object_names()
+        eql = eql and [name in prospection_names for name in self.world.get_object_names()]
+        eql = eql and len(prospection_names) == len(self.world.get_object_names())
+        if not eql:
+            return False
+        for obj, prospection_obj in self.object_to_prospection_object_map.items():
             eql = eql and obj.get_pose().dist(prospection_obj.get_pose()) < 0.001
         self.equal_states = eql
         return eql

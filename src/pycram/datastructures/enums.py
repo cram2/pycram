@@ -120,3 +120,10 @@ class GripperType(Enum):
     CUSTOM = auto()
 
 
+class VirtualMoveBaseJointName(Enum):
+    """
+    Enum for the joint names of the virtual move base.
+    """
+    LINEAR_X = "odom_vel_lin_x_joint"
+    LINEAR_Y = "odom_vel_lin_y_joint"
+    ANGULAR_Z = "odom_vel_ang_z_joint"

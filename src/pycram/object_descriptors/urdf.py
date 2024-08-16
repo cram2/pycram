@@ -1,10 +1,11 @@
+import os
 import pathlib
-from xml.etree import ElementTree
+import xml.etree.ElementTree as ET
 
 import rospkg
 import rospy
 from geometry_msgs.msg import Point
-from tf.transformations import quaternion_from_euler
+from tf.transformations import quaternion_from_euler, euler_from_quaternion
 from typing_extensions import Union, List, Optional
 from urdf_parser_py import urdf
 from urdf_parser_py.urdf import (URDF, Collision, Box as URDF_Box, Cylinder as URDF_Cylinder,
@@ -78,6 +79,8 @@ class JointDescription(AbstractJointDescription):
                      'floating': JointType.FLOATING,
                      'planar': JointType.PLANAR,
                      'fixed': JointType.FIXED}
+
+    pycram_type_map = {pycram_type: urdf_type for urdf_type, pycram_type in urdf_type_map.items()}
 
     def __init__(self, urdf_description: urdf.Joint):
         super().__init__(urdf_description)
@@ -172,6 +175,28 @@ class ObjectDescription(AbstractObjectDescription):
     class Joint(AbstractObjectDescription.Joint, JointDescription):
         ...
 
+    def add_joint(self, name: str, child: str, joint_type: JointType,
+                  axis: Point, parent: Optional[str] = None, origin: Optional[Pose] = None,
+                  lower_limit: Optional[float] = None, upper_limit: Optional[float] = None) -> None:
+        if lower_limit is not None or upper_limit is not None:
+            limit = urdf.JointLimit(lower=lower_limit, upper=upper_limit)
+        else:
+            limit = None
+        if origin is not None:
+            origin = urdf.Pose(origin.position_as_list(), euler_from_quaternion(origin.orientation_as_list()))
+        if axis is not None:
+            axis = [axis.x, axis.y, axis.z]
+        if parent is None:
+            parent = self.get_root()
+        else:
+            parent = self.get_link_by_name(parent).parsed_description
+        joint = urdf.Joint(name,
+                           parent,
+                           self.get_link_by_name(child).parsed_description,
+                           JointDescription.pycram_type_map[joint_type],
+                           axis, origin, limit)
+        self.parsed_description.add_joint(joint)
+
     def load_description(self, path) -> URDF:
         with open(path, 'r') as file:
             # Since parsing URDF causes a lot of warning messages which can't be deactivated, we suppress them
@@ -180,8 +205,8 @@ class ObjectDescription(AbstractObjectDescription):
 
     def generate_from_mesh_file(self, path: str, name: str, color: Optional[Color] = Color()) -> str:
         """
-        Generates an URDf file with the given .obj or .stl file as mesh. In addition, the given rgba_color will be
-        used to create a material tag in the URDF.
+        Generate a URDf file with the given .obj or .stl file as mesh. In addition, use the given rgba_color to create a
+         material tag in the URDF.
 
         :param path: The path to the mesh file.
         :param name: The name of the object.
@@ -213,21 +238,23 @@ class ObjectDescription(AbstractObjectDescription):
         content = urdf_template.replace("~a", name).replace("~b", path).replace("~c", rgb)
         return content
 
-    def generate_from_description_file(self, path: str) -> str:
+    def generate_from_description_file(self, path: str, make_mesh_paths_absolute: bool = True) -> str:
         with open(path, mode="r") as f:
             urdf_string = self.fix_missing_inertial(f.read())
             urdf_string = self.remove_error_tags(urdf_string)
             urdf_string = self.fix_link_attributes(urdf_string)
             try:
-                urdf_string = self.correct_urdf_string(urdf_string)
+                urdf_string = self.replace_ros_package_references_to_absolute_paths(urdf_string)
+                urdf_string = self.fix_missing_inertial(urdf_string)
             except rospkg.ResourceNotFound as e:
                 rospy.logerr(f"Could not find resource package linked in this URDF")
                 raise e
-        return urdf_string
+        return self.make_mesh_paths_absolute(urdf_string, path) if make_mesh_paths_absolute else urdf_string
 
     def generate_from_parameter_server(self, name: str) -> str:
         urdf_string = rospy.get_param(name)
-        return self.correct_urdf_string(urdf_string)
+        urdf_string = self.replace_ros_package_references_to_absolute_paths(urdf_string)
+        return self.fix_missing_inertial(urdf_string)
 
     def get_link_by_name(self, link_name: str) -> LinkDescription:
         """
@@ -267,15 +294,28 @@ class ObjectDescription(AbstractObjectDescription):
         """
         return self.parsed_description.get_root()
 
+    def get_tip(self) -> str:
+        link = self.get_root()
+        while link in self.parsed_description.child_map:
+            children = self.parsed_description.child_map[link]
+            if len(children) > 1:
+                # Multiple children, can't decide which one to take (e.g. fingers of a hand)
+                break
+            else:
+                child = children[0][1]
+                link = child
+        return link
+
     def get_chain(self, start_link_name: str, end_link_name: str) -> List[str]:
         """
         :return: the chain of links from 'start_link_name' to 'end_link_name'.
         """
         return self.parsed_description.get_chain(start_link_name, end_link_name)
 
-    def correct_urdf_string(self, urdf_string: str) -> str:
+    @staticmethod
+    def replace_ros_package_references_to_absolute_paths(urdf_string: str) -> str:
         """
-        Changes paths for files in the URDF from ROS paths to paths in the file system. Since World (PyBullet legacy)
+        Change paths for files in the URDF from ROS paths to paths in the file system. Since World (PyBullet legacy)
         can't deal with ROS package paths.
 
         :param urdf_string: The name of the URDf on the parameter server
@@ -291,7 +331,26 @@ class ObjectDescription(AbstractObjectDescription):
                 line = line.replace("package://" + s1[0], path)
             new_urdf_string += line + '\n'
 
-        return self.fix_missing_inertial(new_urdf_string)
+        return new_urdf_string
+
+    @staticmethod
+    def make_mesh_paths_absolute(urdf_string: str, urdf_file_path: str) -> str:
+        # Parse the URDF file
+        root = ET.fromstring(urdf_string)
+
+        # Iterate through all mesh tags
+        for mesh in root.findall('.//mesh'):
+            filename = mesh.attrib.get('filename', '')
+            if filename:
+                # If the filename is a relative path, convert it to an absolute path
+                if not os.path.isabs(filename):
+                    # Deduce the base path from the relative path
+                    base_path = os.path.dirname(
+                        os.path.abspath(os.path.join(os.path.dirname(urdf_file_path), filename)))
+                    abs_path = os.path.abspath(os.path.join(base_path, os.path.basename(filename)))
+                    mesh.set('filename', abs_path)
+
+        return ET.tostring(root, encoding='unicode')
 
     @staticmethod
     def fix_missing_inertial(urdf_string: str) -> str:
@@ -303,10 +362,10 @@ class ObjectDescription(AbstractObjectDescription):
         :returns: The new, corrected URDF description as string.
         """
 
-        inertia_tree = ElementTree.ElementTree(ElementTree.Element("inertial"))
-        inertia_tree.getroot().append(ElementTree.Element("mass", {"value": "0.1"}))
-        inertia_tree.getroot().append(ElementTree.Element("origin", {"rpy": "0 0 0", "xyz": "0 0 0"}))
-        inertia_tree.getroot().append(ElementTree.Element("inertia", {"ixx": "0.01",
+        inertia_tree = ET.ElementTree(ET.Element("inertial"))
+        inertia_tree.getroot().append(ET.Element("mass", {"value": "0.1"}))
+        inertia_tree.getroot().append(ET.Element("origin", {"rpy": "0 0 0", "xyz": "0 0 0"}))
+        inertia_tree.getroot().append(ET.Element("inertia", {"ixx": "0.01",
                                                                       "ixy": "0",
                                                                       "ixz": "0",
                                                                       "iyy": "0.01",
@@ -314,14 +373,14 @@ class ObjectDescription(AbstractObjectDescription):
                                                                       "izz": "0.01"}))
 
         # create tree from string
-        tree = ElementTree.ElementTree(ElementTree.fromstring(urdf_string))
+        tree = ET.ElementTree(ET.fromstring(urdf_string))
 
         for link_element in tree.iter("link"):
             inertial = [*link_element.iter("inertial")]
             if len(inertial) == 0:
                 link_element.append(inertia_tree.getroot())
 
-        return ElementTree.tostring(tree.getroot(), encoding='unicode')
+        return ET.tostring(tree.getroot(), encoding='unicode')
 
     @staticmethod
     def remove_error_tags(urdf_string: str) -> str:
@@ -332,14 +391,14 @@ class ObjectDescription(AbstractObjectDescription):
         :param urdf_string: String of the URDF from which the tags should be removed
         :return: The URDF string with the tags removed
         """
-        tree = ElementTree.ElementTree(ElementTree.fromstring(urdf_string))
+        tree = ET.ElementTree(ET.fromstring(urdf_string))
         removing_tags = ["gazebo", "transmission"]
         for tag_name in removing_tags:
             all_tags = tree.findall(tag_name)
             for tag in all_tags:
                 tree.getroot().remove(tag)
 
-        return ElementTree.tostring(tree.getroot(), encoding='unicode')
+        return ET.tostring(tree.getroot(), encoding='unicode')
 
     @staticmethod
     def fix_link_attributes(urdf_string: str) -> str:
@@ -349,13 +408,13 @@ class ObjectDescription(AbstractObjectDescription):
         :param urdf_string: The string of the URDF from which the attributes should be removed
         :return: The URDF string with the attributes removed
         """
-        tree = ElementTree.ElementTree(ElementTree.fromstring(urdf_string))
+        tree = ET.ElementTree(ET.fromstring(urdf_string))
 
         for link in tree.iter("link"):
             if "type" in link.attrib.keys():
                 del link.attrib["type"]
 
-        return ElementTree.tostring(tree.getroot(), encoding='unicode')
+        return ET.tostring(tree.getroot(), encoding='unicode')
 
     @staticmethod
     def get_file_extension() -> str:

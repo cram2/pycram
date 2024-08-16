@@ -181,7 +181,10 @@ class Attachment(AbstractConstraint):
         self.bidirectional: bool = bidirectional
         self._loose: bool = False
 
-        if self.parent_to_child_transform is None:
+        if parent_to_child_transform is not None:
+            self.parent_to_child_transform = parent_to_child_transform
+
+        elif self.parent_to_child_transform is None:
             self.update_transform()
 
         if self.id is None:
@@ -211,7 +214,7 @@ class Attachment(AbstractConstraint):
         """
         Adds a fixed constraint between the parent link and the child link.
         """
-        self.id = self.parent_link.add_fixed_constraint_with_link(self.child_link)
+        self.id = self.parent_link.add_fixed_constraint_with_link(self.child_link, self.parent_to_child_transform)
 
     def calculate_transform(self) -> Transform:
         """
