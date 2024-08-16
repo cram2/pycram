@@ -36,7 +36,7 @@ from ..world_concepts.event import Event
 
 if TYPE_CHECKING:
     from ..world_concepts.world_object import Object
-    from ..description import Link, Joint
+    from ..description import Link, Joint, ObjectDescription
 
 
 class World(StateEntity, ABC):
@@ -291,16 +291,17 @@ class World(StateEntity, ABC):
             self.pause_world_sync()
             self.world_sync.start()
 
-    def update_cache_dir_with_object(self, path: str, ignore_cached_files: bool,
-                                     obj: Object) -> str:
+    def preprocess_object_file_and_get_its_cache_path(self, path: str, ignore_cached_files: bool,
+                                                      description: ObjectDescription, name: str) -> str:
         """
         Updates the cache directory with the given object.
 
         :param path: The path to the object.
         :param ignore_cached_files: If the cached files should be ignored.
-        :param obj: The object to be added to the cache directory.
+        :param description: The object description.
+        :param name: The name of the object.
         """
-        return self.cache_manager.update_cache_dir_with_object(path, ignore_cached_files, obj.description, obj.name)
+        return self.cache_manager.update_cache_dir_with_object(path, ignore_cached_files, description, name)
 
     @property
     def simulation_time_step(self):
