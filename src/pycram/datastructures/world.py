@@ -856,6 +856,7 @@ class World(StateEntity, ABC):
         Closes the World as well as the prospection world, also collects any other thread that is running.
         """
         self.exit_prospection_world_if_exists()
+        self.reset_world_and_remove_objects()
         self.disconnect_from_physics_server()
         self.reset_robot()
         self.join_threads()

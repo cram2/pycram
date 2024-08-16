@@ -12,8 +12,7 @@ from pycram.ros.viz_marker_publisher import VizMarkerPublisher
 
 extension = ObjectDescription.get_file_extension()
 
-world = BulletWorld(WorldMode.DIRECT)
-viz_marker_publisher = VizMarkerPublisher()
+world = BulletWorld(WorldMode.GUI)
 
 robot = Object("pr2", ObjectType.ROBOT, f"pr2{extension}", pose=Pose([1, 2, 0]))
 apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")
@@ -98,5 +97,4 @@ with simulated_robot:
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-viz_marker_publisher._stop_publishing()
 world.exit()

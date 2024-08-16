@@ -89,7 +89,6 @@ with simulated_robot:
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-world.reset_world_and_remove_objects()
 world.exit()
 
 
