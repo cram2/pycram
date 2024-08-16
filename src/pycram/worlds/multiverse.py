@@ -66,8 +66,6 @@ class Multiverse(World):
     The factor to multiply the simulation wait time with, this is used to adjust the simulation wait time to account for
     the time taken by the simulation to process the request, this depends on the computational power of the machine
     running the simulation.
-    TODO: This should be replaced by a feedback mechanism that waits until a certain condition is met, e.g. the action
-    is completed.
     """
 
     def __init__(self, mode: Optional[WorldMode] = WorldMode.DIRECT,
@@ -76,11 +74,11 @@ class Multiverse(World):
                  simulation: Optional[str] = None):
         """
         Initialize the Multiverse Socket and the PyCram World.
-        param mode: The mode of the world (DIRECT or GUI).
-        param is_prospection: Whether the world is prospection or not.
-        param simulation_frequency: The frequency of the simulation.
-        param client_addr: The address of the multiverse client.
-        param simulation: The name of the simulation.
+
+        :param mode: The mode of the world (DIRECT or GUI).
+        :param is_prospection: Whether the world is prospection or not.
+        :param simulation_frequency: The frequency of the simulation.
+        :param simulation: The name of the simulation.
         """
 
         self._make_sure_multiverse_resources_are_added()
@@ -171,6 +169,9 @@ class Multiverse(World):
                               camera_min_distance: float = 0.1,
                               camera_max_distance: int = 3,
                               plot: bool = False) -> List[np.ndarray]:
+        """
+        Uses ray test to get the images for the target object. (target_pose is currently not used)
+        """
         camera_description = RobotDescription.current_robot_description.get_default_camera()
         camera_frame = RobotDescription.current_robot_description.get_camera_frame()
         return self.ray_test_utils.get_images_for_target(cam_pose, camera_description, camera_frame,
@@ -188,9 +189,9 @@ class Multiverse(World):
     def spawn_robot_with_controller(self, name: str, pose: Pose) -> None:
         """
         Spawn the robot in the simulator.
-        param robot_description: The robot description.
-        param pose: The pose of the robot.
-        return: The object of the robot.
+
+        :param name: The name of the robot.
+        :param pose: The pose of the robot.
         """
         actuator_joint_commands = {
             actuator_name: [self.get_joint_cmd_name(self.robot_description.joint_types[joint_name]).value]
@@ -207,9 +208,10 @@ class Multiverse(World):
         """
         Spawn the object in the simulator and return the object id. Object name has to be unique and has to be same as
         the name of the object in the description file.
-        param name: The name of the object to be loaded.
-        param pose: The pose of the object.
-        param obj_type: The type of the object.
+
+        :param name: The name of the object to be loaded.
+        :param pose: The pose of the object.
+        :param obj_type: The type of the object.
         """
         if pose is None:
             pose = Pose()
@@ -223,10 +225,11 @@ class Multiverse(World):
 
     def spawn_object(self, name: str, object_type: ObjectType, pose: Pose) -> None:
         """
-        Spawn the object in the simulator and return the object id.
-        param obj: The object to be spawned.
-        param pose: The pose of the object.
-        return: The object id.
+        Spawn the object in the simulator.
+
+        :param name: The name of the object.
+        :param object_type: The type of the object.
+        :param pose: The pose of the object.
         """
         if object_type == ObjectType.ROBOT and self.use_controller:
             self.spawn_robot_with_controller(name, pose)
@@ -236,8 +239,9 @@ class Multiverse(World):
     def _update_object_id_name_maps_and_get_latest_id(self, name: str) -> int:
         """
         Update the object id name maps and return the latest object id.
-        param name: The name of the object.
-        return: The latest object id.
+
+        :param name: The name of the object.
+        :return: The latest object id.
         """
         self.last_object_id += 1
         self.object_name_to_id[name] = self.last_object_id
@@ -271,6 +275,13 @@ class Multiverse(World):
         return True
 
     def _reset_joint_position_using_controller(self, joint: Joint, joint_position: float) -> bool:
+        """
+        Reset the position of a joint in the simulator using the controller.
+
+        :param joint: The joint.
+        :param joint_position: The position of the joint.
+        :return: True if the joint position is reset successfully.
+        """
         self.joint_controller.set_body_property(self.get_actuator_for_joint(joint),
                                                 self.get_joint_cmd_name(joint.type),
                                                 [joint_position])
@@ -383,7 +394,8 @@ class Multiverse(World):
     def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> None:
         """
         Reset the poses of multiple objects in the simulator.
-        param objects: The dictionary of objects and poses.
+
+        :param objects: The dictionary of objects and poses.
         """
         for obj in objects.keys():
             if (obj.obj_type == ObjectType.ROBOT and
@@ -396,15 +408,17 @@ class Multiverse(World):
     def _set_body_pose(self, body_name: str, pose: Pose) -> None:
         """
         Reset the pose of a body (object, link, or joint) in the simulator.
-        param body_name: The name of the body.
-        param pose: The pose of the body.
+
+        :param body_name: The name of the body.
+        :param pose: The pose of the body.
         """
         self._set_multiple_body_poses({body_name: pose})
 
     def _set_multiple_body_poses(self, body_poses: Dict[str, Pose]) -> None:
         """
         Reset the poses of multiple bodies in the simulator.
-        param body_poses: The dictionary of body names and poses.
+
+        :param body_poses: The dictionary of body names and poses.
         """
         self.writer.set_multiple_body_poses({name: {MultiverseBodyProperty.POSITION: pose.position_as_list(),
                                                     MultiverseBodyProperty.ORIENTATION:
@@ -415,9 +429,10 @@ class Multiverse(World):
     def _get_body_pose(self, body_name: str, wait: Optional[bool] = True) -> Optional[Pose]:
         """
         Get the pose of a body in the simulator.
-        param body_name: The name of the body.
+
+        :param body_name: The name of the body.
         :param wait: Whether to wait until the pose is received.
-        return: The pose of the body.
+        :return: The pose of the body.
         """
         data = self.reader.get_body_pose(body_name, wait)
         return Pose(data[MultiverseBodyProperty.POSITION.value],
@@ -497,8 +512,9 @@ class Multiverse(World):
     def _update_constraint_collection_and_get_latest_id(self, constraint: Constraint) -> int:
         """
         Update the constraint collection and return the latest constraint id.
-        param constraint: The constraint to be added.
-        return: The latest constraint id.
+
+        :param constraint: The constraint to be added.
+        :return: The latest constraint id.
         """
         self.last_constraint_id += 1
         self.constraints[self.last_constraint_id] = constraint
@@ -509,7 +525,7 @@ class Multiverse(World):
         self.api_requester.detach(constraint)
 
     def perform_collision_detection(self) -> None:
-        pass
+        ...
 
     def get_object_contact_points(self, obj: Object) -> ContactPointsList:
         """
@@ -534,8 +550,6 @@ class Multiverse(World):
                 logging.error(f"Body link not found: {point.body_name}")
                 raise ValueError(f"Body link not found: {point.body_name}")
             contact_points.append(ContactPoint(obj.root_link, body_link))
-            # b_obj = body_link.object
-            # normal_force_in_b_frame = self._get_normal_force_on_object_from_contact_force(b_obj, point.contact_force)
             contact_points[-1].force_x_in_world_frame = point.contact_force[0]
             contact_points[-1].force_y_in_world_frame = point.contact_force[1]
             contact_points[-1].force_z_in_world_frame = point.contact_force[2]
@@ -548,6 +562,10 @@ class Multiverse(World):
         """
         Get the normal force on an object from the contact force exerted by another object that is expressed in the
         world frame. Thus transforming the contact force to the object frame is necessary.
+
+        :param obj: The object.
+        :param contact_force: The contact force.
+        :return: The normal force on the object.
         """
         obj_quat = obj.get_orientation_as_list()
         obj_rot_matrix = quaternion_matrix(obj_quat)[:3, :3]
@@ -613,7 +631,7 @@ class Multiverse(World):
         logging.warning("remove_physics_simulator_state is not implemented in Multiverse")
 
     def restore_physics_simulator_state(self, state_id: int) -> None:
-        logging.error("restore_physics_simulator_state is not implemented in Multiverse")
+        logging.warning("restore_physics_simulator_state is not implemented in Multiverse")
 
     def set_link_color(self, link: Link, rgba_color: Color):
         logging.warning("set_link_color is not implemented in Multiverse")
@@ -642,4 +660,10 @@ class Multiverse(World):
         logging.warning("set_gravity is not implemented in Multiverse")
 
     def check_object_exists_in_multiverse(self, obj: Object) -> bool:
+        """
+        Check if the object exists in the Multiverse world.
+
+        :param obj: The object.
+        :return: True if the object exists, False otherwise.
+        """
         return self.api_requester.check_object_exists(obj)

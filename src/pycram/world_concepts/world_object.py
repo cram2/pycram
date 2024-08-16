@@ -6,7 +6,6 @@ import os
 import numpy as np
 import rospy
 from geometry_msgs.msg import Point, Quaternion
-from tf.transformations import euler_from_quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
