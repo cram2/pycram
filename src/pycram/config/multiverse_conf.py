@@ -15,8 +15,8 @@ The maximum wait time for the data in seconds.
 """
 
 # Multiverse Simulation Configuration
-simulation_time_step: float = 1e-2
-simulation_frequency: int = int(1 / simulation_time_step)
+simulation_time_step: datetime.timedelta = datetime.timedelta(milliseconds=10)
+simulation_frequency: int = int(1 / simulation_time_step.total_seconds())
 
 use_bullet_mode: bool = True
 """
@@ -24,7 +24,7 @@ If True, the simulation will always be in paused state unless the simulate() fun
 similar to bullet_world which uses the bullet physics engine.
 """
 
-use_controller: bool = True
+use_controller: bool = False
 """
 Only used when use_bullet_mode is False. This turns on the controller for the robot joints.
 """
