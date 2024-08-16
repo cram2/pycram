@@ -299,7 +299,6 @@ class Monitor(Language):
         try:
             state, result = self.children[0].perform()
             if not self.exception_queue.empty():
-                print("Raising PlanFailure")
                 raise self.exception_queue.get()
         finally:
             self.kill_event.set()
