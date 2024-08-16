@@ -68,7 +68,7 @@ Now you can install PyCRAM into your ROS workspace.
     cd ..
     catkin_make
     source devel/setup.bash
-    echo "~/workspace/ros/devel/setup.bash" >> ~/.bashrc
+    echo "source ~/workspace/ros/devel/setup.bash" >> ~/.bashrc
 
 The cloning and setting up can take several minutes. After the command finishes you should see a number of repositories
 in your ROS workspace.
