@@ -196,7 +196,7 @@ class Object(WorldEntity):
         the robot as the current robot in the World. Also add the virtual move base joints to the robot.
         """
         rdm = RobotDescriptionManager()
-        rdm.load_description(self.name)
+        rdm.load_description(self.description.name)
         World.robot = self
         self._add_virtual_move_base_joints()
 
