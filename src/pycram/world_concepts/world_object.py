@@ -73,15 +73,15 @@ class Object(WorldEntity):
         self.original_pose = self.local_transformer.transform_pose(pose, "map")
         self._current_pose = self.original_pose
 
-        if self.obj_type == ObjectType.ROBOT and not self.world.is_prospection_world:
-            self._update_world_robot_and_description()
-
-        self.id, self.path = self._load_object_and_get_id(path, ignore_cached_files)
+        self.path = self.world.preprocess_object_file_and_get_its_cache_path(path, ignore_cached_files,
+                                                                             self.description, self.name)
 
         self.description.update_description_from_file(self.path)
 
-        if self.obj_type == ObjectType.ROBOT:
-            self._add_virtual_move_base_joints()
+        if self.obj_type == ObjectType.ROBOT and not self.world.is_prospection_world:
+            self._update_world_robot_and_description()
+
+        self.id = self._spawn_object_and_get_id()
 
         self.tf_frame = (self.prospection_world_prefix if self.world.is_prospection_world else "") + self.name
 
@@ -251,8 +251,7 @@ class Object(WorldEntity):
         """
         return self.get_pose().to_transform(self.tf_frame)
 
-    def _load_object_and_get_id(self, path: str,
-                                ignore_cached_files: bool = False) -> Tuple[int, Union[str, None]]:
+    def _spawn_object_and_get_id(self) -> int:
         """
         Loads an object to the given World with the given position and orientation. The rgba_color will only be
         used when an .obj or .stl file is given.
@@ -262,16 +261,14 @@ class Object(WorldEntity):
         This new file will have resolved mesh file paths, meaning there will be no references
         to ROS packages instead there will be absolute file paths.
 
-        :param path: The path to the description file.
-        :param ignore_cached_files: Whether to ignore files in the cache directory.
         :return: The unique id of the object and the path of the file that was loaded.
         """
-        self.path = self.world.update_cache_dir_with_object(path, ignore_cached_files, self)
+
+        path = self.path if self.world.let_pycram_handle_spawning else self.name
 
         try:
-            path = self.path if self.world.let_pycram_handle_spawning else self.name
             obj_id = self.world.load_object_and_get_id(path, self._current_pose, self.obj_type)
-            return obj_id, self.path
+            return obj_id
 
         except Exception as e:
             logging.error(
@@ -286,8 +283,9 @@ class Object(WorldEntity):
         the robot as the current robot in the World. Also add the virtual move base joints to the robot.
         """
         rdm = RobotDescriptionManager()
-        rdm.load_description(self.name)
+        rdm.load_description(self.description.name)
         World.robot = self
+        self._add_virtual_move_base_joints()
 
     def _add_virtual_move_base_joints(self):
         """
