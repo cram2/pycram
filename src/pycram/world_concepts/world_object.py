@@ -10,6 +10,7 @@ from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
 from ..description import ObjectDescription, LinkDescription, Joint
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
+from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..robot_descriptions import robot_description
 from ..datastructures.world import WorldEntity, World
 from ..world_concepts.constraints import Attachment
@@ -121,6 +122,9 @@ class Object(WorldEntity):
         :param ignore_cached_files: Whether to ignore files in the cache directory.
         :return: The unique id of the object and the path of the file that was loaded.
         """
+        if isinstance(self.description, GenericObjectDescription):
+            return self.world.load_generic_object_and_get_id(self.description), path
+
         if path is not None:
             try:
                 path = self.world.update_cache_dir_with_object(path, ignore_cached_files, self)
