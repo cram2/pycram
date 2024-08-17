@@ -2,7 +2,7 @@ from typing import Any
 
 import rospy
 
-from ..external_interfaces.robokudo import query
+from ..external_interfaces.robokudo import *
 from ..utils import _apply_ik
 from ..external_interfaces import giskard
 from .default_process_modules import *

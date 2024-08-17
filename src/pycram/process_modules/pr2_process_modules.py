@@ -21,7 +21,7 @@ from ..world_concepts.world_object import Object
 from ..datastructures.pose import Pose
 from ..datastructures.enums import JointType, ObjectType, Arms
 from ..external_interfaces import giskard
-from ..external_interfaces.robokudo import query
+from ..external_interfaces.robokudo import *
 
 try:
     from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2
