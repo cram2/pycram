@@ -23,6 +23,65 @@ from gtts import gTTS
 import io
 
 
+class HSRBNavigation(ProcessModule):
+    """
+    The process module to move the robot from one position to another.
+    """
+
+    def _execute(self, desig: MoveMotion):
+        robot = World.robot
+        robot.set_pose(desig.target)
+
+
+class HSRBDetecting(ProcessModule):
+    """
+    This process module tries to detect an object with the given type. To be detected the object has to be in
+    the field of view of the robot.
+    """
+   # pass
+    def _execute(self, desig: DetectingMotion) -> Any:
+        pass
+        # rospy.loginfo("Detecting technique: {}".format(desig.technique))
+        # robot = World.robot
+        # object_type = desig.object_type
+        # # Should be "wide_stereo_optical_frame"
+        # cam_frame_name = robot_description.get_camera_frame()
+        # # should be [0, 0, 1]
+        # front_facing_axis = robot_description.front_facing_axis
+        # if desig.technique == 'all':
+        #     rospy.loginfo("detecting all generic objects")
+        #     objects = World.current_world.get_all_objets_not_robot()
+        # elif desig.technique == 'human':
+        #     rospy.loginfo("detecting human")
+        #     human = []
+        #     objects = World.current_world.get_all_objets_not_robot()
+        #     for obj in objects:
+        #         if obj.type == ObjectType.HUMAN:
+        #             human.append(obj)
+        #     object_dict = {}
+        #
+        #     # Iterate over the list of objects and store each one in the dictionary
+        #     for i, obj in enumerate(human):
+        #         object_dict[obj.name] = obj
+        #     return object_dict
+        #
+        # else:
+        #     rospy.loginfo("Detecting specific object type")
+        #     objects = World.current_world.get_objects_by_type(object_type)
+        #
+        # object_dict = {}
+        #
+        # perceived_objects = []
+        # for obj in objects:
+        #     if btr.visible(obj, robot.get_link_pose(cam_frame_name), front_facing_axis):
+        #         perceived_objects.append(ObjectDesignatorDescription.Object(obj.name, obj.type, obj))
+        # # Iterate over the list of objects and store each one in the dictionary
+        # for i, obj in enumerate(perceived_objects):
+        #     object_dict[obj.name] = obj
+        #
+        # rospy.loginfo("returning dict objects")
+        # return object_dict
+
 ###########################################################
 ########## Process Modules for the Real HSRB ###############
 ###########################################################
@@ -297,9 +356,7 @@ class HSRBManager(ProcessModuleManager):
             return HSRBNavigationSemiReal(self._navigate_lock)
 
     def looking(self):
-        if ProcessModuleManager.execution_type == "simulated":
-            return HSRBMoveHead(self._looking_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        if ProcessModuleManager.execution_type == "real":
             return HSRBMoveHeadReal(self._looking_lock)
         elif ProcessModuleManager.execution_type == "semi_real":
             return HSRBMoveHeadReal(self._looking_lock)
@@ -313,55 +370,37 @@ class HSRBManager(ProcessModuleManager):
             return HSRBDetecting(self._detecting_lock)
 
     def move_tcp(self):
-        if ProcessModuleManager.execution_type == "simulated":
-            return HSRBMoveTCP(self._move_tcp_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        if  ProcessModuleManager.execution_type == "real":
             return HSRBMoveTCPReal(self._move_tcp_lock)
         elif ProcessModuleManager.execution_type == "semi_real":
             return HSRBMoveTCPReal(self._move_tcp_lock)
 
     def move_arm_joints(self):
-        if ProcessModuleManager.execution_type == "simulated":
-            return HSRBMoveArmJoints(self._move_arm_joints_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        if ProcessModuleManager.execution_type == "real":
             return HSRBMoveArmJointsReal(self._move_arm_joints_lock)
         elif ProcessModuleManager.execution_type == "semi_real":
             return HSRBMoveArmJointsReal(self._move_arm_joints_lock)
-
-    def world_state_detecting(self):
-        if ProcessModuleManager.execution_type == "simulated" or ProcessModuleManager.execution_type == "real":
-            return HSRBWorldStateDetecting(self._world_state_detecting_lock)
-        elif ProcessModuleManager.execution_type == "semi_real":
-            return HSRBWorldStateDetecting(self._world_state_detecting_lock)
 
     def move_joints(self):
-        if ProcessModuleManager.execution_type == "simulated":
-            return HSRBMoveJoints(self._move_joints_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        if ProcessModuleManager.execution_type == "real":
             return HSRBMoveJointsReal(self._move_joints_lock)
         elif ProcessModuleManager.execution_type == "semi_real":
             return HSRBMoveJointsReal(self._move_joints_lock)
 
     def move_gripper(self):
-        if ProcessModuleManager.execution_type == "simulated":
-            return HSRBMoveGripper(self._move_gripper_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        if ProcessModuleManager.execution_type == "real":
             return HSRBMoveGripperReal(self._move_gripper_lock)
         elif ProcessModuleManager.execution_type == "semi_real":
             return HSRBMoveGripperReal(self._move_gripper_lock)
 
     def open(self):
-        if ProcessModuleManager.execution_type == "simulated":
-            return HSRBOpen(self._open_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        if ProcessModuleManager.execution_type == "real":
             return HSRBOpenReal(self._open_lock)
         elif ProcessModuleManager.execution_type == "semi_real":
             return HSRBOpenReal(self._open_lock)
 
     def close(self):
-        if ProcessModuleManager.execution_type == "simulated":
-            return HSRBClose(self._close_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        if ProcessModuleManager.execution_type == "real":
             return HSRBCloseReal(self._close_lock)
         elif ProcessModuleManager.execution_type == "semi_real":
             return HSRBCloseReal(self._close_lock)

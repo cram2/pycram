@@ -313,3 +313,24 @@ class ClosingMotion(BaseMotion):
         session.add(motion)
 
         return motion
+
+@dataclass
+class TalkingMotion(BaseMotion):
+    """
+    Talking
+    """
+    cmd: str
+    """
+    Sentence what the robot should say
+    """
+
+    @with_tree
+    def perform(self):
+        pm_manager = ProcessModuleManager.get_manager()
+        return pm_manager.talk().execute(self)
+
+    def to_sql(self) -> ORMMotionDesignator:
+        pass
+
+    def insert(self, session: Session, *args, **kwargs) -> ORMMotionDesignator:
+        pass
