@@ -17,12 +17,17 @@ def init_tmc_interface():
 
 
 def tmc_gripper_control(designator):
+    """
+    Publishes a message to the gripper controller to open or close the gripper for the HSR.
+
+    :param designator: The designator containing the motion to be executed
+    """
     if (designator.motion == "open"):
         pub_gripper = rospy.Publisher('/hsrb/gripper_controller/grasp/goal', GripperApplyEffortActionGoal,
                                       queue_size=10)
         rate = rospy.Rate(10)
         rospy.sleep(2)
-        msg = GripperApplyEffortActionGoal()  # sprechen joint gripper_controll_manager an, indem wir goal publishen type den giskard fürs greifen erwartet
+        msg = GripperApplyEffortActionGoal()
         msg.goal.effort = 0.8
         pub_gripper.publish(msg)
 
@@ -37,9 +42,12 @@ def tmc_gripper_control(designator):
 
 
 def tmc_talk(designator):
-    pub = rospy.Publisher('/talk_request', Voice, queue_size=10)
+    """
+    Publishes a sentence to the talk_request topic of the HSRB robot
 
-    # fill message of type Voice with required data:
+    :param designator: The designator containing the sentence to be spoken
+    """
+    pub = rospy.Publisher('/talk_request', Voice, queue_size=10)
     texttospeech = Voice()
     # language 1 = english (0 = japanese)
     texttospeech.language = 1
