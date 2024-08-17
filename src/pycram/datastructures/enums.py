@@ -130,6 +130,9 @@ class PerceptionTechniques(Enum):
 
 
 class ImageEnum(Enum):
+    """
+    Enum for image switch view on hsrb display.
+    """
     HI = 0
     TALK = 1
     DISH = 2
