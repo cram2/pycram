@@ -313,3 +313,119 @@ class ClosingMotion(BaseMotion):
         session.add(motion)
 
         return motion
+
+
+class GraspingDishwasherHandleMotion(BaseMotion):
+    """
+    Designator for grasping the dishwasher handle
+    """
+
+    handle_name: str
+    """
+    Name of the handle to grasp
+    """
+    arm: Arms
+    """
+    Arm that should be used
+    """
+
+    @with_tree
+    def perform(self):
+        pm_manager = ProcessModuleManager.get_manager()
+        return pm_manager.grasp_dishwasher_handle().execute(self)
+
+    def to_sql(self) -> ORMMotionDesignator:
+        pass
+
+    def insert(self, session: Session, *args, **kwargs) -> ORMMotionDesignator:
+        pass
+
+
+class HalfOpeningDishwasherMotion(BaseMotion):
+    """
+    Designator for half opening the dishwasher door to a given degree.
+    """
+
+    handle_name: str
+    """
+    Name of the dishwasher handle which is grasped
+    """
+    goal_state_half_open: float
+    """
+    Goal state of the door, defining the degree to open the door
+    """
+    arm: Arms
+    """
+    Arm that should be used
+    """
+
+    @with_tree
+    def perform(self):
+        pm_manager = ProcessModuleManager.get_manager()
+        return pm_manager.half_open_dishwasher().execute(self)
+
+    def to_sql(self) -> ORMMotionDesignator:
+        pass
+
+    def insert(self, session: Session, *args, **kwargs) -> ORMMotionDesignator:
+        pass
+
+
+class MoveArmAroundMotion(BaseMotion):
+    """
+    Designator for moving the arm around the dishwasher to further open the door.
+    """
+
+    handle_name: str
+    """
+    Name of the dishwasher handle which was grasped
+    """
+    arm: Arms
+    """
+    Arm that should be used
+    """
+
+    @with_tree
+    def perform(self):
+        pm_manager = ProcessModuleManager.get_manager()
+        return pm_manager.move_arm_around_dishwasher().execute(self)
+
+    def to_sql(self) -> ORMMotionDesignator:
+        pass
+
+    def insert(self, session: Session, *args, **kwargs) -> ORMMotionDesignator:
+        pass
+
+
+class FullOpeningDishwasherMotion(BaseMotion):
+    """
+    Designator for fully opening the dishwasher. Assumes that the door is already half opened and the arm is in the right position.
+    """
+
+    handle_name: str
+    """
+    Name of the dishwasher handle which was grasped
+    """
+    door_name: str
+    """
+    Name of the dishwasher door which should be opened
+    """
+    goal_state_full_open: float
+    """
+    Goal state of the door, defining the degree to open the door
+    """
+    arm: Arms
+    """
+    Arm that should be used
+    """
+
+    @with_tree
+    def perform(self):
+        pm_manager = ProcessModuleManager.get_manager()
+        return pm_manager.full_open_dishwasher().execute(self)
+
+    def to_sql(self) -> ORMMotionDesignator:
+        pass
+
+    def insert(self, session: Session, *args, **kwargs) -> ORMMotionDesignator:
+        pass
