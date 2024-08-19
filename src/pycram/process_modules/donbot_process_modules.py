@@ -149,33 +149,33 @@ class DonbotManager(ProcessModuleManager):
         self._close_lock = Lock()
 
     def navigate(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return DonbotNavigation(self._navigate_lock)
 
     def place(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return DonbotPlace(self._place_lock)
 
     def looking(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return DonbotMoveHead(self._looking_lock)
 
     def detecting(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return DonbotDetecting(self._detecting_lock)
 
     def move_tcp(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return DonbotMoveTCP(self._move_tcp_lock)
 
     def move_arm_joints(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return DonbotMoveJoints(self._move_arm_joints_lock)
 
     def world_state_detecting(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return DonbotWorldStateDetecting(self._world_state_detecting_lock)
 
     def move_gripper(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return DonbotMoveGripper(self._move_gripper_lock)

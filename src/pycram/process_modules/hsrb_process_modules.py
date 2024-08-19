@@ -3,19 +3,13 @@ import rospy
 from threading import Lock
 from typing_extensions import Any
 
-from ..datastructures.enums import JointType, PerceptionTechniques, ExecutionType
+from ..datastructures.enums import ExecutionType
 from ..external_interfaces.tmc import tmc_gripper_control, tmc_talk
 from ..robot_description import RobotDescription
 from ..process_module import ProcessModule
-from ..datastructures.pose import Point
-from ..robot_descriptions import robot_description
-from ..utils import _apply_ik
-from ..external_interfaces.ik import request_ik
-from .. import world_reasoning as btr
 from ..local_transformer import LocalTransformer
 from ..designators.motion_designator import *
 from ..external_interfaces import giskard
-from ..world_concepts.world_object import Object
 from ..datastructures.world import World
 from pydub import AudioSegment
 from pydub.playback import play
