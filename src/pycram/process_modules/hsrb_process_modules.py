@@ -42,46 +42,7 @@ class HSRBDetecting(ProcessModule):
    # pass
     def _execute(self, desig: DetectingMotion) -> Any:
         pass
-        # rospy.loginfo("Detecting technique: {}".format(desig.technique))
-        # robot = World.robot
-        # object_type = desig.object_type
-        # # Should be "wide_stereo_optical_frame"
-        # cam_frame_name = robot_description.get_camera_frame()
-        # # should be [0, 0, 1]
-        # front_facing_axis = robot_description.front_facing_axis
-        # if desig.technique == 'all':
-        #     rospy.loginfo("detecting all generic objects")
-        #     objects = World.current_world.get_all_objets_not_robot()
-        # elif desig.technique == 'human':
-        #     rospy.loginfo("detecting human")
-        #     human = []
-        #     objects = World.current_world.get_all_objets_not_robot()
-        #     for obj in objects:
-        #         if obj.type == ObjectType.HUMAN:
-        #             human.append(obj)
-        #     object_dict = {}
-        #
-        #     # Iterate over the list of objects and store each one in the dictionary
-        #     for i, obj in enumerate(human):
-        #         object_dict[obj.name] = obj
-        #     return object_dict
-        #
-        # else:
-        #     rospy.loginfo("Detecting specific object type")
-        #     objects = World.current_world.get_objects_by_type(object_type)
-        #
-        # object_dict = {}
-        #
-        # perceived_objects = []
-        # for obj in objects:
-        #     if btr.visible(obj, robot.get_link_pose(cam_frame_name), front_facing_axis):
-        #         perceived_objects.append(ObjectDesignatorDescription.Object(obj.name, obj.type, obj))
-        # # Iterate over the list of objects and store each one in the dictionary
-        # for i, obj in enumerate(perceived_objects):
-        #     object_dict[obj.name] = obj
-        #
-        # rospy.loginfo("returning dict objects")
-        # return object_dict
+
 
 ###########################################################
 ########## Process Modules for the Real HSRB ###############
@@ -118,93 +79,6 @@ class HSRBDetectingReal(ProcessModule):
 
     def _execute(self, desig: DetectingMotion) -> Any:
         pass
-        # todo at the moment perception ignores searching for a specific object type so we do as well on real
-        # if desig.technique == 'human' and (desig.state == "start" or desig.state == None):
-        #     human_pose = queryHuman()
-        #     pose = Pose.from_pose_stamped(human_pose)
-        #     pose.position.z = 0
-        #     human = []
-        #     human.append(Object("human", ObjectType.HUMAN, "human_male.stl", pose=pose))
-        #     object_dict = {}
-        #
-        #     # Iterate over the list of objects and store each one in the dictionary
-        #     for i, obj in enumerate(human):
-        #         object_dict[obj.name] = obj
-        #     return object_dict
-        #
-        #     return human_pose
-        # elif desig.technique == 'human' and desig.state == "stop":
-        #     stop_queryHuman()
-        #     return "stopped"
-        #
-        # query_result = queryEmpty(ObjectDesignatorDescription(types=[desig.object_type]))
-        # perceived_objects = []
-        # for i in range(0, len(query_result.res)):
-        #     # this has to be pose from pose stamped since we spawn the object with given header
-        #     obj_pose = Pose.from_pose_stamped(query_result.res[i].pose[0])
-        #     # obj_pose.orientation = [0, 0, 0, 1]
-        #     # obj_pose_tmp = query_result.res[i].pose[0]
-        #     obj_type = query_result.res[i].type
-        #     obj_size = query_result.res[i].shape_size
-        #     obj_color = query_result.res[i].color[0]
-        #     color_switch = {
-        #         "red": [1, 0, 0, 1],
-        #         "green": [0, 1, 0, 1],
-        #         "blue": [0, 0, 1, 1],
-        #         "black": [0, 0, 0, 1],
-        #         "white": [1, 1, 1, 1],
-        #         # add more colors if needed
-        #     }
-        #     color = color_switch.get(obj_color)
-        #     if color is None:
-        #         color = [0, 0, 0, 1]
-        #
-        #     # atm this is the string size that describes the object but it is not the shape size thats why string
-        #     def extract_xyz_values(input_string):
-        #         # Split the input string by commas and colon to separate key-value pairs
-        #         # key_value_pairs = input_string.split(', ')
-        #
-        #         # Initialize variables to store the X, Y, and Z values
-        #         x_value = None
-        #         y_value = None
-        #         z_value = None
-        #
-        #         for key in input_string:
-        #             x_value = key.dimensions.x
-        #             y_value = key.dimensions.y
-        #             z_value = key.dimensions.z
-        #
-        #         #
-        #         # # Iterate through the key-value pairs to extract the values
-        #         # for pair in key_value_pairs:
-        #         #     key, value = pair.split(': ')
-        #         #     if key == 'x':
-        #         #         x_value = float(value)
-        #         #     elif key == 'y':
-        #         #         y_value = float(value)
-        #         #     elif key == 'z':
-        #         #         z_value = float(value)
-        #
-        #         return x_value, y_value, z_value
-        #
-        #     x, y, z = extract_xyz_values(obj_size)
-        #     size = (x, z / 2, y)
-        #     size_box = (x / 2, z / 2, y / 2)
-        #     hard_size = (0.02, 0.02, 0.03)
-        #     id = World.current_world.add_rigid_box(obj_pose, hard_size, color)
-        #     box_object = Object(obj_type + "_" + str(rospy.get_time()), obj_type, pose=obj_pose, color=color, id=id,
-        #                         customGeom={"size": [hard_size[0], hard_size[1], hard_size[2]]})
-        #     box_object.set_pose(obj_pose)
-        #     box_desig = ObjectDesignatorDescription.Object(box_object.name, box_object.type, box_object)
-        #
-        #     perceived_objects.append(box_desig)
-        #
-        # object_dict = {}
-        #
-        # # Iterate over the list of objects and store each one in the dictionary
-        # for i, obj in enumerate(perceived_objects):
-        #     object_dict[obj.name] = obj
-        # return object_dict
 
 
 class HSRBMoveTCPReal(ProcessModule):
