@@ -45,7 +45,7 @@ def tmc_talk(designator: TalkMotion, topic_name: Optional[str] = '/talk_request'
 
     :param designator: The designator containing the sentence to be spoken
     """
-    pub = rospy.Publisher(topic_name,, Voice, queue_size=10)
+    pub = rospy.Publisher(topic_name, Voice, queue_size=10)
     texttospeech = Voice()
     # language 1 = english (0 = japanese)
     texttospeech.language = 1
