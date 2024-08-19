@@ -1,4 +1,5 @@
 import rospy
+from .designators.motion_designator import MoveGripperMotion, TalkingMotion
 
 is_init = False
 
@@ -39,7 +40,7 @@ def tmc_gripper_control(designator: MoveGripperMotion, topic_name: Optional[str]
         pub_gripper.publish(msg)
 
 
-def tmc_talk(designator: TalkMotion, topic_name: Optional[str] = '/talk_request'):
+def tmc_talk(designator: TalkingMotion, topic_name: Optional[str] = '/talk_request'):
     """
     Publishes a sentence to the talk_request topic of the HSRB robot
 
