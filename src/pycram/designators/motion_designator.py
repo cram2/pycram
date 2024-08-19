@@ -322,7 +322,7 @@ class TalkingMotion(BaseMotion):
 
     cmd: str
     """
-    String sentence what the robot should say
+    Talking Motion, let the robot say a sentence.
     """
 
     @with_tree
