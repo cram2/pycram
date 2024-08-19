@@ -1,7 +1,7 @@
 import numpy as np
 import rospy
 from threading import Lock
-from typing import Any
+from typing_extensions import Any
 
 from ..datastructures.enums import JointType, PerceptionTechniques, ExecutionType
 from ..external_interfaces.tmc import tmc_gripper_control, tmc_talk
