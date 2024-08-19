@@ -317,11 +317,12 @@ class ClosingMotion(BaseMotion):
 @dataclass
 class TalkingMotion(BaseMotion):
     """
-    Talking
+    Talking Motion, lets the robot say a sentence.
     """
+
     cmd: str
     """
-    Sentence what the robot should say
+    String sentence what the robot should say
     """
 
     @with_tree

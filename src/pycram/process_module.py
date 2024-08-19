@@ -16,6 +16,7 @@ import rospy
 from .language import Language
 from .robot_description import RobotDescription
 from typing_extensions import TYPE_CHECKING
+from .datastructures.enums import ExecutionType
 
 if TYPE_CHECKING:
     from .designators.motion_designator import BaseMotion
@@ -89,7 +90,7 @@ class RealRobot:
         sets it to 'real'
         """
         self.pre = ProcessModuleManager.execution_type
-        ProcessModuleManager.execution_type = "real"
+        ProcessModuleManager.execution_type = ExecutionType.REAL
         self.pre_delay = ProcessModule.execution_delay
         ProcessModule.execution_delay = False
 
@@ -127,7 +128,7 @@ class SimulatedRobot:
         sets it to 'simulated'
         """
         self.pre = ProcessModuleManager.execution_type
-        ProcessModuleManager.execution_type = "simulated"
+        ProcessModuleManager.execution_type = ExecutionType.SIMULATED
 
     def __exit__(self, _type, value, traceback):
         """
@@ -162,7 +163,7 @@ class SemiRealRobot:
         sets it to 'semi_real'
         """
         self.pre = ProcessModuleManager.execution_type
-        ProcessModuleManager.execution_type = "semi_real"
+        ProcessModuleManager.execution_type = ExecutionType.SEMI_REAL
 
     def __exit__(self, type, value, traceback):
         """
@@ -193,7 +194,7 @@ def with_real_robot(func: Callable) -> Callable:
 
     def wrapper(*args, **kwargs):
         pre = ProcessModuleManager.execution_type
-        ProcessModuleManager.execution_type = "real"
+        ProcessModuleManager.execution_type = ExecutionType.REAL
         ret = func(*args, **kwargs)
         ProcessModuleManager.execution_type = pre
         return ret
@@ -219,7 +220,7 @@ def with_simulated_robot(func: Callable) -> Callable:
 
     def wrapper(*args, **kwargs):
         pre = ProcessModuleManager.execution_type
-        ProcessModuleManager.execution_type = "simulated"
+        ProcessModuleManager.execution_type = ExecutionType.Simulated
         ret = func(*args, **kwargs)
         ProcessModuleManager.execution_type = pre
         return ret
