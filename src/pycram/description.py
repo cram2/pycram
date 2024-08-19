@@ -718,6 +718,22 @@ class ObjectDescription(EntityDescription):
         """
         self._parsed_description = self.load_description(path)
 
+    def update_description_from_string(self, description_string: str) -> None:
+        """
+        Update the description of this object from the given description string.
+
+        :param description_string: The description string to update from.
+        """
+        self._parsed_description = self.load_description_from_string(description_string)
+
+    def load_description_from_string(self, description_string: str) -> Any:
+        """
+        Load the description from the given string.
+
+        :param description_string: The description string to load from.
+        """
+        raise NotImplementedError
+
     @property
     def parsed_description(self) -> Any:
         """

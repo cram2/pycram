@@ -158,3 +158,4 @@ class MJCFJointType(Enum):
     BALL = "ball"
     SLIDE = "slide"
     HINGE = "hinge"
+    FIXED = "fixed"  # Added for compatibility with PyCRAM, but not a real joint type in MuJoCo.

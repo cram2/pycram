@@ -248,7 +248,7 @@ class ObjectDescription(AbstractObjectDescription):
         :param path: The path to the mesh file.
         :param name: The name of the object.
         :param color: The color of the object.
-        :return: The absolute path of the created file
+        :return: The URDF string.
         """
         urdf_template = '<?xml version="0.0" ?> \n \
                         <robot name="~a_object"> \n \
