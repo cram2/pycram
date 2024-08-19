@@ -16,14 +16,14 @@ def init_tmc_interface():
         rospy.logwarn(f"Could not import TMC messages, tmc interface could not be initialized")
 
 
-def tmc_gripper_control(designator):
+def tmc_gripper_control(designator: MoveGripperMotion, topic_name: Optional[str] = '/hsrb/gripper_controller/grasp/goal'):
     """
     Publishes a message to the gripper controller to open or close the gripper for the HSR.
 
     :param designator: The designator containing the motion to be executed
     """
-    if (designator.motion == "open"):
-        pub_gripper = rospy.Publisher('/hsrb/gripper_controller/grasp/goal', GripperApplyEffortActionGoal,
+    if (designator.motion == GripperState.OPEN):
+        pub_gripper = rospy.Publisher(topic_name, GripperApplyEffortActionGoal,
                                       queue_size=10)
         rate = rospy.Rate(10)
         rospy.sleep(2)
@@ -31,8 +31,8 @@ def tmc_gripper_control(designator):
         msg.goal.effort = 0.8
         pub_gripper.publish(msg)
 
-    elif (designator.motion == "close"):
-        pub_gripper = rospy.Publisher('/hsrb/gripper_controller/grasp/goal', GripperApplyEffortActionGoal,
+    elif (designator.motion == GripperState.CLOSE):
+        pub_gripper = rospy.Publisher(topic_name, GripperApplyEffortActionGoal,
                                       queue_size=10)
         rate = rospy.Rate(10)
         rospy.sleep(2)
@@ -41,13 +41,13 @@ def tmc_gripper_control(designator):
         pub_gripper.publish(msg)
 
 
-def tmc_talk(designator):
+def tmc_talk(designator: TalkMotion, topic_name: Optional[str] = '/talk_request'):
     """
     Publishes a sentence to the talk_request topic of the HSRB robot
 
     :param designator: The designator containing the sentence to be spoken
     """
-    pub = rospy.Publisher('/talk_request', Voice, queue_size=10)
+    pub = rospy.Publisher(topic_name,, Voice, queue_size=10)
     texttospeech = Voice()
     # language 1 = english (0 = japanese)
     texttospeech.language = 1

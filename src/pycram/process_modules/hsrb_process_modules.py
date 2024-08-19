@@ -3,7 +3,7 @@ import rospy
 from threading import Lock
 from typing import Any
 
-from ..datastructures.enums import JointType, PerceptionTechniques
+from ..datastructures.enums import JointType, PerceptionTechniques, ExecutionType
 from ..external_interfaces.tmc import tmc_gripper_control, tmc_talk
 from ..robot_description import RobotDescription
 from ..process_module import ProcessModule
@@ -20,6 +20,7 @@ from ..datastructures.world import World
 from pydub import AudioSegment
 from pydub.playback import play
 from gtts import gTTS
+
 import io
 
 
@@ -208,7 +209,7 @@ class HSRBDetectingReal(ProcessModule):
 
 class HSRBMoveTCPReal(ProcessModule):
     """
-    Moves the tool center point of the real HSRB while avoiding all collisions
+    Moves the tool center point of the real HSRB while avoiding all collisions via giskard
     """
 
     def _execute(self, designator: MoveTCPMotion) -> Any:
@@ -223,7 +224,7 @@ class HSRBMoveTCPReal(ProcessModule):
 
 class HSRBMoveArmJointsReal(ProcessModule):
     """
-    Moves the arm joints of the real HSRB to the given configuration while avoiding all collisions
+    Moves the arm joints of the real HSRB to the given configuration while avoiding all collisions via giskard
     """
 
     def _execute(self, designator: MoveArmJointsMotion) -> Any:
@@ -256,7 +257,7 @@ class HSRBMoveGripperReal(ProcessModule):
 
 class HSRBOpenReal(ProcessModule):
     """
-    Tries to open an already grasped container
+    This process Modules tries to open an already grasped container via giskard
     """
 
     def _execute(self, designator: OpeningMotion) -> Any:
@@ -267,7 +268,7 @@ class HSRBOpenReal(ProcessModule):
 
 class HSRBCloseReal(ProcessModule):
     """
-    Tries to close an already grasped container
+    This process module executes close a an already grasped container via giskard
     """
 
     def _execute(self, designator: ClosingMotion) -> Any:
@@ -278,7 +279,7 @@ class HSRBCloseReal(ProcessModule):
 
 class HSRBTalkReal(ProcessModule):
     """
-    Tries to close an already grasped container
+    Let the robot speak over tmc interface.
     """
 
     def _execute(self, designator: TalkingMotion) -> Any:
@@ -300,7 +301,7 @@ class HSRBNavigationSemiReal(ProcessModule):
 
 class HSRBTalkSemiReal(ProcessModule):
     """
-    Tries to close an already grasped container
+    Low Level implementation to let the robot talk using gTTS and pydub.
     """
 
     def _execute(self, designator: TalkingMotion) -> Any:
@@ -348,65 +349,65 @@ class HSRBManager(ProcessModuleManager):
         self._talk_lock = Lock()
 
     def navigate(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return HSRBNavigation(self._navigate_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return HSRBNavigationReal(self._navigate_lock)
-        elif ProcessModuleManager.execution_type == "semi_real":
+        elif ProcessModuleManager.execution_type == ExecutionType.SEMI_REAL:
             return HSRBNavigationSemiReal(self._navigate_lock)
 
     def looking(self):
-        if ProcessModuleManager.execution_type == "real":
+        if ProcessModuleManager.execution_type == ExecutionType.REAL:
             return HSRBMoveHeadReal(self._looking_lock)
-        elif ProcessModuleManager.execution_type == "semi_real":
+        elif ProcessModuleManager.execution_type == ExecutionType.SEMI_REAL:
             return HSRBMoveHeadReal(self._looking_lock)
 
     def detecting(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return HSRBDetecting(self._detecting_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return HSRBDetectingReal(self._detecting_lock)
-        elif ProcessModuleManager.execution_type == "semi_real":
+        elif ProcessModuleManager.execution_type == ExecutionType.SEMI_REAL:
             return HSRBDetecting(self._detecting_lock)
 
     def move_tcp(self):
-        if  ProcessModuleManager.execution_type == "real":
+        if  ProcessModuleManager.execution_type == ExecutionType.REAL:
             return HSRBMoveTCPReal(self._move_tcp_lock)
-        elif ProcessModuleManager.execution_type == "semi_real":
+        elif ProcessModuleManager.execution_type == ExecutionType.SEMI_REAL:
             return HSRBMoveTCPReal(self._move_tcp_lock)
 
     def move_arm_joints(self):
-        if ProcessModuleManager.execution_type == "real":
+        if ProcessModuleManager.execution_type == ExecutionType.REAL:
             return HSRBMoveArmJointsReal(self._move_arm_joints_lock)
-        elif ProcessModuleManager.execution_type == "semi_real":
+        elif ProcessModuleManager.execution_type == ExecutionType.SEMI_REAL:
             return HSRBMoveArmJointsReal(self._move_arm_joints_lock)
 
     def move_joints(self):
-        if ProcessModuleManager.execution_type == "real":
+        if ProcessModuleManager.execution_type == ExecutionType.REAL:
             return HSRBMoveJointsReal(self._move_joints_lock)
-        elif ProcessModuleManager.execution_type == "semi_real":
+        elif ProcessModuleManager.execution_type == ExecutionType.SEMI_REAL:
             return HSRBMoveJointsReal(self._move_joints_lock)
 
     def move_gripper(self):
-        if ProcessModuleManager.execution_type == "real":
+        if ProcessModuleManager.execution_type == ExecutionType.REAL:
             return HSRBMoveGripperReal(self._move_gripper_lock)
-        elif ProcessModuleManager.execution_type == "semi_real":
+        elif ProcessModuleManager.execution_type == ExecutionType.SEMI_REAL:
             return HSRBMoveGripperReal(self._move_gripper_lock)
 
     def open(self):
-        if ProcessModuleManager.execution_type == "real":
+        if ProcessModuleManager.execution_type == ExecutionType.REAL:
             return HSRBOpenReal(self._open_lock)
-        elif ProcessModuleManager.execution_type == "semi_real":
+        elif ProcessModuleManager.execution_type == ExecutionType.SEMI_REAL:
             return HSRBOpenReal(self._open_lock)
 
     def close(self):
-        if ProcessModuleManager.execution_type == "real":
+        if ProcessModuleManager.execution_type == ExecutionType.REAL:
             return HSRBCloseReal(self._close_lock)
-        elif ProcessModuleManager.execution_type == "semi_real":
+        elif ProcessModuleManager.execution_type == ExecutionType.SEMI_REAL:
             return HSRBCloseReal(self._close_lock)
 
     def talk(self):
-        if ProcessModuleManager.execution_type == "real":
+        if ProcessModuleManager.execution_type == ExecutionType.REAL:
             return HSRBTalkReal(self._talk_lock)
-        elif ProcessModuleManager.execution_type == "semi_real":
+        elif ProcessModuleManager.execution_type == ExecutionType.SEMI_REAL:
             return HSRBTalkSemiReal(self._talk_lock)
