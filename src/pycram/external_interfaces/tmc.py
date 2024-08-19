@@ -1,5 +1,8 @@
 import rospy
-from .designators.motion_designator import MoveGripperMotion, TalkingMotion
+from typing_extensions import Optional
+
+from ..datastructures.enums import GripperState
+from ..designators.motion_designator import MoveGripperMotion, TalkingMotion
 
 is_init = False
 
@@ -22,6 +25,7 @@ def tmc_gripper_control(designator: MoveGripperMotion, topic_name: Optional[str]
     Publishes a message to the gripper controller to open or close the gripper for the HSR.
 
     :param designator: The designator containing the motion to be executed
+    :param topic_name: The topic name to publish the message to
     """
     if (designator.motion == GripperState.OPEN):
         pub_gripper = rospy.Publisher(topic_name, GripperApplyEffortActionGoal,
@@ -45,6 +49,7 @@ def tmc_talk(designator: TalkingMotion, topic_name: Optional[str] = '/talk_reque
     Publishes a sentence to the talk_request topic of the HSRB robot
 
     :param designator: The designator containing the sentence to be spoken
+    :param topic_name: The topic name to publish the sentence to
     """
     pub = rospy.Publisher(topic_name, Voice, queue_size=10)
     texttospeech = Voice()

@@ -12,7 +12,7 @@ class TFBroadcaster:
     """
     Broadcaster that publishes TF frames for every object in the World.
     """
-    def __init__(self, projection_namespace="simulated", odom_frame="odom", interval=0.1):
+    def __init__(self, projection_namespace= ExecutionType.SIMULATED, odom_frame="odom", interval=0.1):
         """
         The broadcaster prefixes all published TF messages with a projection namespace to distinguish between the TF
         frames from the simulation and the one from the real robot.
