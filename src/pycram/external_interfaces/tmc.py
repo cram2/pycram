@@ -26,7 +26,6 @@ def tmc_gripper_control(designator: MoveGripperMotion, topic_name: Optional[str]
         pub_gripper = rospy.Publisher(topic_name, GripperApplyEffortActionGoal,
                                       queue_size=10)
         rate = rospy.Rate(10)
-        rospy.sleep(2)
         msg = GripperApplyEffortActionGoal()
         msg.goal.effort = 0.8
         pub_gripper.publish(msg)
@@ -35,7 +34,6 @@ def tmc_gripper_control(designator: MoveGripperMotion, topic_name: Optional[str]
         pub_gripper = rospy.Publisher(topic_name, GripperApplyEffortActionGoal,
                                       queue_size=10)
         rate = rospy.Rate(10)
-        rospy.sleep(2)
         msg = GripperApplyEffortActionGoal()
         msg.goal.effort = -0.8
         pub_gripper.publish(msg)
@@ -53,5 +51,4 @@ def tmc_talk(designator: TalkMotion, topic_name: Optional[str] = '/talk_request'
     texttospeech.language = 1
     texttospeech.sentence = designator.cmd
 
-    rospy.sleep(1)
     pub.publish(texttospeech)
