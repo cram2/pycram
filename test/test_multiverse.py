@@ -55,8 +55,10 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.multiverse.reset_world_and_remove_objects()
 
     def test_spawn_mesh_object(self):
-        milk = Object("milk", ObjectType.MILK, "milk.stl", description=MJCF, pose=Pose([1, 1, 0.1]))
-        assert milk is not None
+        milk = Object("milk", ObjectType.MILK, "milk.stl", description=MJCF, pose=Pose([1, 1, 0]))
+        self.assert_poses_are_equal(milk.get_pose(), Pose([1, 1, 0]))
+        contact_points = milk.contact_points()
+        self.assertTrue(len(contact_points) > 0)
 
     def test_parse_mjcf_actuators(self):
         mjcf_file = get_robot_mjcf_path("pal_robotics", "tiago_dual")
