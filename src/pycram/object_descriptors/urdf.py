@@ -244,7 +244,7 @@ class ObjectDescription(AbstractObjectDescription):
             urdf_string = self.remove_error_tags(urdf_string)
             urdf_string = self.fix_link_attributes(urdf_string)
             try:
-                urdf_string = self.replace_ros_package_references_to_absolute_paths(urdf_string)
+                urdf_string = self.replace_relative_references_with_absolute_paths(urdf_string)
                 urdf_string = self.fix_missing_inertial(urdf_string)
             except rospkg.ResourceNotFound as e:
                 rospy.logerr(f"Could not find resource package linked in this URDF")
@@ -253,7 +253,7 @@ class ObjectDescription(AbstractObjectDescription):
 
     def generate_from_parameter_server(self, name: str) -> str:
         urdf_string = rospy.get_param(name)
-        urdf_string = self.replace_ros_package_references_to_absolute_paths(urdf_string)
+        urdf_string = self.replace_relative_references_with_absolute_paths(urdf_string)
         return self.fix_missing_inertial(urdf_string)
 
     def get_link_by_name(self, link_name: str) -> LinkDescription:
@@ -313,10 +313,10 @@ class ObjectDescription(AbstractObjectDescription):
         return self.parsed_description.get_chain(start_link_name, end_link_name)
 
     @staticmethod
-    def replace_ros_package_references_to_absolute_paths(urdf_string: str) -> str:
+    def replace_relative_references_with_absolute_paths(urdf_string: str) -> str:
         """
-        Change paths for files in the URDF from ROS paths to paths in the file system. Since World (PyBullet legacy)
-        can't deal with ROS package paths.
+        Change paths for files in the URDF from ROS paths and file dir references to paths in the file system. Since
+        World (PyBullet legacy) can't deal with ROS package paths.
 
         :param urdf_string: The name of the URDf on the parameter server
         :return: The URDF string with paths in the filesystem instead of ROS packages
@@ -329,6 +329,8 @@ class ObjectDescription(AbstractObjectDescription):
                 s1 = s[1].split('/')
                 path = r.get_path(s1[0])
                 line = line.replace("package://" + s1[0], path)
+            if 'file://' in line:
+                line = line.replace("file://", './')
             new_urdf_string += line + '\n'
 
         return new_urdf_string
