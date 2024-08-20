@@ -14,6 +14,7 @@ from pycram.robot_description import RobotDescriptionManager
 from pycram.world_concepts.world_object import Object
 from pycram.validation.error_checkers import calculate_angle_between_quaternions
 from pycram.worlds.multiverse_extras.helpers import get_robot_mjcf_path, parse_mjcf_actuators
+from pycram.object_descriptors.mjcf import ObjectDescription as MJCF
 
 multiverse_installed = True
 try:
@@ -52,6 +53,10 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     def tearDown(self):
         self.multiverse.reset_world_and_remove_objects()
+
+    def test_spawn_mesh_object(self):
+        milk = Object("milk", ObjectType.MILK, "milk.stl", description=MJCF, pose=Pose([1, 1, 0.1]))
+        assert milk is not None
 
     def test_parse_mjcf_actuators(self):
         mjcf_file = get_robot_mjcf_path("pal_robotics", "tiago_dual")

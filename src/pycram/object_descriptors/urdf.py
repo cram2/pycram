@@ -240,15 +240,15 @@ class ObjectDescription(AbstractObjectDescription):
             with suppress_stdout_stderr():
                 return URDF.from_xml_string(file.read())
 
-    def generate_from_mesh_file(self, path: str, name: str, color: Optional[Color] = Color()) -> str:
+    def generate_from_mesh_file(self, path: str, name: str, save_path: str, color: Optional[Color] = Color()) -> None:
         """
         Generate a URDf file with the given .obj or .stl file as mesh. In addition, use the given rgba_color to create a
-         material tag in the URDF.
+         material tag in the URDF. The URDF file will be saved to the given save_path.
 
         :param path: The path to the mesh file.
         :param name: The name of the object.
+        :param save_path: The path to save the URDF file to.
         :param color: The color of the object.
-        :return: The URDF string.
         """
         urdf_template = '<?xml version="0.0" ?> \n \
                         <robot name="~a_object"> \n \
@@ -273,25 +273,27 @@ class ObjectDescription(AbstractObjectDescription):
         pathlib_obj = pathlib.Path(path)
         path = str(pathlib_obj.resolve())
         content = urdf_template.replace("~a", name).replace("~b", path).replace("~c", rgb)
-        return content
+        self.write_description_to_file(content, save_path)
 
-    def generate_from_description_file(self, path: str, make_mesh_paths_absolute: bool = True) -> str:
+    def generate_from_description_file(self, path: str, save_path: str, make_mesh_paths_absolute: bool = True) -> None:
         with open(path, mode="r") as f:
             urdf_string = self.fix_missing_inertial(f.read())
-            urdf_string = self.remove_error_tags(urdf_string)
-            urdf_string = self.fix_link_attributes(urdf_string)
-            try:
-                urdf_string = self.replace_ros_package_references_to_absolute_paths(urdf_string)
-                urdf_string = self.fix_missing_inertial(urdf_string)
-            except rospkg.ResourceNotFound as e:
-                rospy.logerr(f"Could not find resource package linked in this URDF")
-                raise e
-        return self.make_mesh_paths_absolute(urdf_string, path) if make_mesh_paths_absolute else urdf_string
+        urdf_string = self.remove_error_tags(urdf_string)
+        urdf_string = self.fix_link_attributes(urdf_string)
+        try:
+            urdf_string = self.replace_ros_package_references_to_absolute_paths(urdf_string)
+            urdf_string = self.fix_missing_inertial(urdf_string)
+        except rospkg.ResourceNotFound as e:
+            rospy.logerr(f"Could not find resource package linked in this URDF")
+            raise e
+        urdf_string = self.make_mesh_paths_absolute(urdf_string, path) if make_mesh_paths_absolute else urdf_string
+        self.write_description_to_file(urdf_string, save_path)
 
-    def generate_from_parameter_server(self, name: str) -> str:
+    def generate_from_parameter_server(self, name: str, save_path: str) -> None:
         urdf_string = rospy.get_param(name)
         urdf_string = self.replace_ros_package_references_to_absolute_paths(urdf_string)
-        return self.fix_missing_inertial(urdf_string)
+        urdf_string = self.fix_missing_inertial(urdf_string)
+        self.write_description_to_file(urdf_string, save_path)
 
     @property
     def joints(self) -> List[JointDescription]:

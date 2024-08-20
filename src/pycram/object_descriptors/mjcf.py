@@ -1,6 +1,8 @@
 import pathlib
 
+import numpy as np
 import rospy
+import os
 from geometry_msgs.msg import Point
 from typing_extensions import Union, List, Optional, Dict, Tuple
 from dm_control import mjcf
@@ -13,6 +15,13 @@ from ..datastructures.dataclasses import Color, VisualShape, BoxVisualShape, Cyl
     SphereVisualShape, MeshVisualShape
 from ..failures import MultiplePossibleTipLinks
 
+from multiverse_parser import Configuration, Factory
+from multiverse_parser import (WorldBuilder,
+                               BodyBuilder,
+                               GeomType, GeomProperty,
+                               MeshProperty)
+from multiverse_parser import MjcfExporter, UrdfExporter
+from pxr import Usd, UsdGeom
 
 class LinkDescription(AbstractLinkDescription):
     """
@@ -144,6 +153,33 @@ class JointDescription(AbstractJointDescription):
     def friction(self) -> float:
         raise NotImplementedError("Friction is not implemented for MJCF joints.")
 
+class ObjectFactory(Factory):
+    def __init__(self, object_name: str, file_path: str, config: Configuration):
+        super().__init__(file_path, config)
+
+        self._world_builder = WorldBuilder(usd_file_path=self.tmp_usd_file_path)
+
+        body_builder = self._world_builder.add_body(body_name=object_name)
+
+        tmp_usd_mesh_file_path, tmp_origin_mesh_file_path = self.import_mesh(
+            mesh_file_path=file_path, merge_mesh=True)
+        mesh_stage = Usd.Stage.Open(tmp_usd_mesh_file_path)
+        for idx, mesh_prim in enumerate([prim for prim in mesh_stage.Traverse() if prim.IsA(UsdGeom.Mesh)]):
+            mesh_name = mesh_prim.GetName()
+            mesh_path = mesh_prim.GetPath()
+            mesh_property = MeshProperty.from_mesh_file_path(mesh_file_path=tmp_usd_mesh_file_path,
+                                                             mesh_path=mesh_path)
+            geom_property = GeomProperty(geom_type=GeomType.MESH,
+                                         is_visible=False,
+                                         is_collidable=True)
+            geom_builder = body_builder.add_geom(geom_name=f"SM_{object_name}_mesh_{idx}",
+                                                 geom_property=geom_property)
+            geom_builder.add_mesh(mesh_name=mesh_name, mesh_property=mesh_property)
+
+    def export_to_mjcf(self, output_file_path: str):
+        exporter = MjcfExporter(self, output_file_path)
+        exporter.build()
+        exporter.export(keep_usd=False)
 
 class ObjectDescription(AbstractObjectDescription):
     """
@@ -252,12 +288,13 @@ class ObjectDescription(AbstractObjectDescription):
             self.virtual_joint_names.append(name)
 
     def load_description(self, path) -> mjcf.RootElement:
-        return mjcf.from_file(path)
+        return mjcf.from_file(path, model_dir=pathlib.Path(path).parent)
 
     def load_description_from_string(self, description_string: str) -> mjcf.RootElement:
         return mjcf.from_xml_string(description_string)
 
-    def generate_from_mesh_file(self, path: str, name: str, color: Optional[Color] = Color()) -> str:
+    def generate_from_mesh_file(self, path: str, name: str, color: Optional[Color] = Color(),
+                                save_path: Optional[str] = None) -> None:
         """
         Generate a mjcf xml file with the given .obj or .stl file as mesh. In addition, use the given rgba_color
          to create a material tag in the xml.
@@ -265,35 +302,21 @@ class ObjectDescription(AbstractObjectDescription):
         :param path: The path to the mesh file.
         :param name: The name of the object.
         :param color: The color of the object.
-        :return: The generated xml string.
+        :param save_path: The path to save the generated xml file.
         """
-        # Create the MJCF model
-        model = mjcf.RootElement(model=f"{name}_object")
+        factory = ObjectFactory(object_name=name, file_path=path,
+                                config=Configuration(model_name=name,
+                                                     fixed_base=False,
+                                                     default_rgba=np.array(color.get_rgba())))
+        factory.export_to_mjcf(output_file_path=save_path)
 
-        # Add a body to the worldbody
-        main_body = model.worldbody.add('body', name=f"{name}_main")
+    def generate_from_description_file(self, path: str, save_path: str, make_mesh_paths_absolute: bool = True) -> None:
+        mjcf_string = mjcf.from_file(path)
+        self.write_description_to_file(mjcf_string, save_path)
 
-        # add a free joint to the main body
-        joint = main_body.add('joint', name=f"{name}_main_joint", type=MJCFJointType.FREE.value)
-
-        # Add the geometry (visual + collision combined) to the body
-        geom = main_body.add(
-            'geom',
-            name=f"{name}_main_geom",
-            type='mesh',
-            mesh=str(pathlib.Path(path).resolve()),
-            rgba=" ".join(list(map(str, color.get_rgba()))),
-            scale=[1, 1, 1],
-            contype=1,
-            conaffinity=1
-        )
-        return model.to_xml_string()
-
-    def generate_from_description_file(self, path: str, make_mesh_paths_absolute: bool = True) -> str:
-        return mjcf.from_file(path)
-
-    def generate_from_parameter_server(self, name: str) -> str:
-        return rospy.get_param(name)
+    def generate_from_parameter_server(self, name: str, save_path: str) -> None:
+        mjcf_string = rospy.get_param(name)
+        self.write_description_to_file(mjcf_string, save_path)
 
     @property
     def joints(self) -> List[JointDescription]:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import pathlib
 from abc import ABC, abstractmethod
 
@@ -758,33 +759,56 @@ class ObjectDescription(EntityDescription):
         """
         pass
 
-    def generate_description_from_file(self, path: str, name: str, extension: str) -> str:
+    def generate_description_from_file(self, path: str, name: str, extension: str, save_path: str) -> None:
         """
-        Generate and preprocess the description from the file at the given path and return the preprocessed
-        description as a string.
+        Generate and preprocess the description from the file at the given path and save the preprocessed
+        description. The generated description will be saved at the given save path.
 
         :param path: The path of the file to preprocess.
         :param name: The name of the object.
         :param extension: The file extension of the file to preprocess.
-        :return: The processed description string.
+        :param save_path: The path to save the generated description file.
+        :raises ObjectDescriptionNotFound: If the description file could not be found/read.
         """
-        description_string = None
 
         if extension in self.mesh_extensions:
-            description_string = self.generate_from_mesh_file(path, name)
+            self.generate_from_mesh_file(path, name, save_path=save_path)
         elif extension == self.get_file_extension():
-            description_string = self.generate_from_description_file(path)
+            self.generate_from_description_file(path, save_path=save_path)
         else:
             try:
                 # Using the description from the parameter server
-                description_string = self.generate_from_parameter_server(path)
+                self.generate_from_parameter_server(path, save_path=save_path)
             except KeyError:
                 logging.warning(f"Couldn't find file data in the ROS parameter server")
 
-        if description_string is None:
+        if not self.check_description_file_exists_and_can_be_read(save_path):
             raise ObjectDescriptionNotFound(name, path, extension)
 
-        return description_string
+    @staticmethod
+    def check_description_file_exists_and_can_be_read(path: str) -> bool:
+        """
+        Check if the description file exists at the given path.
+
+        :param path: The path to the description file.
+        :return: True if the file exists, False otherwise.
+        """
+        exists = os.path.exists(path)
+        if exists:
+            with open(path, "r") as file:
+                exists = bool(file.read())
+        return exists
+
+    @staticmethod
+    def write_description_to_file(description_string: str, save_path: str) -> None:
+        """
+        Write the description string to the file at the given path.
+
+        :param description_string: The description string to write.
+        :param save_path: The path of the file to write to.
+        """
+        with open(save_path, "w") as file:
+            file.write(description_string)
 
     def get_file_name(self, path_object: pathlib.Path, extension: str, object_name: str) -> str:
         """
@@ -806,37 +830,39 @@ class ObjectDescription(EntityDescription):
 
     @classmethod
     @abstractmethod
-    def generate_from_mesh_file(cls, path: str, name: str) -> str:
+    def generate_from_mesh_file(cls, path: str, name: str, save_path: str) -> None:
         """
         Generate a description file from one of the mesh types defined in the mesh_extensions and
-        return the path of the generated file.
+        return the path of the generated file. The generated file will be saved at the given save_path.
 
         :param path: The path to the .obj file.
         :param name: The name of the object.
-        :return: The path of the generated description file.
+        :param save_path: The path to save the generated description file.
         """
         pass
 
     @classmethod
     @abstractmethod
-    def generate_from_description_file(cls, path: str, make_mesh_paths_absolute: bool = True) -> str:
+    def generate_from_description_file(cls, path: str, save_path: str, make_mesh_paths_absolute: bool = True) -> None:
         """
-        Preprocess the given file and return the preprocessed description string.
+        Preprocess the given file and return the preprocessed description string. The preprocessed description will be
+        saved at the given save_path.
 
         :param path: The path of the file to preprocess.
+        :param save_path: The path to save the preprocessed description file.
         :param make_mesh_paths_absolute: Whether to make the mesh paths absolute.
-        :return: The preprocessed description string.
         """
         pass
 
     @classmethod
     @abstractmethod
-    def generate_from_parameter_server(cls, name: str) -> str:
+    def generate_from_parameter_server(cls, name: str, save_path: str) -> None:
         """
         Preprocess the description from the ROS parameter server and return the preprocessed description string.
+        The preprocessed description will be saved at the given save_path.
 
         :param name: The name of the description on the parameter server.
-        :return: The preprocessed description string.
+        :param save_path: The path to save the preprocessed description file.
         """
         pass
 
