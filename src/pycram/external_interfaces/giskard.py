@@ -174,7 +174,8 @@ def spawn_object(object: Object) -> None:
             filename = geometry.file_name
             spawn_mesh(object.name, filename, object.get_pose())
     else:
-        spawn_urdf(object.name, object.path, object.get_pose())
+        ww = spawn_urdf(object.name, object.path, object.get_pose())
+        print("GiskardSpawnURDF Return value: {} ObjectName:{}".format(ww,object.name))
 
 
 @init_giskard_interface
