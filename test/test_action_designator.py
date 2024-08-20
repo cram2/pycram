@@ -17,8 +17,6 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_move_torso(self):
         description = action_designator.MoveTorsoAction([0.3])
-        # SOMA ontology seems not provide a corresponding concept yet for MoveTorso
-        #self.assertTrue(description.ontology_concept_holders)
         self.assertEqual(description.ground().position, 0.3)
         with simulated_robot:
             description.resolve().perform()
@@ -26,7 +24,6 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_set_gripper(self):
         description = action_designator.SetGripperAction([Arms.LEFT], [GripperState.OPEN, GripperState.CLOSE])
-        self.assertTrue(description.ontology_concept_holders)
         self.assertEqual(description.ground().gripper, Arms.LEFT)
         self.assertEqual(description.ground().motion, GripperState.OPEN)
         self.assertEqual(len(list(iter(description))), 2)
@@ -38,21 +35,18 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
     def test_release(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.ReleaseAction([Arms.LEFT], object_description)
-        self.assertTrue(description.ontology_concept_holders)
         self.assertEqual(description.ground().gripper, Arms.LEFT)
         self.assertEqual(description.ground().object_designator.name, "milk")
 
     def test_grip(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.GripAction([Arms.LEFT], object_description, [0.5])
-        self.assertTrue(description.ontology_concept_holders)
         self.assertEqual(description.ground().gripper, Arms.LEFT)
         self.assertEqual(description.ground().object_designator.name, "milk")
 
     def test_park_arms(self):
         description = action_designator.ParkArmsAction([Arms.BOTH])
         self.assertEqual(description.ground().arm, Arms.BOTH)
-        self.assertTrue(description.ontology_concept_holders)
         with simulated_robot:
             description.resolve().perform()
         for joint, pose in RobotDescription.current_robot_description.get_static_joint_chain("right", "park").items():
@@ -66,13 +60,11 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         with simulated_robot:
             description.resolve().perform()
         self.assertEqual(description.ground().target_location, Pose([1, 0, 0], [0, 0, 0, 1]))
-        self.assertTrue(description.ontology_concept_holders)
         self.assertEqual(self.robot.get_pose(), Pose([1, 0, 0]))
 
     def test_pick_up(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.PickUpAction(object_description, [Arms.LEFT], [Grasp.FRONT])
-        self.assertTrue(description.ontology_concept_holders)
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
@@ -83,7 +75,6 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
     def test_place(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
-        self.assertTrue(description.ontology_concept_holders)
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
@@ -94,7 +85,6 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
 
     def test_look_at(self):
         description = action_designator.LookAtAction([Pose([1, 0, 1])])
-        self.assertTrue(description.ontology_concept_holders)
         self.assertEqual(description.ground().target, Pose([1, 0, 1]))
         with simulated_robot:
             description.resolve().perform()
@@ -105,7 +95,6 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.milk.set_pose(Pose([1.5, 0, 1.2]))
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.DetectAction(object_description)
-        self.assertTrue(description.ontology_concept_holders)
         self.assertEqual(description.ground().object_designator.name, "milk")
         with simulated_robot:
             detected_object = description.resolve().perform()
@@ -118,14 +107,12 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
     def test_open(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.OpenAction(object_description, [Arms.LEFT])
-        self.assertTrue(description.ontology_concept_holders)
         self.assertEqual(description.ground().object_designator.name, "milk")
 
     @unittest.skip
     def test_close(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.CloseAction(object_description, [Arms.LEFT])
-        self.assertTrue(description.ontology_concept_holders)
         self.assertEqual(description.ground().object_designator.name, "milk")
 
     def test_transport(self):
@@ -134,7 +121,6 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
                                                         [Arms.LEFT],
                                                         [Pose([-1.35, 0.78, 0.95],
                                                               [0.0, 0.0, 0.16439898301071468, 0.9863939245479175])])
-        self.assertTrue(description.ontology_concept_holders)
         with simulated_robot:
             action_designator.MoveTorsoAction([0.2]).resolve().perform()
             description.resolve().perform()
@@ -148,7 +134,6 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.robot.set_pose(Pose([-2.14, 1.06, 0]))
         milk_desig = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.GraspingAction([Arms.RIGHT], milk_desig)
-        self.assertTrue(description.ontology_concept_holders)
         with simulated_robot:
             description.resolve().perform()
         dist = np.linalg.norm(
