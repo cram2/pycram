@@ -242,7 +242,7 @@ class ObjectDescription(AbstractObjectDescription):
 
         if origin is not None:
             position = origin.position_as_list()
-            quaternion = origin.quaternion_as_list()
+            quaternion = origin.orientation_as_list()
             quaternion = [quaternion[1], quaternion[2], quaternion[3], quaternion[0]]
         if axis is not None:
             axis = [axis.x, axis.y, axis.z]
