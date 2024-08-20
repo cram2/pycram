@@ -10,7 +10,12 @@ Global reference for the resources path, this is used to search for the descript
  the objects.
 """
 
-cache_dir: str = os.path.join(resources_path, 'cached')
+cache_dir_name: str = 'cached'
+"""
+The name of the cache directory.
+"""
+
+cache_dir: str = os.path.join(resources_path, cache_dir_name)
 """
 Global reference for the cache directory, this is used to cache the description files of the robot and the objects.
 """

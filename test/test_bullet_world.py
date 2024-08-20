@@ -141,7 +141,7 @@ class BulletWorldTest(BulletWorldTestCase):
 
     def test_add_resource_path(self):
         self.world.add_resource_path("test")
-        self.assertTrue("test" in self.world.data_directory)
+        self.assertTrue("test" in self.world.data_directories)
 
     def test_no_prospection_object_found_for_given_object(self):
         milk_2 = Object("milk_2", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
