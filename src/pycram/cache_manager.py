@@ -15,11 +15,6 @@ class CacheManager:
     The CacheManager is responsible for caching object description files and managing the cache directory.
     """
 
-    mesh_extensions: List[str] = [".obj", ".stl"]
-    """
-    The file extensions of mesh files.
-    """
-
     def __init__(self, cache_dir: str, data_directory: List[str]):
         """
         Initialize the CacheManager.
@@ -28,7 +23,7 @@ class CacheManager:
         :param data_directory: The directory where all resource files are stored.
         """
         self.cache_dir = cache_dir
-        self.data_directory = data_directory
+        self.data_directories = data_directory
         self.clear_cache()
 
     def clear_cache(self):
@@ -104,7 +99,7 @@ class CacheManager:
         :param path_object: The pathlib object of the file to look for.
         """
         name = path_object.name
-        for data_dir in self.data_directory:
+        for data_dir in self.data_directories:
             data_path = pathlib.Path(data_dir).joinpath("**")
             for file in glob.glob(str(data_path), recursive=True):
                 file_path = pathlib.Path(file)
@@ -113,7 +108,7 @@ class CacheManager:
                     return str(file_path)
 
         raise FileNotFoundError(
-            f"File {name} could not be found in the resource directory {self.data_directory}")
+            f"File {name} could not be found in the resource directory {self.data_directories}")
 
     def create_cache_dir_if_not_exists(self):
         """

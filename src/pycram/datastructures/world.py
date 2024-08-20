@@ -1,6 +1,7 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+import os
 import threading
 import time
 from abc import ABC, abstractmethod
@@ -9,7 +10,6 @@ from copy import copy
 import numpy as np
 import rospy
 from geometry_msgs.msg import Point
-from tf.transformations import euler_from_quaternion, quaternion_multiply, quaternion_from_euler
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union
 
 from ..cache_manager import CacheManager
@@ -65,24 +65,7 @@ class World(StateEntity, ABC):
      the URDF with the name of the URDF on the parameter server. 
     """
 
-    resources_path = conf.resources_path
-    """
-    Global reference for the resources path, this is used to search for the description files of the robot and
-     the objects.
-    """
-
-    data_directory: List[str] = [resources_path]
-    """
-    Global reference for the data directories, this is used to search for the description files of the robot,
-     the objects, and the cached files.
-    """
-
-    cache_dir: str = conf.cache_dir
-    """
-    Global reference for the cache directory, this is used to cache the description files of the robot and the objects.
-    """
-
-    cache_manager: CacheManager = CacheManager(cache_dir, data_directory)
+    cache_manager: CacheManager = CacheManager(conf.cache_dir, [conf.resources_path])
     """
     Global reference for the cache manager, this is used to cache the description files of the robot and the objects.
     """
@@ -308,7 +291,7 @@ class World(StateEntity, ABC):
         """
         The time step of the simulation in seconds.
         """
-        return 1 / World.simulation_frequency
+        return 1 / self.__class__.simulation_frequency
 
     @abstractmethod
     def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[Pose] = None,
@@ -1022,15 +1005,44 @@ class World(StateEntity, ABC):
         self.coll_callbacks[(object_a, object_b)] = CollisionCallbacks(on_collision_callback,
                                                                        on_collision_removal_callback)
 
+    @property
+    def data_directories(self):
+        """
+        The resources directories where the objects, robots, and environments are stored.
+        """
+        return self.cache_manager.data_directories
+
     @classmethod
-    def add_resource_path(cls, path: str) -> None:
+    def add_resource_path(cls, path: str, prepend: bool = False) -> None:
         """
         Adds a resource path in which the World will search for files. This resource directory is searched if an
         Object is spawned only with a filename.
 
         :param path: A path in the filesystem in which to search for files.
+        :param prepend: Put the new path at the beginning of the list such that it is searched first.
         """
-        cls.data_directory.append(path)
+        if prepend:
+            cls.cache_manager.data_directories = [path] + cls.cache_manager.data_directories
+        else:
+            cls.cache_manager.data_directories.append(path)
+
+    @classmethod
+    def remove_resource_path(cls, path: str) -> None:
+        """
+        Remove the given path from the data_directories list.
+
+        :param path: The path to remove.
+        """
+        cls.cache_manager.data_directories.remove(path)
+
+    @classmethod
+    def change_cache_dir_path(cls, path: str) -> None:
+        """
+        Change the cache directory to the given path
+
+        :param path: The new path for the cache directory.
+        """
+        cls.cache_manager.cache_dir = os.path.join(path, conf.cache_dir_name)
 
     def get_prospection_object_for_object(self, obj: Object) -> Object:
         """

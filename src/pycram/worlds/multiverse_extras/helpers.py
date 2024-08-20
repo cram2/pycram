@@ -39,28 +39,6 @@ def get_robot_mjcf_path(company_name: str, robot_name: str, xml_name: Optional[s
     return None
 
 
-def get_resource_paths(dirname: str) -> List[str]:
-    resources_paths = ["../robots", "../worlds", "../objects"]
-    resources_paths = [
-        os.path.join(dirname, resources_path.replace('../', '')) if not os.path.isabs(
-            resources_path) else resources_path
-        for resources_path in resources_paths
-    ]
-
-    def add_directories(path: str) -> None:
-        with os.scandir(path) as entries:
-            for entry in entries:
-                if entry.is_dir():
-                    resources_paths.append(entry.path)
-                    add_directories(entry.path)
-
-    resources_path_copy = resources_paths.copy()
-    for resources_path in resources_path_copy:
-        add_directories(resources_path)
-
-    return resources_paths
-
-
 def find_multiverse_resources_path() -> Optional[str]:
     """
     Find the path to the Multiverse resources directory.

@@ -5,14 +5,15 @@ from time import sleep
 import numpy as np
 import rospy
 from tf.transformations import quaternion_matrix
-from typing_extensions import List, Dict, Optional, Union, Tuple, Callable
+from typing_extensions import List, Dict, Optional, Union, Tuple
 
 from .multiverse_communication.client_manager import MultiverseClientManager
 from .multiverse_communication.clients import MultiverseController, MultiverseReader, MultiverseWriter, MultiverseAPI
 from .multiverse_datastructures.enums import MultiverseBodyProperty, MultiverseJointPosition, \
     MultiverseJointCMD
 from .multiverse_extras.helpers import find_multiverse_resources_path
-from ..config import multiverse_conf as conf
+from ..cache_manager import CacheManager
+from ..config import multiverse_conf as conf, world_conf
 from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
 from ..datastructures.enums import WorldMode, JointType, ObjectType
 from ..datastructures.pose import Pose
@@ -58,10 +59,7 @@ class Multiverse(World):
     Whether to use the controller for the robot joints or not.
     """
 
-    try:
-        simulation_wait_time_factor = float(os.environ['Multiverse_Simulation_Wait_Time_Factor'])
-    except KeyError:
-        simulation_wait_time_factor = 1.0
+    simulation_wait_time_factor: float = conf.simulation_wait_time_factor
     """
     The factor to multiply the simulation wait time with, this is used to adjust the simulation wait time to account for
     the time taken by the simulation to process the request, this depends on the computational power of the machine
@@ -137,13 +135,12 @@ class Multiverse(World):
 
     def _make_sure_multiverse_resources_are_added(self):
         """
-        Add the multiverse resources to the pycram world resources.
+        Add the multiverse resources to the pycram world resources, and change the data directory and cache manager.
         """
         if not self.added_multiverse_resources:
             World.cache_manager.clear_cache()
-            dirname = find_multiverse_resources_path()
-            World.data_directory = [dirname] + self.data_directory
-            World.cache_manager.data_directory = World.data_directory
+            World.add_resource_path(conf.resources_path, prepend=True)
+            World.change_cache_dir_path(conf.resources_path)
             self.added_multiverse_resources = True
 
     def remove_multiverse_resources(self):
@@ -151,9 +148,8 @@ class Multiverse(World):
         Remove the multiverse resources from the pycram world resources.
         """
         if self.added_multiverse_resources:
-            dirname = find_multiverse_resources_path()
-            World.data_directory.remove(dirname)
-            World.cache_manager.data_directory = World.data_directory
+            World.remove_resource_path(conf.resources_path)
+            World.change_cache_dir_path(world_conf.cache_dir)
             self.added_multiverse_resources = False
 
     def _spawn_floor(self):
