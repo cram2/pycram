@@ -62,34 +62,9 @@ class CacheManager:
         if not self.is_cached(path, object_description) or ignore_cached_files:
             # if file is not yet cached preprocess the description file and save it in the cache directory.
             path = self.look_for_file_in_data_dir(path_object)
-            self.generate_description_and_write_to_cache(path, object_name, extension, cache_path, object_description)
+            object_description.generate_description_from_file(path, object_name, extension, cache_path)
 
         return cache_path
-
-    def generate_description_and_write_to_cache(self, path: str, name: str, extension: str, cache_path: str,
-                                                object_description: 'ObjectDescription') -> None:
-        """
-        Generate the description from the file at the given path and write it to the cache directory.
-
-        :param path: The path of the file to preprocess.
-        :param name: The name of the object.
-        :param extension: The file extension of the file to preprocess.
-        :param cache_path: The path of the file in the cache directory.
-        :param object_description: The object description of the file.
-        """
-        description_string = object_description.generate_description_from_file(path, name, extension)
-        self.write_to_cache(description_string, cache_path)
-
-    @staticmethod
-    def write_to_cache(description_string: str, cache_path: str) -> None:
-        """
-        Write the description string to the cache directory.
-
-        :param description_string: The description string to write to the cache directory.
-        :param cache_path: The path of the file in the cache directory.
-        """
-        with open(cache_path, "w") as file:
-            file.write(description_string)
 
     def look_for_file_in_data_dir(self, path_object: pathlib.Path) -> str:
         """
@@ -148,5 +123,5 @@ class CacheManager:
         :param object_description: The object description of the file.
         """
         file_stem = pathlib.Path(path).stem
-        full_path = pathlib.Path(self.cache_dir + file_stem + object_description.get_file_extension())
+        full_path = pathlib.Path(os.path.join(self.cache_dir, file_stem + object_description.get_file_extension()))
         return full_path.exists()
