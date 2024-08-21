@@ -45,9 +45,9 @@
   </group>
 
   <!-- turtlebot3 -->
-  <group if="$(eval robot == 'turtlebot3')">
+  <group if="$(eval robot == 'turtlebot')">
     <param name="robot_description"
-              textfile="$(find pycram)/resources/robots/turtlebot3_waffle_pi.urdf"/>
+              textfile="$(find pycram)/resources/robots/turtlebot.urdf"/>
   </group>
 
 
