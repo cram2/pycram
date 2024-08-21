@@ -37,6 +37,7 @@ from ..world_concepts.event import Event
 if TYPE_CHECKING:
     from ..world_concepts.world_object import Object
     from ..description import Link, Joint, ObjectDescription
+    from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 
 
 class World(StateEntity, ABC):
@@ -310,6 +311,12 @@ class World(StateEntity, ABC):
         :return: The id of the loaded object.
         """
         pass
+
+    def load_generic_object_and_get_id(self, description: GenericObjectDescription) -> int:
+        """
+        Creates a visual and collision box in the simulation and returns the id of the loaded object.
+        """
+        raise NotImplementedError
 
     def get_object_names(self) -> List[str]:
         """

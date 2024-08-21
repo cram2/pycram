@@ -7,6 +7,7 @@ from pycram.datastructures.pose import Pose
 from pycram.datastructures.dataclasses import Color
 from pycram.failures import UnsupportedFileExtension
 from pycram.world_concepts.world_object import Object
+from pycram.object_descriptors.generic import ObjectDescription as GenericObjectDescription
 
 from geometry_msgs.msg import Point, Quaternion
 import pathlib
@@ -162,3 +163,12 @@ class TestObject(BulletWorldTestCase):
         self.assertEqual(self.milk, self.milk)
         self.assertNotEqual(self.milk, self.cereal)
         self.assertNotEqual(self.milk, self.world)
+
+
+class GenericObjectTestCase(BulletWorldTestCase):
+
+    def test_init_generic_object(self):
+        gen_obj_desc = GenericObjectDescription("robokudo_object", [0,0,0], [0.1, 0.1, 0.1])
+        obj = Object("robokudo_object", ObjectType.MILK, None, gen_obj_desc)
+        pose = obj.get_pose()
+        self.assertTrue(isinstance(pose, Pose))

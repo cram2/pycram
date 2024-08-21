@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import unittest
+from time import sleep
 
 import numpy as np
 import psutil
@@ -309,7 +310,9 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             self.assertEqual(len(contact_points), 1)
             self.assertIsInstance(contact_points[0], ContactPoint)
             self.assertTrue(contact_points[0].link_b.object, milk)
+            sleep(0.1)
             self.tearDown()
+            sleep(0.1)
 
     def test_get_contact_points_between_two_objects(self):
         for i in range(3):
