@@ -11,8 +11,6 @@ from typing_extensions import List, Callable, Optional
 from ..datastructures.pose import Pose
 from ..designator import ObjectDesignatorDescription
 
-is_initialized = False
-
 try:
     from robokudo_msgs.msg import ObjectDesignator as robokudo_ObjectDesignator
     from robokudo_msgs.msg import QueryAction, QueryGoal, QueryResult
