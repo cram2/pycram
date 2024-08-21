@@ -11,6 +11,7 @@ class TestRobotDescription(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.path = str(pathlib.Path(__file__).parent.resolve()) + '/../resources/robots/' + "pr2" + '.urdf'
+        cls.path_turtlebot = str(pathlib.Path(__file__).parent.resolve()) + '/../resources/robots/' + "turtlebot" + '.urdf'
         cls.urdf_obj = URDFObject(cls.path)
 
     def test_robot_description_construct(self):
@@ -190,3 +191,13 @@ class TestRobotDescription(unittest.TestCase):
         rdm.register_description(robot_description)
         rdm.load_description("pr2_test2")
         self.assertIs(RobotDescription.current_robot_description, robot_description)
+
+    def test_robot_description_turtlebot(self):
+        robot_description = RobotDescription("turtlebot", "base_link", "base_link", "base_joint", self.path_turtlebot)
+        self.assertEqual(robot_description.name, "turtlebot")
+        self.assertEqual(robot_description.base_link, "base_link")
+        self.assertEqual(robot_description.torso_link, "base_link")
+        self.assertEqual(robot_description.torso_joint, "base_joint")
+        self.assertTrue(type(robot_description.urdf_object) is URDF)
+        self.assertEqual(len(robot_description.links), 11)
+        self.assertEqual(len(robot_description.joints), 10)
