@@ -8,13 +8,13 @@ import os.path
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Type, Tuple, Union
 
-import owlready2
 import rospy
 
 from owlready2 import (Namespace, Ontology, World as OntologyWorld, Thing, EntityClass, Imp,
                        Property, ObjectProperty, OwlReadyError, types,
                        onto_path, default_world, get_namespace, get_ontology, destroy_entity,
-                       sync_reasoner_pellet, sync_reasoner_hermit)
+                       sync_reasoner_pellet, sync_reasoner_hermit,
+                       OwlReadyOntologyParsingError)
 from owlready2.class_construct import GeneralClassAxiom
 
 from ..datastructures.enums import ObjectType
@@ -74,22 +74,11 @@ class OntologyManager(object, metaclass=Singleton):
         #: Namespace of the main ontology
         self.main_ontology_namespace: Optional[Namespace] = None
 
-        # Create the main ontology world holding triples, of which a sqlite3 file path, of same name with `main_ontology` &
-        # at the same folder with `main_ontology_iri` (if it is a local abosulte path), is automatically registered as cache of the world
-        self.main_ontology_world = self.create_ontology_world(
-            sql_backend_filename=os.path.join(self.get_main_ontology_dir(),
-                                              f"{Path(self.main_ontology_iri).stem}{ONTOLOGY_SQL_BACKEND_FILE_EXTENSION}"),
-            use_global_default_world=use_global_default_world)
+        # Create the main ontology world holding triples
+        self.create_main_ontology_world(use_global_default_world=use_global_default_world)
 
-        # Load ontologies from `main_ontology_iri` to `main_ontology_world`
-        # If `main_ontology_iri` is a remote URL, Owlready2 first searches for a local copy of the OWL file (from `onto_path`),
-        # if not found, tries to download it from the Internet.
-        ontology_info = self.load_ontology(self.main_ontology_iri)
-        if ontology_info:
-            self.main_ontology, self.main_ontology_namespace = ontology_info
-            if self.main_ontology and self.main_ontology.loaded:
-                self.soma = self.ontologies.get(SOMA_ONTOLOGY_NAMESPACE)
-                self.dul = self.ontologies.get(DUL_ONTOLOGY_NAMESPACE)
+        # Create the main ontology & its namespace, fetching :attr:`soma`, :attr:`dul` if loading from SOMA ontology
+        self.create_main_ontology()
 
     @staticmethod
     def print_ontology_class(ontology_class: Type[Thing]):
@@ -160,6 +149,19 @@ class OntologyManager(object, metaclass=Singleton):
         return os.path.dirname(self.main_ontology_iri) if os.path.isabs(
             self.main_ontology_iri) else self.get_default_ontology_search_path()
 
+    def create_main_ontology_world(self, use_global_default_world: bool = True) -> None:
+        """
+        Create the main ontology world, either reusing the owlready2-provided global default ontology world or create a new one
+        A backend sqlite3 file of same name with `main_ontology` is also created at the same folder with :attr:`main_ontology_iri`
+        (if it is a local absolute path). The file is automatically registered as cache for the main ontology world.
+
+        :param use_global_default_world: whether or not using the owlready2-provided global default persistent world
+        """
+        self.main_ontology_world = self.create_ontology_world(
+            sql_backend_filename=os.path.join(self.get_main_ontology_dir(),
+                                              f"{Path(self.main_ontology_iri).stem}{ONTOLOGY_SQL_BACKEND_FILE_EXTENSION}"),
+            use_global_default_world=use_global_default_world)
+
     @staticmethod
     def create_ontology_world(use_global_default_world: bool = False,
                               sql_backend_filename: Optional[str] = None) -> OntologyWorld:
@@ -189,6 +191,22 @@ class OntologyManager(object, metaclass=Singleton):
             rospy.loginfo(f"Created a new ontology world with SQL backend: {sql_backend_name}")
         return world
 
+    def create_main_ontology(self) -> bool:
+        """
+        Load ontologies from :attr:`main_ontology_iri` to :attr:`main_ontology_world`
+        If `main_ontology_iri` is a remote URL, Owlready2 first searches for a local copy of the OWL file (from `onto_path`),
+        if not found, tries to download it from the Internet.
+
+        :return: True if loading succeeds
+        """
+        ontology_info = self.load_ontology(self.main_ontology_iri)
+        if ontology_info:
+            self.main_ontology, self.main_ontology_namespace = ontology_info
+            if self.main_ontology and self.main_ontology.loaded:
+                self.soma = self.ontologies.get(SOMA_ONTOLOGY_NAMESPACE)
+                self.dul = self.ontologies.get(DUL_ONTOLOGY_NAMESPACE)
+        return ontology_info is not None
+
     def load_ontology(self, ontology_iri: str) -> Optional[Tuple[Ontology, Namespace]]:
         """
         Load an ontology from an IRI
@@ -200,19 +218,32 @@ class OntologyManager(object, metaclass=Singleton):
             rospy.logerr("Ontology IRI is empty")
             return None
 
-        # If `ontology_iri` is a local path -> create an empty ontology file if not existing
-        if not (ontology_iri.startswith("http:") or ontology_iri.startswith("https:")) \
-                and not Path(ontology_iri).exists():
+        is_local_ontology_iri = not (ontology_iri.startswith("http:") or ontology_iri.startswith("https:"))
+
+        # If `ontology_iri` is a local path
+        if is_local_ontology_iri and not Path(ontology_iri).exists():
+            # -> Create an empty ontology file if not existing
             with open(ontology_iri, 'w'):
                 pass
 
         # Load ontology from `ontology_iri`
-        if self.main_ontology_world:
-            ontology = self.main_ontology_world.get_ontology(ontology_iri).load(reload_if_newer=True)
-        else:
-            ontology = get_ontology(ontology_iri).load(reload_if_newer=True)
+        ontology = None
+        try:
+            if self.main_ontology_world:
+                ontology = self.main_ontology_world.get_ontology(ontology_iri).load(reload_if_newer=True)
+            else:
+                ontology = get_ontology(ontology_iri).load(reload_if_newer=True)
+        except OwlReadyOntologyParsingError as error:
+            rospy.logwarn(error)
+            if is_local_ontology_iri:
+                rospy.logerr(f"Main ontology failed being loaded from {ontology_iri}")
+            else:
+                rospy.logwarn(f"Main ontology failed being downloaded from the remote {ontology_iri}")
+            return None
+
+        # Browse loaded `ontology`, fetching sub-ontologies
         ontology_namespace = get_namespace(ontology_iri)
-        if ontology.loaded:
+        if ontology and ontology.loaded:
             rospy.loginfo(
                 f'Ontology [{ontology.base_iri}]\'s name: {ontology.name} has been loaded')
             rospy.loginfo(f'- main namespace: {ontology_namespace.name}')
