@@ -55,8 +55,9 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.multiverse.reset_world_and_remove_objects()
 
     def test_spawn_mesh_object(self):
-        milk = Object("milk", ObjectType.MILK, "milk.stl", description=MJCF, pose=Pose([1, 1, 0]))
-        self.assert_poses_are_equal(milk.get_pose(), Pose([1, 1, 0]))
+        milk = Object("milk", ObjectType.MILK, "milk.stl", description=MJCF, pose=Pose([1, 1, 0.1]))
+        self.assert_poses_are_equal(milk.get_pose(), Pose([1, 1, 0.1]))
+        self.multiverse.simulate(0.2)
         contact_points = milk.contact_points()
         self.assertTrue(len(contact_points) > 0)
 
