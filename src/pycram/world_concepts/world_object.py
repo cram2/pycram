@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+from pathlib import Path
 
 import numpy as np
 import rospy
@@ -16,9 +17,11 @@ from ..datastructures.pose import Pose, Transform
 from ..datastructures.world import World
 from ..datastructures.world_entity import WorldEntity
 from ..description import ObjectDescription, LinkDescription, Joint
-from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenObjects
+from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenObjects, UnsupportedFileExtension, \
+    ObjectDescriptionUndefined
 from ..local_transformer import LocalTransformer
-from ..object_descriptors.urdf import ObjectDescription as URDFObject
+from ..object_descriptors.urdf import ObjectDescription as URDF
+from ..object_descriptors.mjcf import ObjectDescription as MJCF
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 
@@ -35,8 +38,14 @@ class Object(WorldEntity):
     The prefix for the tf frame of objects in the prospection world.
     """
 
+    extension_to_description_type: Dict[str, Type[ObjectDescription]] = {URDF.get_file_extension(): URDF,
+                                                                         MJCF.get_file_extension(): MJCF}
+    """
+    A dictionary that maps the file extension to the corresponding ObjectDescription type.
+    """
+
     def __init__(self, name: str, obj_type: ObjectType, path: str,
-                 description: Type[ObjectDescription] = URDFObject,
+                 description: Optional[ObjectDescription] = None,
                  pose: Optional[Pose] = None,
                  world: Optional[World] = None,
                  color: Color = Color(),
@@ -66,7 +75,7 @@ class Object(WorldEntity):
         self.name: str = name
         self.obj_type: ObjectType = obj_type
         self.color: Color = color
-        self.description = description()
+        self._resolve_description(path, description)
         self.cache_manager = self.world.cache_manager
 
         self.local_transformer = LocalTransformer()
@@ -94,6 +103,26 @@ class Object(WorldEntity):
         self.attachments: Dict[Object, Attachment] = {}
 
         self.world.objects.append(self)
+
+    def _resolve_description(self, path: Optional[str] = None, description: Optional[ObjectDescription] = None) -> None:
+        """
+        Find the correct description type of the object and initialize it and set the description of this object to it.
+
+        :param path: The path to the source file.
+        :param description: The ObjectDescription of the object.
+        """
+        if description is not None:
+            self.description = description
+            return
+        if path is None:
+            raise ObjectDescriptionUndefined(self.name)
+        extension = Path(path).suffix
+        if extension in self.extension_to_description_type:
+            self.description = self.extension_to_description_type[extension]()
+        elif extension in ObjectDescription.mesh_extensions:
+            self.description = self.world.default_description_type()
+        else:
+            raise UnsupportedFileExtension(self.name, path)
 
     def set_mobile_robot_pose(self, pose: Pose) -> None:
         """
@@ -1342,7 +1371,7 @@ class Object(WorldEntity):
         :param world: The world to which the object should be copied.
         :return: The copied object in the given world.
         """
-        obj = Object(self.name, self.obj_type, self.path, type(self.description), self.get_pose(),
+        obj = Object(self.name, self.obj_type, self.path, self.description, self.get_pose(),
                      world, self.color)
         return obj
 

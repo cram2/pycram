@@ -1,24 +1,21 @@
 import logging
-import os
 from time import sleep
 
 import numpy as np
 import rospy
 from tf.transformations import quaternion_matrix
-from typing_extensions import List, Dict, Optional, Union, Tuple
+from typing_extensions import List, Dict, Optional, Union, Tuple, Type
 
 from .multiverse_communication.client_manager import MultiverseClientManager
 from .multiverse_communication.clients import MultiverseController, MultiverseReader, MultiverseWriter, MultiverseAPI
 from .multiverse_datastructures.enums import MultiverseBodyProperty, MultiverseJointPosition, \
     MultiverseJointCMD
-from .multiverse_extras.helpers import find_multiverse_resources_path
-from ..cache_manager import CacheManager
 from ..config import multiverse_conf as conf, world_conf
 from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
 from ..datastructures.enums import WorldMode, JointType, ObjectType
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
-from ..description import Link, Joint
+from ..description import Link, Joint, ObjectDescription
 from ..robot_description import RobotDescription
 from ..validation.goal_validator import validate_object_pose, validate_multiple_joint_positions, \
     validate_joint_position, validate_multiple_object_poses
@@ -64,6 +61,11 @@ class Multiverse(World):
     The factor to multiply the simulation wait time with, this is used to adjust the simulation wait time to account for
     the time taken by the simulation to process the request, this depends on the computational power of the machine
     running the simulation.
+    """
+
+    default_description_type: Type[ObjectDescription] = conf.default_description_type
+    """
+    The default description type for the objects.
     """
 
     def __init__(self, mode: Optional[WorldMode] = WorldMode.DIRECT,

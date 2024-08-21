@@ -10,7 +10,7 @@ from copy import copy
 import numpy as np
 import rospy
 from geometry_msgs.msg import Point
-from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union
+from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type
 
 from ..cache_manager import CacheManager
 from ..config import world_conf as conf
@@ -102,6 +102,11 @@ class World(StateEntity, ABC):
     raise_goal_validator_error: Optional[bool] = conf.ErrorTolerance.raise_goal_validator_error
     """
     Whether to raise an error if the goals are not achieved.
+    """
+
+    default_description_type: Type[ObjectDescription] = conf.default_description_type
+    """
+    The default description type for objects (e.g. URDF, MJCF, etc.).
     """
 
     def __init__(self, mode: WorldMode, is_prospection_world: bool, simulation_frequency: float,

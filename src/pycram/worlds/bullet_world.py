@@ -34,8 +34,6 @@ class BulletWorld(World):
     manipulate the Bullet World.
     """
 
-    extension: str = ObjectDescription.get_file_extension()
-
     # Check is for sphinx autoAPI to be able to work in a CI workflow
     if rosgraph.is_master_online():  # and "/pycram" not in rosnode.get_node_names():
         rospy.init_node('pycram')
@@ -63,7 +61,7 @@ class BulletWorld(World):
         self.set_gravity([0, 0, -9.8])
 
         if not is_prospection_world:
-            _ = Object("floor", ObjectType.ENVIRONMENT, "plane" + self.extension,
+            _ = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf",
                        world=self)
 
     def _init_world(self, mode: WorldMode):
