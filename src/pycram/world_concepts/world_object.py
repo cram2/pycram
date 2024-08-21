@@ -8,6 +8,7 @@ import rospy
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
+from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
                                           ContactPointsList)
@@ -176,6 +177,9 @@ class Object(WorldEntity):
         :param ignore_cached_files: Whether to ignore files in the cache directory.
         :return: The unique id of the object and the path of the file that was loaded.
         """
+        if isinstance(self.description, GenericObjectDescription):
+            return self.world.load_generic_object_and_get_id(self.description), path
+
         self.path = self.world.update_cache_dir_with_object(path, ignore_cached_files, self)
 
         try:

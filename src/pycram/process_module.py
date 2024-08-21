@@ -16,6 +16,7 @@ import rospy
 from .language import Language
 from .robot_description import RobotDescription
 from typing_extensions import TYPE_CHECKING
+from .datastructures.enums import ExecutionType
 
 if TYPE_CHECKING:
     from .designators.motion_designator import BaseMotion
@@ -26,7 +27,7 @@ class ProcessModule:
     Implementation of process modules. Process modules are the part that communicate with the outer world to execute
      designators.
     """
-    execution_delay = True
+    execution_delay = False
     """
     Adds a delay of 0.5 seconds after executing a process module, to make the execution in simulation more realistic
     """
@@ -89,7 +90,7 @@ class RealRobot:
         sets it to 'real'
         """
         self.pre = ProcessModuleManager.execution_type
-        ProcessModuleManager.execution_type = "real"
+        ProcessModuleManager.execution_type = ExecutionType.REAL
         self.pre_delay = ProcessModule.execution_delay
         ProcessModule.execution_delay = False
 
@@ -127,9 +128,44 @@ class SimulatedRobot:
         sets it to 'simulated'
         """
         self.pre = ProcessModuleManager.execution_type
-        ProcessModuleManager.execution_type = "simulated"
+        ProcessModuleManager.execution_type = ExecutionType.SIMULATED
 
     def __exit__(self, _type, value, traceback):
+        """
+        Exit method for the 'with' scope, sets the :py:attr:`~ProcessModuleManager.execution_type` to the previously
+        used one.
+        """
+        ProcessModuleManager.execution_type = self.pre
+
+    def __call__(self):
+        return self
+
+
+class SemiRealRobot:
+    """
+    Management class for executing designators on the semi-real robot. This is intended to be used in a with environment.
+    When importing this class an instance is imported instead.
+
+    Example:
+
+    .. code-block:: python
+
+        with semi_real_robot:
+            some designators
+    """
+
+    def __init__(self):
+        self.pre: str = ""
+
+    def __enter__(self):
+        """
+        Entering function for 'with' scope, saves the previously set :py:attr:`~ProcessModuleManager.execution_type` and
+        sets it to 'semi_real'
+        """
+        self.pre = ProcessModuleManager.execution_type
+        ProcessModuleManager.execution_type = ExecutionType.SEMI_REAL
+
+    def __exit__(self, type, value, traceback):
         """
         Exit method for the 'with' scope, sets the :py:attr:`~ProcessModuleManager.execution_type` to the previously
         used one.
@@ -158,7 +194,7 @@ def with_real_robot(func: Callable) -> Callable:
 
     def wrapper(*args, **kwargs):
         pre = ProcessModuleManager.execution_type
-        ProcessModuleManager.execution_type = "real"
+        ProcessModuleManager.execution_type = ExecutionType.REAL
         ret = func(*args, **kwargs)
         ProcessModuleManager.execution_type = pre
         return ret
@@ -184,7 +220,7 @@ def with_simulated_robot(func: Callable) -> Callable:
 
     def wrapper(*args, **kwargs):
         pre = ProcessModuleManager.execution_type
-        ProcessModuleManager.execution_type = "simulated"
+        ProcessModuleManager.execution_type = ExecutionType.Simulated
         ret = func(*args, **kwargs)
         ProcessModuleManager.execution_type = pre
         return ret
@@ -195,6 +231,7 @@ def with_simulated_robot(func: Callable) -> Callable:
 # These are imported, so they don't have to be initialized when executing with
 simulated_robot = SimulatedRobot()
 real_robot = RealRobot()
+semi_real_robot = SemiRealRobot()
 
 
 class ProcessModuleManager(ABC):
