@@ -65,6 +65,7 @@ class Object(WorldEntity):
         pose = Pose() if pose is None else pose
 
         self.name: str = name
+        self.path: Optional[str] = path
         self.obj_type: ObjectType = obj_type
         self.color: Color = color
         self.description = description()
@@ -74,10 +75,11 @@ class Object(WorldEntity):
         self.original_pose = self.local_transformer.transform_pose(pose, "map")
         self._current_pose = self.original_pose
 
-        self.path = self.world.preprocess_object_file_and_get_its_cache_path(path, ignore_cached_files,
-                                                                             self.description, self.name)
+        if path is not None:
+            self.path = self.world.preprocess_object_file_and_get_its_cache_path(path, ignore_cached_files,
+                                                                                 self.description, self.name)
 
-        self.description.update_description_from_file(self.path)
+            self.description.update_description_from_file(self.path)
 
         if self.obj_type == ObjectType.ROBOT and not self.world.is_prospection_world:
             self._update_world_robot_and_description()
@@ -210,9 +212,7 @@ class Object(WorldEntity):
         :return: The unique id of the object and the path of the file that was loaded.
         """
         if isinstance(self.description, GenericObjectDescription):
-            return self.world.load_generic_object_and_get_id(self.description), path
-
-        self.path = self.world.update_cache_dir_with_object(path, ignore_cached_files, self)
+            return self.world.load_generic_object_and_get_id(self.description)
 
         path = self.path if self.world.let_pycram_handle_spawning else self.name
 
