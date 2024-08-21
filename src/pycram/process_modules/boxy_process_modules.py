@@ -200,29 +200,29 @@ class BoxyManager(ProcessModuleManager):
         self._close_lock = Lock()
 
     def navigate(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return BoxyNavigation(self._navigate_lock)
 
     def looking(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return BoxyMoveHead(self._looking_lock)
 
     def detecting(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return BoxyDetecting(self._detecting_lock)
 
     def move_tcp(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return BoxyMoveTCP(self._move_tcp_lock)
 
     def move_arm_joints(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return BoxyMoveArmJoints(self._move_arm_joints_lock)
 
     def world_state_detecting(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return BoxyWorldStateDetecting(self._world_state_detecting_lock)
 
     def move_gripper(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return BoxyMoveGripper(self._move_gripper_lock)
