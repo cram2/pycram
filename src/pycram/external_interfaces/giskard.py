@@ -22,7 +22,7 @@ from threading import Lock, RLock
 try:
     from giskardpy.python_interface.old_python_interface import OldGiskardWrapper as GiskardWrapper
     from giskard_msgs.msg import WorldBody, MoveResult, CollisionEntry
-    from giskard_msgs.srv import UpdateWorldRequest, UpdateWorld, UpdateWorldResponse, RegisterGroupResponse
+    #from giskard_msgs.srv import UpdateWorldRequest, UpdateWorld, UpdateWorldResponse, RegisterGroupResponse
 except ModuleNotFoundError as e:
     rospy.logwarn("Failed to import Giskard messages, the real robot will not be available")
 
