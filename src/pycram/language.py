@@ -1,7 +1,7 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-import queue
+from queue import Queue
 import rospy
 from typing_extensions import Iterable, Optional, Callable, Dict, Any, List, Union, Tuple
 from anytree import NodeMixin, Node, PreOrderIter
@@ -261,7 +261,7 @@ class Monitor(Language):
         """
         super().__init__(None, None)
         self.kill_event = threading.Event()
-        self.exception_queue = queue.Queue()
+        self.exception_queue = Queue()
         if callable(condition):
             self.condition = Fluent(condition)
         elif isinstance(condition, Fluent):
@@ -282,8 +282,10 @@ class Monitor(Language):
                     cond = self.condition.get_value()
                     if cond:
                         for child in self.children:
-                            if hasattr(child, 'interrupt'):
+                            try:
                                 child.interrupt()
+                            except NotImplementedError:
+                                pass
                         if isinstance(cond, type) and issubclass(cond, Exception):
                             self.exception_queue.put(cond)
                         else:
