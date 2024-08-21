@@ -318,8 +318,8 @@ class ObjectDescription(AbstractObjectDescription):
         factory.export_to_mjcf(output_file_path=save_path)
 
     def generate_from_description_file(self, path: str, save_path: str, make_mesh_paths_absolute: bool = True) -> None:
-        mjcf_string = mjcf.from_file(path)
-        self.write_description_to_file(mjcf_string, save_path)
+        mjcf_model = mjcf.from_file(path)
+        self.write_description_to_file(mjcf_model, save_path)
 
     def generate_from_parameter_server(self, name: str, save_path: str) -> None:
         mjcf_string = rospy.get_param(name)
