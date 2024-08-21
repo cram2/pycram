@@ -15,13 +15,13 @@ from ..datastructures.dataclasses import Color, VisualShape, BoxVisualShape, Cyl
     SphereVisualShape, MeshVisualShape
 from ..failures import MultiplePossibleTipLinks
 
-from multiverse_parser import Configuration, Factory
+from multiverse_parser import Configuration, Factory, InertiaSource
 from multiverse_parser import (WorldBuilder,
-                               BodyBuilder,
                                GeomType, GeomProperty,
                                MeshProperty)
-from multiverse_parser import MjcfExporter, UrdfExporter
+from multiverse_parser import MjcfExporter
 from pxr import Usd, UsdGeom
+
 
 class LinkDescription(AbstractLinkDescription):
     """
@@ -95,7 +95,10 @@ class JointDescription(AbstractJointDescription):
         """
         :return: The type of this joint.
         """
-        return self.mjcf_type_map[self.parsed_description.type]
+        if hasattr(self.parsed_description, 'type'):
+            return self.mjcf_type_map[self.parsed_description.type]
+        else:
+            return self.mjcf_type_map[MJCFJointType.FREE.value]
 
     @property
     def axis(self) -> Point:
@@ -175,11 +178,14 @@ class ObjectFactory(Factory):
             geom_builder = body_builder.add_geom(geom_name=f"SM_{object_name}_mesh_{idx}",
                                                  geom_property=geom_property)
             geom_builder.add_mesh(mesh_name=mesh_name, mesh_property=mesh_property)
+            geom_builder.build()
+
+        body_builder.compute_and_set_inertial(inertia_source=InertiaSource.FROM_COLLISION_MESH)
 
     def export_to_mjcf(self, output_file_path: str):
         exporter = MjcfExporter(self, output_file_path)
         exporter.build()
-        exporter.export(keep_usd=False)
+        exporter.export(keep_usd=True)
 
 class ObjectDescription(AbstractObjectDescription):
     """
