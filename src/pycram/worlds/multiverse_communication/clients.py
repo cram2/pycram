@@ -3,6 +3,7 @@ import logging
 import threading
 from time import time, sleep
 
+import rospy
 from typing_extensions import List, Dict, Tuple, Optional, Callable, Union
 
 from .socket import MultiverseSocket, MultiverseMetaData
@@ -712,7 +713,11 @@ class MultiverseAPI(MultiverseClient):
         :param contact_effort: The contact effort of the object as a list of strings.
         :return: The contact effort of the object as a list of floats.
         """
-        return list(map(float, contact_effort[0].split()))
+        contact_effort = contact_effort[0].split()
+        if contact_effort == 'failed':
+            rospy.logwarn("Failed to get contact effort")
+            return [0.0] * 6
+        return list(map(float, contact_effort))
 
     def _get_contact_points(self, object_name) -> Dict[API, List]:
         """
