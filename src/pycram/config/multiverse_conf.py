@@ -1,8 +1,11 @@
 import datetime
-import os
+
+from typing_extensions import Type
 
 from . import world_conf as world_conf
+from ..description import ObjectDescription
 from ..worlds.multiverse_extras.helpers import find_multiverse_resources_path
+from ..object_descriptors.mjcf import ObjectDescription as MJCF
 
 # Multiverse Configuration
 resources_path: str = find_multiverse_resources_path()
@@ -43,6 +46,11 @@ similar to bullet_world which uses the bullet physics engine.
 use_controller: bool = False
 """
 Only used when use_bullet_mode is False. This turns on the controller for the robot joints.
+"""
+
+default_description_type: Type[ObjectDescription] = MJCF
+"""
+The default description type for the objects.
 """
 
 job_handling: world_conf.JobHandling = world_conf.JobHandling(let_pycram_move_attached_objects=False,

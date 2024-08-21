@@ -19,7 +19,6 @@ def move_and_detect(obj_type: ObjectType, pick_pose: Pose):
 
     object_desig = DetectAction(BelieveObject(types=[obj_type])).resolve().perform()
 
-
     return object_desig
 
 
@@ -28,7 +27,7 @@ extension = ObjectDescription.get_file_extension()
 robot = Object('pr2', ObjectType.ROBOT, f'pr2{extension}', pose=Pose([1.3, 2, 0.01]))
 apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")
 
-milk = Object("pycram_milk", ObjectType.MILK, f"pycram_milk{extension}", pose=Pose([2.4, 2, 1.02]),
+milk = Object("milk", ObjectType.MILK, f"milk.stl", pose=Pose([2.4, 2, 1.02]),
               color=Color(1, 0, 0, 1))
 
 spoon = Object("spoon", ObjectType.SPOON, "spoon.stl", pose=Pose([2.5, 2.2, 0.85]),

@@ -8,7 +8,6 @@ from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union,
 from .enums import JointType, Shape, VirtualMoveBaseJointName
 from .pose import Pose, Point
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
-from ..config import world_conf as conf
 
 if TYPE_CHECKING:
     from ..description import Link

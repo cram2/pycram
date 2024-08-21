@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from typing_extensions import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
@@ -133,8 +135,10 @@ class ManipulationGoalNotReached(ManipulationLowLevelFailure):
 
 class IKError(PlanFailure):
     """Thrown when no inverse kinematics solution could be found"""
+
     def __init__(self, pose, base_frame, tip_frame):
-        self.message = "Position {} in frame '{}' is not reachable for end effector: '{}'".format(pose, base_frame, tip_frame)
+        self.message = "Position {} in frame '{}' is not reachable for end effector: '{}'".format(pose, base_frame,
+                                                                                                  tip_frame)
         super(IKError, self).__init__(self.message)
 
 
@@ -445,3 +449,16 @@ class MultiplePossibleTipLinks(Exception):
     def __init__(self, object_name: str, start_link: str, tip_links: List[str]):
         super().__init__(f"Multiple possible tip links found for object {object_name} with start link {start_link}:"
                          f" {tip_links}")
+
+
+class UnsupportedFileExtension(Exception):
+    def __init__(self, object_name: str, path: str):
+        extension = Path(path).suffix
+        super().__init__(f"Unsupported file extension for object {object_name} with path {path}"
+                         f"and extension {extension}")
+
+
+class ObjectDescriptionUndefined(Exception):
+    def __init__(self, object_name: str):
+        super().__init__(f"Object description for object {object_name} is not defined, eith a path or a description"
+                         f"object should be provided.")

@@ -2,7 +2,9 @@ import math
 import os
 from dataclasses import dataclass
 
-from typing_extensions import Tuple
+from typing_extensions import Tuple, Type
+from ..description import ObjectDescription
+from ..object_descriptors.urdf import ObjectDescription as URDF
 
 resources_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'resources')
 """
@@ -33,6 +35,11 @@ Whether to update the poses from the simulator when getting the object poses.
 DEBUG: bool = False
 """
 Whether to use in debug mode. (This is used to print debug messages, plot images, etc.)
+"""
+
+default_description_type: Type[ObjectDescription] = URDF
+"""
+The default description type for the objects.
 """
 
 

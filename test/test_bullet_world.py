@@ -53,8 +53,7 @@ class BulletWorldTest(BulletWorldTestCase):
         self.assertTrue(milk_id in [obj.id for obj in self.world.objects])
         self.world.remove_object(self.milk)
         self.assertTrue(milk_id not in [obj.id for obj in self.world.objects])
-        BulletWorldTest.milk = Object("milk", ObjectType.MILK, "milk.stl",
-                                      ObjectDescription, pose=Pose([1.3, 1, 0.9]))
+        BulletWorldTest.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
 
     def test_remove_robot(self):
         robot_id = self.robot.id

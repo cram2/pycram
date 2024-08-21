@@ -2,7 +2,6 @@ import pathlib
 
 import numpy as np
 import rospy
-import os
 from geometry_msgs.msg import Point
 from typing_extensions import Union, List, Optional, Dict, Tuple
 from dm_control import mjcf
@@ -156,6 +155,7 @@ class JointDescription(AbstractJointDescription):
     def friction(self) -> float:
         raise NotImplementedError("Friction is not implemented for MJCF joints.")
 
+
 class ObjectFactory(Factory):
     def __init__(self, object_name: str, file_path: str, config: Configuration):
         super().__init__(file_path, config)
@@ -185,7 +185,8 @@ class ObjectFactory(Factory):
     def export_to_mjcf(self, output_file_path: str):
         exporter = MjcfExporter(self, output_file_path)
         exporter.build()
-        exporter.export(keep_usd=True)
+        exporter.export(keep_usd=False)
+
 
 class ObjectDescription(AbstractObjectDescription):
     """

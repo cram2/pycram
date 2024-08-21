@@ -55,7 +55,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.multiverse.reset_world_and_remove_objects()
 
     def test_spawn_mesh_object(self):
-        milk = Object("milk", ObjectType.MILK, "milk.stl", description=MJCF, pose=Pose([1, 1, 0.1]))
+        milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1, 1, 0.1]))
         self.assert_poses_are_equal(milk.get_pose(), Pose([1, 1, 0.1]))
         self.multiverse.simulate(0.2)
         contact_points = milk.contact_points()
@@ -300,8 +300,8 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             self.assertEqual(len(contact_points), 1)
             self.assertIsInstance(contact_points[0], ContactPoint)
             self.assertTrue(contact_points[0].link_b.object, self.multiverse.floor)
-            cup = self.spawn_cup([1, 1, 0.1])
-            # This is needed because the cup is spawned in the air so it needs to fall
+            cup = self.spawn_cup([1, 1, 0.2])
+            # This is needed because the cup is spawned in the air, so it needs to fall
             # to get in contact with the milk
             self.multiverse.simulate(0.2)
             contact_points = self.multiverse.get_object_contact_points(cup)
