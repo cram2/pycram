@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import unittest
+from time import sleep
 
 import numpy as np
 import psutil
@@ -286,13 +287,13 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     def test_get_object_contact_points(self):
         for i in range(3):
-            milk = self.spawn_milk([1, 1, 0], [0, -0.707, 0, 0.707])
+            milk = self.spawn_milk([1, 1, 0.02], [0, -0.707, 0, 0.707])
             contact_points = self.multiverse.get_object_contact_points(milk)
             self.assertIsInstance(contact_points, ContactPointsList)
             self.assertEqual(len(contact_points), 1)
             self.assertIsInstance(contact_points[0], ContactPoint)
             self.assertTrue(contact_points[0].link_b.object, self.multiverse.floor)
-            cup = self.spawn_cup([1, 1, 0.1])
+            cup = self.spawn_cup([1, 1, 0.2])
             # This is needed because the cup is spawned in the air so it needs to fall
             # to get in contact with the milk
             self.multiverse.simulate(0.3)
@@ -301,7 +302,9 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             self.assertEqual(len(contact_points), 1)
             self.assertIsInstance(contact_points[0], ContactPoint)
             self.assertTrue(contact_points[0].link_b.object, milk)
+            sleep(0.1)
             self.tearDown()
+            sleep(0.1)
 
     def test_get_contact_points_between_two_objects(self):
         for i in range(3):
