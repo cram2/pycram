@@ -19,9 +19,9 @@ from ..robot_description import RobotDescription
 from ..datastructures.world import World
 from ..world_concepts.world_object import Object
 from ..datastructures.pose import Pose
-from ..datastructures.enums import JointType, ObjectType, Arms
+from ..datastructures.enums import JointType, ObjectType, Arms, ExecutionType
 from ..external_interfaces import giskard
-from ..external_interfaces.robokudo import query
+from ..external_interfaces.robokudo import *
 
 try:
     from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2
@@ -375,59 +375,60 @@ class Pr2Manager(ProcessModuleManager):
         self._close_lock = Lock()
 
     def navigate(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return Pr2Navigation(self._navigate_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return Pr2NavigationReal(self._navigate_lock)
 
     def looking(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return Pr2MoveHead(self._looking_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return Pr2MoveHeadReal(self._looking_lock)
 
     def detecting(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return Pr2Detecting(self._detecting_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return Pr2DetectingReal(self._detecting_lock)
 
     def move_tcp(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return Pr2MoveTCP(self._move_tcp_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return Pr2MoveTCPReal(self._move_tcp_lock)
 
     def move_arm_joints(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return Pr2MoveArmJoints(self._move_arm_joints_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return Pr2MoveArmJointsReal(self._move_arm_joints_lock)
 
     def world_state_detecting(self):
-        if ProcessModuleManager.execution_type == "simulated" or ProcessModuleManager.execution_type == "real":
+        if (ProcessModuleManager.execution_type == ExecutionType.SIMULATED or
+                ProcessModuleManager.execution_type == ExecutionType.REAL):
             return Pr2WorldStateDetecting(self._world_state_detecting_lock)
 
     def move_joints(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return PR2MoveJoints(self._move_joints_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return Pr2MoveJointsReal(self._move_joints_lock)
 
     def move_gripper(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return Pr2MoveGripper(self._move_gripper_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return Pr2MoveGripperReal(self._move_gripper_lock)
 
     def open(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return Pr2Open(self._open_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return Pr2OpenReal(self._open_lock)
 
     def close(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return Pr2Close(self._close_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return Pr2CloseReal(self._close_lock)
