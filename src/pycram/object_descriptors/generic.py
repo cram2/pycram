@@ -1,3 +1,5 @@
+from typing import Optional
+
 from typing_extensions import List, Any, Union, Dict
 
 from geometry_msgs.msg import Point
@@ -103,6 +105,11 @@ class ObjectDescription(AbstractObjectDescription):
     @classmethod
     def generate_from_parameter_server(cls, name: str) -> str:
         raise NotImplementedError
+
+    def add_joint(self, name: str, child: str, joint_type: JointType,
+                  axis: Point, parent: Optional[str] = None, origin: Optional[Pose] = None,
+                  lower_limit: Optional[float] = None, upper_limit: Optional[float] = None) -> None:
+        ...
 
     @property
     def shape_data(self) -> List[float]:
