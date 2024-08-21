@@ -11,12 +11,13 @@ import rospy
 from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict
 
+from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape
 from ..datastructures.enums import ObjectType, WorldMode, JointType
 from ..datastructures.pose import Pose
-from ..object_descriptors.urdf import ObjectDescription
 from ..datastructures.world import World
+from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
+from ..object_descriptors.urdf import ObjectDescription
 from ..world_concepts.constraints import Constraint
-from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape
 from ..world_concepts.world_object import Object
 
 Link = ObjectDescription.Link
@@ -67,6 +68,25 @@ class BulletWorld(World):
         self._gui_thread: Gui = Gui(self, mode)
         self._gui_thread.start()
         time.sleep(0.1)
+
+    def load_generic_object_and_get_id(self, description: GenericObjectDescription) -> int:
+        """
+        Creates a visual and collision box in the simulation.
+        """
+        # Create visual shape
+        vis_shape = p.createVisualShape(p.GEOM_BOX, halfExtents=description.shape_data,
+                                        rgbaColor=description.color.get_rgba())
+
+        # Create collision shape
+        col_shape = p.createCollisionShape(p.GEOM_BOX, halfExtents=description.shape_data)
+
+        # Create MultiBody with both visual and collision shapes
+        obj_id = p.createMultiBody(baseMass=1.0, baseCollisionShapeIndex=col_shape, baseVisualShapeIndex=vis_shape,
+                                   basePosition=description.origin.position_as_list(),
+                                   baseOrientation=description.origin.orientation_as_list())
+
+        # Assuming you have a list to keep track of created objects
+        return obj_id
 
     def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[Pose] = None) -> int:
         if pose is None:
