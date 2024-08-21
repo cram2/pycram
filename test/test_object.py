@@ -166,6 +166,7 @@ class TestObject(BulletWorldTestCase):
 class GenericObjectTestCase(BulletWorldTestCase):
 
     def test_init_generic_object(self):
-        gen_obj_desc = lambda: GenericObjectDescription("robokudo_object", [0,0,0], [0.1, 0.1, 0.1])
+        gen_obj_desc = GenericObjectDescription("robokudo_object", [0,0,0], [0.1, 0.1, 0.1])
         obj = Object("robokudo_object", ObjectType.MILK, None, gen_obj_desc)
-        self.assertTrue(True)
+        pose = obj.get_pose()
+        self.assertTrue(isinstance(pose, Pose))
