@@ -30,7 +30,7 @@ class BulletWorldTestCase(unittest.TestCase):
                            RobotDescription.current_robot_description.name + cls.extension)
         cls.kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen" + cls.extension)
         cls.cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl",
-                            ObjectDescription, pose=Pose([1.3, 0.7, 0.95]))
+                            pose=Pose([1.3, 0.7, 0.95]))
         ProcessModule.execution_delay = False
         cls.viz_marker_publisher = VizMarkerPublisher()
         OntologyManager(SOMA_ONTOLOGY_IRI)

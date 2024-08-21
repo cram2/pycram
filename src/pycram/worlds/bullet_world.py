@@ -78,15 +78,15 @@ class BulletWorld(World):
         """
         # Create visual shape
         vis_shape = p.createVisualShape(p.GEOM_BOX, halfExtents=description.shape_data,
-                                        rgbaColor=description.color.get_rgba())
+                                        rgbaColor=description.color.get_rgba(), physicsClientId=self.id)
 
         # Create collision shape
-        col_shape = p.createCollisionShape(p.GEOM_BOX, halfExtents=description.shape_data)
+        col_shape = p.createCollisionShape(p.GEOM_BOX, halfExtents=description.shape_data, physicsClientId=self.id)
 
         # Create MultiBody with both visual and collision shapes
         obj_id = p.createMultiBody(baseMass=1.0, baseCollisionShapeIndex=col_shape, baseVisualShapeIndex=vis_shape,
                                    basePosition=description.origin.position_as_list(),
-                                   baseOrientation=description.origin.orientation_as_list())
+                                   baseOrientation=description.origin.orientation_as_list(), physicsClientId=self.id)
 
         # Assuming you have a list to keep track of created objects
         return obj_id

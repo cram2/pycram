@@ -37,7 +37,7 @@ class Object(WorldEntity):
     """
 
     def __init__(self, name: str, obj_type: ObjectType, path: str,
-                 description: Type[ObjectDescription] = URDFObject,
+                 description: Optional[ObjectDescription] = None,
                  pose: Optional[Pose] = None,
                  world: Optional[World] = None,
                  color: Color = Color(),
@@ -68,7 +68,7 @@ class Object(WorldEntity):
         self.path: Optional[str] = path
         self.obj_type: ObjectType = obj_type
         self.color: Color = color
-        self.description = description()
+        self.description = description if description is not None else URDFObject()
         self.cache_manager = self.world.cache_manager
 
         self.local_transformer = LocalTransformer()
@@ -1347,7 +1347,7 @@ class Object(WorldEntity):
         :param world: The world to which the object should be copied.
         :return: The copied object in the given world.
         """
-        obj = Object(self.name, self.obj_type, self.path, type(self.description), self.get_pose(),
+        obj = Object(self.name, self.obj_type, self.path, self.description, self.get_pose(),
                      world, self.color)
         return obj
 

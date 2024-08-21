@@ -33,8 +33,8 @@ class FailureHandlingTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.world = BulletWorld(WorldMode.DIRECT)
-        cls.robot = Object(RobotDescription.current_robot_description.name, ObjectType.ROBOT, RobotDescription.current_robot_description.name + extension,
-                           ObjectDescription)
+        cls.robot = Object(RobotDescription.current_robot_description.name, ObjectType.ROBOT,
+                           RobotDescription.current_robot_description.name + extension)
         ProcessModule.execution_delay = True
 
     def setUp(self):
