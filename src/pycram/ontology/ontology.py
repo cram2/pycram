@@ -218,9 +218,11 @@ class OntologyManager(object, metaclass=Singleton):
             rospy.logerr("Ontology IRI is empty")
             return None
 
-        # If `ontology_iri` is a local path -> create an empty ontology file if not existing
         is_local_ontology_iri = not (ontology_iri.startswith("http:") or ontology_iri.startswith("https:"))
+
+        # If `ontology_iri` is a local path
         if is_local_ontology_iri and not Path(ontology_iri).exists():
+            # -> Create an empty ontology file if not existing
             with open(ontology_iri, 'w'):
                 pass
 
