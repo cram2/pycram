@@ -1,4 +1,4 @@
-from typing import List, Any, Union, Dict
+from typing_extensions import List, Any, Union, Dict
 
 from geometry_msgs.msg import Point
 
@@ -72,6 +72,10 @@ class JointDescription(AbstractJointDescription):
 
 
 class ObjectDescription(AbstractObjectDescription):
+    """
+    A generic description of an object in the environment. This description can be applied to any object.
+    The current use case involves perceiving objects using RoboKudo and spawning them with specified size and color.
+    """
 
     class Link(AbstractObjectDescription.Link, LinkDescription):
         ...
