@@ -105,7 +105,7 @@ class Object(WorldEntity):
 
         self.attachments: Dict[Object, Attachment] = {}
 
-        self.world.objects.append(self)
+        self.world.add_object(self)
 
     def _resolve_description(self, path: Optional[str] = None, description: Optional[ObjectDescription] = None) -> None:
         """
@@ -575,7 +575,7 @@ class Object(WorldEntity):
         """
         self.world.remove_object(self)
 
-    def reset(self, remove_saved_states=True) -> None:
+    def reset(self, remove_saved_states=False) -> None:
         """
         Reset the Object to the state it was first spawned in.
         All attached objects will be detached, all joints will be set to the

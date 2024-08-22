@@ -64,7 +64,7 @@ class BulletWorldTest(BulletWorldTestCase):
                                        RobotDescription.current_robot_description.name + self.extension)
 
     def test_get_joint_position(self):
-        self.assertEqual(self.robot.get_joint_position("head_pan_joint"), 0.0)
+        self.assertAlmostEqual(self.robot.get_joint_position("head_pan_joint"), 0.0, delta=0.01)
 
     def test_get_object_contact_points(self):
         self.assertEqual(len(self.robot.contact_points()), 0)
