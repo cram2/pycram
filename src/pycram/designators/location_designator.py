@@ -178,6 +178,7 @@ class CostmapLocation(LocationDesignatorDescription):
         if self.visible_for or self.reachable_for:
             robot_object = self.visible_for.world_object if self.visible_for else self.reachable_for.world_object
             test_robot = World.current_world.get_prospection_object_for_object(robot_object)
+
         with UseProspectionWorld():
             for maybe_pose in PoseGenerator(final_map, number_of_samples=600):
                 res = True

@@ -213,6 +213,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
         LinkDescription.__init__(self, link_description.parsed_description)
         self.local_transformer: LocalTransformer = LocalTransformer()
         self.constraint_ids: Dict[Link, int] = {}
+        self._current_pose: Optional[Pose] = None
         self.update_pose()
 
     def set_pose(self, pose: Pose) -> None:

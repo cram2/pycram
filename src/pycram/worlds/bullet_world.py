@@ -103,9 +103,9 @@ class BulletWorld(World):
                           baseOrientation=pose.orientation_as_list(), physicsClientId=self.id)
 
     def remove_object_from_simulator(self, obj: Object) -> bool:
-        return self.remove_object_by_id(obj.id)
+        return self._remove_object_by_id(obj.id)
 
-    def remove_object_by_id(self, obj_id: int) -> True:
+    def _remove_object_by_id(self, obj_id: int) -> True:
         p.removeBody(obj_id, self.id)
         return True
 
@@ -298,14 +298,15 @@ class BulletWorld(World):
     def remove_physics_simulator_state(self, state_id: int):
         p.removeState(state_id, physicsClientId=self.id)
 
-    def add_vis_axis(self, pose: Pose,
-                     length: Optional[float] = 0.2) -> None:
+    def _add_vis_axis(self, pose: Pose,
+                     length: Optional[float] = 0.2) -> int:
         """
         Creates a Visual object which represents the coordinate frame at the given
         position and orientation. There can be an unlimited amount of vis axis objects.
 
         :param pose: The pose at which the axis should be spawned
         :param length: Optional parameter to configure the length of the axes
+        :return: The id of the spawned object
         """
 
         pose_in_map = self.local_transformer.transform_pose(pose, "map")
@@ -327,9 +328,11 @@ class BulletWorld(World):
                               link_joint_axis=[Point(1, 0, 0), Point(0, 1, 0), Point(0, 0, 1)],
                               link_collision_shape_indices=[-1, -1, -1])
 
-        self.vis_axis.append(self.create_multi_body(multibody))
+        body_id = self._create_multi_body(multibody)
+        self.vis_axis.append(body_id)
+        return body_id
 
-    def remove_vis_axis(self) -> None:
+    def _remove_vis_axis(self) -> None:
         """
         Removes all spawned vis axis objects that are currently in this BulletWorld.
         """
@@ -346,13 +349,13 @@ class BulletWorld(World):
         return p.rayTestBatch(from_positions, to_positions, numThreads=num_threads,
                               physicsClientId=self.id)
 
-    def create_visual_shape(self, visual_shape: VisualShape) -> int:
+    def _create_visual_shape(self, visual_shape: VisualShape) -> int:
         return p.createVisualShape(visual_shape.visual_geometry_type.value,
                                    rgbaColor=visual_shape.rgba_color.get_rgba(),
                                    visualFramePosition=visual_shape.visual_frame_position,
                                    physicsClientId=self.id, **visual_shape.shape_data())
 
-    def create_multi_body(self, multi_body: MultiBody) -> int:
+    def _create_multi_body(self, multi_body: MultiBody) -> int:
         return p.createMultiBody(baseVisualShapeIndex=-multi_body.base_visual_shape_index,
                                  linkVisualShapeIndices=multi_body.link_visual_shape_indices,
                                  basePosition=multi_body.base_pose.position_as_list(),
@@ -385,7 +388,7 @@ class BulletWorld(World):
         return list(p.getCameraImage(size, size, view_matrix, projection_matrix,
                                      physicsClientId=self.id))[2:5]
 
-    def add_text(self, text: str, position: List[float], orientation: Optional[List[float]] = None,
+    def _add_text(self, text: str, position: List[float], orientation: Optional[List[float]] = None,
                  size: Optional[float] = None, color: Optional[Color] = Color(), life_time: Optional[float] = 0,
                  parent_object_id: Optional[int] = None, parent_link_id: Optional[int] = None) -> int:
         args = {}
@@ -401,7 +404,7 @@ class BulletWorld(World):
             args["parentLinkIndex"] = parent_link_id
         return p.addUserDebugText(text, position, color.get_rgb(), physicsClientId=self.id, **args)
 
-    def remove_text(self, text_id: Optional[int] = None) -> None:
+    def _remove_text(self, text_id: Optional[int] = None) -> None:
         if text_id is not None:
             p.removeUserDebugItem(text_id, physicsClientId=self.id)
         else:

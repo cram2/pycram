@@ -163,6 +163,20 @@ class World(StateEntity, ABC):
 
         self._init_goal_validators()
 
+        self.original_state_id = self.save_state()
+
+    def add_object(self, obj: Object) -> None:
+        """
+        Adds an object to the world.
+
+        :param obj: The object to be added.
+        """
+        self.object_lock.acquire()
+        self.objects.append(obj)
+        self.object_lock.release()
+        latest_state: WorldState = self._saved_states[self.original_state_id]
+        latest_state.object_states[obj.name] = obj.current_state
+
     @property
     def robot_description(self) -> RobotDescription:
         """
@@ -355,8 +369,22 @@ class World(StateEntity, ABC):
         """
         return list(filter(lambda obj: obj.id == obj_id, self.objects))[0]
 
-    @abstractmethod
     def remove_object_by_id(self, obj_id: int) -> bool:
+        """
+        Removes the object with the given id from the world, and saves a new original state for the world.
+
+        :param obj_id: The unique id of the object to be removed.
+        :return: Whether the object was removed successfully.
+        """
+        removed = self._remove_object_by_id(obj_id)
+        if removed:
+            self.original_state_id = self.save_state()
+        else:
+            rospy.logwarn(f"Object with id {obj_id} could not be removed.")
+        return removed
+
+    @abstractmethod
+    def _remove_object_by_id(self, obj_id: int) -> bool:
         """
         Removes the object with the given id from the world.
 
@@ -390,6 +418,8 @@ class World(StateEntity, ABC):
 
         if self.remove_object_from_simulator(obj):
             self.objects.remove(obj)
+            latest_state: WorldState = self._saved_states[self.original_state_id]
+            latest_state.object_states.pop(obj.name)
 
         if World.robot == obj:
             World.robot = None
@@ -847,12 +877,15 @@ class World(StateEntity, ABC):
         """
         return World.robot is not None
 
-    def exit(self) -> None:
+    def exit(self, remove_saved_states: bool = True) -> None:
         """
         Closes the World as well as the prospection world, also collects any other thread that is running.
+
+        :param remove_saved_states: Whether to remove the saved states.
         """
         self.exit_prospection_world_if_exists()
-        self.reset_world_and_remove_objects()
+        self.reset_world(remove_saved_states)
+        self.remove_all_objects()
         self.disconnect_from_physics_server()
         self.reset_robot()
         self.join_threads()
@@ -924,7 +957,6 @@ class World(StateEntity, ABC):
     @current_state.setter
     def current_state(self, state: WorldState) -> None:
         if self.current_state != state:
-            self.restore_physics_simulator_state(state.simulator_state_id)
             for obj in self.objects:
                 self.get_object_by_name(obj.name).current_state = state.object_states[obj.name]
 
@@ -1078,17 +1110,17 @@ class World(StateEntity, ABC):
         """
         return self.world_sync.get_world_object(prospection_object)
 
-    def reset_world_and_remove_objects(self, exclude_objects: Optional[List[Object]] = None) -> None:
+    def remove_all_objects(self, exclude_objects: Optional[List[Object]] = None) -> None:
         """
-        Resets the World to the state it was first spawned in and removes all objects from the World.
+        Removes all objects from the World.
+
         :param exclude_objects: A list of objects that should not be removed.
         """
-        self.reset_world()
         objs_copy = [obj for obj in self.objects]
         exclude_objects = [] if exclude_objects is None else exclude_objects
         [self.remove_object(obj) for obj in objs_copy if obj not in exclude_objects]
 
-    def reset_world(self, remove_saved_states=True) -> None:
+    def reset_world(self, remove_saved_states=False) -> None:
         """
         Resets the World to the state it was first spawned in.
         All attached objects will be detached, all joints will be set to the
@@ -1097,12 +1129,10 @@ class World(StateEntity, ABC):
 
         :param remove_saved_states: If the saved states should be removed.
         """
-
+        self.restore_state(self.original_state_id)
         if remove_saved_states:
             self.remove_saved_states()
-
-        for obj in self.objects:
-            obj.reset(remove_saved_states)
+        self.original_state_id = self.save_state()
 
     def remove_saved_states(self) -> None:
         """
@@ -1111,6 +1141,9 @@ class World(StateEntity, ABC):
         for state_id in self.saved_states:
             self.remove_physics_simulator_state(state_id)
         super().remove_saved_states()
+        for obj in self.objects:
+            obj.remove_saved_states()
+        self.original_state_id = None
 
     def update_transforms_for_objects_in_current_world(self) -> None:
         """
@@ -1151,6 +1184,12 @@ class World(StateEntity, ABC):
         :param visual_shape: The visual shape to be created, uses the VisualShape dataclass defined in world_dataclasses
         :return: The unique id of the created shape.
         """
+        return self._simulator_object_creator(self._create_visual_shape, visual_shape)
+
+    def _create_visual_shape(self, visual_shape: VisualShape) -> int:
+        """
+        See :py:meth:`~pycram.world.World.create_visual_shape`
+        """
         raise NotImplementedError
 
     def create_multi_body_from_visual_shapes(self, visual_shape_ids: List[int], pose: Pose) -> int:
@@ -1188,6 +1227,12 @@ class World(StateEntity, ABC):
         :param multi_body: The multi body to be created, uses the MultiBody dataclass defined in world_dataclasses.
         :return: The unique id of the created multi body.
         """
+        return self._simulator_object_creator(self._create_multi_body, multi_body)
+
+    def _create_multi_body(self, multi_body: MultiBody) -> int:
+        """
+        See :py:meth:`~pycram.world.World.create_multi_body`
+        """
         raise NotImplementedError
 
     def create_box_visual_shape(self, shape_data: BoxVisualShape) -> int:
@@ -1197,6 +1242,12 @@ class World(StateEntity, ABC):
         :param shape_data: The parameters that define the box visual shape to be created, uses the BoxVisualShape
          dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
+        """
+        return self._simulator_object_creator(self._create_box_visual_shape, shape_data)
+
+    def _create_box_visual_shape(self, shape_data: BoxVisualShape) -> int:
+        """
+        See :py:meth:`~pycram.world.World.create_box_visual_shape`
         """
         raise NotImplementedError
 
@@ -1208,6 +1259,12 @@ class World(StateEntity, ABC):
          CylinderVisualShape dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
         """
+        return self._simulator_object_creator(self._create_cylinder_visual_shape, shape_data)
+
+    def _create_cylinder_visual_shape(self, shape_data: CylinderVisualShape) -> int:
+        """
+        See :py:meth:`~pycram.world.World.create_cylinder_visual_shape`
+        """
         raise NotImplementedError
 
     def create_sphere_visual_shape(self, shape_data: SphereVisualShape) -> int:
@@ -1217,6 +1274,12 @@ class World(StateEntity, ABC):
         :param shape_data: The parameters that define the sphere visual shape to be created, uses the SphereVisualShape
          dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
+        """
+        return self._simulator_object_creator(self._create_sphere_visual_shape, shape_data)
+
+    def _create_sphere_visual_shape(self, shape_data: SphereVisualShape) -> int:
+        """
+        See :py:meth:`~pycram.world.World.create_sphere_visual_shape`
         """
         raise NotImplementedError
 
@@ -1228,6 +1291,12 @@ class World(StateEntity, ABC):
          CapsuleVisualShape dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
         """
+        return self._simulator_object_creator(self._create_capsule_visual_shape, shape_data)
+
+    def _create_capsule_visual_shape(self, shape_data: CapsuleVisualShape) -> int:
+        """
+        See :py:meth:`~pycram.world.World.create_capsule_visual_shape`
+        """
         raise NotImplementedError
 
     def create_plane_visual_shape(self, shape_data: PlaneVisualShape) -> int:
@@ -1238,6 +1307,12 @@ class World(StateEntity, ABC):
          dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
         """
+        return self._simulator_object_creator(self._create_plane_visual_shape, shape_data)
+
+    def _create_plane_visual_shape(self, shape_data: PlaneVisualShape) -> int:
+        """
+        See :py:meth:`~pycram.world.World.create_plane_visual_shape`
+        """
         raise NotImplementedError
 
     def create_mesh_visual_shape(self, shape_data: MeshVisualShape) -> int:
@@ -1247,6 +1322,12 @@ class World(StateEntity, ABC):
         :param shape_data: The parameters that define the mesh visual shape to be created,
         uses the MeshVisualShape dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
+        """
+        return self._simulator_object_creator(self._create_mesh_visual_shape, shape_data)
+
+    def _create_mesh_visual_shape(self, shape_data: MeshVisualShape) -> int:
+        """
+        See :py:meth:`~pycram.world.World.create_mesh_visual_shape`
         """
         raise NotImplementedError
 
@@ -1269,7 +1350,16 @@ class World(StateEntity, ABC):
         :param parent_link_id: The id of the link to which the text should be attached.
         :return: The id of the added text.
         """
-        rospy.logwarn(f"add_text is not implemented in {self.__class__.__name__}")
+        return self._simulator_object_creator(self._add_text, text, position, orientation, size, color, life_time,
+                                              parent_object_id, parent_link_id)
+
+    def _add_text(self, text: str, position: List[float], orientation: Optional[List[float]] = None, size: float = 0.1,
+                  color: Optional[Color] = Color(), life_time: Optional[float] = 0,
+                  parent_object_id: Optional[int] = None, parent_link_id: Optional[int] = None) -> int:
+        """
+        See :py:meth:`~pycram.world.World.add_text`
+        """
+        raise NotImplementedError
 
     def remove_text(self, text_id: Optional[int] = None) -> None:
         """
@@ -1277,7 +1367,13 @@ class World(StateEntity, ABC):
 
         :param text_id: The id of the text to be removed.
         """
-        rospy.logwarn(f"remove_text is not implemented in {self.__class__.__name__}")
+        self._simulator_object_remover(self._remove_text, text_id)
+
+    def _remove_text(self, text_id: Optional[int] = None) -> None:
+        """
+        See :py:meth:`~pycram.world.World.remove_text`
+        """
+        raise NotImplementedError
 
     def enable_joint_force_torque_sensor(self, obj: Object, fts_joint_idx: int) -> None:
         """
@@ -1333,11 +1429,58 @@ class World(StateEntity, ABC):
         """
         self.world_sync.sync_lock.release()
 
-    def add_vis_axis(self, pose: Pose) -> None:
-        rospy.logwarn(f"add_vis_axis is not implemented in {self.__class__.__name__}")
+    def add_vis_axis(self, pose: Pose) -> int:
+        """
+        Adds a visual axis to the world.
+
+        :param pose: The pose of the visual axis.
+        :return: The id of the added visual axis.
+        """
+        return self._simulator_object_creator(self._add_vis_axis, pose)
+
+    def _add_vis_axis(self, pose: Pose) -> None:
+        """
+        See :py:meth:`~pycram.world.World.add_vis_axis`
+        """
+        raise NotImplementedError
 
     def remove_vis_axis(self) -> None:
-        rospy.logwarn(f"remove_vis_axis is not implemented in {self.__class__.__name__}")
+        """
+        Removes the visual axis from the world.
+        """
+        self._simulator_object_remover(self._remove_vis_axis)
+
+    def _remove_vis_axis(self) -> None:
+        """
+        See :py:meth:`~pycram.world.World.remove_vis_axis`
+        """
+        raise NotImplementedError
+
+    def _simulator_object_creator(self, creator_func: Callable, *args, **kwargs) -> int:
+        """
+        Creates an object in the physics simulator and returns the created object id.
+
+        :param creator_func: The function that creates the object in the physics simulator.
+        :param args: The arguments for the creator function.
+        :param kwargs: The keyword arguments for the creator function.
+        :return: The created object id.
+        """
+        obj_id = creator_func(*args, **kwargs)
+        latest_state: WorldState = self._saved_states[self.original_state_id]
+        latest_state.simulator_state_id = self.save_physics_simulator_state()
+        return obj_id
+
+    def _simulator_object_remover(self, remover_func: Callable, *args, **kwargs) -> None:
+        """
+        Removes an object from the physics simulator.
+
+        :param remover_func: The function that removes the object from the physics simulator.
+        :param args: The arguments for the remover function.
+        :param kwargs: The keyword arguments for the remover function.
+        """
+        remover_func(*args, **kwargs)
+        latest_state: WorldState = self._saved_states[self.original_state_id]
+        latest_state.simulator_state_id = self.save_physics_simulator_state()
 
     def __del__(self):
         self.exit()

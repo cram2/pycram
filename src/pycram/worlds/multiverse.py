@@ -485,7 +485,7 @@ class Multiverse(World):
         self.reader.stop_thread = True
         self.reader.join()
 
-    def remove_object_by_id(self, obj_id: int) -> bool:
+    def _remove_object_by_id(self, obj_id: int) -> bool:
         obj = self.get_object_by_id(obj_id)
         return self.remove_object_from_simulator(obj)
 

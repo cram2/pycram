@@ -346,16 +346,18 @@ class MultiverseWriter(MultiverseClient):
         data = [self.sim_time, *position, *orientation, *relative_velocity]
         self.send_data_to_server(data, send_meta_data=send_meta_data, receive_meta_data=actuator_joint_commands)
 
-    def _reset_request_meta_data(self):
+    def _reset_request_meta_data(self, set_simulation_name: bool = True):
         """
         Reset the request metadata.
+
+        :param set_simulation_name: Whether to set the simulation name to the value of self.simulation_name.
         """
         self.request_meta_data = {
             "meta_data": self._meta_data.__dict__.copy(),
             "send": {},
             "receive": {},
         }
-        if self.simulation is not None:
+        if self.simulation is not None and set_simulation_name:
             self.request_meta_data["meta_data"]["simulation_name"] = self.simulation
 
     def set_body_pose(self, body_name: str, position: List[float], orientation: List[float]) -> None:
@@ -421,7 +423,7 @@ class MultiverseWriter(MultiverseClient):
         """
         Reset the world in the simulation.
         """
-        self.send_data_to_server([0])
+        self.send_data_to_server([0], set_simulation_name=False)
 
     def send_body_data_to_server(self, body_name: str, body_data: Dict[Property, List[float]]) -> Dict:
         """
@@ -433,7 +435,7 @@ class MultiverseWriter(MultiverseClient):
         """
         send_meta_data = {body_name: list(map(str, body_data.keys()))}
         flattened_data = [value for data in body_data.values() for value in data]
-        return self.send_data_to_server([self.sim_time, *flattened_data], send_meta_data)
+        return self.send_data_to_server([self.sim_time, *flattened_data], send_meta_data=send_meta_data)
 
     def send_multiple_body_data_to_server(self, body_data: Dict[str, Dict[Property, List[float]]]) -> Dict:
         """
@@ -465,16 +467,18 @@ class MultiverseWriter(MultiverseClient):
 
     def send_data_to_server(self, data: List,
                             send_meta_data: Optional[Dict] = None,
-                            receive_meta_data: Optional[Dict] = None) -> Dict:
+                            receive_meta_data: Optional[Dict] = None,
+                            set_simulation_name: bool = True) -> Dict:
         """
         Send data to the multiverse server.
 
         :param data: The data to be sent.
         :param send_meta_data: The metadata to be sent.
         :param receive_meta_data: The metadata to be received.
+        :param set_simulation_name: Whether to set the simulation name to the value of self.simulation.
         :return: The response from the server.
         """
-        self._reset_request_meta_data()
+        self._reset_request_meta_data(set_simulation_name=set_simulation_name)
         if send_meta_data:
             self.request_meta_data["send"] = send_meta_data
         if receive_meta_data:
@@ -714,7 +718,7 @@ class MultiverseAPI(MultiverseClient):
         :return: The contact effort of the object as a list of floats.
         """
         contact_effort = contact_effort[0].split()
-        if contact_effort == 'failed':
+        if 'failed' in contact_effort:
             rospy.logwarn("Failed to get contact effort")
             return [0.0] * 6
         return list(map(float, contact_effort))

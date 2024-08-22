@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from copy import deepcopy, copy
 from dataclasses import dataclass
 
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING
@@ -335,6 +336,9 @@ class LinkState(State):
         return all([cid == other_cid for cid, other_cid in zip(self.constraint_ids.values(),
                                                                other.constraint_ids.values())])
 
+    def __copy__(self):
+        return LinkState(constraint_ids=copy(self.constraint_ids))
+
 
 @dataclass
 class JointState(State):
@@ -347,6 +351,9 @@ class JointState(State):
     def __eq__(self, other: 'JointState'):
         error = calculate_joint_position_error(self.position, other.position)
         return is_error_acceptable(error, other.acceptable_error)
+
+    def __copy__(self):
+        return JointState(position=self.position, acceptable_error=self.acceptable_error)
 
 
 @dataclass
@@ -391,6 +398,12 @@ class ObjectState(State):
         """
         return all([att == other_att for att, other_att in zip(self.attachments.values(), other.attachments.values())])
 
+    def __copy__(self):
+        return ObjectState(pose=self.pose.copy(), attachments=copy(self.attachments),
+                           link_states=copy(self.link_states),
+                           joint_states=copy(self.joint_states),
+                           acceptable_pose_error=deepcopy(self.acceptable_pose_error))
+
 
 @dataclass
 class WorldState(State):
@@ -430,6 +443,10 @@ class WorldState(State):
         return all([obj_state == other_obj_state
                     for obj_state, other_obj_state in zip(self.object_states.values(),
                                                           other.object_states.values())])
+
+    def __copy__(self):
+        return WorldState(simulator_state_id=self.simulator_state_id,
+                          object_states=deepcopy(self.object_states))
 
 
 @dataclass

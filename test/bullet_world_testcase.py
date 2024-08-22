@@ -36,7 +36,7 @@ class BulletWorldTestCase(unittest.TestCase):
         OntologyManager(SOMA_ONTOLOGY_IRI)
 
     def setUp(self):
-        self.world.reset_world()
+        self.world.reset_world(remove_saved_states=True)
         with UseProspectionWorld():
             pass
 
@@ -47,7 +47,7 @@ class BulletWorldTestCase(unittest.TestCase):
     def tearDown(self):
         pycram.tasktree.reset_tree()
         time.sleep(0.05)
-        self.world.reset_world()
+        self.world.reset_world(remove_saved_states=True)
         with UseProspectionWorld():
             pass
 
