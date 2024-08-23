@@ -50,7 +50,8 @@ class Object(WorldEntity):
                  pose: Optional[Pose] = None,
                  world: Optional[World] = None,
                  color: Color = Color(),
-                 ignore_cached_files: bool = False):
+                 ignore_cached_files: bool = False,
+                 scale_mesh: Optional[float] = None):
         """
         The constructor loads the description file into the given World, if no World is specified the
         :py:attr:`~World.current_world` will be used. It is also possible to load .obj and .stl file into the World.
@@ -67,6 +68,7 @@ class Object(WorldEntity):
          :py:attr:`~World.current_world` will be used.
         :param color: The rgba_color with which the object should be spawned.
         :param ignore_cached_files: If true the file will be spawned while ignoring cached files.
+        :param scale_mesh: The scale of the mesh.
         """
 
         super().__init__(-1, world if world is not None else World.current_world)
@@ -86,7 +88,8 @@ class Object(WorldEntity):
 
         if path is not None:
             self.path = self.world.preprocess_object_file_and_get_its_cache_path(path, ignore_cached_files,
-                                                                                 self.description, self.name)
+                                                                                 self.description, self.name,
+                                                                                 scale_mesh=scale_mesh)
 
             self.description.update_description_from_file(self.path)
 

@@ -44,7 +44,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def setUpClass(cls):
         if not multiverse_installed:
             return
-        cls.multiverse = Multiverse(simulation="pycram_test")
+        cls.multiverse = Multiverse()
 
     @classmethod
     def tearDownClass(cls):
