@@ -6,6 +6,7 @@ import pathlib
 from abc import ABC, abstractmethod
 
 import rospy
+import trimesh
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING
 
@@ -619,7 +620,7 @@ class ObjectDescription(EntityDescription):
     A class that represents the description of an object.
     """
 
-    mesh_extensions: Tuple[str] = (".obj", ".stl", ".dae")
+    mesh_extensions: Tuple[str] = (".obj", ".stl", ".dae", ".ply")
     """
     The file extensions of the mesh files that can be used to generate a description file.
     """
@@ -760,7 +761,8 @@ class ObjectDescription(EntityDescription):
         """
         pass
 
-    def generate_description_from_file(self, path: str, name: str, extension: str, save_path: str) -> None:
+    def generate_description_from_file(self, path: str, name: str, extension: str, save_path: str,
+                                       scale_mesh: Optional[float] = None) -> None:
         """
         Generate and preprocess the description from the file at the given path and save the preprocessed
         description. The generated description will be saved at the given save path.
@@ -769,10 +771,17 @@ class ObjectDescription(EntityDescription):
         :param name: The name of the object.
         :param extension: The file extension of the file to preprocess.
         :param save_path: The path to save the generated description file.
+        :param scale_mesh: The scale of the mesh.
         :raises ObjectDescriptionNotFound: If the description file could not be found/read.
         """
 
         if extension in self.mesh_extensions:
+            if extension == ".ply":
+                mesh = trimesh.load(path)
+                path = path.replace(extension, ".stl")
+                if scale_mesh is not None:
+                    mesh.apply_scale(scale_mesh)
+                mesh.export(path)
             self.generate_from_mesh_file(path, name, save_path=save_path)
         elif extension == self.get_file_extension():
             self.generate_from_description_file(path, save_path=save_path)

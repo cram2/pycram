@@ -71,14 +71,14 @@ class Multiverse(World):
     def __init__(self, mode: Optional[WorldMode] = WorldMode.DIRECT,
                  is_prospection: Optional[bool] = False,
                  simulation_frequency: float = conf.simulation_frequency,
-                 simulation: Optional[str] = None):
+                 simulation_name: str = "pycram_test"):
         """
         Initialize the Multiverse Socket and the PyCram World.
 
         :param mode: The mode of the world (DIRECT or GUI).
         :param is_prospection: Whether the world is prospection or not.
         :param simulation_frequency: The frequency of the simulation.
-        :param simulation: The name of the simulation.
+        :param simulation_name: The name of the simulation.
         """
 
         self.latest_save_id: Optional[int] = None
@@ -86,10 +86,10 @@ class Multiverse(World):
         self._make_sure_multiverse_resources_are_added()
 
         if Multiverse.simulation is None:
-            if simulation is None:
+            if simulation_name is None:
                 logging.error("Simulation name not provided")
                 raise ValueError("Simulation name not provided")
-            Multiverse.simulation = simulation
+            Multiverse.simulation = simulation_name
 
         self.simulation = (self.prospection_world_prefix if is_prospection else "") + Multiverse.simulation
         self.client_manager = MultiverseClientManager(self.simulation_wait_time_factor)

@@ -294,7 +294,8 @@ class World(StateEntity, ABC):
             self.world_sync.start()
 
     def preprocess_object_file_and_get_its_cache_path(self, path: str, ignore_cached_files: bool,
-                                                      description: ObjectDescription, name: str) -> str:
+                                                      description: ObjectDescription, name: str,
+                                                      scale_mesh: Optional[float] = None) -> str:
         """
         Update the cache directory with the given object.
 
@@ -302,8 +303,10 @@ class World(StateEntity, ABC):
         :param ignore_cached_files: If the cached files should be ignored.
         :param description: The object description.
         :param name: The name of the object.
+        :param scale_mesh: The scale of the mesh.
+        :return: The path of the cached object.
         """
-        return self.cache_manager.update_cache_dir_with_object(path, ignore_cached_files, description, name)
+        return self.cache_manager.update_cache_dir_with_object(path, ignore_cached_files, description, name, scale_mesh)
 
     @property
     def simulation_time_step(self):
