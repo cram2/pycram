@@ -143,7 +143,7 @@ class Costmap:
         Removes the visualization from the World.
         """
         for v_id in self.vis_ids:
-            self.world.remove_object_by_id(v_id)
+            self.world.remove_visual_object(v_id)
         self.vis_ids = []
 
     def _find_consectuive_line(self, start: Tuple[int, int], map: np.ndarray) -> int:

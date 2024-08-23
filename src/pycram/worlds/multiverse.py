@@ -485,9 +485,9 @@ class Multiverse(World):
         self.reader.stop_thread = True
         self.reader.join()
 
-    def _remove_object_by_id(self, obj_id: int) -> bool:
-        obj = self.get_object_by_id(obj_id)
-        return self.remove_object_from_simulator(obj)
+    def _remove_visual_object(self, obj_id: int) -> bool:
+        rospy.logwarn("Currently multiverse does not create visual objects")
+        return False
 
     def remove_object_from_simulator(self, obj: Object) -> bool:
         if obj.obj_type != ObjectType.ENVIRONMENT:
