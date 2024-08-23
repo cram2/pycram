@@ -410,7 +410,7 @@ class WorldState(State):
     """
     Dataclass for storing the state of the world.
     """
-    simulator_state_id: int
+    simulator_state_id: Optional[int]
     object_states: Dict[str, ObjectState]
 
     def __eq__(self, other: 'WorldState'):

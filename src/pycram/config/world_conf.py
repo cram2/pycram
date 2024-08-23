@@ -42,6 +42,13 @@ default_description_type: Type[ObjectDescription] = URDF
 The default description type for the objects.
 """
 
+use_physics_simulator_state: bool = False
+"""
+Whether to use the physics simulator state when restoring or saving the world state.
+Currently with PyBullet, this causes a bug where ray_test does not work correctly after restoring the state using the
+simulator, so it is recommended to set this to False in PyBullet.
+"""
+
 
 @dataclass
 class JobHandling:

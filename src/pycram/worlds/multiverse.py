@@ -81,6 +81,8 @@ class Multiverse(World):
         :param simulation: The name of the simulation.
         """
 
+        self.latest_save_id: Optional[int] = None
+        self.saved_simulator_states: Dict = {}
         self._make_sure_multiverse_resources_are_added()
 
         if Multiverse.simulation is None:
@@ -90,12 +92,11 @@ class Multiverse(World):
             Multiverse.simulation = simulation
 
         self.simulation = (self.prospection_world_prefix if is_prospection else "") + Multiverse.simulation
+        self.client_manager = MultiverseClientManager(self.simulation_wait_time_factor)
+        self._init_clients(is_prospection=is_prospection)
 
         World.__init__(self, mode, is_prospection, simulation_frequency, **conf.job_handling.as_dict(),
                        **conf.error_tolerance.as_dict())
-
-        self.client_manager = MultiverseClientManager(self.simulation_wait_time_factor)
-        self._init_clients()
 
         self._init_constraint_and_object_id_name_map_collections()
 
@@ -107,23 +108,25 @@ class Multiverse(World):
         if self.use_bullet_mode:
             self.api_requester.pause_simulation()
 
-    def _init_clients(self):
+    def _init_clients(self, is_prospection: bool = False):
         """
         Initialize the Multiverse clients that will be used to communicate with the Multiverse server.
         Each client is responsible for a specific task, e.g. reading data from the server, writing data to the serve,
          calling the API, or controlling the robot joints.
+
+        :param is_prospection: Whether the world is prospection or not.
         """
         self.reader: MultiverseReader = self.client_manager.create_reader(
-            is_prospection_world=self.is_prospection_world)
+            is_prospection_world=is_prospection)
         self.writer: MultiverseWriter = self.client_manager.create_writer(
             self.simulation,
-            is_prospection_world=self.is_prospection_world)
+            is_prospection_world=is_prospection)
         self.api_requester: MultiverseAPI = self.client_manager.create_api_requester(
             self.simulation,
-            is_prospection_world=self.is_prospection_world)
+            is_prospection_world=is_prospection)
         if self.use_controller:
             self.joint_controller: MultiverseController = self.client_manager.create_controller(
-                is_prospection_world=self.is_prospection_world)
+                is_prospection_world=is_prospection)
 
     def _init_constraint_and_object_id_name_map_collections(self):
         self.last_object_id: int = -1
@@ -621,15 +624,17 @@ class Multiverse(World):
             sleep(self.simulation_time_step)
             self.api_requester.pause_simulation()
 
-    def save_physics_simulator_state(self) -> int:
-        logging.warning("save_physics_simulator_state is not implemented in Multiverse")
-        return 0
+    def save_physics_simulator_state(self, use_same_id: bool = False) -> int:
+        self.latest_save_id = 0 if self.latest_save_id is None else self.latest_save_id + int(not use_same_id)
+        save_name = f"save_{self.latest_save_id}"
+        self.saved_simulator_states[self.latest_save_id] = self.api_requester.save(save_name)
+        return self.latest_save_id
 
     def remove_physics_simulator_state(self, state_id: int) -> None:
-        logging.warning("remove_physics_simulator_state is not implemented in Multiverse")
+        self.saved_simulator_states.pop(state_id)
 
     def restore_physics_simulator_state(self, state_id: int) -> None:
-        logging.warning("restore_physics_simulator_state is not implemented in Multiverse")
+        self.api_requester.load(self.saved_simulator_states[state_id])
 
     def set_link_color(self, link: Link, rgba_color: Color):
         logging.warning("set_link_color is not implemented in Multiverse")
