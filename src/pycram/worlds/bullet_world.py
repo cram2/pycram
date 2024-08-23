@@ -9,7 +9,7 @@ import pybullet as p
 import rosgraph
 import rospy
 from geometry_msgs.msg import Point
-from typing_extensions import List, Optional, Dict
+from typing_extensions import List, Optional, Dict, Any
 
 from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape, \
     ClosestPoint, LateralFriction, ContactPoint, ContactPointsList, ClosestPointsList
@@ -102,12 +102,21 @@ class BulletWorld(World):
                           basePosition=pose.position_as_list(),
                           baseOrientation=pose.orientation_as_list(), physicsClientId=self.id)
 
-    def remove_object_from_simulator(self, obj: Object) -> bool:
-        return self._remove_object_by_id(obj.id)
-
-    def _remove_object_by_id(self, obj_id: int) -> True:
-        p.removeBody(obj_id, self.id)
+    def _remove_visual_object(self, obj_id: int) -> bool:
+        self._remove_body(obj_id)
         return True
+
+    def remove_object_from_simulator(self, obj: Object) -> bool:
+        self._remove_body(obj.id)
+        return True
+
+    def _remove_body(self, body_id: int) -> Any:
+        """
+        Remove a body from PyBullet using the body id.
+
+        :param body_id: The id of the body.
+        """
+        return p.removeBody(body_id, self.id)
 
     def add_constraint(self, constraint: Constraint) -> int:
 
