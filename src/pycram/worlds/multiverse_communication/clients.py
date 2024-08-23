@@ -1,5 +1,6 @@
 import datetime
 import logging
+import os
 import threading
 from time import time, sleep
 
@@ -10,11 +11,11 @@ from .socket import MultiverseSocket, MultiverseMetaData
 from ..multiverse_datastructures.dataclasses import RayResult, MultiverseContactPoint
 from ..multiverse_datastructures.enums import (MultiverseAPIName as API, MultiverseBodyProperty as BodyProperty,
                                                MultiverseProperty as Property)
+from ...config import multiverse_conf as conf
 from ...datastructures.pose import Pose
 from ...datastructures.world import World
 from ...world_concepts.constraints import Constraint
 from ...world_concepts.world_object import Object, Link
-from ...config import multiverse_conf as conf
 
 
 class MultiverseClient(MultiverseSocket):
@@ -40,7 +41,6 @@ class MultiverseClient(MultiverseSocket):
 
 
 class MultiverseReader(MultiverseClient):
-
     MAX_WAIT_TIME_FOR_DATA: datetime.timedelta = conf.READER_MAX_WAIT_TIME_FOR_DATA
     """
     The maximum wait time for the data in seconds.
@@ -512,7 +512,6 @@ class MultiverseController(MultiverseWriter):
 
 
 class MultiverseAPI(MultiverseClient):
-
     API_REQUEST_WAIT_TIME: datetime.timedelta = datetime.timedelta(milliseconds=200)
     """
     The wait time for the API request in seconds.
@@ -535,6 +534,39 @@ class MultiverseAPI(MultiverseClient):
         super().__init__(name, port, is_prospection_world, simulation_wait_time_factor=simulation_wait_time_factor)
         self.simulation = simulation
         self.wait: bool = False  # Whether to wait after sending the API request.
+
+    def save(self, save_name: str, save_directory: Optional[str] = None) -> str:
+        """
+        Save the current state of the simulation.
+
+        :param save_name: The name of the save.
+        :param save_directory: The path to save the simulation, can be relative or absolute. If the path is relative,
+         it will be saved in the saved folder in multiverse.
+        :return: The save path.
+        """
+        response = self._request_single_api_callback(API.SAVE, self.get_save_path(save_name, save_directory))
+        return response[0]
+
+    def load(self, save_name: str, save_directory: Optional[str] = None) -> None:
+        """
+        Load the saved state of the simulation.
+
+        :param save_name: The name of the save.
+        :param save_directory: The path to load the simulation, can be relative or absolute. If the path is relative,
+         it will be loaded from the saved folder in multiverse.
+        """
+        self._request_single_api_callback(API.LOAD, self.get_save_path(save_name, save_directory))
+
+    @staticmethod
+    def get_save_path(save_name: str, save_directory: Optional[str] = None) -> str:
+        """
+        Get the save path.
+
+        :param save_name: The save name.
+        :param save_directory: The save directory.
+        :return: The save path.
+        """
+        return save_name if save_directory is None else os.path.join(save_directory, save_name)
 
     def attach(self, constraint: Constraint) -> None:
         """

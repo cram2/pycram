@@ -432,6 +432,7 @@ class World(StateEntity, ABC):
         :param obj: The object to be removed.
         """
         self.original_state.object_states.pop(obj.name)
+        self.original_state.simulator_state_id = self.save_physics_simulator_state(use_same_id=True)
 
     def add_object_to_original_state(self, obj: Object) -> None:
         """
@@ -440,6 +441,7 @@ class World(StateEntity, ABC):
         :param obj: The object to be added.
         """
         self.original_state.object_states[obj.name] = obj.current_state
+        self.update_simulator_state_id_in_original_state()
 
     def add_fixed_constraint(self, parent_link: Link, child_link: Link,
                              child_to_parent_transform: Transform) -> int:
@@ -966,14 +968,18 @@ class World(StateEntity, ABC):
     @property
     def current_state(self) -> WorldState:
         if self._current_state is None:
-            self._current_state = WorldState(self.save_physics_simulator_state(), self.object_states)
+            simulator_state = None if conf.use_physics_simulator_state else self.save_physics_simulator_state(True)
+            self._current_state = WorldState(simulator_state, self.object_states)
         return WorldState(self._current_state.simulator_state_id, self.object_states)
 
     @current_state.setter
     def current_state(self, state: WorldState) -> None:
         if self.current_state != state:
-            for obj in self.objects:
-                self.get_object_by_name(obj.name).current_state = state.object_states[obj.name]
+            if conf.use_physics_simulator_state:
+                self.restore_physics_simulator_state(state.simulator_state_id)
+            else:
+                for obj in self.objects:
+                    self.get_object_by_name(obj.name).current_state = state.object_states[obj.name]
 
     @property
     def object_states(self) -> Dict[str, ObjectState]:
@@ -1002,10 +1008,11 @@ class World(StateEntity, ABC):
             obj.save_state(state_id)
 
     @abstractmethod
-    def save_physics_simulator_state(self) -> int:
+    def save_physics_simulator_state(self, use_same_id: bool = False) -> int:
         """
         Save the state of the physics simulator and returns the unique id of the state.
 
+        :param use_same_id: If the same id should be used for the state.
         :return: The unique id representing the state.
         """
         pass
@@ -1153,9 +1160,11 @@ class World(StateEntity, ABC):
         """
         Remove all saved states of the World.
         """
-        for state_id in self.saved_states:
-            self.remove_physics_simulator_state(state_id)
-        self.remove_objects_saved_states()
+        if conf.use_physics_simulator_state:
+            for state_id in self.saved_states:
+                self.remove_physics_simulator_state(state_id)
+        else:
+            self.remove_objects_saved_states()
         super().remove_saved_states()
         self.original_state_id = None
 
@@ -1463,7 +1472,7 @@ class World(StateEntity, ABC):
         """
         See :py:meth:`~pycram.world.World.add_vis_axis`
         """
-        raise NotImplementedError
+        rospy.logwarn(f"Visual axis is not supported in {self.__class__.__name__}")
 
     def remove_vis_axis(self) -> None:
         """
@@ -1475,7 +1484,7 @@ class World(StateEntity, ABC):
         """
         See :py:meth:`~pycram.world.World.remove_vis_axis`
         """
-        raise NotImplementedError
+        rospy.logwarn(f"Visual axis is not supported in {self.__class__.__name__}")
 
     def _simulator_object_creator(self, creator_func: Callable, *args, **kwargs) -> int:
         """
@@ -1501,11 +1510,14 @@ class World(StateEntity, ABC):
         remover_func(*args, **kwargs)
         self.update_simulator_state_id_in_original_state()
 
-    def update_simulator_state_id_in_original_state(self) -> None:
+    def update_simulator_state_id_in_original_state(self, use_same_id: bool = False) -> None:
         """
-        Update the simulator state id in the original state.
+        Update the simulator state id in the original state if use_physics_simulator_state is True in the configuration.
+
+        :param use_same_id: If the same id should be used for the state.
         """
-        self.original_state.simulator_state_id = self.save_physics_simulator_state()
+        if conf.use_physics_simulator_state:
+            self.original_state.simulator_state_id = self.save_physics_simulator_state(use_same_id)
 
     @property
     def original_state(self) -> WorldState:

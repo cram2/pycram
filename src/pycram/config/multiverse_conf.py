@@ -53,6 +53,11 @@ default_description_type: Type[ObjectDescription] = MJCF
 The default description type for the objects.
 """
 
+use_physics_simulator_state: bool = True
+"""
+Whether to use the physics simulator state when restoring or saving the world state.
+"""
+
 job_handling: world_conf.JobHandling = world_conf.JobHandling(let_pycram_move_attached_objects=False,
                                                               let_pycram_handle_spawning=False)
 
