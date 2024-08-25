@@ -14,12 +14,17 @@ from ..datastructures.dataclasses import Color, VisualShape, BoxVisualShape, Cyl
     SphereVisualShape, MeshVisualShape
 from ..failures import MultiplePossibleTipLinks
 
-from multiverse_parser import Configuration, Factory, InertiaSource
-from multiverse_parser import (WorldBuilder,
-                               GeomType, GeomProperty,
-                               MeshProperty)
-from multiverse_parser import MjcfExporter
-from pxr import Usd, UsdGeom
+try:
+    from multiverse_parser import Configuration, Factory, InertiaSource
+    from multiverse_parser import (WorldBuilder,
+                                   GeomType, GeomProperty,
+                                   MeshProperty)
+    from multiverse_parser import MjcfExporter
+    from pxr import Usd, UsdGeom
+except ImportError:
+    rospy.logwarn("Multiverse not found.")
+    # do not import this module if multiverse is not found
+    raise ImportError("Multiverse not found.")
 
 
 class LinkDescription(AbstractLinkDescription):

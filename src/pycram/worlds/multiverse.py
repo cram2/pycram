@@ -16,6 +16,7 @@ from ..datastructures.enums import WorldMode, JointType, ObjectType
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
 from ..description import Link, Joint, ObjectDescription
+from ..object_descriptors.mjcf import ObjectDescription as MJCF
 from ..robot_description import RobotDescription
 from ..validation.goal_validator import validate_object_pose, validate_multiple_joint_positions, \
     validate_joint_position, validate_multiple_object_poses
@@ -66,6 +67,11 @@ class Multiverse(World):
     default_description_type: Type[ObjectDescription] = conf.default_description_type
     """
     The default description type for the objects.
+    """
+
+    Object.extension_to_description_type[MJCF.get_file_extension()] = MJCF
+    """
+    Add the MJCF description extension to the extension to description type mapping for the objects.
     """
 
     def __init__(self, mode: Optional[WorldMode] = WorldMode.DIRECT,

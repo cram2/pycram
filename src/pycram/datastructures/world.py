@@ -165,6 +165,13 @@ class World(StateEntity, ABC):
 
         self.original_state_id = self.save_state()
 
+    @classmethod
+    def get_cache_dir(cls) -> str:
+        """
+        Return the cache directory.
+        """
+        return cls.cache_manager.cache_dir
+
     def add_object(self, obj: Object) -> None:
         """
         Add an object to the world.
@@ -1074,12 +1081,12 @@ class World(StateEntity, ABC):
         self.coll_callbacks[(object_a, object_b)] = CollisionCallbacks(on_collision_callback,
                                                                        on_collision_removal_callback)
 
-    @property
-    def data_directories(self):
+    @classmethod
+    def get_data_directories(cls) -> List[str]:
         """
         The resources directories where the objects, robots, and environments are stored.
         """
-        return self.cache_manager.data_directories
+        return cls.cache_manager.data_directories
 
     @classmethod
     def add_resource_path(cls, path: str, prepend: bool = False) -> None:
