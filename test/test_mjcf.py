@@ -1,8 +1,12 @@
-from unittest import TestCase
+from unittest import TestCase, skipIf
 from dm_control import mjcf
-from pycram.object_descriptors.mjcf import ObjectDescription as MJCFObjDesc
+try:
+    from pycram.object_descriptors.mjcf import ObjectDescription as MJCFObjDesc
+except ImportError:
+    MJCFObjDesc = None
 
 
+@skipIf(MJCFObjDesc is None, "Multiverse not found.")
 class TestMjcf(TestCase):
     model: MJCFObjDesc
 

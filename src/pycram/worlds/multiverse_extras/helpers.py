@@ -1,5 +1,6 @@
 import os
 
+import rospy
 from typing_extensions import Optional, List, Dict
 import xml.etree.ElementTree as ET
 
@@ -24,18 +25,28 @@ def parse_mjcf_actuators(file_path: str) -> Dict[str, str]:
     return joint_actuators
 
 
-def get_robot_mjcf_path(company_name: str, robot_name: str, xml_name: Optional[str] = None) -> Optional[str]:
+def get_robot_mjcf_path(robot_relative_dir: str, robot_name: str, xml_name: Optional[str] = None) -> Optional[str]:
     """
     Get the path to the MJCF file of a robot.
-    :param company_name: The name of the company that created the robot.
+    :param robot_relative_dir: The relative directory of the robot in the Multiverse resources/robots directory.
     :param robot_name: The name of the robot.
     :param xml_name: The name of the XML file of the robot.
-    :return: The path to the MJCF file of the robot.
+    :return: The path to the MJCF file of the robot if it exists, otherwise None.
     """
     xml_name = xml_name if xml_name is not None else robot_name
+    if '.xml' not in xml_name:
+        xml_name = xml_name + '.xml'
     multiverse_resources = find_multiverse_resources_path()
+    try:
+        robot_folder = os.path.join(multiverse_resources, 'robots', robot_relative_dir, robot_name)
+    except TypeError:
+        rospy.logwarn("Multiverse resources path not found.")
+        return None
     if multiverse_resources is not None:
-        return os.path.join(multiverse_resources, 'robots', company_name, robot_name, 'mjcf', f'{robot_name}.xml')
+        if f'mjcf/{xml_name}' in os.listdir(robot_folder):
+            return os.path.join(multiverse_resources, 'robots', robot_relative_dir, robot_name, 'mjcf', xml_name)
+        elif xml_name in os.listdir(robot_folder):
+            return os.path.join(multiverse_resources, 'robots', robot_relative_dir, robot_name, xml_name)
     return None
 
 

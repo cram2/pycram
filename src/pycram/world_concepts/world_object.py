@@ -22,7 +22,10 @@ from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenObjects, Un
     ObjectDescriptionUndefined
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.urdf import ObjectDescription as URDF
-from ..object_descriptors.mjcf import ObjectDescription as MJCF
+try:
+    from ..object_descriptors.mjcf import ObjectDescription as MJCF
+except ImportError:
+    MJCF = None
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 
@@ -39,8 +42,7 @@ class Object(WorldEntity):
     The prefix for the tf frame of objects in the prospection world.
     """
 
-    extension_to_description_type: Dict[str, Type[ObjectDescription]] = {URDF.get_file_extension(): URDF,
-                                                                         MJCF.get_file_extension(): MJCF}
+    extension_to_description_type: Dict[str, Type[ObjectDescription]] = {URDF.get_file_extension(): URDF}
     """
     A dictionary that maps the file extension to the corresponding ObjectDescription type.
     """
