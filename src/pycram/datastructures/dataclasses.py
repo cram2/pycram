@@ -493,14 +493,35 @@ class ContactPointsList(list):
     """
     A list of contact points.
     """
+    def get_links_that_got_removed(self, previous_points: 'ContactPointsList') -> List[Link]:
+        """
+        Return the links that are not in the current points list but were in the initial points list.
 
-    def __index__(self, index: int) -> ContactPoint:
-        return super().__getitem__(index)
+        :param previous_points: The initial points list.
+        :return: A list of Link instances that represent the links that got removed.
+        """
+        initial_links_in_contact = previous_points.get_links_in_contact()
+        current_links_in_contact = self.get_links_in_contact()
+        return [link for link in initial_links_in_contact if link not in current_links_in_contact]
 
-    def __getitem__(self, item) -> Union[ContactPoint, 'ContactPointsList']:
-        if isinstance(item, slice):
-            return ContactPointsList(super().__getitem__(item))
-        return super().__getitem__(item)
+    def get_links_in_contact(self) -> List[Link]:
+        """
+        Get the links in contact.
+
+        :return: A list of Link instances that represent the links in contact.
+        """
+        return [point.link_b for point in self]
+
+    def check_if_two_objects_are_in_contact(self, obj_a: Object, obj_b: Object) -> bool:
+        """
+        Check if two objects are in contact.
+
+        :param obj_a: An instance of the Object class that represents the first object.
+        :param obj_b: An instance of the Object class that represents the second object.
+        :return: True if the objects are in contact, False otherwise.
+        """
+        return (any([point.link_b.object == obj_b and point.link_a.object == obj_a for point in self]) or
+                any([point.link_a.object == obj_b and point.link_b.object == obj_a for point in self]))
 
     def get_normals_of_object(self, obj: Object) -> List[List[float]]:
         """
@@ -604,8 +625,9 @@ class TextAnnotation:
     """
     text: str
     position: List[float]
-    color: Color
     id: int
+    color: Color = Color(0, 0, 0, 1)
+    size: float = 0.1
 
 
 @dataclass
