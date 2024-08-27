@@ -589,21 +589,21 @@ class ContactPointsList(list):
         """
         return obj in self.get_objects_that_have_points()
 
-    def get_objects_that_have_points(self) -> List[Object]:
-        """
-        Return the objects that have points in the list.
-
-        :return: A list of Object instances that represent the objects that have points in the list.
-        """
-        return [point.link_b.object for point in self]
-
     def get_names_of_objects_that_have_points(self) -> List[str]:
         """
         Return the names of the objects that have points in the list.
 
         :return: A list of strings that represent the names of the objects that have points in the list.
         """
-        return [point.link_b.object.name for point in self]
+        return [obj.name for obj in self.get_objects_that_have_points()]
+
+    def get_objects_that_have_points(self) -> List[Object]:
+        """
+        Return the objects that have points in the list.
+
+        :return: A list of Object instances that represent the objects that have points in the list.
+        """
+        return list({point.link_b.object for point in self})
 
     def __str__(self):
         return f"ContactPointsList: {', '.join(self.get_names_of_objects_that_have_points())}"

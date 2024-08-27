@@ -786,7 +786,7 @@ class ObjectDescription(EntityDescription):
         if extension in self.mesh_extensions:
             if extension == ".ply":
                 mesh = trimesh.load(path)
-                path = path.replace(extension, ".stl")
+                path = path.replace(extension, ".obj")
                 if scale_mesh is not None:
                     mesh.apply_scale(scale_mesh)
                 mesh.export(path)
