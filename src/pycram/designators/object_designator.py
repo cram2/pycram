@@ -9,10 +9,11 @@ from ..designator import ObjectDesignatorDescription
 from ..orm.base import ProcessMetaData
 from ..orm.object_designator import (BelieveObject as ORMBelieveObject, ObjectPart as ORMObjectPart)
 from ..datastructures.pose import Pose
-from ..external_interfaces.robokudo import query
+from ..external_interfaces.robokudo import *
 
 if TYPE_CHECKING:
     import owlready2
+
 
 class BelieveObject(ObjectDesignatorDescription):
     """
@@ -138,6 +139,8 @@ class LocatedObject(ObjectDesignatorDescription):
         self.timestamps: List[float] = timestamps
 
 
+@DeprecationWarning
+# Depricated class this will be done differently
 class RealObject(ObjectDesignatorDescription):
     """
     Object designator representing an object in the real world, when resolving this object designator description ]
@@ -155,11 +158,11 @@ class RealObject(ObjectDesignatorDescription):
     def __init__(self, names: Optional[List[str]] = None, types: Optional[List[str]] = None,
                  world_object: WorldObject = None, resolver: Optional[Callable] = None):
         """
-        
-        :param names: 
-        :param types: 
+
+        :param names:
+        :param types:
         :param world_object:
-        :param resolver: 
+        :param resolver:
         """
         super().__init__(resolver)
         self.types: Optional[List[str]] = types
