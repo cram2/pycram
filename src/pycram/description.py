@@ -431,6 +431,14 @@ class Link(ObjectEntity, LinkDescription, ABC):
         """
         return self.world.get_link_color(self)
 
+    def set_color(self, color: Color) -> None:
+        """
+        Set the color of this link, could be rgb or rgba.
+
+        :param color: The color as a list of floats, either rgb or rgba.
+        """
+        self.color = color
+
     @color.setter
     def color(self, color: Color) -> None:
         """
