@@ -1,22 +1,27 @@
+import datetime
 import logging
 import os
+from time import sleep
 
 import numpy as np
 from tf.transformations import quaternion_matrix
 from typing_extensions import List, Dict, Optional
 
 from .multiverse_communication.client_manager import MultiverseClientManager
+from .multiverse_communication.clients import MultiverseController, MultiverseReader, MultiverseWriter, MultiverseAPI
 from .multiverse_datastructures.enums import MultiverseJointProperty, MultiverseBodyProperty
-from pycram.validation.goal_validator import validate_object_pose, validate_multiple_joint_positions, \
-    validate_joint_position
+from .multiverse_extras.helpers import find_multiverse_resources_path
 from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
 from ..datastructures.enums import WorldMode, JointType, ObjectType
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
 from ..description import Link, Joint
 from ..robot_description import RobotDescription
+from ..validation.goal_validator import validate_object_pose, validate_multiple_joint_positions, \
+    validate_joint_position
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.world_object import Object
+from ..config import multiverse_conf as conf
 
 
 class Multiverse(World):
@@ -27,6 +32,14 @@ class Multiverse(World):
     supported_joint_types = (JointType.REVOLUTE, JointType.PRISMATIC)
     """
     A Tuple for the supported pycram joint types in Multiverse.
+    """
+
+    _joint_type_to_cmd_name: Dict[JointType, MultiverseJointProperty] = {
+        JointType.REVOLUTE: MultiverseJointProperty.REVOLUTE_JOINT_CMD,
+        JointType.PRISMATIC: MultiverseJointProperty.PRISMATIC_JOINT_CMD,
+    }
+    """
+    A dictionary to map JointType to the corresponding multiverse joint command attribute name.
     """
 
     added_multiverse_resources: bool = False
@@ -52,20 +65,11 @@ class Multiverse(World):
     is completed.
     """
 
-    position_tol: float = 2e-3
-    """
-    The tolerance for position comparison. (e.g. for checking if the object has reached the desired position)
-    """
-
-    orientation_tol: float = 2e-3
-    """
-    The tolerance for orientation comparison. (e.g. for checking if the object has reached the desired orientation)
-    """
-
     def __init__(self, mode: Optional[WorldMode] = WorldMode.DIRECT,
                  is_prospection: Optional[bool] = False,
-                 simulation_frequency: Optional[float] = 60.0,
-                 simulation: Optional[str] = None):
+                 simulation_frequency: float = conf.simulation_frequency,
+                 simulation: Optional[str] = None,
+                 use_controller: bool = conf.use_controller):
         """
         Initialize the Multiverse Socket and the PyCram World.
         param mode: The mode of the world (DIRECT or GUI).
@@ -73,6 +77,7 @@ class Multiverse(World):
         param simulation_frequency: The frequency of the simulation.
         param client_addr: The address of the multiverse client.
         param simulation: The name of the simulation.
+        param use_controller: Whether to use the controller or not.
         """
 
         self._make_sure_multiverse_resources_are_added()
@@ -85,28 +90,34 @@ class Multiverse(World):
 
         self.simulation = (self.prospection_world_prefix if is_prospection else "") + Multiverse.simulation
 
-        World.__init__(self, mode, is_prospection, simulation_frequency)
+        # Whether to use the controller for the robot joints or not.
+        self.use_controller = use_controller
 
+        World.__init__(self, mode, is_prospection, simulation_frequency, **conf.job_handling.as_dict(),
+                       **conf.error_tolerance.as_dict())
+
+        self.client_manager = MultiverseClientManager(self.simulation_wait_time_factor)
         self._init_clients()
-
-        self._set_world_job_flags()
 
         self._init_constraint_and_object_id_name_map_collections()
 
         if not self.is_prospection_world:
             self._spawn_floor()
 
-    def _init_clients(self):
-        client_manager = MultiverseClientManager(self.simulation_wait_time_factor)
-        self.reader = client_manager.create_reader(is_prospection_world=self.is_prospection_world)
-        self.writer = client_manager.create_writer(self.simulation, is_prospection_world=self.is_prospection_world)
-        self.api_requester = client_manager.create_api_requester(self.simulation,
-                                                                 is_prospection_world=self.is_prospection_world)
+        if not self.use_controller:
+            self.api_requester.pause_simulation()
 
-    def _set_world_job_flags(self):
-        self.let_pycram_move_attached_objects = False
-        self.let_pycram_handle_spawning = False
-        self.update_poses_from_sim_on_get = True
+    def _init_clients(self):
+        self.reader: MultiverseReader = self.client_manager.create_reader(
+            is_prospection_world=self.is_prospection_world)
+        self.writer: MultiverseWriter = self.client_manager.create_writer(
+            self.simulation,
+            is_prospection_world=self.is_prospection_world)
+        self.api_requester: MultiverseAPI = self.client_manager.create_api_requester(
+            self.simulation,
+            is_prospection_world=self.is_prospection_world)
+        self.joint_controller: MultiverseController = self.client_manager.create_controller(
+            is_prospection_world=self.is_prospection_world)
 
     def _init_constraint_and_object_id_name_map_collections(self):
         self.last_object_id: int = -1
@@ -140,6 +151,22 @@ class Multiverse(World):
     def get_joint_position_name(joint: Joint) -> MultiverseJointProperty:
         return MultiverseJointProperty.from_pycram_joint_type(joint.type)
 
+    def spawn_robot_with_controller(self, name: str, pose: Pose) -> None:
+        """
+        Spawn the robot in the simulator.
+        param robot_description: The robot description.
+        param pose: The pose of the robot.
+        return: The object of the robot.
+        """
+        actuator_joint_commands = {
+            actuator_name: [self.get_joint_cmd_name(self.robot_description.joint_types[joint_name]).value]
+            for joint_name, actuator_name in self.robot_joint_actuators.items()
+        }
+        self.joint_controller.init_controller(actuator_joint_commands)
+        self.writer.spawn_robot_with_actuators(name, pose.position_as_list(),
+                                               self.xyzw_to_wxyz(pose.orientation_as_list()),
+                                               actuator_joint_commands)
+
     def load_object_and_get_id(self, name: Optional[str] = None,
                                pose: Optional[Pose] = None,
                                obj_type: Optional[ObjectType] = None) -> int:
@@ -153,10 +180,24 @@ class Multiverse(World):
         if pose is None:
             pose = Pose()
 
+        # Do not spawn objects with type environment as they should be already present in the simulator through the
+        # multiverse description file (.muv file).
         if not obj_type == ObjectType.ENVIRONMENT:
-            self._set_body_pose(name, pose)
+            self.spawn_object(name, obj_type, pose)
 
         return self._update_object_id_name_maps_and_get_latest_id(name)
+
+    def spawn_object(self, name: str, object_type: ObjectType, pose: Pose) -> None:
+        """
+        Spawn the object in the simulator and return the object id.
+        param obj: The object to be spawned.
+        param pose: The pose of the object.
+        return: The object id.
+        """
+        if object_type == ObjectType.ROBOT and self.use_controller:
+            self.spawn_robot_with_controller(name, pose)
+        else:
+            self._set_body_pose(name, pose)
 
     def _update_object_id_name_maps_and_get_latest_id(self, name: str) -> int:
         """
@@ -189,14 +230,49 @@ class Multiverse(World):
 
     @validate_joint_position
     def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
-        self.writer.set_body_property(joint.name, self.get_joint_position_name(joint), [joint_position])
+        if self.use_controller and self.joint_has_actuator(joint):
+            self._reset_joint_position_using_controller(joint, joint_position)
+        else:
+            self._set_multiple_joint_positions_without_controller({joint: joint_position})
+            # self.writer.set_body_property(joint.name, self.get_joint_position_name(joint.type),
+            #                               [joint_position])
+        return True
+
+    def _reset_joint_position_using_controller(self, joint: Joint, joint_position: float) -> bool:
+        self.joint_controller.set_body_property(self.get_actuator_for_joint(joint),
+                                                self.get_joint_cmd_name(joint.type),
+                                                [joint_position])
         return True
 
     @validate_multiple_joint_positions
     def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
-        data = {joint.name: {self.get_joint_position_name(joint): [position]}
-                for joint, position in joint_positions.items()}
-        self.writer.send_multiple_body_data_to_server(data)
+
+        if self.use_controller:
+            controlled_joints = self.get_controlled_joints(list(joint_positions.keys()))
+            if len(controlled_joints) > 0:
+                controlled_joint_positions = {joint: joint_positions[joint] for joint in controlled_joints}
+                self._set_multiple_joint_positions_using_controller(controlled_joint_positions)
+                joint_positions = {joint: joint_positions[joint] for joint in joint_positions.keys()
+                                   if joint not in controlled_joints}
+        if len(joint_positions) > 0:
+            self._set_multiple_joint_positions_without_controller(joint_positions)
+
+        return True
+
+    def get_controlled_joints(self, joints: Optional[List[Joint]] = None) -> List[Joint]:
+        joints = self.robot.joints if joints is None else joints
+        return [joint for joint in joints if self.joint_has_actuator(joint)]
+
+    def _set_multiple_joint_positions_without_controller(self, joint_positions: Dict[Joint, float]) -> None:
+        joints_data = {joint.name: {self.get_joint_position_name(joint): [position]}
+                       for joint, position in joint_positions.items()}
+        self.writer.send_multiple_body_data_to_server(joints_data)
+
+    def _set_multiple_joint_positions_using_controller(self, joint_positions: Dict[Joint, float]) -> bool:
+        controlled_joints_data = {self.get_actuator_for_joint(joint):
+                                      {self.get_joint_cmd_name(joint.type): [position]}
+                                  for joint, position in joint_positions.items()}
+        self.joint_controller.send_multiple_body_data_to_server(controlled_joints_data)
         return True
 
     def get_joint_position(self, joint: Joint) -> Optional[float]:
@@ -211,6 +287,9 @@ class Multiverse(World):
                                                                 for joint in joints})
         if data is not None:
             return {name: list(value.values())[0][0] for name, value in data.items()}
+
+    def get_joint_cmd_name(self, joint_type: JointType) -> MultiverseJointProperty:
+        return self._joint_type_to_cmd_name[joint_type]
 
     def get_link_pose(self, link: Link) -> Optional[Pose]:
         return self._get_body_pose(link.name)
@@ -288,7 +367,8 @@ class Multiverse(World):
         return Pose(data[MultiverseBodyProperty.POSITION.value],
                     self.wxyz_to_xyzw(data[MultiverseBodyProperty.ORIENTATION.value]))
 
-    def wxyz_to_xyzw(self, wxyz: List[float]) -> List[float]:
+    @staticmethod
+    def wxyz_to_xyzw(wxyz: List[float]) -> List[float]:
         """
         Convert a quaternion from WXYZ to XYZW format.
         """
@@ -357,12 +437,13 @@ class Multiverse(World):
         self.api_requester.detach(constraint)
 
     def perform_collision_detection(self) -> None:
-        logging.warning("perform_collision_detection is not implemented in Multiverse")
+        self.step()
 
     def get_object_contact_points(self, obj: Object) -> ContactPointsList:
         """
         Note: Currently Multiverse only gets one contact point per contact objects.
         """
+        self.step()
         multiverse_contact_points = self.api_requester.get_contact_points(obj)
         contact_points = ContactPointsList([])
         body_link = None
@@ -409,26 +490,38 @@ class Multiverse(World):
         return obj1_contact_points.get_points_of_object(obj2)
 
     def ray_test(self, from_position: List[float], to_position: List[float]) -> Optional[int]:
-        ray_test_result = self.ray_test_batch([from_position], [to_position])
+        ray_test_result = self.ray_test_batch([from_position], [to_position])[0]
         return ray_test_result[0] if ray_test_result[0] != -1 else None
 
     def ray_test_batch(self, from_positions: List[List[float]], to_positions: List[List[float]],
-                       num_threads: int = 1) -> List[int]:
+                       num_threads: int = 1) -> List[List[int]]:
         """
         Note: Currently, num_threads is not used in Multiverse.
         """
         ray_results = self.api_requester.get_objects_intersected_with_rays(from_positions, to_positions)
         results = []
         for ray_result in ray_results:
+            results.append([])
             if ray_result.intersected():
-                results.append(self.floor.id if ray_result.body_name == "world" else
-                               self.object_name_to_id[ray_result.body_name])
+                body_name = ray_result.body_name
+                if body_name == "world":
+                    results[-1].append(self.floor.id)
+                elif body_name in self.object_name_to_id.keys():
+                    results[-1].append(self.object_name_to_id[body_name])
+                else:
+                    for obj in self.objects:
+                        if body_name in obj.links.keys():
+                            results[-1].append(obj.id)
+                            break
             else:
-                results.append(-1)
+                results[-1].append(-1)
         return results
 
     def step(self):
-        logging.warning("step is not implemented in Multiverse")
+        if not self.use_controller:
+            self.api_requester.unpause_simulation()
+            sleep(30 / self.simulation_frequency)
+            self.api_requester.pause_simulation()
 
     def save_physics_simulator_state(self) -> int:
         logging.warning("save_physics_simulator_state is not implemented in Multiverse")
@@ -469,64 +562,6 @@ class Multiverse(World):
     def check_object_exists_in_multiverse(self, obj: Object) -> bool:
         return self.api_requester.check_object_exists(obj)
 
-
-def get_resource_paths(dirname: str) -> List[str]:
-    resources_paths = ["../robots", "../worlds", "../objects"]
-    resources_paths = [
-        os.path.join(dirname, resources_path.replace('../', '')) if not os.path.isabs(
-            resources_path) else resources_path
-        for resources_path in resources_paths
-    ]
-
-    def add_directories(path: str) -> None:
-        with os.scandir(path) as entries:
-            for entry in entries:
-                if entry.is_dir():
-                    resources_paths.append(entry.path)
-                    add_directories(entry.path)
-
-    resources_path_copy = resources_paths.copy()
-    for resources_path in resources_path_copy:
-        add_directories(resources_path)
-
-    return resources_paths
-
-
-def find_multiverse_resources_path() -> Optional[str]:
-    """
-    Find the path to the Multiverse resources directory.
-    """
-    # Get the path to the Multiverse installation
-    multiverse_path = find_multiverse_path()
-
-    # Check if the path to the Multiverse installation was found
-    if multiverse_path:
-        # Construct the path to the resources directory
-        resources_path = os.path.join(multiverse_path, 'resources')
-
-        # Check if the resources directory exists
-        if os.path.exists(resources_path):
-            return resources_path
-
-    return None
-
-
-def find_multiverse_path() -> Optional[str]:
-    """
-    Find the path to the Multiverse installation.
-    """
-    # Get the value of PYTHONPATH environment variable
-    pythonpath = os.getenv('PYTHONPATH')
-
-    # Check if PYTHONPATH is set
-    if pythonpath:
-        # Split the PYTHONPATH into individual paths using the platform-specific path separator
-        paths = pythonpath.split(os.pathsep)
-
-        # Iterate through each path and check if 'Multiverse' is in it
-        for path in paths:
-            if 'multiverse' in path:
-                multiverse_path = path.split('multiverse')[0]
-                return multiverse_path + 'multiverse'
-
-    return None
+    @staticmethod
+    def add_vis_axis(pose: Pose) -> None:
+        logging.warning("add_vis_axis is not implemented in Multiverse")

@@ -13,100 +13,31 @@ from tf.transformations import euler_from_quaternion
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union
 
 from ..cache_manager import CacheManager
+from ..config import world_conf as conf
 from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
                                           MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape,
                                           SphereVisualShape,
                                           CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
-                                          ObjectState, State, WorldState, ClosestPointsList,
+                                          ObjectState, WorldState, ClosestPointsList,
                                           ContactPointsList, VirtualMoveBaseJoints)
 from ..datastructures.enums import JointType, ObjectType, WorldMode, Arms
 from ..datastructures.pose import Pose, Transform
+from ..datastructures.world_entity import StateEntity
 from ..exceptions import ProspectionObjectNotFound, WorldObjectNotFound
 from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
+from ..validation.goal_validator import (MultiPoseGoalValidator,
+                                         PoseGoalValidator, JointPositionGoalValidator,
+                                         MultiJointPositionGoalValidator, GoalValidator,
+                                         validate_joint_position, validate_multiple_joint_positions,
+                                         validate_object_pose)
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.event import Event
-from ..config import world_conf as conf
-from pycram.validation.goal_validator import (MultiPoseGoalValidator,
-                                              PoseGoalValidator, JointPositionGoalValidator,
-                                              MultiJointPositionGoalValidator, GoalValidator,
-                                              validate_joint_position, validate_multiple_joint_positions,
-                                              validate_object_pose)
 
 if TYPE_CHECKING:
     from ..world_concepts.world_object import Object
-    from ..description import Link, Joint
-
-
-class StateEntity:
-    """
-    The StateEntity class is used to store the state of an object or the physics simulator. This is used to save and
-    restore the state of the World.
-    """
-
-    def __init__(self):
-        self._saved_states: Dict[int, State] = {}
-
-    @property
-    def saved_states(self) -> Dict[int, State]:
-        """
-        Returns the saved states of this entity.
-        """
-        return self._saved_states
-
-    def save_state(self, state_id: int) -> int:
-        """
-        Saves the state of this entity with the given state id.
-
-        :param state_id: The unique id of the state.
-        """
-        self._saved_states[state_id] = self.current_state
-        return state_id
-
-    @property
-    @abstractmethod
-    def current_state(self) -> State:
-        """
-        Returns the current state of this entity.
-
-        :return: The current state of this entity.
-        """
-        pass
-
-    @current_state.setter
-    @abstractmethod
-    def current_state(self, state: State) -> None:
-        """
-        Sets the current state of this entity.
-
-        :param state: The new state of this entity.
-        """
-        pass
-
-    def restore_state(self, state_id: int) -> None:
-        """
-        Restores the state of this entity from a saved state using the given state id.
-
-        :param state_id: The unique id of the state.
-        """
-        self.current_state = self.saved_states[state_id]
-
-    def remove_saved_states(self) -> None:
-        """
-        Removes all saved states of this entity.
-        """
-        self._saved_states = {}
-
-
-class WorldEntity(StateEntity, ABC):
-    """
-    A data class that represents an entity of the world, such as an object or a link.
-    """
-
-    def __init__(self, _id: int, world: Optional[World] = None):
-        StateEntity.__init__(self)
-        self.id = _id
-        self.world: World = world if world is not None else World.current_world
+    from ..description import Link, Joint, ObjectDescription
+    from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 
 
 class World(StateEntity, ABC):
@@ -162,41 +93,60 @@ class World(StateEntity, ABC):
     The prefix for the prospection world name.
     """
 
-    acceptable_position_error: float = 5e-3  # 5 cm
-    acceptable_orientation_error: float = 10 * np.pi / 180  # 10 degrees
-    acceptable_pose_error: Tuple[float, float] = (acceptable_position_error, acceptable_orientation_error)
-    use_percentage_of_goal: bool = True
-    acceptable_percentage_of_goal: float = 0.5 if use_percentage_of_goal else None  # 50%
+    let_pycram_move_attached_objects: bool = conf.JobHandling.let_pycram_move_attached_objects
+    let_pycram_handle_spawning: bool = conf.JobHandling.let_pycram_handle_spawning
+    let_pycram_handle_world_sync: bool = conf.JobHandling.let_pycram_handle_world_sync
+    """
+    Whether to let PyCRAM handle the movement of attached objects, the spawning of objects,
+     and the world synchronization.
+    """
+
+    update_poses_from_sim_on_get: bool = conf.update_poses_from_sim_on_get
+    """
+    Whether to update the poses from the simulator when getting the object poses.
+    """
+
+    acceptable_position_error: float = conf.ErrorTolerance.acceptable_position_error
+    acceptable_orientation_error: float = conf.ErrorTolerance.acceptable_orientation_error
+    acceptable_pose_error: Tuple[float, float] = conf.ErrorTolerance.acceptable_pose_error
+    acceptable_revolute_joint_position_error: float = conf.ErrorTolerance.acceptable_revolute_joint_position_error
+    acceptable_prismatic_joint_position_error: float = conf.ErrorTolerance.acceptable_prismatic_joint_position_error
+    use_percentage_of_goal: bool = conf.ErrorTolerance.use_percentage_of_goal
+    acceptable_percentage_of_goal: float = conf.ErrorTolerance.acceptable_percentage_of_goal
     """
     The acceptable error for the position and orientation of an object/link.
     """
 
-    raise_goal_validator_error: Optional[bool] = False
+    raise_goal_validator_error: Optional[bool] = conf.ErrorTolerance.raise_goal_validator_error
     """
     Whether to raise an error if the goals are not achieved.
     """
 
-    def __init__(self, mode: WorldMode, is_prospection_world: bool, simulation_frequency: float):
+    def __init__(self, mode: WorldMode, is_prospection_world: bool, simulation_frequency: float,
+                 **config_kwargs):
         """
-       Creates a new simulation, the mode decides if the simulation should be a rendered window or just run in the
-       background. There can only be one rendered simulation.
-       The World object also initializes the Events for attachment, detachment and for manipulating the world.
+        Creates a new simulation, the mode decides if the simulation should be a rendered window or just run in the
+        background. There can only be one rendered simulation.
+        The World object also initializes the Events for attachment, detachment and for manipulating the world.
 
-       :param mode: Can either be "GUI" for rendered window or "DIRECT" for non-rendered. The default parameter is "GUI"
-       :param is_prospection_world: For internal usage, decides if this World should be used as a prospection world.
+        :param mode: Can either be "GUI" for rendered window or "DIRECT" for non-rendered. The default parameter is
+         "GUI"
+        :param is_prospection_world: For internal usage, decides if this World should be used as a prospection world.
+        :param simulation_frequency: The frequency of the simulation in Hz.
+        :param config_kwargs: Additional configuration parameters.
         """
 
         StateEntity.__init__(self)
 
-        self.let_pycram_move_attached_objects = True
-        self.let_pycram_handle_spawning = True
-        self.let_pycram_handle_world_sync = True
-        self.update_poses_from_sim_on_get = True
+        # Parse config_kwargs
+        for key, value in config_kwargs.items():
+            setattr(self, key, value)
+
         GoalValidator.raise_error = World.raise_goal_validator_error
+        World.simulation_frequency = simulation_frequency
 
         if World.current_world is None:
             World.current_world = self
-        World.simulation_frequency = simulation_frequency
 
         self.object_lock: threading.Lock = threading.Lock()
 
@@ -225,6 +175,39 @@ class World(StateEntity, ABC):
 
         self._init_goal_validators()
 
+    @property
+    def robot_description(self) -> RobotDescription:
+        """
+        Returns the current robot description.
+        """
+        return RobotDescription.current_robot_description
+
+    @property
+    def robot_has_actuators(self) -> bool:
+        """
+        Returns whether the robot has actuators.
+        """
+        return self.robot_description.has_actuators
+
+    def get_actuator_for_joint(self, joint: Joint) -> str:
+        """
+        Get the actuator name for a given joint.
+        """
+        return self.robot_joint_actuators[joint.name]
+
+    def joint_has_actuator(self, joint: Joint) -> bool:
+        """
+        Returns whether the joint has an actuator.
+        """
+        return joint.name in self.robot_joint_actuators
+
+    @property
+    def robot_joint_actuators(self) -> Dict[str, str]:
+        """
+        Returns the joint actuators of the robot.
+        """
+        return self.robot_description.joint_actuators
+
     def _init_goal_validators(self):
         """
         Initializes the goal validators for the World objects' poses, positions, and orientations.
@@ -240,13 +223,13 @@ class World(StateEntity, ABC):
         # Joint Goal validators
         self.joint_position_goal_validator = JointPositionGoalValidator(
             self.get_joint_position,
-            acceptable_orientation_error=self.acceptable_orientation_error,
-            acceptable_position_error=self.acceptable_position_error,
+            acceptable_revolute_joint_position_error=self.acceptable_revolute_joint_position_error,
+            acceptable_prismatic_joint_position_error=self.acceptable_prismatic_joint_position_error,
             acceptable_percentage_of_goal_achieved=self.acceptable_percentage_of_goal)
         self.multi_joint_position_goal_validator = MultiJointPositionGoalValidator(
             lambda x: list(self.get_multiple_joint_positions(x).values()),
-            acceptable_orientation_error=self.acceptable_orientation_error,
-            acceptable_position_error=self.acceptable_position_error,
+            acceptable_revolute_joint_position_error=self.acceptable_revolute_joint_position_error,
+            acceptable_prismatic_joint_position_error=self.acceptable_prismatic_joint_position_error,
             acceptable_percentage_of_goal_achieved=self.acceptable_percentage_of_goal)
 
     def check_object_exists(self, obj: Object):
@@ -309,16 +292,17 @@ class World(StateEntity, ABC):
             self.pause_world_sync()
             self.world_sync.start()
 
-    def update_cache_dir_with_object(self, path: str, ignore_cached_files: bool,
-                                     obj: Object) -> str:
+    def preprocess_object_file_and_get_its_cache_path(self, path: str, ignore_cached_files: bool,
+                                                      description: ObjectDescription, name: str) -> str:
         """
         Updates the cache directory with the given object.
 
         :param path: The path to the object.
         :param ignore_cached_files: If the cached files should be ignored.
-        :param obj: The object to be added to the cache directory.
+        :param description: The object description.
+        :param name: The name of the object.
         """
-        return self.cache_manager.update_cache_dir_with_object(path, ignore_cached_files, obj.description, obj.name)
+        return self.cache_manager.update_cache_dir_with_object(path, ignore_cached_files, description, name)
 
     @property
     def simulation_time_step(self):
@@ -339,6 +323,12 @@ class World(StateEntity, ABC):
         :return: The id of the loaded object.
         """
         pass
+
+    def load_generic_object_and_get_id(self, description: GenericObjectDescription) -> int:
+        """
+        Creates a visual and collision box in the simulation and returns the id of the loaded object.
+        """
+        raise NotImplementedError
 
     def get_object_names(self) -> List[str]:
         """
@@ -405,16 +395,14 @@ class World(StateEntity, ABC):
         :param obj: The object to be removed.
         """
         self.object_lock.acquire()
-        obj.detach_all()
 
+        obj.detach_all()
         if obj.name != "floor":
             self.objects.remove(obj)
-
-        if obj.name != "floor":
             self.remove_object_from_simulator(obj)
-
         if World.robot == obj:
             World.robot = None
+
         self.object_lock.release()
 
     def add_fixed_constraint(self, parent_link: Link, child_link: Link,
@@ -622,6 +610,20 @@ class World(StateEntity, ABC):
         """
         pass
 
+    @property
+    def robot_virtual_joints(self) -> List[Joint]:
+        """
+        Returns the virtual joints of the robot.
+        """
+        return [self.robot.joints[name] for name in self.robot_virtual_joints_names]
+
+    @property
+    def robot_virtual_joints_names(self) -> List[str]:
+        """
+        Returns the virtual joints of the robot.
+        """
+        return self.robot_description.virtual_move_base_joints.names
+
     def set_mobile_robot_pose(self, pose: Pose) -> None:
         """
         Set the goal for the move base joints of a mobile robot to reach a target pose. This is used for example when
@@ -645,14 +647,13 @@ class World(StateEntity, ABC):
                 move_base_joints.translation_y: position_diff[1],
                 move_base_joints.angular_z: target_angle}
 
-    @staticmethod
-    def get_move_base_joints() -> VirtualMoveBaseJoints:
+    def get_move_base_joints(self) -> VirtualMoveBaseJoints:
         """
         Get the move base joints of the robot.
 
         :return: The move base joints.
         """
-        return RobotDescription.current_robot_description.virtual_move_base_joints
+        return self.robot_description.virtual_move_base_joints
 
     @staticmethod
     def get_position_diff(current_position: List[float], target_position: List[float]) -> List[float]:
@@ -797,7 +798,7 @@ class World(StateEntity, ABC):
         :param arm: The arm for which the tool frame link should be returned.
         :return: The tool frame link of the arm.
         """
-        ee_link_name = RobotDescription.current_robot_description.get_arm_tool_frame(arm)
+        ee_link_name = self.robot_description.get_arm_tool_frame(arm)
         return self.robot.get_link(ee_link_name)
 
     @abstractmethod
@@ -967,12 +968,14 @@ class World(StateEntity, ABC):
     def current_state(self) -> WorldState:
         if self._current_state is None:
             self._current_state = WorldState(self.save_physics_simulator_state(), self.object_states)
-        return self._current_state
+        return WorldState(self._current_state.simulator_state_id, self.object_states)
 
     @current_state.setter
     def current_state(self, state: WorldState) -> None:
-        self.restore_physics_simulator_state(state.simulator_state_id)
-        self.object_states = state.object_states
+        if self.current_state != state:
+            self.restore_physics_simulator_state(state.simulator_state_id)
+            for obj in self.objects:
+                self.get_object_by_name(obj.name).current_state = state.object_states[obj.name]
 
     @property
     def object_states(self) -> Dict[str, ObjectState]:
@@ -1498,7 +1501,7 @@ class WorldSync(threading.Thread):
 
         :param obj: The object to be added.
         """
-        self.object_to_prospection_object_map[obj] = copy(obj)
+        self.object_to_prospection_object_map[obj] = obj.copy_to_prospection()
 
     def remove_object(self, obj: Object) -> None:
         """

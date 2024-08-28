@@ -1,7 +1,7 @@
-from typing_extensions import Optional, Type, Union, List, Dict
+from typing_extensions import Optional, Type, Union, Dict
 
-from pycram.worlds.multiverse_communication.clients import MultiverseWriter, MultiverseAPI, MultiverseClient, \
-    MultiverseReader
+from ...worlds.multiverse_communication.clients import MultiverseWriter, MultiverseAPI, MultiverseClient, \
+    MultiverseReader, MultiverseController
 
 
 class MultiverseClientManager:
@@ -39,6 +39,14 @@ class MultiverseClientManager:
         return self.create_client(MultiverseWriter, "writer", is_prospection_world,
                                   simulation=simulation)
 
+    def create_controller(self, is_prospection_world: Optional[bool] = False) -> MultiverseController:
+        """
+        Create a Multiverse controller client.
+        param simulation: The name of the simulation that the controller is connected to.
+        param is_prospection_world: Whether the controller is connected to the prospection world.
+        """
+        return self.create_client(MultiverseController, "controller", is_prospection_world)
+
     def create_api_requester(self, simulation: str, is_prospection_world: Optional[bool] = False) -> MultiverseAPI:
         """
         Create a Multiverse API client.
@@ -53,7 +61,7 @@ class MultiverseClientManager:
                       name: Optional[str] = None,
                       is_prospection_world: Optional[bool] = False,
                       **kwargs) -> Union[MultiverseClient, MultiverseAPI,
-                                         MultiverseReader, MultiverseWriter]:
+                                         MultiverseReader, MultiverseWriter, MultiverseController]:
         """
         Create a Multiverse client.
         param client_type: The type of the client to create.

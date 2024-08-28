@@ -65,7 +65,7 @@ class GoalValidator:
         self.register_goal(goal_value, current_value_getter_input, initial_value, acceptable_error)
         self.wait_until_goal_is_achieved(max_wait_time, time_per_read)
 
-    def wait_until_goal_is_achieved(self, max_wait_time: Optional[float] = 1,
+    def wait_until_goal_is_achieved(self, max_wait_time: Optional[float] = 2,
                                     time_per_read: Optional[float] = 0.01) -> None:
         """
         Wait until the target is reached.
@@ -368,8 +368,8 @@ class JointPositionGoalValidator(GoalValidator):
 
     def __init__(self, current_position_getter: OptionalArgCallable = None,
                  acceptable_error: Optional[float] = None,
-                 acceptable_orientation_error: float = np.pi / 180,
-                 acceptable_position_error: float = 1e-3,
+                 acceptable_revolute_joint_position_error: float = np.pi / 180,
+                 acceptable_prismatic_joint_position_error: float = 1e-3,
                  acceptable_percentage_of_goal_achieved: float = 0.8,
                  is_iterable: bool = False):
         """
@@ -377,15 +377,15 @@ class JointPositionGoalValidator(GoalValidator):
         :param current_position_getter: The current position getter function which takes an optional input and returns
          the current position.
         :param acceptable_error: The acceptable error.
-        :param acceptable_orientation_error: The acceptable orientation error.
-        :param acceptable_position_error: The acceptable position error.
+        :param acceptable_revolute_joint_position_error: The acceptable orientation error.
+        :param acceptable_prismatic_joint_position_error: The acceptable position error.
         :param acceptable_percentage_of_goal_achieved: The acceptable percentage of goal achieved.
         :param is_iterable: Whether it is a sequence of joint positions.
         """
         super().__init__(SingleValueErrorChecker(acceptable_error, is_iterable=is_iterable), current_position_getter,
                          acceptable_percentage_of_goal_achieved=acceptable_percentage_of_goal_achieved)
-        self.acceptable_orientation_error = acceptable_orientation_error
-        self.acceptable_position_error = acceptable_position_error
+        self.acceptable_orientation_error = acceptable_revolute_joint_position_error
+        self.acceptable_position_error = acceptable_prismatic_joint_position_error
 
     def register_goal(self, goal_value: Any, joint_type: JointType,
                       current_value_getter_input: Optional[Any] = None,
@@ -412,22 +412,22 @@ class MultiJointPositionGoalValidator(GoalValidator):
 
     def __init__(self, current_positions_getter: OptionalArgCallable = None,
                  acceptable_error: Optional[Iterable[float]] = None,
-                 acceptable_orientation_error: float = np.pi / 180,
-                 acceptable_position_error: float = 1e-3,
+                 acceptable_revolute_joint_position_error: float = np.pi / 180,
+                 acceptable_prismatic_joint_position_error: float = 1e-3,
                  acceptable_percentage_of_goal_achieved: float = 0.8):
         """
         Initialize the multi-joint position goal validator.
         :param current_positions_getter: The current positions getter function which takes an optional input and
          returns the current positions.
         :param acceptable_error: The acceptable error.
-        :param acceptable_orientation_error: The acceptable orientation error.
-        :param acceptable_position_error: The acceptable position error.
+        :param acceptable_revolute_joint_position_error: The acceptable orientation error.
+        :param acceptable_prismatic_joint_position_error: The acceptable position error.
         :param acceptable_percentage_of_goal_achieved: The acceptable percentage of goal achieved.
         """
         super().__init__(SingleValueErrorChecker(acceptable_error, is_iterable=True), current_positions_getter,
                          acceptable_percentage_of_goal_achieved)
-        self.acceptable_orientation_error = acceptable_orientation_error
-        self.acceptable_position_error = acceptable_position_error
+        self.acceptable_orientation_error = acceptable_revolute_joint_position_error
+        self.acceptable_position_error = acceptable_prismatic_joint_position_error
 
     def register_goal(self, goal_value: Any, joint_type: Iterable[JointType],
                       current_value_getter_input: Optional[Any] = None,

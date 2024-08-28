@@ -293,7 +293,8 @@ class MultiverseReader(MultiverseClient):
 
 class MultiverseWriter(MultiverseClient):
 
-    def __init__(self, name: str, port: int, simulation: str, is_prospection_world: Optional[bool] = False,
+    def __init__(self, name: str, port: int, simulation: Optional[str] = None,
+                 is_prospection_world: Optional[bool] = False,
                  simulation_wait_time_factor: Optional[float] = 1.0, **kwargs):
         """
         Initialize the Multiverse writer, which writes the data to the Multiverse server.
@@ -307,7 +308,19 @@ class MultiverseWriter(MultiverseClient):
         """
         super().__init__(name, port, is_prospection_world, simulation_wait_time_factor=simulation_wait_time_factor)
         self.simulation = simulation
-        self.time_start = time()
+
+    def spawn_robot_with_actuators(self, robot_name: str, position: List[float], orientation: List[float],
+                                   actuator_joint_commands: Optional[Dict[str, List[str]]] = None) -> None:
+        """
+        Spawn the robot with controlled actuators in the simulation.
+        :param robot_name: The name of the robot.
+        :param position: The position of the robot.
+        :param orientation: The orientation of the robot.
+        :param actuator_joint_commands: A dictionary mapping actuator names to joint command names.
+        """
+        send_meta_data = {robot_name: [BodyProperty.POSITION.value, BodyProperty.ORIENTATION.value]}
+        data = [self.sim_time, *position, *orientation]
+        self.send_data_to_server(data, send_meta_data=send_meta_data, receive_meta_data=actuator_joint_commands)
 
     def _reset_request_meta_data(self):
         """
@@ -318,7 +331,8 @@ class MultiverseWriter(MultiverseClient):
             "send": {},
             "receive": {},
         }
-        self.request_meta_data["meta_data"]["simulation_name"] = self.simulation
+        if self.simulation is not None:
+            self.request_meta_data["meta_data"]["simulation_name"] = self.simulation
 
     def set_body_pose(self, body_name: str, position: List[float], orientation: List[float]) -> None:
         """
@@ -368,7 +382,7 @@ class MultiverseWriter(MultiverseClient):
         Remove the body from the simulation.
         param body_name: The name of the body.
         """
-        self.send_data_to_server([time() - self.time_start],
+        self.send_data_to_server([self.sim_time],
                                  send_meta_data={body_name: []},
                                  receive_meta_data={body_name: []})
 
@@ -387,7 +401,7 @@ class MultiverseWriter(MultiverseClient):
         """
         send_meta_data = {body_name: list(map(str, body_data.keys()))}
         flattened_data = [value for data in body_data.values() for value in data]
-        return self.send_data_to_server([time() - self.time_start, *flattened_data], send_meta_data)
+        return self.send_data_to_server([self.sim_time, *flattened_data], send_meta_data)
 
     def send_multiple_body_data_to_server(self, body_data: Dict[str, Dict[Property, List[float]]]) -> Dict:
         """
@@ -400,7 +414,7 @@ class MultiverseWriter(MultiverseClient):
         body_names = list(response_meta_data["send"].keys())
         flattened_data = [value for body_name in body_names for data in body_data[body_name].values()
                           for value in data]
-        self.send_data = [time() - self.time_start, *flattened_data]
+        self.send_data = [self.sim_time, *flattened_data]
         self.send_and_receive_data()
         return self.response_meta_data
 
@@ -443,6 +457,26 @@ class MultiverseWriter(MultiverseClient):
         self.send_data = data
         self.send_and_receive_data()
         return self.response_meta_data
+
+
+class MultiverseController(MultiverseWriter):
+
+    def __init__(self, name: str, port: int, is_prospection_world: Optional[bool] = False, **kwargs):
+        """
+        Initialize the Multiverse controller, which controls the robot in the simulation.
+        This class provides methods to send controller data to the Multiverse server.
+        param port: The port of the Multiverse controller client.
+        param is_prospection_world: Whether the controller is connected to the prospection world.
+        """
+        super().__init__(name, port, is_prospection_world=is_prospection_world)
+
+    def init_controller(self, actuator_joint_commands: Dict[str, List[str]]) -> None:
+        """
+        Initialize the controller by sending the controller data to the multiverse server.
+        :param actuator_joint_commands: A dictionary mapping actuator names to joint command names.
+        """
+        self.send_data_to_server([self.sim_time] + [0.0] * len(actuator_joint_commands),
+                                 send_meta_data=actuator_joint_commands)
 
 
 class MultiverseAPI(MultiverseClient):
@@ -652,6 +686,18 @@ class MultiverseAPI(MultiverseClient):
         return self._request_apis_callbacks({API.GET_CONTACT_BODIES: [object_name],
                                              API.GET_CONSTRAINT_EFFORT: [object_name]
                                              })
+
+    def pause_simulation(self) -> None:
+        """
+        Pause the simulation.
+        """
+        self._request_single_api_callback(API.PAUSE)
+
+    def unpause_simulation(self) -> None:
+        """
+        Unpause the simulation.
+        """
+        self._request_single_api_callback(API.UNPAUSE)
 
     def _request_single_api_callback(self, api_name: API, *params) -> List[str]:
         """

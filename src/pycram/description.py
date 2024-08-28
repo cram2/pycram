@@ -11,7 +11,7 @@ from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHEC
 from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape
 from .datastructures.enums import JointType
 from .datastructures.pose import Pose, Transform
-from .datastructures.world import WorldEntity
+from .datastructures.world_entity import WorldEntity
 from .exceptions import ObjectDescriptionNotFound
 from .local_transformer import LocalTransformer
 
@@ -121,7 +121,7 @@ class JointDescription(EntityDescription):
 
     @property
     @abstractmethod
-    def parent_link_name(self) -> str:
+    def parent(self) -> str:
         """
         :return: The name of the parent link of this joint.
         """
@@ -129,7 +129,7 @@ class JointDescription(EntityDescription):
 
     @property
     @abstractmethod
-    def child_link_name(self) -> str:
+    def child(self) -> str:
         """
         :return: The name of the child link of this joint.
         """
@@ -262,7 +262,8 @@ class Link(ObjectEntity, LinkDescription, ABC):
 
     @current_state.setter
     def current_state(self, link_state: LinkState) -> None:
-        self.constraint_ids = link_state.constraint_ids
+        if self.current_state != link_state:
+            self.constraint_ids = link_state.constraint_ids
 
     def add_fixed_constraint_with_link(self, child_link: 'Link',
                                        child_to_parent_transform: Optional[Transform] = None) -> int:
@@ -495,6 +496,8 @@ class Joint(ObjectEntity, JointDescription, ABC):
                  obj: Object, is_virtual: Optional[bool] = False):
         ObjectEntity.__init__(self, _id, obj)
         JointDescription.__init__(self, joint_description.parsed_description, is_virtual)
+        self.acceptable_error = (self.world.acceptable_revolute_joint_position_error if self.type == JointType.REVOLUTE
+                                 else self.world.acceptable_prismatic_joint_position_error)
         self._update_position()
 
     @property
@@ -526,7 +529,7 @@ class Joint(ObjectEntity, JointDescription, ABC):
 
         :return: The parent link as a AbstractLink object.
         """
-        return self.object.get_link(self.parent_link_name)
+        return self.object.get_link(self.parent)
 
     @property
     def child_link(self) -> Link:
@@ -535,7 +538,7 @@ class Joint(ObjectEntity, JointDescription, ABC):
 
         :return: The child link as a AbstractLink object.
         """
-        return self.object.get_link(self.child_link_name)
+        return self.object.get_link(self.child)
 
     @property
     def position(self) -> float:
@@ -589,7 +592,7 @@ class Joint(ObjectEntity, JointDescription, ABC):
 
     @property
     def current_state(self) -> JointState:
-        return JointState(self.position)
+        return JointState(self.position, self.acceptable_error)
 
     @current_state.setter
     def current_state(self, joint_state: JointState) -> None:
@@ -598,7 +601,7 @@ class Joint(ObjectEntity, JointDescription, ABC):
 
         :param joint_state: The joint state to update from.
         """
-        if self._current_position != joint_state.position:
+        if self.current_state != joint_state:
             self.position = joint_state.position
 
     def __copy__(self):
@@ -634,12 +637,51 @@ class ObjectDescription(EntityDescription):
         """
         :param path: The path of the file to update the description data from.
         """
+
+        self._links: Optional[List[LinkDescription]] = None
+        self._joints: Optional[List[JointDescription]] = None
+        self._link_map: Optional[Dict[str, Any]] = None
+        self._joint_map: Optional[Dict[str, Any]] = None
+
         if path:
             self.update_description_from_file(path)
         else:
             self._parsed_description = None
 
         self.virtual_joint_names: List[str] = []
+
+    @property
+    @abstractmethod
+    def child_map(self) -> Dict[str, List[Tuple[str, str]]]:
+        """
+        :return: A dictionary mapping the name of a link to its children which are represented as a tuple of the child
+            joint name and the link name.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def parent_map(self) -> Dict[str, Tuple[str, str]]:
+        """
+        :return: A dictionary mapping the name of a link to its parent joint and link as a tuple.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def link_map(self) -> Dict[str, LinkDescription]:
+        """
+        :return: A dictionary mapping the name of a link to its description.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def joint_map(self) -> Dict[str, JointDescription]:
+        """
+        :return: A dictionary mapping the name of a joint to its description.
+        """
+        pass
 
     def is_joint_virtual(self, name: str) -> bool:
         """
@@ -792,12 +834,11 @@ class ObjectDescription(EntityDescription):
         """
         pass
 
-    @abstractmethod
     def get_link_by_name(self, link_name: str) -> LinkDescription:
         """
         :return: The link description with the given name.
         """
-        pass
+        return self.link_map[link_name]
 
     @property
     @abstractmethod
@@ -807,12 +848,11 @@ class ObjectDescription(EntityDescription):
         """
         pass
 
-    @abstractmethod
     def get_joint_by_name(self, joint_name: str) -> JointDescription:
         """
         :return: The joint description with the given name.
         """
-        pass
+        return self.joint_map[joint_name]
 
     @abstractmethod
     def get_root(self) -> str:
@@ -828,7 +868,8 @@ class ObjectDescription(EntityDescription):
         raise NotImplementedError
 
     @abstractmethod
-    def get_chain(self, start_link_name: str, end_link_name: str) -> List[str]:
+    def get_chain(self, start_link_name: str, end_link_name: str, joints: Optional[bool] = True,
+                  links: Optional[bool] = True, fixed: Optional[bool] = True) -> List[str]:
         """
         :return: the chain of links from 'start_link_name' to 'end_link_name'.
         """
