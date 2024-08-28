@@ -12,6 +12,7 @@ from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3, Point
 from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
 from tf import transformations
 from ..orm.base import Pose as ORMPose, Position, Quaternion, ProcessMetaData
+from ..validation.error_checkers import calculate_pose_error
 
 
 def get_normalized_quaternion(quaternion: np.ndarray) -> GeoQuaternion:
@@ -233,6 +234,20 @@ class Pose(PoseStamped):
 
         return self_position == other_position and self_orient == other_orient and self.frame == other.frame
 
+    def almost_equal(self, other: Pose, position_tolerance_in_meters: float = 1e-3,
+                     orientation_tolerance_in_degrees: float = 1) -> bool:
+        """
+        Checks if the given Pose is almost equal to this Pose. The position and orientation can have a certain
+        tolerance. The position tolerance is given in meters and the orientation tolerance in degrees. The position
+        error is calculated as the euclidian distance between the positions and the orientation error as the angle
+        between the quaternions.
+        :param other: The other Pose which should be compared
+        :param position_tolerance_in_meters: The tolerance for the position in meters
+        :param orientation_tolerance_in_degrees: The tolerance for the orientation in degrees
+        """
+        error = calculate_pose_error(self, other)
+        return error[0] <= position_tolerance_in_meters and error[1] <= orientation_tolerance_in_degrees * math.pi / 180
+
     def set_position(self, new_position: List[float]) -> None:
         """
         Sets the position of this Pose to the given position. Position has to be given as a vector in cartesian space.
@@ -287,25 +302,6 @@ class Pose(PoseStamped):
         z = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2
 
         self.orientation = (x, y, z, w)
-
-    def set_orientation_from_euler(self, axis: List, euler_angles: List[float]) -> None:
-        """
-        Convert axis-angle to quaternion.
-
-        :param axis: (x, y, z) tuple representing rotation axis.
-        :param angle: rotation angle in degree
-        :return: The quaternion representing the axis angle
-        """
-        angle = math.radians(euler_angles)
-        axis_length = math.sqrt(sum([i ** 2 for i in axis]))
-        normalized_axis = tuple(i / axis_length for i in axis)
-
-        x = normalized_axis[0] * math.sin(angle / 2)
-        y = normalized_axis[1] * math.sin(angle / 2)
-        z = normalized_axis[2] * math.sin(angle / 2)
-        w = math.cos(angle / 2)
-
-        return (x, y, z, w)
 
 
 class Transform(TransformStamped):
@@ -556,5 +552,3 @@ class Transform(TransformStamped):
         :param new_rotation: The new rotation as a quaternion with xyzw
         """
         self.rotation = new_rotation
-
-

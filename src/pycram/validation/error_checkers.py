@@ -3,10 +3,11 @@ from collections.abc import Iterable
 
 import numpy as np
 from tf.transformations import quaternion_multiply, quaternion_inverse
-from typing_extensions import List, Union, Optional, Any, Sized, Iterable as T_Iterable
+from typing_extensions import List, Union, Optional, Any, Sized, Iterable as T_Iterable, TYPE_CHECKING
 
 from pycram.datastructures.enums import JointType
-from pycram.datastructures.pose import Pose
+if TYPE_CHECKING:
+    from pycram.datastructures.pose import Pose
 
 
 class ErrorChecker(ABC):
@@ -185,7 +186,7 @@ class MultiJointPositionErrorChecker(IterableErrorChecker):
         return calculate_joint_position_error(value_1, value_2)
 
 
-def calculate_pose_error(pose_1: Pose, pose_2: Pose) -> List[float]:
+def calculate_pose_error(pose_1: 'Pose', pose_2: 'Pose') -> List[float]:
     """
     Calculate the error between two poses.
     return: The error between the two poses.

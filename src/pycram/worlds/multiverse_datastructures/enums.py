@@ -1,7 +1,7 @@
 from enum import Enum
 
 from pycram.datastructures.enums import JointType
-from ..multiverse_functions.exceptions import UnsupportedJointType
+from ..multiverse_extras.exceptions import UnsupportedJointType
 
 
 class MultiverseAPIName(Enum):
@@ -14,6 +14,8 @@ class MultiverseAPIName(Enum):
     DETACH = "detach"
     GET_RAYS = "get_rays"
     EXIST = "exist"
+    PAUSE = "pause"
+    UNPAUSE = "unpause"
 
 
 class MultiverseProperty(Enum):
@@ -38,6 +40,10 @@ class MultiverseJointProperty(MultiverseProperty):
     PRISMATIC_JOINT_POSITION = "joint_tvalue"
     REVOLUTE_JOINT_CMD = "cmd_joint_rvalue"
     PRISMATIC_JOINT_CMD = "cmd_joint_tvalue"
+
+    def is_cmd(self):
+        return self in [MultiverseJointProperty.REVOLUTE_JOINT_CMD,
+                        MultiverseJointProperty.PRISMATIC_JOINT_CMD]
 
     @classmethod
     def from_pycram_joint_type(cls, joint_type: 'JointType') -> 'MultiverseJointProperty':

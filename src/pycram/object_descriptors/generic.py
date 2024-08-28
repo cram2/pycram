@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 from typing_extensions import List, Any, Union, Dict
 
@@ -13,7 +13,8 @@ from ..description import JointDescription as AbstractJointDescription, LinkDesc
 
 class LinkDescription(AbstractLinkDescription):
 
-    def __init__(self, name: str, visual_frame_position: List[float], half_extents: List[float], color: Color = Color()):
+    def __init__(self, name: str, visual_frame_position: List[float], half_extents: List[float],
+                 color: Color = Color()):
         self.parsed_description: BoxVisualShape = BoxVisualShape(color, visual_frame_position, half_extents)
         self._name: str = name
 
@@ -35,6 +36,14 @@ class LinkDescription(AbstractLinkDescription):
 
 
 class JointDescription(AbstractJointDescription):
+
+    @property
+    def parent(self) -> str:
+        raise NotImplementedError
+
+    @property
+    def child(self) -> str:
+        raise NotImplementedError
 
     @property
     def type(self) -> JointType:
@@ -99,16 +108,33 @@ class ObjectDescription(AbstractObjectDescription):
         raise NotImplementedError
 
     @classmethod
-    def generate_from_description_file(cls, path: str) -> str:
+    def generate_from_description_file(cls, path: str, make_mesh_paths_absolute: bool = True) -> str:
         raise NotImplementedError
 
     @classmethod
     def generate_from_parameter_server(cls, name: str) -> str:
         raise NotImplementedError
 
+    @property
+    def parent_map(self) -> Dict[str, Tuple[str, str]]:
+        return {}
+
+    @property
+    def link_map(self) -> Dict[str, LinkDescription]:
+        return {self._links[0].name: self._links[0]}
+
+    @property
+    def joint_map(self) -> Dict[str, JointDescription]:
+        return {}
+
+    @property
+    def child_map(self) -> Dict[str, List[Tuple[str, str]]]:
+        return {}
+
     def add_joint(self, name: str, child: str, joint_type: JointType,
                   axis: Point, parent: Optional[str] = None, origin: Optional[Pose] = None,
-                  lower_limit: Optional[float] = None, upper_limit: Optional[float] = None) -> None:
+                  lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
+                  is_virtual: Optional[bool] = False) -> None:
         ...
 
     @property
@@ -137,7 +163,8 @@ class ObjectDescription(AbstractObjectDescription):
     def get_root(self) -> str:
         return self._links[0].name
 
-    def get_chain(self, start_link_name: str, end_link_name: str) -> List[str]:
+    def get_chain(self, start_link_name: str, end_link_name: str, joints: Optional[bool] = True,
+                  links: Optional[bool] = True, fixed: Optional[bool] = True) -> List[str]:
         raise NotImplementedError("Do Not Do This on generic objects as they have no chains")
 
     @staticmethod

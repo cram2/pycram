@@ -4,12 +4,17 @@ from ..datastructures.dataclasses import VirtualMoveBaseJoints
 from ..datastructures.enums import GripperState, Arms, Grasp
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
+from ..worlds.multiverse_extras.helpers import get_robot_mjcf_path
 
 rospack = rospkg.RosPack()
 filename = rospack.get_path('pycram') + '/resources/robots/' + "tiago_dual" + '.urdf'
 
+mjcf_filename = get_robot_mjcf_path("pal_robotics", "tiago_dual")
+
 tiago_description = RobotDescription("tiago_dual", "base_link", "torso_lift_link", "torso_lift_joint",
-                                     filename, VirtualMoveBaseJoints())
+                                     filename,
+                                     virtual_move_base_joints=VirtualMoveBaseJoints(),
+                                     mjcf_path=mjcf_filename)
 
 ################################## Left Arm ##################################
 left_arm = KinematicChainDescription("left_arm", "torso_lift_link", "arm_left_7_link",

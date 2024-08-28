@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
+
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING
+
 from .enums import JointType, Shape, VirtualMoveBaseJointName
 from .pose import Pose, Point
-from abc import ABC, abstractmethod
+from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
+from ..config import world_conf as conf
 
 if TYPE_CHECKING:
     from ..description import Link
@@ -284,6 +288,17 @@ class LinkState(State):
     """
     constraint_ids: Dict[Link, int]
 
+    def __eq__(self, other: 'LinkState'):
+        return self.all_constraints_exist(other) and self.all_constraints_are_equal(other)
+
+    def all_constraints_exist(self, other: 'LinkState'):
+        return (all([cid_k in other.constraint_ids.keys() for cid_k in self.constraint_ids.keys()])
+                and len(self.constraint_ids.keys()) == len(other.constraint_ids.keys()))
+
+    def all_constraints_are_equal(self, other: 'LinkState'):
+        return all([cid == other_cid for cid, other_cid in zip(self.constraint_ids.values(),
+                                                               other.constraint_ids.values())])
+
 
 @dataclass
 class JointState(State):
@@ -291,6 +306,11 @@ class JointState(State):
     Dataclass for storing the state of a joint.
     """
     position: float
+    acceptable_error: float
+
+    def __eq__(self, other: 'JointState'):
+        error = calculate_joint_position_error(self.position, other.position)
+        return is_error_acceptable(error, other.acceptable_error)
 
 
 @dataclass
@@ -302,6 +322,23 @@ class ObjectState(State):
     attachments: Dict[Object, Attachment]
     link_states: Dict[int, LinkState]
     joint_states: Dict[int, JointState]
+    acceptable_pose_error: Tuple[float, float]
+
+    def __eq__(self, other: 'ObjectState'):
+        return (self.pose_is_almost_equal(other)
+                and self.all_attachments_exist(other) and self.all_attachments_are_equal(other)
+                and self.link_states == other.link_states
+                and self.joint_states == other.joint_states)
+
+    def pose_is_almost_equal(self, other: 'ObjectState'):
+        return self.pose.almost_equal(other.pose, other.acceptable_pose_error[0], other.acceptable_pose_error[1])
+
+    def all_attachments_exist(self, other: 'ObjectState'):
+        return (all([att_k in other.attachments.keys() for att_k in self.attachments.keys()])
+                and len(self.attachments.keys()) == len(other.attachments.keys()))
+
+    def all_attachments_are_equal(self, other: 'ObjectState'):
+        return all([att == other_att for att, other_att in zip(self.attachments.values(), other.attachments.values())])
 
 
 @dataclass
@@ -311,6 +348,22 @@ class WorldState(State):
     """
     simulator_state_id: int
     object_states: Dict[str, ObjectState]
+
+    def __eq__(self, other: 'WorldState'):
+        return (self.simulator_state_is_equal(other) and self.all_objects_exist(other)
+                and self.all_objects_states_are_equal(other))
+
+    def simulator_state_is_equal(self, other: 'WorldState'):
+        return self.simulator_state_id == other.simulator_state_id
+
+    def all_objects_exist(self, other: 'WorldState'):
+        return (all([obj_name in other.object_states.keys() for obj_name in self.object_states.keys()])
+                and len(self.object_states.keys()) == len(other.object_states.keys()))
+
+    def all_objects_states_are_equal(self, other: 'WorldState'):
+        return all([obj_state == other_obj_state
+                    for obj_state, other_obj_state in zip(self.object_states.values(),
+                                                          other.object_states.values())])
 
 
 @dataclass
@@ -464,6 +517,13 @@ class VirtualMoveBaseJoints:
     translation_y: Optional[str] = VirtualMoveBaseJointName.LINEAR_Y.value
     angular_z: Optional[str] = VirtualMoveBaseJointName.ANGULAR_Z.value
 
+    @property
+    def names(self) -> List[str]:
+        """
+        Returns the names of the virtual move base joints.
+        """
+        return [self.translation_x, self.translation_y, self.angular_z]
+
     def get_types(self) -> Dict[str, JointType]:
         """
         Return the joint types of the virtual move base joints.
@@ -479,5 +539,3 @@ class VirtualMoveBaseJoints:
         return {self.translation_x: Point(1, 0, 0),
                 self.translation_y: Point(0, 1, 0),
                 self.angular_z: Point(0, 0, 1)}
-
-

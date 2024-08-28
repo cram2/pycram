@@ -14,8 +14,9 @@ from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointSt
                                           ContactPointsList)
 from ..datastructures.enums import ObjectType, JointType
 from ..datastructures.pose import Pose, Transform
-from ..datastructures.world import WorldEntity, World
 from ..exceptions import ObjectAlreadyExists
+from ..datastructures.world import World
+from ..datastructures.world_entity import WorldEntity
 from ..description import ObjectDescription, LinkDescription, Joint
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
@@ -59,11 +60,12 @@ class Object(WorldEntity):
         :param ignore_cached_files: If true the file will be spawned while ignoring cached files.
         """
 
-        super().__init__(-1, world)
+        super().__init__(-1, world if world is not None else World.current_world)
 
         pose = Pose() if pose is None else pose
 
         self.name: str = name
+        self.path: Optional[str] = path
         self.obj_type: ObjectType = obj_type
         self.color: Color = color
         self.description = description()
@@ -73,12 +75,16 @@ class Object(WorldEntity):
         self.original_pose = self.local_transformer.transform_pose(pose, "map")
         self._current_pose = self.original_pose
 
-        self.id, self.path = self._load_object_and_get_id(path, ignore_cached_files)
+        if path is not None:
+            self.path = self.world.preprocess_object_file_and_get_its_cache_path(path, ignore_cached_files,
+                                                                                 self.description, self.name)
 
-        self.description.update_description_from_file(self.path)
+            self.description.update_description_from_file(self.path)
 
         if self.obj_type == ObjectType.ROBOT and not self.world.is_prospection_world:
             self._update_world_robot_and_description()
+
+        self.id = self._spawn_object_and_get_id()
 
         self.tf_frame = (self.prospection_world_prefix if self.world.is_prospection_world else "") + self.name
 
@@ -91,6 +97,37 @@ class Object(WorldEntity):
         self.attachments: Dict[Object, Attachment] = {}
 
         self.world.objects.append(self)
+
+    @property
+    def joint_actuators(self) -> Optional[Dict[str, str]]:
+        """
+        Returns the joint actuators of the robot.
+        """
+        if self.obj_type == ObjectType.ROBOT:
+            return self.robot_description.joint_actuators
+        return None
+
+    @property
+    def has_actuators(self) -> bool:
+        """
+        Returns True if the object has actuators, otherwise False.
+        """
+        return self.robot_description.has_actuators
+
+    @property
+    def robot_description(self) -> RobotDescription:
+        """
+        Returns the current robot description.
+        """
+        return self.world.robot_description
+
+    def get_actuator_for_joint(self, joint: Joint) -> Optional[str]:
+        """
+        Get the actuator name for a joint.
+        :param joint: The joint object for which to get the actuator.
+        :return: The name of the actuator.
+        """
+        return self.robot_description.get_actuator_for_joint(joint.name)
 
     def get_multiple_link_positions(self, links: List[Link]) -> Dict[str, List[float]]:
         """
@@ -162,8 +199,7 @@ class Object(WorldEntity):
     def transform(self):
         return self.get_pose().to_transform(self.tf_frame)
 
-    def _load_object_and_get_id(self, path: str,
-                                ignore_cached_files: bool = False) -> Tuple[int, Union[str, None]]:
+    def _spawn_object_and_get_id(self) -> int:
         """
         Loads an object to the given World with the given position and orientation. The rgba_color will only be
         used when an .obj or .stl file is given.
@@ -173,19 +209,16 @@ class Object(WorldEntity):
         This new file will have resolved mesh file paths, meaning there will be no references
         to ROS packages instead there will be absolute file paths.
 
-        :param path: The path to the description file.
-        :param ignore_cached_files: Whether to ignore files in the cache directory.
         :return: The unique id of the object and the path of the file that was loaded.
         """
         if isinstance(self.description, GenericObjectDescription):
-            return self.world.load_generic_object_and_get_id(self.description), path
+            return self.world.load_generic_object_and_get_id(self.description)
 
-        self.path = self.world.update_cache_dir_with_object(path, ignore_cached_files, self)
+        path = self.path if self.world.let_pycram_handle_spawning else self.name
 
         try:
-            path = self.path if self.world.let_pycram_handle_spawning else self.name
             obj_id = self.world.load_object_and_get_id(path, self._current_pose, self.obj_type)
-            return obj_id, self.path
+            return obj_id
 
         except Exception as e:
             logging.error(
@@ -208,7 +241,7 @@ class Object(WorldEntity):
         """
         Add the virtual move base joints to the robot description.
         """
-        virtual_joints = RobotDescription.current_robot_description.virtual_move_base_joints
+        virtual_joints = self.robot_description.virtual_move_base_joints
         if virtual_joints is None:
             return
         child_link = self.description.get_root()
@@ -661,19 +694,18 @@ class Object(WorldEntity):
         The current state of this object as an ObjectState.
         """
         return ObjectState(self.get_pose().copy(), self.attachments.copy(), self.link_states.copy(),
-                           self.joint_states.copy())
+                           self.joint_states.copy(), self.world.acceptable_pose_error)
 
     @current_state.setter
     def current_state(self, state: ObjectState) -> None:
         """
         Set the current state of this object to the given state.
         """
-        if self.get_pose().dist(state.pose) != 0.0:
+        if self.current_state != state:
             self.set_pose(state.pose, base=False, set_attachments=False)
-
-        self.set_attachments(state.attachments)
-        self.link_states = state.link_states
-        self.joint_states = state.joint_states
+            self.set_attachments(state.attachments)
+            self.link_states = state.link_states
+            self.joint_states = state.joint_states
 
     def set_attachments(self, attachments: Dict[Object, Attachment]) -> None:
         """
@@ -907,7 +939,6 @@ class Object(WorldEntity):
         joint_positions = [0] * len(joint_names)
         self.set_multiple_joint_positions(dict(zip(joint_names, joint_positions)))
 
-
     def set_joint_position(self, joint_name: str, joint_position: float) -> None:
         """
         Set the position of the given joint to the given joint pose and updates the poses of all attached objects.
@@ -916,7 +947,6 @@ class Object(WorldEntity):
         :param joint_position: The target pose for this joint
         """
         self.world.reset_joint_position(self.joints[joint_name], joint_position)
-
 
     def set_multiple_joint_positions(self, joint_positions: Dict[str, float]) -> None:
         """
@@ -928,10 +958,13 @@ class Object(WorldEntity):
         joint_positions = {self.joints[joint_name]: joint_position
                            for joint_name, joint_position in joint_positions.items()}
         if self.world.set_multiple_joint_positions(joint_positions):
-            self.update_pose()
-            self._update_all_links_poses()
-            self.update_link_transforms()
-            self._set_attached_objects_poses()
+            self._update_on_joint_position_change()
+
+    def _update_on_joint_position_change(self):
+        self.update_pose()
+        self._update_all_links_poses()
+        self.update_link_transforms()
+        self._set_attached_objects_poses()
 
     def get_joint_position(self, joint_name: str) -> float:
         """
@@ -1163,19 +1196,17 @@ class Object(WorldEntity):
 
         :return: The copied object in the prospection world.
         """
-        obj = Object(self.name, self.obj_type, self.path, type(self.description), self.get_pose(),
-                     self.world.prospection_world, self.color)
-        obj.current_state = self.current_state
-        return obj
+        return self.copy_to_world(self.world.prospection_world)
 
-    def __copy__(self) -> Object:
+    def copy_to_world(self, world: World) -> Object:
         """
-        Return a copy of this object. The copy will have the same name, type, path, description, pose, world and color.
+        Copies this object to the given world.
 
-        :return: A copy of this object.
+        :param world: The world to which the object should be copied.
+        :return: The copied object in the given world.
         """
         obj = Object(self.name, self.obj_type, self.path, type(self.description), self.get_pose(),
-                     self.world.prospection_world, self.color)
+                     world, self.color)
         obj.current_state = self.current_state
         return obj
 
