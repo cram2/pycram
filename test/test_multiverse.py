@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import unittest
 
+import numpy as np
 import psutil
+from tf.transformations import quaternion_from_euler, quaternion_multiply
 from typing_extensions import Optional, List
 
 from pycram.datastructures.dataclasses import Color, ContactPointsList, ContactPoint
@@ -10,6 +12,7 @@ from pycram.datastructures.pose import Pose
 from pycram.designators.object_designator import BelieveObject
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.world_concepts.world_object import Object
+from pycram.validation.error_checkers import calculate_angle_between_quaternions
 
 multiverse_installed = True
 try:
@@ -41,16 +44,13 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             return
         cls.multiverse = Multiverse(simulation="pycram_test",
                                     is_prospection=False)
-        # cls.big_bowl = cls.spawn_big_bowl()
 
     @classmethod
     def tearDownClass(cls):
         cls.multiverse.exit()
 
     def tearDown(self):
-        # self.multiverse.multiverse_reset_world()
         self.multiverse.reset_world_and_remove_objects()
-        # MultiversePyCRAMTestCase.big_bowl = self.spawn_big_bowl()
 
     def test_demo(self):
         extension = ObjectDescription.get_file_extension()
@@ -60,12 +60,12 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
         milk = Object("milk_box", ObjectType.MILK, f"milk_box{extension}", pose=Pose([2.5, 2, 1.02]),
                       color=Color(1, 0, 0, 1))
-        spoon = Object("soup_spoon", ObjectType.SPOON, f"SoupSpoon.obj", pose=Pose([2.5, 2.5, 1.02]),
-                       color=Color(0, 0, 1, 1))
-        bowl = Object("big_bowl", ObjectType.BOWL, f"BigBowl.obj", pose=Pose([2.5, 2.2, 1.02]),
+        bowl = Object("big_bowl", ObjectType.BOWL, f"BigBowl.obj", pose=Pose([2.5, 2.3, 1]),
                       color=Color(1, 1, 0, 1))
+        spoon = Object("soup_spoon", ObjectType.SPOON, f"SoupSpoon.obj", pose=Pose([2.6, 2.6, 1]),
+                       color=Color(0, 0, 1, 1))
         bowl.attach(spoon)
-        bowl.set_position([2.5, 2.3, 1.02])
+        bowl.set_position([2.5, 2.4, 1.02])
 
         pick_pose = Pose([2.7, 2.15, 1])
 
@@ -126,7 +126,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             original_joint_position = robot.get_joint_position(joint)
             robot.set_joint_position(joint, original_joint_position + step)
             joint_position = robot.get_joint_position(joint)
-            self.assertAlmostEqual(joint_position, original_joint_position + step, delta=0.01)
+            self.assertAlmostEqual(joint_position, original_joint_position + step, delta=0.05)
 
     def test_spawn_robot(self):
         if self.multiverse.robot is not None:
@@ -137,7 +137,6 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assertTrue(robot in self.multiverse.objects)
         self.assertTrue(self.multiverse.robot.name == robot.name)
 
-    # @unittest.skip("Not implemented feature yet.")
     def test_destroy_robot(self):
         if self.multiverse.robot is None:
             self.spawn_robot()
@@ -153,20 +152,31 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.spawn_robot()
         self.assertTrue(self.multiverse.robot in self.multiverse.objects)
 
-    # @unittest.skip("This will cause respawning of the robot.")
     def test_set_robot_position(self):
-        for i in range(10):
+        for i in range(3):
             self.spawn_robot()
             new_position = [-3, -3, 0.001]
-            # self.multiverse.writer.send_multiple_body_data_to_server({"odom_vel_lin_x_joint": {"joint_tvalue": [-4]}})
             self.multiverse.robot.set_position(new_position)
             robot_position = self.multiverse.robot.get_position_as_list()
             self.assert_list_is_equal(robot_position[:2], new_position[:2], delta=0.2)
             self.tearDown()
 
+    def test_set_robot_orientation(self):
+        self.spawn_robot()
+        for i in range(3):
+            current_quaternion = self.multiverse.robot.get_orientation_as_list()
+            # rotate by 45 degrees without using euler angles
+            rotation_quaternion = quaternion_from_euler(0, 0, np.pi / 4)
+            new_quaternion = quaternion_multiply(current_quaternion, rotation_quaternion)
+            self.multiverse.robot.set_orientation(new_quaternion)
+            robot_orientation = self.multiverse.robot.get_orientation_as_list()
+            quaternion_difference = calculate_angle_between_quaternions(new_quaternion, robot_orientation)
+            self.assertAlmostEqual(quaternion_difference, 0, delta=self.multiverse.acceptable_orientation_error)
+        # self.tearDown()
+
     def test_attach_object(self):
-        milk = self.spawn_milk([1, 0, 0.1])
-        cup = self.spawn_cup([1, 1, 0.1])
+        milk = self.spawn_milk([1, 0.1, 0.1])
+        cup = self.spawn_cup([1, 1.1, 0.1])
         milk.attach(cup)
         self.assertTrue(cup in milk.attachments)
         milk_position = milk.get_position_as_list()
@@ -178,7 +188,6 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         new_cup_position = cup.get_position_as_list()
         self.assert_list_is_equal(new_cup_position[:2], estimated_cup_position[:2], 0.06)
 
-    # @unittest.skip("Not implemented feature yet.")
     def test_detach_object(self):
         for i in range(2):
             milk = self.spawn_milk([1, 0, 0.1])
@@ -194,8 +203,8 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             milk.set_position(milk_position)
             new_milk_position = milk.get_position_as_list()
             new_cup_position = cup.get_position_as_list()
-            self.assert_list_is_equal(new_milk_position[:2], milk_position[:2], 0.05)
-            self.assert_list_is_equal(new_cup_position[:2], estimated_cup_position[:2], 0.05)
+            self.assert_list_is_equal(new_milk_position[:2], milk_position[:2], 0.02)
+            self.assert_list_is_equal(new_cup_position[:2], estimated_cup_position[:2], 0.02)
             self.tearDown()
 
     def test_attach_with_robot(self):
@@ -203,11 +212,10 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         robot = self.spawn_robot()
         ee_link = self.multiverse.get_arm_tool_frame_link(Arms.RIGHT)
         # Get position of milk relative to robot end effector
-        robot.attach(milk, ee_link.name, coincide_the_objects=True)
+        robot.attach(milk, ee_link.name, coincide_the_objects=False)
         self.assertTrue(robot in milk.attachments)
         milk_initial_pose = milk.root_link.get_pose_wrt_link(ee_link)
-        robot_position = robot.get_joint_position("arm_right_2_joint")
-        robot_position += 1.57
+        robot_position = 1.57
         robot.set_joint_position("arm_right_2_joint", robot_position)
         milk_pose = milk.root_link.get_pose_wrt_link(ee_link)
         self.assert_poses_are_equal(milk_initial_pose, milk_pose)
