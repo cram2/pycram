@@ -1,23 +1,19 @@
 #!/usr/bin/env python3
 import os
 import unittest
+from time import sleep
 
 import numpy as np
 import psutil
 from tf.transformations import quaternion_from_euler, quaternion_multiply
 from typing_extensions import Optional, List
 
-from pycram.datastructures.dataclasses import Color, ContactPointsList, ContactPoint
-from pycram.datastructures.enums import ObjectType, Arms, JointType, Grasp
+from pycram.datastructures.dataclasses import ContactPointsList, ContactPoint
+from pycram.datastructures.enums import ObjectType, Arms, JointType
 from pycram.datastructures.pose import Pose
-from pycram.designators.action_designator import ParkArmsAction, MoveTorsoAction, NavigateAction, LookAtAction, \
-    DetectAction, TransportAction, PickUpAction
-from pycram.designators.object_designator import BelieveObject
-from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.robot_description import RobotDescriptionManager
 from pycram.world_concepts.world_object import Object
 from pycram.validation.error_checkers import calculate_angle_between_quaternions
-from pycram.process_module import simulated_robot, with_simulated_robot
 from pycram.worlds.multiverse_extras.helpers import get_robot_mjcf_path, parse_mjcf_actuators
 
 multiverse_installed = True
@@ -48,13 +44,12 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def setUpClass(cls):
         if not multiverse_installed:
             return
-        cls.multiverse = Multiverse(simulation="pycram_test",
-                                    is_prospection=False,
-                                    use_controller=True)
+        cls.multiverse = Multiverse(simulation="pycram_test")
 
     @classmethod
     def tearDownClass(cls):
         cls.multiverse.exit()
+        cls.multiverse.remove_multiverse_resources()
 
     def tearDown(self):
         self.multiverse.reset_world_and_remove_objects()
@@ -75,46 +70,24 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         actuator_name = robot.get_actuator_for_joint(robot.joints[joint_name])
         self.assertEqual(actuator_name, "arm_right_1_actuator")
 
-    def test_demo(self):
-        extension = ObjectDescription.get_file_extension()
-
-        robot = self.spawn_robot(robot_name='tiago_dual', position=[1.3, 2, 0.01])
-        apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")
-
-        milk = Object("milk_box", ObjectType.MILK, f"milk_box{extension}", pose=Pose([2.4, 2, 1.02]),
-                      color=Color(1, 0, 0, 1))
-        # bowl = Object("big_bowl", ObjectType.BOWL, f"BigBowl.obj", pose=Pose([2.5, 2.3, 1]),
-        #               color=Color(1, 1, 0, 1))
-        # spoon = Object("soup_spoon", ObjectType.SPOON, f"SoupSpoon.obj", pose=Pose([2.6, 2.6, 1]),
-        #                color=Color(0, 0, 1, 1))
-        # bowl.attach(spoon)
-        # bowl.set_position([2.5, 2.4, 1.02])
-
-        pick_pose = Pose([2.6, 2.15, 1])
-
-        robot_desig = BelieveObject(names=["tiago_dual"])
-        apartment_desig = BelieveObject(names=["apartment"])
-
-        with simulated_robot:
-            ParkArmsAction([Arms.BOTH]).resolve().perform()
-
-            MoveTorsoAction([0.3]).resolve().perform()
-
-            milk_desig = self.move_and_detect(ObjectType.MILK, pick_pose)
-
-            # TransportAction(milk_desig, [Arms.LEFT], [Pose([4.8, 3.55, 0.8])]).resolve().perform()
-
-    @staticmethod
-    @with_simulated_robot
-    def move_and_detect(obj_type: ObjectType, pick_pose: Pose):
-        NavigateAction(target_locations=[Pose([1.7, 2, 0])]).resolve().perform()
-
-        LookAtAction(targets=[pick_pose]).resolve().perform()
-
-        # object_desig = DetectAction(BelieveObject(types=[obj_type])).resolve().perform()
-        object_desig = BelieveObject(types=[obj_type]).resolve()
-
-        return object_desig
+    def test_get_images_for_target(self):
+        robot = self.spawn_robot(robot_name='pr2')
+        camera_description = self.multiverse.robot_description.get_default_camera()
+        camera_link_name = camera_description.link_name
+        camera_pose = robot.get_link_pose(camera_link_name)
+        camera_frame = self.multiverse.robot_description.get_camera_frame()
+        camera_front_facing_axis = camera_description.front_facing_axis
+        milk_spawn_position = np.array(camera_front_facing_axis) * 0.5
+        orientation = camera_pose.to_transform(camera_frame).invert().rotation_as_list()
+        milk = self.spawn_milk(milk_spawn_position.tolist(), orientation, frame=camera_frame)
+        _, depth, segmentation_mask = self.multiverse.get_images_for_target(milk.pose, camera_pose, plot=False)
+        self.assertIsInstance(depth, np.ndarray)
+        self.assertIsInstance(segmentation_mask, np.ndarray)
+        self.assertTrue(depth.shape == (256, 256))
+        self.assertTrue(segmentation_mask.shape == (256, 256))
+        self.assertAlmostEqual(np.max(depth), 0.5, delta=0.1)
+        self.assertTrue(np.unique(segmentation_mask).shape[0] == 2)
+        self.assertTrue(milk.id in np.unique(segmentation_mask).flatten().tolist())
 
     def test_reset_world(self):
         set_position = [1, 1, 0.1]
@@ -130,10 +103,11 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assert_orientation_is_equal(milk_pose.orientation_as_list(), milk.original_pose.orientation_as_list())
 
     def test_spawn_robot_with_actuators_directly_from_multiverse(self):
-        robot_name = "tiago_dual"
-        rdm = RobotDescriptionManager()
-        rdm.load_description(robot_name)
-        self.multiverse.spawn_robot_with_controller(robot_name, Pose([-2, -2, 0.001]))
+        if self.multiverse.use_controller:
+            robot_name = "tiago_dual"
+            rdm = RobotDescriptionManager()
+            rdm.load_description(robot_name)
+            self.multiverse.spawn_robot_with_controller(robot_name, Pose([-2, -2, 0.001]))
 
     def test_spawn_object(self):
         milk = self.spawn_milk([1, 1, 0.1])
@@ -190,7 +164,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         if self.multiverse.robot is not None:
             robot = self.multiverse.robot
         else:
-            robot = self.spawn_robot()
+            robot = self.spawn_robot(robot_name="pr2")
         self.assertIsInstance(robot, Object)
         self.assertTrue(robot in self.multiverse.objects)
         self.assertTrue(self.multiverse.robot.name == robot.name)
@@ -211,9 +185,10 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assertTrue(self.multiverse.robot in self.multiverse.objects)
 
     def test_set_robot_position(self):
+        step = -1
         for i in range(3):
             self.spawn_robot()
-            new_position = [-3, -3, 0.001]
+            new_position = [-3 + step * i, -3 + step * i, 0.001]
             self.multiverse.robot.set_position(new_position)
             robot_position = self.multiverse.robot.get_position_as_list()
             self.assert_list_is_equal(robot_position[:2], new_position[:2],
@@ -231,6 +206,35 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             robot_orientation = self.multiverse.robot.get_orientation_as_list()
             quaternion_difference = calculate_angle_between_quaternions(new_quaternion, robot_orientation)
             self.assertAlmostEqual(quaternion_difference, 0, delta=self.multiverse.acceptable_orientation_error)
+
+    def test_set_robot_pose(self):
+        self.spawn_robot(orientation=quaternion_from_euler(0, 0, np.pi / 4))
+        position_step = -1
+        angle_step = np.pi / 4
+        num_steps = 10
+        self.step_robot_pose(self.multiverse.robot, position_step, angle_step, num_steps)
+        position_step = 1
+        angle_step = -np.pi / 4
+        self.step_robot_pose(self.multiverse.robot, position_step, angle_step, num_steps)
+
+    def step_robot_pose(self, robot, position_step, angle_step, num_steps):
+        original_position = robot.get_position_as_list()
+        original_orientation = robot.get_orientation_as_list()
+        for i in range(num_steps):
+            new_position = [original_position[0] + position_step * (i + 1),
+                            original_position[1] + position_step * (i + 1), original_position[2]]
+            rotation_quaternion = quaternion_from_euler(0, 0, angle_step * (i + 1))
+            new_quaternion = quaternion_multiply(original_orientation, rotation_quaternion)
+            new_pose = Pose(new_position, new_quaternion)
+            self.multiverse.robot.set_pose(new_pose)
+            robot_pose = self.multiverse.robot.get_pose()
+            self.assert_poses_are_equal(new_pose, robot_pose, position_delta=self.multiverse.acceptable_position_error,
+                                        orientation_delta=self.multiverse.acceptable_orientation_error)
+
+    def test_get_environment_pose(self):
+        apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
+        pose = apartment.get_pose()
+        self.assertIsInstance(pose, Pose)
 
     def test_attach_object(self):
         milk = self.spawn_milk([1, 0.1, 0.1])
@@ -283,24 +287,32 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     def test_get_object_contact_points(self):
         for i in range(3):
-            milk = self.spawn_milk([1, 1, 0], [0, -0.707, 0, 0.707])
+            milk = self.spawn_milk([1, 1, 0.02], [0, -0.707, 0, 0.707])
             contact_points = self.multiverse.get_object_contact_points(milk)
             self.assertIsInstance(contact_points, ContactPointsList)
             self.assertEqual(len(contact_points), 1)
             self.assertIsInstance(contact_points[0], ContactPoint)
             self.assertTrue(contact_points[0].link_b.object, self.multiverse.floor)
-            cup = self.spawn_cup([1, 1, 0.1])
+            cup = self.spawn_cup([1, 1, 0.2])
+            # This is needed because the cup is spawned in the air so it needs to fall
+            # to get in contact with the milk
+            self.multiverse.simulate(0.3)
             contact_points = self.multiverse.get_object_contact_points(cup)
             self.assertIsInstance(contact_points, ContactPointsList)
             self.assertEqual(len(contact_points), 1)
             self.assertIsInstance(contact_points[0], ContactPoint)
             self.assertTrue(contact_points[0].link_b.object, milk)
+            sleep(0.1)
             self.tearDown()
+            sleep(0.1)
 
     def test_get_contact_points_between_two_objects(self):
         for i in range(3):
             milk = self.spawn_milk([1, 1, 0.01], [0, -0.707, 0, 0.707])
             cup = self.spawn_cup([1, 1, 0.1])
+            # This is needed because the cup is spawned in the air so it needs to fall
+            # to get in contact with the milk
+            self.multiverse.simulate(0.3)
             contact_points = self.multiverse.get_contact_points_between_two_objects(milk, cup)
             self.assertIsInstance(contact_points, ContactPointsList)
             self.assertEqual(len(contact_points), 1)
@@ -330,18 +342,21 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         return big_bowl
 
     @staticmethod
-    def spawn_milk(position: List, orientation: Optional[List] = None) -> Object:
+    def spawn_milk(position: List, orientation: Optional[List] = None, frame="map") -> Object:
         if orientation is None:
             orientation = [0, 0, 0, 1]
         milk = Object("milk_box", ObjectType.MILK, "milk_box.urdf",
-                      pose=Pose(position, orientation))
+                      pose=Pose(position, orientation, frame=frame))
         return milk
 
     def spawn_robot(self, position: Optional[List[float]] = None,
+                    orientation: Optional[List[float]] = None,
                     robot_name: Optional[str] = 'tiago_dual',
                     replace: Optional[bool] = True) -> Object:
         if position is None:
             position = [-2, -2, 0.001]
+        if orientation is None:
+            orientation = [0, 0, 0, 1]
         if self.multiverse.robot is None or replace:
             if self.multiverse.robot is not None:
                 self.multiverse.robot.remove()

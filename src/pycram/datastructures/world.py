@@ -9,7 +9,7 @@ from copy import copy
 import numpy as np
 import rospy
 from geometry_msgs.msg import Point
-from tf.transformations import euler_from_quaternion
+from tf.transformations import euler_from_quaternion, quaternion_multiply, quaternion_from_euler
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union
 
 from ..cache_manager import CacheManager
@@ -23,14 +23,14 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
 from ..datastructures.enums import JointType, ObjectType, WorldMode, Arms
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world_entity import StateEntity
-from ..exceptions import ProspectionObjectNotFound, WorldObjectNotFound
+from ..failures import ProspectionObjectNotFound, WorldObjectNotFound
 from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
 from ..validation.goal_validator import (MultiPoseGoalValidator,
                                          PoseGoalValidator, JointPositionGoalValidator,
                                          MultiJointPositionGoalValidator, GoalValidator,
                                          validate_joint_position, validate_multiple_joint_positions,
-                                         validate_object_pose)
+                                         validate_object_pose, validate_multiple_object_poses)
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.event import Event
 
@@ -368,20 +368,22 @@ class World(StateEntity, ABC):
         return list(filter(lambda obj: obj.id == obj_id, self.objects))[0]
 
     @abstractmethod
-    def remove_object_by_id(self, obj_id: int) -> None:
+    def remove_object_by_id(self, obj_id: int) -> bool:
         """
         Removes the object with the given id from the world.
 
         :param obj_id: The unique id of the object to be removed.
+        :return: Whether the object was removed successfully.
         """
         pass
 
     @abstractmethod
-    def remove_object_from_simulator(self, obj: Object) -> None:
+    def remove_object_from_simulator(self, obj: Object) -> bool:
         """
         Removes an object from the physics simulator.
 
         :param obj: The object to be removed.
+        :return: Whether the object was removed successfully.
         """
         pass
 
@@ -397,9 +399,10 @@ class World(StateEntity, ABC):
         self.object_lock.acquire()
 
         obj.detach_all()
-        if obj.name != "floor":
+
+        if self.remove_object_from_simulator(obj):
             self.objects.remove(obj)
-            self.remove_object_from_simulator(obj)
+
         if World.robot == obj:
             World.robot = None
 
@@ -620,34 +623,11 @@ class World(StateEntity, ABC):
     @property
     def robot_virtual_joints_names(self) -> List[str]:
         """
-        Returns the virtual joints of the robot.
+        Return the virtual joints of the robot.
         """
         return self.robot_description.virtual_move_base_joints.names
 
-    def set_mobile_robot_pose(self, pose: Pose) -> None:
-        """
-        Set the goal for the move base joints of a mobile robot to reach a target pose. This is used for example when
-        the simulator does not support setting the pose of the robot directly (e.g. MuJoCo).
-        param pose: The target pose.
-        """
-        goal = self.get_move_base_joint_goal(pose)
-        self.robot.set_multiple_joint_positions(goal)
-
-    def get_move_base_joint_goal(self, pose: Pose) -> Dict[str, float]:
-        """
-        Get the goal for the move base joints of a mobile robot to reach a target pose.
-        param pose: The target pose.
-        return: The goal for the move base joints.
-        """
-        position_diff = self.get_position_diff(self.robot.get_position_as_list(), pose.position_as_list())[:2]
-        target_angle = self.get_z_angle(pose.orientation_as_list())
-        # Get the joints of the base link
-        move_base_joints = self.get_move_base_joints()
-        return {move_base_joints.translation_x: position_diff[0],
-                move_base_joints.translation_y: position_diff[1],
-                move_base_joints.angular_z: target_angle}
-
-    def get_move_base_joints(self) -> VirtualMoveBaseJoints:
+    def get_robot_move_base_joints(self) -> VirtualMoveBaseJoints:
         """
         Get the move base joints of the robot.
 
@@ -655,36 +635,17 @@ class World(StateEntity, ABC):
         """
         return self.robot_description.virtual_move_base_joints
 
-    @staticmethod
-    def get_position_diff(current_position: List[float], target_position: List[float]) -> List[float]:
-        """
-        Get the difference between two positions.
-        param current_position: The current position.
-        param target_position: The target position.
-        return: The difference between the two positions.
-        """
-        return [target_position[i] - current_position[i] for i in range(3)]
-
-    @staticmethod
-    def get_z_angle(target_quaternion: List[float]) -> float:
-        """
-        Get the z angle from a quaternion by converting it to euler angles.
-        param target_quaternion: The target quaternion.
-        return: The z angle.
-        """
-        return euler_from_quaternion(target_quaternion)[2]
-
     @abstractmethod
     def perform_collision_detection(self) -> None:
         """
-        Checks for collisions between all objects in the World and updates the contact points.
+        Check for collisions between all objects in the World and updates the contact points.
         """
         pass
 
     @abstractmethod
     def get_object_contact_points(self, obj: Object) -> ContactPointsList:
         """
-        Returns a list of contact points of this Object with all other Objects.
+        Return a list of contact points of this Object with all other Objects.
 
         :param obj: The object.
         :return: A list of all contact points with other objects
@@ -773,6 +734,7 @@ class World(StateEntity, ABC):
         """
         pass
 
+    @validate_multiple_object_poses
     @abstractmethod
     def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> bool:
         """
@@ -902,6 +864,7 @@ class World(StateEntity, ABC):
         Closes the World as well as the prospection world, also collects any other thread that is running.
         """
         self.exit_prospection_world_if_exists()
+        self.reset_world_and_remove_objects()
         self.disconnect_from_physics_server()
         self.reset_robot()
         self.join_threads()
@@ -1289,7 +1252,7 @@ class World(StateEntity, ABC):
         :param parent_link_id: The id of the link to which the text should be attached.
         :return: The id of the added text.
         """
-        raise NotImplementedError
+        rospy.logwarn(f"add_text is not implemented in {self.__class__.__name__}")
 
     def remove_text(self, text_id: Optional[int] = None) -> None:
         """
@@ -1297,7 +1260,7 @@ class World(StateEntity, ABC):
 
         :param text_id: The id of the text to be removed.
         """
-        raise NotImplementedError
+        rospy.logwarn(f"remove_text is not implemented in {self.__class__.__name__}")
 
     def enable_joint_force_torque_sensor(self, obj: Object, fts_joint_idx: int) -> None:
         """
@@ -1352,6 +1315,12 @@ class World(StateEntity, ABC):
         Resumes the world synchronization.
         """
         self.world_sync.sync_lock.release()
+
+    def add_vis_axis(self, pose: Pose) -> None:
+        rospy.logwarn(f"add_vis_axis is not implemented in {self.__class__.__name__}")
+
+    def remove_vis_axis(self) -> None:
+        rospy.logwarn(f"remove_vis_axis is not implemented in {self.__class__.__name__}")
 
     def __del__(self):
         self.exit()
@@ -1440,7 +1409,8 @@ class WorldSync(threading.Thread):
         """
         while not self.terminate:
             self.sync_lock.acquire()
-            self.sync_worlds()
+            if not self.terminate:
+                self.sync_worlds()
             self.sync_lock.release()
             time.sleep(WorldSync.WAIT_TIME_AS_N_SIMULATION_STEPS * self.world.simulation_time_step)
 
@@ -1517,8 +1487,14 @@ class WorldSync(threading.Thread):
         """
         Synchronizes the state of all objects in the World with the prospection world.
         """
-        for world_obj, prospection_obj in self.object_to_prospection_object_map.items():
-            prospection_obj.current_state = world_obj.current_state
+        # Set the pose of the prospection objects to the pose of the world objects
+        obj_pose_dict = {prospection_obj: obj.pose
+                         for obj, prospection_obj in self.object_to_prospection_object_map.items()}
+        self.world.prospection_world.reset_multiple_objects_base_poses(obj_pose_dict)
+        for obj, prospection_obj in self.object_to_prospection_object_map.items():
+            prospection_obj.set_attachments(obj.attachments)
+            prospection_obj.link_states = obj.link_states
+            prospection_obj.joint_states = obj.joint_states
 
     def check_for_equal(self) -> bool:
         """

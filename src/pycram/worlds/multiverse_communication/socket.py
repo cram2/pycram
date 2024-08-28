@@ -2,25 +2,14 @@
 
 """Multiverse Client base class."""
 
-import dataclasses
-
+import rospy
 from multiverse_client_pybind import MultiverseClientPybind  # noqa
 from typing_extensions import Optional, List, Dict, Callable, TypeVar
+
+from ..multiverse_datastructures.dataclasses import MultiverseMetaData
 from ...config import multiverse_conf as conf
 
 T = TypeVar("T")
-
-
-@dataclasses.dataclass
-class MultiverseMetaData:
-    """Meta data for the Multiverse Client, the simulation_name should be non-empty and unique for each simulation"""
-    world_name: str = "world"
-    simulation_name: str = "cram"
-    length_unit: str = "m"
-    angle_unit: str = "rad"
-    mass_unit: str = "kg"
-    time_unit: str = "s"
-    handedness: str = "rhs"
 
 
 class MultiverseSocket:
@@ -33,6 +22,7 @@ class MultiverseSocket:
     ) -> None:
         """
         Initialize the MultiverseSocket, connect to the Multiverse Server and start the communication.
+
         :param port: The port of the client.
         :param host: The host of the client.
         :param meta_data: The metadata for the Multiverse Client as MultiverseMetaData.
@@ -52,82 +42,61 @@ class MultiverseSocket:
             "send": {},
             "receive": {},
         }
+        self._api_callbacks: Optional[Dict] = None
+
         self._start_time = 0.0
 
-    def loginfo(self, message: str) -> None:
-        """Log information.
-
-        Args:
-            message (str): The message to log.
-
-        Returns:
-            None
-        """
-        print(message)
-
-    def logwarn(self, message: str) -> None:
-        """Warn the user.
-
-        Args:
-            message (str): The message to warn about.
-
-        Returns:
-            None
-        """
-        print(message)
-
     def run(self) -> None:
-        """Run the client.
-
-        Returns:
-            None
-        """
-        message = f"[Client {self.port}] Start {self.__class__.__name__}{self.port}"
-        self.loginfo(message)
+        """Run the client."""
+        self.log_info("Start")
         self._run()
 
     def _run(self) -> None:
         """Run the client, should call the _connect_and_start() method. It's left to the user to implement this method
         in threaded or non-threaded fashion.
-
-        Returns:
-            None
         """
         self._connect_and_start()
 
     def stop(self) -> None:
-        """Stop the client.
-
-        Returns:
-            None
-        """
+        """Stop the client."""
         self._disconnect()
 
     @property
     def request_meta_data(self) -> Dict:
-        """Get the request meta data."""
+        """The request_meta_data which is sent to the server.
+        """
         return self._request_meta_data
 
     @request_meta_data.setter
     def request_meta_data(self, request_meta_data: Dict) -> None:
-        """Set the request_meta_data, make sure to clear the `send` and `receive` field before setting the request"""
+        """Set the request_meta_data, make sure to clear the `send` and `receive` field before setting the request
+        """
         self._request_meta_data = request_meta_data
         self._multiverse_socket.set_request_meta_data(self._request_meta_data)
 
     @property
     def response_meta_data(self) -> Dict:
-        """Get the response_meta_data."""
+        """Get the response_meta_data.
+
+        :return: The response_meta_data as a dictionary.
+        """
         response_meta_data = self._multiverse_socket.get_response_meta_data()
         assert isinstance(response_meta_data, dict)
         if response_meta_data == {}:
             message = f"[Client {self.port}] Receive empty response meta data."
-            self.logwarn(message)
+            self.log_warn(message)
         return response_meta_data
 
     def send_and_receive_meta_data(self):
+        """
+        Send and receive the metadata, this should be called before sending and receiving data.
+        """
         self._communicate(True)
 
     def send_and_receive_data(self):
+        """
+        Send and receive the data, this should be called after sending and receiving the metadata.
+        """
         self._communicate(False)
 
     @property
@@ -139,7 +108,10 @@ class MultiverseSocket:
     def send_data(self, send_data: List[float]) -> None:
         """Set the send_data, the first element should be the current simulation time,
         the rest should be the data to send with the following order:
-        double -> uint8_t -> uint16_t"""
+        double -> uint8_t -> uint16_t
+
+        :param send_data: The data to send.
+        """
         assert isinstance(send_data, list)
         self._send_data = send_data
         self._multiverse_socket.set_send_data(self._send_data)
@@ -148,71 +120,65 @@ class MultiverseSocket:
     def receive_data(self) -> List[float]:
         """Get the receive_data, the first element should be the current simulation time,
         the rest should be the received data with the following order:
-        double -> uint8_t -> uint16_t"""
+        double -> uint8_t -> uint16_t
+
+        :return: The received data.
+        """
         receive_data = self._multiverse_socket.get_receive_data()
         assert isinstance(receive_data, list)
         return receive_data
 
     @property
     def api_callbacks(self) -> Dict[str, Callable[[List[str]], List[str]]]:
-        """Get the api_callbacks."""
+        """Get the api_callbacks.
+
+        :return: The api_callbacks as a dictionary of function names and their respective callbacks.
+        """
         return self._api_callbacks
 
     @api_callbacks.setter
     def api_callbacks(self, api_callbacks: Dict[str, Callable[[List[str]], List[str]]]) -> None:
-        """Set the api_callbacks."""
+        """Set the api_callbacks.
+
+        :param api_callbacks: The api_callbacks as a dictionary of function names and their respective callbacks.
+        """
         self._multiverse_socket.set_api_callbacks(api_callbacks)
         self._api_callbacks = api_callbacks
 
     def _bind_request_meta_data(self, request_meta_data: T) -> T:
         """Bind the request_meta_data before sending it to the server.
 
-        Args:
-            request_meta_data (T): The request_meta_data to bind.
-
-        Returns:
-            T: The binded request_meta_data.
+        :param request_meta_data: The request_meta_data to bind.
+        :return: The bound request_meta_data.
         """
         pass
 
     def _bind_response_meta_data(self, response_meta_data: T) -> T:
         """Bind the response_meta_data after receiving it from the server.
 
-        Args:
-            response_meta_data (T): The response_meta_data to bind.
-
-        Returns:
-            T: The binded response_meta_data.
+        :param response_meta_data: The response_meta_data to bind.
+        :return: The bound response_meta_data.
         """
         pass
 
     def _bind_send_data(self, send_data: T) -> T:
         """Bind the send_data before sending it to the server.
 
-        Args:
-            send_data (T): The send_data to bind.
-
-        Returns:
-            T: The binded send_data.
+        :param send_data: The send_data to bind.
+        :return: The bound send_data.
         """
         pass
 
     def _bind_receive_data(self, receive_data: T) -> T:
         """Bind the receive_data after receiving it from the server.
 
-        Args:
-            receive_data (T): The receive_data to bind.
-
-        Returns:
-            T: The binded receive_data.
+        :param receive_data: The receive_data to bind.
+        :return: The bound receive_data.
         """
         pass
 
     def _connect_and_start(self) -> None:
         """Connect to the server and start the client.
-
-        Returns:
-            None
         """
         self._multiverse_socket.connect(self.host, self.port)
         self._multiverse_socket.start()
@@ -220,38 +186,46 @@ class MultiverseSocket:
 
     def _disconnect(self) -> None:
         """Disconnect from the server.
-
-        Returns:
-            None
         """
         self._multiverse_socket.disconnect()
 
     def _communicate(self, resend_request_meta_data: bool = False) -> bool:
         """Communicate with the server.
 
-        Args:
-            resend_request_meta_data (bool): Resend the request meta data.
-
-        Returns:
-            bool: True if the communication was successful, False otherwise.
+        :param resend_request_meta_data: Resend the request metadata.
+        :return: True if the communication was successful, False otherwise.
         """
         return self._multiverse_socket.communicate(resend_request_meta_data)
 
     def _restart(self) -> None:
         """Restart the client.
-
-        Returns:
-            None
         """
         self._disconnect()
         self._connect_and_start()
+
+    def log_info(self, message: str) -> None:
+        """Log information.
+
+        :param message: The message to log.
+        """
+        rospy.loginfo(self._message_template(message))
+
+    def log_warn(self, message: str) -> None:
+        """Warn the user.
+
+        :param message: The message to warn about.
+        """
+        rospy.logwarn(self._message_template(message))
+
+    def _message_template(self, message: str) -> str:
+        return (f"[{self.__class__.__name__}:{self.port}]: {message} : sim time {self.sim_time},"
+                f" world time {self.world_time}")
 
     @property
     def world_time(self) -> float:
         """Get the world time from the server.
 
-        Returns:
-            float: The world time.
+        :return: The world time.
         """
         return self._multiverse_socket.get_world_time()
 
@@ -259,7 +233,6 @@ class MultiverseSocket:
     def sim_time(self) -> float:
         """Get the current simulation time.
 
-        Returns:
-            float: The current simulation time.
+        :return: The current simulation time.
         """
         return self._multiverse_socket.get_time_now() - self._start_time

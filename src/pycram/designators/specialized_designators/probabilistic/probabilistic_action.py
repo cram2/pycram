@@ -19,7 +19,7 @@ from ....datastructures.world import World
 from ....designator import ActionDesignatorDescription, ObjectDesignatorDescription
 from ....local_transformer import LocalTransformer
 from ....orm.views import PickUpWithContextView
-from ....plan_failures import ObjectUnreachable, PlanFailure
+from ....failures import ObjectUnreachable, PlanFailure
 
 
 class Grasp(SetElement):

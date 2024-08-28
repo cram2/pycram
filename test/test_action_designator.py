@@ -147,7 +147,3 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             FaceAtPerformable(self.milk.pose).perform()
             milk_in_robot_frame = LocalTransformer().transform_to_object_frame(self.milk.pose, self.robot)
             self.assertAlmostEqual(milk_in_robot_frame.position.y, 0.)
-
-
-if __name__ == '__main__':
-    unittest.main()
