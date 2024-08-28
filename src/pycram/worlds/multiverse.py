@@ -1,23 +1,22 @@
 import logging
-import os
 from time import sleep
 
 import numpy as np
 import rospy
 from tf.transformations import quaternion_matrix
-from typing_extensions import List, Dict, Optional, Union, Tuple, Callable
+from typing_extensions import List, Dict, Optional, Union, Tuple, Type
 
 from .multiverse_communication.client_manager import MultiverseClientManager
 from .multiverse_communication.clients import MultiverseController, MultiverseReader, MultiverseWriter, MultiverseAPI
 from .multiverse_datastructures.enums import MultiverseBodyProperty, MultiverseJointPosition, \
     MultiverseJointCMD
-from .multiverse_extras.helpers import find_multiverse_resources_path
-from ..config import multiverse_conf as conf
+from ..config import multiverse_conf as conf, world_conf
 from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
 from ..datastructures.enums import WorldMode, JointType, ObjectType
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
-from ..description import Link, Joint
+from ..description import Link, Joint, ObjectDescription
+from ..object_descriptors.mjcf import ObjectDescription as MJCF
 from ..robot_description import RobotDescription
 from ..validation.goal_validator import validate_object_pose, validate_multiple_joint_positions, \
     validate_joint_position, validate_multiple_object_poses
@@ -58,44 +57,52 @@ class Multiverse(World):
     Whether to use the controller for the robot joints or not.
     """
 
-    try:
-        simulation_wait_time_factor = float(os.environ['Multiverse_Simulation_Wait_Time_Factor'])
-    except KeyError:
-        simulation_wait_time_factor = 1.0
+    simulation_wait_time_factor: float = conf.simulation_wait_time_factor
     """
     The factor to multiply the simulation wait time with, this is used to adjust the simulation wait time to account for
     the time taken by the simulation to process the request, this depends on the computational power of the machine
     running the simulation.
     """
 
+    default_description_type: Type[ObjectDescription] = conf.default_description_type
+    """
+    The default description type for the objects.
+    """
+
+    Object.extension_to_description_type[MJCF.get_file_extension()] = MJCF
+    """
+    Add the MJCF description extension to the extension to description type mapping for the objects.
+    """
+
     def __init__(self, mode: Optional[WorldMode] = WorldMode.DIRECT,
                  is_prospection: Optional[bool] = False,
                  simulation_frequency: float = conf.simulation_frequency,
-                 simulation: Optional[str] = None):
+                 simulation_name: str = "pycram_test"):
         """
         Initialize the Multiverse Socket and the PyCram World.
 
         :param mode: The mode of the world (DIRECT or GUI).
         :param is_prospection: Whether the world is prospection or not.
         :param simulation_frequency: The frequency of the simulation.
-        :param simulation: The name of the simulation.
+        :param simulation_name: The name of the simulation.
         """
 
+        self.latest_save_id: Optional[int] = None
+        self.saved_simulator_states: Dict = {}
         self._make_sure_multiverse_resources_are_added()
 
         if Multiverse.simulation is None:
-            if simulation is None:
+            if simulation_name is None:
                 logging.error("Simulation name not provided")
                 raise ValueError("Simulation name not provided")
-            Multiverse.simulation = simulation
+            Multiverse.simulation = simulation_name
 
         self.simulation = (self.prospection_world_prefix if is_prospection else "") + Multiverse.simulation
+        self.client_manager = MultiverseClientManager(self.simulation_wait_time_factor)
+        self._init_clients(is_prospection=is_prospection)
 
         World.__init__(self, mode, is_prospection, simulation_frequency, **conf.job_handling.as_dict(),
                        **conf.error_tolerance.as_dict())
-
-        self.client_manager = MultiverseClientManager(self.simulation_wait_time_factor)
-        self._init_clients()
 
         self._init_constraint_and_object_id_name_map_collections()
 
@@ -107,23 +114,25 @@ class Multiverse(World):
         if self.use_bullet_mode:
             self.api_requester.pause_simulation()
 
-    def _init_clients(self):
+    def _init_clients(self, is_prospection: bool = False):
         """
         Initialize the Multiverse clients that will be used to communicate with the Multiverse server.
         Each client is responsible for a specific task, e.g. reading data from the server, writing data to the serve,
          calling the API, or controlling the robot joints.
+
+        :param is_prospection: Whether the world is prospection or not.
         """
         self.reader: MultiverseReader = self.client_manager.create_reader(
-            is_prospection_world=self.is_prospection_world)
+            is_prospection_world=is_prospection)
         self.writer: MultiverseWriter = self.client_manager.create_writer(
             self.simulation,
-            is_prospection_world=self.is_prospection_world)
+            is_prospection_world=is_prospection)
         self.api_requester: MultiverseAPI = self.client_manager.create_api_requester(
             self.simulation,
-            is_prospection_world=self.is_prospection_world)
+            is_prospection_world=is_prospection)
         if self.use_controller:
             self.joint_controller: MultiverseController = self.client_manager.create_controller(
-                is_prospection_world=self.is_prospection_world)
+                is_prospection_world=is_prospection)
 
     def _init_constraint_and_object_id_name_map_collections(self):
         self.last_object_id: int = -1
@@ -137,13 +146,12 @@ class Multiverse(World):
 
     def _make_sure_multiverse_resources_are_added(self):
         """
-        Add the multiverse resources to the pycram world resources.
+        Add the multiverse resources to the pycram world resources, and change the data directory and cache manager.
         """
         if not self.added_multiverse_resources:
             World.cache_manager.clear_cache()
-            dirname = find_multiverse_resources_path()
-            World.data_directory = [dirname] + self.data_directory
-            World.cache_manager.data_directory = World.data_directory
+            World.add_resource_path(conf.resources_path, prepend=True)
+            World.change_cache_dir_path(conf.resources_path)
             self.added_multiverse_resources = True
 
     def remove_multiverse_resources(self):
@@ -151,9 +159,8 @@ class Multiverse(World):
         Remove the multiverse resources from the pycram world resources.
         """
         if self.added_multiverse_resources:
-            dirname = find_multiverse_resources_path()
-            World.data_directory.remove(dirname)
-            World.cache_manager.data_directory = World.data_directory
+            World.remove_resource_path(conf.resources_path)
+            World.change_cache_dir_path(world_conf.cache_dir)
             self.added_multiverse_resources = False
 
     def _spawn_floor(self):
@@ -487,9 +494,9 @@ class Multiverse(World):
         self.reader.stop_thread = True
         self.reader.join()
 
-    def remove_object_by_id(self, obj_id: int) -> bool:
-        obj = self.get_object_by_id(obj_id)
-        return self.remove_object_from_simulator(obj)
+    def _remove_visual_object(self, obj_id: int) -> bool:
+        rospy.logwarn("Currently multiverse does not create visual objects")
+        return False
 
     def remove_object_from_simulator(self, obj: Object) -> bool:
         if obj.obj_type != ObjectType.ENVIRONMENT:
@@ -623,15 +630,17 @@ class Multiverse(World):
             sleep(self.simulation_time_step)
             self.api_requester.pause_simulation()
 
-    def save_physics_simulator_state(self) -> int:
-        logging.warning("save_physics_simulator_state is not implemented in Multiverse")
-        return 0
+    def save_physics_simulator_state(self, use_same_id: bool = False) -> int:
+        self.latest_save_id = 0 if self.latest_save_id is None else self.latest_save_id + int(not use_same_id)
+        save_name = f"save_{self.latest_save_id}"
+        self.saved_simulator_states[self.latest_save_id] = self.api_requester.save(save_name)
+        return self.latest_save_id
 
     def remove_physics_simulator_state(self, state_id: int) -> None:
-        logging.warning("remove_physics_simulator_state is not implemented in Multiverse")
+        self.saved_simulator_states.pop(state_id)
 
     def restore_physics_simulator_state(self, state_id: int) -> None:
-        logging.warning("restore_physics_simulator_state is not implemented in Multiverse")
+        self.api_requester.load(self.saved_simulator_states[state_id])
 
     def set_link_color(self, link: Link, rgba_color: Color):
         logging.warning("set_link_color is not implemented in Multiverse")

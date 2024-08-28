@@ -44,15 +44,22 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def setUpClass(cls):
         if not multiverse_installed:
             return
-        cls.multiverse = Multiverse(simulation="pycram_test")
+        cls.multiverse = Multiverse()
 
     @classmethod
     def tearDownClass(cls):
-        cls.multiverse.exit()
+        cls.multiverse.exit(remove_saved_states=True)
         cls.multiverse.remove_multiverse_resources()
 
     def tearDown(self):
-        self.multiverse.reset_world_and_remove_objects()
+        self.multiverse.remove_all_objects()
+
+    def test_spawn_mesh_object(self):
+        milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1, 1, 0.1]))
+        self.assert_poses_are_equal(milk.get_pose(), Pose([1, 1, 0.1]))
+        self.multiverse.simulate(0.2)
+        contact_points = milk.contact_points()
+        self.assertTrue(len(contact_points) > 0)
 
     def test_parse_mjcf_actuators(self):
         mjcf_file = get_robot_mjcf_path("pal_robotics", "tiago_dual")
@@ -85,9 +92,9 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assertIsInstance(segmentation_mask, np.ndarray)
         self.assertTrue(depth.shape == (256, 256))
         self.assertTrue(segmentation_mask.shape == (256, 256))
-        self.assertAlmostEqual(np.max(depth), 0.5, delta=0.1)
-        self.assertTrue(np.unique(segmentation_mask).shape[0] == 2)
         self.assertTrue(milk.id in np.unique(segmentation_mask).flatten().tolist())
+        avg_depth_of_milk = np.mean(depth[segmentation_mask == milk.id])
+        self.assertAlmostEqual(avg_depth_of_milk, 0.5, delta=0.1)
 
     def test_reset_world(self):
         set_position = [1, 1, 0.1]
@@ -237,19 +244,21 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assertIsInstance(pose, Pose)
 
     def test_attach_object(self):
-        milk = self.spawn_milk([1, 0.1, 0.1])
-        cup = self.spawn_cup([1, 1.1, 0.1])
-        milk.attach(cup)
-        self.assertTrue(cup in milk.attachments)
-        milk_position = milk.get_position_as_list()
-        milk_position[0] += 1
-        cup_position = cup.get_position_as_list()
-        estimated_cup_position = cup_position.copy()
-        estimated_cup_position[0] += 1
-        milk.set_position(milk_position)
-        new_cup_position = cup.get_position_as_list()
-        self.assert_list_is_equal(new_cup_position[:2], estimated_cup_position[:2],
-                                  self.multiverse.acceptable_position_error)
+        for _ in range(3):
+            milk = self.spawn_milk([1, 0.1, 0.1])
+            cup = self.spawn_cup([1, 1.1, 0.1])
+            milk.attach(cup)
+            self.assertTrue(cup in milk.attachments)
+            milk_position = milk.get_position_as_list()
+            milk_position[0] += 1
+            cup_position = cup.get_position_as_list()
+            estimated_cup_position = cup_position.copy()
+            estimated_cup_position[0] += 1
+            milk.set_position(milk_position)
+            new_cup_position = cup.get_position_as_list()
+            self.assert_list_is_equal(new_cup_position[:2], estimated_cup_position[:2],
+                                      self.multiverse.acceptable_position_error)
+            self.tearDown()
 
     def test_detach_object(self):
         for i in range(2):
@@ -286,33 +295,31 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assert_poses_are_equal(milk_initial_pose, milk_pose)
 
     def test_get_object_contact_points(self):
-        for i in range(3):
-            milk = self.spawn_milk([1, 1, 0.02], [0, -0.707, 0, 0.707])
+        for i in range(10):
+            milk = self.spawn_milk([1, 1, 0.01], [0, -0.707, 0, 0.707])
             contact_points = self.multiverse.get_object_contact_points(milk)
             self.assertIsInstance(contact_points, ContactPointsList)
             self.assertEqual(len(contact_points), 1)
             self.assertIsInstance(contact_points[0], ContactPoint)
             self.assertTrue(contact_points[0].link_b.object, self.multiverse.floor)
             cup = self.spawn_cup([1, 1, 0.2])
-            # This is needed because the cup is spawned in the air so it needs to fall
+            # This is needed because the cup is spawned in the air, so it needs to fall
             # to get in contact with the milk
-            self.multiverse.simulate(0.3)
+            self.multiverse.simulate(0.2)
             contact_points = self.multiverse.get_object_contact_points(cup)
             self.assertIsInstance(contact_points, ContactPointsList)
             self.assertEqual(len(contact_points), 1)
             self.assertIsInstance(contact_points[0], ContactPoint)
             self.assertTrue(contact_points[0].link_b.object, milk)
-            sleep(0.1)
             self.tearDown()
-            sleep(0.1)
 
     def test_get_contact_points_between_two_objects(self):
         for i in range(3):
             milk = self.spawn_milk([1, 1, 0.01], [0, -0.707, 0, 0.707])
-            cup = self.spawn_cup([1, 1, 0.1])
+            cup = self.spawn_cup([1, 1, 0.2])
             # This is needed because the cup is spawned in the air so it needs to fall
             # to get in contact with the milk
-            self.multiverse.simulate(0.3)
+            self.multiverse.simulate(0.2)
             contact_points = self.multiverse.get_contact_points_between_two_objects(milk, cup)
             self.assertIsInstance(contact_points, ContactPointsList)
             self.assertEqual(len(contact_points), 1)

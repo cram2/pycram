@@ -1,6 +1,7 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+import os
 import threading
 import time
 from abc import ABC, abstractmethod
@@ -9,8 +10,7 @@ from copy import copy
 import numpy as np
 import rospy
 from geometry_msgs.msg import Point
-from tf.transformations import euler_from_quaternion, quaternion_multiply, quaternion_from_euler
-from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union
+from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type
 
 from ..cache_manager import CacheManager
 from ..config import world_conf as conf
@@ -66,24 +66,7 @@ class World(StateEntity, ABC):
      the URDF with the name of the URDF on the parameter server. 
     """
 
-    resources_path = conf.resources_path
-    """
-    Global reference for the resources path, this is used to search for the description files of the robot and
-     the objects.
-    """
-
-    data_directory: List[str] = [resources_path]
-    """
-    Global reference for the data directories, this is used to search for the description files of the robot,
-     the objects, and the cached files.
-    """
-
-    cache_dir: str = conf.cache_dir
-    """
-    Global reference for the cache directory, this is used to cache the description files of the robot and the objects.
-    """
-
-    cache_manager: CacheManager = CacheManager(cache_dir, data_directory)
+    cache_manager: CacheManager = CacheManager(conf.cache_dir, [conf.resources_path])
     """
     Global reference for the cache manager, this is used to cache the description files of the robot and the objects.
     """
@@ -122,10 +105,15 @@ class World(StateEntity, ABC):
     Whether to raise an error if the goals are not achieved.
     """
 
+    default_description_type: Type[ObjectDescription] = conf.default_description_type
+    """
+    The default description type for objects (e.g. URDF, MJCF, etc.).
+    """
+
     def __init__(self, mode: WorldMode, is_prospection_world: bool, simulation_frequency: float,
                  **config_kwargs):
         """
-        Creates a new simulation, the mode decides if the simulation should be a rendered window or just run in the
+        Create a new simulation, the mode decides if the simulation should be a rendered window or just run in the
         background. There can only be one rendered simulation.
         The World object also initializes the Events for attachment, detachment and for manipulating the world.
 
@@ -175,17 +163,37 @@ class World(StateEntity, ABC):
 
         self._init_goal_validators()
 
+        self.original_state_id = self.save_state()
+
+    @classmethod
+    def get_cache_dir(cls) -> str:
+        """
+        Return the cache directory.
+        """
+        return cls.cache_manager.cache_dir
+
+    def add_object(self, obj: Object) -> None:
+        """
+        Add an object to the world.
+
+        :param obj: The object to be added.
+        """
+        self.object_lock.acquire()
+        self.objects.append(obj)
+        self.add_object_to_original_state(obj)
+        self.object_lock.release()
+
     @property
     def robot_description(self) -> RobotDescription:
         """
-        Returns the current robot description.
+        Return the current robot description.
         """
         return RobotDescription.current_robot_description
 
     @property
     def robot_has_actuators(self) -> bool:
         """
-        Returns whether the robot has actuators.
+        Return whether the robot has actuators.
         """
         return self.robot_description.has_actuators
 
@@ -197,20 +205,20 @@ class World(StateEntity, ABC):
 
     def joint_has_actuator(self, joint: Joint) -> bool:
         """
-        Returns whether the joint has an actuator.
+        Return whether the joint has an actuator.
         """
         return joint.name in self.robot_joint_actuators
 
     @property
     def robot_joint_actuators(self) -> Dict[str, str]:
         """
-        Returns the joint actuators of the robot.
+        Return the joint actuators of the robot.
         """
         return self.robot_description.joint_actuators
 
     def _init_goal_validators(self):
         """
-        Initializes the goal validators for the World objects' poses, positions, and orientations.
+        Initialize the goal validators for the World objects' poses, positions, and orientations.
         """
 
         # Objects Pose goal validators
@@ -234,7 +242,7 @@ class World(StateEntity, ABC):
 
     def check_object_exists(self, obj: Object):
         """
-        Checks if the object exists in the simulator and issues a warning if it does not.
+        Check if the object exists in the simulator and issues a warning if it does not.
         :param obj: The object to check.
         """
         return obj not in self.objects
@@ -242,13 +250,13 @@ class World(StateEntity, ABC):
     @abstractmethod
     def _init_world(self, mode: WorldMode):
         """
-        Initializes the physics simulation.
+        Initialize the physics simulation.
         """
         raise NotImplementedError
 
     def _init_events(self):
         """
-        Initializes dynamic events that can be used to react to changes in the World.
+        Initialize dynamic events that can be used to react to changes in the World.
         """
         self.detachment_event: Event = Event()
         self.attachment_event: Event = Event()
@@ -256,21 +264,21 @@ class World(StateEntity, ABC):
 
     def _init_and_sync_prospection_world(self):
         """
-        Initializes the prospection world and the synchronization between the main and the prospection world.
+        Initialize the prospection world and the synchronization between the main and the prospection world.
         """
         self._init_prospection_world()
         self._sync_prospection_world()
 
     def _update_local_transformer_worlds(self):
         """
-        Updates the local transformer worlds with the current world and prospection world.
+        Update the local transformer worlds with the current world and prospection world.
         """
         self.local_transformer.world = self
         self.local_transformer.prospection_world = self.prospection_world
 
     def _init_prospection_world(self):
         """
-        Initializes the prospection world, if this is a prospection world itself it will not create another prospection,
+        Initialize the prospection world, if this is a prospection world itself it will not create another prospection,
         world, but instead set the prospection world to None, else it will create a prospection world.
         """
         if self.is_prospection_world:  # then no need to add another prospection world
@@ -282,7 +290,7 @@ class World(StateEntity, ABC):
 
     def _sync_prospection_world(self):
         """
-        Synchronizes the prospection world with the main world, this means that every object in the main world will be
+        Synchronize the prospection world with the main world, this means that every object in the main world will be
         added to the prospection world and vice versa.
         """
         if self.is_prospection_world:  # then no need to add another prospection world
@@ -293,29 +301,32 @@ class World(StateEntity, ABC):
             self.world_sync.start()
 
     def preprocess_object_file_and_get_its_cache_path(self, path: str, ignore_cached_files: bool,
-                                                      description: ObjectDescription, name: str) -> str:
+                                                      description: ObjectDescription, name: str,
+                                                      scale_mesh: Optional[float] = None) -> str:
         """
-        Updates the cache directory with the given object.
+        Update the cache directory with the given object.
 
         :param path: The path to the object.
         :param ignore_cached_files: If the cached files should be ignored.
         :param description: The object description.
         :param name: The name of the object.
+        :param scale_mesh: The scale of the mesh.
+        :return: The path of the cached object.
         """
-        return self.cache_manager.update_cache_dir_with_object(path, ignore_cached_files, description, name)
+        return self.cache_manager.update_cache_dir_with_object(path, ignore_cached_files, description, name, scale_mesh)
 
     @property
     def simulation_time_step(self):
         """
         The time step of the simulation in seconds.
         """
-        return 1 / World.simulation_frequency
+        return 1 / self.__class__.simulation_frequency
 
     @abstractmethod
     def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[Pose] = None,
                                obj_type: Optional[ObjectType] = None) -> int:
         """
-        Loads a description file (e.g. URDF) at the given pose and returns the id of the loaded object.
+        Load a description file (e.g. URDF) at the given pose and returns the id of the loaded object.
 
         :param path: The path to the description file, if None the description file is assumed to be already loaded.
         :param pose: The pose at which the object should be loaded.
@@ -326,13 +337,13 @@ class World(StateEntity, ABC):
 
     def load_generic_object_and_get_id(self, description: GenericObjectDescription) -> int:
         """
-        Creates a visual and collision box in the simulation and returns the id of the loaded object.
+        Create a visual and collision box in the simulation and returns the id of the loaded object.
         """
         raise NotImplementedError
 
     def get_object_names(self) -> List[str]:
         """
-        Returns the names of all objects in the World.
+        Return the names of all objects in the World.
 
         :return: A list of object names.
         """
@@ -351,7 +362,7 @@ class World(StateEntity, ABC):
 
     def get_object_by_type(self, obj_type: ObjectType) -> List[Object]:
         """
-        Returns a list of all Objects which have the type 'obj_type'.
+        Return a list of all Objects which have the type 'obj_type'.
 
         :param obj_type: The type of the returned Objects.
         :return: A list of all Objects that have the type 'obj_type'.
@@ -360,19 +371,34 @@ class World(StateEntity, ABC):
 
     def get_object_by_id(self, obj_id: int) -> Object:
         """
-        Returns the single Object that has the unique id.
+        Return the single Object that has the unique id.
 
         :param obj_id: The unique id for which the Object should be returned.
         :return: The Object with the id 'id'.
         """
         return list(filter(lambda obj: obj.id == obj_id, self.objects))[0]
 
-    @abstractmethod
-    def remove_object_by_id(self, obj_id: int) -> bool:
+    def remove_visual_object(self, obj_id: int) -> bool:
         """
-        Removes the object with the given id from the world.
+        Remove the object with the given id from the world, and saves a new original state for the world.
 
         :param obj_id: The unique id of the object to be removed.
+        :return: Whether the object was removed successfully.
+        """
+
+        removed = self._remove_visual_object(obj_id)
+        if removed:
+            self.update_simulator_state_id_in_original_state()
+        else:
+            rospy.logwarn(f"Object with id {obj_id} could not be removed.")
+        return removed
+
+    @abstractmethod
+    def _remove_visual_object(self, obj_id: int) -> bool:
+        """
+        Remove the visual object with the given id from the world, and update the simulator state in the original state.
+
+        :param obj_id: The unique id of the visual object to be removed.
         :return: Whether the object was removed successfully.
         """
         pass
@@ -380,7 +406,7 @@ class World(StateEntity, ABC):
     @abstractmethod
     def remove_object_from_simulator(self, obj: Object) -> bool:
         """
-        Removes an object from the physics simulator.
+        Remove an object from the physics simulator.
 
         :param obj: The object to be removed.
         :return: Whether the object was removed successfully.
@@ -389,7 +415,7 @@ class World(StateEntity, ABC):
 
     def remove_object(self, obj: Object) -> None:
         """
-        Removes this object from the current world.
+        Remove this object from the current world.
         For the object to be removed it has to be detached from all objects it
         is currently attached to. After this is done a call to world remove object is done
         to remove this Object from the simulation/world.
@@ -402,16 +428,35 @@ class World(StateEntity, ABC):
 
         if self.remove_object_from_simulator(obj):
             self.objects.remove(obj)
+            self.remove_object_from_original_state(obj)
 
         if World.robot == obj:
             World.robot = None
 
         self.object_lock.release()
 
+    def remove_object_from_original_state(self, obj: Object) -> None:
+        """
+        Remove an object from the original state of the world.
+
+        :param obj: The object to be removed.
+        """
+        self.original_state.object_states.pop(obj.name)
+        self.original_state.simulator_state_id = self.save_physics_simulator_state(use_same_id=True)
+
+    def add_object_to_original_state(self, obj: Object) -> None:
+        """
+        Add an object to the original state of the world.
+
+        :param obj: The object to be added.
+        """
+        self.original_state.object_states[obj.name] = obj.current_state
+        self.update_simulator_state_id_in_original_state()
+
     def add_fixed_constraint(self, parent_link: Link, child_link: Link,
                              child_to_parent_transform: Transform) -> int:
         """
-        Creates a fixed joint constraint between the given parent and child links,
+        Create a fixed joint constraint between the given parent and child links,
         the joint frame will be at the origin of the child link frame, and would have the same orientation
         as the child link frame.
 
@@ -462,7 +507,7 @@ class World(StateEntity, ABC):
     @abstractmethod
     def get_object_joint_names(self, obj: Object) -> List[str]:
         """
-        Returns the names of all joints of this object.
+        Return the names of all joints of this object.
 
         :param obj: The object.
         :return: A list of joint names.
@@ -532,7 +577,7 @@ class World(StateEntity, ABC):
     @abstractmethod
     def get_object_link_names(self, obj: Object) -> List[str]:
         """
-        Returns the names of all links of this object.
+        Return the names of all links of this object.
 
         :param obj: The object.
         :return: A list of link names.
@@ -541,7 +586,7 @@ class World(StateEntity, ABC):
 
     def simulate(self, seconds: float, real_time: Optional[bool] = False) -> None:
         """
-        Simulates Physics in the World for a given amount of seconds. Usually this simulation is faster than real
+        Simulate Physics in the World for a given amount of seconds. Usually this simulation is faster than real
         time. By setting the 'real_time' parameter this simulation is slowed down such that the simulated time is equal
         to real time.
 
@@ -566,7 +611,7 @@ class World(StateEntity, ABC):
 
     def update_all_objects_poses(self) -> None:
         """
-        Updates the positions of all objects in the world.
+        Update the positions of all objects in the world.
         """
         for obj in self.objects:
             obj.update_pose()
@@ -616,7 +661,7 @@ class World(StateEntity, ABC):
     @property
     def robot_virtual_joints(self) -> List[Joint]:
         """
-        Returns the virtual joints of the robot.
+        Return the virtual joints of the robot.
         """
         return [self.robot.joints[name] for name in self.robot_virtual_joints_names]
 
@@ -655,7 +700,7 @@ class World(StateEntity, ABC):
     @abstractmethod
     def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> ContactPointsList:
         """
-        Returns a list of contact points between obj_a and obj_b.
+        Return a list of contact points between obj_a and obj_b.
 
         :param obj1: The first object.
         :param obj2: The second object.
@@ -665,7 +710,7 @@ class World(StateEntity, ABC):
 
     def get_object_closest_points(self, obj: Object, max_distance: float) -> ClosestPointsList:
         """
-        Returns the closest points of this object with all other objects in the world.
+        Return the closest points of this object with all other objects in the world.
 
         :param obj: The object.
         :param max_distance: The maximum distance between the points.
@@ -679,7 +724,7 @@ class World(StateEntity, ABC):
     def get_closest_points_between_objects(self, object_a: Object, object_b: Object, max_distance: float) \
             -> ClosestPointsList:
         """
-        Returns the closest points between two objects.
+        Return the closest points between two objects.
 
         :param object_a: The first object.
         :param object_b: The second object.
@@ -766,7 +811,7 @@ class World(StateEntity, ABC):
     @abstractmethod
     def set_link_color(self, link: Link, rgba_color: Color):
         """
-        Changes the rgba_color of a link of this object, the rgba_color has to be given as Color object.
+        Change the rgba_color of a link of this object, the rgba_color has to be given as Color object.
 
         :param link: The link which should be colored.
         :param rgba_color: The rgba_color as Color object with RGBA values between 0 and 1.
@@ -796,7 +841,7 @@ class World(StateEntity, ABC):
     @abstractmethod
     def get_object_axis_aligned_bounding_box(self, obj: Object) -> AxisAlignedBoundingBox:
         """
-        Returns the axis aligned bounding box of this object. The return of this method are two points in
+        Return the axis aligned bounding box of this object. The return of this method are two points in
         world coordinate frame which define a bounding box.
 
         :param obj: The object for which the bounding box should be returned.
@@ -807,7 +852,7 @@ class World(StateEntity, ABC):
     @abstractmethod
     def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
         """
-        Returns the axis aligned bounding box of the link. The return of this method are two points in
+        Return the axis aligned bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
         pass
@@ -815,7 +860,7 @@ class World(StateEntity, ABC):
     @abstractmethod
     def set_realtime(self, real_time: bool) -> None:
         """
-        Enables the real time simulation of Physics in the World. By default, this is disabled and Physics is only
+        Enable the real time simulation of Physics in the World. By default, this is disabled and Physics is only
         simulated to reason about it.
 
         :param real_time: Whether the World should simulate Physics in real time.
@@ -825,7 +870,7 @@ class World(StateEntity, ABC):
     @abstractmethod
     def set_gravity(self, gravity_vector: List[float]) -> None:
         """
-        Sets the gravity that is used in the World. By default, it is set to the gravity on earth ([0, 0, -9.8]).
+        Set the gravity that is used in the World. By default, it is set to the gravity on earth ([0, 0, -9.8]).
          Gravity is given as a vector in x,y,z. Gravity is only applied while simulating Physic.
 
         :param gravity_vector: The gravity vector that should be used in the World.
@@ -834,7 +879,7 @@ class World(StateEntity, ABC):
 
     def set_robot_if_not_set(self, robot: Object) -> None:
         """
-        Sets the robot if it is not set yet.
+        Set the robot if it is not set yet.
 
         :param robot: The Object reference to the Object representing the robot.
         """
@@ -844,7 +889,7 @@ class World(StateEntity, ABC):
     @staticmethod
     def set_robot(robot: Union[Object, None]) -> None:
         """
-        Sets the global variable for the robot Object This should be set on spawning the robot.
+        Set the global variable for the robot Object This should be set on spawning the robot.
 
         :param robot: The Object reference to the Object representing the robot.
         """
@@ -853,18 +898,21 @@ class World(StateEntity, ABC):
     @staticmethod
     def robot_is_set() -> bool:
         """
-        Returns whether the robot has been set or not.
+        Return whether the robot has been set or not.
 
         :return: True if the robot has been set, False otherwise.
         """
         return World.robot is not None
 
-    def exit(self) -> None:
+    def exit(self, remove_saved_states: bool = True) -> None:
         """
-        Closes the World as well as the prospection world, also collects any other thread that is running.
+        Close the World as well as the prospection world, also collects any other thread that is running.
+
+        :param remove_saved_states: Whether to remove the saved states.
         """
         self.exit_prospection_world_if_exists()
-        self.reset_world_and_remove_objects()
+        self.reset_world(remove_saved_states)
+        self.remove_all_objects()
         self.disconnect_from_physics_server()
         self.reset_robot()
         self.join_threads()
@@ -873,7 +921,7 @@ class World(StateEntity, ABC):
 
     def exit_prospection_world_if_exists(self) -> None:
         """
-        Exits the prospection world if it exists.
+        Exit the prospection world if it exists.
         """
         if self.prospection_world:
             self.terminate_world_sync()
@@ -882,13 +930,13 @@ class World(StateEntity, ABC):
     @abstractmethod
     def disconnect_from_physics_server(self) -> None:
         """
-        Disconnects the world from the physics server.
+        Disconnect the world from the physics server.
         """
         pass
 
     def reset_current_world(self) -> None:
         """
-        Resets the pose of every object in the World to the pose it was spawned in and sets every joint to 0.
+        Reset the pose of every object in the World to the pose it was spawned in and sets every joint to 0.
         """
         for obj in self.objects:
             obj.set_pose(obj.original_pose)
@@ -896,7 +944,7 @@ class World(StateEntity, ABC):
 
     def reset_robot(self) -> None:
         """
-        Sets the robot class variable to None.
+        Set the robot class variable to None.
         """
         self.set_robot(None)
 
@@ -909,7 +957,7 @@ class World(StateEntity, ABC):
 
     def terminate_world_sync(self) -> None:
         """
-        Terminates the world sync thread.
+        Terminate the world sync thread.
         """
         self.world_sync.terminate = True
         self.resume_world_sync()
@@ -917,7 +965,7 @@ class World(StateEntity, ABC):
 
     def save_state(self, state_id: Optional[int] = None) -> int:
         """
-        Returns the id of the saved state of the World. The saved state contains the states of all the objects and
+        Return the id of the saved state of the World. The saved state contains the states of all the objects and
         the state of the physics simulator.
 
         :return: A unique id of the state
@@ -930,20 +978,23 @@ class World(StateEntity, ABC):
     @property
     def current_state(self) -> WorldState:
         if self._current_state is None:
-            self._current_state = WorldState(self.save_physics_simulator_state(), self.object_states)
+            simulator_state = None if conf.use_physics_simulator_state else self.save_physics_simulator_state(True)
+            self._current_state = WorldState(simulator_state, self.object_states)
         return WorldState(self._current_state.simulator_state_id, self.object_states)
 
     @current_state.setter
     def current_state(self, state: WorldState) -> None:
         if self.current_state != state:
-            self.restore_physics_simulator_state(state.simulator_state_id)
-            for obj in self.objects:
-                self.get_object_by_name(obj.name).current_state = state.object_states[obj.name]
+            if conf.use_physics_simulator_state:
+                self.restore_physics_simulator_state(state.simulator_state_id)
+            else:
+                for obj in self.objects:
+                    self.get_object_by_name(obj.name).current_state = state.object_states[obj.name]
 
     @property
     def object_states(self) -> Dict[str, ObjectState]:
         """
-        Returns the states of all objects in the World.
+        Return the states of all objects in the World.
 
         :return: A dictionary with the object id as key and the object state as value.
         """
@@ -952,14 +1003,14 @@ class World(StateEntity, ABC):
     @object_states.setter
     def object_states(self, states: Dict[str, ObjectState]) -> None:
         """
-        Sets the states of all objects in the World.
+        Set the states of all objects in the World.
         """
         for obj_name, obj_state in states.items():
             self.get_object_by_name(obj_name).current_state = obj_state
 
     def save_objects_state(self, state_id: int) -> None:
         """
-        Saves the state of all objects in the World according to the given state using the unique state id.
+        Save the state of all objects in the World according to the given state using the unique state id.
 
         :param state_id: The unique id representing the state.
         """
@@ -967,10 +1018,11 @@ class World(StateEntity, ABC):
             obj.save_state(state_id)
 
     @abstractmethod
-    def save_physics_simulator_state(self) -> int:
+    def save_physics_simulator_state(self, use_same_id: bool = False) -> int:
         """
-        Saves the state of the physics simulator and returns the unique id of the state.
+        Save the state of the physics simulator and returns the unique id of the state.
 
+        :param use_same_id: If the same id should be used for the state.
         :return: The unique id representing the state.
         """
         pass
@@ -978,7 +1030,7 @@ class World(StateEntity, ABC):
     @abstractmethod
     def remove_physics_simulator_state(self, state_id: int) -> None:
         """
-        Removes the state of the physics simulator with the given id.
+        Remove the state of the physics simulator with the given id.
 
         :param state_id: The unique id representing the state.
         """
@@ -987,7 +1039,7 @@ class World(StateEntity, ABC):
     @abstractmethod
     def restore_physics_simulator_state(self, state_id: int) -> None:
         """
-        Restores the objects and environment state in the physics simulator according to
+        Restore the objects and environment state in the physics simulator according to
          the given state using the unique state id.
 
         :param state_id: The unique id representing the state.
@@ -999,7 +1051,7 @@ class World(StateEntity, ABC):
                               cam_pose: Pose,
                               size: Optional[int] = 256) -> List[np.ndarray]:
         """
-        Calculates the view and projection Matrix and returns 3 images:
+        Calculate the view and projection Matrix and returns 3 images:
 
         1. An RGB image
         2. A depth image
@@ -1018,7 +1070,7 @@ class World(StateEntity, ABC):
                                                  on_collision_callback: Callable,
                                                  on_collision_removal_callback: Optional[Callable] = None) -> None:
         """
-        Registers callback methods for contact between two Objects. There can be a callback for when the two Objects
+        Register callback methods for contact between two Objects. There can be a callback for when the two Objects
         get in contact and, optionally, for when they are not in contact anymore.
 
         :param object_a: An object in the World
@@ -1030,18 +1082,47 @@ class World(StateEntity, ABC):
                                                                        on_collision_removal_callback)
 
     @classmethod
-    def add_resource_path(cls, path: str) -> None:
+    def get_data_directories(cls) -> List[str]:
         """
-        Adds a resource path in which the World will search for files. This resource directory is searched if an
+        The resources directories where the objects, robots, and environments are stored.
+        """
+        return cls.cache_manager.data_directories
+
+    @classmethod
+    def add_resource_path(cls, path: str, prepend: bool = False) -> None:
+        """
+        Add a resource path in which the World will search for files. This resource directory is searched if an
         Object is spawned only with a filename.
 
         :param path: A path in the filesystem in which to search for files.
+        :param prepend: Put the new path at the beginning of the list such that it is searched first.
         """
-        cls.data_directory.append(path)
+        if prepend:
+            cls.cache_manager.data_directories = [path] + cls.cache_manager.data_directories
+        else:
+            cls.cache_manager.data_directories.append(path)
+
+    @classmethod
+    def remove_resource_path(cls, path: str) -> None:
+        """
+        Remove the given path from the data_directories list.
+
+        :param path: The path to remove.
+        """
+        cls.cache_manager.data_directories.remove(path)
+
+    @classmethod
+    def change_cache_dir_path(cls, path: str) -> None:
+        """
+        Change the cache directory to the given path
+
+        :param path: The new path for the cache directory.
+        """
+        cls.cache_manager.cache_dir = os.path.join(path, conf.cache_dir_name)
 
     def get_prospection_object_for_object(self, obj: Object) -> Object:
         """
-        Returns the corresponding object from the prospection world for a given object in the main world.
+        Return the corresponding object from the prospection world for a given object in the main world.
          If the given Object is already in the prospection world, it is returned.
 
         :param obj: The object for which the corresponding object in the prospection World should be found.
@@ -1052,7 +1133,7 @@ class World(StateEntity, ABC):
 
     def get_object_for_prospection_object(self, prospection_object: Object) -> Object:
         """
-        Returns the corresponding object from the main World for a given
+        Return the corresponding object from the main World for a given
         object in the prospection world. If the  given object is not in the prospection
         world an error will be raised.
 
@@ -1061,39 +1142,48 @@ class World(StateEntity, ABC):
         """
         return self.world_sync.get_world_object(prospection_object)
 
-    def reset_world_and_remove_objects(self, exclude_objects: Optional[List[Object]] = None) -> None:
+    def remove_all_objects(self, exclude_objects: Optional[List[Object]] = None) -> None:
         """
-        Resets the World to the state it was first spawned in and removes all objects from the World.
+        Remove all objects from the World.
+
         :param exclude_objects: A list of objects that should not be removed.
         """
-        self.reset_world()
         objs_copy = [obj for obj in self.objects]
         exclude_objects = [] if exclude_objects is None else exclude_objects
         [self.remove_object(obj) for obj in objs_copy if obj not in exclude_objects]
 
-    def reset_world(self, remove_saved_states=True) -> None:
+    def reset_world(self, remove_saved_states=False) -> None:
         """
-        Resets the World to the state it was first spawned in.
+        Reset the World to the state it was first spawned in.
         All attached objects will be detached, all joints will be set to the
         default position of 0 and all objects will be set to the position and
         orientation in which they were spawned.
 
         :param remove_saved_states: If the saved states should be removed.
         """
-
+        self.restore_state(self.original_state_id)
         if remove_saved_states:
             self.remove_saved_states()
-
-        for obj in self.objects:
-            obj.reset(remove_saved_states)
+        self.original_state_id = self.save_state()
 
     def remove_saved_states(self) -> None:
         """
-        Removes all saved states of the World.
+        Remove all saved states of the World.
         """
-        for state_id in self.saved_states:
-            self.remove_physics_simulator_state(state_id)
+        if conf.use_physics_simulator_state:
+            for state_id in self.saved_states:
+                self.remove_physics_simulator_state(state_id)
+        else:
+            self.remove_objects_saved_states()
         super().remove_saved_states()
+        self.original_state_id = None
+
+    def remove_objects_saved_states(self) -> None:
+        """
+        Remove all saved states of the objects in the World.
+        """
+        for obj in self.objects:
+            obj.remove_saved_states()
 
     def update_transforms_for_objects_in_current_world(self) -> None:
         """
@@ -1134,6 +1224,12 @@ class World(StateEntity, ABC):
         :param visual_shape: The visual shape to be created, uses the VisualShape dataclass defined in world_dataclasses
         :return: The unique id of the created shape.
         """
+        return self._simulator_object_creator(self._create_visual_shape, visual_shape)
+
+    def _create_visual_shape(self, visual_shape: VisualShape) -> int:
+        """
+        See :py:meth:`~pycram.world.World.create_visual_shape`
+        """
         raise NotImplementedError
 
     def create_multi_body_from_visual_shapes(self, visual_shape_ids: List[int], pose: Pose) -> int:
@@ -1171,6 +1267,12 @@ class World(StateEntity, ABC):
         :param multi_body: The multi body to be created, uses the MultiBody dataclass defined in world_dataclasses.
         :return: The unique id of the created multi body.
         """
+        return self._simulator_object_creator(self._create_multi_body, multi_body)
+
+    def _create_multi_body(self, multi_body: MultiBody) -> int:
+        """
+        See :py:meth:`~pycram.world.World.create_multi_body`
+        """
         raise NotImplementedError
 
     def create_box_visual_shape(self, shape_data: BoxVisualShape) -> int:
@@ -1180,6 +1282,12 @@ class World(StateEntity, ABC):
         :param shape_data: The parameters that define the box visual shape to be created, uses the BoxVisualShape
          dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
+        """
+        return self._simulator_object_creator(self._create_box_visual_shape, shape_data)
+
+    def _create_box_visual_shape(self, shape_data: BoxVisualShape) -> int:
+        """
+        See :py:meth:`~pycram.world.World.create_box_visual_shape`
         """
         raise NotImplementedError
 
@@ -1191,6 +1299,12 @@ class World(StateEntity, ABC):
          CylinderVisualShape dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
         """
+        return self._simulator_object_creator(self._create_cylinder_visual_shape, shape_data)
+
+    def _create_cylinder_visual_shape(self, shape_data: CylinderVisualShape) -> int:
+        """
+        See :py:meth:`~pycram.world.World.create_cylinder_visual_shape`
+        """
         raise NotImplementedError
 
     def create_sphere_visual_shape(self, shape_data: SphereVisualShape) -> int:
@@ -1200,6 +1314,12 @@ class World(StateEntity, ABC):
         :param shape_data: The parameters that define the sphere visual shape to be created, uses the SphereVisualShape
          dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
+        """
+        return self._simulator_object_creator(self._create_sphere_visual_shape, shape_data)
+
+    def _create_sphere_visual_shape(self, shape_data: SphereVisualShape) -> int:
+        """
+        See :py:meth:`~pycram.world.World.create_sphere_visual_shape`
         """
         raise NotImplementedError
 
@@ -1211,6 +1331,12 @@ class World(StateEntity, ABC):
          CapsuleVisualShape dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
         """
+        return self._simulator_object_creator(self._create_capsule_visual_shape, shape_data)
+
+    def _create_capsule_visual_shape(self, shape_data: CapsuleVisualShape) -> int:
+        """
+        See :py:meth:`~pycram.world.World.create_capsule_visual_shape`
+        """
         raise NotImplementedError
 
     def create_plane_visual_shape(self, shape_data: PlaneVisualShape) -> int:
@@ -1221,6 +1347,12 @@ class World(StateEntity, ABC):
          dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
         """
+        return self._simulator_object_creator(self._create_plane_visual_shape, shape_data)
+
+    def _create_plane_visual_shape(self, shape_data: PlaneVisualShape) -> int:
+        """
+        See :py:meth:`~pycram.world.World.create_plane_visual_shape`
+        """
         raise NotImplementedError
 
     def create_mesh_visual_shape(self, shape_data: MeshVisualShape) -> int:
@@ -1230,6 +1362,12 @@ class World(StateEntity, ABC):
         :param shape_data: The parameters that define the mesh visual shape to be created,
         uses the MeshVisualShape dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
+        """
+        return self._simulator_object_creator(self._create_mesh_visual_shape, shape_data)
+
+    def _create_mesh_visual_shape(self, shape_data: MeshVisualShape) -> int:
+        """
+        See :py:meth:`~pycram.world.World.create_mesh_visual_shape`
         """
         raise NotImplementedError
 
@@ -1252,7 +1390,16 @@ class World(StateEntity, ABC):
         :param parent_link_id: The id of the link to which the text should be attached.
         :return: The id of the added text.
         """
-        rospy.logwarn(f"add_text is not implemented in {self.__class__.__name__}")
+        return self._simulator_object_creator(self._add_text, text, position, orientation, size, color, life_time,
+                                              parent_object_id, parent_link_id)
+
+    def _add_text(self, text: str, position: List[float], orientation: Optional[List[float]] = None, size: float = 0.1,
+                  color: Optional[Color] = Color(), life_time: Optional[float] = 0,
+                  parent_object_id: Optional[int] = None, parent_link_id: Optional[int] = None) -> int:
+        """
+        See :py:meth:`~pycram.world.World.add_text`
+        """
+        raise NotImplementedError
 
     def remove_text(self, text_id: Optional[int] = None) -> None:
         """
@@ -1260,7 +1407,13 @@ class World(StateEntity, ABC):
 
         :param text_id: The id of the text to be removed.
         """
-        rospy.logwarn(f"remove_text is not implemented in {self.__class__.__name__}")
+        self._simulator_object_remover(self._remove_text, text_id)
+
+    def _remove_text(self, text_id: Optional[int] = None) -> None:
+        """
+        See :py:meth:`~pycram.world.World.remove_text`
+        """
+        raise NotImplementedError
 
     def enable_joint_force_torque_sensor(self, obj: Object, fts_joint_idx: int) -> None:
         """
@@ -1316,11 +1469,72 @@ class World(StateEntity, ABC):
         """
         self.world_sync.sync_lock.release()
 
-    def add_vis_axis(self, pose: Pose) -> None:
-        rospy.logwarn(f"add_vis_axis is not implemented in {self.__class__.__name__}")
+    def add_vis_axis(self, pose: Pose) -> int:
+        """
+        Adds a visual axis to the world.
+
+        :param pose: The pose of the visual axis.
+        :return: The id of the added visual axis.
+        """
+        return self._simulator_object_creator(self._add_vis_axis, pose)
+
+    def _add_vis_axis(self, pose: Pose) -> None:
+        """
+        See :py:meth:`~pycram.world.World.add_vis_axis`
+        """
+        rospy.logwarn(f"Visual axis is not supported in {self.__class__.__name__}")
 
     def remove_vis_axis(self) -> None:
-        rospy.logwarn(f"remove_vis_axis is not implemented in {self.__class__.__name__}")
+        """
+        Removes the visual axis from the world.
+        """
+        self._simulator_object_remover(self._remove_vis_axis)
+
+    def _remove_vis_axis(self) -> None:
+        """
+        See :py:meth:`~pycram.world.World.remove_vis_axis`
+        """
+        rospy.logwarn(f"Visual axis is not supported in {self.__class__.__name__}")
+
+    def _simulator_object_creator(self, creator_func: Callable, *args, **kwargs) -> int:
+        """
+        Create an object in the physics simulator and returns the created object id.
+
+        :param creator_func: The function that creates the object in the physics simulator.
+        :param args: The arguments for the creator function.
+        :param kwargs: The keyword arguments for the creator function.
+        :return: The created object id.
+        """
+        obj_id = creator_func(*args, **kwargs)
+        self.update_simulator_state_id_in_original_state()
+        return obj_id
+
+    def _simulator_object_remover(self, remover_func: Callable, *args, **kwargs) -> None:
+        """
+        Remove an object from the physics simulator.
+
+        :param remover_func: The function that removes the object from the physics simulator.
+        :param args: The arguments for the remover function.
+        :param kwargs: The keyword arguments for the remover function.
+        """
+        remover_func(*args, **kwargs)
+        self.update_simulator_state_id_in_original_state()
+
+    def update_simulator_state_id_in_original_state(self, use_same_id: bool = False) -> None:
+        """
+        Update the simulator state id in the original state if use_physics_simulator_state is True in the configuration.
+
+        :param use_same_id: If the same id should be used for the state.
+        """
+        if conf.use_physics_simulator_state:
+            self.original_state.simulator_state_id = self.save_physics_simulator_state(use_same_id)
+
+    @property
+    def original_state(self) -> WorldState:
+        """
+        The saved original state of the world.
+        """
+        return self.saved_states[self.original_state_id]
 
     def __del__(self):
         self.exit()

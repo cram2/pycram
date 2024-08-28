@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+from pathlib import Path
 
 import numpy as np
 import rospy
@@ -17,9 +18,14 @@ from ..datastructures.pose import Pose, Transform
 from ..datastructures.world import World
 from ..datastructures.world_entity import WorldEntity
 from ..description import ObjectDescription, LinkDescription, Joint
-from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenObjects
+from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenObjects, UnsupportedFileExtension, \
+    ObjectDescriptionUndefined
 from ..local_transformer import LocalTransformer
-from ..object_descriptors.urdf import ObjectDescription as URDFObject
+from ..object_descriptors.urdf import ObjectDescription as URDF
+try:
+    from ..object_descriptors.mjcf import ObjectDescription as MJCF
+except ImportError:
+    MJCF = None
 from ..robot_description import RobotDescriptionManager, RobotDescription
 from ..world_concepts.constraints import Attachment
 
@@ -36,12 +42,18 @@ class Object(WorldEntity):
     The prefix for the tf frame of objects in the prospection world.
     """
 
+    extension_to_description_type: Dict[str, Type[ObjectDescription]] = {URDF.get_file_extension(): URDF}
+    """
+    A dictionary that maps the file extension to the corresponding ObjectDescription type.
+    """
+
     def __init__(self, name: str, obj_type: ObjectType, path: str,
                  description: Optional[ObjectDescription] = None,
                  pose: Optional[Pose] = None,
                  world: Optional[World] = None,
                  color: Color = Color(),
-                 ignore_cached_files: bool = False):
+                 ignore_cached_files: bool = False,
+                 scale_mesh: Optional[float] = None):
         """
         The constructor loads the description file into the given World, if no World is specified the
         :py:attr:`~World.current_world` will be used. It is also possible to load .obj and .stl file into the World.
@@ -58,6 +70,7 @@ class Object(WorldEntity):
          :py:attr:`~World.current_world` will be used.
         :param color: The rgba_color with which the object should be spawned.
         :param ignore_cached_files: If true the file will be spawned while ignoring cached files.
+        :param scale_mesh: The scale of the mesh.
         """
 
         super().__init__(-1, world if world is not None else World.current_world)
@@ -68,7 +81,7 @@ class Object(WorldEntity):
         self.path: Optional[str] = path
         self.obj_type: ObjectType = obj_type
         self.color: Color = color
-        self.description = description if description is not None else URDFObject()
+        self._resolve_description(path, description)
         self.cache_manager = self.world.cache_manager
 
         self.local_transformer = LocalTransformer()
@@ -77,7 +90,8 @@ class Object(WorldEntity):
 
         if path is not None:
             self.path = self.world.preprocess_object_file_and_get_its_cache_path(path, ignore_cached_files,
-                                                                                 self.description, self.name)
+                                                                                 self.description, self.name,
+                                                                                 scale_mesh=scale_mesh)
 
             self.description.update_description_from_file(self.path)
 
@@ -96,7 +110,27 @@ class Object(WorldEntity):
 
         self.attachments: Dict[Object, Attachment] = {}
 
-        self.world.objects.append(self)
+        self.world.add_object(self)
+
+    def _resolve_description(self, path: Optional[str] = None, description: Optional[ObjectDescription] = None) -> None:
+        """
+        Find the correct description type of the object and initialize it and set the description of this object to it.
+
+        :param path: The path to the source file.
+        :param description: The ObjectDescription of the object.
+        """
+        if description is not None:
+            self.description = description
+            return
+        if path is None:
+            raise ObjectDescriptionUndefined(self.name)
+        extension = Path(path).suffix
+        if extension in self.extension_to_description_type:
+            self.description = self.extension_to_description_type[extension]()
+        elif extension in ObjectDescription.mesh_extensions:
+            self.description = self.world.default_description_type()
+        else:
+            raise UnsupportedFileExtension(self.name, path)
 
     def set_mobile_robot_pose(self, pose: Pose) -> None:
         """
@@ -546,7 +580,7 @@ class Object(WorldEntity):
         """
         self.world.remove_object(self)
 
-    def reset(self, remove_saved_states=True) -> None:
+    def reset(self, remove_saved_states=False) -> None:
         """
         Reset the Object to the state it was first spawned in.
         All attached objects will be detached, all joints will be set to the
