@@ -5,7 +5,7 @@ from pycram.designators.action_designator import *
 from pycram.designators.object_designator import BelieveObject
 from pycram.datastructures.enums import ObjectType, State
 from pycram.fluent import Fluent
-from pycram.plan_failures import PlanFailure
+from pycram.failures import PlanFailure
 from pycram.datastructures.pose import Pose
 from pycram.language import Sequential, Language, Parallel, TryAll, TryInOrder, Monitor, Code
 from pycram.process_module import simulated_robot

@@ -14,10 +14,10 @@ from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointSt
                                           ContactPointsList)
 from ..datastructures.enums import ObjectType, JointType
 from ..datastructures.pose import Pose, Transform
-from ..exceptions import ObjectAlreadyExists
 from ..datastructures.world import World
 from ..datastructures.world_entity import WorldEntity
 from ..description import ObjectDescription, LinkDescription, Joint
+from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenObjects
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.urdf import ObjectDescription as URDFObject
 from ..robot_description import RobotDescriptionManager, RobotDescription
@@ -37,7 +37,7 @@ class Object(WorldEntity):
     """
 
     def __init__(self, name: str, obj_type: ObjectType, path: str,
-                 description: Type[ObjectDescription] = URDFObject,
+                 description: Optional[ObjectDescription] = None,
                  pose: Optional[Pose] = None,
                  world: Optional[World] = None,
                  color: Color = Color(),
@@ -68,7 +68,7 @@ class Object(WorldEntity):
         self.path: Optional[str] = path
         self.obj_type: ObjectType = obj_type
         self.color: Color = color
-        self.description = description()
+        self.description = description if description is not None else URDFObject()
         self.cache_manager = self.world.cache_manager
 
         self.local_transformer = LocalTransformer()
@@ -98,10 +98,43 @@ class Object(WorldEntity):
 
         self.world.objects.append(self)
 
+    def set_mobile_robot_pose(self, pose: Pose) -> None:
+        """
+        Set the goal for the move base joints of a mobile robot to reach a target pose. This is used for example when
+        the simulator does not support setting the pose of the robot directly (e.g. MuJoCo).
+
+        :param pose: The target pose.
+        """
+        goal = self.get_move_base_joint_goal(pose)
+        self.set_multiple_joint_positions(goal)
+
+    def get_move_base_joint_goal(self, pose: Pose) -> Dict[str, float]:
+        """
+        Get the goal for the move base joints of a mobile robot to reach a target pose.
+
+        :param pose: The target pose.
+        :return: The goal for the move base joints.
+        """
+        target_translation, target_angle = self.get_mobile_base_pose_difference(pose)
+        # Get the joints of the base link
+        move_base_joints = self.world.get_robot_move_base_joints()
+        return {move_base_joints.translation_x: target_translation.x,
+                move_base_joints.translation_y: target_translation.y,
+                move_base_joints.angular_z: target_angle}
+
+    def get_mobile_base_pose_difference(self, pose: Pose) -> Tuple[Point, float]:
+        """
+        Get the difference between the current and the target pose of the mobile base.
+
+        :param pose: The target pose.
+        :return: The difference between the current and the target pose of the mobile base.
+        """
+        return self.original_pose.get_position_diff(pose), self.original_pose.get_z_angle_difference(pose)
+
     @property
     def joint_actuators(self) -> Optional[Dict[str, str]]:
         """
-        Returns the joint actuators of the robot.
+        The joint actuators of the robot.
         """
         if self.obj_type == ObjectType.ROBOT:
             return self.robot_description.joint_actuators
@@ -110,20 +143,21 @@ class Object(WorldEntity):
     @property
     def has_actuators(self) -> bool:
         """
-        Returns True if the object has actuators, otherwise False.
+        True if the object has actuators, otherwise False.
         """
         return self.robot_description.has_actuators
 
     @property
     def robot_description(self) -> RobotDescription:
         """
-        Returns the current robot description.
+        The current robot description.
         """
         return self.world.robot_description
 
     def get_actuator_for_joint(self, joint: Joint) -> Optional[str]:
         """
         Get the actuator name for a joint.
+
         :param joint: The joint object for which to get the actuator.
         :return: The name of the actuator.
         """
@@ -132,38 +166,43 @@ class Object(WorldEntity):
     def get_multiple_link_positions(self, links: List[Link]) -> Dict[str, List[float]]:
         """
         Get the positions of multiple links of the object.
-        param link_names: The names of the links.
-        return: The positions of the links.
+
+        :param links: The link objects of which to get the positions.
+        :return: The positions of the links.
         """
         return self.world.get_multiple_link_positions(links)
 
     def get_multiple_link_orientations(self, links: List[Link]) -> Dict[str, List[float]]:
         """
         Get the orientations of multiple links of the object.
-        param link_names: The names of the links.
-        return: The orientations of the links.
+
+        :param links: The link objects of which to get the orientations.
+        :return: The orientations of the links.
         """
         return self.world.get_multiple_link_orientations(links)
 
     def get_multiple_link_poses(self, links: List[Link]) -> Dict[str, Pose]:
         """
         Get the poses of multiple links of the object.
-        param link_names: The names of the links.
-        return: The poses of the links.
+
+        :param links: The link objects of which to get the poses.
+        :return: The poses of the links.
         """
         return self.world.get_multiple_link_poses(links)
 
     def get_target_poses_of_attached_objects(self) -> Dict[Object, Pose]:
         """
         Get the target poses of the attached objects.
-        return: The target poses of the attached objects
+
+        :return: The target poses of the attached objects
         """
         return self.get_target_poses_of_attached_objects_given_parent(self.get_pose())
 
     def get_poses_of_attached_objects(self) -> Dict[Object, Pose]:
         """
         Get the poses of the attached objects.
-        return: The poses of the attached objects
+
+        :return: The poses of the attached objects
         """
         return {child_object: attachment.get_child_object_pose()
                 for child_object, attachment in self.attachments.items() if not attachment.loose}
@@ -172,31 +211,47 @@ class Object(WorldEntity):
         """
         Get the target poses of the attached objects of an object. Given the pose of the parent object.
         param pose: The pose of the parent object.
-        return: The target poses of the attached objects
+
+        :return: The target poses of the attached objects
         """
         return {child_object: attachment.get_child_object_pose_given_parent(pose) for child_object, attachment
                 in self.attachments.items() if not attachment.loose}
 
     @property
     def name(self):
+        """
+        The name of the object.
+        """
         return self._name
 
     @name.setter
     def name(self, name: str):
+        """
+        Set the name of the object.
+        """
         self._name = name
         if name in [obj.name for obj in self.world.objects]:
             raise ObjectAlreadyExists(self)
 
     @property
     def pose(self):
+        """
+        The current pose of the object.
+        """
         return self.get_pose()
 
     @pose.setter
     def pose(self, pose: Pose):
+        """
+        Set the pose of the object.
+        """
         self.set_pose(pose)
 
     @property
     def transform(self):
+        """
+        The current transform of the object.
+        """
         return self.get_pose().to_transform(self.tf_frame)
 
     def _spawn_object_and_get_id(self) -> int:
@@ -293,34 +348,43 @@ class Object(WorldEntity):
             self.joints[joint_name] = self.description.Joint(joint_id, parsed_joint_description, self, is_virtual)
 
     def is_joint_virtual(self, name: str):
+        """
+        Check if a joint is virtual.
+        """
         return self.description.is_joint_virtual(name)
 
     @property
     def virtual_joint_names(self):
+        """
+        The names of the virtual joints.
+        """
         return self.description.virtual_joint_names
 
     @property
     def virtual_joints(self):
+        """
+        The virtual joints as a list.
+        """
         return [joint for joint in self.joints.values() if joint.is_virtual]
 
     @property
     def has_one_link(self) -> bool:
         """
-        Return True if the object has only one link, otherwise False.
+        True if the object has only one link, otherwise False.
         """
         return len(self.links) == 1
 
     @property
     def link_names(self) -> List[str]:
         """
-        :return: The name of each link as a list.
+        The names of the links as a list.
         """
         return self.world.get_object_link_names(self)
 
     @property
     def joint_names(self) -> List[str]:
         """
-        :return: The name of each joint as a list.
+        The names of the joints as a list.
         """
         return self.world.get_object_joint_names(self)
 
@@ -500,6 +564,7 @@ class Object(WorldEntity):
     def has_type_environment(self) -> bool:
         """
         Check if the object is of type environment.
+
         :return: True if the object is of type environment, False otherwise.
         """
         return self.obj_type == ObjectType.ENVIRONMENT
@@ -509,7 +574,8 @@ class Object(WorldEntity):
                parent_link: Optional[str] = None,
                child_link: Optional[str] = None,
                bidirectional: bool = True,
-               coincide_the_objects: bool = False) -> None:
+               coincide_the_objects: bool = False,
+               parent_to_child_transform: Optional[Transform] = None) -> None:
         """
         Attach another object to this object. This is done by
         saving the transformation between the given link, if there is one, and
@@ -525,15 +591,13 @@ class Object(WorldEntity):
         :param child_link: The link name of the other object.
         :param bidirectional: If the attachment should be a loose attachment.
         :param coincide_the_objects: If True the object frames will be coincided.
+        :param parent_to_child_transform: The transform from the parent to the child object.
         """
         parent_link = self.links[parent_link] if parent_link else self.root_link
         child_link = child_object.links[child_link] if child_link else child_object.root_link
 
-        if coincide_the_objects:
+        if coincide_the_objects and parent_to_child_transform is None:
             parent_to_child_transform = Transform()
-        else:
-            # parent_to_child_transform = parent_link.get_transform_to_link(child_link)
-            parent_to_child_transform = None
         attachment = Attachment(parent_link, child_link, bidirectional, parent_to_child_transform)
 
         self.attachments[child_object] = attachment
@@ -713,18 +777,79 @@ class Object(WorldEntity):
 
         :param attachments: A dictionary with the object as key and the attachment as value.
         """
+        self.detach_objects_not_in_attachments(attachments)
+        self.attach_objects_in_attachments(attachments)
+
+    def detach_objects_not_in_attachments(self, attachments: Dict[Object, Attachment]) -> None:
+        """
+        Detach objects that are not in the attachments list and are in the current attachments list.
+
+        :param attachments: A dictionary with the object as key and the attachment as value.
+        """
+        copy_of_attachments = self.attachments.copy()
+        for obj, attachment in copy_of_attachments.items():
+            original_obj = obj
+            if self.world.is_prospection_world and len(attachments) > 0 \
+                    and not list(attachments.keys())[0].world.is_prospection_world:
+                obj = self.world.get_object_for_prospection_object(obj)
+            if obj not in attachments:
+                if attachment.is_inverse:
+                    original_obj.detach(self)
+                else:
+                    self.detach(original_obj)
+
+    def attach_objects_in_attachments(self, attachments: Dict[Object, Attachment]) -> None:
+        """
+        Attach objects that are in the given attachments list but not in the current attachments list.
+
+        :param attachments: A dictionary with the object as key and the attachment as value.
+        """
         for obj, attachment in attachments.items():
-            if self.world.is_prospection_world and not obj.world.is_prospection_world:
-                # In case this object is in the prospection world and the other object is not, the attachment will not
-                # be set.
-                continue
+            is_prospection = self.world.is_prospection_world and not obj.world.is_prospection_world
+            if is_prospection:
+                obj = self.world.get_prospection_object_for_object(obj)
             if obj in self.attachments:
                 if self.attachments[obj] != attachment:
-                    self.detach(obj)
+                    if attachment.is_inverse:
+                        obj.detach(self)
+                    else:
+                        self.detach(obj)
                 else:
                     continue
-            self.attach(obj, attachment.parent_link.name, attachment.child_link.name,
-                        attachment.bidirectional)
+            self.mimic_attachment_with_object(attachment, obj)
+
+    def mimic_attachment_with_object(self, attachment: Attachment, child_object: Object) -> None:
+        """
+        Mimic the given attachment for this and the given child objects.
+
+        :param attachment: The attachment to mimic.
+        :param child_object: The child object.
+        """
+        att_transform = self.get_attachment_transform_with_object(attachment, child_object)
+        if attachment.is_inverse:
+            child_object.attach(self, attachment.child_link.name, attachment.parent_link.name,
+                                attachment.bidirectional,
+                                parent_to_child_transform=att_transform.invert())
+        else:
+            self.attach(child_object, attachment.parent_link.name, attachment.child_link.name,
+                        attachment.bidirectional, parent_to_child_transform=att_transform)
+
+    def get_attachment_transform_with_object(self, attachment: Attachment, child_object: Object) -> Transform:
+        """
+        Return the attachment transform for the given parent and child objects, taking into account the prospection
+        world.
+
+        :param attachment: The attachment.
+        :param child_object: The child object.
+        :return: The attachment transform.
+        """
+        if self.world != child_object.world:
+            raise WorldMismatchErrorBetweenObjects(self, child_object)
+        att_transform = attachment.parent_to_child_transform.copy()
+        if self.world.is_prospection_world and not attachment.parent_object.world.is_prospection_world:
+            att_transform.frame = self.prospection_world_prefix + att_transform.frame
+            att_transform.child_frame_id = self.prospection_world_prefix + att_transform.child_frame_id
+        return att_transform
 
     @property
     def link_states(self) -> Dict[int, LinkState]:
@@ -762,7 +887,11 @@ class Object(WorldEntity):
         :param joint_states: A dictionary with the joint id as key and the current state of the joint as value.
         """
         for joint in self.joints.values():
-            joint.current_state = joint_states[joint.id]
+            if joint.name not in self.robot_virtual_move_base_joints_names():
+                joint.current_state = joint_states[joint.id]
+
+    def robot_virtual_move_base_joints_names(self):
+        return self.robot_description.virtual_move_base_joints.names
 
     def remove_saved_states(self) -> None:
         """
@@ -933,7 +1062,7 @@ class Object(WorldEntity):
         """
         Set the current position of all joints to 0. This is useful if the joints should be reset to their default
         """
-        joint_names = [joint.name for joint in self.joints.values()]  # if not joint.is_virtual]
+        joint_names = [joint.name for joint in self.joints.values()]
         if len(joint_names) == 0:
             return
         joint_positions = [0] * len(joint_names)
@@ -946,11 +1075,12 @@ class Object(WorldEntity):
         :param joint_name: The name of the joint
         :param joint_position: The target pose for this joint
         """
-        self.world.reset_joint_position(self.joints[joint_name], joint_position)
+        if self.world.reset_joint_position(self.joints[joint_name], joint_position):
+            self._update_on_joint_position_change()
 
     def set_multiple_joint_positions(self, joint_positions: Dict[str, float]) -> None:
         """
-        Sets the current position of multiple joints at once, this method should be preferred when setting
+        Set the current position of multiple joints at once, this method should be preferred when setting
         multiple joints at once instead of running :func:`~Object.set_joint_position` in a loop.
 
         :param joint_positions: A dictionary with the joint names as keys and the target positions as values.
@@ -969,6 +1099,7 @@ class Object(WorldEntity):
     def get_joint_position(self, joint_name: str) -> float:
         """
         Return the current position of the given joint.
+
         :param joint_name: The name of the joint
         :return: The current position of the given joint
         """
@@ -977,6 +1108,7 @@ class Object(WorldEntity):
     def get_joint_damping(self, joint_name: str) -> float:
         """
         Return the damping of the given joint (friction).
+
         :param joint_name: The name of the joint
         :return: The damping of the given joint
         """
@@ -985,6 +1117,7 @@ class Object(WorldEntity):
     def get_joint_upper_limit(self, joint_name: str) -> float:
         """
         Return the upper limit of the given joint.
+
         :param joint_name: The name of the joint
         :return: The upper limit of the given joint
         """
@@ -993,6 +1126,7 @@ class Object(WorldEntity):
     def get_joint_lower_limit(self, joint_name: str) -> float:
         """
         Return the lower limit of the given joint.
+
         :param joint_name: The name of the joint
         :return: The lower limit of the given joint
         """
@@ -1001,6 +1135,7 @@ class Object(WorldEntity):
     def get_joint_axis(self, joint_name: str) -> Point:
         """
         Return the axis of the given joint.
+
         :param joint_name: The name of the joint
         :return: The axis of the given joint
         """
@@ -1009,6 +1144,7 @@ class Object(WorldEntity):
     def get_joint_type(self, joint_name: str) -> JointType:
         """
         Return the type of the given joint.
+
         :param joint_name: The name of the joint
         :return: The type of the given joint
         """
@@ -1017,6 +1153,7 @@ class Object(WorldEntity):
     def get_joint_limits(self, joint_name: str) -> Tuple[float, float]:
         """
         Return the lower and upper limits of the given joint.
+
         :param joint_name: The name of the joint
         :return: The lower and upper limits of the given joint
         """
@@ -1025,6 +1162,7 @@ class Object(WorldEntity):
     def get_joint_child_link(self, joint_name: str) -> ObjectDescription.Link:
         """
         Return the child link of the given joint.
+
         :param joint_name: The name of the joint
         :return: The child link of the given joint
         """
@@ -1032,7 +1170,7 @@ class Object(WorldEntity):
 
     def get_joint_parent_link(self, joint_name: str) -> ObjectDescription.Link:
         """
-
+        Return the parent link of the given joint.
 
         :param joint_name: The name of the joint
         :return: The parent link of the given joint
@@ -1060,7 +1198,7 @@ class Object(WorldEntity):
 
     def get_multiple_joint_positions(self, joint_names: List[str]) -> Dict[str, float]:
         """
-        Returns the positions of multiple joints at once.
+        Return the positions of multiple joints at once.
 
         :param joint_names: A list of joint names.
         :return: A dictionary with the joint names as keys and the joint positions as values.
@@ -1078,6 +1216,8 @@ class Object(WorldEntity):
     def update_link_transforms(self, transform_time: Optional[rospy.Time] = None) -> None:
         """
         Update the transforms of all links of this object using time 'transform_time' or the current ros time.
+
+        :param transform_time: The time to use for the transform update.
         """
         for link in self.links.values():
             link.update_transform(transform_time)
@@ -1166,6 +1306,7 @@ class Object(WorldEntity):
     def get_axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
         """
         Return the axis aligned bounding box of this object.
+
         :return: The axis aligned bounding box of this object.
         """
         return self.world.get_object_axis_aligned_bounding_box(self)
@@ -1173,6 +1314,7 @@ class Object(WorldEntity):
     def get_base_origin(self) -> Pose:
         """
         Return the origin of the base/bottom of this object.
+
         :return: the origin of the base/bottom of this object.
         """
         aabb = self.get_axis_aligned_bounding_box()
@@ -1200,14 +1342,13 @@ class Object(WorldEntity):
 
     def copy_to_world(self, world: World) -> Object:
         """
-        Copies this object to the given world.
+        Copy this object to the given world.
 
         :param world: The world to which the object should be copied.
         :return: The copied object in the given world.
         """
-        obj = Object(self.name, self.obj_type, self.path, type(self.description), self.get_pose(),
+        obj = Object(self.name, self.obj_type, self.path, self.description, self.get_pose(),
                      world, self.color)
-        obj.current_state = self.current_state
         return obj
 
     def __eq__(self, other):

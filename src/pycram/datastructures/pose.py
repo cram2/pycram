@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import math
 import datetime
+
+from tf.transformations import euler_from_quaternion
 from typing_extensions import List, Union, Optional, Sized
 
 import numpy as np
@@ -85,6 +87,32 @@ class Pose(PoseStamped):
         p.header = pose_stamped.header
         p.pose = pose_stamped.pose
         return p
+
+    def get_position_diff(self, target_pose: 'Pose') -> Point:
+        """
+        Get the difference between the target and the current positions.
+
+        :param target_pose: The target pose.
+        :return: The difference between the two positions.
+        """
+        return Point(target_pose.position.x - self.position.x, target_pose.position.y - self.position.y,
+                     target_pose.position.z - self.position.z)
+
+    def get_z_angle_difference(self, target_pose: Pose) -> float:
+        """
+        Get the difference between two z angles.
+
+        :param target_pose: The target pose.
+        :return: The difference between the two z angles.
+        """
+        return target_pose.z_angle - self.z_angle
+
+    @property
+    def z_angle(self) -> float:
+        """
+        The z angle of the orientation of this Pose in radians.
+        """
+        return euler_from_quaternion(self.orientation_as_list())[2]
 
     @property
     def frame(self) -> str:
@@ -344,6 +372,30 @@ class Transform(TransformStamped):
         self.header.stamp = time if time else rospy.Time.now()
 
         self.frame = frame
+
+    def apply_transform_to_array_of_points(self, points: np.ndarray) -> np.ndarray:
+        """
+        Applies this Transform to an array of points. The points are given as a Nx3 matrix, where N is the number of
+        points. The points are transformed from the child_frame_id to the frame_id of this Transform.
+
+        :param points: The points that should be transformed, given as a Nx3 matrix.
+        """
+        homogeneous_transform = self.get_homogeneous_matrix()
+        # add the homogeneous coordinate, by adding a column of ones to the position vectors, becoming 4xN matrix
+        homogenous_points = np.concatenate((points, np.ones((points.shape[0], 1))), axis=1).T
+        rays_end_positions = homogeneous_transform @ homogenous_points
+        return rays_end_positions[:3, :].T
+
+    def get_homogeneous_matrix(self) -> np.ndarray:
+        """
+        Returns the homogeneous matrix of this Transform. The matrix can be used to transform points from the frame_id
+        to the child_frame_id.
+
+        :return: The homogeneous matrix of this Transform
+        """
+        translation = transformations.translation_matrix(self.translation_as_list())
+        rotation = transformations.quaternion_matrix(self.rotation_as_list())
+        return np.dot(translation, rotation)
 
     @classmethod
     def from_pose_and_child_frame(cls, pose: Pose, child_frame_name: str) -> Transform:

@@ -16,9 +16,10 @@ from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBod
 from ..datastructures.enums import ObjectType, WorldMode, JointType
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
-from ..validation.goal_validator import validate_multiple_joint_positions, validate_joint_position, validate_object_pose
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription
+from ..validation.goal_validator import (validate_multiple_joint_positions, validate_joint_position,
+                                         validate_object_pose, validate_multiple_object_poses)
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.world_object import Object
 
@@ -77,15 +78,15 @@ class BulletWorld(World):
         """
         # Create visual shape
         vis_shape = p.createVisualShape(p.GEOM_BOX, halfExtents=description.shape_data,
-                                        rgbaColor=description.color.get_rgba())
+                                        rgbaColor=description.color.get_rgba(), physicsClientId=self.id)
 
         # Create collision shape
-        col_shape = p.createCollisionShape(p.GEOM_BOX, halfExtents=description.shape_data)
+        col_shape = p.createCollisionShape(p.GEOM_BOX, halfExtents=description.shape_data, physicsClientId=self.id)
 
         # Create MultiBody with both visual and collision shapes
         obj_id = p.createMultiBody(baseMass=1.0, baseCollisionShapeIndex=col_shape, baseVisualShapeIndex=vis_shape,
                                    basePosition=description.origin.position_as_list(),
-                                   baseOrientation=description.origin.orientation_as_list())
+                                   baseOrientation=description.origin.orientation_as_list(), physicsClientId=self.id)
 
         # Assuming you have a list to keep track of created objects
         return obj_id
@@ -103,11 +104,12 @@ class BulletWorld(World):
                           basePosition=pose.position_as_list(),
                           baseOrientation=pose.orientation_as_list(), physicsClientId=self.id)
 
-    def remove_object_from_simulator(self, obj: Object) -> None:
-        p.removeBody(obj.id, self.id)
+    def remove_object_from_simulator(self, obj: Object) -> bool:
+        return self.remove_object_by_id(obj.id)
 
-    def remove_object_by_id(self, obj_id: int) -> None:
+    def remove_object_by_id(self, obj_id: int) -> True:
         p.removeBody(obj_id, self.id)
+        return True
 
     def add_constraint(self, constraint: Constraint) -> int:
 
@@ -217,9 +219,11 @@ class BulletWorld(World):
     def get_multiple_joint_positions(self, joints: List[Joint]) -> Dict[str, float]:
         return {joint.name: self.get_joint_position(joint) for joint in joints}
 
-    def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> None:
+    @validate_multiple_object_poses
+    def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> bool:
         for obj, pose in objects.items():
             self.reset_object_base_pose(obj, pose)
+        return True
 
     @validate_object_pose
     def reset_object_base_pose(self, obj: Object, pose: Pose) -> bool:

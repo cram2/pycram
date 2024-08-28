@@ -17,6 +17,7 @@ from ..description import JointDescription as AbstractJointDescription, \
     LinkDescription as AbstractLinkDescription, ObjectDescription as AbstractObjectDescription
 from ..datastructures.dataclasses import Color, VisualShape, BoxVisualShape, CylinderVisualShape, \
     SphereVisualShape, MeshVisualShape
+from ..failures import MultiplePossibleTipLinks
 from ..utils import suppress_stdout_stderr
 
 
@@ -317,12 +318,16 @@ class ObjectDescription(AbstractObjectDescription):
         return self.parsed_description.get_root()
 
     def get_tip(self) -> str:
+        """
+        :return: the name of the tip link of this object.
+        :raises MultiplePossibleTipLinks: If there are multiple possible tip links.
+        """
         link = self.get_root()
         while link in self.parsed_description.child_map:
             children = self.parsed_description.child_map[link]
             if len(children) > 1:
                 # Multiple children, can't decide which one to take (e.g. fingers of a hand)
-                break
+                raise MultiplePossibleTipLinks(self.parsed_description.name, link, [child[1] for child in children])
             else:
                 child = children[0][1]
                 link = child
@@ -365,6 +370,13 @@ class ObjectDescription(AbstractObjectDescription):
 
     @staticmethod
     def make_mesh_paths_absolute(urdf_string: str, urdf_file_path: str) -> str:
+        """
+        Convert all relative mesh paths in the URDF to absolute paths.
+
+        :param urdf_string: The URDF description as string
+        :param urdf_file_path: The path to the URDF file
+        :returns: The new URDF description as string.
+        """
         # Parse the URDF file
         root = ET.fromstring(urdf_string)
 
@@ -415,7 +427,7 @@ class ObjectDescription(AbstractObjectDescription):
     @staticmethod
     def remove_error_tags(urdf_string: str) -> str:
         """
-        Removes all tags in the removing_tags list from the URDF since these tags are known to cause errors with the
+        Remove all tags in the removing_tags list from the URDF since these tags are known to cause errors with the
         URDF_parser
 
         :param urdf_string: String of the URDF from which the tags should be removed
@@ -433,7 +445,7 @@ class ObjectDescription(AbstractObjectDescription):
     @staticmethod
     def fix_link_attributes(urdf_string: str) -> str:
         """
-        Removes the attribute 'type' from links since this is not parsable by the URDF parser.
+        Remove the attribute 'type' from links since this is not parsable by the URDF parser.
 
         :param urdf_string: The string of the URDF from which the attributes should be removed
         :return: The URDF string with the attributes removed

@@ -44,7 +44,12 @@ class RobotDescriptionManager:
             RobotDescription.current_robot_description = self.descriptions[name]
             return self.descriptions[name]
         else:
-            rospy.logerr(f"Robot description {name} not found")
+            for key in self.descriptions.keys():
+                if key in name.lower():
+                    RobotDescription.current_robot_description = self.descriptions[key]
+                    return self.descriptions[key]
+            else:
+                rospy.logerr(f"Robot description {name} not found")
 
     def register_description(self, description: RobotDescription):
         """
@@ -243,13 +248,21 @@ class RobotDescription:
                 result.append(chain)
         return result
 
-    def get_camera_frame(self) -> str:
+    def get_camera_link(self) -> str:
         """
         Quick method to get the name of a link of a camera. Uses the first camera in the list of cameras.
 
         :return: A name of the link of a camera
         """
         return self.cameras[list(self.cameras.keys())[0]].link_name
+
+    def get_camera_frame(self) -> str:
+        """
+        Quick method to get the name of a link of a camera. Uses the first camera in the list of cameras.
+
+        :return: A name of the link of a camera
+        """
+        return f"{self.name}/{self.cameras[list(self.cameras.keys())[0]].link_name}"
 
     def get_default_camera(self) -> CameraDescription:
         """

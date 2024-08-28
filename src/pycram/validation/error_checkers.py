@@ -242,6 +242,8 @@ def calculate_angle_between_quaternions(quat_1: List[float], quat_2: List[float]
     """
     quat_diff = calculate_quaternion_difference(quat_1, quat_2)
     quat_diff_angle = 2 * np.arctan2(np.linalg.norm(quat_diff[0:3]), quat_diff[3])
+    if quat_diff_angle > np.pi:
+        quat_diff_angle = 2 * np.pi - quat_diff_angle
     return quat_diff_angle
 
 

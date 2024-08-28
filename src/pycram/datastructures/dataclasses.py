@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 def get_point_as_list(point: Point) -> List[float]:
     """
-    Returns the point as a list.
+    Return the point as a list.
 
     :param point: The point.
     :return: The point as a list
@@ -41,7 +41,7 @@ class Color:
     @classmethod
     def from_list(cls, color: List[float]):
         """
-        Sets the rgba_color from a list of RGBA values.
+        Set the rgba_color from a list of RGBA values.
 
         :param color: The list of RGBA values
         """
@@ -55,7 +55,7 @@ class Color:
     @classmethod
     def from_rgb(cls, rgb: List[float]):
         """
-        Sets the rgba_color from a list of RGB values.
+        Set the rgba_color from a list of RGB values.
 
         :param rgb: The list of RGB values
         """
@@ -64,7 +64,7 @@ class Color:
     @classmethod
     def from_rgba(cls, rgba: List[float]):
         """
-        Sets the rgba_color from a list of RGBA values.
+        Set the rgba_color from a list of RGBA values.
 
         :param rgba: The list of RGBA values
         """
@@ -72,7 +72,7 @@ class Color:
 
     def get_rgba(self) -> List[float]:
         """
-        Returns the rgba_color as a list of RGBA values.
+        Return the rgba_color as a list of RGBA values.
 
         :return: The rgba_color as a list of RGBA values
         """
@@ -80,7 +80,7 @@ class Color:
 
     def get_rgb(self) -> List[float]:
         """
-        Returns the rgba_color as a list of RGB values.
+        Return the rgba_color as a list of RGB values.
 
         :return: The rgba_color as a list of RGB values
         """
@@ -102,7 +102,7 @@ class AxisAlignedBoundingBox:
     @classmethod
     def from_min_max(cls, min_point: List[float], max_point: List[float]):
         """
-        Sets the axis-aligned bounding box from a minimum and maximum point.
+        Set the axis-aligned bounding box from a minimum and maximum point.
 
         :param min_point: The minimum point
         :param max_point: The maximum point
@@ -111,7 +111,7 @@ class AxisAlignedBoundingBox:
 
     def get_min_max_points(self) -> Tuple[Point, Point]:
         """
-        Returns the axis-aligned bounding box as a tuple of minimum and maximum points.
+        Return the axis-aligned bounding box as a tuple of minimum and maximum points.
 
         :return: The axis-aligned bounding box as a tuple of minimum and maximum points
         """
@@ -119,7 +119,7 @@ class AxisAlignedBoundingBox:
 
     def get_min_point(self) -> Point:
         """
-        Returns the axis-aligned bounding box as a minimum point.
+        Return the axis-aligned bounding box as a minimum point.
 
         :return: The axis-aligned bounding box as a minimum point
         """
@@ -127,7 +127,7 @@ class AxisAlignedBoundingBox:
 
     def get_max_point(self) -> Point:
         """
-        Returns the axis-aligned bounding box as a maximum point.
+        Return the axis-aligned bounding box as a maximum point.
 
         :return: The axis-aligned bounding box as a maximum point
         """
@@ -135,7 +135,7 @@ class AxisAlignedBoundingBox:
 
     def get_min_max(self) -> Tuple[List[float], List[float]]:
         """
-        Returns the axis-aligned bounding box as a tuple of minimum and maximum points.
+        Return the axis-aligned bounding box as a tuple of minimum and maximum points.
 
         :return: The axis-aligned bounding box as a tuple of minimum and maximum points
         """
@@ -160,12 +160,18 @@ class AxisAlignedBoundingBox:
 
 @dataclass
 class CollisionCallbacks:
+    """
+    Dataclass for storing the collision callbacks.
+    """
     on_collision_cb: Callable
     no_collision_cb: Optional[Callable] = None
 
 
 @dataclass
 class MultiBody:
+    """
+    Dataclass for storing the information of a multibody which consists of a base and multiple links with joints.
+    """
     base_visual_shape_index: int
     base_pose: Pose
     link_visual_shape_indices: List[int]
@@ -180,13 +186,16 @@ class MultiBody:
 
 @dataclass
 class VisualShape(ABC):
+    """
+    Abstract dataclass for storing the information of a visual shape.
+    """
     rgba_color: Color
     visual_frame_position: List[float]
 
     @abstractmethod
     def shape_data(self) -> Dict[str, Any]:
         """
-        Returns the shape data of the visual shape (e.g. half extents for a box, radius for a sphere).
+        Returns the shape data of the visual shape (e.g. half extents for a box, radius for a sphere) as a dictionary.
         """
         pass
 
@@ -194,13 +203,16 @@ class VisualShape(ABC):
     @abstractmethod
     def visual_geometry_type(self) -> Shape:
         """
-        Returns the visual geometry type of the visual shape (e.g. box, sphere).
+        Returns the visual geometry type of the visual shape (e.g. box, sphere) as a Shape object.
         """
         pass
 
 
 @dataclass
 class BoxVisualShape(VisualShape):
+    """
+    Dataclass for storing the information of a box visual shape
+    """
     half_extents: List[float]
 
     def shape_data(self) -> Dict[str, List[float]]:
@@ -217,6 +229,9 @@ class BoxVisualShape(VisualShape):
 
 @dataclass
 class SphereVisualShape(VisualShape):
+    """
+    Dataclass for storing the information of a sphere visual shape
+    """
     radius: float
 
     def shape_data(self) -> Dict[str, float]:
@@ -229,6 +244,9 @@ class SphereVisualShape(VisualShape):
 
 @dataclass
 class CapsuleVisualShape(VisualShape):
+    """
+    Dataclass for storing the information of a capsule visual shape
+    """
     radius: float
     length: float
 
@@ -242,6 +260,9 @@ class CapsuleVisualShape(VisualShape):
 
 @dataclass
 class CylinderVisualShape(CapsuleVisualShape):
+    """
+    Dataclass for storing the information of a cylinder visual shape
+    """
 
     @property
     def visual_geometry_type(self) -> Shape:
@@ -250,6 +271,9 @@ class CylinderVisualShape(CapsuleVisualShape):
 
 @dataclass
 class MeshVisualShape(VisualShape):
+    """
+    Dataclass for storing the information of a mesh visual shape
+    """
     scale: List[float]
     file_name: str
 
@@ -263,6 +287,9 @@ class MeshVisualShape(VisualShape):
 
 @dataclass
 class PlaneVisualShape(VisualShape):
+    """
+    Dataclass for storing the information of a plane visual shape
+    """
     normal: List[float]
 
     def shape_data(self) -> Dict[str, List[float]]:
@@ -292,10 +319,20 @@ class LinkState(State):
         return self.all_constraints_exist(other) and self.all_constraints_are_equal(other)
 
     def all_constraints_exist(self, other: 'LinkState'):
+        """
+        Check if all constraints exist in the other link state.
+
+        :param other: The state of the other link.
+        """
         return (all([cid_k in other.constraint_ids.keys() for cid_k in self.constraint_ids.keys()])
                 and len(self.constraint_ids.keys()) == len(other.constraint_ids.keys()))
 
     def all_constraints_are_equal(self, other: 'LinkState'):
+        """
+        Check if all constraints are equal to the ones in the other link state.
+
+        :param other: The state of the other link.
+        """
         return all([cid == other_cid for cid, other_cid in zip(self.constraint_ids.values(),
                                                                other.constraint_ids.values())])
 
@@ -331,13 +368,28 @@ class ObjectState(State):
                 and self.joint_states == other.joint_states)
 
     def pose_is_almost_equal(self, other: 'ObjectState'):
+        """
+        Check if the pose of the object is almost equal to the pose of another object.
+
+        :param other: The state of the other object.
+        """
         return self.pose.almost_equal(other.pose, other.acceptable_pose_error[0], other.acceptable_pose_error[1])
 
     def all_attachments_exist(self, other: 'ObjectState'):
+        """
+        Check if all attachments exist in the other object state.
+
+        :param other: The state of the other object.
+        """
         return (all([att_k in other.attachments.keys() for att_k in self.attachments.keys()])
                 and len(self.attachments.keys()) == len(other.attachments.keys()))
 
     def all_attachments_are_equal(self, other: 'ObjectState'):
+        """
+        Check if all attachments are equal to the ones in the other object state.
+
+        :param other: The state of the other object.
+        """
         return all([att == other_att for att, other_att in zip(self.attachments.values(), other.attachments.values())])
 
 
@@ -354,13 +406,28 @@ class WorldState(State):
                 and self.all_objects_states_are_equal(other))
 
     def simulator_state_is_equal(self, other: 'WorldState'):
+        """
+        Check if the simulator state is equal to the simulator state of another world state.
+
+        :param other: The state of the other world.
+        """
         return self.simulator_state_id == other.simulator_state_id
 
     def all_objects_exist(self, other: 'WorldState'):
+        """
+        Check if all objects exist in the other world state.
+
+        :param other: The state of the other world.
+        """
         return (all([obj_name in other.object_states.keys() for obj_name in self.object_states.keys()])
                 and len(self.object_states.keys()) == len(other.object_states.keys()))
 
     def all_objects_states_are_equal(self, other: 'WorldState'):
+        """
+        Check if all object states are equal to the ones in the other world state.
+
+        :param other: The state of the other world.
+        """
         return all([obj_state == other_obj_state
                     for obj_state, other_obj_state in zip(self.object_states.values(),
                                                           other.object_states.values())])
@@ -421,7 +488,8 @@ class ContactPointsList(list):
 
     def get_normals_of_object(self, obj: Object) -> List[List[float]]:
         """
-        Gets the normals of the object.
+        Get the normals of the object.
+
         :param obj: An instance of the Object class that represents the object.
         :return: A list of float vectors that represent the normals of the object.
         """
@@ -429,14 +497,16 @@ class ContactPointsList(list):
 
     def get_normals(self) -> List[List[float]]:
         """
-        Gets the normals of the points.
+        Get the normals of the points.
+
         :return: A list of float vectors that represent the normals of the contact points.
         """
         return [point.normal_on_b for point in self]
 
     def get_links_in_contact_of_object(self, obj: Object) -> List[Link]:
         """
-        Gets the links in contact of the object.
+        Get the links in contact of the object.
+
         :param obj: An instance of the Object class that represents the object.
         :return: A list of Link instances that represent the links in contact of the object.
         """
@@ -444,15 +514,17 @@ class ContactPointsList(list):
 
     def get_points_of_object(self, obj: Object) -> 'ContactPointsList':
         """
-        Gets the points of the object.
-        :param obj:
-        :return:
+        Get the points of the object.
+
+        :param obj: An instance of the Object class that represents the object that the points are related to.
+        :return: A ContactPointsList instance that represents the contact points of the object.
         """
         return ContactPointsList([point for point in self if point.link_b.object == obj])
 
     def get_objects_that_got_removed(self, previous_points: 'ContactPointsList') -> List[Object]:
         """
-        Returns the object that is not in the current points list but was in the initial points list.
+        Return the object that is not in the current points list but was in the initial points list.
+
         :param previous_points: The initial points list.
         :return: A list of Object instances that represent the objects that got removed.
         """
@@ -462,7 +534,8 @@ class ContactPointsList(list):
 
     def get_new_objects(self, previous_points: 'ContactPointsList') -> List[Object]:
         """
-        Returns the object that is not in the initial points list but is in the current points list.
+        Return the object that is not in the initial points list but is in the current points list.
+
         :param previous_points: The initial points list.
         :return: A list of Object instances that represent the new objects.
         """
@@ -472,16 +545,27 @@ class ContactPointsList(list):
 
     def is_object_in_the_list(self, obj: Object) -> bool:
         """
-        Checks if the object is one of the objects that have points in the list.
+        Check if the object is one of the objects that have points in the list.
+
         :param obj: An instance of the Object class that represents the object.
         :return: True if the object is in the list, False otherwise.
         """
         return obj in self.get_objects_that_have_points()
 
     def get_objects_that_have_points(self) -> List[Object]:
+        """
+        Return the objects that have points in the list.
+
+        :return: A list of Object instances that represent the objects that have points in the list.
+        """
         return [point.link_b.object for point in self]
 
     def get_names_of_objects_that_have_points(self) -> List[str]:
+        """
+        Return the names of the objects that have points in the list.
+
+        :return: A list of strings that represent the names of the objects that have points in the list.
+        """
         return [point.link_b.object.name for point in self]
 
     def __str__(self):
@@ -520,7 +604,7 @@ class VirtualMoveBaseJoints:
     @property
     def names(self) -> List[str]:
         """
-        Returns the names of the virtual move base joints.
+        Return the names of the virtual move base joints.
         """
         return [self.translation_x, self.translation_y, self.angular_z]
 

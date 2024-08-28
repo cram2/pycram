@@ -28,7 +28,7 @@ from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
 from pycram.designators.object_designator import *
 import anytree
-import pycram.plan_failures
+import pycram.failures
 ```
 
 Next we will create a bullet world with a PR2 in a kitchen containing milk and cereal.

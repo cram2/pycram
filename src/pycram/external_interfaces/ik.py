@@ -14,7 +14,7 @@ from ..utils import _apply_ik
 from ..local_transformer import LocalTransformer
 from ..datastructures.pose import Pose
 from ..robot_description import RobotDescription
-from ..plan_failures import IKError
+from ..failures import IKError
 from ..external_interfaces.giskard import projection_cartesian_goal, allow_gripper_collision
 
 

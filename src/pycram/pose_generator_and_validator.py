@@ -9,8 +9,7 @@ from .local_transformer import LocalTransformer
 from .datastructures.pose import Pose, Transform
 from .robot_description import RobotDescription
 from .external_interfaces.ik import request_ik
-from .plan_failures import IKError
-from .utils import _apply_ik
+from .failures import IKError
 from typing_extensions import Tuple, List, Union, Dict, Iterable
 
 
@@ -120,13 +119,13 @@ def visibility_validator(pose: Pose,
     robot_pose = robot.get_pose()
     if isinstance(object_or_pose, Object):
         robot.set_pose(pose)
-        camera_pose = robot.get_link_pose(RobotDescription.current_robot_description.get_camera_frame())
+        camera_pose = robot.get_link_pose(RobotDescription.current_robot_description.get_camera_link())
         robot.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
         ray = world.ray_test(camera_pose.position_as_list(), object_or_pose.get_position_as_list())
         res = ray == object_or_pose.id
     else:
         robot.set_pose(pose)
-        camera_pose = robot.get_link_pose(RobotDescription.current_robot_description.get_camera_frame())
+        camera_pose = robot.get_link_pose(RobotDescription.current_robot_description.get_camera_link())
         robot.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
         # TODO: Check if this is correct
         ray = world.ray_test(camera_pose.position_as_list(), object_or_pose)
@@ -186,7 +185,9 @@ def reachability_validator(pose: Pose,
     res = False
     arms = []
     for description in manipulator_descs:
-        retract_target_pose = LocalTransformer().transform_pose(target, robot.get_link_tf_frame(description.end_effector.tool_frame))
+        retract_target_pose = LocalTransformer().transform_pose(target,
+                                                               robot.get_link_tf_frame(
+                                                                   description.end_effector.tool_frame))
         retract_target_pose.position.x -= 0.07  # Care hard coded value copied from PlaceAction class
 
         # retract_pose needs to be in world frame?
