@@ -15,6 +15,13 @@ class MultiverseClientManager:
     """
     last_used_port: int = BASE_PORT
 
+    def __init__(self, simulation_wait_time_factor: Optional[float] = 1.0):
+        """
+        Initialize the Multiverse client manager.
+        param simulation_wait_time_factor: The simulation wait time factor.
+        """
+        self.simulation_wait_time_factor = simulation_wait_time_factor
+
     def create_reader(self, is_prospection_world: Optional[bool] = False) -> 'MultiverseReader':
         """
         Create a Multiverse reader client.
@@ -56,7 +63,8 @@ class MultiverseClientManager:
         """
         MultiverseClientManager.last_used_port += 1
         name = (name or client_type.__name__) + f"_{self.last_used_port}"
-        client = client_type(name, self.last_used_port, is_prospection_world=is_prospection_world, **kwargs)
+        client = client_type(name, self.last_used_port, is_prospection_world=is_prospection_world,
+                             simulation_wait_time_factor=self.simulation_wait_time_factor, **kwargs)
         self.clients[name] = client
         return client
 

@@ -6,13 +6,11 @@ import time
 from abc import ABC, abstractmethod
 from copy import copy
 
-
 import numpy as np
 import rospy
 from geometry_msgs.msg import Point
 from tf.transformations import euler_from_quaternion
-from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING
-from typing_extensions import Union
+from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union
 
 from ..cache_manager import CacheManager
 from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
@@ -29,6 +27,11 @@ from ..robot_description import RobotDescription
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.event import Event
 from ..config import world_conf as conf
+from pycram.validation.goal_validator import (MultiPoseGoalValidator,
+                                              PoseGoalValidator, JointPositionGoalValidator,
+                                              MultiJointPositionGoalValidator, GoalValidator,
+                                              validate_joint_position, validate_multiple_joint_positions,
+                                              validate_object_pose)
 
 if TYPE_CHECKING:
     from ..world_concepts.world_object import Object
@@ -159,6 +162,20 @@ class World(StateEntity, ABC):
     The prefix for the prospection world name.
     """
 
+    acceptable_position_error: float = 5e-3  # 5 cm
+    acceptable_orientation_error: float = 10 * np.pi / 180  # 10 degrees
+    acceptable_pose_error: Tuple[float, float] = (acceptable_position_error, acceptable_orientation_error)
+    use_percentage_of_goal: bool = True
+    acceptable_percentage_of_goal: float = 0.5 if use_percentage_of_goal else None  # 50%
+    """
+    The acceptable error for the position and orientation of an object/link.
+    """
+
+    raise_goal_validator_error: Optional[bool] = False
+    """
+    Whether to raise an error if the goals are not achieved.
+    """
+
     def __init__(self, mode: WorldMode, is_prospection_world: bool, simulation_frequency: float):
         """
        Creates a new simulation, the mode decides if the simulation should be a rendered window or just run in the
@@ -175,6 +192,7 @@ class World(StateEntity, ABC):
         self.let_pycram_handle_spawning = True
         self.let_pycram_handle_world_sync = True
         self.update_poses_from_sim_on_get = True
+        GoalValidator.raise_error = World.raise_goal_validator_error
 
         if World.current_world is None:
             World.current_world = self
@@ -204,6 +222,39 @@ class World(StateEntity, ABC):
         self._init_events()
 
         self._current_state: Optional[WorldState] = None
+
+        self._init_goal_validators()
+
+    def _init_goal_validators(self):
+        """
+        Initializes the goal validators for the World objects' poses, positions, and orientations.
+        """
+
+        # Objects Pose goal validators
+        self.pose_goal_validator = PoseGoalValidator(self.get_object_pose, self.acceptable_pose_error,
+                                                     self.acceptable_percentage_of_goal)
+        self.multi_pose_goal_validator = MultiPoseGoalValidator(
+            lambda x: list(self.get_multiple_object_poses(x).values()),
+            self.acceptable_pose_error, self.acceptable_percentage_of_goal)
+
+        # Joint Goal validators
+        self.joint_position_goal_validator = JointPositionGoalValidator(
+            self.get_joint_position,
+            acceptable_orientation_error=self.acceptable_orientation_error,
+            acceptable_position_error=self.acceptable_position_error,
+            acceptable_percentage_of_goal_achieved=self.acceptable_percentage_of_goal)
+        self.multi_joint_position_goal_validator = MultiJointPositionGoalValidator(
+            lambda x: list(self.get_multiple_joint_positions(x).values()),
+            acceptable_orientation_error=self.acceptable_orientation_error,
+            acceptable_position_error=self.acceptable_position_error,
+            acceptable_percentage_of_goal_achieved=self.acceptable_percentage_of_goal)
+
+    def check_object_exists(self, obj: Object):
+        """
+        Checks if the object exists in the simulator and issues a warning if it does not.
+        :param obj: The object to check.
+        """
+        return obj not in self.objects
 
     @abstractmethod
     def _init_world(self, mode: WorldMode):
@@ -305,10 +356,8 @@ class World(StateEntity, ABC):
         :return: The object with the given name, if there is one.
         """
 
-        object = list(filter(lambda obj: obj.name == name, self.objects))
-        if len(object) > 0:
-            return object[0]
-        return None
+        matching_objects = list(filter(lambda obj: obj.name == name, self.objects))
+        return matching_objects[0] if len(matching_objects) > 0 else None
 
     def get_object_by_type(self, obj_type: ObjectType) -> List[Object]:
         """
@@ -440,6 +489,56 @@ class World(StateEntity, ABC):
         pass
 
     @abstractmethod
+    def get_multiple_link_poses(self, links: List[Link]) -> Dict[str, Pose]:
+        """
+        Get the poses of multiple links of an articulated object with respect to the world frame.
+
+        :param links: The links as a list of AbstractLink objects.
+        :return: A dictionary with link names as keys and Pose objects as values.
+        """
+        pass
+
+    @abstractmethod
+    def get_link_position(self, link: Link) -> List[float]:
+        """
+        Get the position of a link of an articulated object with respect to the world frame.
+
+        :param link: The link as a AbstractLink object.
+        :return: The position of the link as a list of floats.
+        """
+        pass
+
+    @abstractmethod
+    def get_link_orientation(self, link: Link) -> List[float]:
+        """
+        Get the orientation of a link of an articulated object with respect to the world frame.
+
+        :param link: The link as a AbstractLink object.
+        :return: The orientation of the link as a list of floats.
+        """
+        pass
+
+    @abstractmethod
+    def get_multiple_link_positions(self, links: List[Link]) -> Dict[str, List[float]]:
+        """
+        Get the positions of multiple links of an articulated object with respect to the world frame.
+
+        :param links: The links as a list of AbstractLink objects.
+        :return: A dictionary with link names as keys and lists of floats as values.
+        """
+        pass
+
+    @abstractmethod
+    def get_multiple_link_orientations(self, links: List[Link]) -> Dict[str, List[float]]:
+        """
+        Get the orientations of multiple links of an articulated object with respect to the world frame.
+
+        :param links: The links as a list of AbstractLink objects.
+        :return: A dictionary with link names as keys and lists of floats as values.
+        """
+        pass
+
+    @abstractmethod
     def get_object_link_names(self, obj: Object) -> List[str]:
         """
         Returns the names of all links of this object.
@@ -488,6 +587,41 @@ class World(StateEntity, ABC):
         """
         pass
 
+    @abstractmethod
+    def get_multiple_object_poses(self, objects: List[Object]) -> Dict[str, Pose]:
+        """
+        Get the poses of multiple objects in the world frame from the current object poses in the simulator.
+        """
+        pass
+
+    @abstractmethod
+    def get_multiple_object_positions(self, objects: List[Object]) -> Dict[str, List[float]]:
+        """
+        Get the positions of multiple objects in the world frame from the current object poses in the simulator.
+        """
+        pass
+
+    @abstractmethod
+    def get_object_position(self, obj: Object) -> List[float]:
+        """
+        Get the position of an object in the world frame from the current object pose in the simulator.
+        """
+        pass
+
+    @abstractmethod
+    def get_multiple_object_orientations(self, objects: List[Object]) -> Dict[str, List[float]]:
+        """
+        Get the orientations of multiple objects in the world frame from the current object poses in the simulator.
+        """
+        pass
+
+    @abstractmethod
+    def get_object_orientation(self, obj: Object) -> List[float]:
+        """
+        Get the orientation of an object in the world frame from the current object pose in the simulator.
+        """
+        pass
+
     def set_mobile_robot_pose(self, pose: Pose) -> None:
         """
         Set the goal for the move base joints of a mobile robot to reach a target pose. This is used for example when
@@ -495,7 +629,7 @@ class World(StateEntity, ABC):
         param pose: The target pose.
         """
         goal = self.get_move_base_joint_goal(pose)
-        self.robot.set_joint_positions(goal)
+        self.robot.set_multiple_joint_positions(goal)
 
     def get_move_base_joint_goal(self, pose: Pose) -> Dict[str, float]:
         """
@@ -504,12 +638,12 @@ class World(StateEntity, ABC):
         return: The goal for the move base joints.
         """
         position_diff = self.get_position_diff(self.robot.get_position_as_list(), pose.position_as_list())[:2]
-        angle_diff = self.get_z_angle_diff(self.robot.get_orientation_as_list(), pose.orientation_as_list())
+        target_angle = self.get_z_angle(pose.orientation_as_list())
         # Get the joints of the base link
         move_base_joints = self.get_move_base_joints()
         return {move_base_joints.translation_x: position_diff[0],
                 move_base_joints.translation_y: position_diff[1],
-                move_base_joints.angular_z: angle_diff}
+                move_base_joints.angular_z: target_angle}
 
     @staticmethod
     def get_move_base_joints() -> VirtualMoveBaseJoints:
@@ -531,16 +665,13 @@ class World(StateEntity, ABC):
         return [target_position[i] - current_position[i] for i in range(3)]
 
     @staticmethod
-    def get_z_angle_diff(current_quaternion: List[float], target_quaternion: List[float]) -> float:
+    def get_z_angle(target_quaternion: List[float]) -> float:
         """
-        Get the difference between the z angles of two quaternions.
-        param current_quaternion: The current quaternion.
+        Get the z angle from a quaternion by converting it to euler angles.
         param target_quaternion: The target quaternion.
-        return: The difference between the z angles of the two quaternions in euler angles.
+        return: The z angle.
         """
-        current_angle = euler_from_quaternion(current_quaternion)[2]
-        target_angle = euler_from_quaternion(target_quaternion)[2]
-        return target_angle - current_angle
+        return euler_from_quaternion(target_quaternion)[2]
 
     @abstractmethod
     def perform_collision_detection(self) -> None:
@@ -595,24 +726,60 @@ class World(StateEntity, ABC):
         """
         raise NotImplementedError
 
+    @validate_joint_position
     @abstractmethod
-    def reset_joint_position(self, joint: Joint, joint_position: float) -> None:
+    def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
         """
         Reset the joint position instantly without physics simulation
-
+        NOTE: It is recommended to use the validate_joint_position decorator to validate the joint position for
+        the implementation of this method.
         :param joint: The joint to reset the position for.
         :param joint_position: The new joint pose.
+        :return: True if the reset was successful, False otherwise
+        """
+        pass
+
+    @validate_multiple_joint_positions
+    @abstractmethod
+    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
+        """
+        Set the positions of multiple joints of an articulated object.
+        NOTE: It is recommended to use the validate_multiple_joint_positions decorator to validate the
+         joint positions for the implementation of this method.
+        :param joint_positions: A dictionary with joint objects as keys and joint positions as values.
+        :return: True if the set was successful, False otherwise.
         """
         pass
 
     @abstractmethod
-    def reset_object_base_pose(self, obj: Object, pose: Pose):
+    def get_multiple_joint_positions(self, joints: List[Joint]) -> Dict[str, float]:
+        """
+        Get the positions of multiple joints of an articulated object.
+        """
+        pass
+
+    @validate_object_pose
+    @abstractmethod
+    def reset_object_base_pose(self, obj: Object, pose: Pose) -> bool:
         """
         Reset the world position and orientation of the base of the object instantaneously,
         not through physics simulation. (x,y,z) position vector and (x,y,z,w) quaternion orientation.
-
+        NOTE: It is recommended to use the validate_object_pose decorator to validate the object pose for the
+        implementation of this method.
         :param obj: The object.
         :param pose: The new pose as a Pose object.
+        :return: True if the reset was successful, False otherwise.
+        """
+        pass
+
+    @abstractmethod
+    def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> bool:
+        """
+        Reset the world position and orientation of the base of multiple objects instantaneously,
+        not through physics simulation. (x,y,z) position vector and (x,y,z,w) quaternion orientation.
+
+        :param objects: A dictionary with objects as keys and poses as values.
+        :return: True if the reset was successful, False otherwise.
         """
         pass
 
@@ -761,7 +928,7 @@ class World(StateEntity, ABC):
         """
         for obj in self.objects:
             obj.set_pose(obj.original_pose)
-            obj.set_joint_positions(dict(zip(list(obj.joint_names), [0] * len(obj.joint_names))))
+            obj.set_multiple_joint_positions(dict(zip(list(obj.joint_names), [0] * len(obj.joint_names))))
 
     def reset_robot(self) -> None:
         """
@@ -934,7 +1101,7 @@ class World(StateEntity, ABC):
         :param exclude_objects: A list of objects that should not be removed.
         """
         self.reset_world()
-        objs_copy = copy(self.objects)
+        objs_copy = [obj for obj in self.objects]
         exclude_objects = [] if exclude_objects is None else exclude_objects
         [self.remove_object(obj) for obj in objs_copy if obj not in exclude_objects]
 
@@ -1044,7 +1211,8 @@ class World(StateEntity, ABC):
         """
         Creates a box visual shape in the physics simulator and returns the unique id of the created shape.
 
-        :param shape_data: The parameters that define the box visual shape to be created, uses the BoxVisualShape dataclass defined in world_dataclasses.
+        :param shape_data: The parameters that define the box visual shape to be created, uses the BoxVisualShape
+         dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
         """
         raise NotImplementedError
@@ -1053,7 +1221,8 @@ class World(StateEntity, ABC):
         """
         Creates a cylinder visual shape in the physics simulator and returns the unique id of the created shape.
 
-        :param shape_data: The parameters that define the cylinder visual shape to be created, uses the CylinderVisualShape dataclass defined in world_dataclasses.
+        :param shape_data: The parameters that define the cylinder visual shape to be created, uses the
+         CylinderVisualShape dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
         """
         raise NotImplementedError
@@ -1062,7 +1231,8 @@ class World(StateEntity, ABC):
         """
         Creates a sphere visual shape in the physics simulator and returns the unique id of the created shape.
 
-        :param shape_data: The parameters that define the sphere visual shape to be created, uses the SphereVisualShape dataclass defined in world_dataclasses.
+        :param shape_data: The parameters that define the sphere visual shape to be created, uses the SphereVisualShape
+         dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
         """
         raise NotImplementedError
@@ -1071,7 +1241,8 @@ class World(StateEntity, ABC):
         """
         Creates a capsule visual shape in the physics simulator and returns the unique id of the created shape.
 
-        :param shape_data: The parameters that define the capsule visual shape to be created, uses the CapsuleVisualShape dataclass defined in world_dataclasses.
+        :param shape_data: The parameters that define the capsule visual shape to be created, uses the
+         CapsuleVisualShape dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
         """
         raise NotImplementedError
@@ -1080,7 +1251,8 @@ class World(StateEntity, ABC):
         """
         Creates a plane visual shape in the physics simulator and returns the unique id of the created shape.
 
-        :param shape_data: The parameters that define the plane visual shape to be created, uses the PlaneVisualShape dataclass defined in world_dataclasses.
+        :param shape_data: The parameters that define the plane visual shape to be created, uses the PlaneVisualShape
+         dataclass defined in world_dataclasses.
         :return: The unique id of the created shape.
         """
         raise NotImplementedError
@@ -1103,10 +1275,13 @@ class World(StateEntity, ABC):
 
         :param text: The text to be added.
         :param position: The position of the text in the world.
-        :param orientation: By default, debug text will always face the camera, automatically rotation. By specifying a text orientation (quaternion), the orientation will be fixed in world space or local space (when parent is specified).
+        :param orientation: By default, debug text will always face the camera, automatically rotation. By specifying a
+         text orientation (quaternion), the orientation will be fixed in world space or local space
+          (when parent is specified).
         :param size: The size of the text.
         :param color: The color of the text.
-        :param life_time: The lifetime in seconds of the text to remain in the world, if 0 the text will remain in the world until it is removed manually.
+        :param life_time: The lifetime in seconds of the text to remain in the world, if 0 the text will remain in the
+         world until it is removed manually.
         :param parent_object_id: The id of the object to which the text should be attached.
         :param parent_link_id: The id of the link to which the text should be attached.
         :return: The id of the added text.
@@ -1178,15 +1353,6 @@ class World(StateEntity, ABC):
     def __del__(self):
         self.exit()
 
-    @abstractmethod
-    def set_multiple_joint_positions(self, obj: Object, joint_poses: Dict[str, float]) -> None:
-        """
-        Set the positions of multiple joints of an articulated object.
-        :param obj: The object.
-        :param joint_poses: A dictionary with joint names as keys and joint positions as values.
-        """
-        pass
-
 
 class UseProspectionWorld:
     """
@@ -1206,7 +1372,8 @@ class UseProspectionWorld:
         self.prev_world: Optional[World] = None
         # The previous world is saved to restore it after the with block is exited.
 
-    def sync_worlds(self):
+    @staticmethod
+    def sync_worlds():
         """
         Synchronizes the state of the prospection world with the main world.
         """

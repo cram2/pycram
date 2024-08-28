@@ -53,7 +53,7 @@ class GiskardLocation(CostmapLocation):
                 prospection_robot = World.current_world.get_prospection_object_for_object(World.robot)
 
                 with UseProspectionWorld():
-                    prospection_robot.set_joint_positions(robot_joint_states)
+                    prospection_robot.set_multiple_joint_positions(robot_joint_states)
                     prospection_robot.set_pose(pose)
                     gripper_pose = prospection_robot.get_link_pose(chain.get_tool_frame())
 
