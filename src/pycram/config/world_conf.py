@@ -2,7 +2,9 @@ import math
 import os
 from dataclasses import dataclass
 
-from typing_extensions import Tuple
+from typing_extensions import Tuple, Type
+from ..description import ObjectDescription
+from ..object_descriptors.urdf import ObjectDescription as URDF
 
 resources_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'resources')
 """
@@ -10,7 +12,12 @@ Global reference for the resources path, this is used to search for the descript
  the objects.
 """
 
-cache_dir: str = os.path.join(resources_path, 'cached')
+cache_dir_name: str = 'cached'
+"""
+The name of the cache directory.
+"""
+
+cache_dir: str = os.path.join(resources_path, cache_dir_name)
 """
 Global reference for the cache directory, this is used to cache the description files of the robot and the objects.
 """
@@ -28,6 +35,18 @@ Whether to update the poses from the simulator when getting the object poses.
 DEBUG: bool = False
 """
 Whether to use in debug mode. (This is used to print debug messages, plot images, etc.)
+"""
+
+default_description_type: Type[ObjectDescription] = URDF
+"""
+The default description type for the objects.
+"""
+
+use_physics_simulator_state: bool = False
+"""
+Whether to use the physics simulator state when restoring or saving the world state.
+Currently with PyBullet, this causes a bug where ray_test does not work correctly after restoring the state using the
+simulator, so it is recommended to set this to False in PyBullet.
 """
 
 

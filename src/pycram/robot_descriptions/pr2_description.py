@@ -9,7 +9,7 @@ from ..worlds.multiverse_extras.helpers import get_robot_mjcf_path
 rospack = rospkg.RosPack()
 filename = rospack.get_path('pycram') + '/resources/robots/' + "pr2" + '.urdf'
 
-mjcf_filename = get_robot_mjcf_path("willow_garage", "pr2")
+mjcf_filename = get_robot_mjcf_path("", "pr2")
 
 pr2_description = RobotDescription("pr2", "base_link", "torso_lift_link", "torso_lift_joint",
                                    filename, virtual_move_base_joints=VirtualMoveBaseJoints(), mjcf_path=mjcf_filename)

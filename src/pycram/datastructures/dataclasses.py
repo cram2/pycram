@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from copy import deepcopy, copy
 from dataclasses import dataclass
 
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING
@@ -8,7 +9,6 @@ from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union,
 from .enums import JointType, Shape, VirtualMoveBaseJointName
 from .pose import Pose, Point
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
-from ..config import world_conf as conf
 
 if TYPE_CHECKING:
     from ..description import Link
@@ -336,6 +336,9 @@ class LinkState(State):
         return all([cid == other_cid for cid, other_cid in zip(self.constraint_ids.values(),
                                                                other.constraint_ids.values())])
 
+    def __copy__(self):
+        return LinkState(constraint_ids=copy(self.constraint_ids))
+
 
 @dataclass
 class JointState(State):
@@ -348,6 +351,9 @@ class JointState(State):
     def __eq__(self, other: 'JointState'):
         error = calculate_joint_position_error(self.position, other.position)
         return is_error_acceptable(error, other.acceptable_error)
+
+    def __copy__(self):
+        return JointState(position=self.position, acceptable_error=self.acceptable_error)
 
 
 @dataclass
@@ -392,13 +398,19 @@ class ObjectState(State):
         """
         return all([att == other_att for att, other_att in zip(self.attachments.values(), other.attachments.values())])
 
+    def __copy__(self):
+        return ObjectState(pose=self.pose.copy(), attachments=copy(self.attachments),
+                           link_states=copy(self.link_states),
+                           joint_states=copy(self.joint_states),
+                           acceptable_pose_error=deepcopy(self.acceptable_pose_error))
+
 
 @dataclass
 class WorldState(State):
     """
     Dataclass for storing the state of the world.
     """
-    simulator_state_id: int
+    simulator_state_id: Optional[int]
     object_states: Dict[str, ObjectState]
 
     def __eq__(self, other: 'WorldState'):
@@ -431,6 +443,10 @@ class WorldState(State):
         return all([obj_state == other_obj_state
                     for obj_state, other_obj_state in zip(self.object_states.values(),
                                                           other.object_states.values())])
+
+    def __copy__(self):
+        return WorldState(simulator_state_id=self.simulator_state_id,
+                          object_states=deepcopy(self.object_states))
 
 
 @dataclass
@@ -477,14 +493,35 @@ class ContactPointsList(list):
     """
     A list of contact points.
     """
+    def get_links_that_got_removed(self, previous_points: 'ContactPointsList') -> List[Link]:
+        """
+        Return the links that are not in the current points list but were in the initial points list.
 
-    def __index__(self, index: int) -> ContactPoint:
-        return super().__getitem__(index)
+        :param previous_points: The initial points list.
+        :return: A list of Link instances that represent the links that got removed.
+        """
+        initial_links_in_contact = previous_points.get_links_in_contact()
+        current_links_in_contact = self.get_links_in_contact()
+        return [link for link in initial_links_in_contact if link not in current_links_in_contact]
 
-    def __getitem__(self, item) -> Union[ContactPoint, 'ContactPointsList']:
-        if isinstance(item, slice):
-            return ContactPointsList(super().__getitem__(item))
-        return super().__getitem__(item)
+    def get_links_in_contact(self) -> List[Link]:
+        """
+        Get the links in contact.
+
+        :return: A list of Link instances that represent the links in contact.
+        """
+        return [point.link_b for point in self]
+
+    def check_if_two_objects_are_in_contact(self, obj_a: Object, obj_b: Object) -> bool:
+        """
+        Check if two objects are in contact.
+
+        :param obj_a: An instance of the Object class that represents the first object.
+        :param obj_b: An instance of the Object class that represents the second object.
+        :return: True if the objects are in contact, False otherwise.
+        """
+        return (any([point.link_b.object == obj_b and point.link_a.object == obj_a for point in self]) or
+                any([point.link_a.object == obj_b and point.link_b.object == obj_a for point in self]))
 
     def get_normals_of_object(self, obj: Object) -> List[List[float]]:
         """
@@ -552,21 +589,21 @@ class ContactPointsList(list):
         """
         return obj in self.get_objects_that_have_points()
 
-    def get_objects_that_have_points(self) -> List[Object]:
-        """
-        Return the objects that have points in the list.
-
-        :return: A list of Object instances that represent the objects that have points in the list.
-        """
-        return [point.link_b.object for point in self]
-
     def get_names_of_objects_that_have_points(self) -> List[str]:
         """
         Return the names of the objects that have points in the list.
 
         :return: A list of strings that represent the names of the objects that have points in the list.
         """
-        return [point.link_b.object.name for point in self]
+        return [obj.name for obj in self.get_objects_that_have_points()]
+
+    def get_objects_that_have_points(self) -> List[Object]:
+        """
+        Return the objects that have points in the list.
+
+        :return: A list of Object instances that represent the objects that have points in the list.
+        """
+        return list({point.link_b.object for point in self})
 
     def __str__(self):
         return f"ContactPointsList: {', '.join(self.get_names_of_objects_that_have_points())}"
@@ -588,8 +625,9 @@ class TextAnnotation:
     """
     text: str
     position: List[float]
-    color: Color
     id: int
+    color: Color = Color(0, 0, 0, 1)
+    size: float = 0.1
 
 
 @dataclass

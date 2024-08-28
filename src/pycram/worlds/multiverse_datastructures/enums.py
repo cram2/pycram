@@ -16,6 +16,8 @@ class MultiverseAPIName(Enum):
     EXIST = "exist"
     PAUSE = "pause"
     UNPAUSE = "unpause"
+    SAVE = "save"
+    LOAD = "load"
 
 
 class MultiverseProperty(Enum):
