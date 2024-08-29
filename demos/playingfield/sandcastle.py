@@ -8,13 +8,16 @@ from pycram.process_module import simulated_robot, with_simulated_robot
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.dataclasses import Color
+from pycram.worlds.multiverse import Multiverse
+
 
 def param_plan(robot_path,environment_path):
     world = BulletWorld(WorldMode.GUI)
+    # world= Multiverse(simulation='pycram_test')
     robot = Object("pr2", ObjectType.ROBOT, robot_path, pose=Pose([1, 2, 0]))
     apartment = Object(environment_path[:environment_path.find(".")], ObjectType.ENVIRONMENT, environment_path)
 
-    milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1, -1.78, 0.55]),
+    milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1, -1.78, 0.55],[1,0,0,0]),
                   color=Color(1, 0, 0, 1))
 
     pick_pose = Pose([1, -1.78, 0.55])
@@ -44,3 +47,5 @@ def param_plan(robot_path,environment_path):
         TransportAction(milk_desig, [Arms.LEFT], [Pose([4.8, 3.55, 0.8])]).resolve().perform()
 
         ParkArmsAction([Arms.BOTH]).resolve().perform()
+
+# param_plan("pr2.urdf","house_2.urdf")
