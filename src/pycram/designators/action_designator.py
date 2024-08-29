@@ -913,8 +913,13 @@ class DetectActionPerformable(ActionAbstract):
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMDetectAction)
 
+    object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False)
+
     @with_tree
     def perform(self) -> None:
+        # Store the object's data copy at execution
+        self.object_at_execution = self.object_designator.frozen_copy()
+
         return DetectingMotion(object_type=self.object_designator.obj_type).perform()
 
 
