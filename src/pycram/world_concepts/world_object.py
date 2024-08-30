@@ -1017,6 +1017,15 @@ class Object(WorldEntity):
         obj.current_state = self.current_state
         return obj
 
+    def get_link_for_attached_objects(self) -> Dict[Object, ObjectDescription.Link]:
+        """
+        Returns a dictionary which maps attached object to the link of this object to which the given object is attached.
+
+        :return: The link of this object to which the given object is attached.
+        """
+        return {obj: attachment.parent_link for obj, attachment in self.attachments.items()}
+
+
     def __copy__(self) -> Object:
         """
         Returns a copy of this object. The copy will have the same name, type, path, description, pose, world and color.
