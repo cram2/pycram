@@ -62,7 +62,7 @@ camera = CameraDescription("kinect_camera", "wide_stereo_optical_frame", 1.27,
 pr2_description.add_camera_description(camera)
 
 ################################## Neck ##################################
-pr2_description.add_kinematic_chain("neck", "head_pan_link", "head_tilt_link")
+pr2_description.add_kinematic_chain("neck", "torso_lift_link", "head_tilt_link")
 
 ################################# Grasps ##################################
 pr2_description.add_grasp_orientations({Grasp.FRONT: [0, 0, 0, 1],

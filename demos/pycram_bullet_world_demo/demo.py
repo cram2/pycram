@@ -12,7 +12,7 @@ from pycram.datastructures.dataclasses import Color
 extension = ObjectDescription.get_file_extension()
 
 world = BulletWorld(WorldMode.GUI)
-robot = Object("pr2", ObjectType.ROBOT, f"pr2{extension}", pose=Pose([1, 2, 0]))
+robot = Object("tiago", ObjectType.ROBOT, f"tiago_dual{extension}", pose=Pose([1, 2, 0]))
 apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")
 
 milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([2.5, 2, 1.02]),
@@ -27,7 +27,7 @@ apartment.attach(spoon, 'cabinet10_drawer_top')
 
 pick_pose = Pose([2.7, 2.15, 1])
 
-robot_desig = BelieveObject(names=["pr2"])
+robot_desig = BelieveObject(names=["tiago_dual"])
 apartment_desig = BelieveObject(names=["apartment"])
 
 
