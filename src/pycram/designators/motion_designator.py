@@ -12,12 +12,13 @@ from ..orm.motion_designator import (MoveMotion as ORMMoveMotion,
                                      MoveGripperMotion as ORMMoveGripperMotion, DetectingMotion as ORMDetectingMotion,
                                      OpeningMotion as ORMOpeningMotion, ClosingMotion as ORMClosingMotion,
                                      Motion as ORMMotionDesignator)
-from ..datastructures.enums import ObjectType, Arms, GripperState
+from ..datastructures.enums import ObjectType, Arms, GripperState, ExecutionType
 
 from typing_extensions import Dict, Optional, get_type_hints
 from ..datastructures.pose import Pose
 from ..tasktree import with_tree
 from ..designator import BaseMotion
+
 
 @dataclass
 class MoveMotion(BaseMotion):
@@ -160,9 +161,9 @@ class DetectingMotion(BaseMotion):
         if not world_object:
             raise PerceptionObjectNotFound(
                 f"Could not find an object with the type {self.object_type} in the FOV of the robot")
-        if ProcessModuleManager.execution_type == "real":
+        if ProcessModuleManager.execution_type == ExecutionType.REAL:
             return RealObject.Object(world_object.name, world_object.obj_type,
-                                                  world_object, world_object.get_pose())
+                                     world_object, world_object.get_pose())
 
         return ObjectDesignatorDescription.Object(world_object.name, world_object.obj_type,
                                                   world_object)
@@ -313,3 +314,26 @@ class ClosingMotion(BaseMotion):
         session.add(motion)
 
         return motion
+
+
+@dataclass
+class TalkingMotion(BaseMotion):
+    """
+    Talking Motion, lets the robot say a sentence.
+    """
+
+    cmd: str
+    """
+    Talking Motion, let the robot say a sentence.
+    """
+
+    @with_tree
+    def perform(self):
+        pm_manager = ProcessModuleManager.get_manager()
+        return pm_manager.talk().execute(self)
+
+    def to_sql(self) -> ORMMotionDesignator:
+        pass
+
+    def insert(self, session: Session, *args, **kwargs) -> ORMMotionDesignator:
+        pass

@@ -1,9 +1,6 @@
-from typing import Any
 from .default_process_modules import *
-from ..datastructures.world import World
-from ..designators.motion_designator import *
 from ..external_interfaces.ik import request_giskard_ik
-from ..robot_description import RobotDescription
+from typing_extensions import Any
 
 
 class StretchOpen(DefaultOpen):
@@ -57,13 +54,13 @@ class StretchManager(DefaultManager):
         self.robot_name = "stretch"
 
     def move_gripper(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultMoveGripper(self._move_gripper_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return StretchMoveGripperReal(self._move_gripper_lock)
 
     def open(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return StretchOpen(self._open_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return DefaultOpenReal(self._open_lock)
