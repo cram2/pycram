@@ -1,8 +1,9 @@
+from pycram.ros.viz_marker_publisher import VizMarkerPublisher, AxisMarkerPublisher
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.designators.object_designator import *
-from pycram.datastructures.enums import ObjectType, WorldMode
+from pycram.datastructures.enums import ObjectType, WorldMode, TorsoState
 from pycram.datastructures.pose import Pose
 from pycram.process_module import simulated_robot, with_simulated_robot
 from pycram.object_descriptors.urdf import ObjectDescription
@@ -11,9 +12,11 @@ from pycram.datastructures.dataclasses import Color
 
 extension = ObjectDescription.get_file_extension()
 
-world = BulletWorld(WorldMode.GUI)
-robot = Object("tiago", ObjectType.ROBOT, f"tiago_dual{extension}", pose=Pose([1, 2, 0]))
-apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")
+world = BulletWorld(WorldMode.DIRECT)
+viz = VizMarkerPublisher()
+
+robot = Object("rollin_justin", ObjectType.ROBOT, f"rollin_justin{extension}", pose=Pose([1, 2, 0]))
+apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment-small{extension}")
 
 milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([2.5, 2, 1.02]),
               color=Color(1, 0, 0, 1))
@@ -27,7 +30,7 @@ apartment.attach(spoon, 'cabinet10_drawer_top')
 
 pick_pose = Pose([2.7, 2.15, 1])
 
-robot_desig = BelieveObject(names=["tiago_dual"])
+robot_desig = BelieveObject(names=["rollin_justin"])
 apartment_desig = BelieveObject(names=["apartment"])
 
 
@@ -45,7 +48,7 @@ def move_and_detect(obj_type):
 with simulated_robot:
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-    MoveTorsoAction([0.25]).resolve().perform()
+    MoveTorsoAction([TorsoState.MID]).resolve().perform()
 
     milk_desig = move_and_detect(ObjectType.MILK)
 
@@ -83,7 +86,7 @@ with simulated_robot:
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-    MoveTorsoAction([0.15]).resolve().perform()
+    MoveTorsoAction([TorsoState.MID]).resolve().perform()
 
     # Find a pose to place the spoon, move and then place it
     spoon_target_pose = Pose([4.85, 3.3, 0.8], [0, 0, 1, 1])
