@@ -26,3 +26,4 @@ pydub~=0.25.1
 gTTS~=2.5.3
 probabilistic_model>=5.1.0
 random_events>=3.0.7
+sympy
