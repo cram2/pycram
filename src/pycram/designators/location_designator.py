@@ -164,8 +164,8 @@ class CostmapLocation(LocationDesignatorDescription):
         # ground_pose = [[target_pose[0][0], target_pose[0][1], 0], target_pose[1]]
         ground_pose = Pose(target_pose.position_as_list())
         ground_pose.position.z = 0
-
-        occupancy = OccupancyCostmap(0.32, False, 200, 0.02, ground_pose)
+        distance_to_obstacle = RobotDescription.current_robot_description.get_costmap_offset()
+        occupancy = OccupancyCostmap(distance_to_obstacle, False, 200, 0.02, ground_pose)
         final_map = occupancy
 
         if self.reachable_for:
@@ -243,7 +243,9 @@ class AccessingLocation(LocationDesignatorDescription):
         # ground_pose = [[self.handle.part_pose[0][0], self.handle.part_pose[0][1], 0], self.handle.part_pose[1]]
         ground_pose = Pose(self.handle.part_pose.position_as_list())
         ground_pose.position.z = 0
-        occupancy = OccupancyCostmap(distance_to_obstacle=0.4, from_ros=False, size=200, resolution=0.02,
+        distance_to_obstacle = RobotDescription.current_robot_description.get_costmap_offset()
+
+        occupancy = OccupancyCostmap(distance_to_obstacle=distance_to_obstacle, from_ros=False, size=200, resolution=0.02,
                                      origin=ground_pose)
         gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)
 

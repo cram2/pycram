@@ -1,6 +1,8 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+from enum import Enum
+
 import rospy
 from typing_extensions import List, Dict, Union, Optional
 from urdf_parser_py.urdf import URDF
@@ -129,6 +131,7 @@ class RobotDescription:
         self.grasps: Dict[Grasp, List[float]] = {}
         self.links: List[str] = [l.name for l in self.urdf_object.links]
         self.joints: List[str] = [j.name for j in self.urdf_object.joints]
+        self.costmap_offset: float = 0.3
 
     def add_kinematic_chain_description(self, chain: KinematicChainDescription):
         """
@@ -307,6 +310,41 @@ class RobotDescription:
                 return chain
         raise ValueError(f"There is no Kinematic Chain for the Arm {arm}")
 
+    def get_offset(self, name):
+        """
+        Returns the offset of a Joint in the URDF.
+        :param name: The name of the Joint for which the offset will be returned.
+        :return: The offset of the Joint
+        """
+        if name not in self.urdf_object.joint_map.keys():
+            rospy.logerr(f"The name: {name} is not part of this robot URDF")
+            return None
+
+        offset = self.urdf_object.joint_map[name].origin
+        return offset if offset else None
+
+
+    def set_costmap_offset(self, offset: float):
+        """
+        Sets the costmap offset for the robot. This is used to define the distance between the robot and the costmap.
+        :param offset: The offset in meters
+        """
+        self.costmap_offset = offset
+
+    def get_costmap_offset(self) -> float:
+        """
+        Returns the costmap offset for the robot. This is used to define the distance between the robot and the costmap.
+        :return: The offset in meters
+        """
+        return self.costmap_offset
+
+    def get_torso_joint(self) -> str:
+        """
+        Returns the name of the torso joint of the robot.
+        :return: The name of the torso joint
+        """
+        return self.torso_joint
+
 
 class KinematicChainDescription:
     """
@@ -431,7 +469,7 @@ class KinematicChainDescription:
         """
         return self.get_joints()
 
-    def add_static_joint_states(self, name: str, states: dict):
+    def add_static_joint_states(self, name: Union[str, Enum], states: dict):
         """
         Adds static joint states to the chain. These define a specific configuration of the chain.
 

@@ -20,6 +20,7 @@ from ..local_transformer import LocalTransformer
 from ..plan_failures import ObjectUnfetchable, ReachabilityFailure
 # from ..robot_descriptions import robot_description
 from ..robot_description import RobotDescription
+from ..ros.viz_marker_publisher import AxisMarkerPublisher
 from ..tasktree import with_tree
 
 from owlready2 import Thing
@@ -599,7 +600,8 @@ class MoveTorsoActionPerformable(ActionAbstract):
 
     @with_tree
     def perform(self) -> None:
-        MoveJointsMotion([RobotDescription.current_robot_description.torso_joint], [self.position]).perform()
+        torso_joint = RobotDescription.current_robot_description.get_torso_joint()
+        MoveJointsMotion([torso_joint], [self.position]).perform()
 
 
 @dataclass
@@ -899,6 +901,11 @@ class LookAtActionPerformable(ActionAbstract):
     @with_tree
     def perform(self) -> None:
         LookingMotion(target=self.target).perform()
+
+        marker = AxisMarkerPublisher()
+        camera_link = RobotDescription.current_robot_description.get_camera_frame()
+        camera_pose = World.robot.get_link_pose(camera_link)
+        marker.publish([self.target, camera_pose], name="Looking", length=0.3)
 
 
 @dataclass

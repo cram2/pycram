@@ -1,10 +1,11 @@
 import numpy as np
 import rospy
 from typing_extensions import Any
+from scipy.spatial.transform import Rotation as R
 
 from ..datastructures.enums import JointType
 from ..external_interfaces.ik import request_ik
-from ..external_interfaces.robokudo import query
+from ..external_interfaces.robokudo import query_object
 from ..utils import _apply_ik
 from ..process_module import ProcessModule
 from ..external_interfaces import giskard
@@ -46,12 +47,17 @@ class DefaultMoveHead(ProcessModule):
 
         pan_joint = RobotDescription.current_robot_description.kinematic_chains["neck"].joints[0]
         tilt_joint = RobotDescription.current_robot_description.kinematic_chains["neck"].joints[1]
-        pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame(pan_link))
-        pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame(tilt_link))
+        pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame(pan_link)).position_as_list()
+        pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame(tilt_link)).position_as_list()
 
-        new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
-        new_tilt = np.arctan2(pose_in_tilt.position.z,
-                              np.sqrt(pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2)) * -1
+        new_pan = np.arctan2(pose_in_pan[1], pose_in_pan[0])
+
+        tilt_offset = RobotDescription.current_robot_description.get_offset(tilt_joint)
+        tilt_offset_rotation = tilt_offset.rotation if tilt_offset else [0, 0, 0]
+        rotation_tilt_offset = R.from_euler('xyz', tilt_offset_rotation).apply(pose_in_tilt)
+
+        new_tilt = -np.arctan2(rotation_tilt_offset[2],
+                               np.sqrt(rotation_tilt_offset[0] ** 2 + rotation_tilt_offset[1] ** 2))
 
         current_pan = robot.get_joint_position(pan_joint)
         current_tilt = robot.get_joint_position(tilt_joint)
@@ -131,10 +137,17 @@ class DefaultMoveJoints(ProcessModule):
 
     def _execute(self, desig: MoveJointsMotion):
         robot = World.robot
-        for joint, pose in zip(desig.names, desig.positions):
-            robot.set_joint_position(joint, pose)
-        return ",", ","
+        torso_joint = RobotDescription.current_robot_description.get_torso_joint()
 
+        if [torso_joint] == desig.names:
+            joint_poses: dict = RobotDescription.current_robot_description.get_static_joint_chain("torso",
+                                                                                                  desig.positions[
+                                                                                                      0])
+        else:
+            joint_poses: dict = dict(zip(desig.names, desig.positions))
+
+        robot.set_joint_positions(joint_poses)
+        return ",", ","
 
 class DefaultWorldStateDetecting(ProcessModule):
     """
@@ -220,17 +233,26 @@ class DefaultMoveHeadReal(ProcessModule):
         robot = World.robot
 
         local_transformer = LocalTransformer()
-        pan_link = RobotDescription.current_robot_description.kinematic_chains["neck"].links[0]
-        tilt_link = RobotDescription.current_robot_description.kinematic_chains["neck"].links[1]
+
+        # since its usually joint1, link1, joint2, link2, to be able to catch joint1, even though we only use the
+        # kinematic chain from link1 to link2, we need to use the link0 as the first link, even though its technically
+        # not in this kinematic chain
+        pan_link = RobotDescription.current_robot_description.kinematic_chains["neck"].links[1]
+        tilt_link = RobotDescription.current_robot_description.kinematic_chains["neck"].links[2]
 
         pan_joint = RobotDescription.current_robot_description.kinematic_chains["neck"].joints[0]
         tilt_joint = RobotDescription.current_robot_description.kinematic_chains["neck"].joints[1]
-        pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame(pan_link))
-        pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame(tilt_link))
+        pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame(pan_link)).position_as_list()
+        pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame(tilt_link)).position_as_list()
 
-        new_pan = np.arctan2(pose_in_pan.position.y, pose_in_pan.position.x)
-        new_tilt = np.arctan2(pose_in_tilt.position.z,
-                              np.sqrt(pose_in_tilt.position.x ** 2 + pose_in_tilt.position.y ** 2)) * -1
+        new_pan = np.arctan2(pose_in_pan[1], pose_in_pan[0])
+
+        tilt_offset = RobotDescription.current_robot_description.get_offset(tilt_joint)
+        tilt_offset_rotation = tilt_offset.rotation if tilt_offset else [0, 0, 0]
+        rotation_tilt_offset = R.from_euler('xyz', tilt_offset_rotation).apply(pose_in_tilt)
+
+        new_tilt = -np.arctan2(rotation_tilt_offset[2],
+                               np.sqrt(rotation_tilt_offset[0] ** 2 + rotation_tilt_offset[1] ** 2))
 
         current_pan = robot.get_joint_position(pan_joint)
         current_tilt = robot.get_joint_position(tilt_joint)
@@ -246,7 +268,7 @@ class DefaultDetectingReal(ProcessModule):
     """
 
     def _execute(self, designator: DetectingMotion) -> Any:
-        query_result = query(ObjectDesignatorDescription(types=[designator.object_type]))
+        query_result = query_object(ObjectDesignatorDescription(types=[designator.object_type]))
         # print(query_result)
         obj_pose = query_result["ClusterPoseBBAnnotator"]
 

@@ -124,6 +124,14 @@ class GripperType(Enum):
     PNEUMATIC = auto()
     CUSTOM = auto()
 
+class TorsoState(Enum):
+    """
+    Enum for the different states of the torso.
+    """
+    HIGH = auto()
+    MID = auto()
+    LOW = auto()
+
 
 class PerceptionTechniques(Enum):
     """

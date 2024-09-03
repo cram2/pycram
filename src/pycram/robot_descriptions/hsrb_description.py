@@ -2,7 +2,7 @@ import rospkg
 
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
-from ..datastructures.enums import GripperState, Grasp, Arms
+from ..datastructures.enums import GripperState, Grasp, Arms, TorsoState
 
 rospack = rospkg.RosPack()
 filename = rospack.get_path('pycram') + '/resources/robots/' + "hsrb" + '.urdf'
@@ -50,6 +50,18 @@ hsrb_description.add_camera_description(hand_camera)
 ################################## Neck ##################################
 neck = KinematicChainDescription("neck", "head_pan_link", "head_tilt_link",
                                  hsrb_description.urdf_object)
+
+################################## Torso ##################################
+torso = KinematicChainDescription("torso", "base_link", "torso_lift_link",
+                                  hsrb_description.urdf_object)
+
+torso.add_static_joint_states(TorsoState.HIGH, {"torso_lift_joint": 0.34})
+
+torso.add_static_joint_states(TorsoState.MID, {"torso_lift_joint": 0.17})
+
+torso.add_static_joint_states(TorsoState.LOW, {"torso_lift_joint": 0})
+
+hsrb_description.add_kinematic_chain_description(torso)
 
 ################################## Grasps ##################################
 hsrb_description.add_grasp_orientations(

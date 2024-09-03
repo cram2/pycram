@@ -2,7 +2,7 @@ import rospkg
 
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     CameraDescription, RobotDescriptionManager
-from ..datastructures.enums import GripperState, Arms, Grasp
+from ..datastructures.enums import GripperState, Arms, Grasp, TorsoState
 
 rospack = rospkg.RosPack()
 filename = rospack.get_path('pycram') + '/resources/robots/' + "stretch_description" + '.urdf'
@@ -39,6 +39,18 @@ arm_description.end_effector = gripper_description
 neck = KinematicChainDescription("neck", "link_head", "link_head_tilt", stretch_description.urdf_object)
 
 stretch_description.add_kinematic_chain_description(neck)
+
+################################## Torso ##################################
+torso = KinematicChainDescription("torso", "link_mast", "link_lift",
+                                  stretch_description.urdf_object)
+
+torso.add_static_joint_states(TorsoState.HIGH, {"joint_lift": 1})
+
+torso.add_static_joint_states(TorsoState.MID, {"joint_lift": 0.5})
+
+torso.add_static_joint_states(TorsoState.LOW, {"joint_lift": 0})
+
+stretch_description.add_kinematic_chain_description(torso)
 
 ################################## Camera ##################################
 realsense_color = CameraDescription("camera_color_optical_frame", "camera_color_optical_frame", 1.322, 1.322)

@@ -28,7 +28,7 @@ class ProcessModule:
     Implementation of process modules. Process modules are the part that communicate with the outer world to execute
      designators.
     """
-    execution_delay = False
+    execution_delay = True
     """
     Adds a delay of 0.5 seconds after executing a process module, to make the execution in simulation more realistic
     """
@@ -221,7 +221,7 @@ def with_simulated_robot(func: Callable) -> Callable:
 
     def wrapper(*args, **kwargs):
         pre = ProcessModuleManager.execution_type
-        ProcessModuleManager.execution_type = ExecutionType.Simulated
+        ProcessModuleManager.execution_type = ExecutionType.SIMULATED
         ret = func(*args, **kwargs)
         ProcessModuleManager.execution_type = pre
         return ret
