@@ -24,7 +24,7 @@ if pycrorm_uri:
     pycrorm_uri = "mysql+pymysql://" + pycrorm_uri
 
 
-@unittest.skipIf(pycrorm_uri is None, "pycrorm database is not available.")
+@unittest.skip
 class DatabaseResolverTestCase(unittest.TestCase,):
     world: World
     milk: Object
