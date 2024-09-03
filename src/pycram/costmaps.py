@@ -841,38 +841,42 @@ class AlgebraicSemanticCostmap(SemanticCostmap):
         assert self.valid_area is not None, ("The map has to be created before semantics can be applied. "
                                              "Call 'generate_map first'")
 
-    @property
-    def left(self) -> Event:
+    def left(self, margin = 0.) -> Event:
         self.check_valid_area_exists()
         y_origin = self.origin.position.y
+        left = self.original_valid_area[self.y].simple_sets[0].lower
+        left += margin
         event = SimpleEvent(
-            {self.x: reals(), self.y: random_events.interval.open(-float("inf"), y_origin)}).as_composite_set()
+            {self.x: reals(), self.y: random_events.interval.open(left, y_origin)}).as_composite_set()
         return event
 
-    @property
-    def right(self) -> Event:
+    def right(self, margin = 0.) -> Event:
         self.check_valid_area_exists()
         y_origin = self.origin.position.y
-        event = SimpleEvent({self.x: reals(), self.y: closed_open(y_origin, float("inf"))}).as_composite_set()
+        right = self.original_valid_area[self.y].simple_sets[0].upper
+        right -= margin
+        event = SimpleEvent({self.x: reals(), self.y: closed_open(y_origin, right)}).as_composite_set()
         return event
 
-    @property
-    def top(self) -> Event:
+    def top(self, margin = 0.) -> Event:
         self.check_valid_area_exists()
         x_origin = self.origin.position.x
+        top = self.original_valid_area[self.x].simple_sets[0].upper
+        top -= margin
         event = SimpleEvent(
-            {self.x: random_events.interval.closed_open(x_origin, float("inf")), self.y: reals()}).as_composite_set()
+            {self.x: random_events.interval.closed_open(x_origin, top), self.y: reals()}).as_composite_set()
         return event
 
-    @property
-    def bottom(self) -> Event:
+    def bottom(self, margin = 0.) -> Event:
         self.check_valid_area_exists()
         x_origin = self.origin.position.x
+        lower = self.original_valid_area[self.x].simple_sets[0].lower
+        lower += margin
         event = SimpleEvent(
-            {self.x: random_events.interval.open(-float("inf"), x_origin), self.y: reals()}).as_composite_set()
+            {self.x: random_events.interval.open(lower, x_origin), self.y: reals()}).as_composite_set()
         return event
 
-    def border(self, margin=0.2):
+    def inner(self, margin=0.2):
         min_x = self.original_valid_area[self.x].simple_sets[0].lower
         max_x = self.original_valid_area[self.x].simple_sets[0].upper
         min_y = self.original_valid_area[self.y].simple_sets[0].lower
@@ -885,7 +889,10 @@ class AlgebraicSemanticCostmap(SemanticCostmap):
 
         inner_event = SimpleEvent({self.x: closed(min_x, max_x),
                                    self.y: closed(min_y, max_y)}).as_composite_set()
-        return ~inner_event
+        return inner_event
+
+    def border(self, margin=0.2):
+        return ~self.inner(margin)
 
     def generate_map(self) -> None:
         super().generate_map()
