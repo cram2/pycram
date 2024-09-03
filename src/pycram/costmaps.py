@@ -808,6 +808,9 @@ class SemanticCostmap(Costmap):
 
 
 class AlgebraicSemanticCostmap(SemanticCostmap):
+    """
+    Class for a semantic costmap that is based on an algebraic set-description of the valid area.
+    """
     x: Continuous = Continuous("x")
     """
     The variable for height.
@@ -842,6 +845,11 @@ class AlgebraicSemanticCostmap(SemanticCostmap):
                                              "Call 'generate_map first'")
 
     def left(self, margin = 0.) -> Event:
+        """
+        Create an event left of the origins Y-Coordinate.
+        :param margin: The margin of the events left bound.
+        :return: The left event.
+        """
         self.check_valid_area_exists()
         y_origin = self.origin.position.y
         left = self.original_valid_area[self.y].simple_sets[0].lower
@@ -851,6 +859,11 @@ class AlgebraicSemanticCostmap(SemanticCostmap):
         return event
 
     def right(self, margin = 0.) -> Event:
+        """
+        Create an event right of the origins Y-Coordinate.
+        :param margin: The margin of the events right bound.
+        :return: The right event.
+        """
         self.check_valid_area_exists()
         y_origin = self.origin.position.y
         right = self.original_valid_area[self.y].simple_sets[0].upper
@@ -859,6 +872,11 @@ class AlgebraicSemanticCostmap(SemanticCostmap):
         return event
 
     def top(self, margin = 0.) -> Event:
+        """
+        Create an event above the origins X-Coordinate.
+        :param margin: The margin of the events upper bound.
+        :return: The top event.
+        """
         self.check_valid_area_exists()
         x_origin = self.origin.position.x
         top = self.original_valid_area[self.x].simple_sets[0].upper
@@ -868,6 +886,11 @@ class AlgebraicSemanticCostmap(SemanticCostmap):
         return event
 
     def bottom(self, margin = 0.) -> Event:
+        """
+        Create an event below the origins X-Coordinate.
+        :param margin: The margin of the events lower bound.
+        :return: The bottom event.
+        """
         self.check_valid_area_exists()
         x_origin = self.origin.position.x
         lower = self.original_valid_area[self.x].simple_sets[0].lower
