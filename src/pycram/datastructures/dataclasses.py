@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+
+from std_msgs.msg import ColorRGBA
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING
 from .enums import JointType, Shape
 from .pose import Pose, Point
@@ -81,6 +83,36 @@ class Color:
         :return: The rgba_color as a list of RGB values
         """
         return [self.R, self.G, self.B]
+
+    @staticmethod
+    def get_color_from_string(color):
+        """
+        Retrieve a color based on string
+
+        :param color: Name of a color
+        """
+
+        converted_color = ColorRGBA()
+        value = lambda x: x / 255
+
+        if color == 'pink':
+            return ColorRGBA(r=value(255), g=value(0), b=value(255), a=1.0)
+        elif color == 'black':
+            return ColorRGBA(r=value(0), g=value(0), b=value(0), a=1.0)
+        elif color == 'white':
+            return ColorRGBA(r=value(255), g=value(255), b=value(255), a=1.0)
+        elif color == 'red':
+            return ColorRGBA(r=value(255), g=value(0), b=value(0), a=1.0)
+        elif color == 'green':
+            return ColorRGBA(r=value(0), g=value(255), b=value(0), a=1.0)
+        elif color == 'blue':
+            return ColorRGBA(r=value(0), g=value(0), b=value(255), a=1.0)
+        elif color == 'yellow':
+            return ColorRGBA(r=value(255), g=value(255), b=value(0), a=1.0)
+        elif color == 'cyan':
+            return ColorRGBA(r=value(0), g=value(255), b=value(255), a=1.0)
+
+        return converted_color
 
 
 @dataclass
