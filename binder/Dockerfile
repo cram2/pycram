@@ -11,6 +11,9 @@ RUN pip install --requirement ${PYCRAM_WS}/src/pycram/binder/requirements.txt --
 
 COPY --chown=${NB_USER}:users binder/me ${PYCRAM_WS}/src/me
 
+# HSR resources
+RUN git clone --recurse-submodules --remote-submodules https://github.com/code-iai/iai_hsr.git
+
 USER root
 RUN apt-get update
 
