@@ -28,7 +28,7 @@ from enum import Enum
 
 # TODO: assumes SOMA_DFL, and specifically a "module" resulting from selecting some of its concepts,
 # is the default main ontology.
-SOMA_DFL_ONTOLOGY_IRI = "http://www.ease-crc.org/ont/SOMA_DFL_module.owl"
+SOMA_DFL_ONTOLOGY_IRI = "https://raw.githubusercontent.com/ease-crc/ease_lexical_resources/master/src/dfl/owl/SOMA_DFL_module_merged.owl"
 SOMA_HOME_ONTOLOGY_IRI = "http://www.ease-crc.org/ont/SOMA-HOME.owl"
 SOMA_ONTOLOGY_IRI = "http://www.ease-crc.org/ont/SOMA.owl"
 SOMA_ONTOLOGY_NAMESPACE = "SOMA"
