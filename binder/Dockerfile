@@ -19,6 +19,11 @@ RUN git clone https://github.com/code-iai/iai_hsr.git
 WORKDIR  ${PYCRAM_WS}/src/iai_hsr/
 RUN git submodule update --init
 
+# Stretch resources
+WORKDIR ${PYCRAM_WS}/src/
+RUN git clone https://github.com/hello-robot/stretch_ros.git
+RUN git clone https://github.com/issaiass/realsense2_description.git
+
 # Build pycram workspace
 WORKDIR  ${PYCRAM_WS}
 USER root
