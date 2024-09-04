@@ -50,6 +50,17 @@
               textfile="$(find pycram)/resources/robots/turtlebot.urdf"/>
   </group>
 
+  <!-- DLR ROLLIN' JUSTIN complex urdf -->
+  <group if="$(eval robot == 'justin')">
+    <param name="robot_description"
+              textfile="$(find pycram)/resources/robots/rollin_justin.urdf"/>
+  </group>
+
+  <!-- ICub urdf -->
+  <group if="$(eval robot == 'icub')">
+    <param name="robot_description"
+              textfile="$(find pycram)/resources/robots/iCub.urdf"/>
+  </group>
 
   <!-- Use Knowrob -->
   <group if="$(eval use_knowrob)">

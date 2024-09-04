@@ -7,6 +7,7 @@ ProcessModule -- implementation of process modules.
 from __future__ import annotations
 import inspect
 import threading
+from threading import Lock
 import time
 from abc import ABC
 from typing_extensions import Callable, Type, Any, Union
@@ -27,7 +28,7 @@ class ProcessModule:
     Implementation of process modules. Process modules are the part that communicate with the outer world to execute
      designators.
     """
-    execution_delay = False
+    execution_delay = True
     """
     Adds a delay of 0.5 seconds after executing a process module, to make the execution in simulation more realistic
     """
@@ -62,7 +63,7 @@ class ProcessModule:
         with self._lock:
             ret = self._execute(designator)
             if ProcessModule.execution_delay:
-                time.sleep(0.5)
+                rospy.sleep(0.5)
 
         return ret
 
@@ -220,7 +221,7 @@ def with_simulated_robot(func: Callable) -> Callable:
 
     def wrapper(*args, **kwargs):
         pre = ProcessModuleManager.execution_type
-        ProcessModuleManager.execution_type = ExecutionType.Simulated
+        ProcessModuleManager.execution_type = ExecutionType.SIMULATED
         ret = func(*args, **kwargs)
         ProcessModuleManager.execution_type = pre
         return ret
@@ -265,14 +266,20 @@ class ProcessModuleManager(ABC):
             return cls._instance
 
     def __init__(self, robot_name):
-        """
-        Registers the Process modules for this robot. The name of the robot has to match the name given in the robot
-        description.
-
-        :param robot_name: Name of the robot for which these Process Modules are intended
-        """
         self.robot_name = robot_name
         ProcessModuleManager.available_pms.append(self)
+        self._navigate_lock = Lock()
+        self._pick_up_lock = Lock()
+        self._place_lock = Lock()
+        self._looking_lock = Lock()
+        self._detecting_lock = Lock()
+        self._move_tcp_lock = Lock()
+        self._move_arm_joints_lock = Lock()
+        self._world_state_detecting_lock = Lock()
+        self._move_joints_lock = Lock()
+        self._move_gripper_lock = Lock()
+        self._open_lock = Lock()
+        self._close_lock = Lock()
 
     @staticmethod
     def get_manager() -> Union[ProcessModuleManager, None]:

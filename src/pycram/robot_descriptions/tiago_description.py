@@ -1,7 +1,7 @@
 import rospkg
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
-from ..datastructures.enums import GripperState, Arms, Grasp
+from ..datastructures.enums import GripperState, Arms, Grasp, TorsoState
 
 rospack = rospkg.RosPack()
 filename = rospack.get_path('pycram') + '/resources/robots/' + "tiago_dual" + '.urdf'
@@ -60,6 +60,18 @@ right_gripper.add_static_joint_states(GripperState.CLOSE, {'gripper_right_left_f
                                                            'gripper_right_right_finger_joint': 0.0})
 
 right_arm.end_effector = right_gripper
+
+################################## Torso ##################################
+torso = KinematicChainDescription("torso", "torso_fixed_link", "torso_lift_link",
+                                     tiago_description.urdf_object)
+
+torso.add_static_joint_states(TorsoState.HIGH, {"torso_lift_joint": 0.3})
+
+torso.add_static_joint_states(TorsoState.MID, {"torso_lift_joint": 0.15})
+
+torso.add_static_joint_states(TorsoState.LOW, {"torso_lift_joint": 0})
+
+tiago_description.add_kinematic_chain_description(torso)
 
 ################################## Camera ##################################
 camera = CameraDescription("xtion_optical_frame", "xtion_optical_frame", 0.99483, 0.75049, 1.0665, 1.4165)

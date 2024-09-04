@@ -1,0 +1,3432 @@
+<robot name="iCub">
+  <link name="base_footprint">
+    <inertial>
+      <mass value="1.0" />
+      <origin xyz="0 0 0" />
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01" />
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <geometry>
+        <box size="0.01 0.01 0.01" />
+      </geometry>
+      <material name="White" />
+    </visual>
+    <collision>
+
+      <origin rpy="0 0 0" xyz="0 0 0.071" />
+      <geometry>
+        <box size="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="base_footprint_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0.635" />
+    <child link="root_link" />
+    <parent link="base_footprint" />
+  </joint>
+  <link name="root_link">
+    <inertial>
+      <origin xyz="0.0035506 -0.00014959200000000001 0.024519000000000013" rpy="0 0 -1.5707963267948966"/>
+      <mass value="2.5751"/>
+      <inertia ixx="0.004051489764137304" ixy="-2.0525354991945143e-06" ixz="-1.200186769383287e-05" iyy="0.004466379288694287" iyz="0.00011702292411912923" izz="0.002537512875376926"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.313858" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_root_link_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="root_link_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.313858" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_root_link_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="r_hip_1">
+    <inertial>
+      <origin xyz="-0.004106499999999999 -0.02810980000000001 -0.0008360000000000034" rpy="0 0 -1.5707963267948966"/>
+      <mass value="2.1623"/>
+      <inertia ixx="0.002675989970439473" ixy="6.426984653122192e-05" ixz="-6.447456052305588e-06" iyy="0.0021990073364667796" iyz="-1.5695577440979572e-05" izz="0.002366627191660443"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.0216 0.04054999999999986 0.313858" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_hip_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_hip_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.0216 0.04054999999999986 0.313858" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_hip_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hip_pitch" type="revolute">
+    <origin xyz="0.0216 -0.040549999999999996 0" rpy="0 0 0"/>
+    <axis xyz="0.0 -1.0 0.0"/>
+    <parent link="root_link"/>
+    <child link="r_hip_1"/>
+    <limit effort="50000" lower="-0.7853981633974483" upper="2.007128639793479" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="r_hip_2">
+    <inertial>
+      <origin xyz="-0.003963499999999998 -7.010000000000349e-05 -0.03753499999999993" rpy="0 0 -1.5707963267948966"/>
+      <mass value="1.7731"/>
+      <inertia ixx="0.005229204654206729" ixy="4.628243459077994e-06" ixz="-3.2636330686460046e-06" iyy="0.0029659325947175245" iyz="0.0009467254134739666" izz="0.00327641680237346"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.025699999999999973 0.07364999999999984 0.3228580000000001" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_hip_2_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_hip_2_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.025699999999999973 0.07364999999999984 0.3228580000000001" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_hip_2_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hip_roll" type="revolute">
+    <origin xyz="-0.0473 -0.03310000000000001 -0.009000000000000008" rpy="0 0 0"/>
+    <axis xyz="-1.0 0.0 0.0"/>
+    <parent link="r_hip_1"/>
+    <child link="r_hip_2"/>
+    <limit effort="50000" lower="-0.17453292519943295" upper="1.9547687622336491" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="r_hip_3">
+    <inertial>
+      <origin xyz="0.0024329000000000017 0.01233370000000001 -0.038242000000000054" rpy="0 0 -1.5707963267948966"/>
+      <mass value="2.1635"/>
+      <inertia ixx="0.003977864038008573" ixy="-2.0706800781267456e-06" ixz="0.00012771514554905494" iyy="0.0037304828460840533" iyz="1.0430951778634928e-05" izz="0.003698882105935934"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.011000000000000029 0.07364999999999984 0.41255800000000004" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_hip_3_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_hip_3_color">
+        <color rgba="0.3 0.3 0.3 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.011000000000000029 0.07364999999999984 0.41255800000000004" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_hip_3_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_leg_ft_sensor" type="fixed">
+    <origin xyz="0.036699999999999997 0 -0.08969999999999995" rpy="0 0 0"/>
+    <parent link="r_hip_2"/>
+    <child link="r_hip_3"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="r_upper_leg">
+    <inertial>
+      <origin xyz="0.005240300000000003 -0.0014998000000000025 -0.05185799999999996" rpy="0 0 -1.5707963267948966"/>
+      <mass value="0.90926"/>
+      <inertia ixx="0.0018609457769770859" ixy="-2.472258346821965e-05" ixz="9.915722347596187e-05" iyy="0.0023282830098543227" iyz="0.00022002726995059012" izz="0.001011608294817175"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.011000000000000012 0.05864999999999984 0.48345800000000005" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_upper_leg_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_upper_leg_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.011000000000000012 0.05864999999999984 0.48345800000000005" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_upper_leg_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hip_yaw" type="revolute">
+    <origin xyz="0 0.015000000000000006 -0.07090000000000007" rpy="0 0 0"/>
+    <axis xyz="0.0 0.0 -1.0"/>
+    <parent link="r_hip_3"/>
+    <child link="r_upper_leg"/>
+    <limit effort="50000" lower="-1.3962634015954636" upper="1.3962634015954636" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="r_lower_leg">
+    <inertial>
+      <origin xyz="-0.013102400000000002 0.021986699999999998 -0.127262" rpy="0 0 -1.5707963267948966"/>
+      <mass value="5.0761"/>
+      <inertia ixx="0.05584150942576732" ixy="-0.00010551678502849829" ixz="-0.00025239804506766437" iyy="0.05341052337773173" iyz="-0.00012711716941235637" izz="0.005785572738044439"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.026000000000000037 0.0835499999999998 0.589658" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_lower_leg_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_lower_leg_color">
+        <color rgba="0.3 0.3 0.3 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.026000000000000037 0.0835499999999998 0.589658" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_lower_leg_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_knee" type="revolute">
+    <origin xyz="0.015000000000000003 -0.0249 -0.10619999999999996" rpy="0 0 0"/>
+    <axis xyz="0.0 -1.0 0.0"/>
+    <parent link="r_upper_leg"/>
+    <child link="r_lower_leg"/>
+    <limit effort="50000" lower="-1.2217304763960306" upper="0.08726646259971647" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="r_ankle_1">
+    <inertial>
+      <origin xyz="-0.005665800000000002 0.0004764000000000018 -0.015185999999999922" rpy="0 0 -1.5707963267948966"/>
+      <mass value="0.36569"/>
+      <inertia ixx="0.01" ixy="-3.63258049040399e-05" ixz="-6.07134864852001e-05" iyy="0.01" iyz="-2.6127082529919777e-05" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.026000000000000245 0.08304999999999924 0.8456470000000003" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_ankle_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_ankle_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.026000000000000245 0.08304999999999924 0.8456470000000003" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_ankle_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_ankle_pitch" type="revolute">
+    <origin xyz="0 0.0005000000000000004 -0.255989" rpy="0 0 0"/>
+    <axis xyz="0.0 1.0 0.0"/>
+    <parent link="r_lower_leg"/>
+    <child link="r_ankle_1"/>
+    <limit effort="50000" lower="-0.7853981633974483" upper="0.7853981633974483" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="r_ankle_2">
+    <inertial>
+      <origin xyz="0.0417371 5.619999999997849e-05 -0.025592999999999977" rpy="0 0 -1.5707963267948966"/>
+      <mass value="1.3771"/>
+      <inertia ixx="0.01" ixy="-5.974924439638223e-06" ixz="1.456936368743329e-06" iyy="0.01" iyz="0.0011141795748834335" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.026749999999999875 0.0648499999999391 0.8806470000000108" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_ankle_2_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_ankle_2_color">
+        <color rgba="0.3 0.3 0.3 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.026749999999999875 0.0648499999999391 0.8806470000000108" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_ankle_2_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_ankle_roll" type="revolute">
+    <origin xyz="-0.052750000000000005 0.018200000000000008 -0.03500000000000003" rpy="0 0 0"/>
+    <axis xyz="-1.0 0.0 0.0"/>
+    <parent link="r_ankle_1"/>
+    <child link="r_ankle_2"/>
+    <limit effort="50000" lower="-0.4363323129985824" upper="0.4363323129985824" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="r_foot_rear">
+    <inertial>
+      <origin xyz="0.0006180999999999999 7.079999999998199e-05 0.003514000000000017" rpy="0 0 -1.5707963267948966"/>
+      <mass value="0.174817799"/>
+      <inertia ixx="0.01" ixy="1.562267208574721e-07" ixz="2.7893615940874046e-06" iyy="0.01" iyz="-1.261530014304943e-06" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.010749999999999881 0.0648499999999391 0.9464470000000105" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_foot_rear_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_foot_rear_color">
+        <color rgba="1 0.51 0.0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.003" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.117 0.1 0.006"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_foot_rear_ft_sensor" type="fixed">
+    <origin xyz="0.016 0 -0.06579999999999997" rpy="0 0 0"/>
+    <parent link="r_ankle_2"/>
+    <child link="r_foot_rear"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="r_sole"/>
+  <joint name="r_sole_fixed_joint" type="fixed">
+    <origin xyz="0.05963000000000001 0 0" rpy="0 0 0"/>
+    <parent link="r_foot_rear"/>
+    <child link="r_sole"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="r_foot_front">
+    <inertial>
+      <origin xyz="-0.0004180000000000017 0.0004849999999999993 0.005581000000000058" rpy="0 0 -1.5707963267948966"/>
+      <mass value="0.17964"/>
+      <inertia ixx="0.01" ixy="-1.1622018441861841e-05" ixz="2.9686391650024495e-05" iyy="0.01" iyz="7.056362242091155e-05" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.10850000000000012 0.0648499999999391 0.9464470000000105" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_foot_front_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_foot_front_color">
+        <color rgba="1 0.51 0.0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.003" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.117 0.1 0.006"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_foot_front_ft_sensor" type="fixed">
+    <origin xyz="0.13525 0 -0.06579999999999997" rpy="0 0 0"/>
+    <parent link="r_ankle_2"/>
+    <child link="r_foot_front"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="l_hip_1">
+    <inertial>
+      <origin xyz="-0.0022035000000000006 0.02879769999999999 -0.0004929999999999657" rpy="0 0 -1.5707963267948966"/>
+      <mass value="2.108461113"/>
+      <inertia ixx="0.002494176095266037" ixy="-3.149332612725099e-05" ixz="-6.185191269212846e-08" iyy="0.0019487861002349385" iyz="1.6856055884649114e-05" izz="0.002100980041206055"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.02159999999999998 -0.040449999999999674 0.3138580000000002" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_hip_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_hip_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.02159999999999998 -0.040449999999999674 0.3138580000000002" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_hip_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hip_pitch" type="revolute">
+    <origin xyz="0.0216 0.04045000000000001 0" rpy="0 0 0"/>
+    <axis xyz="0.0 -1.0 0.0"/>
+    <parent link="root_link"/>
+    <child link="l_hip_1"/>
+    <limit effort="50000" lower="-0.7853981633974483" upper="2.007128639793479" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="l_hip_2">
+    <inertial>
+      <origin xyz="-0.005948600000000005 8.049999999999724e-05 -0.03665299999999999" rpy="0 0 -1.5707963267948966"/>
+      <mass value="1.781270621"/>
+      <inertia ixx="0.005016924019346909" ixy="-3.6012233957638846e-06" ixz="2.765821282814272e-06" iyy="0.002993346117312504" iyz="0.0010518897656770735" izz="0.0030501492995877824"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.025649999999999923 -0.07354999999999969 0.32285800000000037" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_hip_2_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_hip_2_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.025649999999999923 -0.07354999999999969 0.32285800000000037" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_hip_2_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hip_roll" type="revolute">
+    <origin xyz="-0.04725 0.0331 -0.009000000000000008" rpy="0 0 0"/>
+    <axis xyz="1.0 0.0 0.0"/>
+    <parent link="l_hip_1"/>
+    <child link="l_hip_2"/>
+    <limit effort="50000" lower="-0.17453292519943295" upper="2.007128639793479" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="l_hip_3">
+    <inertial>
+      <origin xyz="0.002293400000000001 -0.012390400000000003 -0.038493" rpy="0 0 -1.5707963267948966"/>
+      <mass value="2.169151426"/>
+      <inertia ixx="0.003885797314760429" ixy="4.89921299719944e-06" ixz="-0.00013036358708752834" iyy="0.0036443128569834836" iyz="6.411637921060423e-06" izz="0.003646497594763865"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.011050000000000072 -0.07354999999999969 0.4125580000000003" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_hip_3_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_hip_3_color">
+        <color rgba="0.3 0.3 0.3 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.011050000000000072 -0.07354999999999969 0.4125580000000003" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_hip_3_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_leg_ft_sensor" type="fixed">
+    <origin xyz="0.036699999999999997 0 -0.08969999999999995" rpy="0 0 0"/>
+    <parent link="l_hip_2"/>
+    <child link="l_hip_3"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="l_upper_leg">
+    <inertial>
+      <origin xyz="0.006410100000000002 0.0044995000000000104 -0.05761399999999994" rpy="0 0 -1.5707963267948966"/>
+      <mass value="0.968264435"/>
+      <inertia ixx="0.0021371558939666238" ixy="5.0592852351204366e-05" ixz="-0.00024733406954523924" iyy="0.002651562334995458" iyz="0.0002558564384367833" izz="0.0011079552445972768"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.01105 -0.058549999999999776 0.48345800000000044" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_upper_leg_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_upper_leg_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.01105 -0.058549999999999776 0.48345800000000044" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_upper_leg_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hip_yaw" type="revolute">
+    <origin xyz="0 -0.015000000000000006 -0.07090000000000007" rpy="0 0 0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hip_3"/>
+    <child link="l_upper_leg"/>
+    <limit effort="50000" lower="-1.3962634015954636" upper="1.3962634015954636" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="l_lower_leg">
+    <inertial>
+      <origin xyz="-0.012714199999999998 -0.022607400000000014 -0.12817599999999996" rpy="0 0 -1.5707963267948966"/>
+      <mass value="5.063049414"/>
+      <inertia ixx="0.0567854017259985" ixy="6.344497428140121e-05" ixz="-0.00012637525838973313" iyy="0.054305487902395026" iyz="-5.473978729135758e-05" izz="0.005671522530034296"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.026050000000000094 -0.08344999999999987 0.5896580000000003" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_lower_leg_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_lower_leg_color">
+        <color rgba="0.3 0.3 0.3 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.026050000000000094 -0.08344999999999987 0.5896580000000003" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_lower_leg_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_knee" type="revolute">
+    <origin xyz="0.015 0.024900000000000012 -0.10619999999999996" rpy="0 0 0"/>
+    <axis xyz="0.0 -1.0 0.0"/>
+    <parent link="l_upper_leg"/>
+    <child link="l_lower_leg"/>
+    <limit effort="50000" lower="-1.2217304763960306" upper="0.08726646259971647" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="l_ankle_1">
+    <inertial>
+      <origin xyz="-0.005967799999999999 -0.0010993000000000114 -0.015761000000000025" rpy="0 0 -1.5707963267948966"/>
+      <mass value="0.346176903"/>
+      <inertia ixx="0.01" ixy="3.500555218899747e-05" ixz="5.595236405229479e-05" iyy="0.01" iyz="-2.5797402621896045e-05" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.026050000000000184 -0.08294999999999977 0.8456470000000004" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_ankle_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_ankle_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.026050000000000184 -0.08294999999999977 0.8456470000000004" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_ankle_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_ankle_pitch" type="revolute">
+    <origin xyz="0 -0.0005000000000000004 -0.255989" rpy="0 0 0"/>
+    <axis xyz="0.0 1.0 0.0"/>
+    <parent link="l_lower_leg"/>
+    <child link="l_ankle_1"/>
+    <limit effort="50000" lower="-0.7853981633974483" upper="0.7853981633974483" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="l_ankle_2">
+    <inertial>
+      <origin xyz="0.0429784 -5.8499999999989116e-05 -0.02598899999999993" rpy="0 0 -1.5707963267948966"/>
+      <mass value="1.011533592"/>
+      <inertia ixx="0.01" ixy="3.898018973804329e-06" ixz="-2.6222640395637156e-06" iyy="0.01" iyz="0.0007906528913743961" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.026700000000000015 -0.06475000000001183 0.8806469999999995" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_ankle_2_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_ankle_2_color">
+        <color rgba="0.3 0.3 0.3 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.026700000000000015 -0.06475000000001183 0.8806469999999995" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_ankle_2_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_ankle_roll" type="revolute">
+    <origin xyz="-0.052750000000000005 -0.018200000000000008 -0.03500000000000003" rpy="0 0 0"/>
+    <axis xyz="1.0 0.0 0.0"/>
+    <parent link="l_ankle_1"/>
+    <child link="l_ankle_2"/>
+    <limit effort="50000" lower="-0.4363323129985824" upper="0.4363323129985824" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="l_foot_front">
+    <inertial>
+      <origin xyz="7.700000000000762e-05 -3.990000000000937e-05 0.004256999999999955" rpy="0 0 -1.5707963267948966"/>
+      <mass value="0.175038164"/>
+      <inertia ixx="0.01" ixy="3.468975818270962e-07" ixz="2.6549198249941107e-07" iyy="0.01" iyz="3.419436179908361e-05" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.10854999999999998 -0.06475000000001183 0.9464469999999993" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_foot_front_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_foot_front_color">
+        <color rgba="1 0.51 0.0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.003" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.117 0.1 0.006"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_foot_front_ft_sensor" type="fixed">
+    <origin xyz="0.13524999999999998 0 -0.06579999999999997" rpy="0 0 0"/>
+    <parent link="l_ankle_2"/>
+    <child link="l_foot_front"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="l_foot_rear">
+    <inertial>
+      <origin xyz="0.0005056000000000001 3.350000000000575e-05 0.003658999999999968" rpy="0 0 -1.5707963267948966"/>
+      <mass value="0.174597434"/>
+      <inertia ixx="0.01" ixy="-3.730425576901001e-07" ixz="3.3038909914027564e-06" iyy="0.01" iyz="7.963142231236676e-06" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.010700000000000006 -0.06475000000001183 0.9464469999999993" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_foot_rear_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_foot_rear_color">
+        <color rgba="1 0.51 0.0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.003" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.117 0.1 0.006"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_foot_rear_ft_sensor" type="fixed">
+    <origin xyz="0.016 0 -0.06579999999999997" rpy="0 0 0"/>
+    <parent link="l_ankle_2"/>
+    <child link="l_foot_rear"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="l_sole"/>
+  <joint name="l_sole_fixed_joint" type="fixed">
+    <origin xyz="0.05963 0 0" rpy="0 0 0"/>
+    <parent link="l_foot_rear"/>
+    <child link="l_sole"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="torso_1">
+    <inertial>
+      <origin xyz="-0.00752632 0.000684313 0.05308400000000002" rpy="0 0 -1.5707963267948966"/>
+      <mass value="1.714262538"/>
+      <inertia ixx="0.0033513877542161704" ixy="5.189868240267766e-06" ixz="7.72546923286231e-06" iyy="0.002577063721714248" iyz="-0.0003083355422269907" izz="0.002042143444277807"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.25335800000000014" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_torso_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="torso_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.25335800000000014" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_torso_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="torso_roll" type="revolute">
+    <origin xyz="0 0 0.0605" rpy="0 0 0"/>
+    <axis xyz="-1.0 0.0 0.0"/>
+    <parent link="root_link"/>
+    <child link="torso_1"/>
+    <limit effort="50000" lower="-0.4014257279586958" upper="0.4014257279586958" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="torso_2">
+    <inertial>
+      <origin xyz="0.0006802240000000001 0.0015534 0.05118500000000001" rpy="0 0 -1.5707963267948966"/>
+      <mass value="1.374672951"/>
+      <inertia ixx="0.0021403904410333815" ixy="-1.6823426685005056e-06" ixz="-0.00011213001148794212" iyy="0.002710313811866755" iyz="1.3971067086438227e-05" izz="0.0015476455452444666"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.18085800000000013" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_torso_2_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="torso_2_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.18085800000000013" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_torso_2_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="torso_pitch" type="revolute">
+    <origin xyz="0 0 0.07250000000000001" rpy="0 0 0"/>
+    <axis xyz="0.0 1.0 0.0"/>
+    <parent link="torso_1"/>
+    <child link="torso_2"/>
+    <limit effort="50000" lower="-0.3141592653589793" upper="0.7853981633974483" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="chest">
+    <inertial>
+      <origin xyz="-0.00597433 -7.26041e-05 0.06416630000000001" rpy="0 0 -1.5707963267948966"/>
+      <mass value="7.5231"/>
+      <inertia ixx="0.03385562771578811" ixy="5.2898427148176666e-05" ixz="0.00014073569655152914" iyy="0.03297344897602433" iyz="-0.0017469131032638945" izz="0.029559708315070623"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.11638800000000014" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_chest_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="chest_color">
+        <color rgba="0.3 0.3 0.3 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.11638800000000014" rpy="0 0 -1.5707963267948966"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_chest_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="torso_yaw" type="revolute">
+    <origin xyz="0 0 0.06447000000000001" rpy="0 0 0"/>
+    <axis xyz="0.0 0.0 -1.0"/>
+    <parent link="torso_2"/>
+    <child link="chest"/>
+    <limit effort="50000" lower="-0.7504915783575618" upper="0.7504915783575618" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="chest_depth_frame"/>
+  <joint name="chest_depth_frame_fixed_joint" type="fixed">
+    <origin xyz="0.0894115 0.0175 0.09929950000000001" rpy="-1.5707963267948968 0 -1.5707963267948968"/>
+    <parent link="chest"/>
+    <child link="chest_depth_frame"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="chest_rgb_frame"/>
+  <joint name="chest_rgb_frame_fixed_joint" type="fixed">
+    <origin xyz="0.0894115 -0.0115 0.09929950000000001" rpy="-1.5707963267948968 0 -1.5707963267948968"/>
+    <parent link="chest"/>
+    <child link="chest_rgb_frame"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="neck_1">
+    <inertial>
+      <origin xyz="-0.0021259300000000003 0.00033753499999999997 0.031454700000000016" rpy="-1.5707963267948968 0 -1.5707963267948968"/>
+      <mass value="0.36804"/>
+      <inertia ixx="0.000179701897883096" ixy="-8.833876708276077e-06" ixz="-1.4878426738622656e-05" iyy="0.0002675144279997793" iyz="5.57627455590208e-06" izz="0.00028375118819347193"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.00865 0 0.049000000000000016" rpy="-1.5707963267948968 0 -1.5707963267948968"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_head_neck_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="neck_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.00865 0 0.049000000000000016" rpy="-1.5707963267948968 0 -1.5707963267948968"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_head_neck_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="neck_fixed_joint" type="fixed">
+    <origin xyz="-0.00378849 0 0.1652995" rpy="0 0 0"/>
+    <parent link="chest"/>
+    <child link="neck_1"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="neck_2">
+    <inertial>
+      <origin xyz="-0.0063756 3.63093e-05 0.006597499999999992" rpy="-1.5707963267948968 0 -1.5707963267948968"/>
+      <mass value="0.1214"/>
+      <inertia ixx="3.922803192379071e-05" ixy="5.7011653935913464e-08" ixz="9.665431536690854e-08" iyy="3.7385115930831784e-05" iyz="-9.08258119140734e-06" izz="4.585137085918645e-05"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="-1.5707963267948968 0 -1.5707963267948968"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_head_neck_2_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="neck_2_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="-1.5707963267948968 0 -1.5707963267948968"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_head_neck_2_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="neck_pitch" type="revolute">
+    <origin xyz="0.00865 0 0.049000000000000016" rpy="0 0 0"/>
+    <axis xyz="0.0 -1.0 0.0"/>
+    <parent link="neck_1"/>
+    <child link="neck_2"/>
+    <limit effort="50000" lower="-0.5235987755982988" upper="0.3839724354387525" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="neck_3">
+    <inertial>
+      <origin xyz="0.0012653999999999999 -8.218820000000001e-05 0.036108999999999974" rpy="-1.5707963267948968 0 -1.5707963267948968"/>
+      <mass value="0.18386"/>
+      <inertia ixx="0.00011968746119821388" ixy="-5.240077207007726e-07" ixz="-3.6002165484161086e-07" iyy="3.99187384725429e-05" iyz="-9.97584076409671e-06" izz="0.00010705060973108298"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 -0.009500499999999995" rpy="-1.5707963267948968 0 -1.5707963267948968"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_head_neck_3_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="neck_3_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.009500499999999995" rpy="-1.5707963267948968 0 -1.5707963267948968"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_head_neck_3_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="neck_roll" type="revolute">
+    <origin xyz="0 0 0.009500499999999995" rpy="0 0 0"/>
+    <axis xyz="1.0 0.0 0.0"/>
+    <parent link="neck_2"/>
+    <child link="neck_3"/>
+    <limit effort="50000" lower="-0.3490658503988659" upper="0.3490658503988659" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="head">
+    <inertial>
+      <origin xyz="-0.02065171 0.000526031 0.027896999999999977" rpy="-1.5707963267948968 0 -1.5707963267948968"/>
+      <mass value="1.8728"/>
+      <inertia ixx="0.007642647745719656" ixy="4.8998499721183834e-05" ixz="4.926393457113943e-05" iyy="0.007404636328713935" iyz="-0.00019328685350792046" izz="0.005594148247588756"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 -0.07865050000000001" rpy="-1.5707963267948968 0 -1.5707963267948968"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_head_head_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="head_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.07865050000000001" rpy="-1.5707963267948968 0 -1.5707963267948968"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_head_head_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="neck_yaw" type="revolute">
+    <origin xyz="0 0 0.06915000000000002" rpy="0 0 0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="neck_3"/>
+    <child link="head"/>
+    <limit effort="50000" lower="-0.7853981633974483" upper="0.7853981633974483" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="imu_frame"/>
+  <joint name="imu_frame_fixed_joint" type="fixed">
+    <origin xyz="0.0035000000000000005 0.0055 0.10133400000000001" rpy="3.141592653589793 0 -1.5707963267948966"/>
+    <parent link="head"/>
+    <child link="imu_frame"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="eyes_tilt_frame">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+  </link>
+  <joint name="eyes_tilt" type="revolute">
+    <origin xyz="0.05 0 0.015" rpy="1.57 0 3.14"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="head"/>
+    <child link="eyes_tilt_frame"/>
+    <limit effort="50000" lower="-0.5235987755982988" upper="0.5235987755982988" velocity="50000"/>
+  </joint>
+  <link name="l_eye">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.01" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.02"/>
+      </geometry>
+      <material name="l_eye_color">
+        <color rgba="1.0 1.0 1.0 1"/>
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0.0 0.0 0.03" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.001" radius="0.005"/>
+      </geometry>
+      <material name="l_eye_pupil_color">
+        <color rgba="0.1 0.1 0.1 1"/>
+      </material>
+    </visual>
+  </link>
+  <joint name="l_eye_pan_joint" type="revolute">
+    <origin xyz="0.0 0.0 0.034" rpy="0.0 -1.57 0.0"/>
+    <axis xyz="0.0 -1.0 0.0"/>
+    <parent link="eyes_tilt_frame"/>
+    <child link="l_eye"/>
+    <limit effort="50000" lower="-0.5235987755982988" upper="0.9599310885968813" velocity="50000"/>
+  </joint>
+  <link name="r_eye">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.01" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.02"/>
+      </geometry>
+      <material name="r_eye_color">
+        <color rgba="1.0 1.0 1.0 1"/>
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0.0 0.0 0.03" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.001" radius="0.005"/>
+      </geometry>
+      <material name="r_eye_pupil_color">
+        <color rgba="0.1 0.1 0.1 1"/>
+      </material>
+    </visual>
+  </link>
+  <joint name="r_eye_pan_joint" type="revolute">
+    <origin xyz="0.0 0.0 -0.034" rpy="0.0 -1.57 0.0"/>
+    <axis xyz="0.0 -1.0 0.0"/>
+    <parent link="eyes_tilt_frame"/>
+    <child link="r_eye"/>
+    <limit effort="50000" lower="-0.9599310885968813" upper="0.5235987755982988" velocity="50000"/>
+  </joint>
+  <link name="r_shoulder_1">
+    <inertial>
+      <origin xyz="0.00016744811157206815 -0.08721740246539644 0.0004507343002208668" rpy="-0.06688725064450136 0.24445256247619251 -1.840815419889917"/>
+      <mass value="0.78697"/>
+      <inertia ixx="0.01" ixy="-0.0001736132173031554" ixz="-0.0001629290145974639" iyy="0.01" iyz="-4.081377037378354e-05" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.030411233356184383 0.029140462447480246 0.01909577433393813" rpy="-0.06688725064450136 0.24445256247619251 -1.840815419889917"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_shoulder_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_shoulder_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.030411233356184383 0.029140462447480246 0.01909577433393813" rpy="-0.06688725064450136 0.24445256247619251 -1.840815419889917"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_shoulder_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_shoulder_pitch" type="revolute">
+    <origin xyz="-0.020835100000000002 -0.0397423 0.1052029" rpy="-0.25326164431680925 2.3014774394592079e-07 0.26179970938509745"/>
+    <axis xyz="1.499044390098182e-07 0.9999999783534812 -1.2401537036323317e-07"/>
+    <parent link="chest"/>
+    <child link="r_shoulder_1"/>
+    <limit effort="50000" lower="-3.0543261909900767" upper="0.3490658503988659" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="r_shoulder_2">
+    <inertial>
+      <origin xyz="0.005108924921141532 -0.00021262473188485287 -0.020403359362654718" rpy="-0.12008540036084188 0.22978866753011018 -1.8533144378692001"/>
+      <mass value="0.42492"/>
+      <inertia ixx="0.01" ixy="4.8603409990214605e-05" ixz="6.290223922809094e-05" iyy="0.01" iyz="-7.540635367635347e-05" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.023893259221697872 0.1406408982359711 0.017434528479984186" rpy="-0.12008540036084188 0.22978866753011018 -1.8533144378692001"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_shoulder_2_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_shoulder_2_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.023893259221697872 0.1406408982359711 0.017434528479984186" rpy="-0.12008540036084188 0.22978866753011018 -1.8533144378692001"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_shoulder_2_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_shoulder_roll" type="revolute">
+    <origin xyz="0.007489008185044645 -0.11150041046657978 0.0004027858966975245" rpy="0.17453306234069352 -0.05374779257913059 -6.132332688804098e-07"/>
+    <axis xyz="-0.9999998262417886 4.210501434612913e-08 2.4630481182686846e-08"/>
+    <parent link="r_shoulder_1"/>
+    <child link="r_shoulder_2"/>
+    <limit effort="50000" lower="0.20943951023931956" upper="2.8448866807507573" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="r_shoulder_3">
+    <inertial>
+      <origin xyz="-8.296442829116082e-05 -3.0309267538636275e-05 -0.007966520489017762" rpy="-0.12008540036084188 0.22978866753011018 -1.8533144378692001"/>
+      <mass value="0.2625"/>
+      <inertia ixx="0.01" ixy="1.6702215931276847e-06" ixz="-1.0784251066431893e-05" iyy="0.01" iyz="-5.495630207834499e-06" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.030743205607087747 0.1406406791860105 0.07173451005787518" rpy="-0.12008540036084188 0.22978866753011018 -1.8533144378692001"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_shoulder_3_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_shoulder_3_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.030743205607087747 0.1406406791860105 0.07173451005787518" rpy="-0.12008540036084188 0.22978866753011018 -1.8533144378692001"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_shoulder_3_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_arm_ft_sensor" type="fixed">
+    <origin xyz="-0.006849946385389872 2.1904996058697002e-07 -0.05429998157789099" rpy="0 0 0"/>
+    <parent link="r_shoulder_2"/>
+    <child link="r_shoulder_3"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="r_upper_arm">
+    <inertial>
+      <origin xyz="0.001047638776241297 -0.002559626059706027 -0.05065314965013519" rpy="-0.12008540036084188 0.22978866753011018 -1.8533144378692001"/>
+      <mass value="1.6219"/>
+      <inertia ixx="0.0028621730577300286" ixy="-6.813413059160908e-05" ixz="0.00046088710437670286" iyy="0.002840193682070483" iyz="0.00027786456283648023" izz="0.0014181870624638555"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.030743123698670136 0.14064025735327973 0.09423445143102875" rpy="-0.12008540036084188 0.22978866753011018 -1.8533144378692001"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_upperarm_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_upper_arm_color">
+        <color rgba="0.3 0.3 0.3 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.030743123698670136 0.14064025735327973 0.09423445143102875" rpy="-0.12008540036084188 0.22978866753011018 -1.8533144378692001"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_upperarm_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_shoulder_yaw" type="revolute">
+    <origin xyz="0 4.2183273077367467e-07 -0.02249994137315358" rpy="0 0 0"/>
+    <axis xyz="-3.787621790776764e-08 2.805197706023475e-08 1.0000002566182309"/>
+    <parent link="r_shoulder_3"/>
+    <child link="r_upper_arm"/>
+    <limit effort="50000" lower="-0.8726646259971648" upper="1.3962634015954636" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="r_elbow_1">
+    <inertial>
+      <origin xyz="-0.009961389267727768 -0.00048246745077001885 -0.014881572540082794" rpy="-0.12008540036084188 0.22978866753011018 -1.8533144378692001"/>
+      <mass value="0.22157"/>
+      <inertia ixx="0.01" ixy="1.4282851377772346e-06" ixz="2.3557271962747337e-05" iyy="0.01" iyz="-5.224075189187301e-06" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.020743191776066316 0.1391406172212523 0.21793478892057525" rpy="-0.12008540036084188 0.22978866753011018 -1.8533144378692001"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_elbow_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_elbow_1_color">
+        <color rgba="0.3 0.3 0.3 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.020743191776066316 0.1391406172212523 0.21793478892057525" rpy="-0.12008540036084188 0.22978866753011018 -1.8533144378692001"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_elbow_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_elbow" type="revolute">
+    <origin xyz="0.00999993192260382 0.0014996401320274133 -0.1237003374895465" rpy="0 0 0"/>
+    <axis xyz="2.4949582807394525e-07 -1.0000002733514362 2.7942487010105877e-08"/>
+    <parent link="r_upper_arm"/>
+    <child link="r_elbow_1"/>
+    <limit effort="50000" lower="-0.05235987755982989" upper="1.3089969389957472" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="r_forearm">
+    <inertial>
+      <origin xyz="-0.005904319801167034 -3.4912323017555202e-06 -0.030210371584223267" rpy="-0.12008540036084188 0.22978866753011018 -1.8533144378692001"/>
+      <mass value="0.8686"/>
+      <inertia ixx="0.0012354585621581545" ixy="-2.385589710648161e-05" ixz="0.00012368703711331712" iyy="0.0012067292165090081" iyz="0.00013988125965072048" izz="0.0006565375890204164"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.03574306124487927 0.14114026712657127 0.27323485259309493" rpy="-0.12008540036084188 0.22978866753011018 -1.8533144378692001"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_forearm_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_forearm_color">
+        <color rgba="0.3 0.3 0.3 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.03574306124487927 0.14114026712657127 0.27323485259309493" rpy="-0.12008540036084188 0.22978866753011018 -1.8533144378692001"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_forearm_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_wrist_prosup" type="revolute">
+    <origin xyz="-0.014999869468812953 -0.0019996499053189787 -0.05530006367251966" rpy="0 0 0"/>
+    <axis xyz="-3.787621790776764e-08 2.805197706023475e-08 1.0000002566182309"/>
+    <parent link="r_elbow_1"/>
+    <child link="r_forearm"/>
+    <limit effort="50000" lower="-1.53588974175501" upper="1.53588974175501" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="r_wrist_1">
+    <inertial>
+      <origin xyz="-0.014340376761973205 0.000501617899800938 -0.00011512626658716218" rpy="-0.12008540036084188 0.22978866753011018 -1.8533144378692001"/>
+      <mass value="0.033183"/>
+      <inertia ixx="0.01" ixy="8.77585378818565e-07" ixz="-1.8326418199726652e-08" iyy="0.01" iyz="-1.496169319469983e-07" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.019443107890930632 0.14314771001738308 0.3807349323052013" rpy="-0.12008540036084188 0.22978866753011018 -1.8533144378692001"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_wrist_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_wrist_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.019443107890930632 0.14314771001738308 0.3807349323052013" rpy="-0.12008540036084188 0.22978866753011018 -1.8533144378692001"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_r_wrist_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_wrist_pitch" type="revolute">
+    <origin xyz="0.016299953353948633 -0.002007442890811839 -0.10750007971210637" rpy="0 0 0"/>
+    <axis xyz="0.9999998262417886 -4.210501434612913e-08 -2.4630481182686846e-08"/>
+    <parent link="r_forearm"/>
+    <child link="r_wrist_1"/>
+    <limit effort="50000" lower="-1.2217304763960306" upper="0.4363323129985824" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="r_hand">
+    <inertial>
+      <origin xyz="0.004771493181005178 0.00622015783889579 -0.06696908446509364" rpy="-0.12008540036084188 0.22978866753011018 -1.8533144378692001"/>
+      <mass value="0.25705"/>
+      <inertia ixx="0.01" ixy="4.072835073167062e-05" ixz="5.517886762216454e-05" iyy="0.01" iyz="2.68326820148215e-05" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.00271606739979117 -0.00155679999998751 -0.00248235390712302" rpy="-1.57079632679979 0.261799319827 2.0696157436707e-13"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_RightHandPalm.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="r_hand_palm_color">
+        <color rgba="0.1 0.1 0.1 1"/>
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.0576542978428 -0.0055568 0.0136938323083" rpy="-1.57079632679 -0.261799319827 3.14159265359"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_RightTopCover.dae" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="r_hand_top_color">
+        <color rgba="0.1 0.1 0.1 1"/>
+      </material>
+    </visual>
+   <collision>
+      <origin xyz="-0.00271606739980213 -0.0015568 -0.00248235390708518" rpy="-1.57079632679979 0.261799319827 0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_RightHandPalm.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_wrist_yaw" type="revolute">
+    <origin xyz="-0.016300122874272734 0.006999390051091792 0" rpy="0 -1.57079632679 3.14159265359 "/> 
+    <axis xyz="-2.4949582807394525e-07 -1.0000002733514362 -2.7942487010105877e-08"/>
+    <parent link="r_wrist_1"/>
+    <child link="r_hand"/>
+    <limit effort="50000" lower="-0.2617993877991494" upper="0.6108652381980153" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="r_hand_thumb_0">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 3.14159265359 1.57079632679"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_RightThumb0.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="r_hand_thumb_0_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 3.14159265359 1.57079632679"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_RightThumb0.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hand_thumb_0_joint" type="revolute">
+    <origin xyz="-0.0318492127582281 -0.00405679999993591 0.0192026964178796" rpy="0.0880846384483103 -1.32396952212432 2.97584384270403"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand"/>
+    <child link="r_hand_thumb_0"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="r_hand_thumb_1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_RightThumb1.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="r_hand_thumb_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_RightThumb1.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hand_thumb_1_joint" type="revolute">
+    <origin xyz="0.0211 0.0049 -3.00038465791102e-19" rpy="-1.5707963267949 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand_thumb_0"/>
+    <child link="r_hand_thumb_1"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="r_hand_thumb_2">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_RightThumb2.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="r_hand_thumb_2_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_RightThumb2.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hand_thumb_2_joint" type="revolute">
+    <origin xyz="0.026 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand_thumb_1"/>
+    <child link="r_hand_thumb_2"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="r_hand_thumb_3">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_RightThumb3.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="r_hand_thumb_3_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_RightThumb3.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hand_thumb_3_joint" type="revolute">
+    <origin xyz="0.022 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand_thumb_2"/>
+    <child link="r_hand_thumb_3"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="r_hand_thumb_tip"/>
+  <joint name="r_hand_thumb_tip_joint" type="fixed">
+    <origin xyz="0.0168 0.0 0.0" rpy="-1.5707963267948966 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand_thumb_3"/>
+    <child link="r_hand_thumb_tip"/>
+  </joint>
+  <link name="r_hand_index_0">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_RightIndex0.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="r_hand_index_0_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_RightIndex0.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hand_index_0_joint" type="revolute">
+    <origin xyz="-0.0525584344285222 0.00514320000012944 0.039473341148855" rpy="1.48159614751736 -2.80851293007006 0.00659385709493776"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand"/>
+    <child link="r_hand_index_0"/>
+    <limit effort="50000" lower="-0.3490658503988659" upper="0.0" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="r_hand_index_1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_RightIndex1.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="r_hand_index_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_RightIndex1.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hand_index_1_joint" type="revolute">
+    <origin xyz="0.0148 0.00175 -1.07156594925393e-19" rpy="1.5707963267949 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand_index_0"/>
+    <child link="r_hand_index_1"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="r_hand_index_2">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_RightIndex2.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="r_hand_index_2_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_RightIndex2.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hand_index_2_joint" type="revolute">
+    <origin xyz="0.0259 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand_index_1"/>
+    <child link="r_hand_index_2"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="r_hand_index_3">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_RightIndex3.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="r_hand_index_3_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_RightIndex3.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hand_index_3_joint" type="revolute">
+    <origin xyz="0.022 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand_index_2"/>
+    <child link="r_hand_index_3"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="r_hand_index_tip"/>
+  <joint name="r_hand_index_tip_joint" type="fixed">
+    <origin xyz="0.0168 0.0 0.0" rpy="-1.5707963267948966 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand_index_3"/>
+    <child link="r_hand_index_tip"/>
+  </joint>
+  <link name="r_hand_middle_0">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0035" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_RightMiddle0.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="r_hand_middle_0_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0035" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_RightMiddle0.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hand_middle_0_joint" type="revolute">
+    <origin xyz="-0.057540451023329 0.00604320000004786 0.0237779752515841" rpy="1.57079632679979 -2.87979333376279 2.06501482580279e-13"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand"/>
+    <child link="r_hand_middle_0"/>
+    <limit effort="50000" lower="0.0" upper="0.0" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="r_hand_middle_1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_RightMiddle1.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="r_hand_middle_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_RightMiddle1.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hand_middle_1_joint" type="revolute">
+    <origin xyz="0.0153 0.0022 -1.34711147906209e-19" rpy="1.5707963267949 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand_middle_0"/>
+    <child link="r_hand_middle_1"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="r_hand_middle_2">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_RightMiddle2.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="r_hand_middle_2_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_RightMiddle2.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hand_middle_2_joint" type="revolute">
+    <origin xyz="0.0258 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand_middle_1"/>
+    <child link="r_hand_middle_2"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="r_hand_middle_3">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_RightMiddle3.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="r_hand_middle_3_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_RightMiddle3.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hand_middle_3_joint" type="revolute">
+    <origin xyz="0.024 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand_middle_2"/>
+    <child link="r_hand_middle_3"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="r_hand_middle_tip"/>
+  <joint name="r_hand_middle_tip_joint" type="fixed">
+    <origin xyz="0.0168 0.0 0.0" rpy="-1.5707963267948966 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand_middle_3"/>
+    <child link="r_hand_middle_tip"/>
+  </joint>
+  <link name="r_hand_ring_0">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_RightRing0.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="r_hand_ring_0_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_RightRing0.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hand_ring_0_joint" type="revolute">
+    <origin xyz="-0.0606910842022157 0.00544319999997171 0.00865822622681494" rpy="-1.54796540941373 -0.154343069643928 3.05377499029501"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand"/>
+    <child link="r_hand_ring_0"/>
+    <limit effort="50000" lower="0.0" upper="0.3490658503988659" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="r_hand_ring_1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_RightRing1.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="r_hand_ring_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_RightRing1.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hand_ring_1_joint" type="revolute">
+    <origin xyz="0.0148 0.00175 -1.07156594925393e-19" rpy="1.5707963267949 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand_ring_0"/>
+    <child link="r_hand_ring_1"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="r_hand_ring_2">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_RightRing2.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="r_hand_ring_2_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_RightRing2.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hand_ring_2_joint" type="revolute">
+    <origin xyz="0.0259 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand_ring_1"/>
+    <child link="r_hand_ring_2"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="r_hand_ring_3">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_RightRing3.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="r_hand_ring_3_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_RightRing3.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hand_ring_3_joint" type="revolute">
+    <origin xyz="0.022 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand_ring_2"/>
+    <child link="r_hand_ring_3"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="r_hand_ring_tip"/>
+  <joint name="r_hand_ring_tip_joint" type="fixed">
+    <origin xyz="0.0168 0.0 0.0" rpy="-1.5707963267948966 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand_ring_3"/>
+    <child link="r_hand_ring_tip"/>
+  </joint>
+  <link name="r_hand_little_0">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0038" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_RightLittle0.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="r_hand_little_0_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0038" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_RightLittle0.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hand_little_0_joint" type="revolute">
+    <origin xyz="-0.0636290045193172 0.00444319999987861 -0.0101109273025847" rpy="-1.54796540941373 -0.154343069643928 3.05377499029501"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand"/>
+    <child link="r_hand_little_0"/>
+    <limit effort="50000" lower="0.0" upper="0.3490658503988659" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="r_hand_little_1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_RightLittle1.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="r_hand_little_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_RightLittle1.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hand_little_1_joint" type="revolute">
+    <origin xyz=" 0.0148 -0.00175 1.07156594925393e-19" rpy="1.5707963267949 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand_little_0"/>
+    <child link="r_hand_little_1"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="r_hand_little_2">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_RightLittle2.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="r_hand_little_2_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_RightLittle2.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hand_little_2_joint" type="revolute">
+    <origin xyz="0.0219 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand_little_1"/>
+    <child link="r_hand_little_2"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="r_hand_little_3">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_RightLittle3.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="r_hand_little_3_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_RightLittle3.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_hand_little_3_joint" type="revolute">
+    <origin xyz="0.019 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand_little_2"/>
+    <child link="r_hand_little_3"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="r_hand_little_tip"/>
+  <joint name="r_hand_little_tip_joint" type="fixed">
+    <origin xyz="0.0168 0.0 0.0" rpy="-1.5707963267948966 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="r_hand_little_3"/>
+    <child link="r_hand_little_tip"/>
+  </joint>
+  <link name="l_shoulder_1">
+    <inertial>
+      <origin xyz="0.000167535101724358 0.08722598325113093 0.00045078764626123313" rpy="-0.0668874800658252 -0.24445247958725436 -1.300777660386542"/>
+      <mass value="0.78644"/>
+      <inertia ixx="0.01" ixy="0.00017359471090191915" ixz="0.00016289691907417792" iyy="0.01" iyz="-4.081880122662575e-05" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.030411223823216114 -0.029140477503746667 0.019095766539677955" rpy="-0.0668874800658252 -0.24445247958725436 -1.300777660386542"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_shoulder_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_shoulder_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.030411223823216114 -0.029140477503746667 0.019095766539677955" rpy="-0.0668874800658252 -0.24445247958725436 -1.300777660386542"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_shoulder_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_shoulder_pitch" type="revolute">
+    <origin xyz="-0.020835100000000002 0.0397423 0.1052029" rpy="0.25326162380993705 -1.1977334179319483e-07 -0.26179930184968747"/>
+    <axis xyz="3.323079797554136e-07 0.9999999783534342 1.4452224303420037e-07"/>
+    <parent link="chest"/>
+    <child link="l_shoulder_1"/>
+    <limit effort="50000" lower="-3.0543261909900767" upper="0.3490658503988659" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="l_shoulder_2">
+    <inertial>
+      <origin xyz="0.007668668705576271 0.00018849980855933923 -0.020403454228093053" rpy="-0.12008543635729363 -0.22978873231718944 -1.2882780461440753"/>
+      <mass value="0.42492"/>
+      <inertia ixx="0.01" ixy="-4.916851307375464e-05" ixz="-6.324300296292925e-05" iyy="0.01" iyz="-7.587195452290467e-05" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.026393096265395596 -0.14064030580326706 0.017434480978924874" rpy="-0.12008543635729363 -0.22978873231718944 -1.2882780461440753"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_shoulder_2_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_shoulder_2_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.026393096265395596 -0.14064030580326706 0.017434480978924874" rpy="-0.12008543635729363 -0.22978873231718944 -1.2882780461440753"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_shoulder_2_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_shoulder_roll" type="revolute">
+    <origin xyz="0.004992849331690818 0.111499838456099 0.00026865022773668243" rpy="-0.17453296140985003 -0.05374759931933849 0"/>
+    <axis xyz="0.9999998262417685 2.0348252625938444e-07 -4.023022846062156e-08"/>
+    <parent link="l_shoulder_1"/>
+    <child link="l_shoulder_2"/>
+    <limit effort="50000" lower="0.20943951023931956" upper="2.8448866807507573" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="l_shoulder_3">
+    <inertial>
+      <origin xyz="-9.561931744893337e-05 3.089115052354319e-05 -0.007966608685190321" rpy="-0.12008543635729363 -0.22978873231718944 -1.2882780461440753"/>
+      <mass value="0.2625"/>
+      <inertia ixx="0.01" ixy="-1.6986505676585652e-06" ixz="1.0777869051741286e-05" iyy="0.01" iyz="-5.511652932595611e-06" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.030743229422373917 -0.14064066906059042 0.0717345197029866" rpy="-0.12008543635729363 -0.22978873231718944 -1.2882780461440753"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_shoulder_3_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_shoulder_3_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.030743229422373917 -0.14064066906059042 0.0717345197029866" rpy="-0.12008543635729363 -0.22978873231718944 -1.2882780461440753"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_shoulder_3_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_arm_ft_sensor" type="fixed">
+    <origin xyz="-0.004350133156978318 3.632573233602887e-07 -0.05430003872406172" rpy="0 0 0"/>
+    <parent link="l_shoulder_2"/>
+    <child link="l_shoulder_3"/>
+    <dynamics damping="0.1"/>
+  </joint>
+  <link name="l_upper_arm">
+    <inertial>
+      <origin xyz="0.0010476375729993916 0.0025596225822598698 -0.05065314985074498" rpy="-0.06212860830092193 0.0714268908124578 0.27099931149673545"/>
+      <mass value="1.67729"/>
+      <inertia ixx="0.002960829234557446" ixy="-1.0441222117313817e-05" ixz="0.0002229885938828402" iyy="0.0030756376591531418" iyz="0.00020156448677983343" izz="0.001327263106289413"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.030743147864881363 -0.14064024560810592 0.09423446107611103" rpy="-0.12008543635729363 -0.22978873231718944 -1.2882780461440753"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_upperarm_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_upper_arm_color">
+        <color rgba="0.3 0.3 0.3 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.030743147864881363 -0.14064024560810592 0.09423446107611103" rpy="-0.12008543635729363 -0.22978873231718944 -1.2882780461440753"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_upperarm_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_shoulder_yaw" type="revolute">
+    <origin xyz="0 -4.2345248449371375e-07 -0.022499941373124423" rpy="0 0 0"/>
+    <axis xyz="2.2276474049102235e-08 -4.393786247302041e-08 -1.0000002566182309"/>
+    <parent link="l_shoulder_3"/>
+    <child link="l_upper_arm"/>
+    <limit effort="50000" lower="-0.8726646259971648" upper="1.3962634015954636" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="l_elbow_1">
+    <inertial>
+      <origin xyz="-0.009947433863160948 0.0004713243585720006 -0.014889454628597226" rpy="-0.12008543635729363 -0.22978873231718944 -1.2882780461440753"/>
+      <mass value="0.22161"/>
+      <inertia ixx="0.01" ixy="-1.4473906751261063e-06" ixz="-2.4098487110118167e-05" iyy="0.01" iyz="-5.285154621856073e-06" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.020743217629961962 -0.13914059818467703 0.21793479861369477" rpy="-0.12008543635729363 -0.22978873231718944 -1.2882780461440753"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_elbow_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_elbow_1_color">
+        <color rgba="0.3 0.3 0.3 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.020743217629961962 -0.13914059818467703 0.21793479861369477" rpy="-0.12008543635729363 -0.22978873231718944 -1.2882780461440753"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_elbow_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_elbow" type="revolute">
+    <origin xyz="0.009999930234919404 -0.001499647423428896 -0.12370033753758375" rpy="0 0 0"/>
+    <axis xyz="-8.811824174789715e-08 -1.0000002733514628 4.404736120498342e-08"/>
+    <parent link="l_upper_arm"/>
+    <child link="l_elbow_1"/>
+    <limit effort="50000" lower="-0.05235987755982989" upper="1.3089969389957472" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="l_forearm">
+    <inertial>
+      <origin xyz="-0.006323186767737077 -4.644477335560837e-05 -0.030456750179120307" rpy="-0.12008543635729363 -0.22978873231718944 -1.2882780461440753"/>
+      <mass value="0.87311"/>
+      <inertia ixx="0.0012499578358808174" ixy="2.299990880778632e-05" ixz="-0.00013204802784752087" iyy="0.0012325327102048142" iyz="0.00013098820888298704" izz="0.0006619865197576301"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.03574308828413966 -0.14114024168831188 0.27323486219617454" rpy="-0.12008543635729363 -0.22978873231718944 -1.2882780461440753"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_forearm_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_forearm_color">
+        <color rgba="0.3 0.3 0.3 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.03574308828413966 -0.14114024168831188 0.27323486219617454" rpy="-0.12008543635729363 -0.22978873231718944 -1.2882780461440753"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_forearm_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_wrist_prosup" type="revolute">
+    <origin xyz="-0.0149998706541777 0.0019996435036348514 -0.0553000635824798" rpy="0 0 0"/>
+    <axis xyz="2.2276474049102235e-08 -4.393786247302041e-08 -1.0000002566182309"/>
+    <parent link="l_elbow_1"/>
+    <child link="l_forearm"/>
+    <limit effort="50000" lower="-1.53588974175501" upper="1.53588974175501" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+  <link name="l_wrist_1">
+    <inertial>
+      <origin xyz="-0.014340376682819098 -0.0005016202223036004 -0.00011512600676955032" rpy="-0.12008543635729363 -0.22978873231718944 -1.2882780461440753"/>
+      <mass value="0.033183"/>
+      <inertia ixx="0.01" ixy="-8.77585378818565e-07" ixz="1.8326321501111727e-08" iyy="0.01" iyz="-1.496169319469983e-07" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.01914307234985348 -0.14314713690638445 0.38073450333871567" rpy="-0.12008543635729363 -0.22978873231718944 -1.2882780461440753"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_wrist_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="l_wrist_1_color">
+        <color rgba="0.9 0.9 0.9 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.01914307234985348 -0.14314713690638445 0.38073450333871567" rpy="-0.12008543635729363 -0.22978873231718944 -1.2882780461440753"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/simmechanics/sim_icub3_l_wrist_1_prt.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_wrist_pitch" type="revolute">
+    <origin xyz="0.016600015934286182 0.0020068952180725685 -0.10749964114254112" rpy="0 0 0"/>
+    <axis xyz="-0.9999998262417685 -2.0348252625938444e-07 4.023022846062156e-08"/>
+    <parent link="l_forearm"/>
+    <child link="l_wrist_1"/>
+    <limit effort="50000" lower="-1.2217304763960306" upper="0.4363323129985824" velocity="120.0"/>
+    <dynamics damping="2.0" friction="0.0"/>
+  </joint>
+   <link name="l_hand">
+    <inertial>
+      <origin xyz="0.0647680204057 0.0056304 0.0226602208449" rpy="0 0 0"/>
+      <mass value="0.247806"/>
+      <inertia ixx="0.01" ixy="2.96453e-06" ixz="-3.68906e-05" iyy="0.01" iyz="2.06885e-05" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.00271606739980213 -0.0015568 -0.00248235390708518" rpy="1.57079632679979 -0.261799319827 3.32244804390038e-17"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftHandPalm.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0.0576542978428 -0.0055568 0.0136938323083" rpy="-1.57079632679 -0.261799319827 5.74693715701688e-17"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftTopCover.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.00271606739980213 -0.0015568 -0.00248235390708518" rpy="1.57079632679979 -0.261799319827 3.32244804390038e-17"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_LeftHandPalm.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_wrist_yaw" type="revolute">
+    <origin xyz="-0.000634106499644 -0.0194999 0.00236651831751" rpy="0 1.57079632679979 0"/>
+    <axis xyz="-2.22044604925e-16 1.0 0.0"/>
+    <parent link="l_wrist_1"/>
+    <child link="l_hand"/>
+    <limit effort="50000" lower="-0.349065850399" upper="0.436332312999" velocity="50000"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+    <joint name="r_gripper_tool_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0.0 0.0 0.13" />
+    <parent link="r_hand" />
+    <child link="r_gripper_tool_frame" />
+  </joint>
+  <link name="r_gripper_tool_frame"><inertial><mass value="0.1" /><origin rpy="0 0 0" xyz="0 0 0" /><inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01" /></inertial></link>
+  <joint name="l_gripper_tool_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0.0 0 0.13" />
+    <parent link="l_hand" />
+    <child link="l_gripper_tool_frame" />
+  </joint>
+  <link name="l_gripper_tool_frame"><inertial><mass value="0.1" /><origin rpy="0 0 0" xyz="0 0 0" /><inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01" /></inertial></link>
+ <link name="l_hand_thumb_0">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftThumb0.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_LeftThumb0.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hand_thumb_0_joint" type="revolute">
+    <origin xyz="0.031849212758224 -0.00405680000005876 0.0192026964178938" rpy="3.05350801517967 -1.32396952212588 0.16574881085148"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hand"/>
+    <child link="l_hand_thumb_0"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="l_hand_thumb_1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftThumb1.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_LeftThumb1.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hand_thumb_1_joint" type="revolute">
+    <origin xyz="0.0211 0.0049 -3.00038465791102e-19" rpy="1.5707963267949 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hand_thumb_0"/>
+    <child link="l_hand_thumb_1"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="l_hand_thumb_2">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftThumb2.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_LeftThumb2.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hand_thumb_2_joint" type="revolute">
+    <origin xyz="0.026 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hand_thumb_1"/>
+    <child link="l_hand_thumb_2"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="l_hand_thumb_3">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 3.14159265358979 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftThumb3.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 3.14159265358979 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_LeftThumb3.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hand_thumb_3_joint" type="revolute">
+    <origin xyz="0.022 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hand_thumb_2"/>
+    <child link="l_hand_thumb_3"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="l_hand_thumb_tip"/>
+  <joint name="l_hand_thumb_tip_joint" type="fixed">
+    <origin xyz="0.0168 0.0 0.0" rpy="-1.5707963267948966 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hand_thumb_3"/>
+    <child link="l_hand_thumb_tip"/>
+  </joint>
+  <link name="l_hand_index_0">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftIndex0.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_LeftIndex0.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hand_index_0_joint" type="revolute">
+    <origin xyz="0.0525584344284928 0.00514319999987161 0.0394733411489562" rpy="-1.48159614750735 -2.80851293007012 3.13499879649432"/>
+    <axis xyz="0.0 0.0 -1.0"/>
+    <parent link="l_hand"/>
+    <child link="l_hand_index_0"/>
+    <limit effort="50000" lower="-0.3490658503988659" upper="0.0" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="l_hand_index_1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftIndex1.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_LeftIndex1.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hand_index_1_joint" type="revolute">
+    <origin xyz="0.0148 -0.00175 1.07156594925393e-19" rpy="1.5707963267949 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hand_index_0"/>
+    <child link="l_hand_index_1"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="l_hand_index_2">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftIndex2.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_LeftIndex2.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hand_index_2_joint" type="revolute">
+    <origin xyz="0.0259 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hand_index_1"/>
+    <child link="l_hand_index_2"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="l_hand_index_3">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftIndex3.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_LeftIndex3.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hand_index_3_joint" type="revolute">
+    <origin xyz="0.022 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hand_index_2"/>
+    <child link="l_hand_index_3"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="l_hand_index_tip"/>
+  <joint name="l_hand_index_tip_joint" type="fixed">
+    <origin xyz="0.0168 0.0 0.0" rpy="-1.5707963267948966 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hand_index_3"/>
+    <child link="l_hand_index_tip"/>
+  </joint>
+  <link name="l_hand_middle_0">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 1.5707963267949"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftMiddle0.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 1.5707963267949"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_LeftMiddle0.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hand_middle_0_joint" type="revolute">
+    <origin xyz="0.0575404510232972 0.00604319999995216 0.0237779752516938" rpy="1.57079632679979 -0.261799319827 3.43740493372924e-17"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hand"/>
+    <child link="l_hand_middle_0"/>
+    <limit effort="50000" lower="0.0" upper="0.3490658503988659" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="l_hand_middle_1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftMiddle1.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_LeftMiddle1.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hand_middle_1_joint" type="revolute">
+    <origin xyz="0.0153 -0.0022 1.34711147906209e-19" rpy="1.5707963267949 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hand_middle_0"/>
+    <child link="l_hand_middle_1"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="l_hand_middle_2">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftMiddle2.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_LeftMiddle2.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hand_middle_2_joint" type="revolute">
+    <origin xyz="0.0258 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hand_middle_1"/>
+    <child link="l_hand_middle_2"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="l_hand_middle_3">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftMiddle3.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_LeftMiddle3.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hand_middle_3_joint" type="revolute">
+    <origin xyz="0.024 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hand_middle_2"/>
+    <child link="l_hand_middle_3"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="l_hand_middle_tip"/>
+  <joint name="l_hand_middle_tip_joint" type="fixed">
+    <origin xyz="0.0168 0.0 0.0" rpy="-1.5707963267948966 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hand_middle_3"/>
+    <child link="l_hand_middle_tip"/>
+  </joint>
+  <link name="l_hand_ring_0">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftRing0.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_LeftRing0.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hand_ring_0_joint" type="revolute">
+    <origin xyz="0.0606910842021855 0.00544320000002766 0.00865822622691899" rpy="-1.54796540941373 -2.98724958394586 3.05377499029481"/>
+    <axis xyz="0.0 0.0 -1.0"/>
+    <parent link="l_hand"/>
+    <child link="l_hand_ring_0"/>
+    <limit effort="50000" lower="0.0" upper="0.3490658503988659" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="l_hand_ring_1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="1.5707963267949 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftRing1.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="1.5707963267949 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_LeftRing1.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hand_ring_1_joint" type="revolute">
+    <origin xyz=" 0.0148 -0.00175 1.07156594925393e-19" rpy="1.5707963267949 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hand_ring_0"/>
+    <child link="l_hand_ring_1"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="l_hand_ring_2">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftRing2.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_LeftRing2.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hand_ring_2_joint" type="revolute">
+    <origin xyz="0.0259 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hand_ring_1"/>
+    <child link="l_hand_ring_2"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="l_hand_ring_3">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftRing3.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_LeftRing3.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hand_ring_3_joint" type="revolute">
+    <origin xyz="0.022 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hand_ring_2"/>
+    <child link="l_hand_ring_3"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="l_hand_ring_tip"/>
+  <joint name="l_hand_ring_tip_joint" type="fixed">
+    <origin xyz="0.0168 0.0 0.0" rpy="-1.5707963267948966 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hand_ring_3"/>
+    <child link="l_hand_ring_tip"/>
+  </joint>
+  <link name="l_hand_little_0">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-3.14159265358979 -1.5707963267949 1.5707963267949"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftLittle0.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="-3.14159265358979 -1.5707963267949 1.5707963267949"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_LeftLittle0.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hand_little_0_joint" type="revolute">
+    <origin xyz="0.0636290045192898 0.00444320000012016 -0.0101109273024901" rpy="-1.54796540941373 -2.98724958394586 3.05377499029481"/>
+    <axis xyz="0.0 0.0 -1.0"/>
+    <parent link="l_hand"/>
+    <child link="l_hand_little_0"/>
+    <limit effort="50000" lower="0.0" upper="0.3490658503988659" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="l_hand_little_1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 3.14159265358979 1.5707963267949"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftLittle1.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 3.14159265358979 1.5707963267949"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftLittle1.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hand_little_1_joint" type="revolute">
+    <origin xyz="0.0148 0.00175 -1.07156594925393e-19" rpy="1.5707963267949 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hand_little_0"/>
+    <child link="l_hand_little_1"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="l_hand_little_2">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftLittle2.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_LeftLittle2.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hand_little_2_joint" type="revolute">
+    <origin xyz="0.0219 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hand_little_1"/>
+    <child link="l_hand_little_2"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="l_hand_little_3">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/full_LeftLittle3.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <max_contacts>1</max_contacts>
+      <origin xyz="0.0 0.0 0.0" rpy="3.14159265358979 0.0 3.14159265358979"/>
+      <geometry>
+        <mesh filename="package://iai_icub_description/meshes/col_LeftLittle3.dae" scale="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_hand_little_3_joint" type="revolute">
+    <origin xyz="0.019 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hand_little_2"/>
+    <child link="l_hand_little_3"/>
+    <limit effort="50000" lower="0.0" upper="1.5707963267948966" velocity="50000"/>
+    <dynamics friction="0.0"/>
+  </joint>
+  <link name="l_hand_little_tip"/>
+  <joint name="l_hand_little_tip_joint" type="fixed">
+    <origin xyz="0.0168 0.0 0.0" rpy="-1.5707963267948966 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <parent link="l_hand_little_3"/>
+    <child link="l_hand_little_tip"/>
+  </joint> 
+ <link name="base_link"/>
+  <joint name="base_link_fixed_joint" type="fixed">
+  <origin xyz="0 0 0" rpy="0 -0 0"/>
+  <axis xyz="0 0 0"/>
+  <parent link="root_link"/>
+  <child link="base_link"/>
+</joint>
+  <gazebo reference="r_arm_ft_sensor">
+<preserveFixedJoint>true</preserveFixedJoint>
+<!-- For compatibility with SDFormat < 4.4 -->
+<disableFixedJointLumping>true</disableFixedJointLumping>
+</gazebo>
+  <gazebo reference="l_arm_ft_sensor">
+<preserveFixedJoint>true</preserveFixedJoint>
+<!-- For compatibility with SDFormat < 4.4 -->
+<disableFixedJointLumping>true</disableFixedJointLumping>
+</gazebo>
+  <gazebo>
+<plugin name="controlboard_torso" filename="libgazebo_yarp_controlboard.so">
+  <yarpConfigurationFile>model://iai_icub_description/conf_icub3/gazebo_icub_torso.ini</yarpConfigurationFile>
+</plugin>
+</gazebo>
+  <gazebo reference="torso_pitch">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="torso_roll">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="torso_yaw">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="r_shoulder_pitch">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="r_shoulder_roll">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="r_shoulder_yaw">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="l_shoulder_pitch">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="l_shoulder_roll">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="l_shoulder_yaw">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="l_leg_ft_sensor">
+<preserveFixedJoint>true</preserveFixedJoint>
+<!-- For compatibility with SDFormat < 4.4 -->
+<disableFixedJointLumping>true</disableFixedJointLumping>
+</gazebo>
+  <gazebo reference="l_foot_front_ft_sensor">
+<preserveFixedJoint>true</preserveFixedJoint>
+<!-- For compatibility with SDFormat < 4.4 -->
+<disableFixedJointLumping>true</disableFixedJointLumping>
+</gazebo>
+  <gazebo reference="l_foot_rear_ft_sensor">
+<preserveFixedJoint>true</preserveFixedJoint>
+<!-- For compatibility with SDFormat < 4.4 -->
+<disableFixedJointLumping>true</disableFixedJointLumping>
+</gazebo>
+  <gazebo reference="l_foot_front">
+  <collision> <surface> <bounce>
+    <restitution_coefficient>0</restitution_coefficient>
+    <threshold>100000</threshold>
+  </bounce> </surface> </collision>
+  <maxContacts>4</maxContacts>
+  <kp>18000000</kp>
+  <kd>100</kd>
+  <maxVel>100</maxVel>
+  <minDepth>0.0001</minDepth>
+  <mu1>1</mu1>
+  <mu2>1</mu2>
+  <fdir1>0 0 0</fdir1>
+</gazebo>
+  <gazebo reference="l_foot_rear">
+  <collision> <surface> <bounce>
+    <restitution_coefficient>0</restitution_coefficient>
+    <threshold>100000</threshold>
+  </bounce> </surface> </collision>
+  <maxContacts>4</maxContacts>
+  <kp>18000000</kp>
+  <kd>100</kd>
+  <maxVel>100</maxVel>
+  <minDepth>0.0001</minDepth>
+  <mu1>1</mu1>
+  <mu2>1</mu2>
+  <fdir1>0 0 0</fdir1>
+</gazebo>
+  <gazebo>
+<plugin name="controlboard_left_leg" filename="libgazebo_yarp_controlboard.so">
+<yarpConfigurationFile>model://iai_icub_description/conf_icub3/gazebo_icub_left_leg.ini</yarpConfigurationFile>
+</plugin>
+</gazebo>
+  <gazebo reference="l_hip_pitch">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="l_hip_roll">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="l_hip_yaw">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="l_knee">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="l_ankle_pitch">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="l_ankle_roll">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="r_leg_ft_sensor">
+<preserveFixedJoint>true</preserveFixedJoint>
+<!-- For compatibility with SDFormat < 4.4 -->
+<disableFixedJointLumping>true</disableFixedJointLumping>
+</gazebo>
+  <gazebo reference="r_foot_front_ft_sensor">
+<preserveFixedJoint>true</preserveFixedJoint>
+<!-- For compatibility with SDFormat < 4.4 -->
+<disableFixedJointLumping>true</disableFixedJointLumping>
+</gazebo>
+  <gazebo reference="r_foot_rear_ft_sensor">
+<preserveFixedJoint>true</preserveFixedJoint>
+<!-- For compatibility with SDFormat < 4.4 -->
+<disableFixedJointLumping>true</disableFixedJointLumping>
+</gazebo>
+  <gazebo reference="r_foot_front">
+  <collision> <surface> <bounce>
+    <restitution_coefficient>0</restitution_coefficient>
+    <threshold>100000</threshold>
+  </bounce> </surface> </collision>
+  <maxContacts>4</maxContacts>
+  <kp>18000000</kp>
+  <kd>100</kd>
+  <maxVel>100</maxVel>
+  <minDepth>0.0001</minDepth>
+  <mu1>1</mu1>
+  <mu2>1</mu2>
+  <fdir1>0 0 0</fdir1>
+</gazebo>
+  <gazebo reference="r_foot_rear">
+  <collision> <surface> <bounce>
+    <restitution_coefficient>0</restitution_coefficient>
+    <threshold>100000</threshold>
+  </bounce> </surface> </collision>
+  <maxContacts>4</maxContacts>
+  <kp>18000000</kp>
+  <kd>100</kd>
+  <maxVel>100</maxVel>
+  <minDepth>0.0001</minDepth>
+  <mu1>1</mu1>
+  <mu2>1</mu2>
+  <fdir1>0 0 0</fdir1>
+</gazebo>
+  <gazebo>
+<plugin name="controlboard_right_leg" filename="libgazebo_yarp_controlboard.so">
+<yarpConfigurationFile>model://iai_icub_description/conf_icub3/gazebo_icub_right_leg.ini</yarpConfigurationFile>
+</plugin>
+</gazebo>
+  <gazebo reference="r_hip_pitch">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="r_hip_roll">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="r_hip_yaw">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="r_knee">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="r_ankle_pitch">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="r_ankle_roll">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo>
+<plugin name="controlboard_torso" filename="libgazebo_yarp_controlboard.so">
+  <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_head.ini</yarpConfigurationFile>
+</plugin>
+</gazebo>
+  <gazebo reference="neck_pitch">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="neck_roll">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="neck_yaw">
+    <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+<gazebo>
+  <plugin name='controlboard_left_hand_thumb' filename='libgazebo_yarp_controlboard.so'>
+    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_left_hand_thumb.ini</yarpConfigurationFile>
+  </plugin>
+  <plugin name='controlboard_left_hand_index' filename='libgazebo_yarp_controlboard.so'>
+    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_left_hand_index.ini</yarpConfigurationFile>
+  </plugin>
+  <plugin name='controlboard_left_hand_middle' filename='libgazebo_yarp_controlboard.so'>
+    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_left_hand_middle.ini</yarpConfigurationFile>
+  </plugin>
+  <plugin name='controlboard_left_hand_pinky' filename='libgazebo_yarp_controlboard.so'>
+    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_left_hand_pinky.ini</yarpConfigurationFile>
+  </plugin>
+  <plugin name='controlboard_left_hand_finger' filename='libgazebo_yarp_controlboard.so'>
+    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_left_hand_finger.ini</yarpConfigurationFile>
+    <initialConfiguration>1.0471975511965976</initialConfiguration>
+  </plugin>
+  <plugin name="controlboard_left_arm_no_hand" filename="libgazebo_yarp_controlboard.so">
+    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_left_arm_no_hand.ini</yarpConfigurationFile>
+    <initialConfiguration>-0.52 0.52 0 0.785 0 0 0.0</initialConfiguration>
+  </plugin>
+  <plugin name="controlboard_left_arm" filename="libgazebo_yarp_controlboard.so">
+    <yarpConfigurationFile>model://iai_icub_description/conf_icub3/gazebo_icub_left_arm.ini</yarpConfigurationFile>
+  </plugin>
+  <plugin name='controlboard_right_hand_thumb' filename='libgazebo_yarp_controlboard.so'>
+    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_right_hand_thumb.ini</yarpConfigurationFile>
+  </plugin>
+  <plugin name='controlboard_right_hand_index' filename='libgazebo_yarp_controlboard.so'>
+    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_right_hand_index.ini</yarpConfigurationFile>
+  </plugin>
+  <plugin name='controlboard_right_hand_middle' filename='libgazebo_yarp_controlboard.so'>
+    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_right_hand_middle.ini</yarpConfigurationFile>
+  </plugin>
+  <plugin name='controlboard_right_hand_pinky' filename='libgazebo_yarp_controlboard.so'>
+    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_right_hand_pinky.ini</yarpConfigurationFile>
+  </plugin>
+  <plugin name='controlboard_right_hand_finger' filename='libgazebo_yarp_controlboard.so'>
+    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_right_hand_finger.ini</yarpConfigurationFile>
+    <initialConfiguration>1.0471975511965976</initialConfiguration>
+  </plugin>
+   <plugin name="controlboard_right_arm_no_hand" filename="libgazebo_yarp_controlboard.so">
+    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_right_arm_no_hand.ini</yarpConfigurationFile>
+    <initialConfiguration>-0.52 0.52 0 0.785 0 0 0.0</initialConfiguration>
+  </plugin>
+  <plugin name="controlboard_right_arm" filename="libgazebo_yarp_controlboard.so">
+    <yarpConfigurationFile>model://iai_icub_description/conf_icub3/gazebo_icub_right_arm.ini</yarpConfigurationFile>
+  </plugin>
+  <plugin name='mais_left_hand' filename='libgazebo_yarp_maissensor.so'>
+    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_left_hand_mais.ini</yarpConfigurationFile>
+  </plugin>
+  <plugin name='mais_right_hand' filename='libgazebo_yarp_maissensor.so'>
+    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_right_hand_mais.ini</yarpConfigurationFile>
+  </plugin>
+</gazebo>
+<gazebo reference="l_shoulder_pitch">
+  <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="l_shoulder_roll">
+  <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="l_shoulder_yaw">
+  <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="l_elbow">
+  <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="l_wrist_prosup">
+  <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="l_wrist_pitch">
+  <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="l_wrist_yaw">
+  <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+
+  <gazebo reference="r_shoulder_pitch">
+  <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="r_shoulder_roll">
+  <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="r_shoulder_yaw">
+  <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="r_elbow">
+  <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="r_wrist_prosup">
+  <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="r_wrist_pitch">
+  <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+  <gazebo reference="r_wrist_yaw">
+  <implicitSpringDamper>1</implicitSpringDamper>
+</gazebo>
+<gazebo reference="r_hand_thumb_3">
+  <collision>
+    <surface>
+      <friction>
+        <ode>
+          <mu>5.0</mu>
+          <mu2>5.0</mu2>
+        </ode>
+      </friction>
+    </surface>
+  </collision>
+</gazebo>
+<gazebo reference="r_hand_index_3">
+  <collision>
+    <surface>
+      <friction>
+        <ode>
+          <mu>5.0</mu>
+          <mu2>5.0</mu2>
+        </ode>
+      </friction>
+    </surface>
+  </collision>
+</gazebo>
+<gazebo reference="r_hand_middle_3">
+  <collision>
+    <surface>
+      <friction>
+        <ode>
+          <mu>5.0</mu>
+          <mu2>5.0</mu2>
+        </ode>
+      </friction>
+    </surface>
+  </collision>
+</gazebo>
+<gazebo reference="r_hand_ring_3">
+  <collision>
+    <surface>
+      <friction>
+        <ode>
+          <mu>5.0</mu>
+          <mu2>5.0</mu2>
+        </ode>
+      </friction>
+    </surface>
+  </collision>
+</gazebo>
+<gazebo reference="r_hand_little_3">
+  <collision>
+    <surface>
+      <friction>
+        <ode>
+          <mu>5.0</mu>
+          <mu2>5.0</mu2>
+        </ode>
+      </friction>
+    </surface>
+  </collision>
+</gazebo>
+<gazebo reference="l_hand_thumb_3">
+  <collision>
+    <surface>
+      <friction>
+        <ode>
+          <mu>5.0</mu>
+          <mu2>5.0</mu2>
+        </ode>
+      </friction>
+    </surface>
+  </collision>
+</gazebo>
+<gazebo reference="l_hand_index_3">
+  <collision>
+    <surface>
+      <friction>
+        <ode>
+          <mu>5.0</mu>
+          <mu2>5.0</mu2>
+        </ode>
+      </friction>
+    </surface>
+  </collision>
+</gazebo>
+<gazebo reference="l_hand_middle_3">
+  <collision>
+    <surface>
+      <friction>
+        <ode>
+          <mu>5.0</mu>
+          <mu2>5.0</mu2>
+        </ode>
+      </friction>
+    </surface>
+  </collision>
+</gazebo>
+<gazebo reference="l_hand_ring_3">
+  <collision>
+    <surface>
+      <friction>
+        <ode>
+          <mu>5.0</mu>
+          <mu2>5.0</mu2>
+        </ode>
+      </friction>
+    </surface>
+  </collision>
+</gazebo>
+<gazebo reference="l_hand_little_3">
+  <collision>
+    <surface>
+      <friction>
+        <ode>
+          <mu>5.0</mu>
+          <mu2>5.0</mu2>
+        </ode>
+      </friction>
+    </surface>
+  </collision>
+</gazebo>
+  <gazebo reference="l_arm_ft_sensor">
+    <sensor name="l_arm_ft_sensor" type="force_torque">
+      <always_on>1</always_on>
+      <update_rate>100</update_rate>
+      <force_torque>
+        <frame>sensor</frame>
+        <measure_direction>child_to_parent</measure_direction>
+      </force_torque>
+      <pose>-0.004350133156978318 3.632573233602887e-07 -0.05430003872406172 3.141592646862139 -3.10468332187885e-08 -1.5707962571980942</pose>
+      <plugin name="left_arm_ft_plugin" filename="libgazebo_yarp_forcetorque.so">
+  <yarpConfigurationFile>model://iai_icub_description/conf_icub3/FT/gazebo_icub_left_arm_ft.ini</yarpConfigurationFile>
+</plugin>
+    </sensor>
+  </gazebo>
+  <sensor name="l_arm_ft_sensor" type="force_torque">
+    <parent joint="l_arm_ft_sensor"/>
+    <force_torque>
+      <frame>sensor</frame>
+      <measure_direction>child_to_parent</measure_direction>
+    </force_torque>
+    <origin rpy="3.141592646862139 -3.10468332187885e-08 -1.5707962571980942" xyz="-0.004350133156978318 3.632573233602887e-07 -0.05430003872406172"/>
+  </sensor>
+  <gazebo reference="r_arm_ft_sensor">
+    <sensor name="r_arm_ft_sensor" type="force_torque">
+      <always_on>1</always_on>
+      <update_rate>100</update_rate>
+      <force_torque>
+        <frame>sensor</frame>
+        <measure_direction>child_to_parent</measure_direction>
+      </force_torque>
+      <pose>-0.006849946385389872 2.1904996058697002e-07 -0.05429998157789099 3.141592644717707 4.094299285979593e-08 1.5707964185756365</pose>
+      <plugin name="right_arm_ft_plugin" filename="libgazebo_yarp_forcetorque.so">
+  <yarpConfigurationFile>model://iai_icub_description/conf_icub3/FT/gazebo_icub_right_arm_ft.ini</yarpConfigurationFile>
+</plugin>
+    </sensor>
+  </gazebo>
+  <sensor name="r_arm_ft_sensor" type="force_torque">
+    <parent joint="r_arm_ft_sensor"/>
+    <force_torque>
+      <frame>sensor</frame>
+      <measure_direction>child_to_parent</measure_direction>
+    </force_torque>
+    <origin rpy="3.141592644717707 4.094299285979593e-08 1.5707964185756365" xyz="-0.006849946385389872 2.1904996058697002e-07 -0.05429998157789099"/>
+  </sensor>
+  <gazebo reference="l_foot_front_ft_sensor">
+    <sensor name="l_foot_front_ft_sensor" type="force_torque">
+      <always_on>1</always_on>
+      <update_rate>100</update_rate>
+      <force_torque>
+        <frame>sensor</frame>
+        <measure_direction>parent_to_child</measure_direction>
+      </force_torque>
+      <pose>0.0 0.0 0.022299999999999986 0.0 -0.0 -2.094395210586932</pose>
+      <plugin name="left_foot_front_ft_plugin" filename="libgazebo_yarp_forcetorque.so">
+  <yarpConfigurationFile>model://iai_icub_description/conf_icub3/FT/gazebo_icub_left_foot_front_ft.ini</yarpConfigurationFile>
+</plugin>
+    </sensor>
+  </gazebo>
+  <sensor name="l_foot_front_ft_sensor" type="force_torque">
+    <parent joint="l_foot_front_ft_sensor"/>
+    <force_torque>
+      <frame>sensor</frame>
+      <measure_direction>parent_to_child</measure_direction>
+    </force_torque>
+    <origin rpy="0.0 -0.0 -2.094395210586932" xyz="0.0 0.0 0.022299999999999986"/>
+  </sensor>
+  <gazebo reference="l_foot_rear_ft_sensor">
+    <sensor name="l_foot_rear_ft_sensor" type="force_torque">
+      <always_on>1</always_on>
+      <update_rate>100</update_rate>
+      <force_torque>
+        <frame>sensor</frame>
+        <measure_direction>parent_to_child</measure_direction>
+      </force_torque>
+      <pose>0.0 0.0 0.022299999999999986 0.0 -0.0 -2.094395210586932</pose>
+      <plugin name="left_foot_rear_ft_plugin" filename="libgazebo_yarp_forcetorque.so">
+  <yarpConfigurationFile>model://iai_icub_description/conf_icub3/FT/gazebo_icub_left_foot_rear_ft.ini</yarpConfigurationFile>
+</plugin>
+    </sensor>
+  </gazebo>
+  <sensor name="l_foot_rear_ft_sensor" type="force_torque">
+    <parent joint="l_foot_rear_ft_sensor"/>
+    <force_torque>
+      <frame>sensor</frame>
+      <measure_direction>parent_to_child</measure_direction>
+    </force_torque>
+    <origin rpy="0.0 -0.0 -2.094395210586932" xyz="0.0 0.0 0.022299999999999986"/>
+  </sensor>
+  <gazebo reference="r_leg_ft_sensor">
+    <sensor name="r_leg_ft_sensor" type="force_torque">
+      <always_on>1</always_on>
+      <update_rate>100</update_rate>
+      <force_torque>
+        <frame>sensor</frame>
+        <measure_direction>child_to_parent</measure_direction>
+      </force_torque>
+      <pose>0.0 0.0 0.0 3.141592653589793 0.0 -2.6179934742070086</pose>
+      <plugin name="right_leg_ft_plugin" filename="libgazebo_yarp_forcetorque.so">
+  <yarpConfigurationFile>model://iai_icub_description/conf_icub3/FT/gazebo_icub_right_leg_ft.ini</yarpConfigurationFile>
+</plugin>
+    </sensor>
+  </gazebo>
+  <sensor name="r_leg_ft_sensor" type="force_torque">
+    <parent joint="r_leg_ft_sensor"/>
+    <force_torque>
+      <frame>sensor</frame>
+      <measure_direction>child_to_parent</measure_direction>
+    </force_torque>
+    <origin rpy="3.141592653589793 0.0 -2.6179934742070086" xyz="0.0 0.0 0.0"/>
+  </sensor>
+  <gazebo reference="r_foot_front_ft_sensor">
+    <sensor name="r_foot_front_ft_sensor" type="force_torque">
+      <always_on>1</always_on>
+      <update_rate>100</update_rate>
+      <force_torque>
+        <frame>sensor</frame>
+        <measure_direction>parent_to_child</measure_direction>
+      </force_torque>
+      <pose>0.0 0.0 0.022299999999999986 0.0 -0.0 -2.094395210586932</pose>
+      <plugin name="right_foot_front_ft_plugin" filename="libgazebo_yarp_forcetorque.so">
+  <yarpConfigurationFile>model://iai_icub_description/conf_icub3/FT/gazebo_icub_right_foot_front_ft.ini</yarpConfigurationFile>
+</plugin>
+    </sensor>
+  </gazebo>
+  <sensor name="r_foot_front_ft_sensor" type="force_torque">
+    <parent joint="r_foot_front_ft_sensor"/>
+    <force_torque>
+      <frame>sensor</frame>
+      <measure_direction>parent_to_child</measure_direction>
+    </force_torque>
+    <origin rpy="0.0 -0.0 -2.094395210586932" xyz="0.0 0.0 0.022299999999999986"/>
+  </sensor>
+  <gazebo reference="r_foot_rear_ft_sensor">
+    <sensor name="r_foot_rear_ft_sensor" type="force_torque">
+      <always_on>1</always_on>
+      <update_rate>100</update_rate>
+      <force_torque>
+        <frame>sensor</frame>
+        <measure_direction>parent_to_child</measure_direction>
+      </force_torque>
+      <pose>0.0 0.0 0.022299999999999986 0.0 -0.0 -2.094395210586932</pose>
+      <plugin name="right_foot_rear_ft_plugin" filename="libgazebo_yarp_forcetorque.so">
+  <yarpConfigurationFile>model://iai_icub_description/conf_icub3/FT/gazebo_icub_right_foot_rear_ft.ini</yarpConfigurationFile>
+</plugin>
+    </sensor>
+  </gazebo>
+  <sensor name="r_foot_rear_ft_sensor" type="force_torque">
+    <parent joint="r_foot_rear_ft_sensor"/>
+    <force_torque>
+      <frame>sensor</frame>
+      <measure_direction>parent_to_child</measure_direction>
+    </force_torque>
+    <origin rpy="0.0 -0.0 -2.094395210586932" xyz="0.0 0.0 0.022299999999999986"/>
+  </sensor>
+  <gazebo reference="head">
+    <sensor name="head_imu_acc_1x1" type="imu">
+      <always_on>1</always_on>
+      <update_rate>100</update_rate>
+      <pose>0.0034999999997785457 0.0054999999863750895 0.1013340000004441 -3.141592653589793 -4.20000162559822e-15 -1.570796326794897</pose>
+      <plugin name="iCub_yarp_gazebo_plugin_IMU" filename="libgazebo_yarp_imu.so">
+   <yarpConfigurationFile>model://iai_icub_description/conf_icub3/gazebo_icub_inertial.ini</yarpConfigurationFile>
+</plugin>
+    </sensor>
+  </gazebo>
+  <sensor name="head_imu_acc_1x1" type="accelerometer">
+    <parent link="head"/>
+    <origin rpy="-3.141592653589793 -4.20000162559822e-15 -1.570796326794897" xyz="0.0034999999997785457 0.0054999999863750895 0.1013340000004441"/>
+  </sensor>
+  <gazebo reference="chest">
+    <sensor name="realsense_chest_depth" type="depth">
+      <always_on>1</always_on>
+      <update_rate>30</update_rate>
+      <pose>0.0894115 0.0175 0.09929950000000001 -1.5707963267948968 -0.0 -1.5707963267948968</pose>
+      <camera name="intel_realsense_depth_camera">
+  <pose>0 0 0 -1.57079 -1.57079 3.14159</pose>
+  <horizontal_fov>1.57079</horizontal_fov>
+  <distortion>
+    <k1>0</k1>
+    <k2>0</k2>
+    <k3>0</k3>
+    <p1>0</p1>
+    <p2>0</p2>
+    <center>319.5 239.5</center>
+  </distortion>
+  <image>
+    <width>640</width>
+    <height>480</height>
+    <format>R8G8B8</format>
+  </image>
+  <clip>
+    <near>0.175</near>
+    <far>3000</far>
+  </clip>
+</camera>
+      <visualize>false</visualize>
+      <plugin name="iCub_yarp_gazebo_plugin_depthCamera" filename="libgazebo_yarp_depthCamera.so">
+    <yarpConfigurationFile>model://iai_icub_description/conf_icub3/gazebo_icub_depth_camera.ini</yarpConfigurationFile>
+</plugin>
+    </sensor>
+  </gazebo>
+  <sensor name="realsense_chest_depth" type="depth">
+    <parent link="chest"/>
+    <origin rpy="-1.5707963267948968 -0.0 -1.5707963267948968" xyz="0.0894115 0.0175 0.09929950000000001"/>
+  </sensor>
+  <gazebo reference="chest">
+    <sensor name="realsense_chest_rgb" type="camera">
+      <always_on>1</always_on>
+      <update_rate>30</update_rate>
+      <pose>0.0894115 -0.0115 0.09929950000000001 -1.5707963267948968 -0.0 -1.5707963267948968</pose>
+      <camera name="intel_realsense_rgb_camera">
+  <pose>0 0 0 -1.57079 -1.57079 3.14159</pose>
+  <horizontal_fov>1.2217</horizontal_fov>
+  <distortion>
+    <k1>0</k1>
+    <k2>0</k2>
+    <k3>0</k3>
+    <p1>0</p1>
+    <p2>0</p2>
+    <center>319.5 239.5</center>
+  </distortion>
+  <image>
+    <width>640</width>
+    <height>480</height>
+    <format>R8G8B8</format>
+  </image>
+  <clip>
+    <near>0.02</near>
+    <far>3000</far>
+  </clip>
+</camera>
+      <visualize>false</visualize>
+      <plugin name="iCub_yarp_gazebo_plugin_camera" filename="libgazebo_yarp_camera.so">
+    <yarpConfigurationFile>model://iai_icub_description/conf_icub3/gazebo_icub_rgb_camera.ini</yarpConfigurationFile>
+</plugin>
+    </sensor>
+  </gazebo>
+  <sensor name="realsense_chest_rgb" type="camera">
+    <parent link="chest"/>
+    <origin rpy="-1.5707963267948968 -0.0 -1.5707963267948968" xyz="0.0894115 -0.0115 0.09929950000000001"/>
+  </sensor>
+  <gazebo reference="chest">
+    <sensor name="chest_imu_acc_1x1" type="imu">
+      <always_on>1</always_on>
+      <update_rate>100</update_rate>
+      <pose>0.0894115 0.0175 0.09929950000000001 -1.5707963267948968 -0.0 -1.5707963267948968</pose>
+      <plugin name="iCub_yarp_gazebo_plugin_IMU" filename="libgazebo_yarp_imu.so">
+    <yarpConfigurationFile>model://iai_icub_description/conf_icub3/gazebo_icub_chest_inertial.ini</yarpConfigurationFile>
+</plugin>
+    </sensor>
+  </gazebo>
+  <sensor name="chest_imu_acc_1x1" type="accelerometer">
+    <parent link="chest"/>
+    <origin rpy="-1.5707963267948968 -0.0 -1.5707963267948968" xyz="0.0894115 0.0175 0.09929950000000001"/>
+  </sensor>
+  <gazebo reference="l_eye">
+  <sensor name="left_camera_rgb" type="camera">
+    <pose>0.0 0.0 0.0 0.0 -1.57 -1.57</pose>
+    <camera>
+      <!-- please use these intrinsic parameters -->
+      <!-- fx = fy = 343.12110728152936, cx = 160.0, cy = 120.0 -->
+      <horizontal_fov>0.8726646259971648</horizontal_fov>
+      <image>
+        <width>320</width>
+        <height>240</height>
+      </image>
+      <clip>
+        <near>0.1</near>
+        <far>100</far>
+      </clip>
+    </camera>
+    <always_on>1</always_on>
+    <update_rate>30</update_rate>
+    <visualize>false</visualize>
+    <plugin filename="libgazebo_yarp_camera.so" name="left_camera_plugin">
+      <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_left_rgb_camera.ini</yarpConfigurationFile>
+    </plugin>
+  </sensor>
+ </gazebo>
+ <gazebo reference="r_eye">
+  <sensor name="right_camera_rgb" type="camera">
+    <pose>0.0 0.0 0.0 0.0 -1.57 -1.57</pose>
+    <camera>
+      <!-- please use these intrinsic parameters -->
+      <!-- fx = fy = 343.12110728152936, cx = 160.0, cy = 120.0 -->
+      <horizontal_fov>0.8726646259971648</horizontal_fov>
+      <image>
+        <width>320</width>
+        <height>240</height>
+      </image>
+      <clip>
+        <near>0.1</near>
+        <far>100</far>
+      </clip>
+    </camera>
+    <always_on>1</always_on>
+    <update_rate>30</update_rate>
+    <visualize>false</visualize>
+    <plugin filename="libgazebo_yarp_camera.so" name="right_camera_plugin">
+      <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_right_rgb_camera.ini</yarpConfigurationFile>
+    </plugin>
+  </sensor>
+ </gazebo>
+  <gazebo>
+    <pose>0.0 0.0 0.64 0.0 0.0 0.0</pose>
+  </gazebo>
+</robot>
+
