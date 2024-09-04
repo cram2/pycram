@@ -89,7 +89,10 @@ class VizMarkerPublisher:
                 if isinstance(geom, MeshVisualShape):
                     msg.type = Marker.MESH_RESOURCE
                     msg.mesh_resource = "file://" + geom.file_name
-                    msg.scale = Vector3(1, 1, 1)
+                    if hasattr(geom, "scale") and geom.scale:
+                        msg.scale = Vector3(geom.scale[0], geom.scale[1], geom.scale[2])
+                    else:
+                        msg.scale = Vector3(1, 1, 1)
                     msg.mesh_use_embedded_materials = True
                 elif isinstance(geom, CylinderVisualShape):
                     msg.type = Marker.CYLINDER
