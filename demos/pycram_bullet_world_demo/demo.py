@@ -15,7 +15,9 @@ extension = ObjectDescription.get_file_extension()
 world = BulletWorld(WorldMode.DIRECT)
 viz = VizMarkerPublisher()
 
-robot = Object("rollin_justin", ObjectType.ROBOT, f"rollin_justin{extension}", pose=Pose([1, 2, 0]))
+# robot = Object("rollin_justin", ObjectType.ROBOT, f"rollin_justin{extension}", pose=Pose([1, 2, 0]))
+robot = Object("iCub", ObjectType.ROBOT, f"iCub{extension}", pose=Pose([1, 2, 0]))
+
 apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment-small{extension}")
 
 milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([2.5, 2, 1.02]),
