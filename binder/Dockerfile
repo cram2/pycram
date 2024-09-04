@@ -15,10 +15,8 @@ USER root
 RUN apt-get update
 
 # HSR resources
-WORKDIR  ${PYCRAM_WS}
-USER root
 RUN git clone https://github.com/code-iai/iai_hsr.git
-RUN cd iai_hsr
+WORKDIR  ${PYCRAM_WS}/src/iai_hsr/
 RUN git submodule update --init
 
 # Build pycram workspace
