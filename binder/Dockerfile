@@ -14,6 +14,22 @@ COPY --chown=${NB_USER}:users binder/me ${PYCRAM_WS}/src/me
 USER root
 RUN apt-get update
 
+# HSR resources
+RUN git clone https://github.com/code-iai/iai_hsr.git
+WORKDIR  ${PYCRAM_WS}/src/iai_hsr/
+RUN git submodule update --init
+
+# Stretch resources
+WORKDIR ${PYCRAM_WS}/src/
+RUN git clone https://github.com/hello-robot/stretch_ros.git
+RUN git clone https://github.com/issaiass/realsense2_description.git
+
+# Tiago resources
+WORKDIR ${PYCRAM_WS}/src/
+RUN git clone https://github.com/code-iai/iai_tiago.git
+WORKDIR  ${PYCRAM_WS}/src/iai_tiago/
+RUN git submodule update --init
+
 # Build pycram workspace
 WORKDIR  ${PYCRAM_WS}
 USER root
@@ -24,6 +40,7 @@ USER ${NB_USER}
 RUN catkin build
 
 RUN pip install service_identity
+RUN pip install netifaces
 
 # Jupyter Config
 COPY --chown=${NB_USER}:users binder/jupyter-config.json /opt/conda/share/jupyter/lab/settings/overrides.json

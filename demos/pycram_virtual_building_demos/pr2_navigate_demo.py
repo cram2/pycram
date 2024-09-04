@@ -1,21 +1,12 @@
-import os
-
-from IPython.core.display_functions import display
-from ipywidgets import Image, HTML
-from pathlib import Path
-
-from demos.pycram_virtual_building_demos.setup.launch_robot import launch_pr2
-from demos.pycram_virtual_building_demos.setup.utils import display_loading_gif
-from pycram.ros.viz_marker_publisher import VizMarkerPublisher
-from pycram.worlds.bullet_world import BulletWorld
+from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.designators.object_designator import *
-from pycram.datastructures.enums import ObjectType, WorldMode
-from pycram.datastructures.pose import Pose
-from pycram.process_module import simulated_robot, with_simulated_robot
 from pycram.object_descriptors.urdf import ObjectDescription
+from pycram.process_module import simulated_robot
+from pycram.ros.viz_marker_publisher import VizMarkerPublisher
 from pycram.world_concepts.world_object import Object
+from pycram.worlds.bullet_world import BulletWorld
 
 
 def navigate_main():
@@ -39,12 +30,9 @@ def navigate_main():
         NavigateAction([navigate_pose]).resolve().perform()
 
 
-def navigate_demo(s=None, w=None, f=None):
-    # launch stuff
-
-    display_loading_gif()
-    # navigate_main()
+def navigate_demo():
+    navigate_main()
 
 
 if __name__ == "__main__":
-    navigate_main()
+    navigate_demo()

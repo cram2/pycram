@@ -1,6 +1,4 @@
-from demos.pycram_virtual_building_demos.setup.utils import display_loading_gif
 from pycram.datastructures.enums import ObjectType, WorldMode
-from pycram.datastructures.pose import Pose
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.designators.object_designator import *
@@ -16,10 +14,10 @@ def navigate_main():
 
     world = BulletWorld(WorldMode.DIRECT)
     viz_marker = VizMarkerPublisher()
-    robot = Object("stretch", ObjectType.ROBOT, f"stretch_description{extension}", pose=Pose([1, 2, 0]))
+    robot = Object("tiago_dual", ObjectType.ROBOT, f"tiago_dual{extension}", pose=Pose([1, 2, 0]))
     apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")
 
-    robot_desig = BelieveObject(names=["stretch"])
+    robot_desig = BelieveObject(names=["tiago_dual"])
     apartment_desig = BelieveObject(names=["apartment"])
 
     navigate_pose = Pose([2.7, 2.15, 1])
@@ -32,12 +30,9 @@ def navigate_main():
         NavigateAction([navigate_pose]).resolve().perform()
 
 
-def navigate_demo(s=None, w=None, f=None):
-    # launch stuff
-
-    display_loading_gif()
-    # navigate_main()
+def navigate_demo():
+    navigate_main()
 
 
 if __name__ == "__main__":
-    navigate_main()
+    navigate_demo()
