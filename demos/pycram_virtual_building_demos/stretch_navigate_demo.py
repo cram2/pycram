@@ -1,4 +1,4 @@
-from demos.pycram_virtual_building_demos.setup.launch_robot import launch_stretch
+from demos.pycram_virtual_building_demos.setup_launch_robot import launch_stretch
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
