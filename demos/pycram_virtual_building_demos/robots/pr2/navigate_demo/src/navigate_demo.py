@@ -34,7 +34,7 @@ def navigate_main():
 def navigate_demo():
     launch_pr2()
 
-    rospy.sleep(5)
+    rospy.sleep(3)
 
     navigate_main()
 

@@ -1,6 +1,5 @@
-from demos.pycram_virtual_building_demos.setup.utils import display_loading_gif
+from demos.pycram_virtual_building_demos.setup.launch_robot import launch_stretch
 from pycram.datastructures.enums import ObjectType, WorldMode
-from pycram.datastructures.pose import Pose
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.designators.object_designator import *
@@ -32,12 +31,11 @@ def navigate_main():
         NavigateAction([navigate_pose]).resolve().perform()
 
 
-def navigate_demo(s=None, w=None, f=None):
-    # launch stuff
+def navigate_demo():
+    launch_stretch()
 
-    display_loading_gif()
-    # navigate_main()
+    navigate_main()
 
 
 if __name__ == "__main__":
-    navigate_main()
+    navigate_demo()
