@@ -24,6 +24,10 @@ WORKDIR ${PYCRAM_WS}/src/
 RUN git clone https://github.com/hello-robot/stretch_ros.git
 RUN git clone https://github.com/issaiass/realsense2_description.git
 
+# Tiago resources
+WORKDIR ${PYCRAM_WS}/src/
+RUN git clone https://github.com/code-iai/iai_tiago.git
+
 # Build pycram workspace
 WORKDIR  ${PYCRAM_WS}
 USER root

@@ -30,6 +30,13 @@ def launch_stretch():
     args = ["robot:=stretch"]
     launch_robot(executable, args=args)
 
+def launch_tiago():
+    # name = 'tiago_dual'
+    # urdf = 'tiago_dual.urdf'
+    executable = 'ik_and_description.launch'
+    args = ["robot:=tiago_dual"]
+    launch_robot(executable, args=args)
+
 
 def launch_robot(launch_file, package='pycram', launch_folder='/launch/', args: List[str] = None):
     """
@@ -52,12 +59,8 @@ def launch_robot(launch_file, package='pycram', launch_folder='/launch/', args: 
         args = [""]
 
     args.insert(0, launch_args)
-
     roslaunch_file = [(roslaunch.rlutil.resolve_launch_arguments(args)[0], args[1:])]
 
-    #if args is not None:
-    #    for arg in args:
-    #        launch_args.append(arg)
     launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_file)
     launch.start()
 

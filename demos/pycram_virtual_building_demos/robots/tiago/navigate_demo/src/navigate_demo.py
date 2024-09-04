@@ -1,3 +1,4 @@
+from demos.pycram_virtual_building_demos.setup.launch_robot import launch_tiago
 from demos.pycram_virtual_building_demos.setup.utils import display_loading_gif
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import Pose
@@ -32,12 +33,11 @@ def navigate_main():
         NavigateAction([navigate_pose]).resolve().perform()
 
 
-def navigate_demo(s=None, w=None, f=None):
-    # launch stuff
+def navigate_demo():
+    launch_tiago()
 
-    display_loading_gif()
-    # navigate_main()
+    navigate_main()
 
 
 if __name__ == "__main__":
-    navigate_main()
+    navigate_demo()
