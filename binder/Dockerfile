@@ -27,6 +27,8 @@ RUN git clone https://github.com/issaiass/realsense2_description.git
 # Tiago resources
 WORKDIR ${PYCRAM_WS}/src/
 RUN git clone https://github.com/code-iai/iai_tiago.git
+WORKDIR  ${PYCRAM_WS}/src/iai_tiago/
+RUN git submodule update --init
 
 # Build pycram workspace
 WORKDIR  ${PYCRAM_WS}
