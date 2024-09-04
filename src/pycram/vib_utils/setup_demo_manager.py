@@ -1,6 +1,6 @@
 from ipywidgets import Output
+from .setup_utils import display_loading_gif_with_text, update_text
 
-from demos.pycram_virtual_building_demos.setup.setup_utils import display_loading_gif_with_text, update_text
 
 
 def start_demo(func):
