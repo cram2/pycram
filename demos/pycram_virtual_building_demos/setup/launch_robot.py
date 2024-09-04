@@ -14,12 +14,11 @@ def launch_pr2():
     launch_robot(executable)
 
 
-# For future work / robots
-# def launch_hsrb():
-#    # name = 'hsrb'
-#    # urdf = 'hsrb.urdf'
-#    executable = 'hsrb_standalone.launch'
-#    launch_robot(executable)
+def launch_hsrb():
+    # name = 'hsrb'
+    # urdf = 'hsrb.urdf'
+    executable = 'hsrb_standalone.launch'
+    launch_robot(executable)
 
 
 # def launch_armar6():
