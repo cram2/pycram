@@ -880,11 +880,12 @@ class OntologyManager(object, metaclass=Singleton):
         A function to convert a concept name -- which may be shortened by using a namespace prefix -- into an IRI.
         For example, "dul:Object" becomes "http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#Object".
         
-        Inputs:
-            conceptName: a string containing a possibly shortened concept name
-            namespaceMap: a dictionary of namespace names mapped to IRI prefixes. If left None, the default namespace map of the ontology manager object is used. It is often a good idea to just use the default map.
-        Returns:
-            conceptIRI: an IRI string. If the input conceptName is already an IRI form, conceptIRI = conceptName.
+        :param conceptName: a string containing a possibly shortened concept name
+        :type conceptName: str
+        :param namespaceMap: a dictionary of namespace names mapped to IRI prefixes. If left None, the default namespace map of the ontology manager object is used. It is often a good idea to just use the default map.
+        :type namespaceMap: dict, optional
+        :return conceptIRI: an IRI string. If the input conceptName is already an IRI form, conceptIRI = conceptName.
+        :type conceptIRI: str
         """
         if namespaceMap is None:
             namespaceMap = self.namespaceMap
@@ -905,14 +906,17 @@ class OntologyManager(object, metaclass=Singleton):
         Not all subconcepts of the given concept may have pycram equivalents. Such unmapped subconcepts are ignored and not
         represented in the output in any way.
         
-        Inputs:
-            concept: an OWLReady2 class, a string, or an enum with values strings or OWLReady2 classes. 
+        :param concept: an OWLReady2 class, a string, or an enum with values strings or OWLReady2 classes. 
                      If a string (or string-valued enum), can be an IRI or short name.
-            concept2Enum: a dictionary mapping concept IRIs to pycram object types. Can be often left to None, in which case the default mapping defined in the ontology manager is used.
-            iri2Concept: a mapping from IRIs to OWLReady2 classes. Can and should be left None, in which case the mapping maintained by the ontology mapper is used.
-            namespaceMap: a mapping of namespace names to IRI prefixes. Can be left None, in which case the default mapping definedin the ontology manager is used.
-        Returns:
-            objectTypes: a list of pycram object types that are subconcepts of the input concept.
+        :type concept: owlready2.entity.ThingClass, str, or enum
+        :param concept2Enum: a dictionary mapping concept IRIs to pycram object types. Can be often left to None, in which case the default mapping defined in the ontology manager is used.        
+        :type concept2Enum: dict, optional
+        :param iri2Concept: a mapping from IRIs to OWLReady2 classes. Can and should be left None, in which case the mapping maintained by the ontology mapper is used.
+        :type iri2Concept: dict, optional
+        :param namespaceMap: a mapping of namespace names to IRI prefixes. Can be left None, in which case the default mapping definedin the ontology manager is used.
+        :type namespaceMap: dict, optional
+        :return objectTypes: a list of pycram object types that are subconcepts of the input concept.
+        :type objectTypes: list
         """
         if iri2Concept is None:
             iri2Concept = self.iri2Concept
