@@ -5,7 +5,7 @@ import threading
 import time
 
 import numpy as np
-import pybullet as p
+import pycram_bullet as p
 import rosgraph
 import rospy
 from geometry_msgs.msg import Point
