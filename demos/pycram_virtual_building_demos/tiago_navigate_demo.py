@@ -1,4 +1,3 @@
-from demos.pycram_virtual_building_demos.setup_launch_robot import launch_tiago
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
@@ -32,8 +31,6 @@ def navigate_main():
 
 
 def navigate_demo():
-    launch_tiago()
-
     navigate_main()
 
 
