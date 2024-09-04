@@ -7,7 +7,7 @@ import ipywidgets as widgets
 def display_loading_gif_with_text():
     # Create a path for the GIF
     setup_path = os.path.dirname(os.path.realpath(__file__))
-    gif_path = os.path.join(setup_path, 'setup', 'imgs', 'loading.gif')
+    gif_path = os.path.join(setup_path, 'imgs', 'loading.gif')
 
     # Encode the GIF in base64
     with open(gif_path, 'rb') as gif_file:

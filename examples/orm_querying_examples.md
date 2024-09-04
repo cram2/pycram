@@ -147,7 +147,7 @@ class GraspingExplorer:
                         with simulated_robot:
 
                             ParkArmsActionPerformable(Arms.BOTH).perform()
-                            # navigate to sampled position
+                            # navigate_demo to sampled position
                             NavigateAction([Pose(position, orientation)]).resolve().perform()
 
                             # move torso

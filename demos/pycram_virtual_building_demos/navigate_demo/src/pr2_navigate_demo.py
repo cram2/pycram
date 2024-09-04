@@ -1,4 +1,4 @@
-from pycram.datastructures.enums import ObjectType, WorldMode
+from pycram.datastructures.enums import ObjectType, WorldMode, TorsoState
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.designators.object_designator import *
@@ -25,7 +25,7 @@ def navigate_main():
     with simulated_robot:
         ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-        MoveTorsoAction([0.25]).resolve().perform()
+        MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
 
         NavigateAction([navigate_pose]).resolve().perform()
 
