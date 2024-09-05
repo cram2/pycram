@@ -7,35 +7,18 @@ from .enums import Arms
 from .pose import Pose
 from typing_extensions import List, Iterable, Dict, Any, Callable, Type
 from anytree import NodeMixin, PreOrderIter, Node
-
-# from ..designator import ObjectDesignatorDescription
 from ..plan_failures import ObjectNotVisible, ManipulationPoseUnreachable, NavigationGoalInCollision, ObjectUnfetchable, \
     GripperOccupied, PlanFailure
-from ..world_concepts.world_object import Object
 
-
-def managed_io(func: Callable) -> Callable:
-    def wrapper(*args, **kwargs):
-        print("test")
-        return func(*args, **kwargs)
-
-    return wrapper
-
-
-class Aspect(NodeMixin):
+class Property(NodeMixin):
     """
-    Parent class to represent a semantic aspect as part of a knowledge pre-condition of designators.
+    Parent class to represent a semantic property as part of a knowledge pre-condition of designators.
     Aspects can be combined using logical operators to create complex pre-conditions, the resulting expression is a
     datastructure of a tree.
     """
-    resolved_aspect_instance: Type[Aspect]
-    """
-    Reference to the actual implementation of the aspect function in the KnowledgeSource. This reference is used when 
-    evaluating the tree structure of aspects.
-    """
     variables: Dict[str, Any]
     """
-    Dictionary of variables and their values which are used in the aspect tree. This dictionary is only to be used in 
+    Dictionary of variables and their values which are used in the property tree. This dictionary is only to be used in 
     the root node.
     """
 
@@ -51,45 +34,45 @@ class Aspect(NodeMixin):
 
     def __and__(self, other):
         """
-        Overload the and operator to create an AndAspect as part of the tree structure.
+        Overload the and operator to create an And as part of the tree structure.
 
-        :param other: The other aspect to combine with
-        :return: An AndAspect containing both, this and the other, aspect
+        :param other: The other property to combine with
+        :return: An And containing both, this and the other, property
         """
-        return AndAspect([self, other])
+        return And([self, other])
 
     def __or__(self, other):
         """
-        Overload the or operator to create an OrAspect as part of the tree structure.
+        Overload the or operator to create an Or as part of the tree structure.
 
-        :param other: The other aspect to combine with
-        :return: An OrAspect containing both, this and the other, aspect
+        :param other: The other property to combine with
+        :return: An Or containing both, this and the other, property
         """
-        return OrAspect([self, other])
+        return Or([self, other])
 
     def __neg__(self):
         """
-        Overload the not operator to create a NotAspect as part of the tree structure.
+        Overload the not operator to create a Not as part of the tree structure.
 
-        :return: A NotAspect containing this aspect
+        :return: A Not containing this property
         """
-        return NotAspect(self)
+        return Not(self)
 
     def __invert__(self):
         """
-        Overload the invert operator to create a NotAspect as part of the tree structure.
+        Overload the invert operator to create a Not as part of the tree structure.
 
-        :return: A NotAspect containing this aspect
+        :return: A Not containing this property
         """
-        return NotAspect(self)
+        return Not(self)
 
     def manage_io(self, func: Callable, *args, **kwargs) -> bool:
         """
-        Manages the input and output variables across the whole aspect tree. If the aspect has an input variable, the
+        Manages the input and output variables across the whole property tree. If the property has an input variable, the
         value of this variable will be taken from the variables dictionary of the root node. If an output is defined,
         the result of the function will be stored in the variables dictionary of the root node.
 
-        :param func: Aspect function to call
+        :param func: Property function to call
         :param args: args to pass to the function
         :param kwargs: keyword args to pass to the function
         :return: result of the function
@@ -108,24 +91,21 @@ class Aspect(NodeMixin):
         return func(*args, **kwargs)
 
 
-class AspectOperator(Aspect):
+class PropertyOperator(Property):
     """
-    Parent class for logical operators to combine multiple aspects in a tree structure. This class adds methods to
-    use Aspects as part of a tree structure. Furthermore, there is a method to simplify the tree structure by merging
+    Parent class for logical operators to combine multiple properties in a tree structure. This class adds methods to
+    use Properties as part of a tree structure. Furthermore, there is a method to simplify the tree structure by merging
     Nodes of the same type.
     """
-    aspects: List[Aspect]
 
-    def __init__(self, aspects: List[Aspect]):
+    def __init__(self, properties: List[Property]):
         """
-        Initialize the AspectOperator with a list of aspects. The parent of this node is None, therefore the node is
+        Initialize the PropertyOperator with a list of Properties. The parent of this node is None, therefore the node is
         always the root of the tree.
 
-        :param aspects: A list of aspects to which are the children of this node
+        :param properties: A list of properties to which are the children of this node
         """
-        super().__init__(parent=None, children=aspects)
-        self.aspects = aspects
-        # self.resolved_aspects = []
+        super().__init__(parent=None, children=properties)
 
     def simplify(self):
         """
@@ -153,20 +133,20 @@ class AspectOperator(Aspect):
         node1.children = node2.children + node1.children
 
 
-class AndAspect(AspectOperator):
+class And(PropertyOperator):
     """
-    Class to represent a logical and operator in a tree structure. This class inherits from AspectOperator and adds a
+    Class to represent a logical and operator in a tree structure. This class inherits from PropertyOperator and adds a
     method to evaluate the children as an and operator.
     """
 
-    def __init__(self, aspects: List[Aspect]):
+    def __init__(self, properties: List[Property]):
         """
-        Initialize the AndAspect with a list of aspects as the children of this node. This node will be the root of the
+        Initialize the And with a list of aspects as the children of this node. This node will be the root of the
         tree.
 
-        :param aspects: A list of aspects which are the children of this node
+        :param properties: A list of aspects which are the children of this node
         """
-        super().__init__(aspects)
+        super().__init__(properties)
         self.simplify()
 
     def __call__(self, *args, **kwargs) -> bool:
@@ -181,10 +161,10 @@ class AndAspect(AspectOperator):
         """
         result = True
         for child in self.children:
-            # Child is an Aspect and the resolved function should be called
+            # Child is a Property and the resolved function should be called
             if child.is_leaf:
                 result = result and child(*args, **kwargs)
-            # Child is an AspectOperator
+            # Child is a PropertyOperator
             else:
                 child(*args, **kwargs)
             if not result:
@@ -192,20 +172,20 @@ class AndAspect(AspectOperator):
         return result
 
 
-class OrAspect(AspectOperator):
+class Or(PropertyOperator):
     """
-    Class to represent a logical or operator in a tree structure. This class inherits from AspectOperator and adds a
+    Class to represent a logical or operator in a tree structure. This class inherits from PropertyOperator and adds a
     method to evaluate the children as an or operator.
     """
 
-    def __init__(self, aspects: List[Aspect]):
+    def __init__(self, properties: List[Property]):
         """
-        Initialize the OrAspect with a list of aspects as the children of this node. This node will be the root of the
+        Initialize the Or with a list of aspects as the children of this node. This node will be the root of the
         tree.
 
-        :param aspects: A list of aspects which are the children of this node
+        :param properties: A list of aspects which are the children of this node
         """
-        super().__init__(aspects)
+        super().__init__(properties)
         self.simplify()
 
     def __call__(self, *args, **kwargs) -> bool:
@@ -220,10 +200,10 @@ class OrAspect(AspectOperator):
         """
         result = False
         for child in self.children:
-            # Child is an Aspect and the resolved function should be called
+            # Child is a Property and the resolved function should be called
             if child.is_leaf:
                 result = result or child(*args, **kwargs)
-            # Child is an AspectOperator
+            # Child is a PropertyOperator
             else:
                 result = child(*args, **kwargs)
             if result:
@@ -231,19 +211,19 @@ class OrAspect(AspectOperator):
         return result
 
 
-class NotAspect(AspectOperator):
+class Not(PropertyOperator):
     """
-    Class to represent a logical not operator in a tree structure. This class inherits from AspectOperator and adds a
+    Class to represent a logical not operator in a tree structure. This class inherits from PropertyOperator and adds a
     method to evaluate the children as a not operator.
     """
 
-    def __init__(self, aspect: Aspect):
+    def __init__(self, property: Property):
         """
-        Initialize the NotAspect with an aspect as the child of this node. This node will be the root of the tree.
+        Initialize the Not with an aspect as the child of this node. This node will be the root of the tree.
 
-        :param aspect: The aspect which is the child of this node
+        :param property: The property which is the child of this node
         """
-        super().__init__([aspect])
+        super().__init__([property])
 
     def __call__(self, *args, **kwargs) -> bool:
         """
@@ -257,27 +237,54 @@ class NotAspect(AspectOperator):
         return not self.children[0](*args, **kwargs)
 
 
-class ResolvedAspect(Aspect):
+class ResolvedProperty(Property):
+    """
+    Class to represent a resolved property function. It holds the reference to the respective function in the knowledge
+    source and the exception that should be raised if the property is not fulfilled. Its main purpose is to manage the
+    call to the property function as well as handle the input and output variables.
+    """
 
-    resolved_aspect_function: Callable
+    resolved_property_function: Callable
+    """
+    Reference to the actual implementation of the property function in the KnowledgeSource.
+    """
+    property_exception: Type[PlanFailure]
+    """
+    Exception that should be raised if the property is not fulfilled.
+    """
 
-    aspect_exception: Type[PlanFailure]
-
-    def __init__(self, resolved_aspect_function: Callable, aspect_exception: Type[PlanFailure], parent: NodeMixin = None,
+    def __init__(self, resolved_property_function: Callable, property_exception: Type[PlanFailure], parent: NodeMixin = None,
                  input: str = None, output: str = None):
+        """
+        Initialize the ResolvedProperty with the resolved property function, the exception that should be raised if the property
+        is not fulfilled, the parent node, and the input and output variables.
+
+        :param resolved_property_function: Reference to the function in the knowledge source
+        :param property_exception: Exception that should be raised if the property is not fulfilled
+        :param parent: Parent node of this property
+        :param input: Input variable name of this property
+        :param output: Output variable name of this property
+        """
         super().__init__(parent, None, input, output)
-        self.resolved_aspect_function = resolved_aspect_function
-        self.aspect_exception = aspect_exception
+        self.resolved_property_function = resolved_property_function
+        self.property_exception = property_exception
         self.parameter = {}
 
-    def __call__(self, *args, **kwargs):
-        result = self.manage_io(self.resolved_aspect_function, **self.parameter)
+    def __call__(self) -> bool:
+        """
+        Manages the io of the call to the property function and then calles the function. If the function returns False,
+        the exception defined in :attr:`property_exception` will be raised.
+
+        :return: The result of the property function
+        """
+        result = self.manage_io(self.resolved_property_function, **self.parameter)
         if not result:
-            raise self.aspect_exception(f"Aspect function {self.resolved_aspect_function} returned False")
+            raise self.property_exception(f"Property function {self.resolved_property_function} returned False")
+        return result
 
 
-class ReachableAspect(Aspect):
-    aspect_exception = ManipulationPoseUnreachable
+class ReachableProperty(Property):
+    property_exception = ManipulationPoseUnreachable
 
     def __init__(self, pose: Pose, input: str = None, output: str = None):
         super().__init__(None, None, input, output)
@@ -288,8 +295,8 @@ class ReachableAspect(Aspect):
         raise NotImplementedError
 
 
-class GraspableAspect(Aspect):
-    aspect_exception = ObjectUnfetchable
+class GraspableProperty(Property):
+    property_exception = ObjectUnfetchable
 
     def __init__(self, object_designator: 'ObjectDesignatorDescription', input: str = None, output: str = None):
         super().__init__(None, None, input, output)
@@ -300,8 +307,8 @@ class GraspableAspect(Aspect):
         raise NotImplementedError
 
 
-class SpaceIsFreeAspect(Aspect):
-    aspect_exception = NavigationGoalInCollision
+class SpaceIsFreeProperty(Property):
+    property_exception = NavigationGoalInCollision
 
     def __init__(self, pose: Pose, input: str = None, output: str = None):
         super().__init__(None, None, input, output)
@@ -312,8 +319,8 @@ class SpaceIsFreeAspect(Aspect):
         raise NotImplementedError
 
 
-class GripperIsFreeAspect(Aspect):
-    aspect_exception = GripperOccupied
+class GripperIsFreeProperty(Property):
+    property_exception = GripperOccupied
 
     def __init__(self, gripper: Arms, input: str = None, output: str = None):
         super().__init__(None, None, input, output)
@@ -324,8 +331,8 @@ class GripperIsFreeAspect(Aspect):
         raise NotImplementedError
 
 
-class VisibleAspect(Aspect):
-    aspect_exception = ObjectNotVisible
+class VisibleProperty(Property):
+    property_exception = ObjectNotVisible
 
     def __init__(self, object_designator: 'ObjectDesignatorDescription', input: str = None, output: str = None):
         super().__init__(None, None, input, output)
