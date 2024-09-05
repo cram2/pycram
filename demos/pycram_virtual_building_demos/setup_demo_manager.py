@@ -24,12 +24,10 @@ def start_demo():
     global output
     output = Output()
 
-    text_widget = display_loading_gif_with_text()
-    update_text(text_widget, 'Loading Everything...')
     environment_param = rospy.get_param('/nbparam_environments')
     robot_param = rospy.get_param('/nbparam_robots')
     task_param = rospy.get_param('/nbparam_tasks')
-    update_text(text_widget, 'Loading envi: ' + environment_param + ' robot: ' + robot_param + ' task: ' + task_param)
+
     if robot_param == 'pr2':
         launch_pr2()
     elif robot_param == 'hsrb':
@@ -38,7 +36,9 @@ def start_demo():
         launch_stretch()
     elif robot_param == 'tiago':
         launch_tiago()
-
+    text_widget = display_loading_gif_with_text()
+    update_text(text_widget, 'Loading Everything...')
+    update_text(text_widget, 'Loading envi: ' + environment_param + ' robot: ' + robot_param + ' task: ' + task_param)
     extension = ObjectDescription.get_file_extension()
     BulletWorld(WorldMode.DIRECT)
     VizMarkerPublisher()
