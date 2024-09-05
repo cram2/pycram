@@ -1,0 +1,25 @@
+<launch>
+  <arg name="debug_mode" default="false" />
+  <arg name="gui" default="false"/>
+
+  <include file="$(find hsr_description)/launch/upload_hsrb.launch"/>
+
+  <node pkg="giskardpy" type="hsr_standalone.py" name="giskard" output="screen">
+    <param name="debug_mode" value="$(arg debug_mode)" />
+  </node>
+
+  <node pkg="giskardpy" type="interactive_marker.py" name="giskard_interactive_marker" output="screen">
+    <rosparam param="enable_self_collision">False</rosparam>
+    <rosparam param="interactive_marker_chains">
+      - [odom, base_footprint]
+      - [odom, head_rgbd_sensor_link]
+      - [odom, hand_palm_link]
+    </rosparam>
+  </node>
+  
+  
+  <!-- launch rivz locally -->
+  <group if="$(arg gui)">
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find giskardpy)/launch/rviz_config/standalone.rviz" />
+  </group>
+</launch>
