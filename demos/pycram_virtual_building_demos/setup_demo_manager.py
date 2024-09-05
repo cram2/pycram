@@ -48,7 +48,7 @@ def start_demo():
     # update_text(text_widget, 'Loading envi: ' + environment_param + ' robot: ' + robot_param + ' task: ' + task_param)
     # update_text(text_widget, 'Starting Demo')
     tf = TFBroadcaster()
-
+start_demo()
     #
     # if task_param == "navigate":
     #     navigate_simple_example()
