@@ -44,7 +44,7 @@
       "name": "Robot model",
       "options": {
         "param": "robot_description",
-        "tfPrefix": "pycram_robot"
+        "tfPrefix": "/pycram/pycram_robot"
       },
       "type": "urdf"
     },

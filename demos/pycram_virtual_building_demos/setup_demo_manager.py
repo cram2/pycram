@@ -29,6 +29,7 @@ def start_demo():
     environment_param = rospy.get_param('/nbparam_environments')
     robot_param = rospy.get_param('/nbparam_robots')
     task_param = rospy.get_param('/nbparam_tasks')
+    update_text(text_widget, 'Loading envi: ' + environment_param + ' robot: ' + robot_param + ' task: ' + task_param)
     if robot_param == 'pr2':
         launch_pr2()
     elif robot_param == 'hsrb':
@@ -49,6 +50,5 @@ def start_demo():
 
     if task_param == "navigate":
         navigate_simple_example()
-
 
     update_text(text_widget, 'Done with the task...')
