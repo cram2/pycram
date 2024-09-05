@@ -8,11 +8,13 @@ from typing import Type, Optional
 
 from pycram.designator import ObjectDesignatorDescription
 
+from pycram.datastructures.enums import ObjectType
+
 import rospy
 
 # Owlready2
 try:
-    from owlready2 import *
+    import owlready2
 except ImportError:
     owlready2 = None
     rospy.logwarn("Could not import owlready2, Ontology unit-tests could not run!")
@@ -26,7 +28,7 @@ if owlready2:
         java_runtime_installed = False
         rospy.logwarn("Java runtime is not installed, Ontology reasoning unit-test could not run!")
 
-from pycram.ontology.ontology import OntologyManager, SOMA_HOME_ONTOLOGY_IRI, SOMA_ONTOLOGY_IRI
+from pycram.ontology.ontology import OntologyManager, ConceptShortcut, SOMA_DFL_ONTOLOGY_IRI, SOMA_HOME_ONTOLOGY_IRI, SOMA_ONTOLOGY_IRI
 from pycram.ontology.ontology_common import (OntologyConceptHolderStore, OntologyConceptHolder,
                                              ONTOLOGY_SQL_BACKEND_FILE_EXTENSION, ONTOLOGY_OWL_FILE_EXTENSION)
 
@@ -39,8 +41,8 @@ class TestOntologyManager(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        # Try loading from remote `SOMA_ONTOLOGY_IRI`, which will fail given no internet access
-        cls.ontology_manager = OntologyManager(SOMA_ONTOLOGY_IRI)
+        # Try loading from remote `SOMA_DFL_ONTOLOGY_IRI`, which will fail given no internet access
+        cls.ontology_manager = OntologyManager(SOMA_DFL_ONTOLOGY_IRI)
         if cls.ontology_manager.initialized():
             cls.soma = cls.ontology_manager.soma
             cls.dul = cls.ontology_manager.dul
@@ -69,7 +71,9 @@ class TestOntologyManager(unittest.TestCase):
         if os.path.exists(sql_journal_filepath):
             os.remove(sql_journal_filepath)
 
+    @unittest.skipUnless(True, 'never skip')
     def test_ontology_manager(self):
+        # This works because OntologyManager is a singleton.
         self.assertIs(self.ontology_manager, OntologyManager())
         if owlready2:
             self.assertTrue(self.ontology_manager.initialized())
@@ -116,7 +120,7 @@ class TestOntologyManager(unittest.TestCase):
         self.assertIsNotNone(self.main_ontology)
         self.assertTrue(self.main_ontology.loaded)
         if self.ontology_manager.main_ontology_iri is SOMA_ONTOLOGY_IRI or \
-                self.ontology_manager.main_ontology_iri is SOMA_HOME_ONTOLOGY_IRI:
+                self.ontology_manager.main_ontology_iri is SOMA_DFL_ONTOLOGY_IRI:
             self.assertIsNotNone(self.soma)
             self.assertTrue(self.soma.loaded)
             self.assertIsNotNone(self.dul)
@@ -303,6 +307,52 @@ class TestOntologyManager(unittest.TestCase):
         self.assertTrue(self.ontology_manager.save(owl_filepath))
         self.assertTrue(Path(owl_filepath).is_file())
         self.assertTrue(Path(sql_filepath).is_file())
+    
+    @unittest.skipUnless(True, 'Never skip')
+    def test_ensure_concept_name_is_IRI(self):
+        defaultNamespaceMap = None
+        variantNamespaceMap = {"owl": "http://ornithology.org/birds/OWL#", "xyz": "http://nowhere.org/nothing#"}
+        testCases = [
+            ("http://ornithology.org/birds/OWL#Kestrel", defaultNamespaceMap, "http://ornithology.org/birds/OWL#Kestrel"),
+            ("http://ornithology.org/birds/OWL#Kestrel", variantNamespaceMap, "http://ornithology.org/birds/OWL#Kestrel"),
+            ("owl:Kestrel", defaultNamespaceMap, "http://www.w3.org/2002/07/owl#Kestrel"),
+            ("owl:Kestrel", variantNamespaceMap, "http://ornithology.org/birds/OWL#Kestrel"),
+            ("xyz:Kestrel", defaultNamespaceMap, None),
+            ("xyz:Kestrel", variantNamespaceMap, "http://nowhere.org/nothing#Kestrel")
+        ]
+        for conceptName, namespaceMap, expected in testCases:
+            try:
+                actual = self.ontology_manager.ensure_concept_name_is_IRI(conceptName, namespaceMap=namespaceMap)
+                self.assertEqual(expected, actual)
+            except Exception as e:
+                if namespaceMap is None:
+                    namespaceMap = self.ontology_manager.namespaceMap
+                if isinstance(e, ValueError):
+                    self.assertTrue(':' not in conceptName)
+                elif isinstance(e, KeyError):
+                    # If we made it here then there should be a prefix to replace, but was not found in namespaceMap
+                    idxDoubleSlash = conceptName.find('://')
+                    idxColon = conceptName.find(':')
+                    self.assertEqual(idxDoubleSlash, -1) # conceptName was not already an IRI
+                    self.assertTrue(conceptName[:idxColon] not in namespaceMap)
+                else:
+                    raise e
+    
+    @unittest.skipUnless(owlready2, 'Owlready2 is required')
+    def test_concept2PycramConcepts(self):
+        pycramContainers = set([ObjectType.METALMUG, ObjectType.BOWL, ObjectType.JEROEN_CUP, ObjectType.MILK, ObjectType.PRINGLES, ObjectType.BREAKFAST_CEREAL])
+        pycramCrockery = set([ObjectType.METALMUG, ObjectType.BOWL, ObjectType.JEROEN_CUP])
+        testCases = [
+            (ConceptShortcut.Crockery, pycramCrockery),
+            (ConceptShortcut.Crockery.value, pycramCrockery),
+            (self.ontology_manager.iri2Concept(self.ontology_manager.ensure_concept_name_is_IRI("dfl:crockery.n.wn.artifact")), pycramCrockery),
+            (ConceptShortcut.Container, pycramContainers),
+            (ConceptShortcut.Container.value, pycramContainers),
+            (self.ontology_manager.iri2Concept(self.ontology_manager.ensure_concept_name_is_IRI("dfl:container.n.wn.artifact")), pycramContainers)
+        ]
+        for concept, expected in testCases:
+            actual = set(self.ontology_manager.concept2PycramConcepts(concept))
+            self.assertEqual(expected, actual)
 
 if __name__ == '__main__':
     unittest.main()

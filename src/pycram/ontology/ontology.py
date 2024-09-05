@@ -68,22 +68,23 @@ class OntologyManager(object, metaclass=Singleton):
                     "": "http://www.ease-crc.org/ont/SOMA_DFL.owl#",
                     "home": "http://www.ease-crc.org/ont/SOMA-HOME.owl",
                     "dul": "http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#",
+                    "USD": "https://ease-crc.org/ont/USD.owl#",
                     "soma": "http://www.ease-crc.org/ont/SOMA.owl#"
     }
 
     # Dirty hack to map concept IRIs to pycram object types
     iri2PyCramObjectType = {
-        "http://www.ease-crc.org/ont/SOMA_DFL.owl#mug.n.wn.artifact": METALMUG,
-        "http://www.ease-crc.org/ont/SOMA_DFL.owl#can_of_chips.n.wn.artifact": PRINGLES,
-        "http://www.ease-crc.org/ont/SOMA_DFL.owl#milk_carton.n.wn.artifact": MILK,
-        "http://www.ease-crc.org/ont/SOMA_DFL.owl#spoon.n.wn.artifact..cutlery": SPOON,
-        "http://www.ease-crc.org/ont/SOMA_DFL.owl#bowl.n.wn.artifact..dish": BOWL,
-        "http://www.ease-crc.org/ont/SOMA_DFL.owl#cereal_box.n.wn.artifact": BREAKFAST_CEREAL,
-        "http://www.ease-crc.org/ont/SOMA_DFL.owl#cup.n.wn.artifact..container": JEROEN_CUP,
+        "http://www.ease-crc.org/ont/SOMA_DFL.owl#mug.n.wn.artifact": ObjectType.METALMUG,
+        "http://www.ease-crc.org/ont/SOMA_DFL.owl#can_of_chips.n.wn.artifact": ObjectType.PRINGLES,
+        "http://www.ease-crc.org/ont/SOMA_DFL.owl#milk_carton.n.wn.artifact": ObjectType.MILK,
+        "http://www.ease-crc.org/ont/SOMA_DFL.owl#spoon.n.wn.artifact..cutlery": ObjectType.SPOON,
+        "http://www.ease-crc.org/ont/SOMA_DFL.owl#bowl.n.wn.artifact..dish": ObjectType.BOWL,
+        "http://www.ease-crc.org/ont/SOMA_DFL.owl#cereal_box.n.wn.artifact": ObjectType.BREAKFAST_CEREAL,
+        "http://www.ease-crc.org/ont/SOMA_DFL.owl#cup.n.wn.artifact..container": ObjectType.JEROEN_CUP,
         #"": ROBOT,
         #"": ENVIRONMENT,
-        "http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#DesignedArtifact": GENERIC_OBJECT,
-        "http://www.ease-crc.org/ont/SOMA_DFL.owl#person.n.wn.body": HUMAN
+        "http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#DesignedArtifact": ObjectType.GENERIC_OBJECT,
+        "http://www.ease-crc.org/ont/SOMA_DFL.owl#person.n.wn.body": ObjectType.HUMAN
     }
 
     def __init__(self, main_ontology_iri: Optional[str] = None, ontology_search_path: Optional[str] = None,
@@ -892,6 +893,8 @@ class OntologyManager(object, metaclass=Singleton):
         conceptIRI = conceptName
         # ':' must occur exactly once in an IRI or short concept name.
         idx = conceptName.find(':')
+        if -1 == idx:
+            raise ValueError('Concept name is neither a valid IRI nor a valid short name: the namespace seems missing.')
         # "//" after a ":" indicates a protocol has been specified to the left of the ":", i.e. we have an IRI already.
         recStr = "//"        
         if recStr != conceptName[idx+1:idx+len(recStr)+1]
@@ -925,7 +928,7 @@ class OntologyManager(object, metaclass=Singleton):
         if isinstance(concept, Enum):
             concept = concept.value
         if isinstance(concept, str):
-            concept = iri2Concept[self.string2IRI(self.ensure_concept_name_is_IRI(concept, namespaceMap=namespaceMap))]
+            concept = iri2Concept[self.ensure_concept_name_is_IRI(concept, namespaceMap=namespaceMap)]
         subconcepts = set()
         todo = set([concept])
         while todo:
