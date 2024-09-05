@@ -2043,25 +2043,6 @@
       </geometry>
     </collision>
   </link>
-  <joint name="coffe_machine_joint" type="fixed">
-    <origin xyz="0 0.3 0.2"/>
-    <parent link="countertop"/>
-    <child link="coffe_machine"/>
-  </joint>
-  <link name="coffe_machine">
-    <visual>
-      <geometry>
-        <box size="0.58 0.33 0.41"/>
-      </geometry>
-      <material name="oven_gray"/>
-    </visual>
-    <collision>
-      <geometry>
-        <box size="0.58 0.32 0.41"/>
-      </geometry>
-      <material name="oven_gray"/>
-    </collision>
-  </link>
   <!-- island waterfall, left side -->
   <joint name="island_waterfall_left_joint" type="fixed">
     <origin rpy="1.57 0 1.57" xyz="0.285 0.191 0.354"/>

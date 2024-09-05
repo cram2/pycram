@@ -3,6 +3,7 @@ import rospy
 import threading
 import atexit
 
+from ..datastructures.enums import ExecutionType
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
 from tf2_msgs.msg import TFMessage
@@ -50,14 +51,32 @@ class TFBroadcaster:
         """
         Publishes the current pose of all objects in the World. As well as the poses of all links of these objects.
         """
+        tf2_msg = TFMessage()
         for obj in self.world.objects:
             pose = obj.get_pose()
             pose.header.stamp = rospy.Time.now()
-            self._publish_pose(obj.tf_frame, pose)
+            self._append_pose_to_tf_message(obj.tf_frame, pose, tf2_msg)
             for link in obj.link_name_to_id.keys():
                 link_pose = obj.get_link_pose(link)
                 link_pose.header.stamp = rospy.Time.now()
-                self._publish_pose(obj.get_link_tf_frame(link), link_pose)
+                self._append_pose_to_tf_message(obj.get_link_tf_frame(link), link_pose, tf2_msg)
+        self.tf_publisher.publish(tf2_msg)
+
+    def _append_pose_to_tf_message(self, child_frame_id: str, pose: Pose, tf2_msg: TFMessage) -> None:
+        """
+        Appends the given pose to the provided TFMessage object. First the pose is converted to a Transform between pose.frame and
+        the given child_frame_id. Afterward, the frames of the Transform are prefixed with the projection namespace.
+
+        :param child_frame_id: Name of the TF frame which the pose points to
+        :param pose: Pose that should be appended
+        :param tf2_msg: TFMessage object to which the pose should be appended
+        """
+        frame_id = pose.frame
+        if frame_id != child_frame_id:
+            tf_stamped = pose.to_transform(child_frame_id)
+            tf_stamped.frame = "pycram" + "/" + tf_stamped.frame
+            tf_stamped.child_frame_id = "pycram" + "/" + tf_stamped.child_frame_id
+            tf2_msg.transforms.append(tf_stamped)
 
     def _update_static_odom(self) -> None:
         """
@@ -78,8 +97,8 @@ class TFBroadcaster:
         frame_id = pose.frame
         if frame_id != child_frame_id:
             tf_stamped = pose.to_transform(child_frame_id)
-            tf_stamped.frame = self.projection_namespace + "/" + tf_stamped.frame
-            tf_stamped.child_frame_id = self.projection_namespace + "/" + tf_stamped.child_frame_id
+            tf_stamped.frame = "pycram" + "/" + tf_stamped.frame
+            tf_stamped.child_frame_id = "pycram" + "/" + tf_stamped.child_frame_id
             tf2_msg = TFMessage()
             tf2_msg.transforms.append(tf_stamped)
             if static:

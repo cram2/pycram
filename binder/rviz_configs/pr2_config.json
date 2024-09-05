@@ -2,7 +2,7 @@
   "globalOptions": {
     "background": "#111111",
     "colladaLoader": "collada2",
-    "fixedFrame": "simulated/map"
+    "fixedFrame": "pycram/map"
   },
   "viewerOptions": {
     "camera": {
@@ -40,11 +40,11 @@
       "type": "grid"
     },
     {
-      "isShown": false,
+      "isShown": true,
       "name": "Robot model",
       "options": {
         "param": "robot_description",
-        "tfPrefix": "simulated/pr2"
+        "tfPrefix": "pycram/pr2"
       },
       "type": "urdf"
     },

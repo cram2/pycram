@@ -34,6 +34,7 @@ def launch_stretch():
     args = ["robot:=stretch"]
     launch_robot(executable, args=args)
 
+
 def launch_tiago():
     # name = 'tiago_dual'
     # urdf = 'tiago_dual.urdf'
@@ -96,6 +97,7 @@ def suppress_all_output():
             rospy.logdebug = original_logdebug
             rospy.logfatal = original_logfatal
 
+
 def launch_robot(launch_file, package='pycram', launch_folder='/launch/', args: List[str] = None):
     """
     General method to start a specified launch file with given parameters.
@@ -129,4 +131,4 @@ def launch_robot(launch_file, package='pycram', launch_folder='/launch/', args: 
             # Wait for ik server to launch
             time.sleep(2)
         except Exception:
-         pass
+            pass

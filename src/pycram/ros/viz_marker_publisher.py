@@ -10,7 +10,7 @@ from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
 
 from ..datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, MeshVisualShape, SphereVisualShape, Color
-from ..datastructures.enums import AxisIdentifier
+from ..datastructures.enums import AxisIdentifier, ObjectType
 from ..datastructures.pose import Pose, Transform
 from ..designator import ObjectDesignatorDescription
 from ..datastructures.world import World
@@ -61,14 +61,14 @@ class VizMarkerPublisher:
         """
         marker_array = MarkerArray()
         for obj in self.main_world.objects:
-            if obj.name == "floor":
+            if obj.obj_type == ObjectType.ROBOT or obj.name == "floor":
                 continue
             for link in obj.link_name_to_id.keys():
                 geom = obj.get_link_geometry(link)
                 if not geom:
                     continue
                 msg = Marker()
-                msg.header.frame_id = "map"
+                msg.header.frame_id = "pycram/map"
                 msg.ns = obj.name
                 msg.id = obj.link_name_to_id[link]
                 msg.type = Marker.MESH_RESOURCE
