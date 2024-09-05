@@ -36,19 +36,21 @@ def start_demo():
         launch_stretch()
     elif robot_param == 'tiago':
         launch_tiago()
-    text_widget = display_loading_gif_with_text()
-    update_text(text_widget, 'Loading Everything...')
-    update_text(text_widget, 'Loading envi: ' + environment_param + ' robot: ' + robot_param + ' task: ' + task_param)
+
     extension = ObjectDescription.get_file_extension()
     BulletWorld(WorldMode.DIRECT)
     VizMarkerPublisher()
     Object('pycram_robot', ObjectType.ROBOT, f"{robot_param}{extension}", pose=Pose([1, 2, 0]))
     Object('pycram_environment', ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
 
-    update_text(text_widget, 'Starting Demo')
+    # text_widget = display_loading_gif_with_text()
+    # update_text(text_widget, 'Loading Everything...')
+    # update_text(text_widget, 'Loading envi: ' + environment_param + ' robot: ' + robot_param + ' task: ' + task_param)
+    # update_text(text_widget, 'Starting Demo')
     tf = TFBroadcaster()
 
-    if task_param == "navigate":
-        navigate_simple_example()
-
-    update_text(text_widget, 'Done with the task...')
+    #
+    # if task_param == "navigate":
+    #     navigate_simple_example()
+    #
+    # update_text(text_widget, 'Done with the task...')
