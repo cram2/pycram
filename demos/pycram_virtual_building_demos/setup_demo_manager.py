@@ -6,6 +6,7 @@ import rospy
 
 from demos.pycram_virtual_building_demos.src.simple_examples import navigate_simple_example
 from pycram.datastructures.enums import WorldMode
+from pycram.ros.tf_broadcaster import TFBroadcaster
 from pycram.ros.viz_marker_publisher import VizMarkerPublisher
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.datastructures.enums import ObjectType, WorldMode, TorsoState
@@ -22,6 +23,7 @@ from pycram.worlds.bullet_world import BulletWorld
 def start_demo():
     global output
     output = Output()
+
     text_widget = display_loading_gif_with_text()
     update_text(text_widget, 'Loading Everything...')
     environment_param = rospy.get_param('/nbparam_environments')
@@ -37,14 +39,13 @@ def start_demo():
         launch_tiago()
 
     extension = ObjectDescription.get_file_extension()
-    BulletWorld(WorldMode.DIRECT)
+    BulletWorld(WorldMode.GUI)
     VizMarkerPublisher()
-    Object(robot_param, ObjectType.ROBOT, f"{robot_param}{extension}", pose=Pose([1, 2, 0]))
-    Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
+    Object('pycram_robot', ObjectType.ROBOT, f"{robot_param}{extension}", pose=Pose([1, 2, 0]))
+    Object('pycram_environment', ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
 
-    update_text(text_widget, ('Starting Demo with selected Robot: ' + robot_param +
-                              ', Environment: ' + environment_param +
-                              ', Task: ' + task_param))
+    update_text(text_widget, 'Starting Demo')
+    tf = TFBroadcaster()
 
     if task_param == "navigate":
         navigate_simple_example()

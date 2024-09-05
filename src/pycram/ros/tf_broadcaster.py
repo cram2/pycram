@@ -13,7 +13,8 @@ class TFBroadcaster:
     """
     Broadcaster that publishes TF frames for every object in the World.
     """
-    def __init__(self, projection_namespace= ExecutionType.SIMULATED, odom_frame="odom", interval=0.1):
+
+    def __init__(self, projection_namespace=ExecutionType.SIMULATED, odom_frame="odom", interval=0.1):
         """
         The broadcaster prefixes all published TF messages with a projection namespace to distinguish between the TF
         frames from the simulation and the one from the real robot.
@@ -97,8 +98,8 @@ class TFBroadcaster:
         frame_id = pose.frame
         if frame_id != child_frame_id:
             tf_stamped = pose.to_transform(child_frame_id)
-            tf_stamped.frame = "pycram" + "/" + tf_stamped.frame
-            tf_stamped.child_frame_id = "pycram" + "/" + tf_stamped.child_frame_id
+            tf_stamped.frame = tf_stamped.frame
+            tf_stamped.child_frame_id = tf_stamped.child_frame_id
             tf2_msg = TFMessage()
             tf2_msg.transforms.append(tf_stamped)
             if static:
