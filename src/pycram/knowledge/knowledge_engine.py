@@ -19,7 +19,15 @@ class KnowledgeEngine:
     designators
     """
 
+    enabled = True
+    """
+    Flag to enable or disable the knowledge engine
+    """
+
     _instance = None
+    """
+    Singleton for the knowledge engine
+    """
 
     def __new__(cls):
         if cls._instance is None:
@@ -29,6 +37,9 @@ class KnowledgeEngine:
 
     def __init__(self):
         if self._initialized: return
+        if not self.enabled:
+            rospy.logwarn("Knowledge engine is disabled")
+            return
         self.knowledge_sources = []
         # Initialize all knowledge sources
         self.knowledge_sources: List[KnowledgeSource] = []
@@ -58,16 +69,19 @@ class KnowledgeEngine:
             elif not source.is_connected and source.is_available:
                 source.connect()
 
-    def query(self, designator: Type['ActionDesignatorDescription']):
+    def query(self, designator: Type['ActionDesignatorDescription']) -> bool:
         """
         Query to fill parameters of a designator from the knowledge sources
 
         :return:
         """
+        if not self.enabled:
+            rospy.logwarn("Knowledge engine is disabled")
+            return True
         self.update_sources()
 
         condition = self.resolve_aspects(designator.knowledge_condition)
-        condition(designator)
+        return condition(designator)
 
     def resolve_aspects(self, aspects: Property):
         """
@@ -78,7 +92,7 @@ class KnowledgeEngine:
         """
         for child in PreOrderIter(aspects):
             if child.is_leaf:
-                source = self.find_source_for_aspect(child)
+                source = self.find_source_for_property(child)
                 resolved_aspect_function = source.__getattribute__(
                     [fun for fun in child.__class__.__dict__.keys() if
                      not fun.startswith("__") and not fun == "property_exception"][0])
@@ -96,7 +110,9 @@ class KnowledgeEngine:
 
         :return:
         """
-        ...
+        if not self.enabled:
+            rospy.logwarn("Knowledge engine is disabled")
+            return True
 
     def ground_solution(self, designator: Type['DesignatorDescription']) -> bool:
         """
@@ -104,7 +120,9 @@ class KnowledgeEngine:
 
         :return: True if the solution achieves the desired goal, False otherwise
         """
-        ...
+        if not  self.enabled:
+            rospy.logwarn("Knowledge engine is disabled")
+            return True
 
     def call_source(self, query_function: Callable, *args, **kwargs):
         """
@@ -124,14 +142,14 @@ class KnowledgeEngine:
         raise KnowledgeNotAvailable(
             f"Query function {query_function.__name__} is not available in any connected knowledge source")
 
-    def find_source_for_aspect(self, aspect: Type[Property]):
+    def find_source_for_property(self, property: Type[Property]):
         """
         Find the source for the given property
 
-        :param aspect: The property for which to find the source.
+        :param property: The property for which to find the source.
         :return: Source that can provide the property.
         """
         for source in self.knowledge_sources:
-            if (aspect.__class__ in list(source.__class__.__bases__)
+            if (property.__class__ in list(source.__class__.__bases__)
                     and source.is_connected):
                 return source
