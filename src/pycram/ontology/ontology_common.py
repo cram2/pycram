@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 from owlready2 import issubclass, Thing
 
 ONTOLOGY_SQL_BACKEND_FILE_EXTENSION = ".sqlite3"
+ONTOLOGY_SQL_IN_MEMORY_BACKEND = "memory"
 ONTOLOGY_OWL_FILE_EXTENSION = ".owl"
 
 
