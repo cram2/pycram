@@ -15,6 +15,7 @@ USER root
 RUN apt-get update
 
 # Giskard
+USER ${NB_USER}
 COPY --chown=${NB_USER}:users binder/giskard.rosinstall /home/${NB_USER}/giskard.rosinstall
 RUN vcs import --input /home/${NB_USER}/giskard.rosinstall --recursive
 
