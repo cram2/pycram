@@ -39,7 +39,7 @@ def start_demo():
         launch_tiago()
 
     extension = ObjectDescription.get_file_extension()
-    BulletWorld(WorldMode.GUI)
+    BulletWorld(WorldMode.DIRECT)
     VizMarkerPublisher()
     Object('pycram_robot', ObjectType.ROBOT, f"{robot_param}{extension}", pose=Pose([1, 2, 0]))
     Object('pycram_environment', ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
@@ -49,3 +49,6 @@ def start_demo():
 
     if task_param == "navigate":
         navigate_simple_example()
+
+
+    update_text(text_widget, 'Done with the task...')
