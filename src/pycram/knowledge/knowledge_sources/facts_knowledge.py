@@ -2,7 +2,7 @@ import numpy as np
 
 from ...datastructures.enums import Arms, ObjectType
 from ..knowledge_source import KnowledgeSource
-from ...datastructures.aspects import ReachableAspect, GraspableAspect, GripperIsFreeAspect, VisibleAspect, SpaceIsFreeAspect
+from ...datastructures.property import ReachableProperty, GraspableProperty, GripperIsFreeProperty, VisibleProperty, SpaceIsFreeProperty
 from ...datastructures.pose import Pose
 from ...datastructures.world import World, UseProspectionWorld
 # from ...designators.location_designator import CostmapLocation
@@ -12,7 +12,7 @@ from ...world_concepts.world_object import Object
 from ...world_reasoning import visible
 from ...costmaps import OccupancyCostmap
 
-class FactsKnowledge(KnowledgeSource, GripperIsFreeAspect, VisibleAspect, SpaceIsFreeAspect, GraspableAspect, ReachableAspect):
+class FactsKnowledge(KnowledgeSource, GripperIsFreeProperty, VisibleProperty, SpaceIsFreeProperty, GraspableProperty, ReachableProperty):
     """
     Knowledge source for hard coded facts, this knowledge source acts as a fallback if no other knowledge source is
     available.

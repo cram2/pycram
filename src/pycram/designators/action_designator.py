@@ -16,8 +16,8 @@ from .location_designator import CostmapLocation
 from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveArmJointsMotion, MoveTCPMotion, MoveMotion, \
     LookingMotion, DetectingMotion, OpeningMotion, ClosingMotion
 from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
-from ..datastructures.aspects import GraspableAspect, ReachableAspect, GripperIsFreeAspect, SpaceIsFreeAspect, \
-    VisibleAspect
+from ..datastructures.property import GraspableProperty, ReachableProperty, GripperIsFreeProperty, SpaceIsFreeProperty, \
+    VisibleProperty
 from ..local_transformer import LocalTransformer
 from ..plan_failures import ObjectUnfetchable, ReachabilityFailure
 # from ..robot_descriptions import robot_description
@@ -100,11 +100,11 @@ class SetGripperAction(ActionDesignatorDescription):
         self.grippers: List[Arms] = grippers
         self.motions: List[GripperState] = motions
         if len(self.grippers) == 1:
-            self.knowledge_condition = GripperIsFreeAspect(self.grippers[0])
+            self.knowledge_condition = GripperIsFreeProperty(self.grippers[0])
         else:
-            root = GripperIsFreeAspect(self.grippers[0])
+            root = GripperIsFreeProperty(self.grippers[0])
             for gripper in grippers[1:]:
-                root |= GripperIsFreeAspect(gripper)
+                root |= GripperIsFreeProperty(gripper)
             self.knowledge_condition = root
 
         if self.soma:
@@ -224,7 +224,7 @@ class PickUpAction(ActionDesignatorDescription):
             ObjectDesignatorDescription, ObjectDesignatorDescription.Object] = object_designator_description
         self.arms: List[Arms] = arms
         self.grasps: List[Grasp] = grasps
-        self.knowledge_condition = GraspableAspect(self.object_designator_description) & ReachableAspect(
+        self.knowledge_condition = GraspableProperty(self.object_designator_description) & ReachableProperty(
             self.object_designator_description.resolve().pose)
 
         if self.soma:
@@ -298,11 +298,11 @@ class NavigateAction(ActionDesignatorDescription):
         super().__init__(ontology_concept_holders)
         self.target_locations: List[Pose] = target_locations
         if len(self.target_locations) == 1:
-            self.knowledge_condition = SpaceIsFreeAspect(self.target_locations[0])
+            self.knowledge_condition = SpaceIsFreeProperty(self.target_locations[0])
         else:
-            root = SpaceIsFreeAspect(self.target_locations[0])
+            root = SpaceIsFreeProperty(self.target_locations[0])
             for location in self.target_locations[1:]:
-                root |= SpaceIsFreeAspect(location)
+                root |= SpaceIsFreeProperty(location)
             self.knowledge_condition = root
 
         if self.soma:
@@ -400,7 +400,7 @@ class DetectAction(ActionDesignatorDescription):
         """
         super().__init__(ontology_concept_holders)
         self.object_designator_description: ObjectDesignatorDescription = object_designator_description
-        self.knowledge_condition = VisibleAspect(self.object_designator_description)
+        self.knowledge_condition = VisibleProperty(self.object_designator_description)
 
         if self.soma:
             self.init_ontology_concepts({"looking_for": self.soma.LookingFor,
@@ -434,8 +434,8 @@ class OpenAction(ActionDesignatorDescription):
         super().__init__(ontology_concept_holders)
         self.object_designator_description: ObjectPart = object_designator_description
         self.arms: List[Arms] = arms
-        self.knowledge_condition = ReachableAspect(
-            self.object_designator_description.resolve().pose) & GripperIsFreeAspect(self.arms[0])
+        self.knowledge_condition = ReachableProperty(
+            self.object_designator_description.resolve().pose) & GripperIsFreeProperty(self.arms[0])
 
         if self.soma:
             self.init_ontology_concepts({"opening": self.soma.Opening})
@@ -469,8 +469,8 @@ class CloseAction(ActionDesignatorDescription):
         super().__init__(ontology_concept_holders)
         self.object_designator_description: ObjectPart = object_designator_description
         self.arms: List[Arms] = arms
-        self.knowledge_condition = ReachableAspect(
-            self.object_designator_description.resolve().pose) & GripperIsFreeAspect(self.arms[0])
+        self.knowledge_condition = ReachableProperty(
+            self.object_designator_description.resolve().pose) & GripperIsFreeProperty(self.arms[0])
 
         if self.soma:
             self.init_ontology_concepts({"closing": self.soma.Closing})

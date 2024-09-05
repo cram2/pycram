@@ -3,7 +3,7 @@ import inspect
 import rospy
 from anytree import PreOrderIter
 
-from ..datastructures.aspects import Aspect, ResolvedAspect
+from ..datastructures.property import Property, ResolvedProperty
 from .knowledge_source import KnowledgeSource
 # from ..designator import DesignatorDescription, ActionDesignatorDescription
 from typing_extensions import Type, Callable, List
@@ -69,22 +69,22 @@ class KnowledgeEngine:
         condition = self.resolve_aspects(designator.knowledge_condition)
         condition(designator)
 
-    def resolve_aspects(self, aspects: Aspect):
+    def resolve_aspects(self, aspects: Property):
         """
-        Traverses the tree of aspects and resolves the aspect functions to the corresponding function in the knowledge
+        Traverses the tree of properties and resolves the property functions to the corresponding function in the knowledge
         source.
 
-        :param aspects: Root node of the tree of aspects
+        :param aspects: Root node of the tree of properties
         """
         for child in PreOrderIter(aspects):
             if child.is_leaf:
                 source = self.find_source_for_aspect(child)
                 resolved_aspect_function = source.__getattribute__(
                     [fun for fun in child.__class__.__dict__.keys() if
-                     not fun.startswith("__") and not fun == "aspect_exception"][0])
+                     not fun.startswith("__") and not fun == "property_exception"][0])
 
-                # child.resolved_aspect_instance = source
-                node = ResolvedAspect(resolved_aspect_function, child.aspect_exception, child.parent, child.input, child.output)
+                # child.resolved_property_instance = source
+                node = ResolvedProperty(resolved_aspect_function, child.property_exception, child.parent, child.input, child.output)
                 for param in inspect.signature(resolved_aspect_function).parameters.keys():
                     node.parameter[param] = child.__getattribute__(param)
                 child.parent = None
@@ -124,12 +124,12 @@ class KnowledgeEngine:
         raise KnowledgeNotAvailable(
             f"Query function {query_function.__name__} is not available in any connected knowledge source")
 
-    def find_source_for_aspect(self, aspect: Type[Aspect]):
+    def find_source_for_aspect(self, aspect: Type[Property]):
         """
-        Find the source for the given aspect
+        Find the source for the given property
 
-        :param aspect: The aspect for which to find the source.
-        :return: Source that can provide the aspect.
+        :param aspect: The property for which to find the source.
+        :return: Source that can provide the property.
         """
         for source in self.knowledge_sources:
             if (aspect.__class__ in list(source.__class__.__bases__)
