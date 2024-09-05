@@ -1,0 +1,21 @@
+repositories:
+  giskardpy:
+    type: git
+    url: https://github.com/SemRoCo/giskardpy.git
+    version: v0.6.0
+  giskard_msgs:
+    type: git
+    url: https://github.com/SemRoCo/giskard_msgs.git
+    version: v0.5.1
+  iai_tracy:
+    type: git
+    url: https://github.com/code-iai/iai_tracy.git
+    version: main
+  robotiq_2finger_grippers:
+    type: git
+    url: https://github.com/Danfoa/robotiq_2finger_grippers.git
+    version: master
+  iai_boxy:
+    type: git
+    url: https://github.com/code-iai/iai_boxy.git
+    version: master
