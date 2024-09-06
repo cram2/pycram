@@ -378,60 +378,6 @@
     <parent link="neck_wrist_3_link"/>
     <child link="neck_tool0"/>
   </joint>
-  <transmission name="neck_shoulder_pan_trans">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="neck_shoulder_pan_joint">
-      <hardwareInterface>hardware_interface/Position/JointInterface</hardwareInterface>
-    </joint>
-    <actuator name="neck_shoulder_pan_motor">
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="neck_shoulder_lift_trans">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="neck_shoulder_lift_joint">
-      <hardwareInterface>hardware_interface/Position/JointInterface</hardwareInterface>
-    </joint>
-    <actuator name="neck_shoulder_lift_motor">
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="neck_elbow_trans">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="neck_elbow_joint">
-      <hardwareInterface>hardware_interface/Position/JointInterface</hardwareInterface>
-    </joint>
-    <actuator name="neck_elbow_motor">
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="neck_wrist_1_trans">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="neck_wrist_1_joint">
-      <hardwareInterface>hardware_interface/Position/JointInterface</hardwareInterface>
-    </joint>
-    <actuator name="neck_wrist_1_motor">
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="neck_wrist_2_trans">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="neck_wrist_2_joint">
-      <hardwareInterface>hardware_interface/Position/JointInterface</hardwareInterface>
-    </joint>
-    <actuator name="neck_wrist_2_motor">
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="neck_wrist_3_trans">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="neck_wrist_3_joint">
-      <hardwareInterface>hardware_interface/Position/JointInterface</hardwareInterface>
-    </joint>
-    <actuator name="neck_wrist_3_motor">
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
   <!-- nothing to do here at the moment -->
   <!-- ROS base_link to UR 'Base' Coordinates transform -->
   <link name="neck_base"/>
@@ -566,11 +512,6 @@
     <limit effort="0" lower="-0.586" upper="0" velocity="0.02"/>
     <calibration rising="0.0"/>
   </joint>
-  <transmission name="triangle_base_transmission" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="triangle_base_motor"/>
-    <joint name="triangle_base_joint"/>
-    <mechanicalReduction>1.0</mechanicalReduction>
-  </transmission>
   <link name="triangle_left_arm_link"/>
   <joint name="triangle_left_arm_joint" type="fixed">
     <origin rpy="1.046186267441739 0.005429697608281147 3.1340705895651766" xyz="0.134209 -0.240707 0.181709"/>
@@ -612,9 +553,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="calib_left_arm_base_link">
-    <material value="kuka-lwr.material"/>
-  </gazebo>
   <joint name="left_arm_0_joint" type="revolute">
     <origin rpy="0 0 0" xyz="0 0 0.11"/>
     <axis xyz="0 0 1"/>
@@ -646,14 +584,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="left_arm_1_link">
-    <material value="kuka-lwr.material"/>
-  </gazebo>
-  <transmission name="left_arm_0_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="left_arm_0_motor"/>
-    <joint name="left_arm_0_joint"/>
-    <mechanicalReduction>1.0</mechanicalReduction>
-  </transmission>
   <joint name="left_arm_1_joint" type="revolute">
     <origin rpy="0 0 0" xyz="0 0 0.20"/>
     <axis xyz="0 -1 0"/>
@@ -685,14 +615,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="left_arm_2_link">
-    <material value="kuka-lwr.material"/>
-  </gazebo>
-  <transmission name="left_arm_1_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="left_arm_1_motor"/>
-    <joint name="left_arm_1_joint"/>
-    <mechanicalReduction>1.0</mechanicalReduction>
-  </transmission>
   <joint name="left_arm_2_joint" type="revolute">
     <origin rpy="0 0 0" xyz="0 0 0.20"/>
     <axis xyz="0 0 1"/>
@@ -724,14 +646,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="left_arm_3_link">
-    <material value="kuka-lwr.material"/>
-  </gazebo>
-  <transmission name="left_arm_2_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="left_arm_2_motor"/>
-    <joint name="left_arm_2_joint"/>
-    <mechanicalReduction>1.0</mechanicalReduction>
-  </transmission>
   <joint name="left_arm_3_joint" type="revolute">
     <origin rpy="0 0 0" xyz="0 0 0.20"/>
     <axis xyz="0 1 0"/>
@@ -763,14 +677,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="left_arm_4_link">
-    <material value="kuka-lwr.material"/>
-  </gazebo>
-  <transmission name="left_arm_3_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="left_arm_3_motor"/>
-    <joint name="left_arm_3_joint"/>
-    <mechanicalReduction>1.0</mechanicalReduction>
-  </transmission>
   <joint name="left_arm_4_joint" type="revolute">
     <origin rpy="0 0 0" xyz="0 0 0.20"/>
     <axis xyz="0 0 1"/>
@@ -802,14 +708,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="left_arm_5_link">
-    <material value="kuka-lwr.material"/>
-  </gazebo>
-  <transmission name="left_arm_4_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="left_arm_4_motor"/>
-    <joint name="left_arm_4_joint"/>
-    <mechanicalReduction>1.0</mechanicalReduction>
-  </transmission>
   <joint name="left_arm_5_joint" type="revolute">
     <origin rpy="0 0 0" xyz="0 0 0.19"/>
     <axis xyz="0 -1 0"/>
@@ -841,14 +739,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="left_arm_6_link">
-    <material value="kuka-lwr.material"/>
-  </gazebo>
-  <transmission name="left_arm_5_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="left_arm_5_motor"/>
-    <joint name="left_arm_5_joint"/>
-    <mechanicalReduction>1.0</mechanicalReduction>
-  </transmission>
   <joint name="left_arm_6_joint" type="revolute">
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <axis xyz="0 0 1"/>
@@ -880,14 +770,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="left_arm_7_link">
-    <material value="kuka-lwr.material"/>
-  </gazebo>
-  <transmission name="left_arm_6_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="left_arm_6_motor"/>
-    <joint name="left_arm_6_joint"/>
-    <mechanicalReduction>1.0</mechanicalReduction>
-  </transmission>
   <!--arm_7_link has the same pose as the TCP defined in the DLR Beasty controller:
        Center of the potato, with z-coming out towards the flange, and y going towards joint #6 -->
   <joint name="left_arm_flange_joint" type="fixed">
@@ -1083,10 +965,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="left_gripper_base_link">
-    <material>Gazebo/Grey</material>
-    <turnGravityOff>false</turnGravityOff>
-  </gazebo>
   <!-- GRIPPER LEFT -->
   <joint name="left_gripper_base_gripper_left_joint" type="prismatic">
     <mimic joint="left_gripper_joint" multiplier="-0.5"/>
@@ -1099,12 +977,6 @@
     <axis xyz="1 0 0"/>
     <!-- <limit effort="100" velocity="100"/> -->
   </joint>
-  <transmission name="left_gripper_base_trans_left" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="left_gripper_base_motor_left"/>
-    <joint name="left_gripper_base_gripper_left_joint"/>
-    <mechanicalReduction>1</mechanicalReduction>
-    <motorTorqueConstant>1</motorTorqueConstant>
-  </transmission>
   <link name="left_gripper_gripper_left_link">
     <inertial>
       <mass value="0.1"/>
@@ -1130,10 +1002,6 @@
     </collision>
     <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
   </link>
-  <gazebo reference="left_gripper_gripper_left_link">
-    <material>Gazebo/Blue</material>
-    <turnGravityOff>false</turnGravityOff>
-  </gazebo>
   <!-- LEFT FINGER -->
   <joint name="left_gripper_guide_joint_finger_left" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0.023"/>
@@ -1166,10 +1034,6 @@
     </collision>
     <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
   </link>
-  <gazebo reference="left_gripper_finger_left">
-    <material>Gazebo/Blue</material>
-    <turnGravityOff>false</turnGravityOff>
-  </gazebo>
   <!-- GRIPPER RIGHT -->
   <joint name="left_gripper_joint" type="prismatic">
     <limit effort="1.0" lower="0.0065" upper="0.109" velocity="0.42"/>
@@ -1180,12 +1044,6 @@
     <dynamics damping="100" friction="100"/>
     <!-- <limit effort="100" velocity="100"/>-->
   </joint>
-  <transmission name="left_gripper_base_trans_right" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="left_gripper_base_motor_right"/>
-    <joint name="left_gripper_base_gripper_right_joint"/>
-    <mechanicalReduction>1</mechanicalReduction>
-    <motorTorqueConstant>1</motorTorqueConstant>
-  </transmission>
   <link name="left_gripper_gripper_right_link">
     <inertial>
       <mass value="0.1"/>
@@ -1211,10 +1069,6 @@
     </collision>
     <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
   </link>
-  <gazebo reference="gripper_right">
-    <material>Gazebo/White</material>
-    <turnGravityOff>false</turnGravityOff>
-  </gazebo>
   <!-- RIGHT FINGER -->
   <joint name="left_gripper_guide_joint_finger_right" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0.023"/>
@@ -1244,10 +1098,6 @@
     </collision>
     <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
   </link>
-  <gazebo reference="left_gripper_finger_right">
-    <material>Gazebo/White</material>
-    <turnGravityOff>false</turnGravityOff>
-  </gazebo>
   <link name="left_gripper_tool_frame"/>
   <joint name="left_gripper_tool_frame_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0.144"/>
@@ -1379,9 +1229,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="calib_right_arm_base_link">
-    <material value="kuka-lwr.material"/>
-  </gazebo>
   <joint name="right_arm_0_joint" type="revolute">
     <origin rpy="0 0 0" xyz="0 0 0.11"/>
     <axis xyz="0 0 1"/>
@@ -1413,14 +1260,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="right_arm_1_link">
-    <material value="kuka-lwr.material"/>
-  </gazebo>
-  <transmission name="right_arm_0_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="right_arm_0_motor"/>
-    <joint name="right_arm_0_joint"/>
-    <mechanicalReduction>1.0</mechanicalReduction>
-  </transmission>
   <joint name="right_arm_1_joint" type="revolute">
     <origin rpy="0 0 0" xyz="0 0 0.20"/>
     <axis xyz="0 -1 0"/>
@@ -1452,14 +1291,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="right_arm_2_link">
-    <material value="kuka-lwr.material"/>
-  </gazebo>
-  <transmission name="right_arm_1_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="right_arm_1_motor"/>
-    <joint name="right_arm_1_joint"/>
-    <mechanicalReduction>1.0</mechanicalReduction>
-  </transmission>
   <joint name="right_arm_2_joint" type="revolute">
     <origin rpy="0 0 0" xyz="0 0 0.20"/>
     <axis xyz="0 0 1"/>
@@ -1491,14 +1322,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="right_arm_3_link">
-    <material value="kuka-lwr.material"/>
-  </gazebo>
-  <transmission name="right_arm_2_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="right_arm_2_motor"/>
-    <joint name="right_arm_2_joint"/>
-    <mechanicalReduction>1.0</mechanicalReduction>
-  </transmission>
   <joint name="right_arm_3_joint" type="revolute">
     <origin rpy="0 0 0" xyz="0 0 0.20"/>
     <axis xyz="0 1 0"/>
@@ -1530,14 +1353,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="right_arm_4_link">
-    <material value="kuka-lwr.material"/>
-  </gazebo>
-  <transmission name="right_arm_3_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="right_arm_3_motor"/>
-    <joint name="right_arm_3_joint"/>
-    <mechanicalReduction>1.0</mechanicalReduction>
-  </transmission>
   <joint name="right_arm_4_joint" type="revolute">
     <origin rpy="0 0 0" xyz="0 0 0.20"/>
     <axis xyz="0 0 1"/>
@@ -1569,14 +1384,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="right_arm_5_link">
-    <material value="kuka-lwr.material"/>
-  </gazebo>
-  <transmission name="right_arm_4_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="right_arm_4_motor"/>
-    <joint name="right_arm_4_joint"/>
-    <mechanicalReduction>1.0</mechanicalReduction>
-  </transmission>
   <joint name="right_arm_5_joint" type="revolute">
     <origin rpy="0 0 0" xyz="0 0 0.19"/>
     <axis xyz="0 -1 0"/>
@@ -1608,14 +1415,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="right_arm_6_link">
-    <material value="kuka-lwr.material"/>
-  </gazebo>
-  <transmission name="right_arm_5_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="right_arm_5_motor"/>
-    <joint name="right_arm_5_joint"/>
-    <mechanicalReduction>1.0</mechanicalReduction>
-  </transmission>
   <joint name="right_arm_6_joint" type="revolute">
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <axis xyz="0 0 1"/>
@@ -1647,14 +1446,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="right_arm_7_link">
-    <material value="kuka-lwr.material"/>
-  </gazebo>
-  <transmission name="right_arm_6_trans" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="right_arm_6_motor"/>
-    <joint name="right_arm_6_joint"/>
-    <mechanicalReduction>1.0</mechanicalReduction>
-  </transmission>
   <!--arm_7_link has the same pose as the TCP defined in the DLR Beasty controller:
        Center of the potato, with z-coming out towards the flange, and y going towards joint #6 -->
   <joint name="right_arm_flange_joint" type="fixed">
@@ -1850,10 +1641,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="right_gripper_base_link">
-    <material>Gazebo/Grey</material>
-    <turnGravityOff>false</turnGravityOff>
-  </gazebo>
   <!-- GRIPPER LEFT -->
   <joint name="right_gripper_base_gripper_left_joint" type="prismatic">
     <mimic joint="right_gripper_joint" multiplier="-0.5"/>
@@ -1866,12 +1653,6 @@
     <axis xyz="1 0 0"/>
     <!-- <limit effort="100" velocity="100"/> -->
   </joint>
-  <transmission name="right_gripper_base_trans_left" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="right_gripper_base_motor_left"/>
-    <joint name="right_gripper_base_gripper_left_joint"/>
-    <mechanicalReduction>1</mechanicalReduction>
-    <motorTorqueConstant>1</motorTorqueConstant>
-  </transmission>
   <link name="right_gripper_gripper_left_link">
     <inertial>
       <mass value="0.1"/>
@@ -1897,10 +1678,6 @@
     </collision>
     <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
   </link>
-  <gazebo reference="right_gripper_gripper_left_link">
-    <material>Gazebo/Blue</material>
-    <turnGravityOff>false</turnGravityOff>
-  </gazebo>
   <!-- LEFT FINGER -->
   <joint name="right_gripper_guide_joint_finger_left" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0.023"/>
@@ -1933,10 +1710,6 @@
     </collision>
     <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
   </link>
-  <gazebo reference="right_gripper_finger_left">
-    <material>Gazebo/Blue</material>
-    <turnGravityOff>false</turnGravityOff>
-  </gazebo>
   <!-- GRIPPER RIGHT -->
   <joint name="right_gripper_joint" type="prismatic">
     <limit effort="1.0" lower="0.0065" upper="0.109" velocity="0.42"/>
@@ -1947,12 +1720,6 @@
     <dynamics damping="100" friction="100"/>
     <!-- <limit effort="100" velocity="100"/>-->
   </joint>
-  <transmission name="right_gripper_base_trans_right" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="right_gripper_base_motor_right"/>
-    <joint name="right_gripper_base_gripper_right_joint"/>
-    <mechanicalReduction>1</mechanicalReduction>
-    <motorTorqueConstant>1</motorTorqueConstant>
-  </transmission>
   <link name="right_gripper_gripper_right_link">
     <inertial>
       <mass value="0.1"/>
@@ -1978,10 +1745,6 @@
     </collision>
     <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
   </link>
-  <gazebo reference="gripper_right">
-    <material>Gazebo/White</material>
-    <turnGravityOff>false</turnGravityOff>
-  </gazebo>
   <!-- RIGHT FINGER -->
   <joint name="right_gripper_guide_joint_finger_right" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0.023"/>
@@ -2011,10 +1774,6 @@
     </collision>
     <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
   </link>
-  <gazebo reference="right_gripper_finger_right">
-    <material>Gazebo/White</material>
-    <turnGravityOff>false</turnGravityOff>
-  </gazebo>
   <link name="right_gripper_tool_frame"/>
   <joint name="right_gripper_tool_frame_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0.144"/>
@@ -2022,5 +1781,6 @@
     <child link="right_gripper_tool_frame"/>
   </joint>
 </robot>
+
 
 

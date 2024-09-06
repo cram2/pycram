@@ -93,7 +93,6 @@ class CacheManager:
             for file in glob.glob(str(data_path), recursive=True):
                 file_path = pathlib.Path(file)
                 if file_path.name == name:
-                    print(f"Found file {name} in {file_path}")
                     return str(file_path)
 
         raise FileNotFoundError(

@@ -19,26 +19,6 @@
   <material name="yellow">
     <color rgba="1.0 1.0 0.0 1.0"/>
   </material>
-  <gazebo>
-    <plugin filename="libgazebo_ros_control.so" name="ros_control">
-      <!--robotNamespace>/</robotNamespace-->
-      <!--robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType-->
-    </plugin>
-    <!--
-    <plugin name="gazebo_ros_power_monitor_controller" filename="libgazebo_ros_power_monitor.so">
-      <alwaysOn>true</alwaysOn>
-      <updateRate>1.0</updateRate>
-      <timeout>5</timeout>
-      <powerStateTopic>power_state</powerStateTopic>
-      <powerStateRate>10.0</powerStateRate>
-      <fullChargeCapacity>87.78</fullChargeCapacity>     
-      <dischargeRate>-474</dischargeRate>
-      <chargeRate>525</chargeRate>
-      <dischargeVoltage>15.52</dischargeVoltage>
-      <chargeVoltage>16.41</chargeVoltage>
-    </plugin>
--->
-  </gazebo>
   <!-- <link name="map"/> -->
   <link name="base_link">
     <inertial>
@@ -413,60 +393,6 @@
     <parent link="ur5_wrist_3_link"/>
     <child link="ur5_tool0"/>
   </joint>
-  <transmission name="ur5_shoulder_pan_trans">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="ur5_shoulder_pan_joint">
-      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="ur5_shoulder_pan_motor">
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="ur5_shoulder_lift_trans">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="ur5_shoulder_lift_joint">
-      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="ur5_shoulder_lift_motor">
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="ur5_elbow_trans">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="ur5_elbow_joint">
-      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="ur5_elbow_motor">
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="ur5_wrist_1_trans">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="ur5_wrist_1_joint">
-      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="ur5_wrist_1_motor">
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="ur5_wrist_2_trans">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="ur5_wrist_2_joint">
-      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="ur5_wrist_2_motor">
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="ur5_wrist_3_trans">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="ur5_wrist_3_joint">
-      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="ur5_wrist_3_motor">
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
   <!-- nothing to do here at the moment -->
   <!-- ROS base_link to UR 'Base' Coordinates transform -->
   <link name="ur5_base"/>
@@ -661,10 +587,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="gripper_base_link">
-    <material>Gazebo/Grey</material>
-    <turnGravityOff>false</turnGravityOff>
-  </gazebo>
   <!-- GRIPPER LEFT -->
   <joint name="gripper_base_gripper_left_joint" type="prismatic">
     <mimic joint="gripper_joint" multiplier="-0.5"/>
@@ -677,12 +599,6 @@
     <axis xyz="1 0 0"/>
     <!-- <limit effort="100" velocity="100"/> -->
   </joint>
-  <transmission name="gripper_base_trans_left" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="gripper_base_motor_left"/>
-    <joint name="gripper_base_gripper_left_joint"/>
-    <mechanicalReduction>1</mechanicalReduction>
-    <motorTorqueConstant>1</motorTorqueConstant>
-  </transmission>
   <link name="gripper_gripper_left_link">
     <inertial>
       <mass value="0.1"/>
@@ -708,10 +624,6 @@
     </collision>
     <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
   </link>
-  <gazebo reference="gripper_gripper_left_link">
-    <material>Gazebo/Blue</material>
-    <turnGravityOff>false</turnGravityOff>
-  </gazebo>
   <!-- LEFT FINGER -->
   <joint name="gripper_guide_joint_finger_left" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0.023"/>
@@ -744,10 +656,6 @@
     </collision>
     <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
   </link>
-  <gazebo reference="gripper_finger_left">
-    <material>Gazebo/Blue</material>
-    <turnGravityOff>false</turnGravityOff>
-  </gazebo>
   <!-- GRIPPER RIGHT -->
   <joint name="gripper_joint" type="prismatic">
     <limit effort="1.0" lower="0.0065" upper="0.109" velocity="0.42"/>
@@ -758,12 +666,6 @@
     <dynamics damping="100" friction="100"/>
     <!-- <limit effort="100" velocity="100"/>-->
   </joint>
-  <transmission name="gripper_base_trans_right" type="pr2_mechanism_model/SimpleTransmission">
-    <actuator name="gripper_base_motor_right"/>
-    <joint name="gripper_base_gripper_right_joint"/>
-    <mechanicalReduction>1</mechanicalReduction>
-    <motorTorqueConstant>1</motorTorqueConstant>
-  </transmission>
   <link name="gripper_gripper_right_link">
     <inertial>
       <mass value="0.1"/>
@@ -789,10 +691,6 @@
     </collision>
     <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
   </link>
-  <gazebo reference="gripper_right">
-    <material>Gazebo/White</material>
-    <turnGravityOff>false</turnGravityOff>
-  </gazebo>
   <!-- RIGHT FINGER -->
   <joint name="gripper_guide_joint_finger_right" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0.023"/>
@@ -822,10 +720,6 @@
     </collision>
     <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
   </link>
-  <gazebo reference="gripper_finger_right">
-    <material>Gazebo/White</material>
-    <turnGravityOff>false</turnGravityOff>
-  </gazebo>
   <link name="gripper_tool_frame"/>
   <joint name="gripper_tool_frame_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0.144"/>
@@ -989,3 +883,4 @@
     <child link="plate"/>
   </joint> -->
 </robot>
+

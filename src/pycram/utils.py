@@ -129,22 +129,39 @@ class suppress_stdout_stderr(object):
     """
 
     def __init__(self):
-        # Open a pair of null files
-        self.null_fds = [os.open(os.devnull, os.O_RDWR) for x in range(2)]
-        # Save the actual stdout (1) and stderr (2) file descriptors.
+        # Open a pair of null files (one for stdout and one for stderr)
+        self.null_fds = [os.open(os.devnull, os.O_RDWR) for _ in range(2)]
+        # Save the actual stdout (1) and stderr (2) file descriptors
         self.save_fds = [os.dup(1), os.dup(2)]
 
     def __enter__(self):
-        # Assign the null pointers to stdout and stderr.
-        # This one is not needed for URDF parsing output
-        # os.dup2(self.null_fds[0], 1)
-        os.dup2(self.null_fds[1], 2)
+        # Redirect stdout and stderr to null
+        os.dup2(self.null_fds[0], 1)  # Redirect stdout
+        os.dup2(self.null_fds[1], 2)  # Redirect stderr
 
-    def __exit__(self, *_):
-        # Re-assign the real stdout/stderr back to (1) and (2)
-        # This one is not needed for URDF parsing output
-        # os.dup2(self.save_fds[0], 1)
-        os.dup2(self.save_fds[1], 2)
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # Restore stdout and stderr
+        os.dup2(self.save_fds[0], 1)  # Restore stdout
+        os.dup2(self.save_fds[1], 2)  # Restore stderr
+
         # Close all file descriptors
         for fd in self.null_fds + self.save_fds:
             os.close(fd)
+
+
+def hacky_urdf_parser_fix(urdf_str):
+    # TODO this function is inefficient but the tested urdfs's aren't big enough for it to be a problem
+    fixed_urdf = ''
+    delete = False
+    black_list = ['transmission', 'gazebo']
+    black_open = ['<{}'.format(x) for x in black_list]
+    black_close = ['</{}'.format(x) for x in black_list]
+    for line in urdf_str.split('\n'):
+        if len([x for x in black_open if x in line]) > 0:
+            delete = True
+        if len([x for x in black_close if x in line]) > 0:
+            delete = False
+            continue
+        if not delete:
+            fixed_urdf += line + '\n'
+    return fixed_urdf
