@@ -24,16 +24,68 @@ from ..designator import DesignatorDescription, ObjectDesignatorDescription
 from ..ontology.ontology_common import (OntologyConceptHolderStore, OntologyConceptHolder,
                                         ONTOLOGY_SQL_BACKEND_FILE_EXTENSION)
 
+from enum import Enum
+
+# TODO: assumes SOMA_DFL, and specifically a "module" resulting from selecting some of its concepts,
+# is the default main ontology.
+SOMA_DFL_ONTOLOGY_IRI = "https://raw.githubusercontent.com/ease-crc/ease_lexical_resources/master/src/dfl/owl/SOMA_DFL_module_merged.owl"
 SOMA_HOME_ONTOLOGY_IRI = "http://www.ease-crc.org/ont/SOMA-HOME.owl"
 SOMA_ONTOLOGY_IRI = "http://www.ease-crc.org/ont/SOMA.owl"
 SOMA_ONTOLOGY_NAMESPACE = "SOMA"
 DUL_ONTOLOGY_NAMESPACE = "DUL"
 
+# TODO: complex concept queries, e.g. containers made of metal, things with a handle, stuff to roast meat in etc.
+
+class ConceptShortcut(str, Enum):
+    Container = "dfl:container.n.wn.artifact"
+    CookedDish = "dfl:dish.n.wn.food" # i.e. some kind of cooked food
+    Crockery = "dfl:crockery.n.wn.artifact" # i.e. dishes like plates, eggcups, oven trays etc.
+    Cutlery = "dfl:cutlery.n.wn.artifact"
+    Drink = "dfl:beverage.n.wn.food"
+    Food = "dfl:food.n.wn.food..servable"
+    Fruit = "dfl:edible_fruit.n.wn.food"
+    Furniture = "dfl:furniture.n.wn.artifact"
+    Meat = "dfl:meat.n.wn.food"
+    Perishable = "dfl:perishables.n.wn.food"
+    SolidFood = "dfl:food.n.wn.food..solid"
+    Tableware = "dfl:tableware.n.wn.artifact"
+    Vegetable = "dfl:vegetable.n.wn.food"
 
 class OntologyManager(object, metaclass=Singleton):
     """
     Singleton class as the adapter accessing data of an OWL ontology, largely based on owlready2.
     """
+
+    # A map of useful namespaces, will allow writing shorter concept IRIs. First few are standard.
+    namespaceMap = {"owl": "http://www.w3.org/2002/07/owl#",
+                    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+                    "xml": "http://www.w3.org/XML/1998/namespace",
+                    "xsd": "http://www.w3.org/2001/XMLSchema#",
+                    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+                    # Our stuff begins here.
+                    "dfl": "http://www.ease-crc.org/ont/SOMA_DFL.owl#",
+                    # Assumes SOMA_DFL will eventually be the "default" main.
+                    "": "http://www.ease-crc.org/ont/SOMA_DFL.owl#",
+                    "home": "http://www.ease-crc.org/ont/SOMA-HOME.owl",
+                    "dul": "http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#",
+                    "USD": "https://ease-crc.org/ont/USD.owl#",
+                    "soma": "http://www.ease-crc.org/ont/SOMA.owl#"
+    }
+
+    # Dirty hack to map concept IRIs to pycram object types
+    iri2PyCramObjectType = {
+        "http://www.ease-crc.org/ont/SOMA_DFL.owl#mug.n.wn.artifact": ObjectType.METALMUG,
+        "http://www.ease-crc.org/ont/SOMA_DFL.owl#can_of_chips.n.wn.artifact": ObjectType.PRINGLES,
+        "http://www.ease-crc.org/ont/SOMA_DFL.owl#milk_carton.n.wn.artifact": ObjectType.MILK,
+        "http://www.ease-crc.org/ont/SOMA_DFL.owl#spoon.n.wn.artifact..cutlery": ObjectType.SPOON,
+        "http://www.ease-crc.org/ont/SOMA_DFL.owl#bowl.n.wn.artifact..dish": ObjectType.BOWL,
+        "http://www.ease-crc.org/ont/SOMA_DFL.owl#cereal_box.n.wn.artifact": ObjectType.BREAKFAST_CEREAL,
+        "http://www.ease-crc.org/ont/SOMA_DFL.owl#cup.n.wn.artifact..container": ObjectType.JEROEN_CUP,
+        #"": ROBOT,
+        #"": ENVIRONMENT,
+        "http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#DesignedArtifact": ObjectType.GENERIC_OBJECT,
+        "http://www.ease-crc.org/ont/SOMA_DFL.owl#person.n.wn.body": ObjectType.HUMAN
+    }
 
     def __init__(self, main_ontology_iri: Optional[str] = None, ontology_search_path: Optional[str] = None,
                  use_global_default_world: bool = True):
@@ -48,6 +100,8 @@ class OntologyManager(object, metaclass=Singleton):
             ontology_search_path = f"{Path.home()}/ontologies"
         Path(ontology_search_path).mkdir(parents=True, exist_ok=True)
         onto_path.append(ontology_search_path)
+        
+        self.iri2Concept = {}
 
         #: A dictionary of OWL ontologies, keyed by ontology name (same as its namespace name), eg. 'SOMA'
         self.ontologies: Dict[str, Ontology] = {}
@@ -69,7 +123,7 @@ class OntologyManager(object, metaclass=Singleton):
 
         #: Ontology IRI (Internationalized Resource Identifier), either a URL to a remote OWL file or the full name path of a local one
         # Ref: https://owlready2.readthedocs.io/en/latest/onto.html
-        self.main_ontology_iri: str = main_ontology_iri if main_ontology_iri else SOMA_HOME_ONTOLOGY_IRI
+        self.main_ontology_iri: str = main_ontology_iri if main_ontology_iri else SOMA_DFL_ONTOLOGY_IRI
 
         #: Namespace of the main ontology
         self.main_ontology_namespace: Optional[Namespace] = None
@@ -256,6 +310,10 @@ class OntologyManager(object, metaclass=Singleton):
             self.browse_ontologies(ontology, condition=None, func=lambda ontology__: fetch_ontology(ontology__))
         else:
             rospy.logerr(f"Ontology [{ontology.base_iri}]\'s name: {ontology.name} failed being loaded")
+            
+        for concept in ontology.classes():
+            self.iri2Concept[concept.iri] = concept
+
         return ontology, ontology_namespace
 
     def initialized(self) -> bool:
@@ -383,7 +441,9 @@ class OntologyManager(object, metaclass=Singleton):
             return None
 
         with ontology:
-            return types.new_class(class_name, (parent_class,) if parent_class else (Property,))
+            concept = types.new_class(class_name, (parent_class,) if parent_class else (Property,))
+            self.iri2Concept[concept.iri] = concept
+            return concept
 
     def get_ontology_classes_by_condition(self, condition: Callable, first_match_only=False, **kwargs) \
             -> List[Type[Thing]]:
@@ -710,6 +770,8 @@ class OntologyManager(object, metaclass=Singleton):
         :param ontology_class: The ontology class to be destroyed
         :param destroy_instances: Whether to destroy instances of those ontology classes
         """
+        if ontology_class.iri in self.iri2Concept:
+            self.iri2Concept.pop(ontology_class.iri)
         if destroy_instances:
             for ontology_individual in ontology_class.instances():
                 destroy_entity(ontology_individual)
@@ -813,3 +875,58 @@ class OntologyManager(object, metaclass=Singleton):
             return False
         rospy.loginfo(f"{reasoner_name} reasoning finishes!")
         return True
+
+    def ensure_concept_name_is_IRI(self, conceptName: str, namespaceMap: Optional[dict] = None) -> str:
+        """
+        A function to convert a concept name -- which may be shortened by using a namespace prefix -- into an IRI.
+        For example, "dul:Object" becomes "http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#Object".
+        
+        :param conceptName: a string containing a possibly shortened concept name
+        :param namespaceMap: a dictionary of namespace names mapped to IRI prefixes. If left None, the default namespace map of the ontology manager object is used. It is often a good idea to just use the default map.
+        :return conceptIRI: an IRI string. If the input conceptName is already an IRI form, conceptIRI = conceptName.
+        """
+        if namespaceMap is None:
+            namespaceMap = self.namespaceMap
+        conceptIRI = conceptName
+        # ':' must occur exactly once in an IRI or short concept name.
+        idx = conceptName.find(':')
+        if -1 == idx:
+            raise ValueError('Concept name is neither a valid IRI nor a valid short name: the namespace seems missing.')
+        # "//" after a ":" indicates a protocol has been specified to the left of the ":", i.e. we have an IRI already.
+        recStr = "//"        
+        if recStr != conceptName[idx+1:idx+len(recStr)+1]
+            namespace, name = conceptName[:idx], conceptName[idx+1:]
+            conceptIRI = namespaceMap[namespace] + name
+        return conceptIRI
+        
+    def concept2PycramConcepts(self, concept, concept2Enum: Optional[dict] = None, iri2Concept: Optional[dict] = None, namespaceMap: Optional[dict] = None) -> list:
+        """
+        Returns a list of pycram object types that correspond to subconcepts of the given concept.
+        
+        Not all subconcepts of the given concept may have pycram equivalents. Such unmapped subconcepts are ignored and not
+        represented in the output in any way.
+        
+        :param concept: an OWLReady2 class, a string, or an enum with values strings or OWLReady2 classes. 
+                     If a string (or string-valued enum), can be an IRI or short name.
+        :param concept2Enum: a dictionary mapping concept IRIs to pycram object types. Can be often left to None, in which case the default mapping defined in the ontology manager is used.        
+        :param iri2Concept: a mapping from IRIs to OWLReady2 classes. Can and should be left None, in which case the mapping maintained by the ontology mapper is used.
+        :param namespaceMap: a mapping of namespace names to IRI prefixes. Can be left None, in which case the default mapping definedin the ontology manager is used.
+        :return objectTypes: a list of pycram object types that are subconcepts of the input concept.
+        """
+        if iri2Concept is None:
+            iri2Concept = self.iri2Concept
+        if concept2ObjectType is None:
+            concept2ObjectType = self.iri2PyCramObjectType
+        if isinstance(concept, Enum):
+            concept = concept.value
+        if isinstance(concept, str):
+            concept = iri2Concept[self.ensure_concept_name_is_IRI(concept, namespaceMap=namespaceMap)]
+        subconcepts = set()
+        todo = set([concept])
+        while todo:
+            cr = todo.pop()
+            subconcepts.add(cr)
+            for s in cr.subclasses():
+                if s not in subconcepts:
+                    todo.add(s)
+        return [concept2Enum[x.iri] for x in subconcepts if x.iri in concept2Enum]
