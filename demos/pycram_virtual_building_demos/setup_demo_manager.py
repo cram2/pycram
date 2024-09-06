@@ -43,12 +43,22 @@ def start_demo():
     environment_param = rospy.get_param('/nbparam_environments')
     robot_param = rospy.get_param('/nbparam_robots')
     task_param = rospy.get_param('/nbparam_tasks')
-
+    extension = ObjectDescription.get_file_extension()
     # text widget for the virtual building
     text_widget = display_loading_gif_with_text()
+    update_text(text_widget, 'Loading process~ Please wait...')
+
+    world = BulletWorld(WorldMode.DIRECT)
+    VizMarkerPublisher()
+    Object(robot_param, ObjectType.ROBOT, f"{robot_param}{extension}", pose=Pose([1, 2, 0]))
+    Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
+    tf = TFBroadcaster()
+
     update_text(text_widget, 'Executing Demo: ' + task_param)
 
     demo_selecting(task_param)
+
+    extension = ObjectDescription.get_file_extension()
 
     update_text(text_widget, 'Done with: ' + task_param)
 
@@ -56,4 +66,3 @@ def start_demo():
 def demo_selecting(task_param):
     if task_param == "navigate":
         navigate_simple_example()
-

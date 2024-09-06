@@ -23,9 +23,3 @@ elif robot_param == 'stretch':
     launch_stretch()
 elif robot_param == 'tiago':
     launch_tiago()
-extension = ObjectDescription.get_file_extension()
-world = BulletWorld(WorldMode.DIRECT)
-VizMarkerPublisher()
-tf = TFBroadcaster()
-Object(robot_param, ObjectType.ROBOT, f"{robot_param}{extension}", pose=Pose([1, 2, 0]))
-Object("environment", ObjectType.ENVIRONMENT, f"{environment_param}-small{extension}")
