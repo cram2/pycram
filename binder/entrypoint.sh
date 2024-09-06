@@ -5,4 +5,13 @@ roscore &
 roslaunch --wait rvizweb rvizweb.launch config_file:=${PYCRAM_WS}/src/pycram/binder/rviz_configs/pr2_config.json &
 cp ${PYCRAM_WS}/src/pycram/binder/webapps.json ${PYCRAM_WS}/src/rvizweb/webapps/app.json 
 
+# Get the parameter from the ROS parameter server
+ROBOT_PARAM=$(rosparam get /nbparam_robots)
+
+# Check if the parameter is set to 'pr2'
+if [ "$ROBOT_PARAM" == "pr2" ]; then
+    roslaunch ${PYCRAM_WS}/src/pycram/launch/pr2_standalone.launch &
+fi
+
+
 xvfb-run exec "$@"
