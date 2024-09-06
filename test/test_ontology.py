@@ -71,7 +71,6 @@ class TestOntologyManager(unittest.TestCase):
         if os.path.exists(sql_journal_filepath):
             os.remove(sql_journal_filepath)
 
-    @unittest.skipUnless(True, 'never skip')
     def test_ontology_manager(self):
         # This works because OntologyManager is a singleton.
         self.assertIs(self.ontology_manager, OntologyManager())
@@ -308,7 +307,6 @@ class TestOntologyManager(unittest.TestCase):
         self.assertTrue(Path(owl_filepath).is_file())
         self.assertTrue(Path(sql_filepath).is_file())
     
-    @unittest.skipUnless(True, 'Never skip')
     def test_ensure_concept_name_is_IRI(self):
         defaultNamespaceMap = None
         variantNamespaceMap = {"owl": "http://ornithology.org/birds/OWL#", "xyz": "http://nowhere.org/nothing#"}
