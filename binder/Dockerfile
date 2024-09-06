@@ -51,3 +51,4 @@ COPY --chown=${NB_USER}:users binder/entrypoint.sh /
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["jupyter", "lab", "--allow-root", "--NotebookApp.token=''", "--no-browser", "--ip=0.0.0.0"]
 RUN pip install https://raw.githubusercontent.com/yxzhan/jupyterlab-rviz/master/dist/jupyterlab_rviz-0.3.1.tar.gz
+COPY 01-import.py /home/jovyan/.ipython/profile_default/startup/01-import.py
