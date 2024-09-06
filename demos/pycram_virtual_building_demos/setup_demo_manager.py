@@ -132,8 +132,8 @@ class OutputSuppressor:
 
 
 def start_demo():
-    global output
-    output = Output()
+    # global output
+    # output = Output()
 
     environment_param = rospy.get_param('/nbparam_environments')
     robot_param = rospy.get_param('/nbparam_robots')
@@ -146,22 +146,18 @@ def start_demo():
     update_text(text_widget, 'Loading envi: ' + environment_param + ' robot: ' + robot_param + ' task: ' + task_param)
 
     extension = ObjectDescription.get_file_extension()
-    BulletWorld(WorldMode.DIRECT)
+    world = BulletWorld(WorldMode.DIRECT)
+
     VizMarkerPublisher()
-    Object('pycram_robot', ObjectType.ROBOT, f"{robot_param}{extension}", pose=Pose([1, 2, 0]))
-    Object('pycram_environment', ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
+    Object(robot_param, ObjectType.ROBOT, f"{robot_param}{extension}", pose=Pose([1, 2, 0]))
 
-    # text_widget = display_loading_gif_with_text()
-    # update_text(text_widget, 'Loading Everything...')
-    # update_text(text_widget, 'Loading envi: ' + environment_param + ' robot: ' + robot_param + ' task: ' + task_param)
-    # update_text(text_widget, 'Starting Demo')
+    Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
+
+    update_text(text_widget, 'Loading Everything...')
+    update_text(text_widget, 'Loading envi: ' + environment_param + ' robot: ' + robot_param + ' task: ' + task_param)
+    update_text(text_widget, 'Starting Demo')
     tf = TFBroadcaster()
-    print('Done with the task...')
-
-
-start_demo()
-    #
-    # if task_param == "navigate":
-    #     navigate_simple_example()
-    #
-    # update_text(text_widget, 'Done with the task...')
+    if task_param == "navigate":
+        navigate_simple_example()
+    update_text(text_widget, 'Done with the task...')
+    world.reset_current_world()
