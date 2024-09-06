@@ -1,4 +1,7 @@
 import threading
+import sys
+
+sys.path.insert(0, '/home/vee/robocup_workspaces/pycram_ws/src/pycram')
 
 from ipywidgets import Output
 
@@ -26,6 +29,15 @@ import sys
 from contextlib import contextmanager
 
 
+# THIS IS ALL DONE IN THE SETUP via IPYTHON KERNEL
+# # actual world setup
+# extension = ObjectDescription.get_file_extension()
+# world = BulletWorld(WorldMode.DIRECT)
+# VizMarkerPublisher()
+# Object(robot_param, ObjectType.ROBOT, f"{robot_param}{extension}", pose=Pose([1, 2, 0]))
+# Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
+# tf = TFBroadcaster()
+
 def start_demo():
     # get params
     environment_param = rospy.get_param('/nbparam_environments')
@@ -34,24 +46,14 @@ def start_demo():
 
     # text widget for the virtual building
     text_widget = display_loading_gif_with_text()
-    update_text(text_widget, 'Loading Everything...')
-    update_text(text_widget, 'Loading envi: ' + environment_param + ' robot: ' + robot_param + ' task: ' + task_param)
-
-    # actual world setup
-    extension = ObjectDescription.get_file_extension()
-    world = BulletWorld(WorldMode.DIRECT)
-    VizMarkerPublisher()
-    Object(robot_param, ObjectType.ROBOT, f"{robot_param}{extension}", pose=Pose([1, 2, 0]))
-    Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
-    tf = TFBroadcaster()
-
-    update_text(text_widget, 'Setup Done -> Starting Demo')
+    update_text(text_widget, 'Executing Demo: ' + task_param)
 
     demo_selecting(task_param)
 
-    update_text(text_widget, 'Done with the task...')
+    update_text(text_widget, 'Done with: ' + task_param)
 
 
 def demo_selecting(task_param):
     if task_param == "navigate":
         navigate_simple_example()
+
