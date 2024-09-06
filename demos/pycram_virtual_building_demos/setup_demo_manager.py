@@ -26,138 +26,32 @@ import sys
 from contextlib import contextmanager
 
 
-class OutputSuppressor:
-    def __init__(self):
-        # Initialize placeholders for old stdout and stderr
-        self._old_stdout_fd = None
-        self._old_stderr_fd = None
-        self._old_stdout = None
-        self._old_stderr = None
-
-        # Backup rospy log functions to restore them later
-        self._original_loginfo = None
-        self._original_logwarn = None
-        self._original_logerr = None
-        self._original_logdebug = None
-        self._original_logfatal = None
-
-    def backup_outputs(self):
-        """Backup current stdout/stderr and rospy log functions."""
-        self._old_stdout_fd = os.dup(1)  # Backup file descriptor for stdout
-        self._old_stderr_fd = os.dup(2)  # Backup file descriptor for stderr
-        self._old_stdout = sys.stdout  # Backup Python stdout
-        self._old_stderr = sys.stderr  # Backup Python stderr
-
-        # Backup rospy log functions
-        self._original_loginfo = rospy.loginfo
-        self._original_logwarn = rospy.logwarn
-        self._original_logerr = rospy.logerr
-        self._original_logdebug = rospy.logdebug
-        self._original_logfatal = rospy.logfatal
-
-    def restore_outputs(self):
-        """Restore stdout/stderr and rospy log functions."""
-        # Restore Python stdout and stderr first
-        if self._old_stdout:
-            sys.stdout = self._old_stdout
-        if self._old_stderr:
-            sys.stderr = self._old_stderr
-
-        # Restore C-level stdout and stderr if valid
-        if self._old_stdout_fd is not None:
-            try:
-                os.dup2(self._old_stdout_fd, 1)
-                os.close(self._old_stdout_fd)
-            except OSError as e:
-                print(f"Error restoring stdout: {e}")
-
-        if self._old_stderr_fd is not None:
-            try:
-                os.dup2(self._old_stderr_fd, 2)
-                os.close(self._old_stderr_fd)
-            except OSError as e:
-                print(f"Error restoring stderr: {e}")
-
-        # Restore original rospy log functions
-        rospy.loginfo = self._original_loginfo
-        rospy.logwarn = self._original_logwarn
-        rospy.logerr = self._original_logerr
-        rospy.logdebug = self._original_logdebug
-        rospy.logfatal = self._original_logfatal
-
-    @contextmanager
-    def suppress_all_output(self):
-        """Context manager to suppress all output."""
-        self.backup_outputs()  # Backup outputs
-
-        with open(os.devnull, 'w') as devnull:
-            try:
-                # Redirect Python stdout and stderr to /dev/null
-                sys.stdout = devnull
-                sys.stderr = devnull
-
-                # Redirect C-level stdout and stderr to /dev/null (file descriptors)
-                os.dup2(devnull.fileno(), 1)
-                os.dup2(devnull.fileno(), 2)
-
-                # Override rospy log functions to suppress them
-                rospy.loginfo = lambda *args, **kwargs: None
-                rospy.logwarn = lambda *args, **kwargs: None
-                rospy.logerr = lambda *args, **kwargs: None
-                rospy.logdebug = lambda *args, **kwargs: None
-                rospy.logfatal = lambda *args, **kwargs: None
-
-                # Yield control back to the function inside this context
-                yield
-
-            finally:
-                # Restore original stdout, stderr, and log functions
-                self.restore_outputs()
-
-
-# def launch_robot_thread(robot_param):
-#     supressor = OutputSuppressor()
-#     try:
-#         with supressor.suppress_all_output():
-#             if robot_param == 'pr2':
-#                 launch_pr2()
-#             elif robot_param == 'hsrb':
-#                 launch_hsrb()
-#             elif robot_param == 'stretch':
-#                 launch_stretch()
-#             elif robot_param == 'tiago':
-#                 launch_tiago()
-#     finally:
-#         supressor.restore_outputs()
-
-
 def start_demo():
-    # global output
-    # output = Output()
-
+    # get params
     environment_param = rospy.get_param('/nbparam_environments')
     robot_param = rospy.get_param('/nbparam_robots')
     task_param = rospy.get_param('/nbparam_tasks')
-    # launch_robot_thread(robot_param)
-    # robot_thread = threading.Thread(target=launch_robot_thread, args=(robot_param,))
-    # robot_thread.start()
+
+    # text widget for the virtual building
     text_widget = display_loading_gif_with_text()
     update_text(text_widget, 'Loading Everything...')
     update_text(text_widget, 'Loading envi: ' + environment_param + ' robot: ' + robot_param + ' task: ' + task_param)
 
+    # actual world setup
     extension = ObjectDescription.get_file_extension()
     world = BulletWorld(WorldMode.DIRECT)
-
     VizMarkerPublisher()
     Object(robot_param, ObjectType.ROBOT, f"{robot_param}{extension}", pose=Pose([1, 2, 0]))
-
     Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
-
-    update_text(text_widget, 'Loading Everything...')
-    update_text(text_widget, 'Loading envi: ' + environment_param + ' robot: ' + robot_param + ' task: ' + task_param)
-    update_text(text_widget, 'Starting Demo')
     tf = TFBroadcaster()
+
+    update_text(text_widget, 'Setup Done -> Starting Demo')
+
+    demo_selecting(task_param)
+
+    update_text(text_widget, 'Done with the task...')
+
+
+def demo_selecting(task_param):
     if task_param == "navigate":
         navigate_simple_example()
-    update_text(text_widget, 'Done with the task...')
-    world.reset_current_world()

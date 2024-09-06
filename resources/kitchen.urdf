@@ -17,9 +17,6 @@
     <parent link="world"/>
     <child link="room_link"/>
   </joint>
-  <gazebo>
-    <static>false</static>
-  </gazebo>
   <!--- FIXME THIS should NOT be here -->
   <!--
   <link name="map">
@@ -665,10 +662,6 @@
     <limit effort="0.03" lower="0" upper="0." velocity="10"/>
     <dynamics damping="100.1"/>
   </joint>
-  <gazebo reference="oven_area_oven_door_joint">
-    <kp>1000000000</kp>
-    <kd>1000000000</kd>
-  </gazebo>
   <joint name="oven_area_oven_door_handle_joint" type="fixed">
     <origin rpy="-1.57079632679 0 0" xyz="0.05876 -0.39803 0."/>
     <parent link="oven_area_oven_door"/>
@@ -1363,9 +1356,6 @@
 
 
 <!--
-  <gazebo reference="drawer_oven_right_link">
-    <material value="Ias/KitchenLightGray"/>
-</gazebo>
 -->
 <!-- Joint handle to drawer -->
   <joint name="oven_area_area_right_drawer_handle_joint" type="fixed">
@@ -1396,9 +1386,6 @@
   </collision>
   </link>
   <!--
-  <gazebo reference="handle_drawer_oven_right_link">
-    <material value="Ias/KitchenDarkGray"/>
-</gazebo>
 -->
 
 
@@ -2299,9 +2286,6 @@
     <parent link="kitchen_walls"/>
     <child link="kitchen_wall_6"/>
   </joint>
-  <gazebo reference="kitchen_wall_6">
-    <material>Gazebo/DarkGrey</material>
-  </gazebo>
   <!-- Included above already
   <iai_sink_area name="sink_area" parent="room_link">
     <origin xyz="-5.29 -5.65 0" rpy="0 0 0" />
@@ -2321,3 +2305,4 @@
   </iai_fridge_area>
   -->
 </robot>
+
