@@ -6,6 +6,9 @@ from ipywidgets import Output
 from demos.pycram_bullet_world_demo.demo import transporting_demo
 from demos.pycram_virtual_building_demos.setup.setup_launch_robot import *
 import threading
+import sys
+
+sys.path.insert(0, '/home/vee/robocup_workspaces/pycram_ws/src/pycram')
 
 from ipywidgets import Output
 
@@ -35,41 +38,39 @@ from contextlib import contextmanager
 
 output = None
 
+# THIS IS ALL DONE IN THE SETUP via IPYTHON KERNEL
+# # actual world setup
+# extension = ObjectDescription.get_file_extension()
+# world = BulletWorld(WorldMode.DIRECT)
+# VizMarkerPublisher()
+# Object(robot_param, ObjectType.ROBOT, f"{robot_param}{extension}", pose=Pose([1, 2, 0]))
+# Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
+# tf = TFBroadcaster()
+
 def start_demo():
     # get params
     environment_param = rospy.get_param('/nbparam_environments')
     robot_param = rospy.get_param('/nbparam_robots')
     task_param = rospy.get_param('/nbparam_tasks')
-    # if robot_param == 'pr2':
-    #     launch_pr2()
-    # elif robot_param == 'hsrb':
-    #     launch_hsrb()
-    # elif robot_param == 'stretch':
-    #     launch_stretch()
-    # elif robot_param == 'tiago':
-    #     launch_tiago()
-    #     robot_param = 'tiago_dual'
-    # elif robot_param == 'justin':
-    #     launch_justin()
-    #     robot_param = "rollin_justin"
-    # clear_output(wait=True)
+
+    extension = ObjectDescription.get_file_extension()
     # text widget for the virtual building
     text_widget = display_loading_gif_with_text()
-    update_text(text_widget, 'Loading Everything...')
-    update_text(text_widget, 'Loading envi: ' + environment_param + ' robot: ' + robot_param + ' task: ' + task_param)
-    # actual world setup
-    extension = ObjectDescription.get_file_extension()
+    update_text(text_widget, 'Loading process~ Please wait...')
+
     world = BulletWorld(WorldMode.DIRECT)
     VizMarkerPublisher()
     Object(robot_param, ObjectType.ROBOT, f"{robot_param}{extension}", pose=Pose([1, 2, 0]))
     apartment = Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
     tf = TFBroadcaster()
 
-    update_text(text_widget, 'Setup Done -> Starting Demo')
+    update_text(text_widget, 'Executing Demo: ' + task_param)
 
     demo_selecting(apartment, task_param)
 
-    update_text(text_widget, 'Done with the task...')
+    extension = ObjectDescription.get_file_extension()
+
+    update_text(text_widget, 'Done with: ' + task_param)
 
 
 def demo_selecting(apartment, task_param):

@@ -4,6 +4,27 @@
 <!-- |    EDITING THIS FILE BY HAND IS NOT RECOMMENDED                                 | -->
 <!-- =================================================================================== -->
 <robot name="apartment">
+  <material name="sink">
+    <color rgba="0.6 0.6 0.6 1"/>
+  </material>
+  <material name="cabinet_surface">
+    <color rgba="0.3 0.3 0.3 1"/>
+  </material>
+  <material name="cooktop_surface">
+    <color rgba="0.2 0.2 0.2 1"/>
+  </material>
+  <material name="cabinet_handle">
+    <color rgba="0.8 0.8 0.8 1"/>
+  </material>
+  <material name="coloksu">
+    <color rgba="0.8 0.0 0.0 1"/>
+  </material>
+  <material name="countertop">
+    <color rgba="0.85 0.51 0.16 1"/>
+  </material>
+  <material name="island_sides">
+    <color rgba="0.3 0.3 0.3 1"/>
+  </material>
   <link name="apartment_root">
     <origin rpy="0 0 0" xyz="0 0 0"/>
   </link>
@@ -14,6 +35,149 @@
   </joint>
   <link name="furnitures_root"/>
   <!-- things and stuff -->
+  <joint name="armchair_joint" type="fixed">
+    <origin rpy="0 0 1.9199" xyz="7.9688 -0.3791 0.0"/>
+    <parent link="furnitures_root"/>
+    <child link="armchair"/>
+  </joint>
+  <link name="armchair">
+    <visual>
+      <geometry>
+        <mesh filename="package://iai_apartment/meshes/visual/armchair.dae"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://iai_apartment/meshes/collision/armchair.obj"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="sofa_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="8.1986 2.4096 0.0"/>
+    <parent link="furnitures_root"/>
+    <child link="sofa"/>
+  </joint>
+  <link name="sofa">
+    <visual>
+      <geometry>
+        <mesh filename="package://iai_apartment/meshes/visual/sofa.dae"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://iai_apartment/meshes/collision/sofa.obj"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="coffee_table_joint" type="fixed">
+    <origin rpy="0 0 1.5708" xyz="7.8034 1.02957 0.0"/>
+    <parent link="furnitures_root"/>
+    <child link="coffee_table"/>
+  </joint>
+  <link name="coffee_table">
+    <visual>
+      <geometry>
+        <mesh filename="package://iai_apartment/meshes/visual/coffee_table.dae"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.0000 0.0000 0.02977"/>
+      <geometry>
+        <box size="0.58 1.08 0.05954"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="-0.022101 0.0000 0.06552"/>
+      <geometry>
+        <box size="0.6106 0.4 0.01196"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.0000 0.39975 0.220625"/>
+      <geometry>
+        <box size="0.7 0.4 0.32"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.0000 -0.39975 0.220625"/>
+      <geometry>
+        <box size="0.7 0.4 0.32"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.316343 0.0000 0.22"/>
+      <geometry>
+        <box size="0.0673 0.4 0.32"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.0000 0.0000 0.39"/>
+      <geometry>
+        <box size="0.7 1.2 0.02"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="coffee_table_drawer_joint" type="prismatic">
+    <parent link="coffee_table"/>
+    <child link="coffee_table_drawer"/>
+    <axis xyz="-1 0 0"/>
+    <limit effort="1000.0" lower="0.0" upper="0.5" velocity="0.5"/>
+  </joint>
+  <link name="coffee_table_drawer">
+    <visual>
+      <geometry>
+        <mesh filename="package://iai_apartment/meshes/visual/coffee_table_drawer.dae"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="-0.338806 0.0000 0.21892"/>
+      <geometry>
+        <box size="0.0214 0.396 0.31569"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="-0.051066 0.0000 0.107979"/>
+      <geometry>
+        <box size="0.5521 0.3454 0.02144"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.207974 0.0000 0.238907"/>
+      <geometry>
+        <box size="0.0214 0.3486 0.2398"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="-0.051066 -0.186206 0.226597"/>
+      <geometry>
+        <box size="0.5521 0.0214 0.26425"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="-0.051066 0.186206 0.226597"/>
+      <geometry>
+        <box size="0.5521 0.0214 0.26425"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bedside_table_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="7.2110 0.1296 0.0"/>
+    <parent link="furnitures_root"/>
+    <child link="bedside_table"/>
+  </joint>
+  <link name="bedside_table">
+    <visual>
+      <geometry>
+        <mesh filename="package://iai_apartment/meshes/visual/bedside_table.dae"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.0000 0.0000 0.230"/>
+      <geometry>
+        <box size="0.312 0.312 0.460"/>
+      </geometry>
+    </collision>
+  </link>
   <joint name="kitchen_base" type="fixed">
     <origin xyz="-0.03 0.75 0.005"/>
     <parent link="apartment_root"/>
@@ -47,6 +211,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet01/IAICabinet1W60.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin xyz="0.0 0.0 0.0"/>
@@ -68,6 +233,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet01/IAIDoorW60H80.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14" xyz="0.001 -0.305 0.35"/>
@@ -100,6 +266,7 @@
     <child link="oven"/>
   </joint>
   <material name="oven_gray">
+    <color rgba="0.5 0.5 0.5 1"/>
   </material>
   <link name="oven">
     <visual>
@@ -128,6 +295,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet01/IAIDrawerW60H26.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14"/>
@@ -166,6 +334,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet01/IAIDrawerW60H53.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 -3.14"/>
@@ -244,6 +413,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet02/IAICabinet2W40H57.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <geometry>
@@ -272,6 +442,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet02/IAIDoorW40H212.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14" xyz="0 -0.2 0.145"/>
@@ -310,6 +481,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet02/IAIDrawerW40H10.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14"/>
@@ -331,6 +503,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet02/IAIDrawerW40H22.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14"/>
@@ -350,6 +523,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet03/IAICabinet3W60.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <geometry>
@@ -378,6 +552,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet03/IAIDoorW60H133.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14" xyz="0.001 -0.3 -0.1"/>
@@ -424,6 +599,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet03/IAIDoorW60H80.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14" xyz="0.001 -0.3 -0.165"/>
@@ -460,6 +636,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet04/IAIKitchenCabinet4W100.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <geometry>
@@ -480,6 +657,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet04/IAIDoor1W100H40.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14" xyz="0.0 0.0 -0.2"/>
@@ -502,6 +680,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet04/IAIDoor2W100H40.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14" xyz="-.014 0.0 -0.2"/>
@@ -538,6 +717,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet05/IAIKitchenCabinet5W60.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <geometry>
@@ -558,6 +738,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet05/IAIKitchenDrawerW60H13.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14"/>
@@ -596,6 +777,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet05/IAIKitchenDrawerW60H26.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14"/>
@@ -634,6 +816,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet05/IAIKitchenDrawerW60H40.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14"/>
@@ -670,6 +853,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet06/IAIKitchenCabinet6W40.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <geometry>
@@ -690,6 +874,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet06/IAIKitchenDrawerW40H13.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14"/>
@@ -728,6 +913,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet06/IAIKitchenDrawerW40H26.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14"/>
@@ -766,6 +952,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet06/IAIKitchenDrawerW40H40.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14"/>
@@ -803,6 +990,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet07/IAIKitchenCabinet7W60.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <geometry>
@@ -823,6 +1011,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet07/IAIKitchenDoorW60H80.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin xyz="0 0 0.385"/>
@@ -901,6 +1090,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet08/IAIKitchenCabinet8W60_v2.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <geometry>
@@ -921,6 +1111,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet08/IAIKitchenDrawerW56H10.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14"/>
@@ -942,6 +1133,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet08/IAIKitchenDrawerW60H80.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14"/>
@@ -978,6 +1170,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet09/IAIKitchenCabinet9W60.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <geometry>
@@ -998,6 +1191,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet09/IAIKitchenDrawerW60H13.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14"/>
@@ -1036,6 +1230,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet09/IAIKitchenDrawerW60H26.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14"/>
@@ -1074,6 +1269,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet09/IAIKitchenDrawerW60H40.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14"/>
@@ -1110,6 +1306,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet10/IAIKitchenCabinet9W40.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <geometry>
@@ -1130,6 +1327,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet10/IAIKitchenDrawerW40H13.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14"/>
@@ -1168,6 +1366,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet10/IAIKitchenDrawerW40H26.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14"/>
@@ -1206,6 +1405,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet10/IAIKitchenDrawerW40H40.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14"/>
@@ -1242,6 +1442,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet11/IAIKitchenCabinet11W90.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <geometry>
@@ -1262,6 +1463,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet11/IAIKitchenDrawerW90H13.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14"/>
@@ -1300,6 +1502,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet11/IAIKitchenDrawerW90H26.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14"/>
@@ -1338,6 +1541,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cabinet11/IAIKitchenDrawerW90H40.dae"/>
       </geometry>
+      <material name="cabinet_surface"/>
     </visual>
     <collision>
       <origin rpy="0 0 3.14"/>
@@ -1375,6 +1579,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/island/IAIKitchenIslandAreaTop.dae"/>
       </geometry>
+      <material name="countertop"/>
     </visual>
     <collision>
       <geometry>
@@ -1393,6 +1598,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/cooktop/IAIKitchenCookTop.dae"/>
       </geometry>
+      <material name="cooktop_surface"/>
     </visual>
     <collision>
       <geometry>
@@ -1435,6 +1641,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/sink/IAIKitchenSink.dae"/>
       </geometry>
+      <material name="sink"/>
     </visual>
     <collision>
       <geometry>
@@ -1546,24 +1753,6 @@
       </geometry>
     </collision>
   </link>
-  <joint name="coffe_machine_joint" type="fixed">
-    <origin xyz="0 0.3 0.2"/>
-    <parent link="countertop"/>
-    <child link="coffe_machine"/>
-  </joint>
-  <link name="coffe_machine">
-    <visual>
-      <geometry>
-        <box size="0.58 0.33 0.41"/>
-      </geometry>
-      <material name="oven_gray"/>
-    </visual>
-    <collision>
-      <geometry>
-        <box size="0.58 0.32 0.41"/>
-      </geometry>
-    </collision>
-  </link>
   <!-- island waterfall, left side -->
   <joint name="island_waterfall_left_joint" type="fixed">
     <origin rpy="1.57 0 1.57" xyz="0.285 0.191 0.354"/>
@@ -1575,6 +1764,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/IAIKitchenVisiblePartIslandUnderSideW90H60/IAIKitchenVisiblePartIslandUnderSideW90H60.dae"/>
       </geometry>
+      <material name="island_sides"/>
     </visual>
     <collision>
       <geometry>
@@ -1593,6 +1783,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/IAIKitchenVisiblePartIslandUnderSideW90H60/IAIKitchenVisiblePartIslandUnderSideW90H60.dae"/>
       </geometry>
+      <material name="island_sides"/>
     </visual>
     <collision>
       <geometry>
@@ -1611,6 +1802,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/IAIKitchenPartW314H90/IAIKitchenPartW314H90.dae"/>
       </geometry>
+      <material name="island_sides"/>
     </visual>
     <collision>
       <geometry>
@@ -1629,6 +1821,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/IAIKitchenPartW58H223/IAIKitchenPartW58H223.dae"/>
       </geometry>
+      <material name="island_sides"/>
     </visual>
     <collision>
       <geometry>
@@ -1647,6 +1840,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/IAIKitchenVisiblePartUppersideW80H39/IAIKitchenVisiblePartUppersideW80H39.dae"/>
       </geometry>
+      <material name="island_sides"/>
     </visual>
     <collision>
       <geometry>
@@ -1665,6 +1859,7 @@
       <geometry>
         <mesh filename="package://iai_apartment/meshes/IAIKitchenVisiblePartUnderSideW90H58/IAIKitchenVisiblePartUnderSideW90H58.dae"/>
       </geometry>
+      <material name="island_sides"/>
     </visual>
     <collision>
       <geometry>
@@ -1673,31 +1868,31 @@
     </collision>
   </link>
 
+  <link name="table_area_main">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <mass value="1"/>
+      <inertia ixx="1" ixy="0.0" ixz="0.0" iyy="1" iyz="0.0" izz="1"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0.3619"/>
+      <geometry>
+        <mesh filename="package://iai_kitchen/meshes/misc/big_table_1.dae"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0.3619"/>
+      <geometry>
+        <mesh filename="package://iai_kitchen/meshes/misc/big_table_1.obj"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="table_area_main_joint" type="fixed">
+    <origin rpy="0 0 1.57" xyz="5 4 0"/>
+    <parent link="apartment_root"/>
+    <child link="table_area_main"/>
+  </joint>
 
-<link name="table_area_main">
-  <inertial>
-    <origin rpy="0 0 1.5708" xyz="0.0 0.0 0.0"/>
-    <mass value="1"/>
-    <inertia ixx="1" ixy="0.0" ixz="0.0" iyy="1" iyz="0.0" izz="1"/>
-  </inertial>
-  <visual>
-    <origin rpy="0 0 1.5708" xyz="0 0 -0.35"/>  <!--Kept original position -->
-    <geometry>
-      <mesh filename="package://iai_kitchen/meshes/misc/big_table_1.dae"/>
-    </geometry>
-  </visual>
-  <collision>
-    <origin rpy="0 0 1.5708" xyz="0 0 -0.35"/>  <!--Kept original position -->
-    <geometry>
-      <mesh filename="package://iai_kitchen/meshes/misc/big_table_1.obj"/>
-    </geometry>
-  </collision>
-</link>
-<joint name="table_area_main_joint" type="fixed">
-  <origin rpy="0 0 0" xyz="5 4 0.73"/>
-  <parent link="apartment_root"/>
-  <child link="table_area_main"/>
-</joint>
 </robot>
 
 
