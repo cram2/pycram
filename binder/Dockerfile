@@ -51,4 +51,9 @@ COPY --chown=${NB_USER}:users binder/entrypoint.sh /
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["jupyter", "lab", "--allow-root", "--NotebookApp.token=''", "--no-browser", "--ip=0.0.0.0"]
 RUN pip install https://raw.githubusercontent.com/yxzhan/jupyterlab-rviz/master/dist/jupyterlab_rviz-0.3.1.tar.gz
-COPY 01-import.py /home/jovyan/.ipython/profile_default/startup/01-import.py
+# Install curl
+RUN apt-get update && apt-get install -y curl
+
+# Download the Python script with curl and save it to the desired directory
+RUN curl https://raw.githubusercontent.com/sunava/pycram/binder-all-robots/binder/01-import.py -o /home/jovyan/.ipython/profile_default/startup/01-import.py
+

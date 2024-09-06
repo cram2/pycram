@@ -1,2 +1,0 @@
-[31mRLException: [/src/pycram/launch/pr2_standalone.launch] is not a launch file name[0m
-[31mThe traceback for the exception was written to the log file[0m
