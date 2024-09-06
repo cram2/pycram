@@ -4,8 +4,11 @@
 
   <include file="$(find hsr_description)/launch/upload_hsrb.launch"/>
 
+  <node pkg="tf" type="static_transform_publisher" name="map_transform" args="-1 -1 0 0 0 0 1 map pycram/map 100" />
+
   <node pkg="giskardpy" type="hsr_standalone.py" name="giskard" output="screen">
     <param name="debug_mode" value="$(arg debug_mode)" />
+    <remap from="map" to="pycram/map"/>
   </node>
 
   <node pkg="giskardpy" type="interactive_marker.py" name="giskard_interactive_marker" output="screen">
@@ -15,7 +18,11 @@
       - [odom, head_rgbd_sensor_link]
       - [odom, hand_palm_link]
     </rosparam>
+    <remap from="map" to="pycram/map"/>
   </node>
+
+  <param name="robot_description"
+              textfile="$(find pycram)/resources/robots/hsrb.urdf"/>
   
   
   <!-- launch rivz locally -->
