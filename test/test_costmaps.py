@@ -1,3 +1,5 @@
+import unittest
+
 import numpy as np
 from random_events.variable import Continuous
 #  import plotly.graph_objects as go
@@ -84,3 +86,7 @@ class SemanticCostmapTestCase(BulletWorldTestCase):
         for sample in iter(costmap):
             self.assertIsInstance(sample, Pose)
             self.assertTrue(costmap.valid_area.contains([sample.position.x, sample.position.y]))
+
+
+class OntologySemanticLocationTestCase(unittest.TestCase):
+    ...
