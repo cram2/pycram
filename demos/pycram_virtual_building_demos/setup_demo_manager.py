@@ -1,5 +1,9 @@
+import logging
+
+from IPython.core.display_functions import clear_output
 from ipywidgets import Output
 
+from demos.pycram_bullet_world_demo.demo import transporting_demo
 from demos.pycram_virtual_building_demos.setup.setup_launch_robot import *
 from demos.pycram_virtual_building_demos.setup.setup_utils import display_loading_gif_with_text, update_text
 import rospy
@@ -18,7 +22,9 @@ from pycram.process_module import simulated_robot
 from pycram.ros.viz_marker_publisher import VizMarkerPublisher
 from pycram.world_concepts.world_object import Object
 from pycram.worlds.bullet_world import BulletWorld
+from IPython.display import display
 
+output = None
 
 def start_demo():
     global output
@@ -36,6 +42,11 @@ def start_demo():
         launch_stretch()
     elif robot_param == 'tiago':
         launch_tiago()
+        robot_param = 'tiago_dual'
+    elif robot_param == 'justin':
+        launch_justin()
+        robot_param = "rollin_justin"
+    clear_output(wait=True)
     text_widget = display_loading_gif_with_text()
     update_text(text_widget, 'Loading Everything...')
     update_text(text_widget, 'Loading envi: ' + environment_param + ' robot: ' + robot_param + ' task: ' + task_param)
@@ -43,12 +54,16 @@ def start_demo():
     BulletWorld(WorldMode.DIRECT)
     VizMarkerPublisher()
     Object('pycram_robot', ObjectType.ROBOT, f"{robot_param}{extension}", pose=Pose([1, 2, 0]))
-    Object('pycram_environment', ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
+    apartment = Object('pycram_environment', ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
 
     update_text(text_widget, 'Starting Demo')
     tf = TFBroadcaster()
-
-    if task_param == "navigate":
-        navigate_simple_example()
+    display(output)
+    with output:
+        if task_param == "navigate":
+            navigate_simple_example()
+        elif task_param == "transport":
+            rospy.loginfo('Starting transporting demo...')
+            transporting_demo(apartment)
 
     update_text(text_widget, 'Done with the task...')
