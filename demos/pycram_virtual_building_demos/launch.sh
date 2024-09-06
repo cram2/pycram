@@ -1,5 +1,5 @@
 #!/bin/bash
-EXECUTED_ALREADY=$(rosparam get /roslaunch_executed_already)
+EXECUTED_ALREADY=$(rosparam get /nbparam_ealready)
 # Check if the script has already been executed
 if [ "$EXECUTED_ALREADY" == "true" ]; then
     exit 0
@@ -13,4 +13,4 @@ if [ "$ROBOT_PARAM" == "pr2" ]; then
 else
     echo "No parameter set"
 fi
-rosparam set /roslaunch_executed_already true
+rosparam set /nbparam_ealready true
