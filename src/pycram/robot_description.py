@@ -119,9 +119,9 @@ class RobotDescription:
         self.base_link = base_link
         self.torso_link = torso_link
         self.torso_joint = torso_joint
-        # with suppress_stdout_stderr():
+        with suppress_stdout_stderr():
             # Since parsing URDF causes a lot of warning messages which can't be deactivated, we suppress them
-        self.urdf_object = URDF.from_xml_file(urdf_path)
+            self.urdf_object = URDF.from_xml_file(urdf_path)
         self.kinematic_chains: Dict[str, KinematicChainDescription] = {}
         self.cameras: Dict[str, CameraDescription] = {}
         self.links: List[str] = [l.name for l in self.urdf_object.links]
@@ -285,6 +285,7 @@ class RobotDescription:
             if chain.arm_type == arm:
                 return chain
         return None
+        # I think its nicer to return None if the arm is not found, so we can handle robots with only one arm better
         # raise ValueError(f"There is no Kinematic Chain for the Arm {arm}")
 
     def get_offset(self, name):

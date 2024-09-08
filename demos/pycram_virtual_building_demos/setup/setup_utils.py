@@ -33,5 +33,7 @@ def update_text(text_widget, new_text):
 def get_robot_name(robot_name):
     if robot_name == 'justin':
         return 'rollin_justin'
+    elif robot_name == 'donbot':
+        return 'iai_donbot'
 
     return robot_name

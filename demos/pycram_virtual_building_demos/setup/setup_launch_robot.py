@@ -47,6 +47,13 @@ def launch_justin():
     args = ["robot:=justin"]
     launch_robot(executable, args=args)
 
+def launch_donbot():
+    # name = 'iai_donbot'
+    # urdf = 'iai_donbot.urdf'
+    executable = 'ik_and_description.launch'
+    args = ["robot:=donbot"]
+    launch_robot(executable, args=args)
+
 
 def launch_robot(launch_file, package='pycram', launch_folder='/launch/', args: List[str] = None):
     """
