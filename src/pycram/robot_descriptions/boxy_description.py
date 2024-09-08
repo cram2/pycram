@@ -59,7 +59,7 @@ left_arm.end_effector = left_gripper
 
 ################################## Torso ##################################
 torso = KinematicChainDescription("torso", "base_link", "triangle_base_link",
-                                     boxy_description.urdf_object)
+                                  boxy_description.urdf_object)
 
 torso.add_static_joint_states(TorsoState.HIGH, {"triangle_base_joint": 0})
 
@@ -78,10 +78,12 @@ boxy_description.add_camera_description(camera)
 boxy_description.add_kinematic_chain("neck", "neck_base_link", "neck_wrist_3_link")
 
 ################################# Grasps ##################################
-boxy_description.add_grasp_orientations({Grasp.LEFT: [1, 0, 0, 1],
-                                         Grasp.TOP: [1, 1, 0, 0],
-                                         Grasp.RIGHT: [0, 1, 1, 0],
-                                         Grasp.FRONT: [1, 0, 1, 0]})
+grasps = {Grasp.LEFT: [1, 0, 0, 1],
+          Grasp.TOP: [1, 1, 0, 0],
+          Grasp.RIGHT: [0, 1, 1, 0],
+          Grasp.FRONT: [1, 0, 1, 0]}
+right_gripper.add_grasp_orientations(grasps)
+left_gripper.add_grasp_orientations(grasps)
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()

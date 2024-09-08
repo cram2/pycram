@@ -63,7 +63,7 @@ right_arm.end_effector = right_gripper
 
 ################################## Torso ##################################
 torso = KinematicChainDescription("torso", "torso_fixed_link", "torso_lift_link",
-                                     tiago_description.urdf_object)
+                                  tiago_description.urdf_object)
 
 torso.add_static_joint_states(TorsoState.HIGH, {"torso_lift_joint": 0.3})
 
@@ -81,10 +81,12 @@ tiago_description.add_camera_description(camera)
 tiago_description.add_kinematic_chain("neck", "torso_lift_link", "head_2_link")
 
 ################################# Grasps ##################################
-tiago_description.add_grasp_orientations({Grasp.FRONT: [0, 0, 0, 1],
-                                          Grasp.LEFT: [0, 0, -1, 1],
-                                          Grasp.RIGHT: [0, 0, 1, 1],
-                                          Grasp.TOP: [0, 1, 0, 1]})
+grasps = {Grasp.FRONT: [0, 0, 0, 1],
+          Grasp.LEFT: [0, 0, -1, 1],
+          Grasp.RIGHT: [0, 0, 1, 1],
+          Grasp.TOP: [0, 1, 0, 1]}
+right_gripper.add_grasp_orientations(grasps)
+left_gripper.add_grasp_orientations(grasps)
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()
