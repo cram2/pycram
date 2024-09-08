@@ -323,7 +323,6 @@ class RobotDescription:
         offset = self.urdf_object.joint_map[name].origin
         return offset if offset else None
 
-
     def set_costmap_offset(self, offset: float):
         """
         Sets the costmap offset for the robot. This is used to define the distance between the robot and the costmap.
@@ -433,7 +432,8 @@ class KinematicChainDescription:
         Initializes the joints of the chain by getting the chain from the URDF object.
         """
         joints = self.urdf_object.get_chain(self.start_link, self.end_link, links=False)
-        self.joint_names = list(filter(lambda j: self.urdf_object.joint_map[j].type != "fixed" or self.include_fixed_joints, joints))
+        self.joint_names = list(
+            filter(lambda j: self.urdf_object.joint_map[j].type != "fixed" or self.include_fixed_joints, joints))
 
     def get_joints(self) -> List[str]:
         """

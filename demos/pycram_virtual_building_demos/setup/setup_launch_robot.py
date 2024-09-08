@@ -7,7 +7,6 @@ import rospy
 import rospkg
 
 
-
 def launch_pr2():
     """
     Method to launch PR2 on the parameter server and start the ik service
@@ -38,6 +37,14 @@ def launch_tiago():
     # urdf = 'tiago_dual.urdf'
     executable = 'ik_and_description.launch'
     args = ["robot:=tiago_dual"]
+    launch_robot(executable, args=args)
+
+
+def launch_justin():
+    # name = 'rollin_justin'
+    # urdf = 'rollin_justin.urdf'
+    executable = 'ik_and_description.launch'
+    args = ["robot:=justin"]
     launch_robot(executable, args=args)
 
 

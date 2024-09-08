@@ -759,6 +759,11 @@ class PickUpActionPerformable(ActionAbstract):
 
         # Perform the motion with the prepose and open gripper
         World.current_world.add_vis_axis(prepose)
+
+        # marker = AxisMarkerPublisher()
+        # gripper_pose = World.robot.get_link_pose(RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame())
+        # marker.publish([adjusted_oTm, gripper_pose], length=0.3)
+
         MoveTCPMotion(prepose, self.arm, allow_gripper_collision=True).perform()
         MoveGripperMotion(motion=GripperState.OPEN, gripper=self.arm).perform()
 
@@ -999,9 +1004,14 @@ class GraspingActionPerformable(ActionAbstract):
 
         object_pose_in_gripper = lt.transform_pose(object_pose,
                                                    World.robot.get_link_tf_frame(gripper_name))
-
+        # oTm = lt.transform_pose(object_pose, "map")
+        # marker = AxisMarkerPublisher()
+        # gripper_pose = World.robot.get_link_pose(gripper_name)
         pre_grasp = object_pose_in_gripper.copy()
-        pre_grasp.pose.position.x -= 0.1
+        # pre_grasp.pose.position.x -= 0.1
+
+        # marker.publish([oTm, gripper_pose], name="Grasping", length=0.3)
+
 
         MoveTCPMotion(pre_grasp, self.arm).perform()
         MoveGripperMotion(GripperState.OPEN, self.arm).perform()

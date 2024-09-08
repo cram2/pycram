@@ -30,5 +30,8 @@ def update_text(text_widget, new_text):
     text_widget.value = f'<span style="font-size: 40px; color: lightblue;">{new_text}</span>'
 
 
+def get_robot_name(robot_name):
+    if robot_name == 'justin':
+        return 'rollin_justin'
 
-
+    return robot_name

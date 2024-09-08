@@ -327,7 +327,7 @@ class ManualMarkerPublisher:
 
 
 class AxisMarkerPublisher:
-    def __init__(self, topic='/pycram/axis_marker', frame_id='map'):
+    def __init__(self, topic='/pycram/axis_marker', frame_id='pycram/map'):
 
         self.marker_pub = rospy.Publisher(topic, MarkerArray, queue_size=10)
 

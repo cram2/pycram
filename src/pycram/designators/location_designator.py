@@ -1,11 +1,13 @@
 import dataclasses
 import time
 
+from tqdm import tqdm
 from typing_extensions import List, Union, Iterable, Optional, Callable
 
 from .object_designator import ObjectDesignatorDescription, ObjectPart
 from ..datastructures.world import World, UseProspectionWorld
 from ..local_transformer import LocalTransformer
+from ..ros.viz_marker_publisher import AxisMarkerPublisher
 from ..world_reasoning import link_pose_for_joint_config
 from ..designator import DesignatorError, LocationDesignatorDescription
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
@@ -285,7 +287,7 @@ class AccessingLocation(LocationDesignatorDescription):
                 valid_goal, arms_goal = reachability_validator(maybe_pose, test_robot, goal_pose,
                                                                allowed_collision={test_robot: hand_links})
 
-                if valid_init and valid_goal:
+                if valid_init and valid_goal and not set(arms_init).isdisjoint(set(arms_goal)):
                     yield self.Location(maybe_pose, list(set(arms_init).intersection(set(arms_goal))))
 
 
