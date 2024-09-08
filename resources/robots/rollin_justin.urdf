@@ -495,7 +495,7 @@
     <collision name="base">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/base.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/base.stl" scale="1 1 1"/>
       </geometry>
     </collision>
   </link>
@@ -514,7 +514,7 @@
     <collision name="torso1_vis_ShapeIndexedFaceSet_collision">
       <origin rpy="0  0  0" xyz="0      0      0.0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/torso1.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/torso1.stl" scale="1 1 1"/>
       </geometry>
     </collision>
   </link>
@@ -527,7 +527,7 @@
     <collision name="torso2_vis_ShapeIndexedFaceSet_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/torso2.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/torso2.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="torso2_vis_ShapeIndexedFaceSet_visual">
@@ -546,7 +546,7 @@
     <collision name="torso3_vis_ShapeIndexedFaceSet_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/torso3.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/torso3.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="torso3_vis_ShapeIndexedFaceSet_visual">
@@ -565,7 +565,7 @@
     <collision name="torso4_vis_ShapeIndexedFaceSet_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/torso4.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/torso4.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="torso4_vis_ShapeIndexedFaceSet_visual">
@@ -590,7 +590,7 @@
     <collision name="head1_vis_ShapeIndexedFaceSet_collision">
       <origin rpy="0  0  0" xyz="0     0     0.055"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/head1.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/head1.stl" scale="1 1 1"/>
       </geometry>
     </collision>
   </link>
@@ -609,7 +609,7 @@
     <collision name="head2_vis_ShapeIndexedFaceSet.002_collision">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/head2.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/head2.stl" scale="1 1 1"/>
       </geometry>
     </collision>
   </link>
@@ -622,7 +622,7 @@
     <collision name="left_arm1_vis_ShapeIndexedFaceSet.002_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/left_arm1.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/left_arm1.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="left_arm1_vis_ShapeIndexedFaceSet.002_visual">
@@ -641,7 +641,7 @@
     <collision name="left_arm2_vis_ShapeIndexedFaceSet.002_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/left_arm2.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/left_arm2.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="left_arm2_vis_ShapeIndexedFaceSet.002_visual">
@@ -660,7 +660,7 @@
     <collision name="left_arm3_vis_ShapeIndexedFaceSet.002_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/left_arm3.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/left_arm3.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="left_arm3_vis_ShapeIndexedFaceSet.002_visual">
@@ -679,7 +679,7 @@
     <collision name="left_arm4_vis_ShapeIndexedFaceSet.002_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/left_arm4.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/left_arm4.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="left_arm4_vis_ShapeIndexedFaceSet.002_visual">
@@ -698,7 +698,7 @@
     <collision name="left_arm5_vis_ShapeIndexedFaceSet_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/left_arm5.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/left_arm5.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="left_arm5_vis_ShapeIndexedFaceSet_visual">
@@ -717,7 +717,7 @@
     <collision name="left_arm6_vis_ShapeIndexedFaceSet_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/left_arm6.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/left_arm6.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="left_arm6_vis_ShapeIndexedFaceSet_visual">
@@ -736,7 +736,7 @@
     <collision name="left_arm7_vis_ShapeIndexedFaceSet_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/left_arm7.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/left_arm7.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="left_arm7_vis_ShapeIndexedFaceSet_visual">
@@ -762,7 +762,7 @@
     <collision name="left_3middle1_visual">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/finger-base.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/finger-base.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="left_3middle1_visual">
@@ -782,7 +782,7 @@
     <collision name="left_3middle2_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/finger-phaprox.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/finger-phaprox.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="finger_phaprox_visual">
@@ -801,7 +801,7 @@
     <collision name="left_3middle3_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/finger-phamed.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/finger-phamed.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="left_3middle3_vis_ShapeIndexedFaceSet.015_visual">
@@ -820,7 +820,7 @@
     <collision name="left_3middle4_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-	<mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/hii2_geh_phadist_gesamt_asm.dae" scale="1 1 1"/>
+	<mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/hii2_geh_phadist_gesamt_asm.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="left_3middle4_vis_ShapeIndexedFaceSet.020_visual">
@@ -853,7 +853,7 @@
     <collision name="left_4ring2_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/finger-phaprox.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/finger-phaprox.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="left_4ring2_visual">
@@ -872,7 +872,7 @@
     <collision name="left_4ring3_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/finger-phamed.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/finger-phamed.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="left_4ring3_visual">
@@ -891,7 +891,7 @@
     <collision name="left_4ring4_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/hii2_geh_phadist_gesamt_asm.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/hii2_geh_phadist_gesamt_asm.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="left_4ring4_visual">
@@ -924,7 +924,7 @@
     <collision name="left_1thumb2_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/finger-phaprox.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/finger-phaprox.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="left_1thumb2_visual">
@@ -943,7 +943,7 @@
     <collision name="left_1thumb3_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/finger-phamed.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/finger-phamed.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="left_1thumb3_visual">
@@ -962,7 +962,7 @@
     <collision name="left_1thumb4_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/hii2_geh_phadist_gesamt_asm.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/hii2_geh_phadist_gesamt_asm.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="left_1thumb4_visual">
@@ -995,7 +995,7 @@
     <collision name="left_2tip2_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/finger-phaprox.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/finger-phaprox.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="left_2tip2_visual">
@@ -1014,7 +1014,7 @@
     <collision name="left_2tip3_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/finger-phamed.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/finger-phamed.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="left_2tip3_visual">
@@ -1033,7 +1033,7 @@
     <collision name="left_2tip4_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/hii2_geh_phadist_gesamt_asm.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/hii2_geh_phadist_gesamt_asm.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="left_2tip4_visual">
@@ -1052,7 +1052,7 @@
     <collision name="right_arm1_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/right_arm1.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/right_arm1.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="right_arm1_visual">
@@ -1071,7 +1071,7 @@
     <collision name="right_arm2_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/right_arm2.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/right_arm2.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="right_arm2_visual">
@@ -1090,7 +1090,7 @@
     <collision name="right_arm3_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/right_arm3.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/right_arm3.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="right_arm3_visual">
@@ -1109,7 +1109,7 @@
     <collision name="right_arm4_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/right_arm4.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/right_arm4.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="right_arm4_visual">
@@ -1128,7 +1128,7 @@
     <collision name="right_arm5_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/right_arm5.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/right_arm5.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="right_arm5_visual">
@@ -1147,7 +1147,7 @@
     <collision name="right_arm6_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/right_arm6.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/right_arm6.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="right_arm6_visual">
@@ -1166,7 +1166,7 @@
     <collision name="right_arm7_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/right_arm7.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/right_arm7.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="right_arm7_visual">
@@ -1206,7 +1206,7 @@
     <collision name="right_3middle2_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/finger-phaprox.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/finger-phaprox.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="right_3middle2_visual">
@@ -1225,7 +1225,7 @@
     <collision name="right_3middle3_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/finger-phamed.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/finger-phamed.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="right_3middle3_visual">
@@ -1244,7 +1244,7 @@
     <collision name="right_3middle4_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/hii2_geh_phadist_gesamt_asm.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/hii2_geh_phadist_gesamt_asm.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="right_3middle4_visual">
@@ -1277,7 +1277,7 @@
     <collision name="right_4ring2_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/finger-phaprox.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/finger-phaprox.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="right_4ring2_visual">
@@ -1296,7 +1296,7 @@
     <collision name="right_4ring3_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/finger-phamed.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/finger-phamed.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="right_4ring3_visual">
@@ -1315,7 +1315,7 @@
     <collision name="right_4ring4_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/hii2_geh_phadist_gesamt_asm.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/hii2_geh_phadist_gesamt_asm.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="right_4ring4_visual">
@@ -1348,7 +1348,7 @@
     <collision name="right_1thumb2_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/finger-phaprox.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/finger-phaprox.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="right_1thumb2_visual">
@@ -1367,7 +1367,7 @@
     <collision name="right_1thumb3_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/finger-phamed.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/finger-phamed.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="right_1thumb3_visual">
@@ -1386,7 +1386,7 @@
     <collision name="right_1thumb4_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/hii2_geh_phadist_gesamt_asm.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/hii2_geh_phadist_gesamt_asm.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="right_1thumb4_visual">
@@ -1419,7 +1419,7 @@
     <collision name="right_2tip2_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/finger-phaprox.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/finger-phaprox.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="right_2tip2_visual">
@@ -1438,7 +1438,7 @@
     <collision name="right_2tip3_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/finger-phamed.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/finger-phamed.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="right_2tip3_visual">
@@ -1457,7 +1457,7 @@
     <collision name="right_2tip4_coll">
       <origin rpy="0  0  0" xyz="0  0  0"/>
       <geometry>
-        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/dae/hii2_geh_phadist_gesamt_asm.dae" scale="1 1 1"/>
+        <mesh filename="package://iai_dlr_rollin_justin/mjcf/rollin-justin/meshes/stl/hii2_geh_phadist_gesamt_asm.stl" scale="1 1 1"/>
       </geometry>
     </collision>
     <visual name="right_2tip4_visual">
