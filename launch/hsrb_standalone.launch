@@ -25,7 +25,7 @@
               textfile="$(find pycram)/resources/robots/hsrb.urdf"/>
   
   
-  <!-- launch rivz locally -->
+  <!-- launch rviz locally -->
   <group if="$(arg gui)">
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find giskardpy)/launch/rviz_config/standalone.rviz" />
   </group>
