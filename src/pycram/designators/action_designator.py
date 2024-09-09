@@ -25,7 +25,7 @@ from ..tasktree import with_tree
 
 from owlready2 import Thing
 
-from ..datastructures.enums import Arms, Grasp, GripperState
+from ..datastructures.enums import Arms, Grasp, GripperState, ObjectType
 from ..designator import ActionDesignatorDescription
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
@@ -680,12 +680,14 @@ class ParkArmsActionPerformable(ActionAbstract):
         # add park left arm if wanted
         if self.arm in [Arms.LEFT, Arms.BOTH]:
             kwargs["left_arm_config"] = "park"
-            left_poses = RobotDescription.current_robot_description.get_arm_chain(Arms.LEFT).get_static_joint_states(kwargs["left_arm_config"])
+            arm_chain = RobotDescription.current_robot_description.get_arm_chain(Arms.LEFT)
+            left_poses = arm_chain.get_static_joint_states(kwargs["left_arm_config"]) if arm_chain else None
 
         # add park right arm if wanted
         if self.arm in [Arms.RIGHT, Arms.BOTH]:
             kwargs["right_arm_config"] = "park"
-            right_poses = RobotDescription.current_robot_description.get_arm_chain(Arms.RIGHT).get_static_joint_states(kwargs["right_arm_config"])
+            arm_chain = RobotDescription.current_robot_description.get_arm_chain(Arms.RIGHT)
+            right_poses = arm_chain.get_static_joint_states(kwargs["right_arm_config"]) if arm_chain else None
 
         MoveArmJointsMotion(left_poses, right_poses).perform()
 
@@ -726,7 +728,7 @@ class PickUpActionPerformable(ActionAbstract):
         # Retrieve object and robot from designators
         object = self.object_designator.world_object
         # Get grasp orientation and target pose
-        grasp = RobotDescription.current_robot_description.grasps[self.grasp]
+        grasp = RobotDescription.current_robot_description.get_arm_chain(self.arm).end_effector.grasps[self.grasp]
         # oTm = Object Pose in Frame map
         oTm = object.get_pose()
         # Transform the object pose to the object frame, basically the origin of the object frame
@@ -759,6 +761,11 @@ class PickUpActionPerformable(ActionAbstract):
 
         # Perform the motion with the prepose and open gripper
         World.current_world.add_vis_axis(prepose)
+
+        marker = AxisMarkerPublisher()
+        gripper_pose = World.robot.get_link_pose(RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame())
+        marker.publish([adjusted_oTm, gripper_pose], length=0.3)
+
         MoveTCPMotion(prepose, self.arm, allow_gripper_collision=True).perform()
         MoveGripperMotion(motion=GripperState.OPEN, gripper=self.arm).perform()
 
@@ -873,7 +880,10 @@ class TransportActionPerformable(ActionAbstract):
                 f"Found no pose for the robot to grasp the object: {self.object_designator} with arm: {self.arm}")
 
         NavigateActionPerformable(pickup_pose.pose).perform()
-        PickUpActionPerformable(self.object_designator, self.arm, Grasp.FRONT).perform()
+        if self.object_designator.obj_type == ObjectType.BOWL:
+            PickUpActionPerformable(self.object_designator, self.arm, Grasp.TOP).perform()
+        else:
+            PickUpActionPerformable(self.object_designator, self.arm, Grasp.FRONT).perform()
         ParkArmsActionPerformable(Arms.BOTH).perform()
         try:
             place_loc = CostmapLocation(target=self.target_location, reachable_for=robot_desig.resolve(),
@@ -999,9 +1009,14 @@ class GraspingActionPerformable(ActionAbstract):
 
         object_pose_in_gripper = lt.transform_pose(object_pose,
                                                    World.robot.get_link_tf_frame(gripper_name))
-
+        # oTm = lt.transform_pose(object_pose, "map")
+        # marker = AxisMarkerPublisher()
+        # gripper_pose = World.robot.get_link_pose(gripper_name)
         pre_grasp = object_pose_in_gripper.copy()
-        pre_grasp.pose.position.x -= 0.1
+        # pre_grasp.pose.position.x -= 0.1
+
+        # marker.publish([oTm, gripper_pose], name="Grasping", length=0.3)
+
 
         MoveTCPMotion(pre_grasp, self.arm).perform()
         MoveGripperMotion(GripperState.OPEN, self.arm).perform()

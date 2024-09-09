@@ -95,10 +95,6 @@ class RobotDescription:
     """
     All cameras defined for this robot
     """
-    grasps: Dict[Grasp, List[float]]
-    """
-    The orientations of the end effector for different grasps
-    """
     links: List[str]
     """
     All links defined in the URDF
@@ -128,7 +124,6 @@ class RobotDescription:
             self.urdf_object = URDF.from_xml_file(urdf_path)
         self.kinematic_chains: Dict[str, KinematicChainDescription] = {}
         self.cameras: Dict[str, CameraDescription] = {}
-        self.grasps: Dict[Grasp, List[float]] = {}
         self.links: List[str] = [l.name for l in self.urdf_object.links]
         self.joints: List[str] = [j.name for j in self.urdf_object.joints]
         self.costmap_offset: float = 0.3
@@ -181,25 +176,6 @@ class RobotDescription:
         """
         camera_desc = CameraDescription(name, camera_link, minimal_height, maximal_height)
         self.cameras[name] = camera_desc
-
-    def add_grasp_orientation(self, grasp: Grasp, orientation: List[float]):
-        """
-        Adds a grasp orientation to the robot description. This is used to define the orientation of the end effector
-        when grasping an object.
-
-        :param grasp: Gasp from the Grasp enum which should be added
-        :param orientation: List of floats representing the orientation
-        """
-        self.grasps[grasp] = orientation
-
-    def add_grasp_orientations(self, orientations: Dict[Grasp, List[float]]):
-        """
-        Adds multiple grasp orientations to the robot description. This is used to define the orientation of the end effector
-        when grasping an object.
-
-        :param orientations: Dictionary of grasp orientations
-        """
-        self.grasps.update(orientations)
 
     def get_manipulator_chains(self) -> List[KinematicChainDescription]:
         """
@@ -308,7 +284,9 @@ class RobotDescription:
         for chain in self.kinematic_chains.values():
             if chain.arm_type == arm:
                 return chain
-        raise ValueError(f"There is no Kinematic Chain for the Arm {arm}")
+        return None
+        # I think its nicer to return None if the arm is not found, so we can handle robots with only one arm better
+        # raise ValueError(f"There is no Kinematic Chain for the Arm {arm}")
 
     def get_offset(self, name):
         """
@@ -322,7 +300,6 @@ class RobotDescription:
 
         offset = self.urdf_object.joint_map[name].origin
         return offset if offset else None
-
 
     def set_costmap_offset(self, offset: float):
         """
@@ -433,7 +410,8 @@ class KinematicChainDescription:
         Initializes the joints of the chain by getting the chain from the URDF object.
         """
         joints = self.urdf_object.get_chain(self.start_link, self.end_link, links=False)
-        self.joint_names = list(filter(lambda j: self.urdf_object.joint_map[j].type != "fixed" or self.include_fixed_joints, joints))
+        self.joint_names = list(
+            filter(lambda j: self.urdf_object.joint_map[j].type != "fixed" or self.include_fixed_joints, joints))
 
     def get_joints(self) -> List[str]:
         """
@@ -614,6 +592,10 @@ class EndEffectorDescription:
     """
     Distance the gripper can open, in cm
     """
+    grasps: Dict[Grasp, List[float]]
+    """
+    The orientations of the end effector for different grasps
+    """
 
     def __init__(self, name: str, start_link: str, tool_frame: str, urdf_object: URDF):
         """
@@ -630,6 +612,7 @@ class EndEffectorDescription:
         self.urdf_object: URDF = urdf_object
         self.link_names: List[str] = []
         self.joint_names: List[str] = []
+        self.grasps: Dict[Grasp, List[float]] = {}
         self.static_joint_states: Dict[GripperState, Dict[str, float]] = {}
         self._init_links_joints()
 
@@ -662,6 +645,25 @@ class EndEffectorDescription:
             if joint_name not in self.joint_names:
                 raise ValueError(f"Joint {joint_name} is not part of the chain")
         self.static_joint_states[name] = states
+
+    def add_grasp_orientation(self, grasp: Grasp, orientation: List[float]):
+        """
+        Adds a grasp orientation to the robot description. This is used to define the orientation of the end effector
+        when grasping an object.
+
+        :param grasp: Gasp from the Grasp enum which should be added
+        :param orientation: List of floats representing the orientation
+        """
+        self.grasps[grasp] = orientation
+
+    def add_grasp_orientations(self, orientations: Dict[Grasp, List[float]]):
+        """
+        Adds multiple grasp orientations to the robot description. This is used to define the orientation of the end effector
+        when grasping an object.
+
+        :param orientations: Dictionary of grasp orientations
+        """
+        self.grasps.update(orientations)
 
     @property
     def links(self) -> List[str]:

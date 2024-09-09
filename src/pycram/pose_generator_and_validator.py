@@ -95,7 +95,10 @@ class PoseGenerator:
         :param origin: The origin of the costmap. This is also the point which the robot should face.
         :return: A quaternion of the calculated orientation
         """
-        angle = np.arctan2(position[1] - origin.position.y, position[0] - origin.position.x) + np.pi
+        if RobotDescription.current_robot_description.name == "iai_donbot":
+            angle = np.arctan2(position[1] - origin.position.y, position[0] - origin.position.x) - np.pi/2
+        else:
+            angle = np.arctan2(position[1] - origin.position.y, position[0] - origin.position.x) + np.pi
         quaternion = list(tf.transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
         return quaternion
 

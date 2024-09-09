@@ -87,3 +87,4 @@ RUN pip install https://raw.githubusercontent.com/yxzhan/jupyterlab-rviz/master/
 RUN mkdir -p /home/${NB_USER}/.ipython/profile_default/startup/
 
 RUN curl https://raw.githubusercontent.com/sunava/pycram/binder-all-robots/binder/01-import.py -o /home/${NB_USER}/.ipython/profile_default/startup/01-import.py
+# RUN curl https://raw.githubusercontent.com/LucaKro/pycram/luca_master_thesis/binder/01-import.py -o /home/${NB_USER}/.ipython/profile_default/startup/01-import.py

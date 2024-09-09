@@ -41,7 +41,7 @@ class TestCaseBulletWorldReasoning(BulletWorldTestCase):
         self.milk.set_pose(Pose([0.5, -0.7, 1]))
         self.robot.set_pose(Pose())
         time.sleep(2)
-        self.assertTrue(btr.blocking(Pose([0.5, -0.7, 1]), self.robot, RobotDescription.current_robot_description.kinematic_chains["right"].get_tool_frame()) != [])
+        self.assertTrue(btr.blocking(Pose([0.5, -0.7, 1]), self.robot, RobotDescription.current_robot_description.kinematic_chains["right"]))
 
     def test_supporting(self):
         self.milk.set_pose(Pose([1.3, 0, 0.9]))

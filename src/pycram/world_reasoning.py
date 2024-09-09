@@ -4,7 +4,7 @@ import numpy as np
 
 from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
 from .datastructures.pose import Pose, Transform
-from .robot_description import RobotDescription
+from .robot_description import RobotDescription, KinematicChainDescription
 from .world_concepts.world_object import Object
 from .datastructures.world import World, UseProspectionWorld
 
@@ -209,7 +209,7 @@ def reachable(
 def blocking(
         pose_or_object: Union[Object, Pose],
         robot: Object,
-        gripper_name: str,
+        gripper_chain: KinematicChainDescription,
         grasp: str = None) -> Union[List[Object], None]:
     """
     Checks if any objects are blocking another object when a robot tries to pick it. This works
@@ -219,7 +219,7 @@ def blocking(
 
     :param pose_or_object: The object or pose for which blocking objects should be found
     :param robot: The robot Object who reaches for the object
-    :param gripper_name: The name of the end effector of the robot
+    :param gripper_chain: The Kinematic Chain of the used end effector of the robot
     :param grasp: The grasp type with which the object should be grasped
     :return: A list of objects the robot is in collision with when reaching for the specified object or None if the pose or object is not reachable.
     """
@@ -227,9 +227,10 @@ def blocking(
     prospection_robot = World.current_world.get_prospection_object_for_object(robot)
     with UseProspectionWorld():
         if grasp:
-            try_to_reach_with_grasp(pose_or_object, prospection_robot, gripper_name, grasp)
+            grasp_orientation = gripper_chain.end_effector.grasps[grasp]
+            try_to_reach_with_grasp(pose_or_object, prospection_robot, gripper_chain.get_tool_frame(), grasp_orientation)
         else:
-            try_to_reach(pose_or_object, prospection_robot, gripper_name)
+            try_to_reach(pose_or_object, prospection_robot, gripper_chain.get_tool_frame())
 
         block = []
         for obj in World.current_world.objects:

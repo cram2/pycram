@@ -170,10 +170,14 @@ justin_description.add_camera_description(camera)
 justin_description.add_kinematic_chain("neck", "torso4", "head2")
 
 ################################# Grasps ##################################
-justin_description.add_grasp_orientations({Grasp.FRONT: [0.707, 0.707, 0.707, 0.707],
-                                           Grasp.LEFT: [1, 0, 0, 1],
-                                           Grasp.RIGHT: [0, 1, 1, 0],
-                                           Grasp.TOP: [1, 1, 0, 0]})
+left_gripper.add_grasp_orientations({Grasp.FRONT: [0.707, -0.707, 0.707, -0.707],
+                                     Grasp.LEFT: [1, 0, 0, 1],
+                                     Grasp.RIGHT: [-1, 0, 1, 1],
+                                     Grasp.TOP: [-1, 1, 0, 0]})
+right_gripper.add_grasp_orientations({Grasp.FRONT: [0.707, 0.707, 0.707, 0.707],
+                                      Grasp.LEFT: [1, 0, 0, 1],
+                                      Grasp.RIGHT: [0, 1, 1, 0],
+                                      Grasp.TOP: [1, 1, 0, 0]})
 
 ################################# Additionals ##################################
 justin_description.set_costmap_offset(0.8)

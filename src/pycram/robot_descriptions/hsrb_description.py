@@ -64,11 +64,10 @@ torso.add_static_joint_states(TorsoState.LOW, {"torso_lift_joint": 0})
 hsrb_description.add_kinematic_chain_description(torso)
 
 ################################## Grasps ##################################
-hsrb_description.add_grasp_orientations(
-    {Grasp.FRONT: [-1, 0, -1, 0],
-     Grasp.LEFT: [0, -1, 1, 0],
-     Grasp.RIGHT: [0, -1, -1, 0.0],
-     Grasp.TOP: [-1, 0, 0, 0]})
+left_gripper.add_grasp_orientations({Grasp.FRONT: [-1, 0, -1, 0],
+                                     Grasp.LEFT: [0, -1, 1, 0],
+                                     Grasp.RIGHT: [0, -1, -1, 0.0],
+                                     Grasp.TOP: [-1, 0, 0, 0]})
 
 hsrb_description.add_kinematic_chain_description(neck)
 

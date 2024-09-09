@@ -76,10 +76,12 @@ pr2_description.add_camera_description(camera)
 pr2_description.add_kinematic_chain("neck", "torso_lift_link", "head_tilt_link")
 
 ################################# Grasps ##################################
-pr2_description.add_grasp_orientations({Grasp.FRONT: [0, 0, 0, 1],
-                                        Grasp.LEFT: [0, 0, -1, 1],
-                                        Grasp.RIGHT: [0, 0, 1, 1],
-                                        Grasp.TOP: [0, 1, 0, 1]})
+grasps = {Grasp.FRONT: [0, 0, 0, 1],
+          Grasp.LEFT: [0, 0, -1, 1],
+          Grasp.RIGHT: [0, 0, 1, 1],
+          Grasp.TOP: [0, 1, 0, 1]}
+right_gripper.add_grasp_orientations(grasps)
+left_gripper.add_grasp_orientations(grasps)
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()
