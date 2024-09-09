@@ -14,7 +14,6 @@ COPY --chown=${NB_USER}:users binder/me ${PYCRAM_WS}/src/me
 USER root
 RUN apt-get update
 
-=
 # Giskard
 USER ${NB_USER}
 COPY --chown=${NB_USER}:users binder/giskard.rosinstall /home/${NB_USER}/giskard.rosinstall
