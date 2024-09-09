@@ -14,6 +14,10 @@ COPY --chown=${NB_USER}:users binder/me ${PYCRAM_WS}/src/me
 USER root
 RUN apt-get update
 
+# New geometry msgs
+WORKDIR ${PYCRAM_WS}/src/
+RUN git clone https://github.com/sunava/geometry2.git
+
 # HSR resources
 RUN git clone https://github.com/code-iai/iai_hsr.git
 WORKDIR  ${PYCRAM_WS}/src/iai_hsr/
