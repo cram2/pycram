@@ -1,6 +1,5 @@
 import sys
 
-import rospy
 from IPython.core.display_functions import clear_output
 
 from demos.pycram_virtual_building_demos.src.cleanup_demo import cleanup_demo
@@ -60,13 +59,13 @@ def start_demo_local():
     # get params
     environment_param = 'apartment'
     robot_param = 'pr2'
-    task_param = 'mixing'
+    task_param = 'pouring'
 
     robot_name = get_robot_name(robot_param)
 
     extension = ObjectDescription.get_file_extension()
 
-    world = BulletWorld(WorldMode.DIRECT)
+    world = BulletWorld(WorldMode)
     VizMarkerPublisher()
     robot = Object(robot_name, ObjectType.ROBOT, f"{robot_name}{extension}", pose=Pose([1, 2, 0]))
     apartment = Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
@@ -80,18 +79,15 @@ def demo_selecting(apartment, robot, task_param):
     if task_param == "navigate":
         navigate_simple_example()
     elif task_param == "transport":
-        # rospy.loginfo('Starting transporting demo...')
         with suppress_stdout_stderr():
             transporting_demo(apartment, robot)
     elif task_param == "cleanup":
-        # rospy.loginfo('Starting transporting demo...')
         with suppress_stdout_stderr():
             cleanup_demo(apartment, robot)
-    elif task_param in ["cutting", "mixing"]:
+    elif task_param in ["cutting", "mixing", "pouring"]:
         object_target = rospy.get_param('/nbparam_object')
         object_tool = rospy.get_param('/nbparam_object_tool')
         specialized_task = rospy.get_param('/nbparam_specialized_task')
-        print(object_target, object_tool, specialized_task)
         start_generalized_demo(task_param, object_tool, object_target, specialized_task)
 
 start_demo_local()

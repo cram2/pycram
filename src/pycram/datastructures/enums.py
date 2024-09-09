@@ -67,6 +67,7 @@ class ObjectType(Enum):
     CUTTING_TOOL = auto()
     BOARD = auto()
     MIXING_TOOL = auto()
+    POURING_TOOL = auto()
 
 
 class State(Enum):

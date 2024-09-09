@@ -95,7 +95,9 @@ class VizMarkerPublisher:
                         "tomato": (1, 0, 0, 1),
                         "peach": (1.0, 0.8, 0.64, 1),
                         "kiwi": (0.76, 0.88, 0.52, 1),
-                        "avocado": (0.0, 0.5, 0.0, 1)
+                        "avocado": (0.0, 0.5, 0.0, 1),
+                        "bowl": (1, 0, 0, 1),
+                        "jeroen_cup":  (0, 0, 1, 1)
                     }
                     color = colors.get(obj.name, [1, 1, 1, 1])
 

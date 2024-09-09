@@ -548,23 +548,15 @@ class MixingAction(ActionDesignatorDescription):
     Designator to let the robot perform a mixing action.
     """
 
-    def __init__(self, object_designator_description: ObjectDesignatorDescription,
-                 object_tool_designator_description: ObjectDesignatorDescription, arms: List[Arms], grasps: List[Grasp],
-                 resolver=None):
+    def __init__(self, object_: ObjectDesignatorDescription, tool: ObjectDesignatorDescription,
+                 arms: List[Arms], technique: Optional[str] = None):
         """
-        Initialize the MixingAction with object and tool designators, arms, and grasps.
-
-        :param object_designator_description: Object designator for the object to be mixed.
-        :param object_tool_designator_description: Object designator for the mixing tool.
-        :param arms: List of possible arms that could be used.
-        :param grasps: List of possible grasps for the mixing action.
-        :param resolver: An optional resolver for dynamic parameter selection.
         """
-        super(MixingAction, self).__init__(resolver)
-        self.object_designator_description: ObjectDesignatorDescription = object_designator_description
-        self.object_tool_designator_description: ObjectDesignatorDescription = object_tool_designator_description
+        super(MixingAction, self).__init__()
+        self.object_: ObjectDesignatorDescription = object_
+        self.tool: ObjectDesignatorDescription = tool
         self.arms: List[Arms] = arms
-        self.grasps: List[Grasp] = grasps
+        self.technique: Optional[str] = technique
 
     def ground(self) -> MixingPerformable:
         """
@@ -572,8 +564,33 @@ class MixingAction(ActionDesignatorDescription):
 
         :return: A performable designator
         """
-        return MixingPerformable(self.object_designator_description, self.object_tool_designator_description,
-                                 self.arms[0], self.grasps[0])
+        return MixingPerformable(self.object_, self.tool, self.arms[0], self.technique)
+
+
+class PouringAction(ActionDesignatorDescription):
+    """
+    Designator for pouring liquids from one container to another.
+    """
+
+    def __init__(self, object_: ObjectDesignatorDescription, tool: ObjectDesignatorDescription,
+                 arms: List[Arms], technique: Optional[str] = None, angle: Optional[float] = 0.03):
+        """
+
+        """
+        super(PouringAction, self).__init__()
+        self.object_: ObjectDesignatorDescription = object_
+        self.tool: ObjectDesignatorDescription = tool
+        self.arms: List[Arms] = arms
+        self.technique: Optional[str] = technique
+        self.angle: Optional[float] = angle
+
+    def ground(self) -> PouringPerformable:
+        """
+        Default resolver, returns a performable designator with the first entries from the lists of possible parameter.
+
+        :return: A performable designator
+        """
+        return PouringPerformable(self.object_, self.tool, self.arms[0], self.technique, self.angle)
 
 
 # ----------------------------------------------------------------------------
@@ -661,25 +678,26 @@ class MixingPerformable(ActionAbstract):
         Action class for the Mixing action.
         """
 
-    object_designator: ObjectDesignatorDescription.Object
+    object_: ObjectDesignatorDescription
     """
-        Object designator describing the object that should be mixed.
-        """
+    The object to be cut.
+    """
 
-    object_tool_designator: ObjectDesignatorDescription.Object
+    tool: ObjectDesignatorDescription
     """
-        Object designator describing the mixing tool.
-        """
+    The tool used for cutting.
+    """
 
     arm: Arms
     """
-        The arm that should be used for mixing.
-        """
-
-    grasp: Grasp
+    The robot arm designated for the cutting task.
     """
-        The grasp that should be used for mixing. For example, 'left' or 'right'.
-        """
+
+    technique: Optional[str] = None
+    """
+    The technique used for cutting (default is None).
+    """
+
 
     @with_tree
     def perform(self) -> None:
@@ -728,17 +746,86 @@ class MixingPerformable(ActionAbstract):
         spiral_poses = generate_spiral(object_pose, 0.001, 0.0035, math.radians(30), 10)
 
         World.current_world.remove_vis_axis()
-        # for spiral_pose in spiral_poses:
-        #     rospy.logwarn("Moving to spiral pose")
-        #     oriR = utils.axis_angle_to_quaternion([1, 0, 0], 180)
-        #     spiral_pose.multiply_quaternions(oriR)
+
+
+@dataclass
+class PouringPerformable(ActionAbstract):
+    """
+    Action class for the Pouring action.
+    """
+
+    object_: ObjectDesignatorDescription
+    """
+    The object to be cut.
+    """
+
+    tool: ObjectDesignatorDescription
+    """
+    The tool used for cutting.
+    """
+
+    arm: Arms
+    """
+    The robot arm designated for the cutting task.
+    """
+
+    technique: Optional[str] = None
+    """
+    The technique used for cutting (default is None).
+    """
+
+    angle: Optional[float] = 90
+    """
+    """
+
+    @with_tree
+    def perform(self) -> None:
+
+        # Initialize the local transformer and robot reference
+        lt = LocalTransformer()
+
+        # Calculate the object's pose in the map frame
+        oTm = self.object_.pose
+        # Determine the grasp orientation and transform the pose to the base link frame
+        grasp_rotation = RobotDescription.current_robot_description.get_arm_chain(self.arm).end_effector.grasps[
+            Grasp.FRONT]
+
+        oTbs = lt.transform_pose(oTm, World.robot.get_link_tf_frame("base_link"))
+        oTbs.pose.position.x += 0.009  # was 0,009
+        oTbs.pose.position.z += 0.17  # was 0.13
+        # oTbs.pose.position.y -= 0.125
+        # if self.direction == Grasp.RIGHT:
+        #     oTbs.pose.position.y -= 0.125
+        # else:
+        #     oTbs.pose.position.y += 0.125
+
+        oTms = lt.transform_pose(oTbs, "map")
+        World.current_world.add_vis_axis(oTms)
+
         #
-        #     # Adjust the position of the object pose by grasp in MAP
-        #     lift_pose = spiral_pose.copy()
-        #     lift_pose.pose.position.z += obj_height
-        #     # Perform the motion for lifting the tool
-        #     # BulletWorld.current_bullet_world.add_vis_axis(lift_pose)
-        #     #MoveTCPMotion(lift_pose, self.arm).perform()
+        oTog = lt.transform_pose(oTms, World.robot.get_link_tf_frame("base_link"))
+        oTog.orientation = grasp_rotation
+
+        oTgm = lt.transform_pose(oTog, "map")
+        MoveTCPMotion(oTgm, self.arm, allow_gripper_collision=False).perform()
+
+        World.current_world.add_vis_axis(oTgm)
+
+        new_q = utils.axis_angle_to_quaternion([1, 0, 0], -self.angle)
+        # if self.direction == "right":
+        #     new_q = utils.axis_angle_to_quaternion([0, 0, 1], -self.angle)
+        # else:
+        #     new_q = utils.axis_angle_to_quaternion([0, 0, 1], self.angle)
+        adjusted_oTgm = oTgm.copy()
+        rospy.loginfo(adjusted_oTgm.pose.orientation)
+        adjusted_oTgm.pose.orientation.x = new_q[0]
+        adjusted_oTgm.pose.orientation.y = new_q[1]
+        adjusted_oTgm.pose.orientation.z = new_q[2]
+        adjusted_oTgm.pose.orientation.w = new_q[3]
+        rospy.loginfo(adjusted_oTgm.pose.orientation)
+
+        World.current_world.add_vis_axis(adjusted_oTgm)
+        MoveTCPMotion(adjusted_oTgm, self.arm, allow_gripper_collision=False).perform()
 
 
 @dataclass
