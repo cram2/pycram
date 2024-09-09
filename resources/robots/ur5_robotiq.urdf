@@ -4,26 +4,6 @@
 <!-- |    EDITING THIS FILE BY HAND IS NOT RECOMMENDED                                 | -->
 <!-- =================================================================================== -->
 <robot name="ur5_robotiq">
-  <gazebo>
-    <plugin filename="libgazebo_ros_control.so" name="ros_control">
-      <!--robotNamespace>/</robotNamespace-->
-      <!--robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType-->
-    </plugin>
-    <!--
-    <plugin name="gazebo_ros_power_monitor_controller" filename="libgazebo_ros_power_monitor.so">
-      <alwaysOn>true</alwaysOn>
-      <updateRate>1.0</updateRate>
-      <timeout>5</timeout>
-      <powerStateTopic>power_state</powerStateTopic>
-      <powerStateRate>10.0</powerStateRate>
-      <fullChargeCapacity>87.78</fullChargeCapacity>
-      <dischargeRate>-474</dischargeRate>
-      <chargeRate>525</chargeRate>
-      <dischargeVoltage>15.52</dischargeVoltage>
-      <chargeVoltage>16.41</chargeVoltage>
-    </plugin>
--->
-  </gazebo>
   <!-- measured from model -->
   <!--property name="shoulder_height" value="0.089159" /-->
   <!--property name="shoulder_offset" value="0.13585" /-->
@@ -239,60 +219,6 @@
       <origin rpy="0 0 0" xyz="0 0 0"/>
     </visual>
   </link>
-  <transmission name="shoulder_pan_trans">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="shoulder_pan_joint">
-      <hardwareInterface>PositionJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="shoulder_pan_motor">
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="shoulder_lift_trans">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="shoulder_lift_joint">
-      <hardwareInterface>PositionJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="shoulder_lift_motor">
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="elbow_trans">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="elbow_joint">
-      <hardwareInterface>PositionJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="elbow_motor">
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="wrist_1_trans">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="wrist_1_joint">
-      <hardwareInterface>PositionJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="wrist_1_motor">
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="wrist_2_trans">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="wrist_2_joint">
-      <hardwareInterface>PositionJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="wrist_2_motor">
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
-  <transmission name="wrist_3_trans">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="wrist_3_joint">
-      <hardwareInterface>PositionJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="wrist_3_motor">
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
   <!-- nothing to do here at the moment -->
   <!-- ROS base_link to UR 'Base' Coordinates transform -->
 
@@ -336,11 +262,6 @@
     <parent link="tool0"/>
     <child link="robotiq_coupler"/>
   </joint>
-  <gazebo reference="robotiq_coupler">
-    <mu1>0.9</mu1>
-    <mu2>0.9</mu2>
-    <material>Gazebo/FlatBlack</material>
-  </gazebo>
 <!--  &lt;!&ndash; Equivalent to the OpenRAVE manipulator denso_robotiq_85_gripper &ndash;&gt;-->
 <!--  &lt;!&ndash; <link name="denso_robotiq_85_gripper" /> &ndash;&gt;-->
 <!--  &lt;!&ndash; <joint name="manipulator_dummy_joint" type="fixed"> &ndash;&gt;-->
@@ -570,31 +491,6 @@
     </inertial>
   </link>
 <!--  &lt;!&ndash; Improve grasping physics &ndash;&gt;-->
-<!--  <gazebo reference="robotiq_85_left_finger_tip_link">-->
-<!--    <kp>1000000.0</kp>-->
-<!--    <kd>1.0</kd>-->
-<!--    <mu1>1.0</mu1>-->
-<!--    <mu2>1.0</mu2>-->
-<!--    <minDepth>0.001</minDepth>-->
-<!--  </gazebo>-->
-<!--  <gazebo reference="robotiq_85_right_finger_tip_link">-->
-<!--    <kp>1000000.0</kp>-->
-<!--    <kd>1.0</kd>-->
-<!--    <mu1>1.0</mu1>-->
-<!--    <mu2>1.0</mu2>-->
-<!--    <minDepth>0.001</minDepth>-->
-<!--  </gazebo>-->
-<!--  <transmission name="robotiq_85_left_knuckle_trans">-->
-<!--    <type>transmission_interface/SimpleTransmission</type>-->
-<!--    <joint name="robotiq_85_left_knuckle_joint">-->
-<!--      <hardwareInterface>PositionJointInterface</hardwareInterface>-->
-<!--      &lt;!&ndash; <hardwareInterface>EffortJointInterface</hardwareInterface> &ndash;&gt;-->
-<!--    </joint>-->
-<!--    <actuator name="robotiq_85_left_knuckle_motor">-->
-<!--      <mechanicalReduction>1</mechanicalReduction>-->
-<!--      <hardwareInterface>PositionJointInterface</hardwareInterface>-->
-<!--      &lt;!&ndash; <hardwareInterface>EfforJointInterface</hardwareInterface> &ndash;&gt;-->
-<!--    </actuator>-->
-<!--  </transmission>-->
 </robot>
+
 

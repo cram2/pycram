@@ -14,6 +14,7 @@ COPY --chown=${NB_USER}:users binder/me ${PYCRAM_WS}/src/me
 USER root
 RUN apt-get update
 
+=
 # Giskard
 USER ${NB_USER}
 COPY --chown=${NB_USER}:users binder/giskard.rosinstall /home/${NB_USER}/giskard.rosinstall
@@ -38,6 +39,11 @@ RUN git clone https://github.com/SemRoCo/bullet3.git
 COPY --chown=${NB_USER}:users binder/build_cmake_pybullet_3.10_double.sh /home/${NB_USER}/bullet3/
 RUN cd bullet3 && ./build_cmake_pybullet_3.10_double.sh
 ENV PYTHONPATH=${PYTHONPATH}:/home/${NB_USER}/bullet3/build_cmake/better_python:/home/${NB_USER}/bullet3/examples/pybullet
+
+
+# New geometry msgs
+WORKDIR ${PYCRAM_WS}/src/
+RUN git clone https://github.com/sunava/geometry2.git
 
 
 # HSR resources
@@ -78,3 +84,6 @@ COPY --chown=${NB_USER}:users binder/entrypoint.sh /
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["jupyter", "lab", "--allow-root", "--NotebookApp.token=''", "--no-browser", "--ip=0.0.0.0"]
 RUN pip install https://raw.githubusercontent.com/yxzhan/jupyterlab-rviz/master/dist/jupyterlab_rviz-0.3.1.tar.gz
+RUN mkdir -p /home/${NB_USER}/.ipython/profile_default/startup/
+
+RUN curl https://raw.githubusercontent.com/sunava/pycram/binder-all-robots/binder/01-import.py -o /home/${NB_USER}/.ipython/profile_default/startup/01-import.py

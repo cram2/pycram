@@ -2718,425 +2718,7 @@
   <parent link="root_link"/>
   <child link="base_link"/>
 </joint>
-  <gazebo reference="r_arm_ft_sensor">
-<preserveFixedJoint>true</preserveFixedJoint>
-<!-- For compatibility with SDFormat < 4.4 -->
-<disableFixedJointLumping>true</disableFixedJointLumping>
-</gazebo>
-  <gazebo reference="l_arm_ft_sensor">
-<preserveFixedJoint>true</preserveFixedJoint>
-<!-- For compatibility with SDFormat < 4.4 -->
-<disableFixedJointLumping>true</disableFixedJointLumping>
-</gazebo>
-  <gazebo>
-<plugin name="controlboard_torso" filename="libgazebo_yarp_controlboard.so">
-  <yarpConfigurationFile>model://iai_icub_description/conf_icub3/gazebo_icub_torso.ini</yarpConfigurationFile>
-</plugin>
-</gazebo>
-  <gazebo reference="torso_pitch">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="torso_roll">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="torso_yaw">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="r_shoulder_pitch">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="r_shoulder_roll">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="r_shoulder_yaw">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="l_shoulder_pitch">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="l_shoulder_roll">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="l_shoulder_yaw">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="l_leg_ft_sensor">
-<preserveFixedJoint>true</preserveFixedJoint>
-<!-- For compatibility with SDFormat < 4.4 -->
-<disableFixedJointLumping>true</disableFixedJointLumping>
-</gazebo>
-  <gazebo reference="l_foot_front_ft_sensor">
-<preserveFixedJoint>true</preserveFixedJoint>
-<!-- For compatibility with SDFormat < 4.4 -->
-<disableFixedJointLumping>true</disableFixedJointLumping>
-</gazebo>
-  <gazebo reference="l_foot_rear_ft_sensor">
-<preserveFixedJoint>true</preserveFixedJoint>
-<!-- For compatibility with SDFormat < 4.4 -->
-<disableFixedJointLumping>true</disableFixedJointLumping>
-</gazebo>
-  <gazebo reference="l_foot_front">
-  <collision> <surface> <bounce>
-    <restitution_coefficient>0</restitution_coefficient>
-    <threshold>100000</threshold>
-  </bounce> </surface> </collision>
-  <maxContacts>4</maxContacts>
-  <kp>18000000</kp>
-  <kd>100</kd>
-  <maxVel>100</maxVel>
-  <minDepth>0.0001</minDepth>
-  <mu1>1</mu1>
-  <mu2>1</mu2>
-  <fdir1>0 0 0</fdir1>
-</gazebo>
-  <gazebo reference="l_foot_rear">
-  <collision> <surface> <bounce>
-    <restitution_coefficient>0</restitution_coefficient>
-    <threshold>100000</threshold>
-  </bounce> </surface> </collision>
-  <maxContacts>4</maxContacts>
-  <kp>18000000</kp>
-  <kd>100</kd>
-  <maxVel>100</maxVel>
-  <minDepth>0.0001</minDepth>
-  <mu1>1</mu1>
-  <mu2>1</mu2>
-  <fdir1>0 0 0</fdir1>
-</gazebo>
-  <gazebo>
-<plugin name="controlboard_left_leg" filename="libgazebo_yarp_controlboard.so">
-<yarpConfigurationFile>model://iai_icub_description/conf_icub3/gazebo_icub_left_leg.ini</yarpConfigurationFile>
-</plugin>
-</gazebo>
-  <gazebo reference="l_hip_pitch">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="l_hip_roll">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="l_hip_yaw">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="l_knee">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="l_ankle_pitch">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="l_ankle_roll">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="r_leg_ft_sensor">
-<preserveFixedJoint>true</preserveFixedJoint>
-<!-- For compatibility with SDFormat < 4.4 -->
-<disableFixedJointLumping>true</disableFixedJointLumping>
-</gazebo>
-  <gazebo reference="r_foot_front_ft_sensor">
-<preserveFixedJoint>true</preserveFixedJoint>
-<!-- For compatibility with SDFormat < 4.4 -->
-<disableFixedJointLumping>true</disableFixedJointLumping>
-</gazebo>
-  <gazebo reference="r_foot_rear_ft_sensor">
-<preserveFixedJoint>true</preserveFixedJoint>
-<!-- For compatibility with SDFormat < 4.4 -->
-<disableFixedJointLumping>true</disableFixedJointLumping>
-</gazebo>
-  <gazebo reference="r_foot_front">
-  <collision> <surface> <bounce>
-    <restitution_coefficient>0</restitution_coefficient>
-    <threshold>100000</threshold>
-  </bounce> </surface> </collision>
-  <maxContacts>4</maxContacts>
-  <kp>18000000</kp>
-  <kd>100</kd>
-  <maxVel>100</maxVel>
-  <minDepth>0.0001</minDepth>
-  <mu1>1</mu1>
-  <mu2>1</mu2>
-  <fdir1>0 0 0</fdir1>
-</gazebo>
-  <gazebo reference="r_foot_rear">
-  <collision> <surface> <bounce>
-    <restitution_coefficient>0</restitution_coefficient>
-    <threshold>100000</threshold>
-  </bounce> </surface> </collision>
-  <maxContacts>4</maxContacts>
-  <kp>18000000</kp>
-  <kd>100</kd>
-  <maxVel>100</maxVel>
-  <minDepth>0.0001</minDepth>
-  <mu1>1</mu1>
-  <mu2>1</mu2>
-  <fdir1>0 0 0</fdir1>
-</gazebo>
-  <gazebo>
-<plugin name="controlboard_right_leg" filename="libgazebo_yarp_controlboard.so">
-<yarpConfigurationFile>model://iai_icub_description/conf_icub3/gazebo_icub_right_leg.ini</yarpConfigurationFile>
-</plugin>
-</gazebo>
-  <gazebo reference="r_hip_pitch">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="r_hip_roll">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="r_hip_yaw">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="r_knee">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="r_ankle_pitch">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="r_ankle_roll">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo>
-<plugin name="controlboard_torso" filename="libgazebo_yarp_controlboard.so">
-  <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_head.ini</yarpConfigurationFile>
-</plugin>
-</gazebo>
-  <gazebo reference="neck_pitch">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="neck_roll">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="neck_yaw">
-    <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-<gazebo>
-  <plugin name='controlboard_left_hand_thumb' filename='libgazebo_yarp_controlboard.so'>
-    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_left_hand_thumb.ini</yarpConfigurationFile>
-  </plugin>
-  <plugin name='controlboard_left_hand_index' filename='libgazebo_yarp_controlboard.so'>
-    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_left_hand_index.ini</yarpConfigurationFile>
-  </plugin>
-  <plugin name='controlboard_left_hand_middle' filename='libgazebo_yarp_controlboard.so'>
-    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_left_hand_middle.ini</yarpConfigurationFile>
-  </plugin>
-  <plugin name='controlboard_left_hand_pinky' filename='libgazebo_yarp_controlboard.so'>
-    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_left_hand_pinky.ini</yarpConfigurationFile>
-  </plugin>
-  <plugin name='controlboard_left_hand_finger' filename='libgazebo_yarp_controlboard.so'>
-    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_left_hand_finger.ini</yarpConfigurationFile>
-    <initialConfiguration>1.0471975511965976</initialConfiguration>
-  </plugin>
-  <plugin name="controlboard_left_arm_no_hand" filename="libgazebo_yarp_controlboard.so">
-    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_left_arm_no_hand.ini</yarpConfigurationFile>
-    <initialConfiguration>-0.52 0.52 0 0.785 0 0 0.0</initialConfiguration>
-  </plugin>
-  <plugin name="controlboard_left_arm" filename="libgazebo_yarp_controlboard.so">
-    <yarpConfigurationFile>model://iai_icub_description/conf_icub3/gazebo_icub_left_arm.ini</yarpConfigurationFile>
-  </plugin>
-  <plugin name='controlboard_right_hand_thumb' filename='libgazebo_yarp_controlboard.so'>
-    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_right_hand_thumb.ini</yarpConfigurationFile>
-  </plugin>
-  <plugin name='controlboard_right_hand_index' filename='libgazebo_yarp_controlboard.so'>
-    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_right_hand_index.ini</yarpConfigurationFile>
-  </plugin>
-  <plugin name='controlboard_right_hand_middle' filename='libgazebo_yarp_controlboard.so'>
-    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_right_hand_middle.ini</yarpConfigurationFile>
-  </plugin>
-  <plugin name='controlboard_right_hand_pinky' filename='libgazebo_yarp_controlboard.so'>
-    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_right_hand_pinky.ini</yarpConfigurationFile>
-  </plugin>
-  <plugin name='controlboard_right_hand_finger' filename='libgazebo_yarp_controlboard.so'>
-    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_right_hand_finger.ini</yarpConfigurationFile>
-    <initialConfiguration>1.0471975511965976</initialConfiguration>
-  </plugin>
-   <plugin name="controlboard_right_arm_no_hand" filename="libgazebo_yarp_controlboard.so">
-    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_right_arm_no_hand.ini</yarpConfigurationFile>
-    <initialConfiguration>-0.52 0.52 0 0.785 0 0 0.0</initialConfiguration>
-  </plugin>
-  <plugin name="controlboard_right_arm" filename="libgazebo_yarp_controlboard.so">
-    <yarpConfigurationFile>model://iai_icub_description/conf_icub3/gazebo_icub_right_arm.ini</yarpConfigurationFile>
-  </plugin>
-  <plugin name='mais_left_hand' filename='libgazebo_yarp_maissensor.so'>
-    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_left_hand_mais.ini</yarpConfigurationFile>
-  </plugin>
-  <plugin name='mais_right_hand' filename='libgazebo_yarp_maissensor.so'>
-    <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_right_hand_mais.ini</yarpConfigurationFile>
-  </plugin>
-</gazebo>
-<gazebo reference="l_shoulder_pitch">
-  <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="l_shoulder_roll">
-  <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="l_shoulder_yaw">
-  <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="l_elbow">
-  <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="l_wrist_prosup">
-  <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="l_wrist_pitch">
-  <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="l_wrist_yaw">
-  <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
 
-  <gazebo reference="r_shoulder_pitch">
-  <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="r_shoulder_roll">
-  <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="r_shoulder_yaw">
-  <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="r_elbow">
-  <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="r_wrist_prosup">
-  <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="r_wrist_pitch">
-  <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-  <gazebo reference="r_wrist_yaw">
-  <implicitSpringDamper>1</implicitSpringDamper>
-</gazebo>
-<gazebo reference="r_hand_thumb_3">
-  <collision>
-    <surface>
-      <friction>
-        <ode>
-          <mu>5.0</mu>
-          <mu2>5.0</mu2>
-        </ode>
-      </friction>
-    </surface>
-  </collision>
-</gazebo>
-<gazebo reference="r_hand_index_3">
-  <collision>
-    <surface>
-      <friction>
-        <ode>
-          <mu>5.0</mu>
-          <mu2>5.0</mu2>
-        </ode>
-      </friction>
-    </surface>
-  </collision>
-</gazebo>
-<gazebo reference="r_hand_middle_3">
-  <collision>
-    <surface>
-      <friction>
-        <ode>
-          <mu>5.0</mu>
-          <mu2>5.0</mu2>
-        </ode>
-      </friction>
-    </surface>
-  </collision>
-</gazebo>
-<gazebo reference="r_hand_ring_3">
-  <collision>
-    <surface>
-      <friction>
-        <ode>
-          <mu>5.0</mu>
-          <mu2>5.0</mu2>
-        </ode>
-      </friction>
-    </surface>
-  </collision>
-</gazebo>
-<gazebo reference="r_hand_little_3">
-  <collision>
-    <surface>
-      <friction>
-        <ode>
-          <mu>5.0</mu>
-          <mu2>5.0</mu2>
-        </ode>
-      </friction>
-    </surface>
-  </collision>
-</gazebo>
-<gazebo reference="l_hand_thumb_3">
-  <collision>
-    <surface>
-      <friction>
-        <ode>
-          <mu>5.0</mu>
-          <mu2>5.0</mu2>
-        </ode>
-      </friction>
-    </surface>
-  </collision>
-</gazebo>
-<gazebo reference="l_hand_index_3">
-  <collision>
-    <surface>
-      <friction>
-        <ode>
-          <mu>5.0</mu>
-          <mu2>5.0</mu2>
-        </ode>
-      </friction>
-    </surface>
-  </collision>
-</gazebo>
-<gazebo reference="l_hand_middle_3">
-  <collision>
-    <surface>
-      <friction>
-        <ode>
-          <mu>5.0</mu>
-          <mu2>5.0</mu2>
-        </ode>
-      </friction>
-    </surface>
-  </collision>
-</gazebo>
-<gazebo reference="l_hand_ring_3">
-  <collision>
-    <surface>
-      <friction>
-        <ode>
-          <mu>5.0</mu>
-          <mu2>5.0</mu2>
-        </ode>
-      </friction>
-    </surface>
-  </collision>
-</gazebo>
-<gazebo reference="l_hand_little_3">
-  <collision>
-    <surface>
-      <friction>
-        <ode>
-          <mu>5.0</mu>
-          <mu2>5.0</mu2>
-        </ode>
-      </friction>
-    </surface>
-  </collision>
-</gazebo>
-  <gazebo reference="l_arm_ft_sensor">
-    <sensor name="l_arm_ft_sensor" type="force_torque">
-      <always_on>1</always_on>
-      <update_rate>100</update_rate>
-      <force_torque>
-        <frame>sensor</frame>
-        <measure_direction>child_to_parent</measure_direction>
-      </force_torque>
-      <pose>-0.004350133156978318 3.632573233602887e-07 -0.05430003872406172 3.141592646862139 -3.10468332187885e-08 -1.5707962571980942</pose>
-      <plugin name="left_arm_ft_plugin" filename="libgazebo_yarp_forcetorque.so">
-  <yarpConfigurationFile>model://iai_icub_description/conf_icub3/FT/gazebo_icub_left_arm_ft.ini</yarpConfigurationFile>
-</plugin>
-    </sensor>
-  </gazebo>
   <sensor name="l_arm_ft_sensor" type="force_torque">
     <parent joint="l_arm_ft_sensor"/>
     <force_torque>
@@ -3145,20 +2727,6 @@
     </force_torque>
     <origin rpy="3.141592646862139 -3.10468332187885e-08 -1.5707962571980942" xyz="-0.004350133156978318 3.632573233602887e-07 -0.05430003872406172"/>
   </sensor>
-  <gazebo reference="r_arm_ft_sensor">
-    <sensor name="r_arm_ft_sensor" type="force_torque">
-      <always_on>1</always_on>
-      <update_rate>100</update_rate>
-      <force_torque>
-        <frame>sensor</frame>
-        <measure_direction>child_to_parent</measure_direction>
-      </force_torque>
-      <pose>-0.006849946385389872 2.1904996058697002e-07 -0.05429998157789099 3.141592644717707 4.094299285979593e-08 1.5707964185756365</pose>
-      <plugin name="right_arm_ft_plugin" filename="libgazebo_yarp_forcetorque.so">
-  <yarpConfigurationFile>model://iai_icub_description/conf_icub3/FT/gazebo_icub_right_arm_ft.ini</yarpConfigurationFile>
-</plugin>
-    </sensor>
-  </gazebo>
   <sensor name="r_arm_ft_sensor" type="force_torque">
     <parent joint="r_arm_ft_sensor"/>
     <force_torque>
@@ -3167,20 +2735,6 @@
     </force_torque>
     <origin rpy="3.141592644717707 4.094299285979593e-08 1.5707964185756365" xyz="-0.006849946385389872 2.1904996058697002e-07 -0.05429998157789099"/>
   </sensor>
-  <gazebo reference="l_foot_front_ft_sensor">
-    <sensor name="l_foot_front_ft_sensor" type="force_torque">
-      <always_on>1</always_on>
-      <update_rate>100</update_rate>
-      <force_torque>
-        <frame>sensor</frame>
-        <measure_direction>parent_to_child</measure_direction>
-      </force_torque>
-      <pose>0.0 0.0 0.022299999999999986 0.0 -0.0 -2.094395210586932</pose>
-      <plugin name="left_foot_front_ft_plugin" filename="libgazebo_yarp_forcetorque.so">
-  <yarpConfigurationFile>model://iai_icub_description/conf_icub3/FT/gazebo_icub_left_foot_front_ft.ini</yarpConfigurationFile>
-</plugin>
-    </sensor>
-  </gazebo>
   <sensor name="l_foot_front_ft_sensor" type="force_torque">
     <parent joint="l_foot_front_ft_sensor"/>
     <force_torque>
@@ -3189,20 +2743,6 @@
     </force_torque>
     <origin rpy="0.0 -0.0 -2.094395210586932" xyz="0.0 0.0 0.022299999999999986"/>
   </sensor>
-  <gazebo reference="l_foot_rear_ft_sensor">
-    <sensor name="l_foot_rear_ft_sensor" type="force_torque">
-      <always_on>1</always_on>
-      <update_rate>100</update_rate>
-      <force_torque>
-        <frame>sensor</frame>
-        <measure_direction>parent_to_child</measure_direction>
-      </force_torque>
-      <pose>0.0 0.0 0.022299999999999986 0.0 -0.0 -2.094395210586932</pose>
-      <plugin name="left_foot_rear_ft_plugin" filename="libgazebo_yarp_forcetorque.so">
-  <yarpConfigurationFile>model://iai_icub_description/conf_icub3/FT/gazebo_icub_left_foot_rear_ft.ini</yarpConfigurationFile>
-</plugin>
-    </sensor>
-  </gazebo>
   <sensor name="l_foot_rear_ft_sensor" type="force_torque">
     <parent joint="l_foot_rear_ft_sensor"/>
     <force_torque>
@@ -3211,20 +2751,6 @@
     </force_torque>
     <origin rpy="0.0 -0.0 -2.094395210586932" xyz="0.0 0.0 0.022299999999999986"/>
   </sensor>
-  <gazebo reference="r_leg_ft_sensor">
-    <sensor name="r_leg_ft_sensor" type="force_torque">
-      <always_on>1</always_on>
-      <update_rate>100</update_rate>
-      <force_torque>
-        <frame>sensor</frame>
-        <measure_direction>child_to_parent</measure_direction>
-      </force_torque>
-      <pose>0.0 0.0 0.0 3.141592653589793 0.0 -2.6179934742070086</pose>
-      <plugin name="right_leg_ft_plugin" filename="libgazebo_yarp_forcetorque.so">
-  <yarpConfigurationFile>model://iai_icub_description/conf_icub3/FT/gazebo_icub_right_leg_ft.ini</yarpConfigurationFile>
-</plugin>
-    </sensor>
-  </gazebo>
   <sensor name="r_leg_ft_sensor" type="force_torque">
     <parent joint="r_leg_ft_sensor"/>
     <force_torque>
@@ -3233,20 +2759,6 @@
     </force_torque>
     <origin rpy="3.141592653589793 0.0 -2.6179934742070086" xyz="0.0 0.0 0.0"/>
   </sensor>
-  <gazebo reference="r_foot_front_ft_sensor">
-    <sensor name="r_foot_front_ft_sensor" type="force_torque">
-      <always_on>1</always_on>
-      <update_rate>100</update_rate>
-      <force_torque>
-        <frame>sensor</frame>
-        <measure_direction>parent_to_child</measure_direction>
-      </force_torque>
-      <pose>0.0 0.0 0.022299999999999986 0.0 -0.0 -2.094395210586932</pose>
-      <plugin name="right_foot_front_ft_plugin" filename="libgazebo_yarp_forcetorque.so">
-  <yarpConfigurationFile>model://iai_icub_description/conf_icub3/FT/gazebo_icub_right_foot_front_ft.ini</yarpConfigurationFile>
-</plugin>
-    </sensor>
-  </gazebo>
   <sensor name="r_foot_front_ft_sensor" type="force_torque">
     <parent joint="r_foot_front_ft_sensor"/>
     <force_torque>
@@ -3255,20 +2767,6 @@
     </force_torque>
     <origin rpy="0.0 -0.0 -2.094395210586932" xyz="0.0 0.0 0.022299999999999986"/>
   </sensor>
-  <gazebo reference="r_foot_rear_ft_sensor">
-    <sensor name="r_foot_rear_ft_sensor" type="force_torque">
-      <always_on>1</always_on>
-      <update_rate>100</update_rate>
-      <force_torque>
-        <frame>sensor</frame>
-        <measure_direction>parent_to_child</measure_direction>
-      </force_torque>
-      <pose>0.0 0.0 0.022299999999999986 0.0 -0.0 -2.094395210586932</pose>
-      <plugin name="right_foot_rear_ft_plugin" filename="libgazebo_yarp_forcetorque.so">
-  <yarpConfigurationFile>model://iai_icub_description/conf_icub3/FT/gazebo_icub_right_foot_rear_ft.ini</yarpConfigurationFile>
-</plugin>
-    </sensor>
-  </gazebo>
   <sensor name="r_foot_rear_ft_sensor" type="force_torque">
     <parent joint="r_foot_rear_ft_sensor"/>
     <force_torque>
@@ -3277,156 +2775,22 @@
     </force_torque>
     <origin rpy="0.0 -0.0 -2.094395210586932" xyz="0.0 0.0 0.022299999999999986"/>
   </sensor>
-  <gazebo reference="head">
-    <sensor name="head_imu_acc_1x1" type="imu">
-      <always_on>1</always_on>
-      <update_rate>100</update_rate>
-      <pose>0.0034999999997785457 0.0054999999863750895 0.1013340000004441 -3.141592653589793 -4.20000162559822e-15 -1.570796326794897</pose>
-      <plugin name="iCub_yarp_gazebo_plugin_IMU" filename="libgazebo_yarp_imu.so">
-   <yarpConfigurationFile>model://iai_icub_description/conf_icub3/gazebo_icub_inertial.ini</yarpConfigurationFile>
-</plugin>
-    </sensor>
-  </gazebo>
   <sensor name="head_imu_acc_1x1" type="accelerometer">
     <parent link="head"/>
     <origin rpy="-3.141592653589793 -4.20000162559822e-15 -1.570796326794897" xyz="0.0034999999997785457 0.0054999999863750895 0.1013340000004441"/>
   </sensor>
-  <gazebo reference="chest">
-    <sensor name="realsense_chest_depth" type="depth">
-      <always_on>1</always_on>
-      <update_rate>30</update_rate>
-      <pose>0.0894115 0.0175 0.09929950000000001 -1.5707963267948968 -0.0 -1.5707963267948968</pose>
-      <camera name="intel_realsense_depth_camera">
-  <pose>0 0 0 -1.57079 -1.57079 3.14159</pose>
-  <horizontal_fov>1.57079</horizontal_fov>
-  <distortion>
-    <k1>0</k1>
-    <k2>0</k2>
-    <k3>0</k3>
-    <p1>0</p1>
-    <p2>0</p2>
-    <center>319.5 239.5</center>
-  </distortion>
-  <image>
-    <width>640</width>
-    <height>480</height>
-    <format>R8G8B8</format>
-  </image>
-  <clip>
-    <near>0.175</near>
-    <far>3000</far>
-  </clip>
-</camera>
-      <visualize>false</visualize>
-      <plugin name="iCub_yarp_gazebo_plugin_depthCamera" filename="libgazebo_yarp_depthCamera.so">
-    <yarpConfigurationFile>model://iai_icub_description/conf_icub3/gazebo_icub_depth_camera.ini</yarpConfigurationFile>
-</plugin>
-    </sensor>
-  </gazebo>
   <sensor name="realsense_chest_depth" type="depth">
     <parent link="chest"/>
     <origin rpy="-1.5707963267948968 -0.0 -1.5707963267948968" xyz="0.0894115 0.0175 0.09929950000000001"/>
   </sensor>
-  <gazebo reference="chest">
-    <sensor name="realsense_chest_rgb" type="camera">
-      <always_on>1</always_on>
-      <update_rate>30</update_rate>
-      <pose>0.0894115 -0.0115 0.09929950000000001 -1.5707963267948968 -0.0 -1.5707963267948968</pose>
-      <camera name="intel_realsense_rgb_camera">
-  <pose>0 0 0 -1.57079 -1.57079 3.14159</pose>
-  <horizontal_fov>1.2217</horizontal_fov>
-  <distortion>
-    <k1>0</k1>
-    <k2>0</k2>
-    <k3>0</k3>
-    <p1>0</p1>
-    <p2>0</p2>
-    <center>319.5 239.5</center>
-  </distortion>
-  <image>
-    <width>640</width>
-    <height>480</height>
-    <format>R8G8B8</format>
-  </image>
-  <clip>
-    <near>0.02</near>
-    <far>3000</far>
-  </clip>
-</camera>
-      <visualize>false</visualize>
-      <plugin name="iCub_yarp_gazebo_plugin_camera" filename="libgazebo_yarp_camera.so">
-    <yarpConfigurationFile>model://iai_icub_description/conf_icub3/gazebo_icub_rgb_camera.ini</yarpConfigurationFile>
-</plugin>
-    </sensor>
-  </gazebo>
   <sensor name="realsense_chest_rgb" type="camera">
     <parent link="chest"/>
     <origin rpy="-1.5707963267948968 -0.0 -1.5707963267948968" xyz="0.0894115 -0.0115 0.09929950000000001"/>
   </sensor>
-  <gazebo reference="chest">
-    <sensor name="chest_imu_acc_1x1" type="imu">
-      <always_on>1</always_on>
-      <update_rate>100</update_rate>
-      <pose>0.0894115 0.0175 0.09929950000000001 -1.5707963267948968 -0.0 -1.5707963267948968</pose>
-      <plugin name="iCub_yarp_gazebo_plugin_IMU" filename="libgazebo_yarp_imu.so">
-    <yarpConfigurationFile>model://iai_icub_description/conf_icub3/gazebo_icub_chest_inertial.ini</yarpConfigurationFile>
-</plugin>
-    </sensor>
-  </gazebo>
   <sensor name="chest_imu_acc_1x1" type="accelerometer">
     <parent link="chest"/>
     <origin rpy="-1.5707963267948968 -0.0 -1.5707963267948968" xyz="0.0894115 0.0175 0.09929950000000001"/>
   </sensor>
-  <gazebo reference="l_eye">
-  <sensor name="left_camera_rgb" type="camera">
-    <pose>0.0 0.0 0.0 0.0 -1.57 -1.57</pose>
-    <camera>
-      <!-- please use these intrinsic parameters -->
-      <!-- fx = fy = 343.12110728152936, cx = 160.0, cy = 120.0 -->
-      <horizontal_fov>0.8726646259971648</horizontal_fov>
-      <image>
-        <width>320</width>
-        <height>240</height>
-      </image>
-      <clip>
-        <near>0.1</near>
-        <far>100</far>
-      </clip>
-    </camera>
-    <always_on>1</always_on>
-    <update_rate>30</update_rate>
-    <visualize>false</visualize>
-    <plugin filename="libgazebo_yarp_camera.so" name="left_camera_plugin">
-      <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_left_rgb_camera.ini</yarpConfigurationFile>
-    </plugin>
-  </sensor>
- </gazebo>
- <gazebo reference="r_eye">
-  <sensor name="right_camera_rgb" type="camera">
-    <pose>0.0 0.0 0.0 0.0 -1.57 -1.57</pose>
-    <camera>
-      <!-- please use these intrinsic parameters -->
-      <!-- fx = fy = 343.12110728152936, cx = 160.0, cy = 120.0 -->
-      <horizontal_fov>0.8726646259971648</horizontal_fov>
-      <image>
-        <width>320</width>
-        <height>240</height>
-      </image>
-      <clip>
-        <near>0.1</near>
-        <far>100</far>
-      </clip>
-    </camera>
-    <always_on>1</always_on>
-    <update_rate>30</update_rate>
-    <visualize>false</visualize>
-    <plugin filename="libgazebo_yarp_camera.so" name="right_camera_plugin">
-      <yarpConfigurationFile>model://iai_icub_description/conf_manual/iCubGazeboV3_visuomanip/gazebo_icub_right_rgb_camera.ini</yarpConfigurationFile>
-    </plugin>
-  </sensor>
- </gazebo>
-  <gazebo>
-    <pose>0.0 0.0 0.64 0.0 0.0 0.0</pose>
-  </gazebo>
 </robot>
+
 

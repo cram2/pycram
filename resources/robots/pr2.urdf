@@ -13,24 +13,6 @@
   <!-- all link geometry sizes are obtained from Function provided CAD model unless stated otherwise -->
   <!-- all simplified collision geometry are hand approximated from CAD model, sometimes from respective bounding boxes -->
   <!-- This is the 'effective' wheel radius. Wheel radius for uncompressed wheel is 0.079.  mp 20080801 -->
-  <gazebo>
-    <plugin filename="libgazebo_ros_controller_manager.so" name="gazebo_ros_controller_manager">
-      <alwaysOn>true</alwaysOn>
-      <updateRate>1000.0</updateRate>
-    </plugin>
-    <plugin filename="libgazebo_ros_power_monitor.so" name="gazebo_ros_power_monitor_controller">
-      <alwaysOn>true</alwaysOn>
-      <updateRate>1.0</updateRate>
-      <timeout>5</timeout>
-      <powerStateTopic>power_state</powerStateTopic>
-      <powerStateRate>10.0</powerStateRate>
-      <fullChargeCapacity>87.78</fullChargeCapacity>
-      <dischargeRate>-474</dischargeRate>
-      <chargeRate>525</chargeRate>
-      <dischargeVoltage>15.52</dischargeVoltage>
-      <chargeVoltage>16.41</chargeVoltage>
-    </plugin>
-  </gazebo>
   <material name="Blue">
     <color rgba="0.0 0.0 0.8 1.0"/>
   </material>
@@ -159,37 +141,6 @@
       <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.0001"/>
     </inertial>
   </link>
-  <gazebo reference="base_laser_link">
-    <sensor name="base_laser" type="ray">
-      <always_on>true</always_on>
-      <update_rate>20</update_rate>
-      <pose>0 0 0 0 0 0</pose>
-      <visualize>false</visualize>
-      <ray>
-        <scan>
-          <horizontal>
-            <samples>640</samples>
-            <resolution>1</resolution>
-            <min_angle>-2.2689</min_angle>
-            <max_angle>2.2689</max_angle>
-          </horizontal>
-        </scan>
-        <range>
-          <min>0.08</min>
-          <max>10.0</max>
-          <resolution>0.01</resolution>
-        </range>
-      </ray>
-      <plugin filename="libgazebo_ros_laser.so" name="gazebo_ros_base_laser_controller">
-        <gaussianNoise>0.005</gaussianNoise>
-        <alwaysOn>true</alwaysOn>
-        <updateRate>20</updateRate>
-        <topicName>base_scan</topicName>
-        <frameName>base_laser_link</frameName>
-        <hokuyoMinIntensity>101</hokuyoMinIntensity>
-      </plugin>
-    </sensor>
-  </gazebo>
   <joint name="fl_caster_rotation_joint" type="continuous">
     <axis xyz="0 0 1"/>
     <limit effort="6.5" velocity="10"/>
@@ -252,14 +203,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="fl_caster_l_wheel_link">
-    <mu1 value="100.0"/>
-    <mu2 value="100.0"/>
-    <kp value="1000000.0"/>
-    <kd value="1.0"/>
-    <maxVel value="100.0"/>
-    <minDepth value="0.0"/>
-  </gazebo>
   <joint name="fl_caster_r_wheel_joint" type="continuous">
     <axis xyz="0 1 0"/>
     <limit effort="7" velocity="15"/>
@@ -291,17 +234,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="fl_caster_r_wheel_link">
-    <mu1 value="100.0"/>
-    <mu2 value="100.0"/>
-    <kp value="1000000.0"/>
-    <kd value="1.0"/>
-    <maxVel value="100.0"/>
-    <minDepth value="0.0"/>
-  </gazebo>
-  <gazebo reference="fl_caster_rotation_link">
-    <material value="PR2/caster_texture"/>
-  </gazebo>
   <joint name="fr_caster_rotation_joint" type="continuous">
     <axis xyz="0 0 1"/>
     <limit effort="6.5" velocity="10"/>
@@ -364,14 +296,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="fr_caster_l_wheel_link">
-    <mu1 value="100.0"/>
-    <mu2 value="100.0"/>
-    <kp value="1000000.0"/>
-    <kd value="1.0"/>
-    <maxVel value="100.0"/>
-    <minDepth value="0.0"/>
-  </gazebo>
   <joint name="fr_caster_r_wheel_joint" type="continuous">
     <axis xyz="0 1 0"/>
     <limit effort="7" velocity="15"/>
@@ -403,17 +327,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="fr_caster_r_wheel_link">
-    <mu1 value="100.0"/>
-    <mu2 value="100.0"/>
-    <kp value="1000000.0"/>
-    <kd value="1.0"/>
-    <maxVel value="100.0"/>
-    <minDepth value="0.0"/>
-  </gazebo>
-  <gazebo reference="fr_caster_rotation_link">
-    <material value="PR2/caster_texture"/>
-  </gazebo>
   <joint name="bl_caster_rotation_joint" type="continuous">
     <axis xyz="0 0 1"/>
     <limit effort="6.5" velocity="10"/>
@@ -476,14 +389,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="bl_caster_l_wheel_link">
-    <mu1 value="100.0"/>
-    <mu2 value="100.0"/>
-    <kp value="1000000.0"/>
-    <kd value="1.0"/>
-    <maxVel value="100.0"/>
-    <minDepth value="0.0"/>
-  </gazebo>
   <joint name="bl_caster_r_wheel_joint" type="continuous">
     <axis xyz="0 1 0"/>
     <limit effort="7" velocity="15"/>
@@ -515,17 +420,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="bl_caster_r_wheel_link">
-    <mu1 value="100.0"/>
-    <mu2 value="100.0"/>
-    <kp value="1000000.0"/>
-    <kd value="1.0"/>
-    <maxVel value="100.0"/>
-    <minDepth value="0.0"/>
-  </gazebo>
-  <gazebo reference="bl_caster_rotation_link">
-    <material value="PR2/caster_texture"/>
-  </gazebo>
   <joint name="br_caster_rotation_joint" type="continuous">
     <axis xyz="0 0 1"/>
     <limit effort="6.5" velocity="10"/>
@@ -588,14 +482,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="br_caster_l_wheel_link">
-    <mu1 value="100.0"/>
-    <mu2 value="100.0"/>
-    <kp value="1000000.0"/>
-    <kd value="1.0"/>
-    <maxVel value="100.0"/>
-    <minDepth value="0.0"/>
-  </gazebo>
   <joint name="br_caster_r_wheel_joint" type="continuous">
     <axis xyz="0 1 0"/>
     <limit effort="7" velocity="15"/>
@@ -627,48 +513,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="br_caster_r_wheel_link">
-    <mu1 value="100.0"/>
-    <mu2 value="100.0"/>
-    <kp value="1000000.0"/>
-    <kd value="1.0"/>
-    <maxVel value="100.0"/>
-    <minDepth value="0.0"/>
-  </gazebo>
-  <gazebo reference="br_caster_rotation_link">
-    <material value="PR2/caster_texture"/>
-  </gazebo>
-  <gazebo reference="base_link">
-    <selfCollide>false</selfCollide>
-    <sensor name="base_contact_sensor" type="contact">
-      <always_on>true</always_on>
-      <update_rate>100.0</update_rate>
-      <contact>
-        <collision>base_link_collision</collision>
-      </contact>
-      <plugin filename="libgazebo_ros_bumper.so" name="base_gazebo_ros_bumper_controller">
-        <alwaysOn>true</alwaysOn>
-        <updateRate>100.0</updateRate>
-        <bumperTopicName>base_bumper</bumperTopicName>
-        <frameName>world</frameName>
-      </plugin>
-    </sensor>
-  </gazebo>
-  <gazebo reference="base_bellow_link">
-    <material value="PR2/Black"/>
-  </gazebo>
-  <gazebo>
-    <plugin filename="libgazebo_ros_p3d.so" name="p3d_base_controller">
-      <alwaysOn>true</alwaysOn>
-      <updateRate>100.0</updateRate>
-      <bodyName>base_link</bodyName>
-      <topicName>base_pose_ground_truth</topicName>
-      <gaussianNoise>0.01</gaussianNoise>
-      <frameName>map</frameName>
-      <xyzOffsets>0 0 0</xyzOffsets>
-      <rpyOffsets>0 0 0</rpyOffsets>
-    </plugin>
-  </gazebo>
   <joint name="torso_lift_joint" type="prismatic">
     <axis xyz="0 0 1"/>
     <limit effort="10000" lower="0.0" upper="0.33" velocity="0.013"/>
@@ -757,30 +601,6 @@
     <child link="torso_lift_motor_screw_link"/>
     <dynamics damping="0.0001"/>
   </joint>
-  <gazebo reference="torso_lift_link">
-    <sensor name="torso_lift_contact_sensor" type="contact">
-      <contact>
-        <collision>torso_lift_link_collision</collision>
-      </contact>
-      <update_rate>100.0</update_rate>
-      <plugin filename="libgazebo_ros_bumper.so" name="torso_lift_gazebo_ros_bumper_controller">
-        <alwaysOn>true</alwaysOn>
-        <updateRate>100.0</updateRate>
-        <bumperTopicName>torso_lift_bumper</bumperTopicName>
-        <frameName>world</frameName>
-      </plugin>
-    </sensor>
-  </gazebo>
-  <gazebo>
-    <joint name="torso_lift_screw_torso_lift_joint" type="screw">
-      <parent>torso_lift_link</parent>
-      <child>torso_lift_motor_screw_link</child>
-      <axis>
-        <xyz>0 0 1</xyz>
-      </axis>
-      <thread_pitch>3141.6</thread_pitch>
-    </joint>
-  </gazebo>
   <joint name="imu_joint" type="fixed">
     <axis xyz="0 1 0"/>
     <origin rpy="0 3.14159265359 0" xyz="-0.02977 -0.1497 0.164"/>
@@ -794,18 +614,6 @@
       <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.0001"/>
     </inertial>
   </link>
-  <gazebo>
-    <plugin filename="libgazebo_ros_imu.so" name="imu_controller">
-      <alwaysOn>true</alwaysOn>
-      <updateRate>100.0</updateRate>
-      <bodyName>imu_link</bodyName>
-      <topicName>torso_lift_imu/data</topicName>
-      <gaussianNoise>2.89e-08</gaussianNoise>
-      <xyzOffset>0 0 0</xyzOffset>
-      <rpyOffset>0 -180.0 0</rpyOffset>
-      <serviceName>/default_imu</serviceName>
-    </plugin>
-  </gazebo>
   <joint name="head_pan_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="2.645" lower="-3.007" upper="3.007" velocity="6"/>
@@ -895,9 +703,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="head_plate_frame">
-    <material value="Gazebo/Grey"/>
-  </gazebo>
   <joint name="sensor_mount_frame_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
     <parent link="head_plate_frame"/>
@@ -943,42 +748,6 @@
       <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
     </inertial>
   </link>
-  <gazebo reference="high_def_frame">
-    <sensor name="high_def_sensor" type="camera">
-      <always_on>true</always_on>
-      <update_rate>20.0</update_rate>
-      <camera>
-        <horizontal_fov>0.785398163397</horizontal_fov>
-        <image>
-          <format>R8G8B8</format>
-          <width>2448</width>
-          <height>2050</height>
-        </image>
-        <clip>
-          <near>0.1</near>
-          <far>100</far>
-        </clip>
-      </camera>
-      <plugin filename="libgazebo_ros_prosilica.so" name="high_def_controller">
-        <updateRate>20.0</updateRate>
-        <cameraName>prosilica</cameraName>
-        <imageTopicName>image_raw</imageTopicName>
-        <cameraInfoTopicName>camera_info</cameraInfoTopicName>
-        <pollServiceName>request_image</pollServiceName>
-        <frameName>high_def_optical_frame</frameName>
-        <CxPrime>1224.5</CxPrime>
-        <Cx>1224.5</Cx>
-        <Cy>1025.5</Cy>
-        <focalLength>2954.998083</focalLength>
-        <distortionK1>0.0</distortionK1>
-        <distortionK2>0.0</distortionK2>
-        <distortionK3>0.0</distortionK3>
-        <distortionT1>0.0</distortionT1>
-        <distortionT2>0.0</distortionT2>
-      </plugin>
-    </sensor>
-    <material value="Gazebo/Black"/>
-  </gazebo>
   <!-- Define link to stereo cameras, set origin relative to that -->
   <joint name="double_stereo_frame_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
@@ -1049,46 +818,6 @@
     <child link="wide_stereo_l_stereo_camera_optical_frame"/>
   </joint>
   <link name="wide_stereo_l_stereo_camera_optical_frame"/>
-  <gazebo reference="wide_stereo_l_stereo_camera_frame">
-    <sensor name="wide_stereo_l_stereo_camera_sensor" type="camera">
-      <always_on>true</always_on>
-      <update_rate>25.0</update_rate>
-      <camera>
-        <horizontal_fov>1.57079632679</horizontal_fov>
-        <image>
-          <format>BAYER_BGGR8</format>
-          <width>640</width>
-          <height>480</height>
-        </image>
-        <clip>
-          <near>0.1</near>
-          <far>100</far>
-        </clip>
-      </camera>
-      <plugin filename="libgazebo_ros_camera.so" name="wide_stereo_l_stereo_camera_controller">
-        <alwaysOn>true</alwaysOn>
-        <updateRate>25.0</updateRate>
-        <cameraName>wide_stereo/left</cameraName>
-        <imageTopicName>image_raw</imageTopicName>
-        <cameraInfoTopicName>camera_info</cameraInfoTopicName>
-        <frameName>wide_stereo_optical_frame</frameName>
-        <hackBaseline>0</hackBaseline>
-        <CxPrime>320.5</CxPrime>
-        <Cx>320.5</Cx>
-        <Cy>240.5</Cy>
-        <!-- image_width / (2*tan(hfov_radian /2)) -->
-        <!-- 320 for wide and 772.55 for narrow stereo camera -->
-        <focalLength>320.000105</focalLength>
-        <distortionK1>0.0</distortionK1>
-        <distortionK2>0.0</distortionK2>
-        <distortionK3>0.0</distortionK3>
-        <distortionT1>0.0</distortionT1>
-        <distortionT2>0.0</distortionT2>
-      </plugin>
-    </sensor>
-    <turnGravityOff>true</turnGravityOff>
-    <material>PR2/Blue</material>
-  </gazebo>
   <joint name="wide_stereo_r_stereo_camera_frame_joint" type="fixed">
     <origin rpy="0.0 0.0 0.0" xyz="0.0 -0.09 0.0"/>
     <parent link="wide_stereo_l_stereo_camera_frame"/>
@@ -1107,54 +836,6 @@
     <child link="wide_stereo_r_stereo_camera_optical_frame"/>
   </joint>
   <link name="wide_stereo_r_stereo_camera_optical_frame"/>
-  <gazebo reference="wide_stereo_r_stereo_camera_frame">
-    <sensor name="wide_stereo_r_stereo_camera_sensor" type="camera">
-      <always_on>true</always_on>
-      <update_rate>25.0</update_rate>
-      <camera>
-        <horizontal_fov>1.57079632679</horizontal_fov>
-        <image>
-          <format>BAYER_BGGR8</format>
-          <width>640</width>
-          <height>480</height>
-        </image>
-        <clip>
-          <near>0.1</near>
-          <far>100</far>
-        </clip>
-      </camera>
-      <plugin filename="libgazebo_ros_camera.so" name="wide_stereo_r_stereo_camera_controller">
-        <alwaysOn>true</alwaysOn>
-        <updateRate>25.0</updateRate>
-        <cameraName>wide_stereo/right</cameraName>
-        <imageTopicName>image_raw</imageTopicName>
-        <cameraInfoTopicName>camera_info</cameraInfoTopicName>
-        <frameName>wide_stereo_optical_frame</frameName>
-        <hackBaseline>0.09</hackBaseline>
-        <CxPrime>320.5</CxPrime>
-        <Cx>320.5</Cx>
-        <Cy>240.5</Cy>
-        <!-- image_width / (2*tan(hfov_radian /2)) -->
-        <!-- 320 for wide and 772.55 for narrow stereo camera -->
-        <focalLength>320.000105</focalLength>
-        <distortionK1>0.0</distortionK1>
-        <distortionK2>0.0</distortionK2>
-        <distortionK3>0.0</distortionK3>
-        <distortionT1>0.0</distortionT1>
-        <distortionT2>0.0</distortionT2>
-      </plugin>
-    </sensor>
-    <turnGravityOff>true</turnGravityOff>
-    <material>PR2/Blue</material>
-  </gazebo>
-  <gazebo reference="wide_stereo_link">
-    <material value="PR2/Blue"/>
-    <turnGravityOff value="true"/>
-  </gazebo>
-  <gazebo reference="wide_stereo_optical_frame">
-    <material value="Gazebo/White"/>
-    <turnGravityOff value="true"/>
-  </gazebo>
   <joint name="narrow_stereo_frame_joint" type="fixed">
     <origin rpy="0.0   0.0   0.0" xyz="0.045 0.06 0.0501"/>
     <parent link="double_stereo_link"/>
@@ -1196,46 +877,6 @@
     <child link="narrow_stereo_l_stereo_camera_optical_frame"/>
   </joint>
   <link name="narrow_stereo_l_stereo_camera_optical_frame"/>
-  <gazebo reference="narrow_stereo_l_stereo_camera_frame">
-    <sensor name="narrow_stereo_l_stereo_camera_sensor" type="camera">
-      <always_on>true</always_on>
-      <update_rate>25.0</update_rate>
-      <camera>
-        <horizontal_fov>0.785398163397</horizontal_fov>
-        <image>
-          <format>L8</format>
-          <width>640</width>
-          <height>480</height>
-        </image>
-        <clip>
-          <near>0.1</near>
-          <far>100</far>
-        </clip>
-      </camera>
-      <plugin filename="libgazebo_ros_camera.so" name="narrow_stereo_l_stereo_camera_controller">
-        <alwaysOn>true</alwaysOn>
-        <updateRate>25.0</updateRate>
-        <cameraName>narrow_stereo/left</cameraName>
-        <imageTopicName>image_raw</imageTopicName>
-        <cameraInfoTopicName>camera_info</cameraInfoTopicName>
-        <frameName>narrow_stereo_optical_frame</frameName>
-        <hackBaseline>0</hackBaseline>
-        <CxPrime>320.5</CxPrime>
-        <Cx>320.5</Cx>
-        <Cy>240.5</Cy>
-        <!-- image_width / (2*tan(hfov_radian /2)) -->
-        <!-- 320 for wide and 772.55 for narrow stereo camera -->
-        <focalLength>772.548518</focalLength>
-        <distortionK1>0.0</distortionK1>
-        <distortionK2>0.0</distortionK2>
-        <distortionK3>0.0</distortionK3>
-        <distortionT1>0.0</distortionT1>
-        <distortionT2>0.0</distortionT2>
-      </plugin>
-    </sensor>
-    <turnGravityOff>true</turnGravityOff>
-    <material>PR2/Blue</material>
-  </gazebo>
   <joint name="narrow_stereo_r_stereo_camera_frame_joint" type="fixed">
     <origin rpy="0.0 0.0 0.0" xyz="0.0 -0.09 0.0"/>
     <parent link="narrow_stereo_l_stereo_camera_frame"/>
@@ -1254,61 +895,7 @@
     <child link="narrow_stereo_r_stereo_camera_optical_frame"/>
   </joint>
   <link name="narrow_stereo_r_stereo_camera_optical_frame"/>
-  <gazebo reference="narrow_stereo_r_stereo_camera_frame">
-    <sensor name="narrow_stereo_r_stereo_camera_sensor" type="camera">
-      <always_on>true</always_on>
-      <update_rate>25.0</update_rate>
-      <camera>
-        <horizontal_fov>0.785398163397</horizontal_fov>
-        <image>
-          <format>L8</format>
-          <width>640</width>
-          <height>480</height>
-        </image>
-        <clip>
-          <near>0.1</near>
-          <far>100</far>
-        </clip>
-      </camera>
-      <plugin filename="libgazebo_ros_camera.so" name="narrow_stereo_r_stereo_camera_controller">
-        <alwaysOn>true</alwaysOn>
-        <updateRate>25.0</updateRate>
-        <cameraName>narrow_stereo/right</cameraName>
-        <imageTopicName>image_raw</imageTopicName>
-        <cameraInfoTopicName>camera_info</cameraInfoTopicName>
-        <frameName>narrow_stereo_optical_frame</frameName>
-        <hackBaseline>0.09</hackBaseline>
-        <CxPrime>320.5</CxPrime>
-        <Cx>320.5</Cx>
-        <Cy>240.5</Cy>
-        <!-- image_width / (2*tan(hfov_radian /2)) -->
-        <!-- 320 for wide and 772.55 for narrow stereo camera -->
-        <focalLength>772.548518</focalLength>
-        <distortionK1>0.0</distortionK1>
-        <distortionK2>0.0</distortionK2>
-        <distortionK3>0.0</distortionK3>
-        <distortionT1>0.0</distortionT1>
-        <distortionT2>0.0</distortionT2>
-      </plugin>
-    </sensor>
-    <turnGravityOff>true</turnGravityOff>
-    <material>PR2/Blue</material>
-  </gazebo>
-  <gazebo reference="narrow_stereo_link">
-    <material value="PR2/Blue"/>
-    <turnGravityOff value="true"/>
-  </gazebo>
-  <gazebo reference="narrow_stereo_optical_frame">
-    <material value="Gazebo/White"/>
-    <turnGravityOff value="true"/>
-  </gazebo>
   <!-- Define link to stereo cameras, set origin relative to that -->
-  <gazebo reference="double_stereo_double_stereo_link">
-    <material value="PR2/Blue"/>
-  </gazebo>
-  <gazebo reference="sensor_mount_sensor_link">
-    <material value="PR2/Blue"/>
-  </gazebo>
   <joint name="projector_wg6802418_frame_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0.110 0.0546"/>
     <parent link="head_plate_frame"/>
@@ -1333,26 +920,6 @@
       <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
     </inertial>
   </link>
-  <gazebo reference="projector_wg6802418_child_frame">
-    <projector name="projector_wg6802418_projector_wg6802418">
-      <pose>0 0 0 0 -1.5707 0</pose>
-      <texture>stereo_projection_pattern_high_res_red.png</texture>
-      <fov>0.959931088597</fov>
-      <near_clip>0.1</near_clip>
-      <far_clip>10</far_clip>
-    </projector>
-  </gazebo>
-  <gazebo>
-    <plugin filename="libgazebo_ros_projector.so" name="projector_wg6802418_controller">
-      <projector>projector_wg6802418_child_frame/projector_wg6802418_projector_wg6802418</projector>
-      <alwaysOn>true</alwaysOn>
-      <updateRate>15.0</updateRate>
-      <textureName>stereo_projection_pattern_high_res_red.png</textureName>
-      <filterTextureName>stereo_projection_pattern_filter.png</filterTextureName>
-      <textureTopicName>projector_wg6802418_controller/image</textureTopicName>
-      <projectorTopicName>projector_wg6802418_controller/projector</projectorTopicName>
-    </plugin>
-  </gazebo>
   <joint name="laser_tilt_mount_joint" type="revolute">
     <axis xyz="0 1 0"/>
     <limit effort="0.65" lower="-0.7854" upper="1.48353" velocity="10.0"/>
@@ -1397,39 +964,6 @@
       <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.0001"/>
     </inertial>
   </link>
-  <gazebo reference="laser_tilt_link">
-    <sensor name="laser_tilt" type="ray">
-      <always_on>true</always_on>
-      <update_rate>40</update_rate>
-      <pose>0 0 0 0 0 0</pose>
-      <visualize>false</visualize>
-      <ray>
-        <scan>
-          <horizontal>
-            <samples>640</samples>
-            <resolution>1</resolution>
-            <min_angle>-1.3962634</min_angle>
-            <max_angle>1.3962634</max_angle>
-          </horizontal>
-        </scan>
-        <range>
-          <min>0.08</min>
-          <max>10.0</max>
-          <resolution>0.01</resolution>
-        </range>
-      </ray>
-      <plugin filename="libgazebo_ros_laser.so" name="gazebo_ros_laser_tilt_controller">
-        <gaussianNoise>0.005</gaussianNoise>
-        <alwaysOn>true</alwaysOn>
-        <updateRate>40</updateRate>
-        <topicName>tilt_scan</topicName>
-        <frameName>laser_tilt_link</frameName>
-        <hokuyoMinIntensity>101</hokuyoMinIntensity>
-      </plugin>
-    </sensor>
-  </gazebo>
-  <gazebo reference="laser_tilt_mount_link">
-    </gazebo>
   <!-- Shoulder pan -->
   <joint name="r_shoulder_pan_joint" type="revolute">
     <axis xyz="0 0 1"/>
@@ -1530,32 +1064,9 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="r_upper_arm_roll_link">
-    <material value="PR2/RollLinks"/>
-    <turnGravityOff>true</turnGravityOff>
-  </gazebo>
-  <gazebo reference="r_upper_arm_roll_joint">
-    <stopKd value="1.0"/>
-    <stopKp value="1000000.0"/>
-    <fudgeFactor value="0.5"/>
-  </gazebo>
   <!-- Upperarm roll: internal fixed attchment point for upper arm -->
   <!-- Shoulder pan -->
-  <gazebo reference="r_shoulder_pan_link">
-    <turnGravityOff>true</turnGravityOff>
-  </gazebo>
-  <gazebo reference="r_shoulder_pan_joint">
-    <stopKd value="1.0"/>
-    <stopKp value="1000000.0"/>
-  </gazebo>
   <!-- Shoulder lift -->
-  <gazebo reference="r_shoulder_lift_link">
-    <turnGravityOff>true</turnGravityOff>
-  </gazebo>
-  <gazebo reference="r_shoulder_lift_joint">
-    <stopKd value="1.0"/>
-    <stopKp value="1000000.0"/>
-  </gazebo>
   <!-- Shoulder pan -->
   <joint name="r_upper_arm_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -1583,9 +1094,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="r_upper_arm_link">
-    <turnGravityOff>true</turnGravityOff>
-  </gazebo>
   <!-- Has upperarm link -->
   <!-- No transmission, since this a fixed joint w/o actuator -->
   <!-- forearm_roll_link is a fictitious link internal to elbow_flex_link, provides an attachment point for the actual forearm -->
@@ -1623,13 +1131,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="r_forearm_roll_link">
-    <material value="PR2/RollLinks"/>
-    <turnGravityOff>true</turnGravityOff>
-  </gazebo>
-  <gazebo reference="r_forearm_roll_joint">
-    <fudgeFactor value="0.5"/>
-  </gazebo>
   <!-- Elbow flex -->
   <joint name="r_elbow_flex_joint" type="revolute">
     <axis xyz="0 1 0"/>
@@ -1664,17 +1165,7 @@
     </collision>
   </link>
   <!-- testing initial joint position, to be parsed at urdf2gazebo parse time ->
-    <gazebo reference="${side}_elbow_flex_joint">
-      <initial_joint_position>-1.0</initial_joint_position>
-    </gazebo>
     -->
-  <gazebo reference="r_elbow_flex_link">
-    <turnGravityOff>true</turnGravityOff>
-  </gazebo>
-  <gazebo reference="r_elbow_flex_joint">
-    <stopKd value="1.0"/>
-    <stopKp value="1000000.0"/>
-  </gazebo>
   <!-- Elbow flex -->
   <joint name="r_forearm_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -1767,25 +1258,8 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="r_forearm_link">
-    <turnGravityOff>true</turnGravityOff>
-  </gazebo>
   <!-- Wrist flex -->
-  <gazebo reference="r_wrist_flex_link">
-    <turnGravityOff>true</turnGravityOff>
-  </gazebo>
-  <gazebo reference="r_wrist_flex_joint">
-    <stopKd value="1.0"/>
-    <stopKp value="1000000.0"/>
-  </gazebo>
   <!-- Wrist roll -->
-  <gazebo reference="r_wrist_roll_link">
-    <turnGravityOff>true</turnGravityOff>
-    <material value="PR2/RollLinks"/>
-  </gazebo>
-  <gazebo reference="r_wrist_roll_joint">
-    <fudgeFactor value="0.5"/>
-  </gazebo>
   <!-- Wrist flex , Wrist roll -->
   <joint name="r_gripper_palm_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -2046,220 +1520,10 @@
     </collision>
   </link>
   <!-- Finger proximal digit -->
-  <gazebo reference="r_gripper_l_finger_link">
-    <turnGravityOff>true</turnGravityOff>
-    <mu1 value="500.0"/>
-    <mu2 value="500.0"/>
-    <kp value="1000000.0"/>
-    <kd value="1.0"/>
-    <!-- for "${prefix}_l_finger_joint"-->
-  </gazebo>
-  <gazebo reference="r_gripper_l_finger_joint">
-    <stopKd value="1.0"/>
-    <stopKp value="10000000.0"/>
-    <fudgeFactor value="1.0"/>
-    <provideFeedback value="true"/>
-  </gazebo>
   <!-- Finger proximal digit -->
-  <gazebo reference="r_gripper_r_finger_link">
-    <turnGravityOff>true</turnGravityOff>
-    <mu1 value="500.0"/>
-    <mu2 value="500.0"/>
-    <kp value="1000000.0"/>
-    <kd value="1.0"/>
-  </gazebo>
-  <gazebo reference="r_gripper_r_finger_joint">
-    <stopKd value="1.0"/>
-    <stopKp value="10000000.0"/>
-    <fudgeFactor value="1.0"/>
-    <provideFeedback value="true"/>
-  </gazebo>
   <!-- Finger tip -->
-  <gazebo reference="r_gripper_l_finger_tip_link">
-    <turnGravityOff>true</turnGravityOff>
-    <selfCollide>false</selfCollide>
-    <sensor name="r_gripper_l_finger_tip_contact_sensor" type="contact">
-      <update_rate>100.0</update_rate>
-      <contact>
-        <collision>r_gripper_l_finger_tip_link_collision</collision>
-      </contact>
-      <plugin filename="libgazebo_ros_bumper.so" name="r_gripper_l_finger_tip_gazebo_ros_bumper_controller">
-        <alwaysOn>true</alwaysOn>
-        <frameName>r_gripper_l_finger_tip_link</frameName>
-        <updateRate>100.0</updateRate>
-        <bumperTopicName>r_gripper_l_finger_tip_bumper</bumperTopicName>
-      </plugin>
-    </sensor>
-    <mu1 value="500.0"/>
-    <mu2 value="500.0"/>
-    <kp value="10000000.0"/>
-    <kd value="1.0"/>
-  </gazebo>
-  <gazebo reference="r_gripper_l_finger_tip_joint">
-    <stopKd value="1.0"/>
-    <stopKp value="10000000.0"/>
-    <fudgeFactor value="1.0"/>
-    <provideFeedback value="true"/>
-  </gazebo>
   <!-- Finger tip -->
-  <gazebo reference="r_gripper_r_finger_tip_link">
-    <turnGravityOff>true</turnGravityOff>
-    <selfCollide>false</selfCollide>
-    <sensor name="r_gripper_r_finger_tip_contact_sensor" type="contact">
-      <update_rate>100.0</update_rate>
-      <contact>
-        <collision>r_gripper_r_finger_tip_link_collision</collision>
-      </contact>
-      <plugin filename="libgazebo_ros_bumper.so" name="r_gripper_r_finger_tip_gazebo_ros_bumper_controller">
-        <alwaysOn>true</alwaysOn>
-        <frameName>r_gripper_r_finger_tip_link</frameName>
-        <updateRate>100.0</updateRate>
-        <bumperTopicName>r_gripper_r_finger_tip_bumper</bumperTopicName>
-      </plugin>
-    </sensor>
-    <mu1 value="500.0"/>
-    <mu2 value="500.0"/>
-    <kp value="10000000.0"/>
-    <kd value="1.0"/>
-  </gazebo>
-  <gazebo>
-    <plugin filename="libgazebo_ros_p3d.so" name="p3d_r_gripper_l_finger_controller">
-      <alwaysOn>true</alwaysOn>
-      <updateRate>100.0</updateRate>
-      <bodyName>r_gripper_l_finger_link</bodyName>
-      <topicName>r_gripper_l_finger_pose_ground_truth</topicName>
-      <gaussianNoise>0.0</gaussianNoise>
-      <frameName>base_link</frameName>
-    </plugin>
-    <plugin filename="libgazebo_ros_f3d.so" name="f3d_r_gripper_l_finger_controller">
-      <alwaysOn>true</alwaysOn>
-      <updateRate>100.0</updateRate>
-      <bodyName>r_gripper_l_finger_link</bodyName>
-      <topicName>r_gripper_l_finger_force_ground_truth</topicName>
-    </plugin>
-  </gazebo>
-  <gazebo reference="r_gripper_r_finger_tip_joint">
-    <stopKd value="1.0"/>
-    <stopKp value="10000000.0"/>
-    <fudgeFactor value="1.0"/>
-    <provideFeedback value="true"/>
-  </gazebo>
   <!-- parallel link for simulating gripper constraints -->
-  <gazebo>
-    <link name="r_gripper_l_parallel_link">
-      <inertial>
-        <mass>0.17126</mass>
-        <inertia>
-          <ixx>7.7562e-05</ixx>
-          <ixy>1.49095e-06</ixy>
-          <ixz>-9.83385e-06</ixz>
-          <iyy>0.000197083</iyy>
-          <iyz>-3.06125e-06</iyz>
-          <izz>0.000181054</izz>
-        </inertia>
-        <pose>0.03598 0.0173 -0.00164 0 0 0</pose>
-      </inertial>
-      <pose>0.82991 -0.157 0.790675 0 -0 0</pose>
-      <gravity>false</gravity>
-    </link>
-    <link name="r_gripper_r_parallel_link">
-      <inertial>
-        <mass>0.17389</mass>
-        <inertia>
-          <ixx>7.73841e-05</ixx>
-          <ixy>-2.09309e-06</ixy>
-          <ixz>-8.36228e-06</ixz>
-          <iyy>0.000198474</iyy>
-          <iyz>2.4611e-06</iyz>
-          <izz>0.00018107</izz>
-        </inertia>
-        <pose>0.03576 -0.01736 -0.00095 0 0 0</pose>
-      </inertial>
-      <pose>0.82991 -0.219 0.790675 0 0 0</pose>
-      <gravity>false</gravity>
-    </link>
-  </gazebo>
-  <gazebo>
-    <joint name="r_gripper_r_screw_screw_joint" type="screw">
-      <child>r_gripper_motor_screw_link</child>
-      <parent>r_gripper_r_finger_tip_link</parent>
-      <thread_pitch>-3141.6</thread_pitch>
-      <axis>
-        <xyz>0 1 0</xyz>
-      </axis>
-    </joint>
-    <joint name="r_gripper_l_screw_screw_joint" type="screw">
-      <parent>r_gripper_l_finger_tip_link</parent>
-      <child>r_gripper_motor_screw_link</child>
-      <thread_pitch>3141.6</thread_pitch>
-      <axis>
-        <xyz>0 1 0</xyz>
-      </axis>
-    </joint>
-  </gazebo>
-  <gazebo>
-    <joint name="r_gripper_r_parallel_root_joint" type="revolute">
-      <parent>r_gripper_r_parallel_link</parent>
-      <child>r_gripper_palm_link</child>
-      <axis>
-        <xyz>0 0 -1</xyz>
-        <dynamics>
-          <damping>0.2</damping>
-        </dynamics>
-      </axis>
-      <pose>0.05891 -0.031 0 0 0 0</pose>
-    </joint>
-    <joint name="r_gripper_l_parallel_root_joint" type="revolute">
-      <parent>r_gripper_l_parallel_link</parent>
-      <child>r_gripper_palm_link</child>
-      <axis>
-        <xyz>0 0 1</xyz>
-        <dynamics>
-          <damping>0.2</damping>
-        </dynamics>
-      </axis>
-      <pose>0.05891 0.031 0 0 0 0</pose>
-    </joint>
-    <joint name="r_gripper_r_parallel_tip_joint" type="revolute">
-      <parent>r_gripper_r_parallel_link</parent>
-      <child>r_gripper_r_finger_tip_link</child>
-      <axis>
-        <xyz>0 0 1</xyz>
-      </axis>
-      <pose>-0.018 -0.021 0 0 0 0</pose>
-    </joint>
-    <joint name="r_gripper_l_parallel_tip_joint" type="revolute">
-      <parent>r_gripper_l_parallel_link</parent>
-      <child>r_gripper_l_finger_tip_link</child>
-      <axis>
-        <xyz>0 0 1</xyz>
-      </axis>
-      <pose>-0.018 0.021 0 0 0 0</pose>
-    </joint>
-    <joint name="r_gripper_joint" type="prismatic">
-      <parent>r_gripper_r_finger_tip_link</parent>
-      <child>r_gripper_l_finger_tip_link</child>
-      <axis>
-        <xyz>0 1 0</xyz>
-      </axis>
-    </joint>
-  </gazebo>
-  <gazebo reference="r_gripper_motor_slider_link">
-    <turnGravityOff>true</turnGravityOff>
-    <material value="PR2/Red"/>
-  </gazebo>
-  <gazebo reference="r_gripper_motor_screw_link">
-    <turnGravityOff>true</turnGravityOff>
-    <material value="PR2/Red"/>
-  </gazebo>
-  <gazebo reference="r_gripper_l_parallel_link">
-    <turnGravityOff>true</turnGravityOff>
-    <material value="PR2/Red"/>
-  </gazebo>
-  <gazebo reference="r_gripper_r_parallel_link">
-    <turnGravityOff>true</turnGravityOff>
-    <material value="PR2/Red"/>
-  </gazebo>
   <!-- fictitous joint that represents the gripper gap -->
   <!-- effort is the linear force at the gripper gap
          velocity limit is the linear velocity limit at the gripper gap
@@ -2280,32 +1544,6 @@
 	 but because the urdf does not support graph structures,
 	 this link exists twice -->
   <link name="r_gripper_l_finger_tip_frame"/>
-  <gazebo reference="r_gripper_palm_link">
-    <turnGravityOff>true</turnGravityOff>
-  </gazebo>
-  <gazebo>
-    <plugin filename="libgazebo_ros_p3d.so" name="p3d_r_gripper_palm_controller">
-      <alwaysOn>true</alwaysOn>
-      <updateRate>100.0</updateRate>
-      <bodyName>r_gripper_palm_link</bodyName>
-      <topicName>r_gripper_palm_pose_ground_truth</topicName>
-      <xyzOffsets>0 0 0</xyzOffsets>
-      <rpyOffsets>0 0 0</rpyOffsets>
-      <gaussianNoise>0.0</gaussianNoise>
-      <frameName>map</frameName>
-    </plugin>
-    <!-- a formal implementation of grasp hack in gazebo with fixed joint -->
-    <gripper name="r_grasp_hack">
-      <grasp_check>
-        <attach_steps>20</attach_steps>
-        <detach_steps>40</detach_steps>
-        <min_contact_count>2</min_contact_count>
-      </grasp_check>
-      <gripper_link>r_gripper_r_finger_tip_link</gripper_link>
-      <gripper_link>r_gripper_l_finger_tip_link</gripper_link>
-      <palm_link>r_gripper_palm_link</palm_link>
-    </gripper>
-  </gazebo>
   <!-- [lr]_gripper_joint is a fictitious joint, used by transmission for controller gap   -->
   <!-- [lr]_gripper_joint is not attached to any link                                      -->
   <!-- [lr]_gripper_joint position is the gap_size                                         -->
@@ -2415,32 +1653,9 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="l_upper_arm_roll_link">
-    <material value="PR2/RollLinks"/>
-    <turnGravityOff>true</turnGravityOff>
-  </gazebo>
-  <gazebo reference="l_upper_arm_roll_joint">
-    <stopKd value="1.0"/>
-    <stopKp value="1000000.0"/>
-    <fudgeFactor value="0.5"/>
-  </gazebo>
   <!-- Upperarm roll: internal fixed attchment point for upper arm -->
   <!-- Shoulder pan -->
-  <gazebo reference="l_shoulder_pan_link">
-    <turnGravityOff>true</turnGravityOff>
-  </gazebo>
-  <gazebo reference="l_shoulder_pan_joint">
-    <stopKd value="1.0"/>
-    <stopKp value="1000000.0"/>
-  </gazebo>
   <!-- Shoulder lift -->
-  <gazebo reference="l_shoulder_lift_link">
-    <turnGravityOff>true</turnGravityOff>
-  </gazebo>
-  <gazebo reference="l_shoulder_lift_joint">
-    <stopKd value="1.0"/>
-    <stopKp value="1000000.0"/>
-  </gazebo>
   <!-- Shoulder pan -->
   <joint name="l_upper_arm_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -2468,9 +1683,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="l_upper_arm_link">
-    <turnGravityOff>true</turnGravityOff>
-  </gazebo>
   <!-- Has upperarm link -->
   <!-- No transmission, since this a fixed joint w/o actuator -->
   <!-- forearm_roll_link is a fictitious link internal to elbow_flex_link, provides an attachment point for the actual forearm -->
@@ -2508,13 +1720,6 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="l_forearm_roll_link">
-    <material value="PR2/RollLinks"/>
-    <turnGravityOff>true</turnGravityOff>
-  </gazebo>
-  <gazebo reference="l_forearm_roll_joint">
-    <fudgeFactor value="0.5"/>
-  </gazebo>
   <!-- Elbow flex -->
   <joint name="l_elbow_flex_joint" type="revolute">
     <axis xyz="0 1 0"/>
@@ -2549,17 +1754,7 @@
     </collision>
   </link>
   <!-- testing initial joint position, to be parsed at urdf2gazebo parse time ->
-    <gazebo reference="${side}_elbow_flex_joint">
-      <initial_joint_position>-1.0</initial_joint_position>
-    </gazebo>
     -->
-  <gazebo reference="l_elbow_flex_link">
-    <turnGravityOff>true</turnGravityOff>
-  </gazebo>
-  <gazebo reference="l_elbow_flex_joint">
-    <stopKd value="1.0"/>
-    <stopKp value="1000000.0"/>
-  </gazebo>
   <!-- Elbow flex -->
   <joint name="l_forearm_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -2652,25 +1847,8 @@
       </geometry>
     </collision>
   </link>
-  <gazebo reference="l_forearm_link">
-    <turnGravityOff>true</turnGravityOff>
-  </gazebo>
   <!-- Wrist flex -->
-  <gazebo reference="l_wrist_flex_link">
-    <turnGravityOff>true</turnGravityOff>
-  </gazebo>
-  <gazebo reference="l_wrist_flex_joint">
-    <stopKd value="1.0"/>
-    <stopKp value="1000000.0"/>
-  </gazebo>
   <!-- Wrist roll -->
-  <gazebo reference="l_wrist_roll_link">
-    <turnGravityOff>true</turnGravityOff>
-    <material value="PR2/RollLinks"/>
-  </gazebo>
-  <gazebo reference="l_wrist_roll_joint">
-    <fudgeFactor value="0.5"/>
-  </gazebo>
   <!-- Wrist flex , Wrist roll -->
   <joint name="l_gripper_palm_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -2931,220 +2109,10 @@
     </collision>
   </link>
   <!-- Finger proximal digit -->
-  <gazebo reference="l_gripper_l_finger_link">
-    <turnGravityOff>true</turnGravityOff>
-    <mu1 value="500.0"/>
-    <mu2 value="500.0"/>
-    <kp value="1000000.0"/>
-    <kd value="1.0"/>
-    <!-- for "${prefix}_l_finger_joint"-->
-  </gazebo>
-  <gazebo reference="l_gripper_l_finger_joint">
-    <stopKd value="1.0"/>
-    <stopKp value="10000000.0"/>
-    <fudgeFactor value="1.0"/>
-    <provideFeedback value="true"/>
-  </gazebo>
   <!-- Finger proximal digit -->
-  <gazebo reference="l_gripper_r_finger_link">
-    <turnGravityOff>true</turnGravityOff>
-    <mu1 value="500.0"/>
-    <mu2 value="500.0"/>
-    <kp value="1000000.0"/>
-    <kd value="1.0"/>
-  </gazebo>
-  <gazebo reference="l_gripper_r_finger_joint">
-    <stopKd value="1.0"/>
-    <stopKp value="10000000.0"/>
-    <fudgeFactor value="1.0"/>
-    <provideFeedback value="true"/>
-  </gazebo>
   <!-- Finger tip -->
-  <gazebo reference="l_gripper_l_finger_tip_link">
-    <turnGravityOff>true</turnGravityOff>
-    <selfCollide>false</selfCollide>
-    <sensor name="l_gripper_l_finger_tip_contact_sensor" type="contact">
-      <update_rate>100.0</update_rate>
-      <contact>
-        <collision>l_gripper_l_finger_tip_link_collision</collision>
-      </contact>
-      <plugin filename="libgazebo_ros_bumper.so" name="l_gripper_l_finger_tip_gazebo_ros_bumper_controller">
-        <alwaysOn>true</alwaysOn>
-        <frameName>l_gripper_l_finger_tip_link</frameName>
-        <updateRate>100.0</updateRate>
-        <bumperTopicName>l_gripper_l_finger_tip_bumper</bumperTopicName>
-      </plugin>
-    </sensor>
-    <mu1 value="500.0"/>
-    <mu2 value="500.0"/>
-    <kp value="10000000.0"/>
-    <kd value="1.0"/>
-  </gazebo>
-  <gazebo reference="l_gripper_l_finger_tip_joint">
-    <stopKd value="1.0"/>
-    <stopKp value="10000000.0"/>
-    <fudgeFactor value="1.0"/>
-    <provideFeedback value="true"/>
-  </gazebo>
   <!-- Finger tip -->
-  <gazebo reference="l_gripper_r_finger_tip_link">
-    <turnGravityOff>true</turnGravityOff>
-    <selfCollide>false</selfCollide>
-    <sensor name="l_gripper_r_finger_tip_contact_sensor" type="contact">
-      <update_rate>100.0</update_rate>
-      <contact>
-        <collision>l_gripper_r_finger_tip_link_collision</collision>
-      </contact>
-      <plugin filename="libgazebo_ros_bumper.so" name="l_gripper_r_finger_tip_gazebo_ros_bumper_controller">
-        <alwaysOn>true</alwaysOn>
-        <frameName>l_gripper_r_finger_tip_link</frameName>
-        <updateRate>100.0</updateRate>
-        <bumperTopicName>l_gripper_r_finger_tip_bumper</bumperTopicName>
-      </plugin>
-    </sensor>
-    <mu1 value="500.0"/>
-    <mu2 value="500.0"/>
-    <kp value="10000000.0"/>
-    <kd value="1.0"/>
-  </gazebo>
-  <gazebo>
-    <plugin filename="libgazebo_ros_p3d.so" name="p3d_l_gripper_l_finger_controller">
-      <alwaysOn>true</alwaysOn>
-      <updateRate>100.0</updateRate>
-      <bodyName>l_gripper_l_finger_link</bodyName>
-      <topicName>l_gripper_l_finger_pose_ground_truth</topicName>
-      <gaussianNoise>0.0</gaussianNoise>
-      <frameName>base_link</frameName>
-    </plugin>
-    <plugin filename="libgazebo_ros_f3d.so" name="f3d_l_gripper_l_finger_controller">
-      <alwaysOn>true</alwaysOn>
-      <updateRate>100.0</updateRate>
-      <bodyName>l_gripper_l_finger_link</bodyName>
-      <topicName>l_gripper_l_finger_force_ground_truth</topicName>
-    </plugin>
-  </gazebo>
-  <gazebo reference="l_gripper_r_finger_tip_joint">
-    <stopKd value="1.0"/>
-    <stopKp value="10000000.0"/>
-    <fudgeFactor value="1.0"/>
-    <provideFeedback value="true"/>
-  </gazebo>
   <!-- parallel link for simulating gripper constraints -->
-  <gazebo>
-    <link name="l_gripper_l_parallel_link">
-      <inertial>
-        <mass>0.17126</mass>
-        <inertia>
-          <ixx>7.7562e-05</ixx>
-          <ixy>1.49095e-06</ixy>
-          <ixz>-9.83385e-06</ixz>
-          <iyy>0.000197083</iyy>
-          <iyz>-3.06125e-06</iyz>
-          <izz>0.000181054</izz>
-        </inertia>
-        <pose>0.03598 0.0173 -0.00164 0 0 0</pose>
-      </inertial>
-      <pose>0.82991 0.219 0.790675 0 -0 0</pose>
-      <gravity>false</gravity>
-    </link>
-    <link name="l_gripper_r_parallel_link">
-      <inertial>
-        <mass>0.17389</mass>
-        <inertia>
-          <ixx>7.73841e-05</ixx>
-          <ixy>-2.09309e-06</ixy>
-          <ixz>-8.36228e-06</ixz>
-          <iyy>0.000198474</iyy>
-          <iyz>2.4611e-06</iyz>
-          <izz>0.00018107</izz>
-        </inertia>
-        <pose>0.03576 -0.01736 -0.00095 0 0 0</pose>
-      </inertial>
-      <pose>0.82991 0.157 0.790675 0 0 0</pose>
-      <gravity>false</gravity>
-    </link>
-  </gazebo>
-  <gazebo>
-    <joint name="l_gripper_r_screw_screw_joint" type="screw">
-      <child>l_gripper_motor_screw_link</child>
-      <parent>l_gripper_r_finger_tip_link</parent>
-      <thread_pitch>-3141.6</thread_pitch>
-      <axis>
-        <xyz>0 1 0</xyz>
-      </axis>
-    </joint>
-    <joint name="l_gripper_l_screw_screw_joint" type="screw">
-      <parent>l_gripper_l_finger_tip_link</parent>
-      <child>l_gripper_motor_screw_link</child>
-      <thread_pitch>3141.6</thread_pitch>
-      <axis>
-        <xyz>0 1 0</xyz>
-      </axis>
-    </joint>
-  </gazebo>
-  <gazebo>
-    <joint name="l_gripper_r_parallel_root_joint" type="revolute">
-      <parent>l_gripper_r_parallel_link</parent>
-      <child>l_gripper_palm_link</child>
-      <axis>
-        <xyz>0 0 -1</xyz>
-        <dynamics>
-          <damping>0.2</damping>
-        </dynamics>
-      </axis>
-      <pose>0.05891 -0.031 0 0 0 0</pose>
-    </joint>
-    <joint name="l_gripper_l_parallel_root_joint" type="revolute">
-      <parent>l_gripper_l_parallel_link</parent>
-      <child>l_gripper_palm_link</child>
-      <axis>
-        <xyz>0 0 1</xyz>
-        <dynamics>
-          <damping>0.2</damping>
-        </dynamics>
-      </axis>
-      <pose>0.05891 0.031 0 0 0 0</pose>
-    </joint>
-    <joint name="l_gripper_r_parallel_tip_joint" type="revolute">
-      <parent>l_gripper_r_parallel_link</parent>
-      <child>l_gripper_r_finger_tip_link</child>
-      <axis>
-        <xyz>0 0 1</xyz>
-      </axis>
-      <pose>-0.018 -0.021 0 0 0 0</pose>
-    </joint>
-    <joint name="l_gripper_l_parallel_tip_joint" type="revolute">
-      <parent>l_gripper_l_parallel_link</parent>
-      <child>l_gripper_l_finger_tip_link</child>
-      <axis>
-        <xyz>0 0 1</xyz>
-      </axis>
-      <pose>-0.018 0.021 0 0 0 0</pose>
-    </joint>
-    <joint name="l_gripper_joint" type="prismatic">
-      <parent>l_gripper_r_finger_tip_link</parent>
-      <child>l_gripper_l_finger_tip_link</child>
-      <axis>
-        <xyz>0 1 0</xyz>
-      </axis>
-    </joint>
-  </gazebo>
-  <gazebo reference="l_gripper_motor_slider_link">
-    <turnGravityOff>true</turnGravityOff>
-    <material value="PR2/Red"/>
-  </gazebo>
-  <gazebo reference="l_gripper_motor_screw_link">
-    <turnGravityOff>true</turnGravityOff>
-    <material value="PR2/Red"/>
-  </gazebo>
-  <gazebo reference="l_gripper_l_parallel_link">
-    <turnGravityOff>true</turnGravityOff>
-    <material value="PR2/Red"/>
-  </gazebo>
-  <gazebo reference="l_gripper_r_parallel_link">
-    <turnGravityOff>true</turnGravityOff>
-    <material value="PR2/Red"/>
-  </gazebo>
   <!-- fictitous joint that represents the gripper gap -->
   <!-- effort is the linear force at the gripper gap
          velocity limit is the linear velocity limit at the gripper gap
@@ -3165,32 +2133,6 @@
 	 but because the urdf does not support graph structures,
 	 this link exists twice -->
   <link name="l_gripper_l_finger_tip_frame"/>
-  <gazebo reference="l_gripper_palm_link">
-    <turnGravityOff>true</turnGravityOff>
-  </gazebo>
-  <gazebo>
-    <plugin filename="libgazebo_ros_p3d.so" name="p3d_l_gripper_palm_controller">
-      <alwaysOn>true</alwaysOn>
-      <updateRate>100.0</updateRate>
-      <bodyName>l_gripper_palm_link</bodyName>
-      <topicName>l_gripper_palm_pose_ground_truth</topicName>
-      <xyzOffsets>0 0 0</xyzOffsets>
-      <rpyOffsets>0 0 0</rpyOffsets>
-      <gaussianNoise>0.0</gaussianNoise>
-      <frameName>map</frameName>
-    </plugin>
-    <!-- a formal implementation of grasp hack in gazebo with fixed joint -->
-    <gripper name="l_grasp_hack">
-      <grasp_check>
-        <attach_steps>20</attach_steps>
-        <detach_steps>40</detach_steps>
-        <min_contact_count>2</min_contact_count>
-      </grasp_check>
-      <gripper_link>l_gripper_r_finger_tip_link</gripper_link>
-      <gripper_link>l_gripper_l_finger_tip_link</gripper_link>
-      <palm_link>l_gripper_palm_link</palm_link>
-    </gripper>
-  </gazebo>
   <!-- [lr]_gripper_joint is a fictitious joint, used by transmission for controller gap   -->
   <!-- [lr]_gripper_joint is not attached to any link                                      -->
   <!-- [lr]_gripper_joint position is the gap_size                                         -->
@@ -3218,46 +2160,6 @@
     <child link="l_forearm_cam_optical_frame"/>
   </joint>
   <link name="l_forearm_cam_optical_frame"/>
-  <gazebo reference="l_forearm_cam_frame">
-    <sensor name="l_forearm_cam_sensor" type="camera">
-      <always_on>true</always_on>
-      <update_rate>25.0</update_rate>
-      <camera>
-        <horizontal_fov>1.57079632679</horizontal_fov>
-        <image>
-          <format>R8G8B8</format>
-          <width>640</width>
-          <height>480</height>
-        </image>
-        <clip>
-          <near>0.1</near>
-          <far>100</far>
-        </clip>
-      </camera>
-      <plugin filename="libgazebo_ros_camera.so" name="l_forearm_cam_controller">
-        <alwaysOn>true</alwaysOn>
-        <updateRate>25.0</updateRate>
-        <cameraName>l_forearm_cam</cameraName>
-        <imageTopicName>image_raw</imageTopicName>
-        <cameraInfoTopicName>camera_info</cameraInfoTopicName>
-        <frameName>l_forearm_cam_optical_frame</frameName>
-        <hackBaseline>0</hackBaseline>
-        <CxPrime>320.5</CxPrime>
-        <Cx>320.5</Cx>
-        <Cy>240.5</Cy>
-        <!-- image_width / (2*tan(hfov_radian /2)) -->
-        <!-- 320 for wide and 772.55 for narrow stereo camera -->
-        <focalLength>320.000105</focalLength>
-        <distortionK1>0.0</distortionK1>
-        <distortionK2>0.0</distortionK2>
-        <distortionK3>0.0</distortionK3>
-        <distortionT1>0.0</distortionT1>
-        <distortionT2>0.0</distortionT2>
-      </plugin>
-    </sensor>
-    <turnGravityOff>true</turnGravityOff>
-    <material>PR2/Blue</material>
-  </gazebo>
   <joint name="r_forearm_cam_frame_joint" type="fixed">
     <origin rpy="1.57079632679 -0.562868683768 0" xyz=".135 0 .044"/>
     <parent link="r_forearm_roll_link"/>
@@ -3276,44 +2178,5 @@
     <child link="r_forearm_cam_optical_frame"/>
   </joint>
   <link name="r_forearm_cam_optical_frame"/>
-  <gazebo reference="r_forearm_cam_frame">
-    <sensor name="r_forearm_cam_sensor" type="camera">
-      <always_on>true</always_on>
-      <update_rate>25.0</update_rate>
-      <camera>
-        <horizontal_fov>1.57079632679</horizontal_fov>
-        <image>
-          <format>R8G8B8</format>
-          <width>640</width>
-          <height>480</height>
-        </image>
-        <clip>
-          <near>0.1</near>
-          <far>100</far>
-        </clip>
-      </camera>
-      <plugin filename="libgazebo_ros_camera.so" name="r_forearm_cam_controller">
-        <alwaysOn>true</alwaysOn>
-        <updateRate>25.0</updateRate>
-        <cameraName>r_forearm_cam</cameraName>
-        <imageTopicName>image_raw</imageTopicName>
-        <cameraInfoTopicName>camera_info</cameraInfoTopicName>
-        <frameName>r_forearm_cam_optical_frame</frameName>
-        <hackBaseline>0</hackBaseline>
-        <CxPrime>320.5</CxPrime>
-        <Cx>320.5</Cx>
-        <Cy>240.5</Cy>
-        <!-- image_width / (2*tan(hfov_radian /2)) -->
-        <!-- 320 for wide and 772.55 for narrow stereo camera -->
-        <focalLength>320.000105</focalLength>
-        <distortionK1>0.0</distortionK1>
-        <distortionK2>0.0</distortionK2>
-        <distortionK3>0.0</distortionK3>
-        <distortionT1>0.0</distortionT1>
-        <distortionT2>0.0</distortionT2>
-      </plugin>
-    </sensor>
-    <turnGravityOff>true</turnGravityOff>
-    <material>PR2/Blue</material>
-  </gazebo>
 </robot>
+

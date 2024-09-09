@@ -1,6 +1,12 @@
+import threading
+import sys
+
+sys.path.insert(0, '/home/vee/robocup_workspaces/pycram_ws/src/pycram')
+
 from ipywidgets import Output
 
-from demos.pycram_virtual_building_demos.setup.setup_launch_robot import *
+from demos.pycram_virtual_building_demos.setup.setup_launch_robot import launch_pr2, launch_hsrb, launch_stretch, \
+    launch_tiago
 from demos.pycram_virtual_building_demos.setup.setup_utils import display_loading_gif_with_text, update_text
 import rospy
 
@@ -18,37 +24,45 @@ from pycram.process_module import simulated_robot
 from pycram.ros.viz_marker_publisher import VizMarkerPublisher
 from pycram.world_concepts.world_object import Object
 from pycram.worlds.bullet_world import BulletWorld
+import os
+import sys
+from contextlib import contextmanager
 
+
+# THIS IS ALL DONE IN THE SETUP via IPYTHON KERNEL
+# # actual world setup
+# extension = ObjectDescription.get_file_extension()
+# world = BulletWorld(WorldMode.DIRECT)
+# VizMarkerPublisher()
+# Object(robot_param, ObjectType.ROBOT, f"{robot_param}{extension}", pose=Pose([1, 2, 0]))
+# Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
+# tf = TFBroadcaster()
 
 def start_demo():
-    global output
-    output = Output()
-
+    # get params
     environment_param = rospy.get_param('/nbparam_environments')
     robot_param = rospy.get_param('/nbparam_robots')
     task_param = rospy.get_param('/nbparam_tasks')
-
-    if robot_param == 'pr2':
-        launch_pr2()
-    elif robot_param == 'hsrb':
-        launch_hsrb()
-    elif robot_param == 'stretch':
-        launch_stretch()
-    elif robot_param == 'tiago':
-        launch_tiago()
-    text_widget = display_loading_gif_with_text()
-    update_text(text_widget, 'Loading Everything...')
-    update_text(text_widget, 'Loading envi: ' + environment_param + ' robot: ' + robot_param + ' task: ' + task_param)
     extension = ObjectDescription.get_file_extension()
-    BulletWorld(WorldMode.DIRECT)
-    VizMarkerPublisher()
-    Object('pycram_robot', ObjectType.ROBOT, f"{robot_param}{extension}", pose=Pose([1, 2, 0]))
-    Object('pycram_environment', ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
+    # text widget for the virtual building
+    text_widget = display_loading_gif_with_text()
+    update_text(text_widget, 'Loading process~ Please wait...')
 
-    update_text(text_widget, 'Starting Demo')
+    world = BulletWorld(WorldMode.DIRECT)
+    VizMarkerPublisher()
+    Object(robot_param, ObjectType.ROBOT, f"{robot_param}{extension}", pose=Pose([1, 2, 0]))
+    Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
     tf = TFBroadcaster()
 
+    update_text(text_widget, 'Executing Demo: ' + task_param)
+
+    demo_selecting(task_param)
+
+    extension = ObjectDescription.get_file_extension()
+
+    update_text(text_widget, 'Done with: ' + task_param)
+
+
+def demo_selecting(task_param):
     if task_param == "navigate":
         navigate_simple_example()
-
-    update_text(text_widget, 'Done with the task...')
