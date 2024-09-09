@@ -1163,7 +1163,7 @@
     </inertial>
   </link>
   <joint name="gripper_left_tool_joint" type="fixed">
-    <origin rpy="1.5707963267948966 1.5707963267948966 -1.5707963267948966" xyz="0.01 0 0"/>
+    <origin rpy="1.5707963267948966 1.5707963267948966 -1.5707963267948966" xyz="0.18 0 0"/>
     <parent link="wrist_left_ft_tool_link"/>
     <child link="gripper_left_tool_link"/>
     <axis xyz="0 0 0"/>
@@ -1562,7 +1562,7 @@
     </inertial>
   </link>
   <joint name="gripper_right_tool_joint" type="fixed">
-    <origin rpy="1.5707963267948966 1.5707963267948966 -1.5707963267948966" xyz="0.01 0 0"/>
+    <origin rpy="1.5707963267948966 1.5707963267948966 -1.5707963267948966" xyz="0.18 0 0"/>
     <parent link="wrist_right_ft_tool_link"/>
     <child link="gripper_right_tool_link"/>
     <axis xyz="0 0 0"/>

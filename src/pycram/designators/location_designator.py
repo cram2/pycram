@@ -1,5 +1,6 @@
 import dataclasses
 import time
+from enum import Enum
 
 from tqdm import tqdm
 from typing_extensions import List, Union, Iterable, Optional, Callable
@@ -11,7 +12,7 @@ from ..ros.viz_marker_publisher import AxisMarkerPublisher
 from ..world_reasoning import link_pose_for_joint_config
 from ..designator import DesignatorError, LocationDesignatorDescription
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
-from ..datastructures.enums import JointType, Arms
+from ..datastructures.enums import JointType, Arms, Grasp
 from ..pose_generator_and_validator import PoseGenerator, visibility_validator, reachability_validator
 from ..robot_description import RobotDescription
 from ..datastructures.pose import Pose
@@ -117,7 +118,8 @@ class CostmapLocation(LocationDesignatorDescription):
     def __init__(self, target: Union[Pose, ObjectDesignatorDescription.Object],
                  reachable_for: Optional[ObjectDesignatorDescription.Object] = None,
                  visible_for: Optional[ObjectDesignatorDescription.Object] = None,
-                 reachable_arm: Optional[Arms] = None, resolver: Optional[Callable] = None):
+                 reachable_arm: Optional[Arms] = None, resolver: Optional[Callable] = None,
+                 used_grasps: Optional[List[Enum]] = None):
         """
         Location designator that uses costmaps as base to calculate locations for complex constrains like reachable or
         visible. In case of reachable the resolved location contains a list of arms with which the location is reachable.
@@ -133,6 +135,7 @@ class CostmapLocation(LocationDesignatorDescription):
         self.reachable_for: ObjectDesignatorDescription.Object = reachable_for
         self.visible_for: ObjectDesignatorDescription.Object = visible_for
         self.reachable_arm: Optional[Arms] = reachable_arm
+        self.used_grasps: Optional[List[Enum]] = used_grasps
 
     def ground(self) -> Location:
         """
@@ -167,6 +170,9 @@ class CostmapLocation(LocationDesignatorDescription):
         ground_pose = Pose(target_pose.position_as_list())
         ground_pose.position.z = 0
         distance_to_obstacle = RobotDescription.current_robot_description.get_costmap_offset()
+        if self.used_grasps:
+            if RobotDescription.current_robot_description.name == "tiago_dual" and self.used_grasps[0] == Grasp.TOP:
+                distance_to_obstacle = 0.05
         occupancy = OccupancyCostmap(distance_to_obstacle, False, 200, 0.02, ground_pose)
         final_map = occupancy
 
@@ -180,9 +186,24 @@ class CostmapLocation(LocationDesignatorDescription):
         if self.visible_for or self.reachable_for:
             robot_object = self.visible_for.world_object if self.visible_for else self.reachable_for.world_object
             test_robot = World.current_world.get_prospection_object_for_object(robot_object)
+        gripper_pose = None
+        if RobotDescription.current_robot_description.name == "tiago_dual":
+            if self.used_grasps:
+                grasp = \
+                RobotDescription.current_robot_description.get_arm_chain(self.reachable_arm).end_effector.grasps[
+                    self.used_grasps[0]]
+                target_pose = target_pose.copy()
+                target_pose.multiply_quaternions(grasp)
+
+            gripper_pose = World.robot.get_link_pose(
+                RobotDescription.current_robot_description.get_arm_chain(self.reachable_arm).get_tool_frame())
+
         # final_map.visualize()
         with UseProspectionWorld():
-            for maybe_pose in tqdm(PoseGenerator(final_map, number_of_samples=600)):
+            for maybe_pose in PoseGenerator(final_map, number_of_samples=600):
+                if gripper_pose:
+                    marker = AxisMarkerPublisher()
+                    marker.publish([maybe_pose, target_pose, gripper_pose], length=0.5)
                 res = True
                 arms = None
                 if self.visible_for:
@@ -248,12 +269,15 @@ class AccessingLocation(LocationDesignatorDescription):
         ground_pose.position.z = 0
         distance_to_obstacle = RobotDescription.current_robot_description.get_costmap_offset()
 
-        occupancy = OccupancyCostmap(distance_to_obstacle=distance_to_obstacle, from_ros=False, size=200, resolution=0.02,
+        if self.robot.name == "tiago_dual":
+            distance_to_obstacle = 0.4
+
+        occupancy = OccupancyCostmap(distance_to_obstacle=distance_to_obstacle, from_ros=False, size=200,
+                                     resolution=0.02,
                                      origin=ground_pose)
         gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)
 
         final_map = occupancy + gaussian
-
 
         test_robot = World.current_world.get_prospection_object_for_object(self.robot)
 
@@ -274,9 +298,21 @@ class AccessingLocation(LocationDesignatorDescription):
             container_joint: self.handle.world_object.get_joint_limits(container_joint)[1] / 1.5},
                                                self.handle.name)
 
+        if self.robot.name == "tiago_dual":
+            init_pose.set_orientation([0, 0, 0, 1])
+            goal_pose.set_orientation([0, 0, 0, 1])
+            half_pose.set_orientation([0, 0, 0, 1])
+
+            grasp = RobotDescription.current_robot_description.get_arm_chain(Arms.RIGHT).end_effector.grasps[
+                Grasp.FRONT]
+            init_pose.multiply_quaternions(grasp)
+            goal_pose.multiply_quaternions(grasp)
+            half_pose.multiply_quaternions(grasp)
+
         with UseProspectionWorld():
             for maybe_pose in PoseGenerator(final_map, number_of_samples=600,
-                                             orientation_generator=lambda p, o: PoseGenerator.generate_orientation(p, half_pose)):
+                                            orientation_generator=lambda p, o: PoseGenerator.generate_orientation(p,
+                                                                                                                  half_pose)):
 
                 hand_links = []
                 for description in RobotDescription.current_robot_description.get_manipulator_chains():

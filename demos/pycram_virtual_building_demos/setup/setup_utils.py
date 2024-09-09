@@ -35,5 +35,7 @@ def get_robot_name(robot_name):
         return 'rollin_justin'
     elif robot_name == 'donbot':
         return 'iai_donbot'
+    elif robot_name == 'tiago':
+        return 'tiago_dual'
 
     return robot_name

@@ -14,10 +14,8 @@ extension = ObjectDescription.get_file_extension()
 
 world = BulletWorld(WorldMode.DIRECT)
 viz = VizMarkerPublisher()
-
-# robot = Object("rollin_justin", ObjectType.ROBOT, f"rollin_justin{extension}", pose=Pose([1, 2, 0]))
-# robot = Object("iCub", ObjectType.ROBOT, f"iCub{extension}", pose=Pose([1, 2, 0]))
-robot = Object("iai_donbot", ObjectType.ROBOT, f"iai_donbot{extension}", pose=Pose([1, 2, 0]))
+robot_name = "tiago_dual"
+robot = Object(robot_name, ObjectType.ROBOT, f"{robot_name}{extension}", pose=Pose([1, 2, 0]))
 
 apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment-small{extension}")
 
@@ -33,7 +31,7 @@ apartment.attach(spoon, 'cabinet10_drawer_top')
 
 pick_pose = Pose([2.7, 2.15, 1])
 
-robot_desig = BelieveObject(names=["iai_donbot"])
+robot_desig = BelieveObject(names=[robot_name])
 apartment_desig = BelieveObject(names=["apartment"])
 
 
@@ -67,12 +65,13 @@ with simulated_robot:
 
     # Finding and navigating to the drawer holding the spoon
     handle_desig = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig.resolve())
-    drawer_open_loc = AccessingLocation(handle_desig=handle_desig.resolve(),
-                                        robot_desig=robot_desig.resolve()).resolve()
 
     if robot.name == "rollin_justin":
         pose = Pose([1.4, 1.6, 0], [0, 0, 0.2040033016133158, 0.9789702002261697])
         drawer_open_loc = AccessingLocation.Location(pose, [Arms.LEFT])
+    else:
+        drawer_open_loc = AccessingLocation(handle_desig=handle_desig.resolve(),
+                                            robot_desig=robot_desig.resolve()).resolve()
 
     NavigateAction([drawer_open_loc.pose]).resolve().perform()
 
@@ -108,11 +107,16 @@ with simulated_robot:
         ParkArmsAction([Arms.BOTH]).resolve().perform()
 
     else:
+        if robot.name == "tiago_dual":
+            NavigateAction([Pose([1.45, 2.7, 0], [0, 0, 0, 1])]).resolve().perform()
+
         pickup_arm = Arms.LEFT if drawer_open_loc.arms[0] == Arms.RIGHT else Arms.RIGHT
         ParkArmsAction([Arms.BOTH]).resolve().perform()
         PickUpAction(spoon_desig, [pickup_arm], [Grasp.TOP]).resolve().perform()
 
         ParkArmsAction([Arms.LEFT if pickup_arm == Arms.LEFT else Arms.RIGHT]).resolve().perform()
+
+        NavigateAction([drawer_open_loc.pose]).resolve().perform()
 
         CloseAction(object_designator_description=handle_desig, arms=[drawer_open_loc.arms[0]]).resolve().perform()
 
@@ -122,7 +126,7 @@ with simulated_robot:
 
         # Find a pose to place the spoon, move and then place it
         spoon_target_pose = Pose([4.85, 3.3, 0.8], [0, 0, 1, 1])
-        placing_loc = CostmapLocation(target=spoon_target_pose, reachable_for=robot_desig.resolve()).resolve()
+        placing_loc = CostmapLocation(target=spoon_target_pose, reachable_for=robot_desig.resolve(), reachable_arm=pickup_arm, used_grasps=[Grasp.TOP]).resolve()
 
         NavigateAction([placing_loc.pose]).resolve().perform()
 
