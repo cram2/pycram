@@ -1048,7 +1048,7 @@ class TransportActionPerformable(ActionAbstract):
         robot_desig = BelieveObject(names=[RobotDescription.current_robot_description.name])
         ParkArmsActionPerformable(Arms.BOTH).perform()
 
-        if self.object_designator.obj_type == ObjectType.BOWL:
+        if self.object_designator.obj_type == ObjectType.BOWL or self.object_designator.obj_type == ObjectType.SPOON:
             grasp = Grasp.TOP
         else:
             grasp = Grasp.FRONT

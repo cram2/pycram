@@ -171,8 +171,11 @@ class CostmapLocation(LocationDesignatorDescription):
         ground_pose.position.z = 0
         distance_to_obstacle = RobotDescription.current_robot_description.get_costmap_offset()
         if self.used_grasps:
-            if RobotDescription.current_robot_description.name == "tiago_dual" and self.used_grasps[0] == Grasp.TOP:
-                distance_to_obstacle = 0.05
+            if self.used_grasps[0] == Grasp.TOP:
+                if RobotDescription.current_robot_description.name == "tiago_dual":
+                    distance_to_obstacle = 0.05
+                elif RobotDescription.current_robot_description.name == "pr2":
+                    distance_to_obstacle = 0.15
         occupancy = OccupancyCostmap(distance_to_obstacle, False, 200, 0.02, ground_pose)
         final_map = occupancy
 
