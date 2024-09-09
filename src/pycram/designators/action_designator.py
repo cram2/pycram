@@ -543,6 +543,39 @@ class CuttingAction(ActionDesignatorDescription):
                                   self.slice_thickness)
 
 
+class MixingAction(ActionDesignatorDescription):
+    """
+    Designator to let the robot perform a mixing action.
+    """
+
+    def __init__(self, object_designator_description: ObjectDesignatorDescription,
+                 object_tool_designator_description: ObjectDesignatorDescription, arms: List[Arms], grasps: List[Grasp],
+                 resolver=None):
+        """
+        Initialize the MixingAction with object and tool designators, arms, and grasps.
+
+        :param object_designator_description: Object designator for the object to be mixed.
+        :param object_tool_designator_description: Object designator for the mixing tool.
+        :param arms: List of possible arms that could be used.
+        :param grasps: List of possible grasps for the mixing action.
+        :param resolver: An optional resolver for dynamic parameter selection.
+        """
+        super(MixingAction, self).__init__(resolver)
+        self.object_designator_description: ObjectDesignatorDescription = object_designator_description
+        self.object_tool_designator_description: ObjectDesignatorDescription = object_tool_designator_description
+        self.arms: List[Arms] = arms
+        self.grasps: List[Grasp] = grasps
+
+    def ground(self) -> MixingPerformable:
+        """
+        Default resolver, returns a performable designator with the first entries from the lists of possible parameter.
+
+        :return: A performable designator
+        """
+        return MixingPerformable(self.object_designator_description, self.object_tool_designator_description,
+                                 self.arms[0], self.grasps[0])
+
+
 # ----------------------------------------------------------------------------
 # ---------------- Performables ----------------------------------------------
 # ----------------------------------------------------------------------------
@@ -620,6 +653,89 @@ class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC):
         session.add(action)
 
         return action
+
+
+@dataclass
+class MixingPerformable(ActionAbstract):
+    """
+        Action class for the Mixing action.
+        """
+
+    object_designator: ObjectDesignatorDescription.Object
+    """
+        Object designator describing the object that should be mixed.
+        """
+
+    object_tool_designator: ObjectDesignatorDescription.Object
+    """
+        Object designator describing the mixing tool.
+        """
+
+    arm: Arms
+    """
+        The arm that should be used for mixing.
+        """
+
+    grasp: Grasp
+    """
+        The grasp that should be used for mixing. For example, 'left' or 'right'.
+        """
+
+    @with_tree
+    def perform(self) -> None:
+        """
+            Perform the mixing action using the specified object, tool, arm, and grasp.
+            """
+        # Retrieve object and robot from designators
+        local_tf = LocalTransformer()
+        obj = self.object_designator.world_object
+
+        obj_dim = obj.get_object_dimensions()
+
+        dim = [max(obj_dim[0], obj_dim[1]), min(obj_dim[0], obj_dim[1]), obj_dim[2]]
+        obj_height = dim[2]
+        oTm = self.object_designator.pose
+        object_pose = local_tf.transform_to_object_frame(oTm, obj)
+
+        def generate_spiral(pose, upward_increment, radial_increment, angle_increment, steps):
+            x_start, y_start, z_start = pose.pose.position.x, pose.pose.position.y, pose.pose.position.z
+            spiral_poses = []
+
+            for t in range(2 * steps):
+                tmp_pose = pose.copy()
+
+                r = radial_increment * t
+                a = angle_increment * t
+                h = upward_increment * t
+
+                x = x_start + r * math.cos(a)
+                y = y_start + r * math.sin(a)
+                z = z_start + h
+
+                tmp_pose.pose.position.x += x
+                tmp_pose.pose.position.y += y
+                tmp_pose.pose.position.z += z
+
+                spiralTm = object.local_transformer.transform_pose(tmp_pose, "map")
+                spiral_poses.append(spiralTm)
+                World.current_world.add_vis_axis(spiralTm)
+            return spiral_poses
+
+        # this is a very good one but takes ages
+        # spiral_poses = generate_spiral(object_pose, 0.0004, 0.0008, math.radians(10), 100)
+        spiral_poses = generate_spiral(object_pose, 0.001, 0.0035, math.radians(30), 10)
+
+        World.current_world.remove_vis_axis()
+        for spiral_pose in spiral_poses:
+            oriR = utils.axis_angle_to_quaternion([1, 0, 0], 180)
+            spiral_pose.multiply_quaternions(oriR)
+
+            # Adjust the position of the object pose by grasp in MAP
+            lift_pose = spiral_pose.copy()
+            lift_pose.pose.position.z += (obj_height + 0.08)
+            # Perform the motion for lifting the tool
+            # BulletWorld.current_bullet_world.add_vis_axis(lift_pose)
+            MoveTCPMotion(lift_pose, self.arm).resolve().perform()
 
 
 @dataclass
@@ -759,7 +875,6 @@ class CuttingPerformable(ActionAbstract):
             MoveTCPMotion(lift_pose, self.arm).perform()
             MoveTCPMotion(target_diff, self.arm).perform()
             MoveTCPMotion(lift_pose, self.arm).perform()
-
 
 
 @dataclass
