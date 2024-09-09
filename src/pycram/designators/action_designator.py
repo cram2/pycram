@@ -716,9 +716,11 @@ class MixingPerformable(ActionAbstract):
                 tmp_pose.pose.position.y += y
                 tmp_pose.pose.position.z += z
 
-                spiralTm = object.local_transformer.transform_pose(tmp_pose, "map")
+                spiralTm = local_tf.transform_pose(tmp_pose, "map")
                 spiral_poses.append(spiralTm)
                 World.current_world.add_vis_axis(spiralTm)
+                spiralTm.pose.position.z += obj_height
+                MoveTCPMotion(spiralTm, self.arm).perform()
             return spiral_poses
 
         # this is a very good one but takes ages
@@ -726,16 +728,17 @@ class MixingPerformable(ActionAbstract):
         spiral_poses = generate_spiral(object_pose, 0.001, 0.0035, math.radians(30), 10)
 
         World.current_world.remove_vis_axis()
-        for spiral_pose in spiral_poses:
-            oriR = utils.axis_angle_to_quaternion([1, 0, 0], 180)
-            spiral_pose.multiply_quaternions(oriR)
-
-            # Adjust the position of the object pose by grasp in MAP
-            lift_pose = spiral_pose.copy()
-            lift_pose.pose.position.z += (obj_height + 0.08)
-            # Perform the motion for lifting the tool
-            # BulletWorld.current_bullet_world.add_vis_axis(lift_pose)
-            MoveTCPMotion(lift_pose, self.arm).resolve().perform()
+        # for spiral_pose in spiral_poses:
+        #     rospy.logwarn("Moving to spiral pose")
+        #     oriR = utils.axis_angle_to_quaternion([1, 0, 0], 180)
+        #     spiral_pose.multiply_quaternions(oriR)
+        #
+        #     # Adjust the position of the object pose by grasp in MAP
+        #     lift_pose = spiral_pose.copy()
+        #     lift_pose.pose.position.z += obj_height
+        #     # Perform the motion for lifting the tool
+        #     # BulletWorld.current_bullet_world.add_vis_axis(lift_pose)
+        #     #MoveTCPMotion(lift_pose, self.arm).perform()
 
 
 @dataclass

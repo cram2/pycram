@@ -21,7 +21,7 @@ def start_generalized_demo(type, obj_tool, obj_target, technique):
     except IndexError:
         _technique = technique
 
-    pose = Pose([2.4, 2, 0.95], [0, 0, -1, -1])
+    pose = Pose([2.4, 2, 1.0], [0, 0, -1, -1])
 
     if type == "mixing":
         objects_tool = [(None, None), ('whisk', "WHISKKNOWLEDGEBASE")]
@@ -42,6 +42,21 @@ def start_generalized_demo(type, obj_tool, obj_target, technique):
 
     action_map = {"cutting": CuttingAction, "mixing": MixingAction}
 
+    #this is just bc we dont want to pick up for the demonstration of cutting and mixing
+    if RobotDescription.current_robot_description.name == "Armar6":
+        tool_pose = Pose([2.2049586673391935, 1.40084467778416917, 1.0229705326966067],
+                         [0, 0, 1, 1])
+    # else is pr2
+    else:
+        if type == "cutting":
+            tool_pose = Pose([2.0449586673391935, 1.5384467778416917, 1.229705326966067],
+                             [0.14010099565491793, -0.7025332835765593, 0.15537176280408957, 0.6802046102510538])
+        else:
+            tool_pose = Pose([2.0449586673391935, 1.5384467778416917, 1.09705326966067],
+                             [0, 1, 0, 1])
+
+    obj_tool_.pose = tool_pose
+
     with simulated_robot:
         ParkArmsAction([Arms.BOTH]).resolve().perform()
         location_pose = Pose([1.7, 2, 0])
@@ -49,15 +64,7 @@ def start_generalized_demo(type, obj_tool, obj_target, technique):
         NavigateAction([location_pose]).resolve().perform()
         if RobotDescription.current_robot_description.name == "pr2":
             MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
-        if RobotDescription.current_robot_description.name == "Armar6":
-            tool_pose = Pose([2.2049586673391935, 1.40084467778416917, 1.0229705326966067],
-                             [0, 0, 1, 1])
-        # else is pr2
-        else:
-            tool_pose = Pose([2.0449586673391935, 1.5384467778416917, 1.229705326966067],
-                             [0.14010099565491793, -0.7025332835765593, 0.15537176280408957, 0.6802046102510538])
 
-        obj_tool_.pose = tool_pose
 
         tool_frame = RobotDescription.current_robot_description.get_arm_chain(Arms.RIGHT).get_tool_frame()
         World.current_world.robot.attach(child_object=obj_tool_, parent_link=tool_frame)
