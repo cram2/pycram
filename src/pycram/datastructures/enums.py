@@ -64,6 +64,8 @@ class ObjectType(Enum):
     ENVIRONMENT = auto()
     GENERIC_OBJECT = auto()
     HUMAN = auto()
+    CUTTING_TOOL = auto()
+    BOARD = auto()
 
 
 class State(Enum):

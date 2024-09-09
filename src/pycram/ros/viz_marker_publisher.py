@@ -59,10 +59,13 @@ class VizMarkerPublisher:
 
         :return: An Array of Visualization Marker
         """
+        obj_coloring = False
         marker_array = MarkerArray()
         for obj in self.main_world.objects:
             if obj.obj_type == ObjectType.ROBOT or obj.name == "floor":
                 continue
+            if obj.obj_type == ObjectType.GENERIC_OBJECT:
+                obj_coloring = True
             for link in obj.link_name_to_id.keys():
                 geom = obj.get_link_geometry(link)
                 if not geom:
@@ -80,8 +83,24 @@ class VizMarkerPublisher:
                     link_origin = Transform()
                 link_pose_with_origin = link_pose * link_origin
                 msg.pose = link_pose_with_origin.to_pose().pose
-
-                color = [1, 1, 1, 1] if obj.link_name_to_id[link] == -1 else obj.get_link_color(link).get_rgba()
+                if obj_coloring:
+                    colors = {
+                        "orange": (1, 0.75, 0, 1),
+                        "cucumber": (0, 1, 0, 1),
+                        "banana": (1, 1, 0, 1),
+                        "lemon": (1, 1, 0, 1),
+                        "citron": (1, 1, 0, 1),
+                        "lime": (0.75, 1.0, 0.0, 1),
+                        "apple": (1, 0, 0, 1),
+                        "tomato": (1, 0, 0, 1),
+                        "peach": (1.0, 0.8, 0.64, 1),
+                        "kiwi": (0.76, 0.88, 0.52, 1),
+                        "avocado": (0.0, 0.5, 0.0, 1),
+                        "knife": (1, 1, 1, 1),
+                    }
+                    color = colors[obj.name]
+                else:
+                    color = [1, 1, 1, 1] if obj.link_name_to_id[link] == -1 else obj.get_link_color(link).get_rgba()
 
                 msg.color = ColorRGBA(*color)
                 msg.lifetime = rospy.Duration(1)
@@ -156,7 +175,6 @@ class ManualMarkerPublisher:
         self.start_time = time.time()
         thread = threading.Thread(target=self._publish, args=(pose, bw_object, name, color))
         thread.start()
-        rospy.loginfo(self.log_message)
         thread.join()
 
     def _publish(self, pose: Pose, bw_object: Optional[ObjectDesignatorDescription] = None, name: Optional[str] = None,
@@ -311,7 +329,6 @@ class ManualMarkerPublisher:
         self.marker_array_pub.publish(self.marker_array)
         self.marker_array.markers.pop(marker_id)
 
-        rospy.loginfo(f"Removed Marker '{name}'")
 
     def clear_all_marker(self):
         """
@@ -323,7 +340,6 @@ class ManualMarkerPublisher:
         self.marker_overview = {}
         self.marker_array_pub.publish(self.marker_array)
 
-        rospy.loginfo('Removed all markers')
 
 
 class AxisMarkerPublisher:
@@ -369,9 +385,7 @@ class AxisMarkerPublisher:
             self._create_line(pose, AxisIdentifier.Z.value, self.duration, self.length, color.get_color_from_string('blue'))
 
         self.thread.start()
-        rospy.loginfo("Publishing axis visualization")
         self.thread.join()
-        rospy.logdebug("Stopped Axis visualization")
 
     def _publish(self):
         if self.name in self.marker_overview.keys():
