@@ -3,6 +3,7 @@ import sys
 import rospy
 from IPython.core.display_functions import clear_output
 
+from demos.pycram_virtual_building_demos.src.cleanup_demo import cleanup_demo
 from demos.pycram_virtual_building_demos.src.cutting_demo import start_cutting
 from demos.pycram_virtual_building_demos.src.transport_demo import transporting_demo
 from pycram.utils import suppress_stdout_stderr
@@ -84,6 +85,10 @@ def demo_selecting(apartment, robot, task_param):
         # rospy.loginfo('Starting transporting demo...')
         with suppress_stdout_stderr():
             transporting_demo(apartment, robot)
+    elif task_param == "cleanup":
+        # rospy.loginfo('Starting transporting demo...')
+        with suppress_stdout_stderr():
+            cleanup_demo(apartment, robot)
     elif task_param == "cutting":
         object_param = rospy.get_param('/nbparam_object')
         specialized_task = rospy.get_param('/nbparam_specialized_task')
