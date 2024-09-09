@@ -95,10 +95,10 @@ class VizMarkerPublisher:
                         "tomato": (1, 0, 0, 1),
                         "peach": (1.0, 0.8, 0.64, 1),
                         "kiwi": (0.76, 0.88, 0.52, 1),
-                        "avocado": (0.0, 0.5, 0.0, 1),
-                        "knife": (1, 1, 1, 1),
+                        "avocado": (0.0, 0.5, 0.0, 1)
                     }
-                    color = colors[obj.name]
+                    color = colors.get(obj.name, [1, 1, 1, 1])
+
                 else:
                     color = [1, 1, 1, 1] if obj.link_name_to_id[link] == -1 else obj.get_link_color(link).get_rgba()
 
