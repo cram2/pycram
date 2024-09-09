@@ -14,7 +14,40 @@ COPY --chown=${NB_USER}:users binder/me ${PYCRAM_WS}/src/me
 USER root
 RUN apt-get update
 
+=
+# Giskard
+USER ${NB_USER}
+COPY --chown=${NB_USER}:users binder/giskard.rosinstall /home/${NB_USER}/giskard.rosinstall
+RUN vcs import --input /home/${NB_USER}/giskard.rosinstall --recursive
+
+# Giskard: requirements + missing packages
+RUN pip install --requirement ${PYCRAM_WS}/src/giskardpy/requirements.txt
+RUN pip install termcolor pydot
+
+# Giskard: Pybind + betterpybullet
+WORKDIR /home/${NB_USER} 
+RUN git clone https://github.com/pybind/pybind11.git \
+  && cd pybind11 \
+  && mkdir build \
+  && cd build \
+  && cmake .. -DCMAKE_BUILD_TYPE=Release -DPYBIND11_PYTHON_VERSION=3 -DPYBIND11_TEST=OFF
+USER root
+RUN cd pybind11/build && make install
+USER ${NB_USER}
+
+RUN git clone https://github.com/SemRoCo/bullet3.git
+COPY --chown=${NB_USER}:users binder/build_cmake_pybullet_3.10_double.sh /home/${NB_USER}/bullet3/
+RUN cd bullet3 && ./build_cmake_pybullet_3.10_double.sh
+ENV PYTHONPATH=${PYTHONPATH}:/home/${NB_USER}/bullet3/build_cmake/better_python:/home/${NB_USER}/bullet3/examples/pybullet
+
+
+# New geometry msgs
+WORKDIR ${PYCRAM_WS}/src/
+RUN git clone https://github.com/sunava/geometry2.git
+
+
 # HSR resources
+WORKDIR ${PYCRAM_WS}/src/
 RUN git clone https://github.com/code-iai/iai_hsr.git
 WORKDIR  ${PYCRAM_WS}/src/iai_hsr/
 RUN git submodule update --init

@@ -251,7 +251,9 @@ class HSRBManager(ProcessModuleManager):
             return HSRBMoveArmJointsReal(self._move_arm_joints_lock)
 
     def move_joints(self):
-        if ProcessModuleManager.execution_type == ExecutionType.REAL:
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
+            return HSRBMoveJointsReal(self._move_joints_lock)
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return HSRBMoveJointsReal(self._move_joints_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.SEMI_REAL:
             return HSRBMoveJointsReal(self._move_joints_lock)
