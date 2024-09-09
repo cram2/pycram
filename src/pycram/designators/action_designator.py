@@ -4,6 +4,7 @@ from __future__ import annotations
 import abc
 import inspect
 import itertools
+import math
 
 import numpy as np
 from sqlalchemy.orm import Session
@@ -16,6 +17,7 @@ from .location_designator import CostmapLocation
 from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveArmJointsMotion, MoveTCPMotion, MoveMotion, \
     LookingMotion, DetectingMotion, OpeningMotion, ClosingMotion
 from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
+from .. import utils
 from ..local_transformer import LocalTransformer
 from ..plan_failures import ObjectUnfetchable, ReachabilityFailure
 # from ..robot_descriptions import robot_description
@@ -507,6 +509,40 @@ class GraspingAction(ActionDesignatorDescription):
         return GraspingActionPerformable(self.arms[0], self.object_description.resolve())
 
 
+class CuttingAction(ActionDesignatorDescription):
+    """
+    A designator for robotic cutting actions. This class facilitates the specification and execution of
+    cutting tasks using a robot.
+    """
+
+    def __init__(self, object_to_be_cut: ObjectDesignatorDescription, tool: ObjectDesignatorDescription,
+                 arms: List[Arms], technique: Optional[str] = None, slice_thickness: Optional[float] = 0.03):
+        """
+        Initializes a CuttingAction with specified object and tool designators, arms, and an optional cutting technique.
+
+        Args:
+            object_to_be_cut: Designator for the object to be cut.
+            tool: Designator for the cutting tool.
+            arms: List of possible arms to be used for the cutting action.
+            technique: Optional cutting technique to be used.
+        """
+        super(CuttingAction, self).__init__()
+        self.object_to_be_cut: ObjectDesignatorDescription = object_to_be_cut
+        self.tool: ObjectDesignatorDescription = tool
+        self.arms: List[Arms] = arms
+        self.technique: Optional[str] = technique
+        self.slice_thickness: Optional[float] = slice_thickness
+
+    def ground(self) -> CuttingPerformable:
+        """
+        Default resolver, returns a performable designator with the first entries from the lists of possible parameter.
+
+        :return: A performable designator
+        """
+        return CuttingPerformable(self.object_to_be_cut, self.tool, self.arms[0], self.technique,
+                                  self.slice_thickness)
+
+
 # ----------------------------------------------------------------------------
 # ---------------- Performables ----------------------------------------------
 # ----------------------------------------------------------------------------
@@ -584,6 +620,146 @@ class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC):
         session.add(action)
 
         return action
+
+
+@dataclass
+class CuttingPerformable(ActionAbstract):
+    """
+        Represents a specific cutting action to be performed by the robot. This class encapsulates
+        all necessary details for executing the cutting task, including the object to be cut, the cutting tool,
+        the arm to use, and the cutting technique.
+        """
+
+    object_to_be_cut: ObjectDesignatorDescription
+    """
+    The object to be cut.
+    """
+
+    tool: ObjectDesignatorDescription
+    """
+    The tool used for cutting.
+    """
+
+    arm: Arms
+    """
+    The robot arm designated for the cutting task.
+    """
+
+    technique: Optional[str] = None
+    """
+    The technique used for cutting (default is None).
+    """
+
+    slice_thickness: Optional[float] = 0.03
+    """
+    The upper bound thickness of the slices (default is 0.03f).
+    """
+
+    def calculate_slices(self, obj_length, technique, thickness):
+        """
+        Calculates the number of slices and the starting offset based on the cutting technique and slice thickness.
+        """
+        # slicing
+        num_slices = int(obj_length // thickness)
+        start_offset = (-obj_length / 2) + (thickness / 2)
+
+        # Calculate the starting position for slicing, adjusted based on the chosen technique
+        if technique in ['Halving']:
+            start_offset = 0  # No offset needed for halving
+            num_slices = 1  # Only one slice for halving
+            return num_slices, start_offset
+        elif technique in ['Cutting Action', 'Sawing', 'Paring', 'Cutting', 'Carving']:
+            # Calculate number of slices and initial offset for regular slicing
+            num_slices = 1
+
+        return num_slices, start_offset
+
+    def calculate_slice_pose(self, object_pose, slice_position, obj_width):
+        """
+            Determines the pose for each slice based on the object's current pose, the slice position, and the object's dimensions.
+            """
+        slice_pose = object_pose.copy()
+        slice_pose.position.x = slice_position
+
+        return slice_pose
+
+    def adjust_for_lifting(self, pose, height):
+        """
+            Adjusts the given pose to lift the cutting tool above the object before and after cutting.
+            """
+        lift_pose = pose.copy()
+        lift_pose.position.z += 2 * height  # Lift the tool above the object
+        return lift_pose
+
+    def facing_robot(self, pose):
+        """
+            Checks if the object is facing the robot.
+            """
+
+        rotate_q = utils.axis_angle_to_quaternion([0, 0, 1], 180)
+        pose.multiply_quaternions(rotate_q)
+        return pose
+
+    def perpendicular_pose(self, pose):
+        perpendicular_pose = pose.copy()
+        rotation_axis = [0, 0, 1]
+        rotation_quaternion = utils.axis_angle_to_quaternion(rotation_axis, 90)
+        perpendicular_pose.multiply_quaternions(rotation_quaternion)
+        return perpendicular_pose
+
+    @with_tree
+    def perform(self) -> None:
+        local_tf = LocalTransformer()
+        # Access the designated object for cutting and retrieve its dimensions
+        obj = self.object_to_be_cut.world_object
+        obj_length, obj_width, object_height = obj.get_object_dimensions()
+
+        # Retrieve the current pose of the object and transform it to the object frame
+        oTm = self.object_to_be_cut.pose
+        # BulletWorld.current_bullet_world.add_vis_axis(oTm)
+        object_pose = local_tf.transform_to_object_frame(oTm, obj)
+
+        num_slices, start_offset = self.calculate_slices(obj_length, self.technique, self.slice_thickness)
+
+        # Generate coordinates for each slice along the object's length
+        slice_coordinates = [start_offset + i * self.slice_thickness for i in range(num_slices)]
+
+        # Transform the coordinates of each slice to the map frame, maintaining orientation
+        slice_poses = []
+        for x in slice_coordinates:
+            # Adjust slice pose based on object dimensions and orientation
+            tmp_pose = object_pose.copy()
+            tmp_pose.pose.position.y += obj_width  # plus tool länge  # Offset position for slicing
+            tmp_pose.pose.position.x = x  # Set slicing position
+            # tmp_pose.pose.position.z
+            sTm = local_tf.transform_pose(tmp_pose, "map")
+            # BulletWorld.current_bullet_world.add_vis_axis(sTm)
+            slice_poses.append(sTm)
+
+        # Process each slice pose for the cutting action
+        for slice_pose in slice_poses:
+            # check if obj is facing the object
+            slice_pose = self.facing_robot(slice_pose)
+
+            perpendicular_pose = self.perpendicular_pose(slice_pose)
+
+            object_pose = self.tool.pose
+
+            # Transformations such that the target position is the position of the object and not the tcp
+            gripper_name = RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame()
+            tcp_to_object = local_tf.transform_pose(object_pose,
+                                                    World.robot.get_link_tf_frame(gripper_name))
+            target_diff = (perpendicular_pose.to_transform("target").inverse_times(
+                tcp_to_object.to_transform("object")).to_pose())
+
+            lift_pose = target_diff.copy()
+            lift_pose.pose.position.z += object_height  # Lift the tool above the object
+            World.current_world.add_vis_axis(target_diff)
+            # BulletWorld.current_bullet_world.add_vis_axis(lift_pose)
+            MoveTCPMotion(lift_pose, self.arm).perform()
+            MoveTCPMotion(target_diff, self.arm).perform()
+            MoveTCPMotion(lift_pose, self.arm).perform()
+
 
 
 @dataclass
@@ -766,7 +942,8 @@ class PickUpActionPerformable(ActionAbstract):
         marker = AxisMarkerPublisher()
         gripper_pose = World.robot.get_link_pose(
             RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame())
-        marker.publish([oTm, gripper_pose], length=0.3)
+
+        marker.publish([adjusted_oTm, gripper_pose], length=0.3)
 
         MoveTCPMotion(prepose, self.arm, allow_gripper_collision=True).perform()
         MoveGripperMotion(motion=GripperState.OPEN, gripper=self.arm).perform()
@@ -1029,7 +1206,7 @@ class GraspingActionPerformable(ActionAbstract):
         pre_grasp = object_pose_in_gripper.copy()
         # pre_grasp.pose.position.x -= 0.1
 
-        marker.publish([object_pose, gripper_pose], name="Grasping", length=0.3)
+        # marker.publish([object_pose, gripper_pose], name="Grasping", length=0.3)
 
         MoveTCPMotion(pre_grasp, self.arm).perform()
         MoveGripperMotion(GripperState.OPEN, self.arm).perform()

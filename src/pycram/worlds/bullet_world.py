@@ -9,7 +9,7 @@ import pybullet as p
 import rosgraph
 import rospy
 from geometry_msgs.msg import Point
-from typing_extensions import List, Optional, Dict
+from typing_extensions import List, Optional, Dict, Tuple
 
 from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape
 from ..datastructures.enums import ObjectType, WorldMode, JointType
@@ -99,6 +99,24 @@ class BulletWorld(World):
         return p.loadURDF(path,
                           basePosition=pose.position_as_list(),
                           baseOrientation=pose.orientation_as_list(), physicsClientId=self.id)
+
+    def get_object_dimensions(self, obj_id: int, link_name: Optional[str] = None) -> Tuple[float, float, float]:
+        """
+        Return the dimensions of the object.
+        :param obj_id: The id of the object.
+        :param link_name: The Optional name of a link of this object.
+        :return: The dimensions of the object, as a Tuple with float values.
+        """
+        # Retrieve AABB based on link_name presence
+        if link_name:
+            aabb = p.getAABB(obj_id, self.links[link_name], self.id)
+        else:
+            aabb = p.getAABB(obj_id, physicsClientId=self.id)
+
+        # Calculate dimensions
+        dimensions = [np.absolute(aabb[0][i] - aabb[1][i]) for i in range(3)]
+
+        return dimensions
 
     def remove_object_from_simulator(self, obj: Object) -> None:
         p.removeBody(obj.id, self.id)

@@ -1,54 +1,29 @@
-import logging
-
-from IPython.core.display_functions import clear_output
-from ipywidgets import Output
-
-from demos.pycram_virtual_building_demos.setup.setup_launch_robot import *
-import threading
 import sys
 
+import rospy
+from IPython.core.display_functions import clear_output
+
+from demos.pycram_virtual_building_demos.src.cutting_demo import start_cutting
 from demos.pycram_virtual_building_demos.src.transport_demo import transporting_demo
 from pycram.utils import suppress_stdout_stderr
 
 sys.path.insert(0, '/home/vee/robocup_workspaces/pycram_ws/src/pycram')
 
-from ipywidgets import Output
-
-from demos.pycram_virtual_building_demos.setup.setup_launch_robot import launch_pr2, launch_hsrb, launch_stretch, \
-    launch_tiago
 from demos.pycram_virtual_building_demos.setup.setup_utils import display_loading_gif_with_text, update_text, \
     get_robot_name
-import rospy
 
 from demos.pycram_virtual_building_demos.src.simple_examples import navigate_simple_example
-from pycram.datastructures.enums import WorldMode
 from pycram.ros.tf_broadcaster import TFBroadcaster
-from pycram.ros.viz_marker_publisher import VizMarkerPublisher
-from pycram.worlds.bullet_world import BulletWorld
-from pycram.datastructures.enums import ObjectType, WorldMode, TorsoState
+from pycram.datastructures.enums import WorldMode
 from pycram.designators.action_designator import *
-from pycram.designators.location_designator import *
 from pycram.designators.object_designator import *
 from pycram.object_descriptors.urdf import ObjectDescription
-from pycram.process_module import simulated_robot
 from pycram.ros.viz_marker_publisher import VizMarkerPublisher
 from pycram.world_concepts.world_object import Object
 from pycram.worlds.bullet_world import BulletWorld
-from IPython.display import display
-import os
-import sys
-from contextlib import contextmanager
 
 output = None
 
-# THIS IS ALL DONE IN THE SETUP via IPYTHON KERNEL
-# # actual world setup
-# extension = ObjectDescription.get_file_extension()
-# world = BulletWorld(WorldMode.DIRECT)
-# VizMarkerPublisher()
-# Object(robot_param, ObjectType.ROBOT, f"{robot_param}{extension}", pose=Pose([1, 2, 0]))
-# Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
-# tf = TFBroadcaster()
 
 def start_demo():
     # get params
@@ -80,6 +55,26 @@ def start_demo():
     update_text(text_widget, 'Done with: ' + task_param)
 
 
+def start_demo_local():
+    # get params
+    environment_param = 'apartment'
+    robot_param = 'pr2'
+    task_param = 'cutting'
+
+    robot_name = get_robot_name(robot_param)
+
+    extension = ObjectDescription.get_file_extension()
+
+    world = BulletWorld(WorldMode.DIRECT)
+    VizMarkerPublisher()
+    robot = Object(robot_name, ObjectType.ROBOT, f"{robot_name}{extension}", pose=Pose([1, 2, 0]))
+    apartment = Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
+    tf = TFBroadcaster()
+
+    demo_selecting(apartment, robot, task_param)
+    extension = ObjectDescription.get_file_extension()
+
+
 def demo_selecting(apartment, robot, task_param):
     # display(output)
     # with output:
@@ -89,3 +84,12 @@ def demo_selecting(apartment, robot, task_param):
         # rospy.loginfo('Starting transporting demo...')
         with suppress_stdout_stderr():
             transporting_demo(apartment, robot)
+    elif task_param == "cutting":
+        object_param = rospy.get_param('/nbparam_object')
+        specialized_task = rospy.get_param('/nbparam_specialized_task')
+        start_cutting(object_param, specialized_task)
+
+
+
+
+#start_demo_local()
