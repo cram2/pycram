@@ -1060,6 +1060,7 @@ class PickUpActionPerformable(ActionAbstract):
         marker = AxisMarkerPublisher()
         gripper_pose = World.robot.get_link_pose(
             RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame())
+
         marker.publish([adjusted_oTm, gripper_pose], length=0.3)
 
         MoveTCPMotion(prepose, self.arm, allow_gripper_collision=True).perform()
@@ -1164,8 +1165,14 @@ class TransportActionPerformable(ActionAbstract):
     def perform(self) -> None:
         robot_desig = BelieveObject(names=[RobotDescription.current_robot_description.name])
         ParkArmsActionPerformable(Arms.BOTH).perform()
+
+        if self.object_designator.obj_type == ObjectType.BOWL or self.object_designator.obj_type == ObjectType.SPOON:
+            grasp = Grasp.TOP
+        else:
+            grasp = Grasp.FRONT
+
         pickup_loc = CostmapLocation(target=self.object_designator, reachable_for=robot_desig.resolve(),
-                                     reachable_arm=self.arm)
+                                     reachable_arm=self.arm, used_grasps=[grasp])
         # Tries to find a pick-up posotion for the robot that uses the given arm
         pickup_pose = None
         for pose in pickup_loc:
@@ -1177,14 +1184,11 @@ class TransportActionPerformable(ActionAbstract):
                 f"Found no pose for the robot to grasp the object: {self.object_designator} with arm: {self.arm}")
 
         NavigateActionPerformable(pickup_pose.pose).perform()
-        if self.object_designator.obj_type == ObjectType.BOWL:
-            PickUpActionPerformable(self.object_designator, self.arm, Grasp.TOP).perform()
-        else:
-            PickUpActionPerformable(self.object_designator, self.arm, Grasp.FRONT).perform()
+        PickUpActionPerformable(self.object_designator, self.arm, grasp).perform()
         ParkArmsActionPerformable(Arms.BOTH).perform()
         try:
             place_loc = CostmapLocation(target=self.target_location, reachable_for=robot_desig.resolve(),
-                                        reachable_arm=self.arm).resolve()
+                                        reachable_arm=self.arm, used_grasps=[grasp]).resolve()
         except StopIteration:
             raise ReachabilityFailure(
                 f"No location found from where the robot can reach the target location: {self.target_location}")
@@ -1301,18 +1305,26 @@ class GraspingActionPerformable(ActionAbstract):
             object_pose = self.object_desig.part_pose
         else:
             object_pose = self.object_desig.world_object.get_pose()
+
+        if RobotDescription.current_robot_description.name == "tiago_dual":
+            object_pose = object_pose.copy()
+            object_pose.set_orientation([0, 0, 0, 1])
+
+            grasp = RobotDescription.current_robot_description.get_arm_chain(self.arm).end_effector.grasps[Grasp.FRONT]
+            object_pose.multiply_quaternions(grasp)
+
         lt = LocalTransformer()
         gripper_name = RobotDescription.current_robot_description.get_arm_chain(self.arm).get_tool_frame()
 
         object_pose_in_gripper = lt.transform_pose(object_pose,
                                                    World.robot.get_link_tf_frame(gripper_name))
-        # oTm = lt.transform_pose(object_pose, "map")
-        # marker = AxisMarkerPublisher()
-        # gripper_pose = World.robot.get_link_pose(gripper_name)
+
+        marker = AxisMarkerPublisher()
+        gripper_pose = World.robot.get_link_pose(gripper_name)
         pre_grasp = object_pose_in_gripper.copy()
         # pre_grasp.pose.position.x -= 0.1
 
-        # marker.publish([oTm, gripper_pose], name="Grasping", length=0.3)
+        # marker.publish([object_pose, gripper_pose], name="Grasping", length=0.3)
 
         MoveTCPMotion(pre_grasp, self.arm).perform()
         MoveGripperMotion(GripperState.OPEN, self.arm).perform()

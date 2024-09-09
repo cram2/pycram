@@ -1,3 +1,5 @@
+from IPython.core.display_functions import clear_output
+
 from pycram.ros.viz_marker_publisher import VizMarkerPublisher, AxisMarkerPublisher
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.designators.action_designator import *
@@ -56,23 +58,30 @@ def transporting_demo(apartment, robot):
         milk_desig = move_and_detect(ObjectType.MILK)
 
         TransportAction(milk_desig, [Arms.LEFT], [Pose([4.8, 3.55, 0.8])]).resolve().perform()
+        clear_output()
 
         cereal_desig = move_and_detect(ObjectType.BREAKFAST_CEREAL)
 
-        TransportAction(cereal_desig, [Arms.LEFT], [Pose([5.2, 3.4, 0.8], [0, 0, 1, 1])]).resolve().perform()
+        if robot.name == "tiago_dual":
+            TransportAction(cereal_desig, [Arms.LEFT], [Pose([5.25, 3.4, 0.85], [0, 0, 0, -1])]).resolve().perform()
+        else:
+            TransportAction(cereal_desig, [Arms.LEFT], [Pose([5.2, 3.4, 0.8], [0, 0, 1, 1])]).resolve().perform()
+        clear_output()
 
         bowl_desig = move_and_detect(ObjectType.BOWL)
 
         TransportAction(bowl_desig, [Arms.LEFT], [Pose([5, 3.3, 0.8], [0, 0, 1, 1])]).resolve().perform()
+        clear_output()
 
         # Finding and navigating to the drawer holding the spoon
         handle_desig = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig.resolve())
-        drawer_open_loc = AccessingLocation(handle_desig=handle_desig.resolve(),
-                                            robot_desig=robot_desig.resolve()).resolve()
 
         if robot.name == "rollin_justin":
             pose = Pose([1.4, 1.6, 0], [0, 0, 0.2040033016133158, 0.9789702002261697])
             drawer_open_loc = AccessingLocation.Location(pose, [Arms.LEFT])
+        else:
+            drawer_open_loc = AccessingLocation(handle_desig=handle_desig.resolve(),
+                                                robot_desig=robot_desig.resolve()).resolve()
 
         NavigateAction([drawer_open_loc.pose]).resolve().perform()
 
@@ -108,11 +117,16 @@ def transporting_demo(apartment, robot):
             ParkArmsAction([Arms.BOTH]).resolve().perform()
 
         else:
+            if robot.name == "tiago_dual":
+                NavigateAction([Pose([1.45, 2.7, 0], [0, 0, 0, 1])]).resolve().perform()
+
             pickup_arm = Arms.LEFT if drawer_open_loc.arms[0] == Arms.RIGHT else Arms.RIGHT
             ParkArmsAction([Arms.BOTH]).resolve().perform()
             PickUpAction(spoon_desig, [pickup_arm], [Grasp.TOP]).resolve().perform()
 
             ParkArmsAction([Arms.LEFT if pickup_arm == Arms.LEFT else Arms.RIGHT]).resolve().perform()
+
+            NavigateAction([drawer_open_loc.pose]).resolve().perform()
 
             CloseAction(object_designator_description=handle_desig, arms=[drawer_open_loc.arms[0]]).resolve().perform()
 
@@ -122,7 +136,8 @@ def transporting_demo(apartment, robot):
 
             # Find a pose to place the spoon, move and then place it
             spoon_target_pose = Pose([4.85, 3.3, 0.8], [0, 0, 1, 1])
-            placing_loc = CostmapLocation(target=spoon_target_pose, reachable_for=robot_desig.resolve()).resolve()
+            placing_loc = CostmapLocation(target=spoon_target_pose, reachable_for=robot_desig.resolve(),
+                                          reachable_arm=pickup_arm, used_grasps=[Grasp.TOP]).resolve()
 
             NavigateAction([placing_loc.pose]).resolve().perform()
 

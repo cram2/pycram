@@ -10,10 +10,11 @@ tiago_description = RobotDescription("tiago_dual", "base_link", "torso_lift_link
                                      filename)
 
 ################################## Left Arm ##################################
-left_arm = KinematicChainDescription("left_arm", "torso_lift_link", "arm_left_7_link",
+left_arm = KinematicChainDescription("left_arm", "torso_fixed_link", "arm_left_7_link",
                                      tiago_description.urdf_object, arm_type=Arms.LEFT)
 
-left_arm.add_static_joint_states("park", {'arm_left_1_joint': 0.27,
+left_arm.add_static_joint_states("park", {"torso_lift_joint": 0.15,
+                                          'arm_left_1_joint': 0.27,
                                           'arm_left_2_joint': -1.07,
                                           'arm_left_3_joint': 1.5,
                                           'arm_left_4_joint': 1.96,
@@ -36,10 +37,11 @@ left_gripper.add_static_joint_states(GripperState.CLOSE, {'gripper_left_left_fin
 left_arm.end_effector = left_gripper
 
 ################################## Right Arm ##################################
-right_arm = KinematicChainDescription("right_arm", "torso_lift_link", "arm_right_7_link",
+right_arm = KinematicChainDescription("right_arm", "torso_fixed_link", "arm_right_7_link",
                                       tiago_description.urdf_object, arm_type=Arms.RIGHT)
 
-right_arm.add_static_joint_states("park", {'arm_right_1_joint': 0.27,
+right_arm.add_static_joint_states("park", {"torso_lift_joint": 0.15,
+                                           'arm_right_1_joint': 0.27,
                                            'arm_right_2_joint': -1.07,
                                            'arm_right_3_joint': 1.5,
                                            'arm_right_4_joint': 2.0,
@@ -81,12 +83,15 @@ tiago_description.add_camera_description(camera)
 tiago_description.add_kinematic_chain("neck", "torso_lift_link", "head_2_link")
 
 ################################# Grasps ##################################
-grasps = {Grasp.FRONT: [0, 0, 0, 1],
+grasps = {Grasp.FRONT: [-0.5, 0.5, 0.5, -0.5],
           Grasp.LEFT: [0, 0, -1, 1],
           Grasp.RIGHT: [0, 0, 1, 1],
-          Grasp.TOP: [0, 1, 0, 1]}
+          Grasp.TOP: [0, 0, -0.7071068, 0.7071068]}
 right_gripper.add_grasp_orientations(grasps)
 left_gripper.add_grasp_orientations(grasps)
+
+################################# Additionals ##################################
+tiago_description.set_costmap_offset(0.35)
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()

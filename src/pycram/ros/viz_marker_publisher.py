@@ -175,6 +175,7 @@ class ManualMarkerPublisher:
         self.start_time = time.time()
         thread = threading.Thread(target=self._publish, args=(pose, bw_object, name, color))
         thread.start()
+        # rospy.loginfo(self.log_message)
         thread.join()
 
     def _publish(self, pose: Pose, bw_object: Optional[ObjectDesignatorDescription] = None, name: Optional[str] = None,
@@ -301,7 +302,7 @@ class ManualMarkerPublisher:
                 return True
 
         # Update was not successful
-        rospy.logwarn(f"Marker {marker_id} not found for update")
+        # rospy.logwarn(f"Marker {marker_id} not found for update")
         return False
 
     def remove_marker(self, bw_object: Optional[ObjectDesignatorDescription] = None, name: Optional[str] = None):
@@ -317,7 +318,7 @@ class ManualMarkerPublisher:
             name = bw_real.name
 
         if name is None:
-            rospy.logerr('No name for object given, cannot remove marker')
+            # rospy.logerr('No name for object given, cannot remove marker')
             return
 
         marker_id = self.marker_overview.pop(name)
@@ -328,6 +329,7 @@ class ManualMarkerPublisher:
 
         self.marker_array_pub.publish(self.marker_array)
         self.marker_array.markers.pop(marker_id)
+        # rospy.loginfo(f"Removed Marker '{name}'")
 
 
     def clear_all_marker(self):
@@ -340,6 +342,7 @@ class ManualMarkerPublisher:
         self.marker_overview = {}
         self.marker_array_pub.publish(self.marker_array)
 
+        # rospy.loginfo('Removed all markers')
 
 
 class AxisMarkerPublisher:
@@ -385,7 +388,10 @@ class AxisMarkerPublisher:
             self._create_line(pose, AxisIdentifier.Z.value, self.duration, self.length, color.get_color_from_string('blue'))
 
         self.thread.start()
+        # rospy.loginfo("Publishing axis visualization")
         self.thread.join()
+        # rospy.logdebug("Stopped Axis visualization")
+
 
     def _publish(self):
         if self.name in self.marker_overview.keys():
@@ -420,7 +426,7 @@ class AxisMarkerPublisher:
         elif axis == AxisIdentifier.Z.value:
             axis_color = color.get_color_from_string('blue')
         else:
-            rospy.logwarn(f'Axis {str(axis)} is not valid')
+            # rospy.logwarn(f'Axis {str(axis)} is not valid')
             axis_color = color.get_color_from_string('red')
 
         return axis_color
@@ -519,10 +525,10 @@ class AxisMarkerPublisher:
             if marker.id == marker_id:
                 # Update successful
                 marker.pose = new_pose
-                rospy.logdebug(f"Marker {marker_id} updated")
+                # rospy.logdebug(f"Marker {marker_id} updated")
                 self.marker_pub.publish(self.marker_array)
                 return True
 
         # Update was not successful
-        rospy.logwarn(f"Marker {marker_id} not found for update")
+        # rospy.logwarn(f"Marker {marker_id} not found for update")
         return False

@@ -1,6 +1,12 @@
 import sys
+
+import rospy
+from IPython.core.display_functions import clear_output
+
+from demos.pycram_virtual_building_demos.src.cleanup_demo import cleanup_demo
 from demos.pycram_virtual_building_demos.src.generlized_actions_demo import start_generalized_demo
 from demos.pycram_virtual_building_demos.src.transport_demo import transporting_demo
+from pycram.utils import suppress_stdout_stderr
 
 sys.path.insert(0, '/home/vee/robocup_workspaces/pycram_ws/src/pycram')
 
@@ -39,6 +45,8 @@ def start_demo():
     apartment = Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
     tf = TFBroadcaster()
 
+    clear_output(wait=True)
+
     update_text(text_widget, 'Executing Demo: ' + task_param)
 
     demo_selecting(apartment, robot, task_param)
@@ -72,15 +80,18 @@ def demo_selecting(apartment, robot, task_param):
     if task_param == "navigate":
         navigate_simple_example()
     elif task_param == "transport":
-        transporting_demo(apartment, robot)
+        # rospy.loginfo('Starting transporting demo...')
+        with suppress_stdout_stderr():
+            transporting_demo(apartment, robot)
+    elif task_param == "cleanup":
+        # rospy.loginfo('Starting transporting demo...')
+        with suppress_stdout_stderr():
+            cleanup_demo(apartment, robot)
     elif task_param in ["cutting", "mixing"]:
         object_target = rospy.get_param('/nbparam_object')
         object_tool = rospy.get_param('/nbparam_object_tool')
         specialized_task = rospy.get_param('/nbparam_specialized_task')
         print(object_target, object_tool, specialized_task)
         start_generalized_demo(task_param, object_tool, object_target, specialized_task)
-
-
-
 
 start_demo_local()
