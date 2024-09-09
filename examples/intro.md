@@ -7,7 +7,7 @@ jupyter:
       format_version: '1.3'
       jupytext_version: 1.16.3
   kernelspec:
-    display_name: Python 3
+    display_name: Python 3 (ipykernel)
     language: python
     name: python3
 ---
@@ -207,7 +207,7 @@ print(f"Milk visible: {visible}")
 ```python
 milk.set_position(Pose([1, 0, 0.05]))
 
-plane = BulletWorld.current_bullet_world.objects[0]
+plane = World.current_world.objects[0]
 contact = btr.contact(milk, plane)
 print(f"Milk is in contact with the floor: {contact}")
 ```
@@ -336,6 +336,7 @@ a cereal box from the kitchen counter and place it on the kitchen island. This i
 
 ```python
 from pycram.designators.object_designator import *
+from pycram.datastructures.enums import Grasp
 
 cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", pose=Pose([1.4, 1, 0.95]))
 
@@ -355,7 +356,7 @@ with simulated_robot:
 
     NavigateAction(target_locations=[pickup_pose.pose]).resolve().perform()
 
-    PickUpAction(object_designator_description=cereal_desig, arms=[pickup_arm], grasps=["front"]).resolve().perform()
+    PickUpAction(object_designator_description=cereal_desig, arms=[pickup_arm], grasps=[Grasp.FRONT]).resolve().perform()
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
@@ -380,10 +381,10 @@ Task trees are a hierarchical representation of all Actions involved in a plan. 
 inspect and restructure the execution order of Actions in the plan.
 
 ```python
-import pycram.task
+import pycram.tasktree
 import anytree
 
-tt = pycram.task.task_tree
+tt = pycram.tasktree.task_tree
 print(anytree.RenderTree(tt))
 ```
 
