@@ -3,6 +3,7 @@ import sys
 import rospy
 
 from demos.pycram_virtual_building_demos.src.cutting_demo import start_cutting
+from demos.pycram_virtual_building_demos.src.generlized_actions_demo import start_generalized_demo
 from demos.pycram_virtual_building_demos.src.transport_demo import transporting_demo
 
 sys.path.insert(0, '/home/vee/robocup_workspaces/pycram_ws/src/pycram')
@@ -78,12 +79,13 @@ def demo_selecting(apartment, robot, task_param):
         navigate_simple_example()
     elif task_param == "transport":
         transporting_demo(apartment, robot)
-    elif task_param == "cutting":
-        object_param = rospy.get_param('/nbparam_object')
+    elif task_param in ["cutting", "mixing"]:
+        object_target = rospy.get_param('/nbparam_object')
+        object_tool = rospy.get_param('/nbparam_object_tool')
         specialized_task = rospy.get_param('/nbparam_specialized_task')
-        start_cutting(object_param, specialized_task)
+        start_generalized_demo(task_param, object_tool, object_target, specialized_task)
 
 
 
 
-#start_demo_local()
+start_demo_local()

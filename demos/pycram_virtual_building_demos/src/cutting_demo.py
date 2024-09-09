@@ -1,5 +1,3 @@
-from std_msgs.msg import ColorRGBA
-
 from pycram.datastructures.dataclasses import Color
 from pycram.process_module import simulated_robot
 from pycram.designators.action_designator import *
@@ -8,10 +6,6 @@ from pycram.designators.object_designator import *
 from pycram.designators.object_designator import BelieveObject
 from pycram.world_concepts.world_object import Object
 
-
-# from pycram.ros.viz_marker_publisher import VizMarkerPublisher
-# from pycram.resolver.action.SPARQL import SPARQL
-# from IPython.display import display, HTML, clear_output
 
 def start_cutting(obj, technique):
     try:
@@ -25,9 +19,9 @@ def start_cutting(obj, technique):
     drawer_island_surface_board = Pose([2.45, 2, 0.95], [0, 0, -1, -1])
     pose = drawer_island_surface
 
-    board = Object("board", ObjectType.BOARD, "board.stl", pose=drawer_island_surface_board)
+    board = Object("board", ObjectType.BOARD, "board.stl", pose=pose)
     color = Color(0.4, 0.2, 0.06, 1)
-
+    obj_tool = Object("knife", ObjectType.CUTTING_TOOL, "butter_knife.stl", pose=pose)
     board.set_color(color)
     objects = [(None, None), ('apple', "obo:FOODON_03301710"), ('avocado', "obo:FOODON_00003600"),
                ('banana', "obo:FOODON_00004183"), ('citron', "obo:FOODON_03306596"),
@@ -41,23 +35,7 @@ def start_cutting(obj, technique):
             obj = id_
 
     obj_to_cut = Object(obj, ObjectType.GENERIC_OBJECT, path=obj_path, pose=pose)
-    # colors = {
-    #     "orange": Color(1, 0.75, 0, 1),
-    #     "cucumber": Color(0, 1, 0, 1),
-    #     "banana": Color(1, 1, 0, 1),
-    #     "lemon": Color(1, 1, 0, 1),
-    #     "citron": Color(1, 1, 0, 1),
-    #     "lime": Color(0.75, 1.0, 0.0, 1),
-    #     "apple": Color(1, 0, 0, 1),
-    #     "tomato": Color(1, 0, 0, 1),
-    #     "peach": Color(1.0, 0.8, 0.64, 1),
-    #     "kiwi": Color(0.76, 0.88, 0.52, 1),
-    #     "avocado": Color(0.0, 0.5, 0.0, 1),
-    # }
-    #
-    # obj_to_cut.set_color(colors[obj])
-    length, width, height = obj_to_cut.get_object_dimensions()
-    obj_to_cut.set_pose(Pose([pose.position.x, pose.position.y, pose.position.z + height / 1.5], pose.orientation))
+
     with simulated_robot:
         ParkArmsAction([Arms.BOTH]).resolve().perform()
         location_pose = Pose([1.7, 2, 0])
@@ -66,22 +44,20 @@ def start_cutting(obj, technique):
         if RobotDescription.current_robot_description.name == "pr2":
             MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
         if RobotDescription.current_robot_description.name == "Armar6":
-            knife_pose = Pose([2.2049586673391935, 1.40084467778416917, 1.0229705326966067],
-                              [0, 0, 1, 1])
+            tool_pose = Pose([2.2049586673391935, 1.40084467778416917, 1.0229705326966067],
+                                 [0, 0, 1, 1])
         # else is pr2
         else:
-            knife_pose = Pose([2.0449586673391935, 1.5384467778416917, 1.229705326966067],
-                              [0.14010099565491793, -0.7025332835765593, 0.15537176280408957, 0.6802046102510538])
-
-        cutting_tool = Object("knife", ObjectType.CUTTING_TOOL, "butter_knife.stl", pose=knife_pose)
+            tool_pose = Pose([2.0449586673391935, 1.5384467778416917, 1.229705326966067],
+                                 [0.14010099565491793, -0.7025332835765593, 0.15537176280408957, 0.6802046102510538])
+        obj_tool.pose = tool_pose
 
         tool_frame = RobotDescription.current_robot_description.get_arm_chain(Arms.RIGHT).get_tool_frame()
-        World.current_world.robot.attach(child_object=cutting_tool, parent_link=tool_frame)
+        World.current_world.robot.attach(child_object=obj_tool, parent_link=tool_frame)
         if RobotDescription.current_robot_description.name == "Armar6":
             MoveGripperMotion(motion=GripperState.CLOSE, gripper=Arms.RIGHT).perform()
             location_pose = Pose([1.6, 2.5, 0])
             NavigateAction([location_pose]).resolve().perform()
-
 
         LookAtAction([looking_pose]).resolve().perform()
         generic_obj_BO = BelieveObject(names=[obj]).resolve()
