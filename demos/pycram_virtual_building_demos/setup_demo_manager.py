@@ -8,6 +8,7 @@ import threading
 import sys
 
 from demos.pycram_virtual_building_demos.src.transport_demo import transporting_demo
+from pycram.utils import suppress_stdout_stderr
 
 sys.path.insert(0, '/home/vee/robocup_workspaces/pycram_ws/src/pycram')
 
@@ -68,6 +69,8 @@ def start_demo():
     apartment = Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
     tf = TFBroadcaster()
 
+    clear_output(wait=True)
+
     update_text(text_widget, 'Executing Demo: ' + task_param)
 
     demo_selecting(apartment, robot, task_param)
@@ -83,5 +86,6 @@ def demo_selecting(apartment, robot, task_param):
     if task_param == "navigate":
         navigate_simple_example()
     elif task_param == "transport":
-        rospy.loginfo('Starting transporting demo...')
-        transporting_demo(apartment, robot)
+        # rospy.loginfo('Starting transporting demo...')
+        with suppress_stdout_stderr():
+            transporting_demo(apartment, robot)

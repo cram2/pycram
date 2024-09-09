@@ -74,7 +74,7 @@ def call_ik(root_link: str, tip_link: str, target_pose: Pose, robot_object: Obje
     else:
         ik_service = "/kdl_ik_service/get_ik"
 
-    rospy.loginfo_once(f"Waiting for IK service: {ik_service}")
+    # rospy.loginfo_once(f"Waiting for IK service: {ik_service}")
     rospy.wait_for_service(ik_service)
 
     req = _make_request_msg(root_link, tip_link, target_pose, robot_object, joints)

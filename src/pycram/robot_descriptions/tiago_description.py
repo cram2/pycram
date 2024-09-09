@@ -91,7 +91,7 @@ right_gripper.add_grasp_orientations(grasps)
 left_gripper.add_grasp_orientations(grasps)
 
 ################################# Additionals ##################################
-tiago_description.set_costmap_offset(0.3)
+tiago_description.set_costmap_offset(0.35)
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()

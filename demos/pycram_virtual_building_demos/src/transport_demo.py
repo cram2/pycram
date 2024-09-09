@@ -1,3 +1,5 @@
+from IPython.core.display_functions import clear_output
+
 from pycram.ros.viz_marker_publisher import VizMarkerPublisher, AxisMarkerPublisher
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.designators.action_designator import *
@@ -56,14 +58,20 @@ def transporting_demo(apartment, robot):
         milk_desig = move_and_detect(ObjectType.MILK)
 
         TransportAction(milk_desig, [Arms.LEFT], [Pose([4.8, 3.55, 0.8])]).resolve().perform()
+        clear_output()
 
         cereal_desig = move_and_detect(ObjectType.BREAKFAST_CEREAL)
 
-        TransportAction(cereal_desig, [Arms.LEFT], [Pose([5.2, 3.4, 0.8], [0, 0, 1, 1])]).resolve().perform()
+        if robot.name == "tiago_dual":
+            TransportAction(cereal_desig, [Arms.LEFT], [Pose([5.25, 3.4, 0.85], [0, 0, 0, -1])]).resolve().perform()
+        else:
+            TransportAction(cereal_desig, [Arms.LEFT], [Pose([5.2, 3.4, 0.8], [0, 0, 1, 1])]).resolve().perform()
+        clear_output()
 
         bowl_desig = move_and_detect(ObjectType.BOWL)
 
         TransportAction(bowl_desig, [Arms.LEFT], [Pose([5, 3.3, 0.8], [0, 0, 1, 1])]).resolve().perform()
+        clear_output()
 
         # Finding and navigating to the drawer holding the spoon
         handle_desig = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig.resolve())
