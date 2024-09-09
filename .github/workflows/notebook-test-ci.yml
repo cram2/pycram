@@ -1,0 +1,51 @@
+name: Build Jupyter-Book documentation 📖
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - master
+      - dev
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+defaults:
+  run:
+    shell: bash
+    working-directory: .
+
+jobs:
+  test-and-build:
+    name: Test Jupyter Notebooks
+    runs-on: ubuntu-20.04
+    container:
+      image: "pycram/pycram:dev"
+
+    steps:
+
+      - name: Checkout 🛎
+        uses: actions/checkout@v3
+
+      # ----------------------------------------------------------------------------------------------------------------
+
+      - name: Install dependencies 🍼
+        uses: py-actions/py-dependency-install@v4
+        with:
+          path: "requirements.txt"
+
+      # ----------------------------------------------------------------------------------------------------------------
+      - name: Convert Notebooks
+        run: |
+          cd /opt/ros/overlay_ws/src/pycram/examples
+          mkdir tmp
+          jupytext --to notebook *.ipynb
+          mv *.ipynb tmp && cd tmp
+
+
+      - name: Run tests
+        run: |
+          source /opt/ros/overlay_ws/devel/setup.bash 
+          roscd pycram/examples/tmp
+          treon --thread 1 -v
