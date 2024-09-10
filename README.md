@@ -41,7 +41,7 @@ from pycram.datastructures.enums import ObjectType, Arms, Grasps
 world = BulletWorld()
 kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
 robot = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
-cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", position=[1.4, 1, 0.95])
+cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", pose=Pose([1.4, 1, 0.95]))
 
 cereal_desig = ObjectDesignatorDescription(names=["cereal"])
 kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
