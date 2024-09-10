@@ -698,7 +698,6 @@ class MixingPerformable(ActionAbstract):
     The technique used for cutting (default is None).
     """
 
-
     @with_tree
     def perform(self) -> None:
         """
@@ -780,7 +779,6 @@ class PouringPerformable(ActionAbstract):
 
     @with_tree
     def perform(self) -> None:
-
         # Initialize the local transformer and robot reference
         lt = LocalTransformer()
 
@@ -793,7 +791,7 @@ class PouringPerformable(ActionAbstract):
         oTbs = lt.transform_pose(oTm, World.robot.get_link_tf_frame("base_link"))
         oTbs.pose.position.x += 0.009  # was 0,009
         oTbs.pose.position.z += 0.17  # was 0.13
-        # oTbs.pose.position.y -= 0.125
+        oTbs.pose.position.y -= 0.125
         # if self.direction == Grasp.RIGHT:
         #     oTbs.pose.position.y -= 0.125
         # else:
@@ -805,23 +803,25 @@ class PouringPerformable(ActionAbstract):
         #
         oTog = lt.transform_pose(oTms, World.robot.get_link_tf_frame("base_link"))
         oTog.orientation = grasp_rotation
+        self.angle = 75  # for a 90-degree rotation
 
         oTgm = lt.transform_pose(oTog, "map")
         MoveTCPMotion(oTgm, self.arm, allow_gripper_collision=False).perform()
 
         World.current_world.add_vis_axis(oTgm)
+        adjusted_oTgm = oTgm.copy()
 
-        new_q = utils.axis_angle_to_quaternion([1, 0, 0], -self.angle)
+        new_q = utils.axis_angle_to_quaternion([1, 0, 0], self.angle)
+        rospy.loginfo(adjusted_oTgm.pose.orientation)
+
+        # Multiply the quaternions to combine rotations
+        adjusted_oTgm.multiply_quaternions(new_q)
+
         # if self.direction == "right":
         #     new_q = utils.axis_angle_to_quaternion([0, 0, 1], -self.angle)
         # else:
         #     new_q = utils.axis_angle_to_quaternion([0, 0, 1], self.angle)
-        adjusted_oTgm = oTgm.copy()
-        rospy.loginfo(adjusted_oTgm.pose.orientation)
-        adjusted_oTgm.pose.orientation.x = new_q[0]
-        adjusted_oTgm.pose.orientation.y = new_q[1]
-        adjusted_oTgm.pose.orientation.z = new_q[2]
-        adjusted_oTgm.pose.orientation.w = new_q[3]
+
         rospy.loginfo(adjusted_oTgm.pose.orientation)
 
         World.current_world.add_vis_axis(adjusted_oTgm)
