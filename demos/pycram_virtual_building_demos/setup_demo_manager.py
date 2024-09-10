@@ -102,4 +102,4 @@ def demo_selecting(apartment, robot, task_param):
         start_generalized_demo(task_param, object_tool, object_target, specialized_task)
 
 #
-# start_demo_local()
+start_demo_local()
