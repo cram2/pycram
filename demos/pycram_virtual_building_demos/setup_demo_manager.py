@@ -7,7 +7,8 @@ from demos.pycram_virtual_building_demos.src.generlized_actions_demo import star
 from demos.pycram_virtual_building_demos.src.transport_demo import transporting_demo
 from pycram.utils import suppress_stdout_stderr
 
-sys.path.insert(0, '/home/vee/robocup_workspaces/pycram_ws/src/pycram')
+# sys.path.insert(0, '/home/vee/robocup_workspaces/pycram_ws/src/pycram')
+sys.path.insert(0, '/home/jovyan/workspace/ros/src/pycram')
 
 from demos.pycram_virtual_building_demos.setup.setup_utils import display_loading_gif_with_text, update_text, \
     get_robot_name
@@ -90,4 +91,5 @@ def demo_selecting(apartment, robot, task_param):
         specialized_task = rospy.get_param('/nbparam_specialized_task')
         start_generalized_demo(task_param, object_tool, object_target, specialized_task)
 
-start_demo_local()
+#
+# start_demo()
