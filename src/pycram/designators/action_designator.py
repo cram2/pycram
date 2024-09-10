@@ -812,8 +812,6 @@ class PouringPerformable(ActionAbstract):
         adjusted_oTgm = oTgm.copy()
 
         new_q = utils.axis_angle_to_quaternion([1, 0, 0], self.angle)
-        rospy.loginfo(adjusted_oTgm.pose.orientation)
-
         # Multiply the quaternions to combine rotations
         adjusted_oTgm.multiply_quaternions(new_q)
 
@@ -821,8 +819,6 @@ class PouringPerformable(ActionAbstract):
         #     new_q = utils.axis_angle_to_quaternion([0, 0, 1], -self.angle)
         # else:
         #     new_q = utils.axis_angle_to_quaternion([0, 0, 1], self.angle)
-
-        rospy.loginfo(adjusted_oTgm.pose.orientation)
 
         World.current_world.add_vis_axis(adjusted_oTgm)
         MoveTCPMotion(adjusted_oTgm, self.arm, allow_gripper_collision=False).perform()
