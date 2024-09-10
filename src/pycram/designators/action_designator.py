@@ -705,13 +705,13 @@ class MixingPerformable(ActionAbstract):
             """
         # Retrieve object and robot from designators
         local_tf = LocalTransformer()
-        obj = self.object_designator.world_object
+        obj = self.object_.world_object
 
         obj_dim = obj.get_object_dimensions()
 
         dim = [max(obj_dim[0], obj_dim[1]), min(obj_dim[0], obj_dim[1]), obj_dim[2]]
         obj_height = dim[2]
-        oTm = self.object_designator.pose
+        oTm = self.object_.pose
         object_pose = local_tf.transform_to_object_frame(oTm, obj)
 
         def generate_spiral(pose, upward_increment, radial_increment, angle_increment, steps):

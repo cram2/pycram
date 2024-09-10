@@ -27,28 +27,33 @@ def start_generalized_demo(type, obj_tool, obj_target, technique):
 
         objects_tool = [(None, None), ('whisk', "WHISKKNOWLEDGEBASE")]
         objects_target = [(None, None), ('big-bowl', "BOWLKNOWLEDBASE")]
-        obj_tool_ = create_object(obj_tool, ObjectType.MIXING_TOOL, objects_tool, pose)
-        obj_target_ = create_object(obj_target, ObjectType.GENERIC_OBJECT, objects_target, pose)
+        obj_tool_ = create_object(obj_tool, ObjectType.MIXING_TOOL, objects_tool, pose=pose)
+        obj_target_ = create_object(obj_target, ObjectType.GENERIC_OBJECT, objects_target, pose=pose)
 
     elif type == "pouring":
         pose = Pose([2.4, 2, 1.0], [0, 0, 0, 1])
 
         objects_tool = [(None, None), ('jeroen_cup', "WHISKKNOWLEDGEBASE")]
         objects_target = [(None, None), ('bowl', "BOWLKNOWLEDBASE")]
-        obj_tool_ = create_object(obj_tool, ObjectType.POURING_TOOL, objects_tool, pose)
-        obj_target_ = create_object(obj_target, ObjectType.GENERIC_OBJECT, objects_target, pose)
+        obj_tool_ = create_object(obj_tool, ObjectType.POURING_TOOL, objects_tool, pose=pose)
+        obj_target_ = create_object(obj_target, ObjectType.GENERIC_OBJECT, objects_target, pose=pose)
     # cutting
     else:
         pose = Pose([2.3, 2, 1.0], [0, 0, -1, -1])
-
+        objects_tool = [(None, None), ('butter_knife', "KNIFEKNOWLEDGEBASE")]
         objects_target = [(None, None), ('apple', "obo:FOODON_03301710"), ('avocado', "obo:FOODON_00003600"),
                           ('banana', "obo:FOODON_00004183"), ('citron', "obo:FOODON_03306596"),
                           ('cucumber', "obo:FOODON_00003415"), ('kiwi', "obo:FOODON_00004387"),
                           ('lemon', "obo:FOODON_03301441"), ('lime', "obo:FOODON_00003661"),
                           ('orange', "obo:FOODON_03309832"), ('peach', "obo:FOODON_03315502"),
                           ('tomato', "obo:FOODON_03309927")]
-        obj_tool_ = Object("knife", ObjectType.CUTTING_TOOL, "butter_knife.stl", pose)
-        obj_target_ = create_object(obj_target, ObjectType.GENERIC_OBJECT, objects_target, pose)
+        drawer_island_surface_board = Pose([2.45, 1.8, 0.95], [0, 0, -1, -1])
+        drawer_island_surface = Pose([2.4, 1.8, 1.0], [0, 0, -1, -1])
+        board = Object("board", ObjectType.BOARD, "board.stl", pose=drawer_island_surface_board)
+        color = Color(0.4, 0.2, 0.06, 1)
+        board.set_color(color)
+        obj_tool_ = create_object(obj_tool, ObjectType.CUTTING_TOOL, objects_tool, pose=pose)
+        obj_target_ = create_object(obj_target, ObjectType.GENERIC_OBJECT, objects_target, pose=drawer_island_surface)
 
     action_map = {"cutting": CuttingAction, "mixing": MixingAction, "pouring": PouringAction}
 

@@ -60,8 +60,8 @@ def start_demo_local():
     # get params
     environment_param = 'apartment'
     robot_param = 'pr2'
-    task_param = 'pouring'
-
+    task_param = 'cutting'
+    rospy.set_param('/nbparam_specialized_task', "slicing")
     robot_name = get_robot_name(robot_param)
 
     extension = ObjectDescription.get_file_extension()
@@ -86,10 +86,20 @@ def demo_selecting(apartment, robot, task_param):
         with suppress_stdout_stderr():
             cleanup_demo(apartment, robot)
     elif task_param in ["cutting", "mixing", "pouring"]:
-        object_target = rospy.get_param('/nbparam_object')
-        object_tool = rospy.get_param('/nbparam_object_tool')
+        # object_target = rospy.get_param('/nbparam_object')
+        # object_tool = rospy.get_param('/nbparam_object_tool')
+        if task_param == "mixing":
+            object_target = "big-bowl"
+            object_tool = "whisk"
+        elif task_param == "pouring":
+            object_target = "bowl"
+            object_tool = "jeroen_cup"
+        else:
+            object_target = "banana"
+            object_tool = "butter_knife"
+
         specialized_task = rospy.get_param('/nbparam_specialized_task')
         start_generalized_demo(task_param, object_tool, object_target, specialized_task)
 
 #
-# start_demo()
+#start_demo_local()
