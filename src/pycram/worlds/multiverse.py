@@ -77,7 +77,8 @@ class Multiverse(World):
     def __init__(self, mode: Optional[WorldMode] = WorldMode.DIRECT,
                  is_prospection: Optional[bool] = False,
                  simulation_frequency: float = conf.simulation_frequency,
-                 simulation_name: str = "pycram_test"):
+                 simulation_name: str = "pycram_test",
+                 clear_cache: bool = False):
         """
         Initialize the Multiverse Socket and the PyCram World.
 
@@ -85,11 +86,12 @@ class Multiverse(World):
         :param is_prospection: Whether the world is prospection or not.
         :param simulation_frequency: The frequency of the simulation.
         :param simulation_name: The name of the simulation.
+        :param clear_cache: Whether to clear the cache or not.
         """
 
         self.latest_save_id: Optional[int] = None
         self.saved_simulator_states: Dict = {}
-        self._make_sure_multiverse_resources_are_added()
+        self._make_sure_multiverse_resources_are_added(clear_cache=clear_cache)
 
         if Multiverse.simulation is None:
             if simulation_name is None:
@@ -144,12 +146,15 @@ class Multiverse(World):
     def _init_world(self, mode: WorldMode):
         pass
 
-    def _make_sure_multiverse_resources_are_added(self):
+    def _make_sure_multiverse_resources_are_added(self, clear_cache: bool = False):
         """
         Add the multiverse resources to the pycram world resources, and change the data directory and cache manager.
+
+        :param clear_cache: Whether to clear the cache or not.
         """
         if not self.added_multiverse_resources:
-            World.cache_manager.clear_cache()
+            if clear_cache:
+                World.cache_manager.clear_cache()
             World.add_resource_path(conf.resources_path, prepend=True)
             World.change_cache_dir_path(conf.resources_path)
             self.added_multiverse_resources = True

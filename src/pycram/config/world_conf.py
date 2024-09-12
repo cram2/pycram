@@ -22,6 +22,11 @@ cache_dir: str = os.path.join(resources_path, cache_dir_name)
 Global reference for the cache directory, this is used to cache the description files of the robot and the objects.
 """
 
+clear_cache_at_start: bool = True
+"""
+Whether to clear the cache directory at the start.
+"""
+
 prospection_world_prefix: str = "prospection_"
 """
 The prefix for the prospection world name.

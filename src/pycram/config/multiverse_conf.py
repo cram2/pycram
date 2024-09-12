@@ -58,6 +58,8 @@ use_physics_simulator_state: bool = True
 Whether to use the physics simulator state when restoring or saving the world state.
 """
 
+world_conf.clear_cache_at_start = False
+
 job_handling: world_conf.JobHandling = world_conf.JobHandling(let_pycram_move_attached_objects=False,
                                                               let_pycram_handle_spawning=False)
 

@@ -66,7 +66,7 @@ class World(StateEntity, ABC):
      the URDF with the name of the URDF on the parameter server. 
     """
 
-    cache_manager: CacheManager = CacheManager(conf.cache_dir, [conf.resources_path])
+    cache_manager: CacheManager = CacheManager(conf.cache_dir, [conf.resources_path], False)
     """
     Global reference for the cache manager, this is used to cache the description files of the robot and the objects.
     """
@@ -111,7 +111,7 @@ class World(StateEntity, ABC):
     """
 
     def __init__(self, mode: WorldMode, is_prospection_world: bool, simulation_frequency: float,
-                 **config_kwargs):
+                 clear_cache: bool = False, **config_kwargs):
         """
         Create a new simulation, the mode decides if the simulation should be a rendered window or just run in the
         background. There can only be one rendered simulation.
@@ -121,10 +121,14 @@ class World(StateEntity, ABC):
          "GUI"
         :param is_prospection_world: For internal usage, decides if this World should be used as a prospection world.
         :param simulation_frequency: The frequency of the simulation in Hz.
+        :param clear_cache: Whether to clear the cache directory.
         :param config_kwargs: Additional configuration parameters.
         """
 
         StateEntity.__init__(self)
+
+        if clear_cache or (conf.clear_cache_at_start and not self.cache_manager.cache_cleared):
+            self.cache_manager.clear_cache()
 
         # Parse config_kwargs
         for key, value in config_kwargs.items():
