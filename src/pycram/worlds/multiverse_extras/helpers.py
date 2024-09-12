@@ -43,8 +43,10 @@ def get_robot_mjcf_path(robot_relative_dir: str, robot_name: str, xml_name: Opti
         rospy.logwarn("Multiverse resources path not found.")
         return None
     if multiverse_resources is not None:
-        if f'mjcf/{xml_name}' in os.listdir(robot_folder):
-            return os.path.join(multiverse_resources, 'robots', robot_relative_dir, robot_name, 'mjcf', xml_name)
+        list_dir = os.listdir(robot_folder)
+        if 'mjcf' in list_dir:
+            if xml_name in os.listdir(robot_folder + '/mjcf'):
+                return os.path.join(multiverse_resources, 'robots', robot_relative_dir, robot_name, 'mjcf', xml_name)
         elif xml_name in os.listdir(robot_folder):
             return os.path.join(multiverse_resources, 'robots', robot_relative_dir, robot_name, xml_name)
     return None
