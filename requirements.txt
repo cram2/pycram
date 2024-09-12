@@ -1,6 +1,6 @@
 -r requirements-setuptools.txt
 gitpython>=3.1.37
-pybullet~=3.2.5
+pycram_bullet==3.2.8
 rospkg~=1.4.0
 roslibpy~=1.2.1
 # rospy~=1.14.11
