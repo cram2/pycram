@@ -4,7 +4,7 @@ from ..robot_description import RobotDescription, KinematicChainDescription, End
 from ..datastructures.enums import Arms, Grasp, GripperState, GripperType
 import rospkg
 
-from ..worlds.multiverse_extras.helpers import get_robot_mjcf_path
+from ..helper import get_robot_mjcf_path
 
 rospack = rospkg.RosPack()
 filename = rospack.get_path('pycram') + '/resources/robots/' + "pr2" + '.urdf'

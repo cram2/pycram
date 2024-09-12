@@ -8,7 +8,7 @@ from .datastructures.dataclasses import VirtualMoveBaseJoints
 from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType
 from .object_descriptors.urdf import ObjectDescription as URDFObject
 from .utils import suppress_stdout_stderr
-from .worlds.multiverse_extras.helpers import parse_mjcf_actuators
+from .helper import parse_mjcf_actuators
 
 
 class RobotDescriptionManager:

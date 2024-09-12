@@ -4,7 +4,7 @@ from ..datastructures.dataclasses import VirtualMoveBaseJoints
 from ..datastructures.enums import GripperState, Arms, Grasp
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
-from ..worlds.multiverse_extras.helpers import get_robot_mjcf_path
+from ..helper import get_robot_mjcf_path
 
 rospack = rospkg.RosPack()
 filename = rospack.get_path('pycram') + '/resources/robots/' + "tiago_dual" + '.urdf'

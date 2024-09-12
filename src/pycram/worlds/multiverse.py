@@ -8,11 +8,10 @@ from typing_extensions import List, Dict, Optional, Union, Tuple, Type
 
 from .multiverse_communication.client_manager import MultiverseClientManager
 from .multiverse_communication.clients import MultiverseController, MultiverseReader, MultiverseWriter, MultiverseAPI
-from .multiverse_datastructures.enums import MultiverseBodyProperty, MultiverseJointPosition, \
-    MultiverseJointCMD
 from ..config import multiverse_conf as conf, world_conf
 from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
-from ..datastructures.enums import WorldMode, JointType, ObjectType
+from ..datastructures.enums import WorldMode, JointType, ObjectType, MultiverseBodyProperty, MultiverseJointPosition, \
+    MultiverseJointCMD
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
 from ..description import Link, Joint, ObjectDescription

@@ -8,10 +8,10 @@ import rospy
 from typing_extensions import List, Dict, Tuple, Optional, Callable, Union
 
 from .socket import MultiverseSocket, MultiverseMetaData
-from ..multiverse_datastructures.dataclasses import RayResult, MultiverseContactPoint
-from ..multiverse_datastructures.enums import (MultiverseAPIName as API, MultiverseBodyProperty as BodyProperty,
-                                               MultiverseProperty as Property)
 from ...config import multiverse_conf as conf
+from ...datastructures.dataclasses import RayResult, MultiverseContactPoint
+from ...datastructures.enums import (MultiverseAPIName as API, MultiverseBodyProperty as BodyProperty,
+                                     MultiverseProperty as Property)
 from ...datastructures.pose import Pose
 from ...datastructures.world import World
 from ...world_concepts.constraints import Constraint

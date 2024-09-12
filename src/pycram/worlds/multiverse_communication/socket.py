@@ -6,7 +6,7 @@ import rospy
 from multiverse_client_pybind import MultiverseClientPybind  # noqa
 from typing_extensions import Optional, List, Dict, Callable, TypeVar
 
-from ..multiverse_datastructures.dataclasses import MultiverseMetaData
+from ...datastructures.dataclasses import MultiverseMetaData
 from ...config import multiverse_conf as conf
 
 T = TypeVar("T")
