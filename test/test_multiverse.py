@@ -14,7 +14,7 @@ from pycram.datastructures.pose import Pose
 from pycram.robot_description import RobotDescriptionManager
 from pycram.world_concepts.world_object import Object
 from pycram.validation.error_checkers import calculate_angle_between_quaternions
-from pycram.worlds.multiverse_extras.helpers import get_robot_mjcf_path, parse_mjcf_actuators
+from pycram.helper import get_robot_mjcf_path, parse_mjcf_actuators
 
 multiverse_installed = True
 try:

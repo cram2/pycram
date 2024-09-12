@@ -4,7 +4,7 @@ from typing_extensions import Type
 
 from . import world_conf as world_conf
 from ..description import ObjectDescription
-from ..worlds.multiverse_extras.helpers import find_multiverse_resources_path
+from ..helper import find_multiverse_resources_path
 from ..object_descriptors.mjcf import ObjectDescription as MJCF
 
 # Multiverse Configuration
