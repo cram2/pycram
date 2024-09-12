@@ -2,23 +2,24 @@ import pathlib
 
 import numpy as np
 import rospy
+from dm_control import mjcf
 from geometry_msgs.msg import Point
 from typing_extensions import Union, List, Optional, Dict, Tuple
-from dm_control import mjcf
 
+from ..datastructures.dataclasses import Color, VisualShape, BoxVisualShape, CylinderVisualShape, \
+    SphereVisualShape, MeshVisualShape
 from ..datastructures.enums import JointType, MJCFGeomType, MJCFJointType
 from ..datastructures.pose import Pose
 from ..description import JointDescription as AbstractJointDescription, \
     LinkDescription as AbstractLinkDescription, ObjectDescription as AbstractObjectDescription
-from ..datastructures.dataclasses import Color, VisualShape, BoxVisualShape, CylinderVisualShape, \
-    SphereVisualShape, MeshVisualShape
 from ..failures import MultiplePossibleTipLinks
 
 try:
-    from multiverse_parser import Configuration, Factory, InertiaSource
+    from multiverse_parser import Configuration, Factory, InertiaSource, GeomBuilder
     from multiverse_parser import (WorldBuilder,
                                    GeomType, GeomProperty,
-                                   MeshProperty)
+                                   MeshProperty,
+                                   MaterialProperty)
     from multiverse_parser import MjcfExporter
     from pxr import Usd, UsdGeom
 except ImportError:
@@ -50,7 +51,7 @@ class LinkDescription(AbstractLinkDescription):
         if mjcf_geometry.type == MJCFGeomType.BOX.value:
             return BoxVisualShape(Color(), [0, 0, 0], mjcf_geometry.size)
         if mjcf_geometry.type == MJCFGeomType.CYLINDER.value:
-            return CylinderVisualShape(Color(), [0, 0, 0], mjcf_geometry.size[0], mjcf_geometry.size[1]*2)
+            return CylinderVisualShape(Color(), [0, 0, 0], mjcf_geometry.size[0], mjcf_geometry.size[1] * 2)
         if mjcf_geometry.type == MJCFGeomType.SPHERE.value:
             return SphereVisualShape(Color(), [0, 0, 0], mjcf_geometry.size[0])
         if mjcf_geometry.type == MJCFGeomType.MESH.value:
@@ -162,7 +163,7 @@ class JointDescription(AbstractJointDescription):
 
 
 class ObjectFactory(Factory):
-    def __init__(self, object_name: str, file_path: str, config: Configuration):
+    def __init__(self, object_name: str, file_path: str, config: Configuration, texture_type: str = "png"):
         super().__init__(file_path, config)
 
         self._world_builder = WorldBuilder(usd_file_path=self.tmp_usd_file_path)
@@ -177,15 +178,32 @@ class ObjectFactory(Factory):
             mesh_path = mesh_prim.GetPath()
             mesh_property = MeshProperty.from_mesh_file_path(mesh_file_path=tmp_usd_mesh_file_path,
                                                              mesh_path=mesh_path)
+            # mesh_property._texture_coordinates = None # TODO: See if needed otherwise remove it.
             geom_property = GeomProperty(geom_type=GeomType.MESH,
                                          is_visible=False,
                                          is_collidable=True)
             geom_builder = body_builder.add_geom(geom_name=f"SM_{object_name}_mesh_{idx}",
                                                  geom_property=geom_property)
             geom_builder.add_mesh(mesh_name=mesh_name, mesh_property=mesh_property)
+
+            # Add texture if available
+            texture_file_path = file_path.replace(pathlib.Path(file_path).suffix, f".{texture_type}")
+            if pathlib.Path(texture_file_path).exists():
+                self.add_material_with_texture(geom_builder=geom_builder, material_name=f"M_{object_name}_{idx}",
+                                               texture_file_path=texture_file_path)
+
             geom_builder.build()
 
         body_builder.compute_and_set_inertial(inertia_source=InertiaSource.FROM_COLLISION_MESH)
+
+    @staticmethod
+    def add_material_with_texture(geom_builder: GeomBuilder, material_name: str, texture_file_path: str):
+        material_property = MaterialProperty(diffuse_color=texture_file_path,
+                                             opacity=None,
+                                             emissive_color=None,
+                                             specular_color=None)
+        geom_builder.add_material(material_name=material_name,
+                                  material_property=material_property)
 
     def export_to_mjcf(self, output_file_path: str):
         exporter = MjcfExporter(self, output_file_path)
