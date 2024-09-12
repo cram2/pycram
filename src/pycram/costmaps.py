@@ -6,7 +6,6 @@ from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import numpy as np
 import psutil
-import pybullet as p
 import random_events
 import rospy
 import tf
@@ -26,6 +25,12 @@ from .datastructures.world import World
 from .description import Link
 from .local_transformer import LocalTransformer
 from .world_concepts.world_object import Object
+
+from .datastructures.pose import Pose, Transform
+from .datastructures.world import World
+from .datastructures.dataclasses import AxisAlignedBoundingBox, BoxVisualShape, Color
+
+import pycram_bullet as p
 
 
 @dataclass
