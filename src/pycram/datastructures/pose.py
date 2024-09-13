@@ -269,9 +269,11 @@ class Pose(PoseStamped):
         tolerance. The position tolerance is given in meters and the orientation tolerance in degrees. The position
         error is calculated as the euclidian distance between the positions and the orientation error as the angle
         between the quaternions.
+        
         :param other: The other Pose which should be compared
         :param position_tolerance_in_meters: The tolerance for the position in meters
         :param orientation_tolerance_in_degrees: The tolerance for the orientation in degrees
+        :return: True if the Poses are almost equal, False otherwise
         """
         error = calculate_pose_error(self, other)
         return error[0] <= position_tolerance_in_meters and error[1] <= orientation_tolerance_in_degrees * math.pi / 180

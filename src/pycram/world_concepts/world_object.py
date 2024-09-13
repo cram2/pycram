@@ -37,7 +37,7 @@ class Object(WorldEntity):
     Represents a spawned Object in the World.
     """
 
-    prospection_world_prefix: str = "prospection/"
+    tf_prospection_world_prefix: str = "prospection/"
     """
     The prefix for the tf frame of objects in the prospection world.
     """
@@ -100,7 +100,7 @@ class Object(WorldEntity):
 
         self.id = self._spawn_object_and_get_id()
 
-        self.tf_frame = (self.prospection_world_prefix if self.world.is_prospection_world else "") + self.name
+        self.tf_frame = (self.tf_prospection_world_prefix if self.world.is_prospection_world else "") + self.name
 
         self._init_joint_name_and_id_map()
         self._init_link_name_and_id_map()
@@ -881,8 +881,8 @@ class Object(WorldEntity):
             raise WorldMismatchErrorBetweenObjects(self, child_object)
         att_transform = attachment.parent_to_child_transform.copy()
         if self.world.is_prospection_world and not attachment.parent_object.world.is_prospection_world:
-            att_transform.frame = self.prospection_world_prefix + att_transform.frame
-            att_transform.child_frame_id = self.prospection_world_prefix + att_transform.child_frame_id
+            att_transform.frame = self.tf_prospection_world_prefix + att_transform.frame
+            att_transform.child_frame_id = self.tf_prospection_world_prefix + att_transform.child_frame_id
         return att_transform
 
     @property
