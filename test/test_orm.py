@@ -284,6 +284,51 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
         apartment.remove()
 
 
+class BelieveObjectTestCase(unittest.TestCase):
+    engine: sqlalchemy.engine
+    session: sqlalchemy.orm.Session
+
+    @classmethod
+    def setUpClass(cls):
+        cls.engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
+
+    def setUp(self):
+        pycram.orm.base.Base.metadata.create_all(self.engine)
+        self.session = sqlalchemy.orm.Session(bind=self.engine)
+
+    def tearDown(self):
+        pycram.tasktree.task_tree.reset_tree()
+        pycram.orm.base.ProcessMetaData.reset()
+        self.apartment.remove()
+        World.current_world.exit()
+        pycram.orm.base.Base.metadata.drop_all(self.engine)
+        self.session.close()
+
+    def test_believe_object(self):
+        # TODO: Find better way to separate BelieveObject no pose from Object pose
+        environment_path = "apartment.urdf"
+        self.world = BulletWorld(WorldMode.DIRECT)
+        self.robot = Object("pr2", ObjectType.ROBOT, path="pr2.urdf",  pose=Pose([1, 2, 0]))
+        self.apartment = Object(environment_path[:environment_path.find(".")], ObjectType.ENVIRONMENT, environment_path)
+        self.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1, -1.78, 0.55], [1, 0, 0, 0]),
+                           color=Color(1, 0, 0, 1))
+        pick_pose = Pose([1, -1.78, 0.55])
+
+        with simulated_robot:
+            ParkArmsAction([Arms.BOTH]).resolve().perform()
+
+            MoveTorsoAction([0.25]).resolve().perform()
+            NavigateAction(target_locations=[Pose([2, -1.89, 0])]).resolve().perform()
+
+            LookAtAction(targets=[pick_pose]).resolve().perform()
+
+            object_desig = DetectAction(BelieveObject(types=[ObjectType.MILK])).resolve().perform()
+            TransportAction(object_desig, [Arms.LEFT], [Pose([4.8, 3.55, 0.8])]).resolve().perform()
+
+            ParkArmsAction([Arms.BOTH]).resolve().perform()
+            pycram.orm.base.ProcessMetaData().description = "BelieveObject_test"
+            task_tree.root.insert(self.session)
+
 class ViewsSchemaTest(DatabaseTestCaseMixin):
 
     def test_view_creation(self):
