@@ -1,6 +1,7 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+from tqdm import tqdm
 from typing_extensions import Tuple, List, Optional
 
 import matplotlib.pyplot as plt
@@ -13,6 +14,7 @@ from matplotlib import colors
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 
 from .datastructures.world import UseProspectionWorld
+from .ros.viz_marker_publisher import CostmapPublisher
 from .world_concepts.world_object import Object
 from .description import Link
 from .local_transformer import LocalTransformer
@@ -149,6 +151,29 @@ class Costmap:
                                         linkCollisionShapeIndices=link_collision)
             self.vis_ids.append(map_obj)
 
+    def publish(self):
+        """
+        Publishes the costmap to the World.
+        """
+        indices = np.argwhere(self.map > 0)
+        height = self.map.shape[0]
+        width = self.map.shape[1]
+        center = np.array([height // 2, width // 2])
+
+        origin_to_map = self.origin.to_transform("origin").invert()
+
+        poses = [
+            Pose(
+                (Transform([*((center - ind) * self.resolution), 0], frame="point",
+                           child_frame="origin") * origin_to_map)
+                .invert().translation_as_list()
+            )
+            for ind in tqdm(indices)
+        ]
+
+        costmap = CostmapPublisher()
+        costmap.publish(poses=poses, size=self.resolution)
+
     def _chunks(self, lst: List, n: int) -> List:
         """
         Yield successive n-sized chunks from lst.
@@ -211,30 +236,39 @@ class Costmap:
         """
         Merges the values of two costmaps and returns a new costmap that has for
         every cell the merged values of both inputs. To merge two costmaps they
-        need to fulfill 3 constrains:
+        need to fulfill 2 constrains:
 
-        1. They need to have the same size
-        2. They need to have the same x and y coordinates in the origin
-        3. They need to have the same resolution
+        1. They need to have the same x and y coordinates in the origin
+        2. They need to have the same resolution
 
         If any of these constrains is not fulfilled a ValueError will be raised.
 
         :param other_cm: The other costmap with which this costmap should be merged.
         :return: A new costmap that contains the merged values
         """
-        if self.size != other_cm.size:
-            raise ValueError("You can only merge costmaps of the same size.")
-        elif self.origin.position.x != other_cm.origin.position.x or self.origin.position.y != other_cm.origin.position.y \
+        if self.origin.position.x != other_cm.origin.position.x or self.origin.position.y != other_cm.origin.position.y \
                 or self.origin.orientation != other_cm.origin.orientation:
-            raise ValueError("To merge costmaps, the x and y coordinate as well as the orientation must be equal.")
+            raise ValueError("To merge costmaps, the x and y coordinates as well as the orientation must be equal.")
         elif self.resolution != other_cm.resolution:
             raise ValueError("To merge two costmaps their resolution must be equal.")
-        new_map = np.zeros((self.height, self.width))
-        # A nunpy array of the positions where both costmaps are greater than 0
-        merge = np.logical_and(self.map > 0, other_cm.map > 0)
-        new_map[merge] = self.map[merge] * other_cm.map[merge]
-        new_map = (new_map / np.max(new_map)).reshape((self.height, self.width))
-        return Costmap(self.resolution, self.height, self.width, self.origin, new_map)
+
+        if self.size == other_cm.size:
+            smaller_map_padded = other_cm.map
+            larger_cm = self
+        else:
+            larger_cm, smaller_cm = (self, other_cm) if self.size > other_cm.size else (other_cm, self)
+            larger_size, smaller_size = larger_cm.size, smaller_cm.size
+            offset = int(larger_size - smaller_size)
+            odd = 0 if offset % 2 == 0 else 1
+            smaller_map_padded = np.pad(smaller_cm.map, (offset // 2, offset // 2 + odd))
+
+        dimensions = larger_cm.map.shape[0]
+        new_map = np.zeros((dimensions, dimensions))
+        merge = np.logical_and(larger_cm.map > 0, smaller_map_padded > 0)
+        new_map[merge] = larger_cm.map[merge] * smaller_map_padded[merge]
+        new_map = (new_map / np.max(new_map)).reshape((dimensions, dimensions))
+
+        return Costmap(larger_cm.resolution, dimensions, dimensions, larger_cm.origin, new_map)
 
     def __add__(self, other: Costmap) -> Costmap:
         """
@@ -338,9 +372,9 @@ class OccupancyCostmap(Costmap):
             self.size = size
             self.origin = Pose() if not origin else origin
             self.resolution = resolution
-            self.distance_obstacle = max(int(distance_to_obstacle / self.resolution), 1)
+            self.distance_obstacle = max(int(distance_to_obstacle / self.resolution), 2)
             self.map = self._create_from_world(size, resolution)
-            Costmap.__init__(self, resolution, size, size, self.origin, self.map)
+            Costmap.__init__(self, resolution, self.size, self.size, self.origin, self.map)
 
     def _calculate_diff_origin(self, height: int, width: int) -> Pose:
         """
@@ -443,10 +477,22 @@ class OccupancyCostmap(Costmap):
         :param size: The size of this costmap. The size specifies the length of one side of the costmap. The costmap is created as a square.
         :param resolution: The resolution of this costmap. This determines how much meter a pixel in the costmap represents.
         """
+        # Convert size from cm to meters
+        size_m = size / 100.0
+
+        # Calculate the number of pixels along each axis
+        num_pixels = int(size_m / resolution)
+
         origin_position = self.origin.position_as_list()
-        # Generate 2d grid with indices
-        indices = np.concatenate(np.dstack(np.mgrid[int(-size / 2):int(size / 2), int(-size / 2):int(size / 2)]),
+
+        half_num_pixels = num_pixels // 2
+        upper_bound = half_num_pixels if num_pixels % 2 == 0 else half_num_pixels + 1
+
+        indices = np.concatenate(np.dstack(np.mgrid[-half_num_pixels:upper_bound,
+                                           -half_num_pixels:upper_bound]),
                                  axis=0) * resolution + np.array(origin_position[:2])
+
+
         # Add the z-coordinate to the grid, which is either 0 or 10
         indices_0 = np.pad(indices, (0, 1), mode='constant', constant_values=5)[:-1]
         indices_10 = np.pad(indices, (0, 1), mode='constant', constant_values=0)[:-1]
@@ -475,7 +521,7 @@ class OccupancyCostmap(Costmap):
                 res[i:j] = [1 if ray[0] == -1 else 0 for ray in r_t]
             i += len(n)
 
-        res = np.flip(np.reshape(np.array(res), (size, size)))
+        res = np.flip(np.reshape(np.array(res), (num_pixels, num_pixels)))
 
         map = np.pad(res, (int(self.distance_obstacle / 2), int(self.distance_obstacle / 2)))
 
@@ -490,7 +536,8 @@ class OccupancyCostmap(Costmap):
         map = (sum == (self.distance_obstacle * 2) ** 2).astype('int16')
         # The map loses some size due to the strides and because I dont want to
         # deal with indices outside of the index range
-        offset = self.size - map.shape[0]
+        self.size = num_pixels
+        offset = num_pixels - map.shape[0]
         odd = 0 if offset % 2 == 0 else 1
         map = np.pad(map, (offset // 2, offset // 2 + odd))
 
@@ -716,24 +763,28 @@ class GaussianCostmap(Costmap):
     """
 
     def __init__(self, mean: int, sigma: float, resolution: Optional[float] = 0.02,
-                 origin: Optional[Pose] = None):
+                 origin: Optional[Pose] = None, circular: bool = False):
         """
         This Costmap creates a 2D gaussian distribution around the origin with
         the specified size.
 
         :param mean: The mean input for the gaussian distribution, this also specifies
-            the length of the side of the resulting costmap. The costmap is Created
+            the length of the side of the resulting costmap in centimeter. The costmap is Created
             as a square.
         :param sigma: The sigma input for the gaussian distribution.
         :param resolution: The resolution of the costmap, this specifies how much
             meter a pixel represents.
         :param origin: The origin of the costmap around which it will be created.
         """
-        self.gau: np.ndarray = self._gaussian_window(mean, sigma)
+        self.size = mean / 100.0
+        self.resolution = resolution
+        num_pixels = int(self.size / self.resolution)
+        self.gau: np.ndarray = self._gaussian_window(num_pixels, sigma)
         self.map: np.ndarray = np.outer(self.gau, self.gau)
-        self.size: float = mean
+        if circular:
+            self.map = self._apply_circular_mask(self.map, num_pixels)
         self.origin: Pose = Pose() if not origin else origin
-        Costmap.__init__(self, resolution, mean, mean, self.origin, self.map)
+        Costmap.__init__(self, resolution, num_pixels, num_pixels, self.origin, self.map)
 
     def _gaussian_window(self, mean: int, std: float) -> np.ndarray:
         """
@@ -745,6 +796,30 @@ class GaussianCostmap(Costmap):
         sig2 = 2 * std * std
         w = np.exp(-n ** 2 / sig2)
         return w
+
+    def _apply_circular_mask(self, grid: np.ndarray, num_pixels: int) -> np.ndarray:
+        """
+        Apply a circular mask to the given grid, zeroing out values outside the circle.
+        The radius of the circle will be half the size of the grid.
+
+        :param grid: The 2D Gaussian grid to apply the mask to.
+        :param num_pixels: The number of pixels along one axis of the square grid.
+        :return: The masked grid, with values outside the circle set to 0.
+        """
+        # Create coordinate grid
+        y, x = np.ogrid[:num_pixels, :num_pixels]
+        center = num_pixels / 2
+        radius = center
+
+        # Calculate the distance from the center for each grid point
+        distance_from_center = np.sqrt((x - center) ** 2 + (y - center) ** 2)
+
+        # Create the circular mask
+        circular_mask = distance_from_center <= radius
+
+        # Apply the mask to the grid
+        masked_grid = np.where(circular_mask, grid, 0)
+        return masked_grid
 
 
 class SemanticCostmap(Costmap):

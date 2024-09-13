@@ -3,8 +3,9 @@ from __future__ import annotations
 
 from enum import Enum
 
+import numpy as np
 import rospy
-from typing_extensions import List, Dict, Union, Optional
+from typing_extensions import List, Dict, Union, Optional, Tuple
 from urdf_parser_py.urdf import URDF
 
 from .utils import suppress_stdout_stderr
@@ -127,6 +128,7 @@ class RobotDescription:
         self.links: List[str] = [l.name for l in self.urdf_object.links]
         self.joints: List[str] = [j.name for j in self.urdf_object.joints]
         self.costmap_offset: float = 0.3
+        self.max_reach = None
 
     def add_kinematic_chain_description(self, chain: KinematicChainDescription):
         """
@@ -321,6 +323,47 @@ class RobotDescription:
         :return: The name of the torso joint
         """
         return self.torso_joint
+
+    def set_max_reach(self, start_link, end_link):
+        robot = self.urdf_object
+
+        max_reach = 0.0
+
+        kinematic_chain = robot.get_chain(start_link, end_link, joints=False)
+
+        joints = robot.get_chain(start_link, end_link, links=False)
+
+        for joint in joints:
+            if self.get_parent(joint) in kinematic_chain and self.get_child(
+                    joint) in kinematic_chain:
+                translation = robot.joint_map[joint].origin.position
+                link_length = np.linalg.norm(translation)
+                max_reach += link_length
+
+        self.max_reach = max_reach
+
+    def get_max_reach(self):
+        if not self.max_reach:
+            manip = self.get_manipulator_chains()[0]
+            self.set_max_reach(manip.start_link, manip.end_link)
+
+        return self.max_reach
+
+    def get_joint_limits(self, joint_name: str) -> Optional[Tuple[float, float]]:
+        """
+        Returns the joint limits of a joint in the URDF. If the joint is not found, None is returned.
+
+        :param joint_name: Name of the joint
+        :return: Tuple of the lower and upper joint limits
+        """
+        if joint_name not in self.urdf_object.joint_map:
+            rospy.logerr(f"Joint {joint_name} not found in URDF")
+            return None
+        joint = self.urdf_object.joint_map[joint_name]
+        if joint.limit:
+            return joint.limit.lower, joint.limit.upper
+        else:
+            return None
 
 
 class KinematicChainDescription:

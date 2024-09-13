@@ -80,13 +80,9 @@ def demo_selecting(apartment, robot, task_param):
     if task_param == "navigate":
         navigate_simple_example()
     elif task_param == "transport":
-        # rospy.loginfo('Starting transporting demo...')
-        with suppress_stdout_stderr():
-            transporting_demo(apartment, robot)
+        transporting_demo(apartment, robot)
     elif task_param == "cleanup":
-        # rospy.loginfo('Starting transporting demo...')
-        with suppress_stdout_stderr():
-            cleanup_demo(apartment, robot)
+        cleanup_demo(apartment, robot)
     elif task_param in ["cutting", "mixing"]:
         object_target = rospy.get_param('/nbparam_object')
         object_tool = rospy.get_param('/nbparam_object_tool')
