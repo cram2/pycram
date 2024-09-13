@@ -281,7 +281,7 @@ class ObjectDescription(AbstractObjectDescription):
         urdf_string = self.remove_error_tags(urdf_string)
         urdf_string = self.fix_link_attributes(urdf_string)
         try:
-            urdf_string = self.replace_ros_package_references_to_absolute_paths(urdf_string)
+            urdf_string = self.replace_relative_references_with_absolute_paths(urdf_string)
             urdf_string = self.fix_missing_inertial(urdf_string)
         except rospkg.ResourceNotFound as e:
             rospy.logerr(f"Could not find resource package linked in this URDF")
@@ -291,7 +291,7 @@ class ObjectDescription(AbstractObjectDescription):
 
     def generate_from_parameter_server(self, name: str, save_path: str) -> None:
         urdf_string = rospy.get_param(name)
-        urdf_string = self.replace_ros_package_references_to_absolute_paths(urdf_string)
+        urdf_string = self.replace_relative_references_with_absolute_paths(urdf_string)
         urdf_string = self.fix_missing_inertial(urdf_string)
         self.write_description_to_file(urdf_string, save_path)
 

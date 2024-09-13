@@ -3,7 +3,8 @@ from pathlib import Path
 from typing_extensions import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
-    from pycram.world_concepts.world_object import Object
+    from .world_concepts.world_object import Object
+    from .datastructures.enums import JointType
 
 
 class PlanFailure(Exception):
@@ -462,3 +463,9 @@ class ObjectDescriptionUndefined(Exception):
     def __init__(self, object_name: str):
         super().__init__(f"Object description for object {object_name} is not defined, eith a path or a description"
                          f"object should be provided.")
+
+
+class UnsupportedJointType(Exception):
+    def __init__(self, joint_type: 'JointType'):
+        super().__init__(f"Unsupported joint type: {joint_type}")
+

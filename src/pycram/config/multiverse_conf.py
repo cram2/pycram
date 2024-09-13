@@ -4,7 +4,7 @@ from typing_extensions import Type
 
 from . import world_conf as world_conf
 from ..description import ObjectDescription
-from ..worlds.multiverse_extras.helpers import find_multiverse_resources_path
+from ..helper import find_multiverse_resources_path
 from ..object_descriptors.mjcf import ObjectDescription as MJCF
 
 # Multiverse Configuration
@@ -57,6 +57,8 @@ use_physics_simulator_state: bool = True
 """
 Whether to use the physics simulator state when restoring or saving the world state.
 """
+
+world_conf.clear_cache_at_start = False
 
 job_handling: world_conf.JobHandling = world_conf.JobHandling(let_pycram_move_attached_objects=False,
                                                               let_pycram_handle_spawning=False)

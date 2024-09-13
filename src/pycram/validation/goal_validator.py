@@ -2,17 +2,17 @@ from time import sleep, time
 
 import numpy as np
 import rospy
-from typing_extensions import Any, Callable, Optional, Union, Iterable, Dict, TYPE_CHECKING
+from typing_extensions import Any, Callable, Optional, Union, Iterable, Dict, TYPE_CHECKING, Tuple
 
-from pycram.datastructures.enums import JointType
-from pycram.validation.error_checkers import ErrorChecker, PoseErrorChecker, PositionErrorChecker, \
+from ..datastructures.enums import JointType
+from .error_checkers import ErrorChecker, PoseErrorChecker, PositionErrorChecker, \
     OrientationErrorChecker, SingleValueErrorChecker
 
 if TYPE_CHECKING:
-    from pycram.datastructures.world import World
-    from pycram.world_concepts.world_object import Object
-    from pycram.datastructures.pose import Pose
-    from pycram.description import ObjectDescription
+    from ..datastructures.world import World
+    from ..world_concepts.world_object import Object
+    from ..datastructures.pose import Pose
+    from ..description import ObjectDescription
 
     Joint = ObjectDescription.Joint
     Link = ObjectDescription.Link
@@ -34,6 +34,7 @@ class GoalValidator:
                  acceptable_percentage_of_goal_achieved: Optional[float] = 0.8):
         """
         Initialize the goal validator.
+
         :param error_checker: The error checker.
         :param current_value_getter: The current value getter function which takes an optional input and returns the
         current value.
@@ -55,6 +56,7 @@ class GoalValidator:
                                               time_per_read: Optional[float] = 0.01) -> None:
         """
         Register the goal value and wait until the target is reached.
+
         :param goal_value: The goal value.
         :param current_value_getter_input: The values that are used as input to the current value getter.
         :param initial_value: The initial value.
@@ -69,6 +71,7 @@ class GoalValidator:
                                     time_per_read: Optional[float] = 0.01) -> None:
         """
         Wait until the target is reached.
+
         :param max_wait_time: The maximum time to wait.
         :param time_per_read: The time to wait between each read.
         """
@@ -104,7 +107,7 @@ class GoalValidator:
     @property
     def _acceptable_error(self) -> np.ndarray:
         """
-        Get the acceptable error.
+        The acceptable error.
         """
         if self.error_checker.is_iterable:
             return self.tiled_acceptable_error
@@ -114,14 +117,14 @@ class GoalValidator:
     @property
     def acceptable_error(self) -> np.ndarray:
         """
-        Get the acceptable error.
+        The acceptable error.
         """
         return self.error_checker.acceptable_error
 
     @property
     def tiled_acceptable_error(self) -> Optional[np.ndarray]:
         """
-        Get the tiled acceptable error.
+        The tiled acceptable error.
         """
         return self.error_checker.tiled_acceptable_error
 
@@ -131,6 +134,7 @@ class GoalValidator:
                       acceptable_error: Optional[Union[float, Iterable[float]]] = None):
         """
         Register the goal value.
+
         :param goal_value: The goal value.
         :param current_value_getter_input: The values that are used as input to the current value getter.
         :param initial_value: The initial value.
@@ -146,6 +150,9 @@ class GoalValidator:
     def update_initial_error(self, goal_value: Any, initial_value: Optional[Any] = None) -> None:
         """
         Calculate the initial error.
+
+        :param goal_value: The goal value.
+        :param initial_value: The initial value.
         """
         if initial_value is None:
             self.initial_error: np.ndarray = self.current_error
@@ -155,7 +162,7 @@ class GoalValidator:
     @property
     def current_value(self) -> Any:
         """
-        Get the current value.
+        The current value of the monitored variable.
         """
         if self.current_value_getter_input is not None:
             return self.current_value_getter(self.current_value_getter_input)
@@ -165,20 +172,24 @@ class GoalValidator:
     @property
     def current_error(self) -> np.ndarray:
         """
-        Calculate the current error.
+        The current error.
         """
         return self.calculate_error(self.goal_value, self.current_value)
 
     def calculate_error(self, value_1: Any, value_2: Any) -> np.ndarray:
         """
         Calculate the error between two values.
+
+        :param value_1: The first value.
+        :param value_2: The second value.
+        :return: The error.
         """
         return np.array(self.error_checker.calculate_error(value_1, value_2)).flatten()
 
     @property
     def percentage_of_goal_achieved(self) -> float:
         """
-        Calculate the percentage of goal achieved.
+        The relative (relative to the acceptable error) achieved percentage of goal.
         """
         percent_array = 1 - self.relative_current_error / self.relative_initial_error
         percent_array_filtered = percent_array[self.relative_initial_error > self._acceptable_error]
@@ -190,7 +201,7 @@ class GoalValidator:
     @property
     def actual_percentage_of_goal_achieved(self) -> float:
         """
-        Calculate the percentage of goal achieved.
+        The percentage of goal achieved.
         """
         percent_array = 1 - self.current_error / np.maximum(self.initial_error, 1e-3)
         percent_array_filtered = percent_array[self.initial_error > self._acceptable_error]
@@ -202,14 +213,14 @@ class GoalValidator:
     @property
     def relative_current_error(self) -> np.ndarray:
         """
-        Get the relative current error.
+        The relative current error (relative to the acceptable error).
         """
         return self.get_relative_error(self.current_error, threshold=0)
 
     @property
     def relative_initial_error(self) -> np.ndarray:
         """
-        Get the relative initial error.
+        The relative initial error (relative to the acceptable error).
         """
         return np.maximum(self.initial_error, 1e-3)
 
@@ -217,8 +228,10 @@ class GoalValidator:
         """
         Get the relative error by comparing the error with the acceptable error and filtering out the errors that are
         less than the threshold.
+
         :param error: The error.
         :param threshold: The threshold.
+        :return: The relative error.
         """
         return np.maximum(error - self._acceptable_error, threshold)
 
@@ -226,7 +239,6 @@ class GoalValidator:
     def goal_achieved(self) -> bool:
         """
         Check if the goal is achieved.
-        return: Whether the goal is achieved.
         """
         if self.acceptable_percentage_of_goal_achieved is None:
             return self.is_current_error_acceptable
@@ -237,7 +249,6 @@ class GoalValidator:
     def is_current_error_acceptable(self) -> bool:
         """
         Check if the error is acceptable.
-        return: Whether the error is acceptable.
         """
         return self.error_checker.is_error_acceptable(self.current_value, self.goal_value)
 
@@ -248,11 +259,12 @@ class PoseGoalValidator(GoalValidator):
     """
 
     def __init__(self, current_pose_getter: OptionalArgCallable = None,
-                 acceptable_error: Union[float, Iterable[float]] = (1e-3, np.pi / 180),
+                 acceptable_error: Union[Tuple[float], Iterable[Tuple[float]]] = (1e-3, np.pi / 180),
                  acceptable_percentage_of_goal_achieved: Optional[float] = 0.8,
                  is_iterable: Optional[bool] = False):
         """
         Initialize the pose goal validator.
+
         :param current_pose_getter: The current pose getter function which takes an optional input and returns the
         current pose.
         :param acceptable_error: The acceptable error.
@@ -268,10 +280,11 @@ class MultiPoseGoalValidator(PoseGoalValidator):
     """
 
     def __init__(self, current_poses_getter: OptionalArgCallable = None,
-                 acceptable_error: Union[float, Iterable[float]] = (1e-2, 5 * np.pi / 180),
+                 acceptable_error: Union[Tuple[float], Iterable[Tuple[float]]] = (1e-2, 5 * np.pi / 180),
                  acceptable_percentage_of_goal_achieved: Optional[float] = 0.8):
         """
         Initialize the multi-pose goal validator.
+
         :param current_poses_getter: The current poses getter function which takes an optional input and returns the
         current poses.
         :param acceptable_error: The acceptable error.
@@ -292,6 +305,7 @@ class PositionGoalValidator(GoalValidator):
                  is_iterable: Optional[bool] = False):
         """
         Initialize the position goal validator.
+
         :param current_position_getter: The current position getter function which takes an optional input and
          returns the current position.
         :param acceptable_error: The acceptable error.
@@ -312,6 +326,7 @@ class MultiPositionGoalValidator(PositionGoalValidator):
                  acceptable_percentage_of_goal_achieved: Optional[float] = 0.8):
         """
         Initialize the multi-position goal validator.
+
         :param current_positions_getter: The current positions getter function which takes an optional input and
          returns the current positions.
         :param acceptable_error: The acceptable error.
@@ -332,6 +347,7 @@ class OrientationGoalValidator(GoalValidator):
                  is_iterable: Optional[bool] = False):
         """
         Initialize the orientation goal validator.
+
         :param current_orientation_getter: The current orientation getter function which takes an optional input and
          returns the current orientation.
         :param acceptable_error: The acceptable error.
@@ -352,6 +368,7 @@ class MultiOrientationGoalValidator(OrientationGoalValidator):
                  acceptable_percentage_of_goal_achieved: Optional[float] = 0.8):
         """
         Initialize the multi-orientation goal validator.
+
         :param current_orientations_getter: The current orientations getter function which takes an optional input and
          returns the current orientations.
         :param acceptable_error: The acceptable error.
@@ -374,6 +391,7 @@ class JointPositionGoalValidator(GoalValidator):
                  is_iterable: bool = False):
         """
         Initialize the joint position goal validator.
+
         :param current_position_getter: The current position getter function which takes an optional input and returns
          the current position.
         :param acceptable_error: The acceptable error.
@@ -393,6 +411,7 @@ class JointPositionGoalValidator(GoalValidator):
                       acceptable_error: Optional[float] = None):
         """
         Register the goal value.
+
         :param goal_value: The goal value.
         :param joint_type: The joint type (e.g. REVOLUTE, PRISMATIC).
         :param current_value_getter_input: The values that are used as input to the current value getter.
@@ -417,6 +436,7 @@ class MultiJointPositionGoalValidator(GoalValidator):
                  acceptable_percentage_of_goal_achieved: float = 0.8):
         """
         Initialize the multi-joint position goal validator.
+
         :param current_positions_getter: The current positions getter function which takes an optional input and
          returns the current positions.
         :param acceptable_error: The acceptable error.
@@ -442,6 +462,7 @@ class MultiJointPositionGoalValidator(GoalValidator):
 def validate_object_pose(pose_setter_func):
     """
     A decorator to validate the object pose.
+
     :param pose_setter_func: The function to set the pose of the object.
     """
 
@@ -462,6 +483,7 @@ def validate_object_pose(pose_setter_func):
 def validate_multiple_object_poses(pose_setter_func):
     """
     A decorator to validate multiple object poses.
+
     :param pose_setter_func: The function to set multiple poses of the objects.
     """
 
@@ -483,6 +505,7 @@ def validate_multiple_object_poses(pose_setter_func):
 def validate_joint_position(position_setter_func):
     """
     A decorator to validate the joint position.
+
     :param position_setter_func: The function to set the joint position.
     """
 
@@ -507,6 +530,7 @@ def validate_multiple_joint_positions(position_setter_func):
     as in multiverse the virtual joints take command velocities and not positions, so after their goals
     are set, they are zeroed thus can't be validated. (They are actually validated by the robot pose in case
     of virtual move base joints)
+
     :param position_setter_func: The function to set the joint positions.
     """
 
