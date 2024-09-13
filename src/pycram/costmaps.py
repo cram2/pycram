@@ -20,7 +20,7 @@ from .datastructures.pose import Pose, Transform
 from .datastructures.world import World
 from .datastructures.dataclasses import AxisAlignedBoundingBox, BoxVisualShape, Color
 
-import pybullet as p
+import pycram_bullet as p
 
 
 @dataclass

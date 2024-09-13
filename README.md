@@ -29,18 +29,19 @@ The plan that both robots execute is a relativly simple pick and place plan:
 
 The code for this plan can be seen below.
 ```
-from pycram.bullet_world import BulletWorld, Object
+from pycram.worlds.bullet_world import BulletWorld
+from pycram.world_concepts.world_object import Object
 from pycram.process_module import simulated_robot
 from pycram.designators.motion_designator import *
 from pycram.designators.location_designator import *
 from pycram.designators.action_designator import *
 from pycram.designators.object_designator import *
-from pycram.enums import ObjectType
+from pycram.datastructures.enums import ObjectType, Arms, Grasp, WorldMode
 
-world = BulletWorld()
+world = BulletWorld(WorldMode.GUI)
 kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
 robot = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
-cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", position=[1.4, 1, 0.95])
+cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", pose=Pose([1.4, 1, 0.95]))
 
 cereal_desig = ObjectDesignatorDescription(names=["cereal"])
 kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
@@ -56,7 +57,7 @@ with simulated_robot:
 
     NavigateAction(target_locations=[pickup_pose.pose]).resolve().perform()
 
-    PickUpAction(object_designator_description=cereal_desig, arms=[pickup_arm], grasps=["front"]).resolve().perform()
+    PickUpAction(object_designator_description=cereal_desig, arms=[pickup_arm], grasps=[Grasp.FRONT]).resolve().perform()
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
@@ -69,6 +70,8 @@ with simulated_robot:
     PlaceAction(cereal_desig, target_locations=[place_island.pose], arms=[pickup_arm]).resolve().perform()
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
+
+world.exit()
 ```
 
 
