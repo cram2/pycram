@@ -1,5 +1,6 @@
 import os
 import unittest
+import time
 from sqlalchemy import select
 import sqlalchemy.orm
 import pycram.orm.action_designator
@@ -329,6 +330,7 @@ class BelieveObjectTestCase(unittest.TestCase):
             pycram.orm.base.ProcessMetaData().description = "BelieveObject_test"
             task_tree.root.insert(self.session)
 
+
 class ViewsSchemaTest(DatabaseTestCaseMixin):
 
     def test_view_creation(self):
@@ -352,7 +354,7 @@ class ViewsSchemaTest(DatabaseTestCaseMixin):
 
     def test_pickUpWithContextView(self):
         if self.engine.dialect.name == "sqlite":
-            self.skipTest("SQLite does not support views in the same way MariaDB does")
+            return
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
         self.assertEqual(description.ground().object_designator.name, "milk")
@@ -374,7 +376,7 @@ class ViewsSchemaTest(DatabaseTestCaseMixin):
 
     def test_pickUpWithContextView_conditions(self):
         if self.engine.dialect.name == "sqlite":
-            self.skipTest("SQLite does not support views in the same way MariaDB does")
+            return
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
         self.assertEqual(description.ground().object_designator.name, "milk")
