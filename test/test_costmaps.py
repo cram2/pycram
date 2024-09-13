@@ -1,3 +1,5 @@
+import unittest
+
 import numpy as np
 from random_events.variable import Continuous
 #  import plotly.graph_objects as go
@@ -5,11 +7,12 @@ from random_events.product_algebra import Event, SimpleEvent
 from random_events.interval import *
 
 from bullet_world_testcase import BulletWorldTestCase
-from pycram.costmaps import OccupancyCostmap
+from pycram.costmaps import OccupancyCostmap, AlgebraicSemanticCostmap
 from pycram.datastructures.pose import Pose
+import plotly.graph_objects as go
 
 
-class TestCostmapsCase(BulletWorldTestCase):
+class CostmapTestCase(BulletWorldTestCase):
 
     def test_raytest_bug(self):
         for i in range(30):
@@ -55,3 +58,35 @@ class TestCostmapsCase(BulletWorldTestCase):
         o = OccupancyCostmap(0.2, from_ros=False, size=200, resolution=0.02,
                              origin=Pose([0, 0, 0], [0, 0, 0, 1]))
         o.visualize()
+
+
+class SemanticCostmapTestCase(BulletWorldTestCase):
+
+    def test_generate_map(self):
+        costmap = AlgebraicSemanticCostmap(self.kitchen, "kitchen_island_surface")
+        costmap.valid_area &= costmap.left()
+        costmap.valid_area &= costmap.top()
+        costmap.valid_area &= costmap.border(0.2)
+        self.assertEqual(len(costmap.valid_area.simple_sets), 2)
+
+    def test_as_distribution(self):
+        costmap = AlgebraicSemanticCostmap(self.kitchen, "kitchen_island_surface")
+        costmap.valid_area &= costmap.right() & costmap.bottom() & costmap.border(0.2)
+        model = costmap.as_distribution()
+        self.assertEqual(len(model.nodes), 7)
+        # fig = go.Figure(model.plot(), model.plotly_layout())
+        # fig.show()
+        # supp = model.support
+        # fig = go.Figure(supp.plot(), supp.plotly_layout())
+        # fig.show()
+
+    def test_iterate(self):
+        costmap = AlgebraicSemanticCostmap(self.kitchen, "kitchen_island_surface")
+        costmap.valid_area &= costmap.left() & costmap.top() & costmap.border(0.2)
+        for sample in iter(costmap):
+            self.assertIsInstance(sample, Pose)
+            self.assertTrue(costmap.valid_area.contains([sample.position.x, sample.position.y]))
+
+
+class OntologySemanticLocationTestCase(unittest.TestCase):
+    ...

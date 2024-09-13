@@ -1,3 +1,2 @@
 -r requirements.txt
-probabilistic_model>=5.0.3
-random_events>=3.0.4
+
