@@ -15,16 +15,23 @@ class CacheManager:
     The CacheManager is responsible for caching object description files and managing the cache directory.
     """
 
-    def __init__(self, cache_dir: str, data_directory: List[str]):
+    cache_cleared: bool = False
+    """
+    A class variable that indicates whether the cache directory has been cleared.
+    """
+
+    def __init__(self, cache_dir: str, data_directory: List[str], clear_cache: bool = True):
         """
         Initialize the CacheManager.
 
         :param cache_dir: The directory where the cached files are stored.
         :param data_directory: The directory where all resource files are stored.
+        :param clear_cache: If True, the cache directory will be cleared.
         """
         self.cache_dir = cache_dir
         self.data_directories = data_directory
-        self.clear_cache()
+        if clear_cache:
+            self.clear_cache()
 
     def clear_cache(self):
         """
@@ -32,6 +39,7 @@ class CacheManager:
         """
         self.delete_cache_dir()
         self.create_cache_dir_if_not_exists()
+        self.cache_cleared = True
 
     def delete_cache_dir(self):
         """
@@ -105,7 +113,7 @@ class CacheManager:
         :param object_description: The object description of the file.
         :return: True if there already exists a cached file, False in any other case.
         """
-        return True if self.check_with_extension(path) else self.check_without_extension(path, object_description)
+        return self.check_with_extension(path) or self.check_without_extension(path, object_description)
 
     def check_with_extension(self, path: str) -> bool:
         """
