@@ -55,6 +55,9 @@
   <material name="LightGrey">
     <color rgba="0.6 0.6 0.6 1.0"/>
   </material>
+  <material name="ArmsGrey">
+    <color rgba="0.42 0.45 0.54 1.0"/>
+  </material>
   <material name="Caster">
     <texture filename="package://pr2_description/materials/textures/pr2_caster_texture.png"/>
   </material>
@@ -826,7 +829,7 @@
       <geometry>
         <mesh filename="package://pr2_description/meshes/head_v0/head_pan.dae"/>
       </geometry>
-      <material name="Blue"/>
+      <material name="White"/>
     </visual>
     <collision>
       <geometry>
@@ -857,7 +860,7 @@
       <geometry>
         <mesh filename="package://pr2_description/meshes/head_v0/head_tilt.dae"/>
       </geometry>
-      <material name="Green"/>
+      <material name="White"/>
     </visual>
     <collision>
       <origin rpy="0.0 0.0 0.0" xyz="0 0 0"/>
@@ -1372,7 +1375,7 @@
       <geometry>
         <mesh filename="package://pr2_description/meshes/tilting_laser_v0/tilting_hokuyo.dae"/>
       </geometry>
-      <material name="Red"/>
+      <material name="LightGrey"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -1452,7 +1455,7 @@
       <geometry>
         <mesh filename="package://pr2_description/meshes/shoulder_v0/shoulder_pan.dae"/>
       </geometry>
-      <material name="Blue"/>
+      <material name="White"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0.0 0 0.0"/>
@@ -1571,7 +1574,7 @@
       <geometry>
         <mesh filename="package://pr2_description/meshes/upper_arm_v0/upper_arm.dae"/>
       </geometry>
-      <material name="Green"/>
+      <material name="LightGrey"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -1651,7 +1654,7 @@
       <geometry>
         <mesh filename="package://pr2_description/meshes/upper_arm_v0/elbow_flex.dae"/>
       </geometry>
-      <material name="Grey"/>
+      <material name="LightGrey"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -1690,7 +1693,7 @@
       <geometry>
         <mesh filename="package://pr2_description/meshes/forearm_v0/forearm.dae"/>
       </geometry>
-      <material name="Grey"/>
+      <material name="LightGrey"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -1800,7 +1803,7 @@
       <geometry>
         <mesh filename="package://pr2_description/meshes/gripper_v0/gripper_palm.dae"/>
       </geometry>
-      <material name="Red"/>
+      <material name="LightGrey"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -1998,7 +2001,7 @@
       <geometry>
         <mesh filename="package://pr2_description/meshes/gripper_v0/l_finger_tip.dae"/>
       </geometry>
-      <material name="Green"/>
+      <material name="LightGrey"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -2033,7 +2036,7 @@
       <geometry>
         <mesh filename="package://pr2_description/meshes/gripper_v0/l_finger_tip.dae"/>
       </geometry>
-      <material name="Green"/>
+      <material name="LightGrey"/>
     </visual>
     <collision>
       <origin rpy="3.14159265359 0 0" xyz="0 0 0"/>
@@ -2337,7 +2340,7 @@
       <geometry>
         <mesh filename="package://pr2_description/meshes/shoulder_v0/shoulder_pan.dae"/>
       </geometry>
-      <material name="Blue"/>
+      <material name="White"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0.0 0 0.0"/>
@@ -2456,7 +2459,7 @@
       <geometry>
         <mesh filename="package://pr2_description/meshes/upper_arm_v0/upper_arm.dae"/>
       </geometry>
-      <material name="Green"/>
+      <material name="LightGrey"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -2536,7 +2539,7 @@
       <geometry>
         <mesh filename="package://pr2_description/meshes/upper_arm_v0/elbow_flex.dae"/>
       </geometry>
-      <material name="Grey"/>
+      <material name="LightGrey"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -2575,7 +2578,7 @@
       <geometry>
         <mesh filename="package://pr2_description/meshes/forearm_v0/forearm.dae"/>
       </geometry>
-      <material name="Grey"/>
+      <material name="LightGrey"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -2685,7 +2688,7 @@
       <geometry>
         <mesh filename="package://pr2_description/meshes/gripper_v0/gripper_palm.dae"/>
       </geometry>
-      <material name="Red"/>
+      <material name="LightGrey"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -2883,7 +2886,7 @@
       <geometry>
         <mesh filename="package://pr2_description/meshes/gripper_v0/l_finger_tip.dae"/>
       </geometry>
-      <material name="Green"/>
+      <material name="LightGrey"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -2918,7 +2921,7 @@
       <geometry>
         <mesh filename="package://pr2_description/meshes/gripper_v0/l_finger_tip.dae"/>
       </geometry>
-      <material name="Green"/>
+      <material name="LightGrey"/>
     </visual>
     <collision>
       <origin rpy="3.14159265359 0 0" xyz="0 0 0"/>
