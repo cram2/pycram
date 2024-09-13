@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import os
 import unittest
-from time import sleep
 
 import numpy as np
 import psutil
