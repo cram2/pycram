@@ -244,12 +244,14 @@ class World(StateEntity, ABC):
             acceptable_prismatic_joint_position_error=self.acceptable_prismatic_joint_position_error,
             acceptable_percentage_of_goal_achieved=self.acceptable_percentage_of_goal)
 
-    def check_object_exists(self, obj: Object):
+    def check_object_exists(self, obj: Object) -> bool:
         """
-        Check if the object exists in the simulator and issues a warning if it does not.
+        Check if the object exists in the simulator.
+
         :param obj: The object to check.
+        :return: True if the object is in the world, False otherwise.
         """
-        return obj not in self.objects
+        raise NotImplementedError
 
     @abstractmethod
     def _init_world(self, mode: WorldMode):
@@ -1160,7 +1162,8 @@ class World(StateEntity, ABC):
         :param prospection_object: The object for which the corresponding object in the main World should be found.
         :return: The object in the main World.
         """
-        return self.world_sync.get_world_object(prospection_object)
+        with UseProspectionWorld():
+            return self.world_sync.get_world_object(prospection_object)
 
     def remove_all_objects(self, exclude_objects: Optional[List[Object]] = None) -> None:
         """

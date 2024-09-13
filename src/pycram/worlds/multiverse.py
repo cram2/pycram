@@ -672,7 +672,7 @@ class Multiverse(World):
     def set_gravity(self, gravity_vector: List[float]) -> None:
         logging.warning("set_gravity is not implemented in Multiverse")
 
-    def check_object_exists_in_multiverse(self, obj: Object) -> bool:
+    def check_object_exists(self, obj: Object) -> bool:
         """
         Check if the object exists in the Multiverse world.
 
