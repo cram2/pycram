@@ -4,11 +4,11 @@ from time import sleep
 import numpy as np
 import rospy
 from tf.transformations import quaternion_matrix
-from typing_extensions import List, Dict, Optional, Union, Tuple, Type
+from typing_extensions import List, Dict, Optional, Union, Tuple
 
 from .multiverse_communication.client_manager import MultiverseClientManager
 from .multiverse_communication.clients import MultiverseController, MultiverseReader, MultiverseWriter, MultiverseAPI
-from ..config import multiverse_conf as conf, world_conf
+from ..config.multiverse_conf import MultiverseConfig
 from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
 from ..datastructures.enums import WorldMode, JointType, ObjectType, MultiverseBodyProperty, MultiverseJointPosition, \
     MultiverseJointCMD
@@ -17,16 +17,21 @@ from ..datastructures.world import World
 from ..description import Link, Joint, ObjectDescription
 from ..object_descriptors.mjcf import ObjectDescription as MJCF
 from ..robot_description import RobotDescription
+from ..utils import RayTestUtils
 from ..validation.goal_validator import validate_object_pose, validate_multiple_joint_positions, \
     validate_joint_position, validate_multiple_object_poses
 from ..world_concepts.constraints import Constraint
 from ..world_concepts.world_object import Object
-from ..utils import RayTestUtils
 
 
 class Multiverse(World):
     """
     This class implements an interface between Multiverse and PyCRAM.
+    """
+
+    conf: MultiverseConfig = MultiverseConfig
+    """
+    The Multiverse configuration.
     """
 
     supported_joint_types = (JointType.REVOLUTE, JointType.CONTINUOUS, JointType.PRISMATIC)
@@ -43,29 +48,6 @@ class Multiverse(World):
     """
     The simulation name to be used in the Multiverse world (this is the name defined in
      the multiverse configuration file).
-    """
-
-    use_bullet_mode: bool = conf.use_bullet_mode
-    """
-    If True, the simulation will always be in paused state unless the simulate() function is called, this behaves 
-    similar to bullet_world which uses the bullet physics engine.
-    """
-
-    use_controller: bool = conf.use_controller and not conf.use_bullet_mode
-    """
-    Whether to use the controller for the robot joints or not.
-    """
-
-    simulation_wait_time_factor: float = conf.simulation_wait_time_factor
-    """
-    The factor to multiply the simulation wait time with, this is used to adjust the simulation wait time to account for
-    the time taken by the simulation to process the request, this depends on the computational power of the machine
-    running the simulation.
-    """
-
-    default_description_type: Type[ObjectDescription] = conf.default_description_type
-    """
-    The default description type for the objects.
     """
 
     Object.extension_to_description_type[MJCF.get_file_extension()] = MJCF
@@ -98,12 +80,11 @@ class Multiverse(World):
                 raise ValueError("Simulation name not provided")
             Multiverse.simulation = simulation_name
 
-        self.simulation = (self.prospection_world_prefix if is_prospection else "") + Multiverse.simulation
-        self.client_manager = MultiverseClientManager(self.simulation_wait_time_factor)
+        self.simulation = (self.conf.prospection_world_prefix if is_prospection else "") + Multiverse.simulation
+        self.client_manager = MultiverseClientManager(self.conf.simulation_wait_time_factor)
         self._init_clients(is_prospection=is_prospection)
 
-        World.__init__(self, mode, is_prospection, simulation_frequency, **conf.job_handling.as_dict(),
-                       **conf.error_tolerance.as_dict())
+        World.__init__(self, mode, is_prospection, simulation_frequency)
 
         self._init_constraint_and_object_id_name_map_collections()
 
@@ -112,7 +93,7 @@ class Multiverse(World):
         if not self.is_prospection_world:
             self._spawn_floor()
 
-        if self.use_bullet_mode:
+        if self.conf.use_bullet_mode:
             self.api_requester.pause_simulation()
 
     def _init_clients(self, is_prospection: bool = False):
@@ -131,7 +112,7 @@ class Multiverse(World):
         self.api_requester: MultiverseAPI = self.client_manager.create_api_requester(
             self.simulation,
             is_prospection_world=is_prospection)
-        if self.use_controller:
+        if self.conf.use_controller:
             self.joint_controller: MultiverseController = self.client_manager.create_controller(
                 is_prospection_world=is_prospection)
 
@@ -154,8 +135,8 @@ class Multiverse(World):
         if not self.added_multiverse_resources:
             if clear_cache:
                 World.cache_manager.clear_cache()
-            World.add_resource_path(conf.resources_path, prepend=True)
-            World.change_cache_dir_path(conf.resources_path)
+            World.add_resource_path(self.conf.resources_path, prepend=True)
+            World.change_cache_dir_path(self.conf.resources_path)
             self.added_multiverse_resources = True
 
     def remove_multiverse_resources(self):
@@ -163,8 +144,8 @@ class Multiverse(World):
         Remove the multiverse resources from the pycram world resources.
         """
         if self.added_multiverse_resources:
-            World.remove_resource_path(conf.resources_path)
-            World.change_cache_dir_path(world_conf.cache_dir)
+            World.remove_resource_path(self.conf.resources_path)
+            World.change_cache_dir_path(self.conf.cache_dir)
             self.added_multiverse_resources = False
 
     def _spawn_floor(self):
@@ -242,7 +223,7 @@ class Multiverse(World):
         :param object_type: The type of the object.
         :param pose: The pose of the object.
         """
-        if object_type == ObjectType.ROBOT and self.use_controller:
+        if object_type == ObjectType.ROBOT and self.conf.use_controller:
             self.spawn_robot_with_controller(name, pose)
         else:
             self._set_body_pose(name, pose)
@@ -279,7 +260,7 @@ class Multiverse(World):
 
     @validate_joint_position
     def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
-        if self.use_controller and self.joint_has_actuator(joint):
+        if self.conf.use_controller and self.joint_has_actuator(joint):
             self._reset_joint_position_using_controller(joint, joint_position)
         else:
             self._set_multiple_joint_positions_without_controller({joint: joint_position})
@@ -305,7 +286,7 @@ class Multiverse(World):
         and use the controller to set the joint position if the joint is controlled.
         """
 
-        if self.use_controller:
+        if self.conf.use_controller:
             controlled_joints = self.get_controlled_joints(list(joint_positions.keys()))
             if len(controlled_joints) > 0:
                 controlled_joint_positions = {joint: joint_positions[joint] for joint in controlled_joints}
@@ -343,7 +324,7 @@ class Multiverse(World):
         :param joint_positions: The dictionary of joints and positions.
         """
         controlled_joints_data = {self.get_actuator_for_joint(joint):
-                                      {self.get_joint_cmd_name(joint.type): [position]}
+                                  {self.get_joint_cmd_name(joint.type): [position]}
                                   for joint, position in joint_positions.items()}
         self.joint_controller.send_multiple_body_data_to_server(controlled_joints_data)
         return True
@@ -515,7 +496,7 @@ class Multiverse(World):
             logging.error("Only fixed constraints are supported in Multiverse")
             raise ValueError
 
-        if not self.let_pycram_move_attached_objects:
+        if not self.conf.let_pycram_move_attached_objects:
             self.api_requester.attach(constraint)
 
         return self._update_constraint_collection_and_get_latest_id(constraint)
@@ -629,7 +610,7 @@ class Multiverse(World):
         """
         Perform a simulation step in the simulator, this is useful when use_bullet_mode is True.
         """
-        if self.use_bullet_mode:
+        if self.conf.use_bullet_mode:
             self.api_requester.unpause_simulation()
             sleep(self.simulation_time_step)
             self.api_requester.pause_simulation()

@@ -403,7 +403,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
 
         :return: A Pose object containing the pose of the link relative to the world frame.
         """
-        if self.world.update_poses_from_sim_on_get:
+        if self.world.conf.update_poses_from_sim_on_get:
             self.update_pose()
         return self._current_pose
 
@@ -505,8 +505,8 @@ class Joint(ObjectEntity, JointDescription, ABC):
                  obj: Object, is_virtual: Optional[bool] = False):
         ObjectEntity.__init__(self, _id, obj)
         JointDescription.__init__(self, joint_description.parsed_description, is_virtual)
-        self.acceptable_error = (self.world.acceptable_revolute_joint_position_error if self.type == JointType.REVOLUTE
-                                 else self.world.acceptable_prismatic_joint_position_error)
+        self.acceptable_error = (self.world.conf.revolute_joint_position_tolerance if self.type == JointType.REVOLUTE
+                                 else self.world.conf.prismatic_joint_position_tolerance)
         self._update_position()
 
     @property
@@ -551,7 +551,7 @@ class Joint(ObjectEntity, JointDescription, ABC):
 
     @property
     def position(self) -> float:
-        if self.world.update_poses_from_sim_on_get:
+        if self.world.conf.update_poses_from_sim_on_get:
             self._update_position()
         return self._current_position
 

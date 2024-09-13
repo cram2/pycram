@@ -100,16 +100,16 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         milk = self.spawn_milk(set_position)
         milk.set_position(set_position)
         milk_position = milk.get_position_as_list()
-        self.assert_list_is_equal(milk_position[:2], set_position[:2], delta=self.multiverse.acceptable_position_error)
+        self.assert_list_is_equal(milk_position[:2], set_position[:2], delta=self.multiverse.conf.position_tolerance)
         self.multiverse.reset_world()
         milk_pose = milk.get_pose()
         self.assert_list_is_equal(milk_pose.position_as_list()[:2],
                                   milk.original_pose.position_as_list()[:2],
-                                  delta=self.multiverse.acceptable_position_error)
+                                  delta=self.multiverse.conf.position_tolerance)
         self.assert_orientation_is_equal(milk_pose.orientation_as_list(), milk.original_pose.orientation_as_list())
 
     def test_spawn_robot_with_actuators_directly_from_multiverse(self):
-        if self.multiverse.use_controller:
+        if self.multiverse.conf.use_controller:
             robot_name = "tiago_dual"
             rdm = RobotDescriptionManager()
             rdm.load_description(robot_name)
@@ -120,7 +120,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assertIsInstance(milk, Object)
         milk_pose = milk.get_pose()
         self.assert_list_is_equal(milk_pose.position_as_list()[:2], [1, 1],
-                                  delta=self.multiverse.acceptable_position_error)
+                                  delta=self.multiverse.conf.position_tolerance)
         self.assert_orientation_is_equal(milk_pose.orientation_as_list(), milk.original_pose.orientation_as_list())
 
     def test_remove_object(self):
@@ -140,13 +140,13 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         milk.set_position(original_milk_position)
         milk_position = milk.get_position_as_list()
         self.assert_list_is_equal(milk_position[:2], original_milk_position[:2],
-                                  delta=self.multiverse.acceptable_position_error)
+                                  delta=self.multiverse.conf.position_tolerance)
 
     def test_update_position(self):
         milk = self.spawn_milk([1, 1, 0.1])
         milk.update_pose()
         milk_position = milk.get_position_as_list()
-        self.assert_list_is_equal(milk_position[:2], [1, 1], delta=self.multiverse.acceptable_position_error)
+        self.assert_list_is_equal(milk_position[:2], [1, 1], delta=self.multiverse.conf.position_tolerance)
 
     def test_set_joint_position(self):
         if self.multiverse.robot is None:
@@ -159,9 +159,9 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             original_joint_position = robot.get_joint_position(joint)
             robot.set_joint_position(joint, original_joint_position + step)
             joint_position = robot.get_joint_position(joint)
-            if not self.multiverse.use_controller:
-                delta = self.multiverse.acceptable_position_error if joint_type == JointType.PRISMATIC \
-                    else self.multiverse.acceptable_orientation_error
+            if not self.multiverse.conf.use_controller:
+                delta = self.multiverse.conf.prismatic_joint_position_tolerance if joint_type == JointType.PRISMATIC \
+                    else self.multiverse.conf.revolute_joint_position_tolerance
             else:
                 delta = 0.18
             self.assertAlmostEqual(joint_position, original_joint_position + step, delta=delta)
@@ -198,7 +198,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             self.multiverse.robot.set_position(new_position)
             robot_position = self.multiverse.robot.get_position_as_list()
             self.assert_list_is_equal(robot_position[:2], new_position[:2],
-                                      delta=self.multiverse.acceptable_position_error)
+                                      delta=self.multiverse.conf.position_tolerance)
             self.tearDown()
 
     def test_set_robot_orientation(self):
@@ -211,7 +211,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             self.multiverse.robot.set_orientation(new_quaternion)
             robot_orientation = self.multiverse.robot.get_orientation_as_list()
             quaternion_difference = calculate_angle_between_quaternions(new_quaternion, robot_orientation)
-            self.assertAlmostEqual(quaternion_difference, 0, delta=self.multiverse.acceptable_orientation_error)
+            self.assertAlmostEqual(quaternion_difference, 0, delta=self.multiverse.conf.orientation_tolerance)
 
     def test_set_robot_pose(self):
         self.spawn_robot(orientation=quaternion_from_euler(0, 0, np.pi / 4))
@@ -234,8 +234,9 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             new_pose = Pose(new_position, new_quaternion)
             self.multiverse.robot.set_pose(new_pose)
             robot_pose = self.multiverse.robot.get_pose()
-            self.assert_poses_are_equal(new_pose, robot_pose, position_delta=self.multiverse.acceptable_position_error,
-                                        orientation_delta=self.multiverse.acceptable_orientation_error)
+            self.assert_poses_are_equal(new_pose, robot_pose,
+                                        position_delta=self.multiverse.conf.position_tolerance,
+                                        orientation_delta=self.multiverse.conf.orientation_tolerance)
 
     def test_get_environment_pose(self):
         apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
@@ -256,7 +257,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             milk.set_position(milk_position)
             new_cup_position = cup.get_position_as_list()
             self.assert_list_is_equal(new_cup_position[:2], estimated_cup_position[:2],
-                                      self.multiverse.acceptable_position_error)
+                                      self.multiverse.conf.position_tolerance)
             self.tearDown()
 
     def test_detach_object(self):
@@ -275,9 +276,9 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             new_milk_position = milk.get_position_as_list()
             new_cup_position = cup.get_position_as_list()
             self.assert_list_is_equal(new_milk_position[:2], milk_position[:2],
-                                      self.multiverse.acceptable_position_error)
+                                      self.multiverse.conf.position_tolerance)
             self.assert_list_is_equal(new_cup_position[:2], estimated_cup_position[:2],
-                                      self.multiverse.acceptable_position_error)
+                                      self.multiverse.conf.position_tolerance)
             self.tearDown()
 
     def test_attach_with_robot(self):
@@ -382,22 +383,22 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def assert_poses_are_equal(self, pose1: Pose, pose2: Pose,
                                position_delta: Optional[float] = None, orientation_delta: Optional[float] = None):
         if position_delta is None:
-            position_delta = self.multiverse.acceptable_position_error
+            position_delta = self.multiverse.conf.ErrorTolerance.position
         if orientation_delta is None:
-            orientation_delta = self.multiverse.acceptable_orientation_error
+            orientation_delta = self.multiverse.conf.orientation_tolerance
         self.assert_position_is_equal(pose1.position_as_list(), pose2.position_as_list(), delta=position_delta)
         self.assert_orientation_is_equal(pose1.orientation_as_list(), pose2.orientation_as_list(),
                                          delta=orientation_delta)
 
     def assert_position_is_equal(self, position1: List[float], position2: List[float], delta: Optional[float] = None):
         if delta is None:
-            delta = self.multiverse.acceptable_position_error
+            delta = self.multiverse.conf.position_tolerance
         self.assert_list_is_equal(position1, position2, delta=delta)
 
     def assert_orientation_is_equal(self, orientation1: List[float], orientation2: List[float],
                                     delta: Optional[float] = None):
         if delta is None:
-            delta = self.multiverse.acceptable_orientation_error
+            delta = self.multiverse.conf.orientation_tolerance
         self.assertAlmostEqual(calculate_angle_between_quaternions(orientation1, orientation2), 0, delta=delta)
 
     def assert_list_is_equal(self, list1: List, list2: List, delta: float):
