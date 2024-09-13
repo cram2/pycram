@@ -37,7 +37,8 @@ class DatabaseResolverTestCase(unittest.TestCase,):
         global pycrorm_uri
         cls.world = BulletWorld(WorldMode.DIRECT)
         cls.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-        cls.robot = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
+        cls.robot = Object(RobotDescription.current_robot_description.name,
+                           ObjectType.ROBOT, RobotDescription.current_robot_description.name + ".urdf")
         ProcessModule.execution_delay = False
         cls.engine = sqlalchemy.create_engine(pycrorm_uri)
 

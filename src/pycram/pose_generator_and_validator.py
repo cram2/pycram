@@ -1,17 +1,16 @@
-import tf
 import numpy as np
+import tf
+from typing_extensions import Tuple, List, Union, Dict, Iterable
 
+from .datastructures.pose import Pose, Transform
 from .datastructures.world import World
+from .external_interfaces.ik import request_ik
+from .local_transformer import LocalTransformer
+from .plan_failures import IKError
+from .robot_description import RobotDescription
 from .world_concepts.world_object import Object
 from .world_reasoning import contact
 from .costmaps import Costmap
-from .local_transformer import LocalTransformer
-from .datastructures.pose import Pose, Transform
-from .robot_description import RobotDescription
-from .external_interfaces.ik import request_ik
-from .plan_failures import IKError
-from .utils import _apply_ik
-from typing_extensions import Tuple, List, Union, Dict, Iterable
 
 
 class PoseGenerator:
@@ -186,7 +185,8 @@ def reachability_validator(pose: Pose,
     res = False
     arms = []
     for description in manipulator_descs:
-        retract_target_pose = LocalTransformer().transform_pose(target, robot.get_link_tf_frame(description.end_effector.tool_frame))
+        retract_target_pose = LocalTransformer().transform_pose(target, robot.get_link_tf_frame(
+            description.end_effector.tool_frame))
         retract_target_pose.position.x -= 0.07  # Care hard coded value copied from PlaceAction class
 
         # retract_pose needs to be in world frame?
@@ -245,8 +245,6 @@ def collision_check(robot: Object, allowed_collision: Dict[Object, List]):
     for obj in World.current_world.objects:
         if obj.name == "floor":
             continue
-        in_contact= _in_contact(robot, obj, allowed_collision, allowed_robot_links)
+        in_contact = _in_contact(robot, obj, allowed_collision, allowed_robot_links)
 
     return in_contact
-
-
