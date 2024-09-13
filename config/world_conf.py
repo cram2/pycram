@@ -3,10 +3,10 @@ import os
 from dataclasses import dataclass
 
 from typing_extensions import Tuple, Type
-from ..description import ObjectDescription
-from ..object_descriptors.urdf import ObjectDescription as URDF
+from pycram.description import ObjectDescription
+from pycram.object_descriptors.urdf import ObjectDescription as URDF
 
-resources_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'resources')
+resources_path = os.path.join(os.path.dirname(__file__), '..', 'resources')
 """
 Global reference for the resources path, this is used to search for the description files of the robot and
  the objects.
