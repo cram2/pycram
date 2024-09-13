@@ -65,8 +65,8 @@ def contact(
 def get_visible_objects(
         camera_pose: Pose,
         front_facing_axis: Optional[List[float]] = None,
-        plot_segmentation_mask: bool = conf.DEBUG) -> Tuple[np.ndarray, Pose]:
-    """
+        plot_segmentation_mask: bool = World.conf.DEBUG) -> Tuple[np.ndarray, Pose]:
+    """W
     Return a segmentation mask of the objects that are visible from the given camera pose and the front facing axis.
 
     :param camera_pose: The pose of the camera in world coordinate frame.
@@ -97,7 +97,7 @@ def visible(
         camera_pose: Pose,
         front_facing_axis: Optional[List[float]] = None,
         threshold: float = 0.8,
-        plot_segmentation_mask: bool = conf.DEBUG) -> bool:
+        plot_segmentation_mask: bool = World.conf.DEBUG) -> bool:
     """
     Checks if an object is visible from a given position. This will be achieved by rendering the object
     alone and counting the visible pixel, then rendering the complete scene and compare the visible pixels with the
@@ -141,7 +141,7 @@ def occluding(
         obj: Object,
         camera_pose: Pose,
         front_facing_axis: Optional[List[float]] = None,
-        plot_segmentation_mask: bool = conf.DEBUG) -> List[Object]:
+        plot_segmentation_mask: bool = World.conf.DEBUG) -> List[Object]:
     """
     Lists all objects which are occluding the given object. This works similar to 'visible'.
     First the object alone will be rendered and the position of the pixels of the object in the picture will be saved.

@@ -13,7 +13,7 @@ from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type
 
 from ..cache_manager import CacheManager
-from ..config import world_conf as conf
+from ..config.world_conf import WorldConfig
 from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, CollisionCallbacks,
                                           MultiBody, VisualShape, BoxVisualShape, CylinderVisualShape,
                                           SphereVisualShape,
@@ -47,6 +47,11 @@ class World(StateEntity, ABC):
     current_world which is managed by the World class itself.
     """
 
+    conf: Type[WorldConfig] = WorldConfig
+    """
+    The configurations of the world, the default configurations are defined in world_conf.py in the config folder.
+    """
+
     simulation_frequency: float
     """
     Global reference for the simulation frequency (Hz), used in calculating the equivalent real time in the simulation.
@@ -54,10 +59,10 @@ class World(StateEntity, ABC):
 
     current_world: Optional[World] = None
     """
-        Global reference to the currently used World, usually this is the
-        graphical one. However, if you are inside a UseProspectionWorld() environment the current_world points to the
-        prospection world. In this way you can comfortably use the current_world, which should point towards the World
-        used at the moment.
+    Global reference to the currently used World, usually this is the
+    graphical one. However, if you are inside a UseProspectionWorld() environment the current_world points to the
+    prospection world. In this way you can comfortably use the current_world, which should point towards the World
+    used at the moment.
     """
 
     robot: Optional[Object] = None
@@ -71,47 +76,8 @@ class World(StateEntity, ABC):
     Global reference for the cache manager, this is used to cache the description files of the robot and the objects.
     """
 
-    prospection_world_prefix: str = conf.prospection_world_prefix
-    """
-    The prefix for the prospection world name.
-    """
-
-    let_pycram_move_attached_objects: bool = conf.JobHandling.let_pycram_move_attached_objects
-    let_pycram_handle_spawning: bool = conf.JobHandling.let_pycram_handle_spawning
-    let_pycram_handle_world_sync: bool = conf.JobHandling.let_pycram_handle_world_sync
-    """
-    Whether to let PyCRAM handle the movement of attached objects, the spawning of objects,
-     and the world synchronization.
-    """
-
-    update_poses_from_sim_on_get: bool = conf.update_poses_from_sim_on_get
-    """
-    Whether to update the poses from the simulator when getting the object poses.
-    """
-
-    acceptable_position_error: float = conf.ErrorTolerance.acceptable_position_error
-    acceptable_orientation_error: float = conf.ErrorTolerance.acceptable_orientation_error
-    acceptable_pose_error: Tuple[float, float] = conf.ErrorTolerance.acceptable_pose_error
-    acceptable_revolute_joint_position_error: float = conf.ErrorTolerance.acceptable_revolute_joint_position_error
-    acceptable_prismatic_joint_position_error: float = conf.ErrorTolerance.acceptable_prismatic_joint_position_error
-    use_percentage_of_goal: bool = conf.ErrorTolerance.use_percentage_of_goal
-    acceptable_percentage_of_goal: float = conf.ErrorTolerance.acceptable_percentage_of_goal
-    """
-    The acceptable error for the position and orientation of an object/link.
-    """
-
-    raise_goal_validator_error: Optional[bool] = conf.ErrorTolerance.raise_goal_validator_error
-    """
-    Whether to raise an error if the goals are not achieved.
-    """
-
-    default_description_type: Type[ObjectDescription] = conf.default_description_type
-    """
-    The default description type for objects (e.g. URDF, MJCF, etc.).
-    """
-
     def __init__(self, mode: WorldMode, is_prospection_world: bool, simulation_frequency: float,
-                 clear_cache: bool = False, **config_kwargs):
+                 clear_cache: bool = False):
         """
         Create a new simulation, the mode decides if the simulation should be a rendered window or just run in the
         background. There can only be one rendered simulation.
@@ -122,19 +88,14 @@ class World(StateEntity, ABC):
         :param is_prospection_world: For internal usage, decides if this World should be used as a prospection world.
         :param simulation_frequency: The frequency of the simulation in Hz.
         :param clear_cache: Whether to clear the cache directory.
-        :param config_kwargs: Additional configuration parameters.
         """
 
         StateEntity.__init__(self)
 
-        if clear_cache or (conf.clear_cache_at_start and not self.cache_manager.cache_cleared):
+        if clear_cache or (self.conf.clear_cache_at_start and not self.cache_manager.cache_cleared):
             self.cache_manager.clear_cache()
 
-        # Parse config_kwargs
-        for key, value in config_kwargs.items():
-            setattr(self, key, value)
-
-        GoalValidator.raise_error = World.raise_goal_validator_error
+        GoalValidator.raise_error = World.conf.raise_goal_validator_error
         World.simulation_frequency = simulation_frequency
 
         if World.current_world is None:
@@ -226,23 +187,23 @@ class World(StateEntity, ABC):
         """
 
         # Objects Pose goal validators
-        self.pose_goal_validator = PoseGoalValidator(self.get_object_pose, self.acceptable_pose_error,
-                                                     self.acceptable_percentage_of_goal)
+        self.pose_goal_validator = PoseGoalValidator(self.get_object_pose, self.conf.pose_tolerance,
+                                                     self.conf.acceptable_percentage_of_goal)
         self.multi_pose_goal_validator = MultiPoseGoalValidator(
             lambda x: list(self.get_multiple_object_poses(x).values()),
-            self.acceptable_pose_error, self.acceptable_percentage_of_goal)
+            self.conf.pose_tolerance, self.conf.acceptable_percentage_of_goal)
 
         # Joint Goal validators
         self.joint_position_goal_validator = JointPositionGoalValidator(
             self.get_joint_position,
-            acceptable_revolute_joint_position_error=self.acceptable_revolute_joint_position_error,
-            acceptable_prismatic_joint_position_error=self.acceptable_prismatic_joint_position_error,
-            acceptable_percentage_of_goal_achieved=self.acceptable_percentage_of_goal)
+            acceptable_revolute_joint_position_error=self.conf.revolute_joint_position_tolerance,
+            acceptable_prismatic_joint_position_error=self.conf.prismatic_joint_position_tolerance,
+            acceptable_percentage_of_goal_achieved=self.conf.acceptable_percentage_of_goal)
         self.multi_joint_position_goal_validator = MultiJointPositionGoalValidator(
             lambda x: list(self.get_multiple_joint_positions(x).values()),
-            acceptable_revolute_joint_position_error=self.acceptable_revolute_joint_position_error,
-            acceptable_prismatic_joint_position_error=self.acceptable_prismatic_joint_position_error,
-            acceptable_percentage_of_goal_achieved=self.acceptable_percentage_of_goal)
+            acceptable_revolute_joint_position_error=self.conf.revolute_joint_position_tolerance,
+            acceptable_prismatic_joint_position_error=self.conf.prismatic_joint_position_tolerance,
+            acceptable_percentage_of_goal_achieved=self.conf.acceptable_percentage_of_goal)
 
     def check_object_exists(self, obj: Object) -> bool:
         """
@@ -1000,14 +961,14 @@ class World(StateEntity, ABC):
     @property
     def current_state(self) -> WorldState:
         if self._current_state is None:
-            simulator_state = None if conf.use_physics_simulator_state else self.save_physics_simulator_state(True)
+            simulator_state = None if self.conf.use_physics_simulator_state else self.save_physics_simulator_state(True)
             self._current_state = WorldState(simulator_state, self.object_states)
         return WorldState(self._current_state.simulator_state_id, self.object_states)
 
     @current_state.setter
     def current_state(self, state: WorldState) -> None:
         if self.current_state != state:
-            if conf.use_physics_simulator_state:
+            if self.conf.use_physics_simulator_state:
                 self.restore_physics_simulator_state(state.simulator_state_id)
             else:
                 for obj in self.objects:
@@ -1140,7 +1101,7 @@ class World(StateEntity, ABC):
 
         :param path: The new path for the cache directory.
         """
-        cls.cache_manager.cache_dir = os.path.join(path, conf.cache_dir_name)
+        cls.cache_manager.cache_dir = os.path.join(path, cls.conf.cache_dir_name)
 
     def get_prospection_object_for_object(self, obj: Object) -> Object:
         """
@@ -1193,7 +1154,7 @@ class World(StateEntity, ABC):
         """
         Remove all saved states of the World.
         """
-        if conf.use_physics_simulator_state:
+        if self.conf.use_physics_simulator_state:
             for state_id in self.saved_states:
                 self.remove_physics_simulator_state(state_id)
         else:
@@ -1549,7 +1510,7 @@ class World(StateEntity, ABC):
 
         :param use_same_id: If the same id should be used for the state.
         """
-        if conf.use_physics_simulator_state:
+        if self.conf.use_physics_simulator_state:
             self.original_state.simulator_state_id = self.save_physics_simulator_state(use_same_id)
 
     @property

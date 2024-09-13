@@ -8,7 +8,7 @@ import rospy
 from typing_extensions import List, Dict, Tuple, Optional, Callable, Union
 
 from .socket import MultiverseSocket, MultiverseMetaData
-from ...config import multiverse_conf as conf
+from ...config.multiverse_conf import MultiverseConfig as Conf
 from ...datastructures.dataclasses import RayResult, MultiverseContactPoint
 from ...datastructures.enums import (MultiverseAPIName as API, MultiverseBodyProperty as BodyProperty,
                                      MultiverseProperty as Property)
@@ -32,8 +32,9 @@ class MultiverseClient(MultiverseSocket):
             increase or decrease the wait time for the simulation.
         """
         meta_data = MultiverseMetaData()
-        meta_data.simulation_name = (World.prospection_world_prefix if is_prospection_world else "") + name
-        meta_data.world_name = (World.prospection_world_prefix if is_prospection_world else "") + meta_data.world_name
+        meta_data.simulation_name = (Conf.prospection_world_prefix if is_prospection_world else "") + name
+        meta_data.world_name = ((Conf.prospection_world_prefix if is_prospection_world else "")
+                                + meta_data.world_name)
         self.is_prospection_world = is_prospection_world
         super().__init__(port=str(port), meta_data=meta_data)
         self.simulation_wait_time_factor = simulation_wait_time_factor

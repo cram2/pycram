@@ -128,7 +128,7 @@ class Object(WorldEntity):
         if extension in self.extension_to_description_type:
             self.description = self.extension_to_description_type[extension]()
         elif extension in ObjectDescription.mesh_extensions:
-            self.description = self.world.default_description_type()
+            self.description = self.world.conf.default_description_type()
         else:
             raise UnsupportedFileExtension(self.name, path)
 
@@ -303,7 +303,7 @@ class Object(WorldEntity):
         if isinstance(self.description, GenericObjectDescription):
             return self.world.load_generic_object_and_get_id(self.description)
 
-        path = self.path if self.world.let_pycram_handle_spawning else self.name
+        path = self.path if self.world.conf.let_pycram_handle_spawning else self.name
 
         try:
             obj_id = self.world.load_object_and_get_id(path, self._current_pose, self.obj_type)
@@ -710,7 +710,7 @@ class Object(WorldEntity):
 
         :return: The current pose of this object
         """
-        if self.world.update_poses_from_sim_on_get:
+        if self.world.conf.update_poses_from_sim_on_get:
             self.update_pose()
         return self._current_pose
 
@@ -792,7 +792,7 @@ class Object(WorldEntity):
         The current state of this object as an ObjectState.
         """
         return ObjectState(self.get_pose().copy(), self.attachments.copy(), self.link_states.copy(),
-                           self.joint_states.copy(), self.world.acceptable_pose_error)
+                           self.joint_states.copy(), self.world.conf.pose_tolerance)
 
     @current_state.setter
     def current_state(self, state: ObjectState) -> None:
@@ -959,7 +959,7 @@ class Object(WorldEntity):
         :param already_moved_objects: A list of Objects that were already moved, these will be excluded to prevent loops
          in the update.
         """
-        if not self.world.let_pycram_move_attached_objects:
+        if not World.conf.let_pycram_move_attached_objects:
             return
 
         if already_moved_objects is None:
