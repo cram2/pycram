@@ -3,9 +3,9 @@ import datetime
 from typing_extensions import Type
 
 from . import world_conf as world_conf
-from ..description import ObjectDescription
-from ..helper import find_multiverse_resources_path
-from ..object_descriptors.mjcf import ObjectDescription as MJCF
+from pycram.description import ObjectDescription
+from pycram.helper import find_multiverse_resources_path
+from pycram.object_descriptors.mjcf import ObjectDescription as MJCF
 
 # Multiverse Configuration
 resources_path: str = find_multiverse_resources_path()
