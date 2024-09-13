@@ -47,7 +47,7 @@ class SetGripperAction(Action):
     motion: Mapped[GripperState]
 
 
-class Release(ObjectMixin, Action):
+class ReleaseAction(ObjectMixin, Action):
     """ORM Class of pycram.designators.action_designator.Release."""
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
@@ -102,7 +102,6 @@ class OpenAction(ObjectMixin, Action):
 
     id: Mapped[int] = mapped_column(ForeignKey(f'{Action.__tablename__}.id'), primary_key=True, init=False)
     arm: Mapped[Arms]
-    # distance: Mapped[float] = mapped_column(init=False)
 
 
 class CloseAction(ObjectMixin, Action):

@@ -575,7 +575,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
             :return: The created ORM object.
             """
-            return ORMObjectDesignator(self.obj_type, self.name)
+            return ORMObjectDesignator(name=self.name, obj_type=self.obj_type)
 
         def insert(self, session: Session) -> ORMObjectDesignator:
             """

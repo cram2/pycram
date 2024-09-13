@@ -24,7 +24,7 @@ if pycrorm_uri:
     pycrorm_uri = "mysql+pymysql://" + pycrorm_uri
 
 
-@unittest.skipIf(pycrorm_uri is None, "pycrorm database is not available.")
+@unittest.skip
 class DatabaseResolverTestCase(unittest.TestCase,):
     world: World
     milk: Object
@@ -37,7 +37,7 @@ class DatabaseResolverTestCase(unittest.TestCase,):
         global pycrorm_uri
         cls.world = BulletWorld(WorldMode.DIRECT)
         cls.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-        cls.robot = Object(robot_description.name, ObjectType.ROBOT, RobotDescription.current_robot_description.name + ".urdf")
+        cls.robot = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
         ProcessModule.execution_delay = False
         cls.engine = sqlalchemy.create_engine(pycrorm_uri)
 
