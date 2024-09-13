@@ -1,4 +1,4 @@
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, Mapped, column_property
 from typing_extensions import Union
 import sqlalchemy.orm
 from sqlalchemy import table, inspect, event, select, engine, MetaData, Select, TableClause, ExecutableDDLElement
@@ -122,23 +122,11 @@ class PickUpWithContextView(base):
     3D Vector for object position
     """
 
-    __relative_x = (__robot_position.x - __object_position.x)
-    """
-    Distance on x axis between robot and object
-    """
-
-    __relative_y = (__robot_position.y - __object_position.y)
-    """
-    Distance on y axis between robot and object
-    """
-
     __table__ = view("PickUpWithContextView", Base.metadata,
-                     (select(PickUpAction.id.label("id"), PickUpAction.arm.label("arm"),
-                             PickUpAction.grasp.label("grasp"), RobotState.torso_height.label("torso_height"),
-                             __relative_x.label("relative_x"), __relative_y.label("relative_y"),
-                             Quaternion.x.label("quaternion_x"), Quaternion.y.label("quaternion_y"),
-                             Quaternion.z.label("quaternion_z"), Quaternion.w.label("quaternion_w"),
-                             Object.obj_type.label("obj_type"), TaskTreeNode.status.label("status"))
+                     (select(PickUpAction.id, PickUpAction.arm, PickUpAction.grasp, RobotState.torso_height,
+                             (__robot_position.x-__object_position.x).label("relative_x"),
+                             (__robot_position.y-__object_position.y).label("relative_y"), Quaternion.x, Quaternion.y,
+                             Quaternion.z, Quaternion.w, Object.obj_type, TaskTreeNode.status)
                       .join(TaskTreeNode.action.of_type(PickUpAction))
                       .join(PickUpAction.robot_state)
                       .join(__robot_pose, RobotState.pose)
@@ -147,3 +135,16 @@ class PickUpWithContextView(base):
                       .join(PickUpAction.object)
                       .join(Object.pose)
                       .join(__object_position, Pose.position)))
+
+    id: Mapped[int] = __table__.c.id
+    arm: Mapped[str] = __table__.c.arm
+    grasp: Mapped[str] = __table__.c.grasp
+    torso_height: Mapped[float] = __table__.c.torso_height
+    relative_x: Mapped[float] = column_property(__table__.c.relative_x)
+    relative_y: Mapped[float] = column_property(__table__.c.relative_y)
+    quaternion_x: Mapped[float] = __table__.c.x
+    quaternion_y: Mapped[float] = __table__.c.y
+    quaternion_z: Mapped[float] = __table__.c.z
+    quaternion_w: Mapped[float] = __table__.c.w
+    obj_type: Mapped[str] = __table__.c.obj_type
+    status: Mapped[str] = __table__.c.status

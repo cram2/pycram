@@ -9,18 +9,18 @@ import pycram.orm.object_designator
 import pycram.orm.tasktree
 import pycram.tasktree
 from bullet_world_testcase import BulletWorldTestCase
+from pycram.datastructures.dataclasses import Color
 from pycram.world_concepts.world_object import Object
 from pycram.designators import action_designator, object_designator, motion_designator
-from pycram.designators.action_designator import ParkArmsActionPerformable, MoveTorsoActionPerformable, \
-    SetGripperActionPerformable, PickUpActionPerformable, NavigateActionPerformable, TransportActionPerformable, \
-    OpenActionPerformable, CloseActionPerformable, DetectActionPerformable, LookAtActionPerformable
-from pycram.designators.object_designator import BelieveObject
-from pycram.datastructures.enums import ObjectType
+from pycram.designators.action_designator import *
+from pycram.designators.object_designator import BelieveObject, ObjectPart
+from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import Pose
 from pycram.process_module import simulated_robot
-from pycram.tasktree import with_tree
+from pycram.tasktree import with_tree, task_tree
 from pycram.orm.views import PickUpWithContextView
-from pycram.datastructures.enums import Arms, Grasp, GripperState
+from pycram.datastructures.enums import Arms, Grasp, GripperState, ObjectType
+from pycram.worlds.bullet_world import BulletWorld
 
 
 class DatabaseTestCaseMixin(BulletWorldTestCase):
@@ -39,7 +39,6 @@ class DatabaseTestCaseMixin(BulletWorldTestCase):
 
     def tearDown(self):
         super().tearDown()
-        pycram.tasktree.reset_tree()
         pycram.orm.base.ProcessMetaData.reset()
         pycram.orm.base.Base.metadata.drop_all(self.engine)
         self.session.close()
@@ -56,7 +55,7 @@ class ORMTestSchemaTestCase(DatabaseTestCaseMixin, unittest.TestCase):
         self.assertTrue("NavigateAction" in tables)
         self.assertTrue("MoveTorsoAction" in tables)
         self.assertTrue("SetGripperAction" in tables)
-        self.assertTrue("Release" in tables)
+        self.assertTrue("ReleaseAction" in tables)
         self.assertTrue("GripAction" in tables)
         self.assertTrue("PickUpAction" in tables)
         self.assertTrue("PlaceAction" in tables)
@@ -183,7 +182,7 @@ class ORMObjectDesignatorTestCase(DatabaseTestCaseMixin):
             PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT).perform()
             description.resolve().perform()
         pycram.orm.base.ProcessMetaData().description = "Unittest"
-        tt = pycram.tasktree.task_tree
+        tt = pycram.tasktree.task_tree.root
         tt.insert(self.session)
         action_results = self.session.scalars(select(pycram.orm.action_designator.Action)).all()
         motion_results = self.session.scalars(select(pycram.orm.motion_designator.Motion)).all()
@@ -226,6 +225,17 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
         milk_object = self.session.scalars(select(pycram.orm.object_designator.Object)).first()
         self.assertEqual(milk_object.pose, result[0].object.pose)
 
+    def test_pickUpAction(self):
+        object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
+        action = PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT)
+        with simulated_robot:
+            NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
+            action.perform()
+        pycram.orm.base.ProcessMetaData().description = "pickUpAction_test"
+        pycram.tasktree.task_tree.root.insert(self.session)
+        result = self.session.scalars(select(pycram.orm.action_designator.PickUpAction)).all()
+        self.assertEqual(result[0].arm, Arms.LEFT)
+
     def test_lookAt_and_detectAction(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         action = DetectActionPerformable(object_description.resolve())
@@ -252,7 +262,7 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
     def test_open_and_closeAction(self):
         apartment = Object("apartment", ObjectType.ENVIRONMENT, "apartment.urdf")
         apartment_desig = BelieveObject(names=["apartment"]).resolve()
-        handle_desig = object_designator.ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig).resolve()
+        handle_desig = object_designator.ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig, type=ObjectType.ENVIRONMENT).resolve()
 
         self.kitchen.set_pose(Pose([20, 20, 0], [0, 0, 0, 1]))
 
@@ -275,6 +285,7 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
 
 
 class ViewsSchemaTest(DatabaseTestCaseMixin):
+
     def test_view_creation(self):
         pycram.orm.base.ProcessMetaData().description = "view_creation_test"
         pycram.tasktree.task_tree.root.insert(self.session)
@@ -287,14 +298,16 @@ class ViewsSchemaTest(DatabaseTestCaseMixin):
         self.assertEqual(view.__table__.columns[3].name, "torso_height")
         self.assertEqual(view.__table__.columns[4].name, "relative_x")
         self.assertEqual(view.__table__.columns[5].name, "relative_y")
-        self.assertEqual(view.__table__.columns[6].name, "quaternion_x")
-        self.assertEqual(view.__table__.columns[7].name, "quaternion_y")
-        self.assertEqual(view.__table__.columns[8].name, "quaternion_z")
-        self.assertEqual(view.__table__.columns[9].name, "quaternion_w")
+        self.assertEqual(view.__table__.columns[6].name, "x")
+        self.assertEqual(view.__table__.columns[7].name, "y")
+        self.assertEqual(view.__table__.columns[8].name, "z")
+        self.assertEqual(view.__table__.columns[9].name, "w")
         self.assertEqual(view.__table__.columns[10].name, "obj_type")
         self.assertEqual(view.__table__.columns[11].name, "status")
 
     def test_pickUpWithContextView(self):
+        if self.engine.dialect.name == "sqlite":
+            self.skipTest("SQLite does not support views in the same way MariaDB does")
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
         self.assertEqual(description.ground().object_designator.name, "milk")
@@ -315,6 +328,8 @@ class ViewsSchemaTest(DatabaseTestCaseMixin):
         self.assertEqual(result.quaternion_w, 1)
 
     def test_pickUpWithContextView_conditions(self):
+        if self.engine.dialect.name == "sqlite":
+            self.skipTest("SQLite does not support views in the same way MariaDB does")
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
         description = action_designator.PlaceAction(object_description, [Pose([1.3, 1, 0.9], [0, 0, 0, 1])], [Arms.LEFT])
         self.assertEqual(description.ground().object_designator.name, "milk")
