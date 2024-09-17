@@ -4,7 +4,7 @@ from __future__ import annotations
 import rospy
 from typing_extensions import List, Dict, Union, Optional
 
-from .datastructures.dataclasses import VirtualMoveBaseJoints
+from .datastructures.dataclasses import VirtualMobileBaseJoints
 from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType
 from .object_descriptors.urdf import ObjectDescription as URDFObject
 from .utils import suppress_stdout_stderr
@@ -112,14 +112,14 @@ class RobotDescription:
     """
     All joints defined in the URDF, by default fixed joints are not included
     """
-    virtual_move_base_joints: Optional[VirtualMoveBaseJoints] = None
+    virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = None
     """
-    Virtual move base joint names for mobile robots, these joints are not part of the URDF, however they are used to
+    Virtual mobile base joint names for mobile robots, these joints are not part of the URDF, however they are used to
      move the robot in the simulation (e.g. set_pose for the robot would actually move these joints)
     """
 
     def __init__(self, name: str, base_link: str, torso_link: str, torso_joint: str, urdf_path: str,
-                 virtual_move_base_joints: Optional[VirtualMoveBaseJoints] = None, mjcf_path: Optional[str] = None):
+                 virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = None, mjcf_path: Optional[str] = None):
         """
         Initialize the RobotDescription. The URDF is loaded from the given path and used as basis for the kinematic
         chains.
@@ -129,7 +129,7 @@ class RobotDescription:
         :param torso_link: Torso link of the robot
         :param torso_joint: Torso joint of the robot, this is the joint that moves the torso upwards if there is one
         :param urdf_path: Path to the URDF file of the robot
-        :param virtual_move_base_joints: Virtual move base joint names for mobile robots
+        :param virtual_mobile_base_joints: Virtual mobile base joint names for mobile robots
         :param mjcf_path: Path to the MJCF file of the robot
         """
         self.name = name
@@ -146,7 +146,7 @@ class RobotDescription:
         self.grasps: Dict[Grasp, List[float]] = {}
         self.links: List[str] = [l.name for l in self.urdf_object.links]
         self.joints: List[str] = [j.name for j in self.urdf_object.joints]
-        self.virtual_move_base_joints: Optional[VirtualMoveBaseJoints] = virtual_move_base_joints
+        self.virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = virtual_mobile_base_joints
 
     @property
     def has_actuators(self):

@@ -164,9 +164,9 @@ class ImageEnum(Enum):
     CHAIR = 37
 
 
-class VirtualMoveBaseJointName(Enum):
+class VirtualMobileBaseJointName(Enum):
     """
-    Enum for the joint names of the virtual move base.
+    Enum for the joint names of the virtual mobile base.
     """
     LINEAR_X = "odom_vel_lin_x_joint"
     LINEAR_Y = "odom_vel_lin_y_joint"

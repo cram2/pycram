@@ -19,7 +19,7 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
                                           SphereVisualShape,
                                           CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
                                           ObjectState, WorldState, ClosestPointsList,
-                                          ContactPointsList, VirtualMoveBaseJoints)
+                                          ContactPointsList, VirtualMobileBaseJoints)
 from ..datastructures.enums import JointType, ObjectType, WorldMode, Arms
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world_entity import StateEntity
@@ -649,15 +649,15 @@ class World(StateEntity, ABC):
         """
         The names of the virtual joints of the robot.
         """
-        return self.robot_description.virtual_move_base_joints.names
+        return self.robot_description.virtual_mobile_base_joints.names
 
-    def get_robot_move_base_joints(self) -> VirtualMoveBaseJoints:
+    def get_robot_mobile_base_joints(self) -> VirtualMobileBaseJoints:
         """
-        Get the move base joints of the robot.
+        Get the mobile base joints of the robot.
 
-        :return: The move base joints.
+        :return: The mobile base joints.
         """
-        return self.robot_description.virtual_move_base_joints
+        return self.robot_description.virtual_mobile_base_joints
 
     @abstractmethod
     def perform_collision_detection(self) -> None:
@@ -1541,14 +1541,6 @@ class UseProspectionWorld:
     def __init__(self):
         self.prev_world: Optional[World] = None
         # The previous world is saved to restore it after the with block is exited.
-
-    @staticmethod
-    def sync_worlds():
-        """
-        Synchronizes the state of the prospection world with the main world.
-        """
-        for world_obj, prospection_obj in World.current_world.world_sync.object_mapping.items():
-            prospection_obj.current_state = world_obj.current_state
 
     def __enter__(self):
         """

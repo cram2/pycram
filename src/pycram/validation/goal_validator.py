@@ -529,7 +529,7 @@ def validate_multiple_joint_positions(position_setter_func):
     A decorator to validate the joint positions, this function does not validate the virtual joints,
     as in multiverse the virtual joints take command velocities and not positions, so after their goals
     are set, they are zeroed thus can't be validated. (They are actually validated by the robot pose in case
-    of virtual move base joints)
+    of virtual mobile base joints)
 
     :param position_setter_func: The function to set the joint positions.
     """

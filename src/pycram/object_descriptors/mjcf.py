@@ -71,14 +71,21 @@ class LinkDescription(AbstractLinkDescription):
 
 
 class JointDescription(AbstractJointDescription):
+
     mjcf_type_map = {
         MJCFJointType.HINGE.value: JointType.REVOLUTE,
         MJCFJointType.BALL.value: JointType.SPHERICAL,
         MJCFJointType.SLIDE.value: JointType.PRISMATIC,
         MJCFJointType.FREE.value: JointType.FLOATING
     }
+    """
+    A dictionary mapping the MJCF joint types to the PyCRAM joint types.
+    """
 
     pycram_type_map = {pycram_type: mjcf_type for mjcf_type, pycram_type in mjcf_type_map.items()}
+    """
+    A dictionary mapping the PyCRAM joint types to the MJCF joint types.
+    """
 
     def __init__(self, mjcf_description: mjcf.Element, is_virtual: Optional[bool] = False):
         super().__init__(mjcf_description, is_virtual=is_virtual)
@@ -163,6 +170,9 @@ class JointDescription(AbstractJointDescription):
 
 
 class ObjectFactory(Factory):
+    """
+    Create MJCF object descriptions from mesh files.
+    """
     def __init__(self, object_name: str, file_path: str, config: Configuration, texture_type: str = "png"):
         super().__init__(file_path, config)
 
@@ -198,6 +208,13 @@ class ObjectFactory(Factory):
 
     @staticmethod
     def add_material_with_texture(geom_builder: GeomBuilder, material_name: str, texture_file_path: str):
+        """
+        Add a material with a texture to the geom builder.
+
+        :param geom_builder: The geom builder to add the material to.
+        :param material_name: The name of the material.
+        :param texture_file_path: The path to the texture file.
+        """
         material_property = MaterialProperty(diffuse_color=texture_file_path,
                                              opacity=None,
                                              emissive_color=None,
@@ -206,6 +223,11 @@ class ObjectFactory(Factory):
                                   material_property=material_property)
 
     def export_to_mjcf(self, output_file_path: str):
+        """
+        Export the object to a MJCF file.
+
+        :param output_file_path: The path to the output file.
+        """
         exporter = MjcfExporter(self, output_file_path)
         exporter.build()
         exporter.export(keep_usd=False)
@@ -299,6 +321,10 @@ class ObjectDescription(AbstractObjectDescription):
                   axis: Point, parent: Optional[str] = None, origin: Optional[Pose] = None,
                   lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
                   is_virtual: Optional[bool] = False) -> None:
+        """
+        Finds the child link and adds a joint to it in the object description.
+        for arguments documentation see :meth:`pycram.description.ObjectDescription.add_joint`
+        """
 
         position: Optional[List[float]] = None
         quaternion: Optional[List[float]] = None
