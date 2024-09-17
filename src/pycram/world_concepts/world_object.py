@@ -8,6 +8,7 @@ import numpy as np
 import rospy
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
+from deprecated import deprecated
 
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
@@ -224,14 +225,6 @@ class Object(WorldEntity):
         """
         return self.world.get_multiple_link_poses(links)
 
-    def get_target_poses_of_attached_objects(self) -> Dict[Object, Pose]:
-        """
-        Get the target poses of the attached objects.
-
-        :return: The target poses of the attached objects
-        """
-        return self.get_target_poses_of_attached_objects_given_parent(self.get_pose())
-
     def get_poses_of_attached_objects(self) -> Dict[Object, Pose]:
         """
         Get the poses of the attached objects.
@@ -243,9 +236,10 @@ class Object(WorldEntity):
 
     def get_target_poses_of_attached_objects_given_parent(self, pose: Pose) -> Dict[Object, Pose]:
         """
-        Get the target poses of the attached objects of an object. Given the pose of the parent object.
-        param pose: The pose of the parent object.
+        Get the target poses of the attached objects of an object. Given the pose of the parent object. (i.e. the poses
+         to which the attached objects will move when the parent object is at the given pose)
 
+        :param pose: The pose of the parent object.
         :return: The target poses of the attached objects
         """
         return {child_object: attachment.get_child_object_pose_given_parent(pose) for child_object, attachment
@@ -1111,6 +1105,10 @@ class Object(WorldEntity):
         """
         if self.world.reset_joint_position(self.joints[joint_name], joint_position):
             self._update_on_joint_position_change()
+
+    @deprecated("Use set_multiple_joint_positions instead")
+    def set_joint_positions(self, joint_positions: Dict[str, float]) -> None:
+        self.set_multiple_joint_positions(joint_positions)
 
     def set_multiple_joint_positions(self, joint_positions: Dict[str, float]) -> None:
         """
