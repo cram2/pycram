@@ -95,7 +95,7 @@ class World(StateEntity, ABC):
         if clear_cache or (self.conf.clear_cache_at_start and not self.cache_manager.cache_cleared):
             self.cache_manager.clear_cache()
 
-        GoalValidator.raise_error = World.conf.raise_goal_validator_error
+        GoalValidator.raise_error = self.conf.raise_goal_validator_error
         World.simulation_frequency = simulation_frequency
 
         if World.current_world is None:
@@ -187,11 +187,11 @@ class World(StateEntity, ABC):
         """
 
         # Objects Pose goal validators
-        self.pose_goal_validator = PoseGoalValidator(self.get_object_pose, self.conf.pose_tolerance,
+        self.pose_goal_validator = PoseGoalValidator(self.get_object_pose, self.conf.get_pose_tolerance(),
                                                      self.conf.acceptable_percentage_of_goal)
         self.multi_pose_goal_validator = MultiPoseGoalValidator(
             lambda x: list(self.get_multiple_object_poses(x).values()),
-            self.conf.pose_tolerance, self.conf.acceptable_percentage_of_goal)
+            self.conf.get_pose_tolerance(), self.conf.acceptable_percentage_of_goal)
 
         # Joint Goal validators
         self.joint_position_goal_validator = JointPositionGoalValidator(

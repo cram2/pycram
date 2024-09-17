@@ -42,7 +42,7 @@ class MultiverseClient(MultiverseSocket):
 
 
 class MultiverseReader(MultiverseClient):
-    MAX_WAIT_TIME_FOR_DATA: datetime.timedelta = conf.READER_MAX_WAIT_TIME_FOR_DATA
+    MAX_WAIT_TIME_FOR_DATA: datetime.timedelta = Conf.READER_MAX_WAIT_TIME_FOR_DATA
     """
     The maximum wait time for the data in seconds.
     """

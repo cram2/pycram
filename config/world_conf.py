@@ -9,7 +9,8 @@ from pycram.object_descriptors.urdf import ObjectDescription as URDF
 
 class WorldConfig:
 
-    resources_path = os.path.join(os.path.dirname(__file__), '..', 'resources')
+    resources_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'resources')
+    resources_path = os.path.abspath(resources_path)
     """
     Global reference for the resources path, this is used to search for the description files of the robot and
      the objects.
@@ -83,7 +84,6 @@ class WorldConfig:
     """
     Whether to raise an error if the goals are not achieved.
     """
-
-    @property
-    def pose_tolerance(self) -> Tuple[float, float]:
-        return self.position_tolerance, self.orientation_tolerance
+    @classmethod
+    def get_pose_tolerance(cls) -> Tuple[float, float]:
+        return cls.position_tolerance, cls.orientation_tolerance

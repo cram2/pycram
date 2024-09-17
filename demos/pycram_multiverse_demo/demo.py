@@ -22,7 +22,7 @@ def move_and_detect(obj_type: ObjectType, pick_pose: Pose):
     return object_desig
 
 
-world = Multiverse(simulation='pycram_test')
+world = Multiverse(simulation_name='pycram_test')
 extension = ObjectDescription.get_file_extension()
 robot = Object('pr2', ObjectType.ROBOT, f'pr2{extension}', pose=Pose([1.3, 2, 0.01]))
 apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")

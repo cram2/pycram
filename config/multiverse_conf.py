@@ -10,7 +10,7 @@ from pycram.object_descriptors.mjcf import ObjectDescription as MJCF
 
 class MultiverseConfig(WorldConfig):
     # Multiverse Configuration
-    WorldConfig.resources_path = find_multiverse_resources_path()
+    resources_path = find_multiverse_resources_path()
     """
     The path to the Multiverse resources directory.
     """
@@ -60,10 +60,10 @@ class MultiverseConfig(WorldConfig):
     Whether to use the physics simulator state when restoring or saving the world state.
     """
 
-    WorldConfig.clear_cache_at_start = False
+    clear_cache_at_start = False
 
-    WorldConfig.let_pycram_move_attached_objects = False
-    WorldConfig.let_pycram_handle_spawning = False
+    let_pycram_move_attached_objects = False
+    let_pycram_handle_spawning = False
 
-    WorldConfig.position_tolerance = 2e-2
-    WorldConfig.prismatic_joint_position_tolerance = 2e-2
+    position_tolerance = 2e-2
+    prismatic_joint_position_tolerance = 2e-2
