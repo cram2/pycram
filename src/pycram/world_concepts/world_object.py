@@ -792,7 +792,7 @@ class Object(WorldEntity):
         The current state of this object as an ObjectState.
         """
         return ObjectState(self.get_pose().copy(), self.attachments.copy(), self.link_states.copy(),
-                           self.joint_states.copy(), self.world.conf.pose_tolerance)
+                           self.joint_states.copy(), self.world.conf.get_pose_tolerance())
 
     @current_state.setter
     def current_state(self, state: ObjectState) -> None:
@@ -959,7 +959,7 @@ class Object(WorldEntity):
         :param already_moved_objects: A list of Objects that were already moved, these will be excluded to prevent loops
          in the update.
         """
-        if not World.conf.let_pycram_move_attached_objects:
+        if not self.world.conf.let_pycram_move_attached_objects:
             return
 
         if already_moved_objects is None:

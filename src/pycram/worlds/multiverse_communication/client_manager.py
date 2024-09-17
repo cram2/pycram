@@ -3,11 +3,11 @@ from typing_extensions import Optional, Type, Union, Dict
 from ...worlds.multiverse_communication.clients import MultiverseWriter, MultiverseAPI, MultiverseClient, \
     MultiverseReader, MultiverseController
 
-from ...config import multiverse_conf as conf
+from ...config.multiverse_conf import MultiverseConfig as Conf
 
 
 class MultiverseClientManager:
-    BASE_PORT: int = conf.BASE_CLIENT_PORT
+    BASE_PORT: int = Conf.BASE_CLIENT_PORT
     """
     The base port of the Multiverse client.
     """

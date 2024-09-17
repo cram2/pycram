@@ -383,7 +383,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def assert_poses_are_equal(self, pose1: Pose, pose2: Pose,
                                position_delta: Optional[float] = None, orientation_delta: Optional[float] = None):
         if position_delta is None:
-            position_delta = self.multiverse.conf.ErrorTolerance.position
+            position_delta = self.multiverse.conf.position_tolerance
         if orientation_delta is None:
             orientation_delta = self.multiverse.conf.orientation_tolerance
         self.assert_position_is_equal(pose1.position_as_list(), pose2.position_as_list(), delta=position_delta)

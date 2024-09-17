@@ -7,7 +7,7 @@ from multiverse_client_pybind import MultiverseClientPybind  # noqa
 from typing_extensions import Optional, List, Dict, Callable, TypeVar
 
 from ...datastructures.dataclasses import MultiverseMetaData
-from ...config import multiverse_conf as conf
+from ...config.multiverse_conf import MultiverseConfig as Conf
 
 T = TypeVar("T")
 
@@ -17,7 +17,7 @@ class MultiverseSocket:
     def __init__(
             self,
             port: str,
-            host: str = conf.HOST,
+            host: str = Conf.HOST,
             meta_data: MultiverseMetaData = MultiverseMetaData(),
     ) -> None:
         """
@@ -35,7 +35,7 @@ class MultiverseSocket:
         self._meta_data = meta_data
         self.client_name = self._meta_data.simulation_name
         self._multiverse_socket = MultiverseClientPybind(
-            f"{conf.SERVER_HOST}:{conf.SERVER_PORT}"
+            f"{Conf.SERVER_HOST}:{Conf.SERVER_PORT}"
         )
         self.request_meta_data = {
             "meta_data": self._meta_data.__dict__,

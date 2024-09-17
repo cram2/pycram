@@ -10,9 +10,9 @@ class TestCacheManager(BulletWorldTestCase):
 
     def test_generate_description_and_write_to_cache(self):
         cache_manager = self.world.cache_manager
-        path = os.path.join(conf.resources_path, "objects/apartment.urdf")
+        path = os.path.join(self.world.conf.resources_path, "objects/apartment.urdf")
         extension = Path(path).suffix
-        cache_path = os.path.join(conf.cache_dir, "apartment.urdf")
+        cache_path = os.path.join(self.world.conf.cache_dir, "apartment.urdf")
         apartment = URDFObject(path)
         apartment.generate_description_from_file(path, "apartment", extension, cache_path)
         self.assertTrue(cache_manager.is_cached(path, apartment))
