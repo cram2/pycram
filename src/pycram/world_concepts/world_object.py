@@ -1386,7 +1386,8 @@ class Object(WorldEntity):
         return obj
 
     def __eq__(self, other):
-        return (self.id == other.id and self.world == other.world) if isinstance(other, Object) else False
+        return (isinstance(other, Object) and self.id == other.id and self.name == other.name
+                and self.world == other.world)
 
     def __hash__(self):
-        return hash((self.id, self.world))
+        return hash((self.id, self.name, self.world))
