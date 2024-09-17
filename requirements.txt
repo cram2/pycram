@@ -26,3 +26,4 @@ pydub~=0.25.1
 gTTS~=2.5.3
 dm_control
 trimesh
+deprecated
