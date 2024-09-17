@@ -1,6 +1,6 @@
 import rospkg
 
-from ..datastructures.dataclasses import VirtualMoveBaseJoints
+from ..datastructures.dataclasses import VirtualMobileBaseJoints
 from ..datastructures.enums import GripperState, Arms, Grasp
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
@@ -13,7 +13,7 @@ mjcf_filename = get_robot_mjcf_path("pal_robotics", "tiago_dual")
 
 tiago_description = RobotDescription("tiago_dual", "base_link", "torso_lift_link", "torso_lift_joint",
                                      filename,
-                                     virtual_move_base_joints=VirtualMoveBaseJoints(),
+                                     virtual_mobile_base_joints=VirtualMobileBaseJoints(),
                                      mjcf_path=mjcf_filename)
 
 ################################## Left Arm ##################################

@@ -375,7 +375,7 @@ class Multiverse(World):
             return False
 
         if (obj.obj_type == ObjectType.ROBOT and
-                RobotDescription.current_robot_description.virtual_move_base_joints is not None):
+                RobotDescription.current_robot_description.virtual_mobile_base_joints is not None):
             obj.set_mobile_robot_pose(pose)
         else:
             self._set_body_pose(obj.name, pose)
@@ -391,7 +391,7 @@ class Multiverse(World):
         """
         for obj in objects.keys():
             if (obj.obj_type == ObjectType.ROBOT and
-                    RobotDescription.current_robot_description.virtual_move_base_joints is not None):
+                    RobotDescription.current_robot_description.virtual_mobile_base_joints is not None):
                 obj.set_mobile_robot_pose(objects[obj])
         objects = {obj: pose for obj, pose in objects.items() if obj.obj_type not in [ObjectType.ENVIRONMENT,
                                                                                       ObjectType.ROBOT]}

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING
 
-from .enums import JointType, Shape, VirtualMoveBaseJointName
+from .enums import JointType, Shape, VirtualMobileBaseJointName
 from .pose import Pose, Point
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
 
@@ -631,24 +631,24 @@ class TextAnnotation:
 
 
 @dataclass
-class VirtualMoveBaseJoints:
+class VirtualMobileBaseJoints:
     """
-    Dataclass for storing the names, types and axes of the virtual move base joints of a mobile robot.
+    Dataclass for storing the names, types and axes of the virtual mobile base joints of a mobile robot.
     """
-    translation_x: Optional[str] = VirtualMoveBaseJointName.LINEAR_X.value
-    translation_y: Optional[str] = VirtualMoveBaseJointName.LINEAR_Y.value
-    angular_z: Optional[str] = VirtualMoveBaseJointName.ANGULAR_Z.value
+    translation_x: Optional[str] = VirtualMobileBaseJointName.LINEAR_X.value
+    translation_y: Optional[str] = VirtualMobileBaseJointName.LINEAR_Y.value
+    angular_z: Optional[str] = VirtualMobileBaseJointName.ANGULAR_Z.value
 
     @property
     def names(self) -> List[str]:
         """
-        Return the names of the virtual move base joints.
+        Return the names of the virtual mobile base joints.
         """
         return [self.translation_x, self.translation_y, self.angular_z]
 
     def get_types(self) -> Dict[str, JointType]:
         """
-        Return the joint types of the virtual move base joints.
+        Return the joint types of the virtual mobile base joints.
         """
         return {self.translation_x: JointType.PRISMATIC,
                 self.translation_y: JointType.PRISMATIC,
@@ -656,7 +656,7 @@ class VirtualMoveBaseJoints:
 
     def get_axes(self) -> Dict[str, Point]:
         """
-        Return the axes (i.e. The axis on which the joint moves) of the virtual move base joints.
+        Return the axes (i.e. The axis on which the joint moves) of the virtual mobile base joints.
         """
         return {self.translation_x: Point(1, 0, 0),
                 self.translation_y: Point(0, 1, 0),

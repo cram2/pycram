@@ -134,27 +134,27 @@ class Object(WorldEntity):
 
     def set_mobile_robot_pose(self, pose: Pose) -> None:
         """
-        Set the goal for the move base joints of a mobile robot to reach a target pose. This is used for example when
+        Set the goal for the mobile base joints of a mobile robot to reach a target pose. This is used for example when
         the simulator does not support setting the pose of the robot directly (e.g. MuJoCo).
 
         :param pose: The target pose.
         """
-        goal = self.get_move_base_joint_goal(pose)
+        goal = self.get_mobile_base_joint_goal(pose)
         self.set_multiple_joint_positions(goal)
 
-    def get_move_base_joint_goal(self, pose: Pose) -> Dict[str, float]:
+    def get_mobile_base_joint_goal(self, pose: Pose) -> Dict[str, float]:
         """
-        Get the goal for the move base joints of a mobile robot to reach a target pose.
+        Get the goal for the mobile base joints of a mobile robot to reach a target pose.
 
         :param pose: The target pose.
-        :return: The goal for the move base joints.
+        :return: The goal for the mobile base joints.
         """
         target_translation, target_angle = self.get_mobile_base_pose_difference(pose)
         # Get the joints of the base link
-        move_base_joints = self.world.get_robot_move_base_joints()
-        return {move_base_joints.translation_x: target_translation.x,
-                move_base_joints.translation_y: target_translation.y,
-                move_base_joints.angular_z: target_angle}
+        mobile_base_joints = self.world.get_robot_mobile_base_joints()
+        return {mobile_base_joints.translation_x: target_translation.x,
+                mobile_base_joints.translation_y: target_translation.y,
+                mobile_base_joints.angular_z: target_angle}
 
     def get_mobile_base_pose_difference(self, pose: Pose) -> Tuple[Point, float]:
         """
@@ -319,7 +319,7 @@ class Object(WorldEntity):
     def _update_world_robot_and_description(self):
         """
         Initialize the robot description of the object, load the description from the RobotDescriptionManager and set
-        the robot as the current robot in the World. Also add the virtual move base joints to the robot.
+        the robot as the current robot in the World. Also add the virtual mobile base joints to the robot.
         """
         rdm = RobotDescriptionManager()
         rdm.load_description(self.description.name)
@@ -328,9 +328,9 @@ class Object(WorldEntity):
 
     def _add_virtual_move_base_joints(self):
         """
-        Add the virtual move base joints to the robot description.
+        Add the virtual mobile base joints to the robot description.
         """
-        virtual_joints = self.robot_description.virtual_move_base_joints
+        virtual_joints = self.robot_description.virtual_mobile_base_joints
         if virtual_joints is None:
             return
         child_link = self.description.get_root()
@@ -925,7 +925,7 @@ class Object(WorldEntity):
                 joint.current_state = joint_states[joint.id]
 
     def robot_virtual_move_base_joints_names(self):
-        return self.robot_description.virtual_move_base_joints.names
+        return self.robot_description.virtual_mobile_base_joints.names
 
     def remove_saved_states(self) -> None:
         """

@@ -213,6 +213,10 @@ class ObjectDescription(AbstractObjectDescription):
                   axis: Point, parent: Optional[str] = None, origin: Optional[Pose] = None,
                   lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
                   is_virtual: Optional[bool] = False) -> None:
+        """
+        Add a joint to the object description, could be a virtual joint as well.
+        For documentation of the parameters, see :meth:`pycram.description.ObjectDescription.add_joint`.
+        """
         if lower_limit is not None or upper_limit is not None:
             limit = urdf.JointLimit(lower=lower_limit, upper=upper_limit)
         else:
