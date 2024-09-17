@@ -8,14 +8,14 @@ class ExecutionType(Enum):
     SIMULATED = auto()
     SEMI_REAL = auto()
 
-class Arms(Enum):
+class Arms(int, Enum):
     """Enum for Arms."""
-    LEFT = auto()
-    RIGHT = auto()
-    BOTH = auto()
+    LEFT = 0
+    RIGHT = 1
+    BOTH = 2
 
 
-class TaskStatus(Enum):
+class TaskStatus(int, Enum):
     """
     Enum for readable descriptions of a tasks' status.
     """
@@ -39,7 +39,7 @@ class JointType(Enum):
     FLOATING = 7
 
 
-class Grasp(Enum):
+class Grasp(int, Enum):
     """
     Enum for Grasp orientations.
     """
@@ -49,7 +49,7 @@ class Grasp(Enum):
     TOP = 3
 
 
-class ObjectType(Enum):
+class ObjectType(int, Enum):
     """
     Enum for Object types to easier identify different objects
     """
@@ -66,7 +66,7 @@ class ObjectType(Enum):
     HUMAN = auto()
 
 
-class State(Enum):
+class State(int, Enum):
     """
     Enumeration which describes the result of a language expression.
     """
