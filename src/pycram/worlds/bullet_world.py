@@ -177,9 +177,11 @@ class BulletWorld(World):
 
     def get_object_contact_points(self, obj: Object) -> ContactPointsList:
         """
-        For a more detailed explanation of the
-         returned list please look at:
-         `PyBullet Doc <https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#>`_
+        Get the contact points of the object with akk other objects in the world. The contact points are returned as a
+        ContactPointsList object.
+
+        :param obj: The object for which the contact points should be returned.
+        :return: The contact points of the object with all other objects in the world.
         """
         self.perform_collision_detection()
         points_list = p.getContactPoints(obj.id, physicsClientId=self.id)
@@ -201,6 +203,8 @@ class BulletWorld(World):
         """
         Parses the list of points to a list of dictionaries with the keys as the names of the arguments of the
         ContactPoint class.
+
+        :param point: The list of points.
         """
         return {"link_a": self.get_object_by_id(point[1]).get_link_by_id(point[3]),
                 "link_b": self.get_object_by_id(point[2]).get_link_by_id(point[4]),
