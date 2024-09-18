@@ -1,5 +1,5 @@
-import tf
 import numpy as np
+import tf
 
 from .datastructures.world import World
 from .world_concepts.world_object import Object
@@ -185,9 +185,8 @@ def reachability_validator(pose: Pose,
     res = False
     arms = []
     for description in manipulator_descs:
-        retract_target_pose = LocalTransformer().transform_pose(target,
-                                                               robot.get_link_tf_frame(
-                                                                   description.end_effector.tool_frame))
+        retract_target_pose = LocalTransformer().transform_pose(target, robot.get_link_tf_frame(
+            description.end_effector.tool_frame))
         retract_target_pose.position.x -= 0.07  # Care hard coded value copied from PlaceAction class
 
         # retract_pose needs to be in world frame?
@@ -250,5 +249,3 @@ def collision_check(robot: Object, allowed_collision: Dict[Object, List]):
         if in_contact:
             break
     return in_contact
-
-

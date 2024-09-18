@@ -1364,6 +1364,14 @@ class Object(WorldEntity):
         """
         return dict([(joint.id, joint) for joint in self.joints.values()])[joint_id]
 
+    def get_link_for_attached_objects(self) -> Dict[Object, ObjectDescription.Link]:
+        """
+        Return a dictionary which maps attached object to the link of this object to which the given object is attached.
+
+        :return: The link of this object to which the given object is attached.
+        """
+        return {obj: attachment.parent_link for obj, attachment in self.attachments.items()}
+
     def copy_to_prospection(self) -> Object:
         """
         Copy this object to the prospection world.
