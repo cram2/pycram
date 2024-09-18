@@ -17,7 +17,7 @@ from ..datastructures.world import World
 from ..description import Link, Joint, ObjectDescription
 from ..object_descriptors.mjcf import ObjectDescription as MJCF
 from ..robot_description import RobotDescription
-from ..utils import RayTestUtils
+from ..utils import RayTestUtils, wxyz_to_xyzw, xyzw_to_wxyz
 from ..validation.goal_validator import validate_object_pose, validate_multiple_joint_positions, \
     validate_joint_position, validate_multiple_object_poses
 from ..world_concepts.constraints import Constraint
@@ -191,7 +191,7 @@ class Multiverse(World):
         }
         self.joint_controller.init_controller(actuator_joint_commands)
         self.writer.spawn_robot_with_actuators(name, pose.position_as_list(),
-                                               self.xyzw_to_wxyz(pose.orientation_as_list()),
+                                               xyzw_to_wxyz(pose.orientation_as_list()),
                                                actuator_joint_commands)
 
     def load_object_and_get_id(self, name: Optional[str] = None,
@@ -284,6 +284,10 @@ class Multiverse(World):
         """
         Set the positions of multiple joints in the simulator. Also check if the joint is controlled by an actuator
         and use the controller to set the joint position if the joint is controlled.
+
+        :param joint_positions: The dictionary of joints and positions.
+        :return: True if the joint positions are set successfully (this means that the joint positions are set without
+         errors, but not necessarily that the joint positions are set to the specified values).
         """
 
         if self.conf.use_controller:
@@ -303,6 +307,7 @@ class Multiverse(World):
         Get the joints that are controlled by an actuator from the list of joints.
 
         :param joints: The list of joints to check.
+        :return: The list of controlled joints.
         """
         joints = self.robot.joints if joints is None else joints
         return [joint for joint in joints if self.joint_has_actuator(joint)]
@@ -358,15 +363,21 @@ class Multiverse(World):
         return self._get_multiple_body_poses([link.name for link in links])
 
     def get_object_pose(self, obj: Object) -> Pose:
-        if obj.obj_type == ObjectType.ENVIRONMENT:
+        if obj.has_type_environment():
             return Pose()
         return self._get_body_pose(obj.name)
 
     def get_multiple_object_poses(self, objects: List[Object]) -> Dict[str, Pose]:
-        env_objects = [obj for obj in objects if obj.obj_type == ObjectType.ENVIRONMENT]
-        non_env_objects = [obj for obj in objects if obj.obj_type != ObjectType.ENVIRONMENT]
+        """
+        Set the poses of multiple objects in the simulator. If the object is of type environment, the pose will be
+        the default pose.
+
+        :param objects: The list of objects.
+        :return: The dictionary of object names and poses.
+        """
+        non_env_objects = [obj for obj in objects if not obj.has_type_environment()]
         all_poses = self._get_multiple_body_poses([obj.name for obj in non_env_objects])
-        all_poses.update({obj.name: Pose() for obj in env_objects})
+        all_poses.update({obj.name: Pose() for obj in objects if obj.has_type_environment()})
         return all_poses
 
     @validate_object_pose
@@ -414,7 +425,7 @@ class Multiverse(World):
         """
         self.writer.set_multiple_body_poses({name: {MultiverseBodyProperty.POSITION: pose.position_as_list(),
                                                     MultiverseBodyProperty.ORIENTATION:
-                                                        self.xyzw_to_wxyz(pose.orientation_as_list()),
+                                                        xyzw_to_wxyz(pose.orientation_as_list()),
                                                     MultiverseBodyProperty.RELATIVE_VELOCITY: [0.0] * 6}
                                              for name, pose in body_poses.items()})
 
@@ -428,14 +439,7 @@ class Multiverse(World):
         """
         data = self.reader.get_body_pose(body_name, wait)
         return Pose(data[MultiverseBodyProperty.POSITION.value],
-                    self.wxyz_to_xyzw(data[MultiverseBodyProperty.ORIENTATION.value]))
-
-    @staticmethod
-    def wxyz_to_xyzw(wxyz: List[float]) -> List[float]:
-        """
-        Convert a quaternion from WXYZ to XYZW format.
-        """
-        return [wxyz[1], wxyz[2], wxyz[3], wxyz[0]]
+                    wxyz_to_xyzw(data[MultiverseBodyProperty.ORIENTATION.value]))
 
     def _get_multiple_body_poses(self, body_names: List[str]) -> Dict[str, Pose]:
         """
@@ -462,15 +466,6 @@ class Multiverse(World):
         Reset the world using the Multiverse API.
         """
         self.writer.reset_world()
-
-    @staticmethod
-    def xyzw_to_wxyz(xyzw: List[float]) -> List[float]:
-        """
-        Convert a quaternion from XYZW to WXYZ format.
-
-        :param xyzw: The quaternion in XYZW format.
-        """
-        return [xyzw[3], *xyzw[:3]]
 
     def disconnect_from_physics_server(self) -> None:
         MultiverseClientManager.stop_all_clients()

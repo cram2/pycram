@@ -392,3 +392,19 @@ class RayTestUtils:
         cbar.set_label('Depth Value')
 
         plt.show()
+
+
+def wxyz_to_xyzw(wxyz: List[float]) -> List[float]:
+    """
+    Convert a quaternion from WXYZ to XYZW format.
+    """
+    return [wxyz[1], wxyz[2], wxyz[3], wxyz[0]]
+
+
+def xyzw_to_wxyz(xyzw: List[float]) -> List[float]:
+    """
+    Convert a quaternion from XYZW to WXYZ format.
+
+    :param xyzw: The quaternion in XYZW format.
+    """
+    return [xyzw[3], *xyzw[:3]]

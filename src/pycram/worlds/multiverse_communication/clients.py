@@ -13,7 +13,7 @@ from ...datastructures.dataclasses import RayResult, MultiverseContactPoint
 from ...datastructures.enums import (MultiverseAPIName as API, MultiverseBodyProperty as BodyProperty,
                                      MultiverseProperty as Property)
 from ...datastructures.pose import Pose
-from ...datastructures.world import World
+from ...utils import wxyz_to_xyzw
 from ...world_concepts.constraints import Constraint
 from ...world_concepts.world_object import Object, Link
 
@@ -92,7 +92,7 @@ class MultiverseReader(MultiverseClient):
                                            wait=wait)
         if data is not None:
             return {name: Pose(data[name][BodyProperty.POSITION.value],
-                               self.wxyz_to_xyzw(data[name][BodyProperty.ORIENTATION.value]))
+                               wxyz_to_xyzw(data[name][BodyProperty.ORIENTATION.value]))
                     for name in body_names}
 
     def get_body_position(self, name: str, wait: bool = False) -> Optional[List[float]]:
@@ -137,7 +137,7 @@ class MultiverseReader(MultiverseClient):
         """
         data = self.get_multiple_body_properties(body_names, [BodyProperty.ORIENTATION], wait=wait)
         if data is not None:
-            return {name: self.wxyz_to_xyzw(data[name][BodyProperty.ORIENTATION.value]) for name in body_names}
+            return {name: wxyz_to_xyzw(data[name][BodyProperty.ORIENTATION.value]) for name in body_names}
 
     def get_body_property(self, name: str, property_: Property, wait: bool = False) -> Optional[List[float]]:
         """
@@ -163,16 +163,6 @@ class MultiverseReader(MultiverseClient):
         :return: The properties of the bodies as a dictionary.
         """
         return self.get_multiple_body_data(body_names, {name: properties for name in body_names}, wait=wait)
-
-    @staticmethod
-    def wxyz_to_xyzw(quaternion: List[float]) -> List[float]:
-        """
-        Convert the quaternion from wxyz to xyzw.
-
-        :param quaternion: The quaternion as a list of floats.
-        :return: The quaternion as a list of floats.
-        """
-        return quaternion[1:] + [quaternion[0]]
 
     def get_body_data(self, name: str,
                       properties: Optional[List[Property]] = None,
