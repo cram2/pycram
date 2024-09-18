@@ -6,11 +6,10 @@ from pathlib import Path
 
 import numpy as np
 import rospy
+from deprecated import deprecated
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
-from deprecated import deprecated
 
-from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
                                           ContactPointsList)
@@ -22,7 +21,9 @@ from ..description import ObjectDescription, LinkDescription, Joint
 from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenObjects, UnsupportedFileExtension, \
     ObjectDescriptionUndefined
 from ..local_transformer import LocalTransformer
+from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription as URDF
+
 try:
     from ..object_descriptors.mjcf import ObjectDescription as MJCF
 except ImportError:

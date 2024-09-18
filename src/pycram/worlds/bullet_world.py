@@ -312,7 +312,7 @@ class BulletWorld(World):
         p.removeState(state_id, physicsClientId=self.id)
 
     def _add_vis_axis(self, pose: Pose,
-                     length: Optional[float] = 0.2) -> int:
+                      length: Optional[float] = 0.2) -> int:
         """
         Creates a Visual object which represents the coordinate frame at the given
         position and orientation. There can be an unlimited amount of vis axis objects.
@@ -402,8 +402,8 @@ class BulletWorld(World):
                                      physicsClientId=self.id))[2:5]
 
     def _add_text(self, text: str, position: List[float], orientation: Optional[List[float]] = None,
-                 size: Optional[float] = None, color: Optional[Color] = Color(), life_time: Optional[float] = 0,
-                 parent_object_id: Optional[int] = None, parent_link_id: Optional[int] = None) -> int:
+                  size: Optional[float] = None, color: Optional[Color] = Color(), life_time: Optional[float] = 0,
+                  parent_object_id: Optional[int] = None, parent_link_id: Optional[int] = None) -> int:
         args = {}
         if orientation:
             args["textOrientation"] = orientation
