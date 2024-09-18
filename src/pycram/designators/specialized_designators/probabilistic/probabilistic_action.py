@@ -1,8 +1,8 @@
 import numpy as np
 import tqdm
-from probabilistic_model.probabilistic_circuit.distributions import GaussianDistribution, SymbolicDistribution
-from probabilistic_model.probabilistic_circuit.probabilistic_circuit import ProbabilisticCircuit, \
-    DecomposableProductUnit
+from probabilistic_model.probabilistic_circuit.nx.distributions import GaussianDistribution, SymbolicDistribution
+from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit, \
+    ProductUnit
 from probabilistic_model.utils import MissingDict
 from random_events.interval import *
 from random_events.product_algebra import Event, SimpleEvent
@@ -124,7 +124,7 @@ class GaussianCostmapModel:
         """
         Create a fully factorized gaussian at the center of the map.
         """
-        centered_model = DecomposableProductUnit()
+        centered_model = ProductUnit()
         centered_model.add_subcircuit(GaussianDistribution(self.relative_x, 0., np.sqrt(self.variance)))
         centered_model.add_subcircuit(GaussianDistribution(self.relative_y, 0., np.sqrt(self.variance)))
 
@@ -300,8 +300,6 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
     def batch_rollout(self):
         """
         Try the policy without conditioning on visibility and occupancy and count the successful tries.
-
-        :amount: The amount of tries
         """
 
         # initialize statistics
