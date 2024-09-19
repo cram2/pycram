@@ -19,7 +19,3 @@ repositories:
     type: git
     url: git@github.com:cram2/kdl_ik_service.git
     version: master
-  pr2_kinematics:
-    type: git
-    url: git@github.com:PR2/pr2_kinematics.git
-    version: kinetic-devel

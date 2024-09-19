@@ -108,32 +108,3 @@ real_robot environments. This is also explained in the `Action Designator Exampl
 
    with simulated_robot:
       NavigateAction([Pose()]).resolve().perform()
-
-Missing pr2_arm_kinematics
-==========================
-
-Aptitudes autoremove likes to also remove the arm kinematics. The error message looks similar to this. Important is the
-missing library libmoveit_kinematics_base.so. This can be fixed by reinstalling the missing libraries.
-
-.. code-block:: shell
-
-   process[pr2_left_arm_kinematics-3]: started with pid [26862]
-   pr2_arm_kinematics_node: error while loading shared libraries: libmoveit_kinematics_base.so.1.1.12: cannot open shared object file: No such file or directory
-   process[pr2_right_arm_kinematics-4]: started with pid [26863]
-   [pr2_left_arm_kinematics-3] process has died [pid 26862, exit code 127, cmd ~/pycram/devel/lib/pr2_arm_kinematics/pr2_arm_kinematics_node __name:=pr2_left_arm_kinematics __log:=~/.ros/log/ba5e95de-384f-11ee-ab53-97c8787037e5/pr2_left_arm_kinematics-3.log].
-   log file: ~/.ros/log/ba5e95de-384f-11ee-ab53-97c8787037e5/pr2_left_arm_kinematics-3*.log
-   pr2_arm_kinematics_node: error while loading shared libraries: libmoveit_kinematics_base.so.1.1.12: cannot open shared object file: No such file or directory
-   [pr2_right_arm_kinematics-4] process has died [pid 26863, exit code 127, cmd ~/pycram/devel/lib/pr2_arm_kinematics/pr2_arm_kinematics_node __name:=pr2_right_arm_kinematics __log:=~/.ros/log/ba5e95de-384f-11ee-ab53-97c8787037e5/pr2_right_arm_kinematics-4.log].
-   log file: ~/.ros/log/ba5e95de-384f-11ee-ab53-97c8787037e5/pr2_right_arm_kinematics-4*.log
-   IK server ready.
-
-
-Reinstall the missing libraries with
-
-.. code-block:: shell
-
-    sudo apt-get install ros-noetic-moveit
-
-Then rebuild your workspace.
-
-

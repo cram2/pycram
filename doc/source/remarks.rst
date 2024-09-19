@@ -33,14 +33,3 @@ Dirty Terminals
 
 If your terminal gets polluted by PyBullet complaining about incomplete URDF descriptions, you need to first fix your
 URDF files by inserting the missing tags and second delete the `resources/cached` folder.
-
-Missing pr2_arm_kinematics
-==========================
-
-Aptitudes autoremove likes to also remove the arm kinematics. Reinstall the missing libraries with
-
-.. code-block:: shell
-
-    sudo apt-get install ros-noetic-moveit
-
-Then rebuild your workspace.
