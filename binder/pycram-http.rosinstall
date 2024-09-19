@@ -15,10 +15,6 @@ repositories:
     type: git
     url: https://github.com/cram2/kdl_ik_service.git
     verison: master
-  pr2_kinematics:
-    type: git
-    url: https://github.com/PR2/pr2_kinematics.git
-    version: kinetic-devel
   orocos_kinematics_dynamics:
     type: git
     url: https://github.com/orocos/orocos_kinematics_dynamics.git
