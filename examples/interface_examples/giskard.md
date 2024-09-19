@@ -15,7 +15,7 @@ jupyter:
 # Giskard interface in PyCRAM
 
 This notebook should provide you with an example on how to use the Giskard interface. This includes how to use the
-interface, how it actually works and how to extend it.
+interface, how it actually works, and how to extend it.
 
 We start by installing and launching Giskard. For the installation please follow the
 instructions [here](https://github.com/SemRoCo/giskardpy).
