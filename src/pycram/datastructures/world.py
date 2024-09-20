@@ -717,8 +717,11 @@ class World(StateEntity, ABC):
     def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
         """
         Reset the joint position instantly without physics simulation
-        NOTE: It is recommended to use the validate_joint_position decorator to validate the joint position for
-        the implementation of this method.
+
+        .. note::
+           It is recommended to use the validate_joint_position decorator to validate the joint position for
+           the implementation of this method.
+
         :param joint: The joint to reset the position for.
         :param joint_position: The new joint pose.
         :return: True if the reset was successful, False otherwise
@@ -730,8 +733,10 @@ class World(StateEntity, ABC):
     def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
         """
         Set the positions of multiple joints of an articulated object.
-        NOTE: It is recommended to use the validate_multiple_joint_positions decorator to validate the
-         joint positions for the implementation of this method.
+
+        .. note::
+           It is recommended to use the validate_multiple_joint_positions decorator to validate the
+           joint positions for the implementation of this method.
 
         :param joint_positions: A dictionary with joint objects as keys and joint positions as values.
         :return: True if the set was successful, False otherwise.
@@ -753,8 +758,10 @@ class World(StateEntity, ABC):
         """
         Reset the world position and orientation of the base of the object instantaneously,
         not through physics simulation. (x,y,z) position vector and (x,y,z,w) quaternion orientation.
-        NOTE: It is recommended to use the validate_object_pose decorator to validate the object pose for the
-        implementation of this method.
+
+        .. note::
+           It is recommended to use the validate_object_pose decorator to validate the object pose for the
+           implementation of this method.
 
         :param obj: The object.
         :param pose: The new pose as a Pose object.
@@ -1423,7 +1430,7 @@ class World(StateEntity, ABC):
 
     def get_joint_reaction_force_torque(self, obj: Object, joint_id: int) -> List[float]:
         """
-        Returns the joint reaction forces and torques of the specified joint.
+        Get the joint reaction forces and torques of the specified joint.
 
         :param obj: The object in which the joint is located.
         :param joint_id: The id of the joint for which the force torque should be returned.
@@ -1433,7 +1440,7 @@ class World(StateEntity, ABC):
 
     def get_applied_joint_motor_torque(self, obj: Object, joint_id: int) -> float:
         """
-        Returns the applied torque by a joint motor.
+        Get the applied torque by a joint motor.
 
         :param obj: The object in which the joint is located.
         :param joint_id: The id of the joint for which the applied motor torque should be returned.
@@ -1443,19 +1450,19 @@ class World(StateEntity, ABC):
 
     def pause_world_sync(self) -> None:
         """
-        Pauses the world synchronization.
+        Pause the world synchronization.
         """
         self.world_sync.sync_lock.acquire()
 
     def resume_world_sync(self) -> None:
         """
-        Resumes the world synchronization.
+        Resume the world synchronization.
         """
         self.world_sync.sync_lock.release()
 
     def add_vis_axis(self, pose: Pose) -> int:
         """
-        Adds a visual axis to the world.
+        Add a visual axis to the world.
 
         :param pose: The pose of the visual axis.
         :return: The id of the added visual axis.
@@ -1470,7 +1477,7 @@ class World(StateEntity, ABC):
 
     def remove_vis_axis(self) -> None:
         """
-        Removes the visual axis from the world.
+        Remove the visual axis from the world.
         """
         self._simulator_object_remover(self._remove_vis_axis)
 
@@ -1606,7 +1613,7 @@ class WorldSync(threading.Thread):
 
     def get_world_object(self, prospection_object: Object) -> Object:
         """
-        Returns the corresponding object from the main World for a given object in the prospection world.
+        Get the corresponding object from the main World for a given object in the prospection world.
 
         :param prospection_object: The object for which the corresponding object in the main World should be found.
         :return: The object in the main World.
@@ -1620,7 +1627,7 @@ class WorldSync(threading.Thread):
 
     def get_prospection_object(self, obj: Object) -> Object:
         """
-        Returns the corresponding object from the prospection world for a given object in the main world.
+        Get the corresponding object from the prospection world for a given object in the main world.
 
         :param obj: The object for which the corresponding object in the prospection World should be found.
         :return: The corresponding object in the prospection world.

@@ -247,7 +247,7 @@ class MultiverseJointPosition(MultiverseJointProperty):
     PRISMATIC_JOINT_POSITION = "joint_tvalue"
 
     @classmethod
-    def from_pycram_joint_type(cls, joint_type: 'JointType') -> 'MultiverseJointPosition':
+    def from_pycram_joint_type(cls, joint_type: JointType) -> 'MultiverseJointPosition':
         if joint_type in [JointType.REVOLUTE, JointType.CONTINUOUS]:
             return MultiverseJointPosition.REVOLUTE_JOINT_POSITION
         elif joint_type == JointType.PRISMATIC:
@@ -264,7 +264,7 @@ class MultiverseJointCMD(MultiverseJointProperty):
     PRISMATIC_JOINT_CMD = "cmd_joint_tvalue"
 
     @classmethod
-    def from_pycram_joint_type(cls, joint_type: 'JointType') -> 'MultiverseJointCMD':
+    def from_pycram_joint_type(cls, joint_type: JointType) -> 'MultiverseJointCMD':
         if joint_type in [JointType.REVOLUTE, JointType.CONTINUOUS]:
             return MultiverseJointCMD.REVOLUTE_JOINT_CMD
         elif joint_type == JointType.PRISMATIC:

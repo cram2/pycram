@@ -93,7 +93,7 @@ class Multiverse(World):
         if not self.is_prospection_world:
             self._spawn_floor()
 
-        if self.conf.use_bullet_mode:
+        if self.conf.use_static_mode:
             self.api_requester.pause_simulation()
 
     def _init_clients(self, is_prospection: bool = False):
@@ -603,9 +603,9 @@ class Multiverse(World):
 
     def step(self):
         """
-        Perform a simulation step in the simulator, this is useful when use_bullet_mode is True.
+        Perform a simulation step in the simulator, this is useful when use_static_mode is True.
         """
-        if self.conf.use_bullet_mode:
+        if self.conf.use_static_mode:
             self.api_requester.unpause_simulation()
             sleep(self.simulation_time_step)
             self.api_requester.pause_simulation()

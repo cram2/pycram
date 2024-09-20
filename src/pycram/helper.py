@@ -29,6 +29,7 @@ class Singleton(type):
 def parse_mjcf_actuators(file_path: str) -> Dict[str, str]:
     """
     Parse the actuator elements from an MJCF file.
+
     :param file_path: The path to the MJCF file.
     """
     tree = ET.parse(file_path)
@@ -49,6 +50,7 @@ def parse_mjcf_actuators(file_path: str) -> Dict[str, str]:
 def get_robot_mjcf_path(robot_relative_dir: str, robot_name: str, xml_name: Optional[str] = None) -> Optional[str]:
     """
     Get the path to the MJCF file of a robot.
+
     :param robot_relative_dir: The relative directory of the robot in the Multiverse resources/robots directory.
     :param robot_name: The name of the robot.
     :param xml_name: The name of the XML file of the robot.
@@ -75,7 +77,7 @@ def get_robot_mjcf_path(robot_relative_dir: str, robot_name: str, xml_name: Opti
 
 def find_multiverse_resources_path() -> Optional[str]:
     """
-    Find the path to the Multiverse resources directory.
+    :return: The path to the Multiverse resources directory.
     """
     # Get the path to the Multiverse installation
     multiverse_path = find_multiverse_path()
@@ -94,7 +96,7 @@ def find_multiverse_resources_path() -> Optional[str]:
 
 def find_multiverse_path() -> Optional[str]:
     """
-    Find the path to the Multiverse installation.
+    :return: the path to the Multiverse installation.
     """
     # Get the value of PYTHONPATH environment variable
     pythonpath = os.getenv('PYTHONPATH')
@@ -109,7 +111,5 @@ def find_multiverse_path() -> Optional[str]:
             if 'multiverse' in path:
                 multiverse_path = path.split('multiverse')[0]
                 return multiverse_path + 'multiverse'
-
-    return None
 
 

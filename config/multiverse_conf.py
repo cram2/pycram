@@ -18,7 +18,7 @@ class MultiverseConfig(WorldConfig):
     # Multiverse Socket Configuration
     HOST: str = "tcp://127.0.0.1"
     SERVER_HOST: str = HOST
-    SERVER_PORT: str = "7000"
+    SERVER_PORT: str = 7000
     BASE_CLIENT_PORT: int = 9000
 
     # Multiverse Client Configuration
@@ -30,6 +30,9 @@ class MultiverseConfig(WorldConfig):
     # Multiverse Simulation Configuration
     simulation_time_step: datetime.timedelta = datetime.timedelta(milliseconds=10)
     simulation_frequency: int = int(1 / simulation_time_step.total_seconds())
+    """
+    The time step of the simulation in seconds and the frequency of the simulation in Hz.
+    """
 
     simulation_wait_time_factor: float = 1.0
     """
@@ -38,16 +41,16 @@ class MultiverseConfig(WorldConfig):
     running the simulation.
     """
 
-    use_bullet_mode: bool = True
+    use_static_mode: bool = True
     """
     If True, the simulation will always be in paused state unless the simulate() function is called, this behaves 
     similar to bullet_world which uses the bullet physics engine.
     """
 
     use_controller: bool = False
-    use_controller = use_controller and not use_bullet_mode
+    use_controller = use_controller and not use_static_mode
     """
-    Only used when use_bullet_mode is False. This turns on the controller for the robot joints.
+    Only used when use_static_mode is False. This turns on the controller for the robot joints.
     """
 
     default_description_type: Type[ObjectDescription] = MJCF

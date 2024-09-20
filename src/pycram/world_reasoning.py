@@ -264,7 +264,7 @@ def link_pose_for_joint_config(
         joint_config: Dict[str, float],
         link_name: str) -> Pose:
     """
-    Returns the pose a link would be in if the given joint configuration would be applied to the object.
+    Get the pose a link would be in if the given joint configuration would be applied to the object.
     This is done by using the respective object in the prospection world and applying the joint configuration
     to this one. After applying the joint configuration the link position is taken from there.
 

@@ -5,7 +5,7 @@ import math
 import datetime
 
 from tf.transformations import euler_from_quaternion
-from typing_extensions import List, Union, Optional, Sized
+from typing_extensions import List, Union, Optional, Sized, Self
 
 import numpy as np
 import rospy
@@ -88,7 +88,7 @@ class Pose(PoseStamped):
         p.pose = pose_stamped.pose
         return p
 
-    def get_position_diff(self, target_pose: 'Pose') -> Point:
+    def get_position_diff(self, target_pose: Self) -> Point:
         """
         Get the difference between the target and the current positions.
 
@@ -98,7 +98,7 @@ class Pose(PoseStamped):
         return Point(target_pose.position.x - self.position.x, target_pose.position.y - self.position.y,
                      target_pose.position.z - self.position.z)
 
-    def get_z_angle_difference(self, target_pose: Pose) -> float:
+    def get_z_angle_difference(self, target_pose: Self) -> float:
         """
         Get the difference between two z angles.
 
@@ -189,8 +189,6 @@ class Pose(PoseStamped):
 
     def to_list(self) -> List[List[float]]:
         """
-        Returns the position and orientation of this pose as a list containing two list.
-
         :return: The position and orientation as lists
         """
         return [[self.pose.position.x, self.pose.position.y, self.pose.position.z],
@@ -218,16 +216,12 @@ class Pose(PoseStamped):
 
     def position_as_list(self) -> List[float]:
         """
-        Returns only the position as a list of xyz.
-
-        :return: The position as a list
+        :return: The position as a list of xyz values.
         """
         return [self.position.x, self.position.y, self.position.z]
 
     def orientation_as_list(self) -> List[float]:
         """
-        Returns only the orientation as a list of a quaternion
-
         :return: The orientation as a quaternion with xyzw
         """
         return [self.pose.orientation.x, self.pose.orientation.y, self.pose.orientation.z, self.pose.orientation.w]
@@ -390,9 +384,6 @@ class Transform(TransformStamped):
 
     def get_homogeneous_matrix(self) -> np.ndarray:
         """
-        Returns the homogeneous matrix of this Transform. The matrix can be used to transform points from the frame_id
-        to the child_frame_id.
-
         :return: The homogeneous matrix of this Transform
         """
         translation = transformations.translation_matrix(self.translation_as_list())
@@ -502,16 +493,12 @@ class Transform(TransformStamped):
 
     def translation_as_list(self) -> List[float]:
         """
-        Returns the translation of this Transform as a list.
-
         :return: The translation as a list of xyz
         """
         return [self.transform.translation.x, self.transform.translation.y, self.transform.translation.z]
 
     def rotation_as_list(self) -> List[float]:
         """
-        Returns the rotation of this Transform as a list representing a quaternion.
-
         :return: The rotation of this Transform as a list with xyzw
         """
         return [self.transform.rotation.x, self.transform.rotation.y, self.transform.rotation.z,

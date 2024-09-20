@@ -774,11 +774,10 @@ class SemanticCostmap(Costmap):
 
     def get_aabb_for_link(self) -> AxisAlignedBoundingBox:
         """
-        Returns the axis aligned bounding box (AABB) of the link provided when creating this costmap. To try and let the
-        AABB as close to the actual object as possible, the Object will be rotated such that the link will be in the
-        identity orientation.
 
-        :return: Two points in world coordinate space, which span a rectangle
+        :return: The axis aligned bounding box (AABB) of the link provided when creating this costmap. To try and let
+         the AABB as close to the actual object as possible, the Object will be rotated such that the link will be in the
+        identity orientation.
         """
         prospection_object = World.current_world.get_prospection_object_for_object(self.object)
         with UseProspectionWorld():
