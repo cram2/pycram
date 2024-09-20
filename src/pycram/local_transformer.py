@@ -102,7 +102,7 @@ class LocalTransformer(TransformerROS):
 
     def get_object_name_for_frame(self, frame: str) -> Optional[str]:
         """
-        Returns the name of the object that is associated with the given frame.
+        Get the name of the object that is associated with the given frame.
 
         :param frame: The frame for which the object name should be returned
         :return: The name of the object associated with the frame
@@ -115,7 +115,7 @@ class LocalTransformer(TransformerROS):
 
     def get_object_name_for_link_frame(self, link_frame: str) -> Optional[str]:
         """
-        Returns the name of the object that is associated with the given link frame.
+        Get the name of the object that is associated with the given link frame.
 
         :param link_frame: The frame of the link for which the object name should be returned
         :return: The name of the object associated with the link frame
@@ -155,9 +155,7 @@ class LocalTransformer(TransformerROS):
 
     def get_all_frames(self) -> List[str]:
         """
-        Returns all know coordinate frames as a list with human-readable entries.
-
-        :return: A list of all know coordinate frames.
+        :return: A list of all known coordinate frames as a list with human-readable entries.
         """
         frames = self.allFramesAsString().split("\n")
         frames.remove("")

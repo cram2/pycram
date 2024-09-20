@@ -23,7 +23,6 @@ try:
     from multiverse_parser import MjcfExporter
     from pxr import Usd, UsdGeom
 except ImportError:
-    rospy.logwarn("Multiverse not found.")
     # do not import this module if multiverse is not found
     raise ImportError("Multiverse not found.")
 
@@ -39,14 +38,15 @@ class LinkDescription(AbstractLinkDescription):
     @property
     def geometry(self) -> Union[VisualShape, None]:
         """
-        Returns the geometry type of the collision element of this link.
+        :return: The geometry type of the collision element of this link.
         """
         return self._get_visual_shape(self.parsed_description.find_all('geom')[0])
 
     @staticmethod
     def _get_visual_shape(mjcf_geometry) -> Union[VisualShape, None]:
         """
-        Returns the VisualShape of the given URDF geometry.
+        :param mjcf_geometry: The MJCFGeometry to get the visual shape for.
+        :return: The VisualShape of the given MJCFGeometry object.
         """
         if mjcf_geometry.type == MJCFGeomType.BOX.value:
             return BoxVisualShape(Color(), [0, 0, 0], mjcf_geometry.size)

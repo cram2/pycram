@@ -25,7 +25,7 @@ class MultiverseClientManager:
         """
         self.simulation_wait_time_factor = simulation_wait_time_factor
 
-    def create_reader(self, is_prospection_world: Optional[bool] = False) -> 'MultiverseReader':
+    def create_reader(self, is_prospection_world: Optional[bool] = False) -> MultiverseReader:
         """
         Create a Multiverse reader client.
 

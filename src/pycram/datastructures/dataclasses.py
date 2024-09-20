@@ -111,48 +111,36 @@ class AxisAlignedBoundingBox:
 
     def get_min_max_points(self) -> Tuple[Point, Point]:
         """
-        Return the axis-aligned bounding box as a tuple of minimum and maximum points.
-
         :return: The axis-aligned bounding box as a tuple of minimum and maximum points
         """
         return self.get_min_point(), self.get_max_point()
 
     def get_min_point(self) -> Point:
         """
-        Return the axis-aligned bounding box as a minimum point.
-
         :return: The axis-aligned bounding box as a minimum point
         """
         return Point(self.min_x, self.min_y, self.min_z)
 
     def get_max_point(self) -> Point:
         """
-        Return the axis-aligned bounding box as a maximum point.
-
         :return: The axis-aligned bounding box as a maximum point
         """
         return Point(self.max_x, self.max_y, self.max_z)
 
     def get_min_max(self) -> Tuple[List[float], List[float]]:
         """
-        Return the axis-aligned bounding box as a tuple of minimum and maximum points.
-
         :return: The axis-aligned bounding box as a tuple of minimum and maximum points
         """
         return self.get_min(), self.get_max()
 
     def get_min(self) -> List[float]:
         """
-        Returns the minimum point of the axis-aligned bounding box.
-
         :return: The minimum point of the axis-aligned bounding box
         """
         return [self.min_x, self.min_y, self.min_z]
 
     def get_max(self) -> List[float]:
         """
-        Returns the maximum point of the axis-aligned bounding box.
-
         :return: The maximum point of the axis-aligned bounding box
         """
         return [self.max_x, self.max_y, self.max_z]
@@ -161,7 +149,8 @@ class AxisAlignedBoundingBox:
 @dataclass
 class CollisionCallbacks:
     """
-    Dataclass for storing the collision callbacks.
+    Dataclass for storing the collision callbacks which are callables that get called when there is a collision
+    or when a collision is no longer there.
     """
     on_collision_cb: Callable
     no_collision_cb: Optional[Callable] = None
@@ -195,7 +184,7 @@ class VisualShape(ABC):
     @abstractmethod
     def shape_data(self) -> Dict[str, Any]:
         """
-        Returns the shape data of the visual shape (e.g. half extents for a box, radius for a sphere) as a dictionary.
+        :return: the shape data of the visual shape (e.g. half extents for a box, radius for a sphere) as a dictionary.
         """
         pass
 
@@ -203,7 +192,7 @@ class VisualShape(ABC):
     @abstractmethod
     def visual_geometry_type(self) -> Shape:
         """
-        Returns the visual geometry type of the visual shape (e.g. box, sphere) as a Shape object.
+        :return: The visual geometry type of the visual shape (e.g. box, sphere) as a Shape object.
         """
         pass
 
@@ -318,20 +307,22 @@ class LinkState(State):
     def __eq__(self, other: 'LinkState'):
         return self.all_constraints_exist(other) and self.all_constraints_are_equal(other)
 
-    def all_constraints_exist(self, other: 'LinkState'):
+    def all_constraints_exist(self, other: 'LinkState') -> bool:
         """
         Check if all constraints exist in the other link state.
 
         :param other: The state of the other link.
+        :return: True if all constraints exist, False otherwise.
         """
         return (all([cid_k in other.constraint_ids.keys() for cid_k in self.constraint_ids.keys()])
                 and len(self.constraint_ids.keys()) == len(other.constraint_ids.keys()))
 
-    def all_constraints_are_equal(self, other: 'LinkState'):
+    def all_constraints_are_equal(self, other: 'LinkState') -> bool:
         """
         Check if all constraints are equal to the ones in the other link state.
 
         :param other: The state of the other link.
+        :return: True if all constraints are equal, False otherwise.
         """
         return all([cid == other_cid for cid, other_cid in zip(self.constraint_ids.values(),
                                                                other.constraint_ids.values())])
@@ -373,28 +364,31 @@ class ObjectState(State):
                 and self.link_states == other.link_states
                 and self.joint_states == other.joint_states)
 
-    def pose_is_almost_equal(self, other: 'ObjectState'):
+    def pose_is_almost_equal(self, other: 'ObjectState') -> bool:
         """
         Check if the pose of the object is almost equal to the pose of another object.
 
         :param other: The state of the other object.
+        :return: True if the poses are almost equal, False otherwise.
         """
         return self.pose.almost_equal(other.pose, other.acceptable_pose_error[0], other.acceptable_pose_error[1])
 
-    def all_attachments_exist(self, other: 'ObjectState'):
+    def all_attachments_exist(self, other: 'ObjectState') -> bool:
         """
         Check if all attachments exist in the other object state.
 
         :param other: The state of the other object.
+        :return: True if all attachments exist, False otherwise.
         """
         return (all([att_k in other.attachments.keys() for att_k in self.attachments.keys()])
                 and len(self.attachments.keys()) == len(other.attachments.keys()))
 
-    def all_attachments_are_equal(self, other: 'ObjectState'):
+    def all_attachments_are_equal(self, other: 'ObjectState') -> bool:
         """
         Check if all attachments are equal to the ones in the other object state.
 
         :param other: The state of the other object.
+        :return: True if all attachments are equal, False otherwise
         """
         return all([att == other_att for att, other_att in zip(self.attachments.values(), other.attachments.values())])
 
@@ -417,28 +411,31 @@ class WorldState(State):
         return (self.simulator_state_is_equal(other) and self.all_objects_exist(other)
                 and self.all_objects_states_are_equal(other))
 
-    def simulator_state_is_equal(self, other: 'WorldState'):
+    def simulator_state_is_equal(self, other: 'WorldState') -> bool:
         """
         Check if the simulator state is equal to the simulator state of another world state.
 
         :param other: The state of the other world.
+        :return: True if the simulator states are equal, False otherwise.
         """
         return self.simulator_state_id == other.simulator_state_id
 
-    def all_objects_exist(self, other: 'WorldState'):
+    def all_objects_exist(self, other: 'WorldState') -> bool:
         """
         Check if all objects exist in the other world state.
 
         :param other: The state of the other world.
+        :return: True if all objects exist, False otherwise.
         """
         return (all([obj_name in other.object_states.keys() for obj_name in self.object_states.keys()])
                 and len(self.object_states.keys()) == len(other.object_states.keys()))
 
-    def all_objects_states_are_equal(self, other: 'WorldState'):
+    def all_objects_states_are_equal(self, other: 'WorldState') -> bool:
         """
         Check if all object states are equal to the ones in the other world state.
 
         :param other: The state of the other world.
+        :return: True if all object states are equal, False otherwise.
         """
         return all([obj_state == other_obj_state
                     for obj_state, other_obj_state in zip(self.object_states.values(),

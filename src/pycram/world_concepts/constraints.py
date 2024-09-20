@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 from geometry_msgs.msg import Point
-from typing_extensions import Union, List, Optional, TYPE_CHECKING
+from typing_extensions import Union, List, Optional, TYPE_CHECKING, Self
 
 from ..datastructures.enums import JointType
 from ..datastructures.pose import Transform, Pose
@@ -32,15 +32,13 @@ class AbstractConstraint:
 
     def get_child_object_pose(self) -> Pose:
         """
-        Returns the pose of the child object.
-
         :return: The pose of the child object.
         """
         return self.child_link.object.pose
 
     def get_child_object_pose_given_parent(self, pose: Pose) -> Pose:
         """
-        Returns the pose of the child object given the parent pose.
+        Get the pose of the child object given the parent pose.
 
         :param pose: The parent object pose.
         :return: The pose of the child object.
@@ -51,19 +49,19 @@ class AbstractConstraint:
 
     def set_child_link_pose(self):
         """
-        Sets the target pose of the child object to the current pose of the child object in the parent object frame.
+        Set the target pose of the child object to the current pose of the child object in the parent object frame.
         """
         self.child_link.set_pose(self.get_child_link_target_pose())
 
     def get_child_link_target_pose(self) -> Pose:
         """
-        Returns the target pose of the child object. (The pose of the child object in the parent object frame)
+        :return: The target pose of the child object. (The pose of the child object in the parent object frame)
         """
         return self.parent_to_child_transform.to_pose()
 
     def get_child_link_target_pose_given_parent(self, parent_pose: Pose) -> Pose:
         """
-        Returns the target pose of the child object link given the parent link pose.
+        Get the target pose of the child object link given the parent link pose.
 
         :param parent_pose: The parent link pose.
         :return: The target pose of the child object link.
@@ -84,8 +82,6 @@ class AbstractConstraint:
     @property
     def parent_object_id(self) -> int:
         """
-        Returns the id of the parent object of the constraint.
-
         :return: The id of the parent object of the constraint
         """
         return self.parent_link.object_id
@@ -93,8 +89,6 @@ class AbstractConstraint:
     @property
     def child_object_id(self) -> int:
         """
-        Returns the id of the child object of the constraint.
-
         :return: The id of the child object of the constraint
         """
         return self.child_link.object_id
@@ -102,8 +96,6 @@ class AbstractConstraint:
     @property
     def parent_link_id(self) -> int:
         """
-        Returns the id of the parent link of the constraint.
-
         :return: The id of the parent link of the constraint
         """
         return self.parent_link.id
@@ -111,8 +103,6 @@ class AbstractConstraint:
     @property
     def child_link_id(self) -> int:
         """
-        Returns the id of the child link of the constraint.
-
         :return: The id of the child link of the constraint
         """
         return self.child_link.id
@@ -120,8 +110,6 @@ class AbstractConstraint:
     @property
     def position_wrt_parent_as_list(self) -> List[float]:
         """
-        Returns the constraint frame pose with respect to the parent origin as a list.
-
         :return: The constraint frame pose with respect to the parent origin as a list
         """
         return self.pose_wrt_parent.position_as_list()
@@ -129,8 +117,6 @@ class AbstractConstraint:
     @property
     def orientation_wrt_parent_as_list(self) -> List[float]:
         """
-        Returns the constraint frame orientation with respect to the parent origin as a list.
-
         :return: The constraint frame orientation with respect to the parent origin as a list
         """
         return self.pose_wrt_parent.orientation_as_list()
@@ -138,8 +124,6 @@ class AbstractConstraint:
     @property
     def pose_wrt_parent(self) -> Pose:
         """
-        Returns the joint frame pose with respect to the parent origin.
-
         :return: The joint frame pose with respect to the parent origin
         """
         return self.parent_to_constraint.to_pose()
@@ -147,8 +131,6 @@ class AbstractConstraint:
     @property
     def position_wrt_child_as_list(self) -> List[float]:
         """
-        Returns the constraint frame pose with respect to the child origin as a list.
-
         :return: The constraint frame pose with respect to the child origin as a list
         """
         return self.pose_wrt_child.position_as_list()
@@ -156,8 +138,6 @@ class AbstractConstraint:
     @property
     def orientation_wrt_child_as_list(self) -> List[float]:
         """
-        Returns the constraint frame orientation with respect to the child origin as a list.
-
         :return: The constraint frame orientation with respect to the child origin as a list
         """
         return self.pose_wrt_child.orientation_as_list()
@@ -165,8 +145,6 @@ class AbstractConstraint:
     @property
     def pose_wrt_child(self) -> Pose:
         """
-        Returns the joint frame pose with respect to the child origin.
-
         :return: The joint frame pose with respect to the child origin
         """
         return self.child_to_constraint.to_pose()
@@ -191,8 +169,6 @@ class Constraint(AbstractConstraint):
     @property
     def axis_as_list(self) -> List[float]:
         """
-        Returns the axis of this constraint as a list.
-
         :return: The axis of this constraint as a list of xyz
         """
         return [self.axis.x, self.axis.y, self.axis.z]
@@ -242,40 +218,40 @@ class Attachment(AbstractConstraint):
 
     def update_transform_and_constraint(self) -> None:
         """
-        Updates the transform and constraint of this attachment.
+        Update the transform and constraint of this attachment.
         """
         self.update_transform()
         self.update_constraint()
 
     def update_transform(self) -> None:
         """
-        Updates the transform of this attachment by calculating the transform from the parent link to the child link.
+        Update the transform of this attachment by calculating the transform from the parent link to the child link.
         """
         self.parent_to_child_transform = self.calculate_transform()
 
     def update_constraint(self) -> None:
         """
-        Updates the constraint of this attachment by removing the old constraint if one exists and adding a new one.
+        Update the constraint of this attachment by removing the old constraint if one exists and adding a new one.
         """
         self.remove_constraint_if_exists()
         self.add_fixed_constraint()
 
     def add_fixed_constraint(self) -> None:
         """
-        Adds a fixed constraint between the parent link and the child link.
+        Add a fixed constraint between the parent link and the child link.
         """
         self.id = self.parent_link.add_fixed_constraint_with_link(self.child_link,
                                                                   self.parent_to_child_transform.invert())
 
     def calculate_transform(self) -> Transform:
         """
-        Calculates the transform from the parent link to the child link.
+        Calculate the transform from the parent link to the child link.
         """
         return self.parent_link.get_transform_to_link(self.child_link)
 
     def remove_constraint_if_exists(self) -> None:
         """
-        Removes the constraint between the parent and the child links if one exists.
+        Remove the constraint between the parent and the child links if one exists.
         """
         if self.child_link in self.parent_link.constraint_ids:
             self.parent_link.remove_constraint_with_link(self.child_link)
@@ -299,7 +275,7 @@ class Attachment(AbstractConstraint):
     @loose.setter
     def loose(self, loose: bool) -> None:
         """
-        Sets the loose property of this attachment.
+        Set the loose property of this attachment.
 
         :param loose: If true, then the child object will not move when parent moves.
         """
@@ -307,7 +283,7 @@ class Attachment(AbstractConstraint):
 
     def __del__(self) -> None:
         """
-        Removes the constraint between the parent and the child links if one exists when the attachment is deleted.
+        Remove the constraint between the parent and the child links if one exists when the attachment is deleted.
         """
         self.remove_constraint_if_exists()
 

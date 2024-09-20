@@ -590,9 +590,7 @@ def allow_gripper_collision(gripper: str) -> None:
 @init_giskard_interface
 def get_gripper_group_names() -> List[str]:
     """
-    Returns a list of groups that are registered in giskard which have 'gripper' in their name.
-
-    :return: The list of gripper groups
+    :return: The list of groups that are registered in giskard which have 'gripper' in their name.
     """
     groups = giskard_wrapper.get_group_names()
     return list(filter(lambda elem: "gripper" in elem, groups))
@@ -601,7 +599,7 @@ def get_gripper_group_names() -> List[str]:
 @init_giskard_interface
 def add_gripper_groups() -> None:
     """
-    Adds the gripper links as a group for collision avoidance.
+    Add the gripper links as a group for collision avoidance.
 
     :return: Response of the RegisterGroup Service
     """
@@ -645,7 +643,7 @@ def avoid_collisions(object1: Object, object2: Object) -> None:
 @init_giskard_interface
 def make_world_body(object: Object) -> 'WorldBody':
     """
-    Creates a WorldBody message for a World Object. The WorldBody will contain the URDF of the World Object
+    Create a WorldBody message for a World Object. The WorldBody will contain the URDF of the World Object
 
     :param object: The World Object
     :return: A WorldBody message for the World Object

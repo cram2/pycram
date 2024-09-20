@@ -32,7 +32,7 @@ class LinkDescription(AbstractLinkDescription):
     @property
     def geometry(self) -> Union[VisualShape, None]:
         """
-        Returns the geometry type of the URDF collision element of this link.
+        :return: The geometry type of the URDF collision element of this link.
         """
         if self.collision is None:
             return None
@@ -42,7 +42,8 @@ class LinkDescription(AbstractLinkDescription):
     @staticmethod
     def _get_visual_shape(urdf_geometry) -> Union[VisualShape, None]:
         """
-        Returns the VisualShape of the given URDF geometry.
+        :param urdf_geometry: The URDFGeometry for which the visual shape is returned.
+        :return: the VisualShape of the given URDF geometry.
         """
         if isinstance(urdf_geometry, URDF_Box):
             return BoxVisualShape(Color(), [0, 0, 0], urdf_geometry.size)

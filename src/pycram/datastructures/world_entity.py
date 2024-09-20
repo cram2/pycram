@@ -20,7 +20,7 @@ class StateEntity:
     @property
     def saved_states(self) -> Dict[int, State]:
         """
-        Returns the saved states of this entity.
+        :return: the saved states of this entity.
         """
         return self._saved_states
 
@@ -37,8 +37,6 @@ class StateEntity:
     @abstractmethod
     def current_state(self) -> State:
         """
-        Returns the current state of this entity.
-
         :return: The current state of this entity.
         """
         pass

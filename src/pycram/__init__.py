@@ -1,5 +1,5 @@
-import pycram.process_modules
-import pycram.robot_descriptions
+from . import process_modules
+from . import robot_descriptions
 # from .specialized_designators import *
 
 from .datastructures.world import World

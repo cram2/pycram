@@ -17,7 +17,7 @@ class CacheManager:
 
     cache_cleared: bool = False
     """
-    A class variable that indicates whether the cache directory has been cleared.
+    Indicate whether the cache directory has been cleared at least once since beginning or not.
     """
 
     def __init__(self, cache_dir: str, data_directory: List[str], clear_cache: bool = True):

@@ -159,7 +159,7 @@ class RobotDescription:
 
     def get_actuator_for_joint(self, joint: str) -> Optional[str]:
         """
-        Returns the actuator name for a given joint.
+        Get the actuator name for a given joint.
 
         :param joint: Name of the joint
         :return: Name of the actuator
@@ -238,7 +238,7 @@ class RobotDescription:
 
     def get_manipulator_chains(self) -> List[KinematicChainDescription]:
         """
-        Returns a list of all manipulator chains of the robot which posses an end effector.
+        Get a list of all manipulator chains of the robot which posses an end effector.
 
         :return: A list of KinematicChainDescription objects
         """
@@ -266,7 +266,7 @@ class RobotDescription:
 
     def get_default_camera(self) -> CameraDescription:
         """
-        Returns the first camera in the list of cameras.
+        Get the first camera in the list of cameras.
 
         :return: A CameraDescription object
         """
@@ -274,7 +274,7 @@ class RobotDescription:
 
     def get_static_joint_chain(self, kinematic_chain_name: str, configuration_name: str):
         """
-        Returns the static joint states of a kinematic chain for a specific configuration. When trying to access one of
+        Get the static joint states of a kinematic chain for a specific configuration. When trying to access one of
         the robot arms the function `:func: get_arm_chain` should be used.
 
         :param kinematic_chain_name:
@@ -292,7 +292,7 @@ class RobotDescription:
 
     def get_parent(self, name: str) -> str:
         """
-        Returns the parent of a link or joint in the URDF. Always returns the imeadiate parent, for a link this is a joint
+        Get the parent of a link or joint in the URDF. Always returns the imeadiate parent, for a link this is a joint
         and vice versa.
 
         :param name: Name of the link or joint in the URDF
@@ -312,7 +312,7 @@ class RobotDescription:
 
     def get_child(self, name: str, return_multiple_children: bool = False) -> Union[str, List[str]]:
         """
-        Returns the child of a link or joint in the URDF. Always returns the immediate child, for a link this is a joint
+        Get the child of a link or joint in the URDF. Always returns the immediate child, for a link this is a joint
         and vice versa. Since a link can have multiple children, the return_multiple_children parameter can be set to
         True to get a list of all children.
 
@@ -341,7 +341,7 @@ class RobotDescription:
 
     def get_arm_tool_frame(self, arm: Arms) -> str:
         """
-        Returns the name of the tool frame of a specific arm.
+        Get the name of the tool frame of a specific arm.
 
         :param arm: Arm for which the tool frame should be returned
         :return: The name of the link of the tool frame in the URDF.
@@ -351,7 +351,7 @@ class RobotDescription:
 
     def get_arm_chain(self, arm: Arms) -> Union[KinematicChainDescription, List[KinematicChainDescription]]:
         """
-        Returns the kinematic chain of a specific arm. If the arm is set to BOTH, all kinematic chains are returned.
+        Get the kinematic chain of a specific arm. If the arm is set to BOTH, all kinematic chains are returned.
 
         :param arm: Arm for which the chain should be returned
         :return: KinematicChainDescription object of the arm
@@ -456,7 +456,7 @@ class KinematicChainDescription:
 
     def get_joints(self) -> List[str]:
         """
-        Returns a list of all joints of the chain.
+        Get a list of all joints of the chain.
 
         :return: List of joint names
         """
@@ -464,9 +464,7 @@ class KinematicChainDescription:
 
     def get_links(self) -> List[str]:
         """
-        Returns a list of all links of the chain.
-
-        :return: List of link names
+        :return: A list of all links of the chain.
         """
         return self.link_names
 
@@ -502,7 +500,7 @@ class KinematicChainDescription:
 
     def get_static_joint_states(self, name: str) -> Dict[str, float]:
         """
-        Returns the dictionary of static joint states for a given name of the static joint states.
+        Get the dictionary of static joint states for a given name of the static joint states.
 
         :param name: Name of the static joint states
         :return: Dictionary of joint names and their values
@@ -514,7 +512,7 @@ class KinematicChainDescription:
 
     def get_tool_frame(self) -> str:
         """
-        Returns the name of the tool frame of the end effector of this chain, if it has an end effector.
+        Get the name of the tool frame of the end effector of this chain, if it has an end effector.
 
         :return: The name of the link of the tool frame in the URDF.
         """
@@ -525,7 +523,7 @@ class KinematicChainDescription:
 
     def get_static_gripper_state(self, state: GripperState) -> Dict[str, float]:
         """
-        Returns the static joint states for the gripper of the chain.
+        Get the static joint states for the gripper of the chain.
 
         :param state: Name of the static joint states
         :return: Dictionary of joint names and their values

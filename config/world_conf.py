@@ -1,6 +1,5 @@
 import math
 import os
-from dataclasses import dataclass
 
 from typing_extensions import Tuple, Type
 from pycram.description import ObjectDescription
@@ -8,6 +7,11 @@ from pycram.object_descriptors.urdf import ObjectDescription as URDF
 
 
 class WorldConfig:
+
+    """
+    A class to store the configuration of the world, this can be inherited to create a new configuration class for a
+    specific world (e.g. multiverse has MultiverseConfig which inherits from this class).
+    """
 
     resources_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'resources')
     resources_path = os.path.abspath(resources_path)
@@ -39,11 +43,6 @@ class WorldConfig:
     update_poses_from_sim_on_get: bool = True
     """
     Whether to update the poses from the simulator when getting the object poses.
-    """
-
-    DEBUG: bool = False
-    """
-    Whether to use in debug mode. (This is used to print debug messages, plot images, etc.)
     """
 
     default_description_type: Type[ObjectDescription] = URDF
