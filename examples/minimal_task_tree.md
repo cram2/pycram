@@ -82,14 +82,14 @@ plan()
 Now we get the task tree from its module and render it. Rendering can be done with any render method described in the anytree package. We will use ascii rendering here for ease of displaying.
 
 ```python
-tt = pycram.task.task_tree
+tt = pycram.tasktree.task_tree
 print(anytree.RenderTree(tt))
 ```
 
 As we see every task in the plan got recorded correctly. It is noticeable that the tree begins with a NoOperation node. This is done because several, not connected, plans that get executed after each other should still appear in the task tree. Hence, a NoOperation node is the root of any tree. If we re-execute the plan we would see them appear in the same tree even though they are not connected.
 
 ```python
-world.reset_bullet_world()
+world.reset_world()
 plan()
 print(anytree.RenderTree(tt))
 ```
@@ -98,8 +98,8 @@ Projecting a plan in a new environment with its own task tree that only exists w
 
 ```python
 with pycram.tasktree.SimulatedTaskTree() as stt:
-    print(anytree.RenderTree(pycram.task.task_tree))
-print(anytree.RenderTree(pycram.task.task_tree))
+    print(anytree.RenderTree(pycram.tasktree.task_tree))
+print(anytree.RenderTree(pycram.tasktree.task_tree))
 ```
 
 Task tree can be manipulated with ordinary anytree manipulation. If we for example want to discard the second plan, we would write
@@ -114,27 +114,28 @@ We can now re-execute this (modified) plan by executing the leaf in pre-ordering
 ```python
 world.reset_world()
 with simulated_robot:
-    [node.code.execute() for node in tt.root.leaves]
-print(anytree.RenderTree(pycram.task.task_tree, style=anytree.render.AsciiStyle()))
+    #[node.code.execute() for node in tt.root.leaves]
+    [node.action.perform() for node in tt.root.leaves]
+print(anytree.RenderTree(pycram.tasktree.task_tree, style=anytree.render.AsciiStyle()))
 ```
 
 Nodes in the task tree contain additional information about the status and time of a task.
 
 ```python
-print(pycram.task.task_tree.children[0])
+print(pycram.tasktree.task_tree.children[0])
 ```
 
 The task tree can also be reset to an empty one by invoking
 
 ```python
 pycram.tasktree.reset_tree()
-print(anytree.RenderTree(pycram.task.task_tree, style=anytree.render.AsciiStyle()))
+print(anytree.RenderTree(pycram.tasktree.task_tree, style=anytree.render.AsciiStyle()))
 ```
 
 If a plan fails using the PlanFailure exception, the plan will not stop. Instead, the error will be logged and saved in the task tree as a failed subtask. First let's create a simple failing plan and execute it.
 
 ```python
-@pycram.task.with_tree
+@pycram.tasktree.with_tree
 def failing_plan():
     raise pycram.plan_failures.PlanFailure("Oopsie!")
 
@@ -147,7 +148,7 @@ except pycram.plan_failures.PlanFailure as e:
 We can now investigate the nodes of the tree, and we will see that the tree indeed contains a failed task.
 
 ```python
-print(anytree.RenderTree(pycram.task.task_tree, style=anytree.render.AsciiStyle()))
+print(anytree.RenderTree(pycram.tasktree.task_tree, style=anytree.render.AsciiStyle()))
 print(pycram.tasktree.task_tree.children[0])
 ```
 
