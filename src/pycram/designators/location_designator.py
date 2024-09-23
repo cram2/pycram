@@ -183,7 +183,8 @@ class CostmapLocation(LocationDesignatorDescription):
                 res = True
                 arms = None
                 if self.visible_for:
-                    res = res and visibility_validator(maybe_pose, test_robot, target_pose,
+                    visible_prospection_object = World.current_world.get_prospection_object_for_object(self.target.world_object)
+                    res = res and visibility_validator(maybe_pose, test_robot, visible_prospection_object,
                                                        World.current_world)
                 if self.reachable_for:
                     hand_links = []
@@ -217,7 +218,7 @@ class AccessingLocation(LocationDesignatorDescription):
         drawer will be opened. Calculating the pose while the drawer is open could lead to problems.
 
         :param handle_desig: ObjectPart designator for handle of the drawer
-        :param robot: Object designator for the robot which should open the drawer
+        :param robot_desig: Object designator for the robot which should open the drawer
         :param resolver: An alternative specialized_designators to create the location
         """
         super().__init__(resolver)
@@ -248,7 +249,6 @@ class AccessingLocation(LocationDesignatorDescription):
         gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)
 
         final_map = occupancy + gaussian
-
 
         test_robot = World.current_world.get_prospection_object_for_object(self.robot)
 

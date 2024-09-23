@@ -7,7 +7,7 @@ jupyter:
       format_version: '1.3'
       jupytext_version: 1.16.3
   kernelspec:
-    display_name: Python 3
+    display_name: Python 3 (ipykernel)
     language: python
     name: python3
 ---
@@ -43,8 +43,9 @@ from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import Pose
 
-world = BulletWorld()
-kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
+world = BulletWorld(WorldMode.GUI)
+apartment = Object("apartment", ObjectType.ENVIRONMENT, "apartment.urdf")
+pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
 ```
 
 Next up we will create the location designator description, the {meth}`~pycram.designators.location_designator.CostmapLocation` that we will be using needs a
@@ -57,7 +58,7 @@ which we will be extending later.
 ```python
 from pycram.designators.location_designator import CostmapLocation
 
-target = kitchen.get_pose()
+target = apartment.get_pose()
 
 location_description = CostmapLocation(target)
 
@@ -76,8 +77,7 @@ Since a robot is needed we will use the PR2 and use a milk as a target point for
 PR2 will be set to 0.2 since otherwise the arms of the robot will be too low to reach on the countertop.
 
 ```python
-pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
-pr2.set_joint_state("torso_lift_joint", 0.2)
+pr2.set_joint_position("torso_lift_joint", 0.2)
 milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
 
 ```
@@ -107,11 +107,6 @@ For this example we need the milk as well as the PR2, so if you did not spawn th
 designator you can spawn them with the following cell.
 
 ```python
-pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
-milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-```
-
-```python
 from pycram.designators.location_designator import CostmapLocation
 from pycram.designators.object_designator import BelieveObject
 
@@ -137,18 +132,13 @@ For this example we need the kitchen as well as the milk. If you spawned them in
 need to execute the following cell.
 
 ```python
-kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
-milk = Object("milk", ObjectType.MILK, "milk.stl")
-```
-
-```python
 from pycram.designators.location_designator import SemanticCostmapLocation
 from pycram.designators.object_designator import BelieveObject
 
-kitchen_desig = BelieveObject(names=["kitchen"]).resolve()
+kitchen_desig = BelieveObject(names=["apartment"]).resolve()
 milk_desig = BelieveObject(names=["milk"]).resolve()
 
-location_description = SemanticCostmapLocation(urdf_link_name="kitchen_island_surface",
+location_description = SemanticCostmapLocation(urdf_link_name="island_countertop",
                                                part_of=kitchen_desig,
                                                for_object=milk_desig)
 
@@ -162,10 +152,6 @@ for the location described in the description. This can be useful if the first p
 
 We will see this at the example of a location designator for visibility. For this example we need the milk, if you
 already have a milk spawned in you world you can ignore the following cell.
-
-```python
-milk = Object("milk", ObjectType.MILK, "milk.stl")
-```
 
 ```python
 from pycram.designators.location_designator import CostmapLocation
@@ -189,25 +175,13 @@ At the moment this location designator only works in the apartment environment, 
 spawned it in a previous example. Furthermore, we need a robot, so we also spawn the PR2 if it isn't spawned already.
 
 ```python
-kitchen.remove()
-```
-
-```python
-apartment = Object("apartment", ObjectType.ENVIRONMENT, "apartment.urdf")
-```
-
-```python
-pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
-pr2.set_joint_state("torso_lift_joint", 0.25)
-```
-
-```python
 from pycram.designators.object_designator import *
 from pycram.designators.location_designator import *
+from pycram.datastructures.enums import ObjectType
 
 apartment_desig = BelieveObject(names=["apartment"])
 handle_desig = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig.resolve())
-robot_desig = BelieveObject(names=["pr2"])
+robot_desig = BelieveObject(types=[ObjectType.ROBOT])
 
 access_location = AccessingLocation(handle_desig.resolve(), robot_desig.resolve()).resolve()
 print(access_location.pose)
@@ -223,12 +197,15 @@ robot to reach a target pose.
 work.
 
 ```python
-from pycram.designators.specialized_designators.location.giskard_location import GiskardLocation
+import rosnode
+if "/giskard" in rosnode.get_node_names():
 
-robot_desig = BelieveObject(names=["pr2"]).resolve()
-
-loc = GiskardLocation(target=Pose([1, 1, 1]), reachable_for=robot_desig).resolve()
-print(loc.pose)
+    from pycram.designators.specialized_designators.location.giskard_location import GiskardLocation
+    
+    robot_desig = BelieveObject(names=["pr2"]).resolve()
+    
+    loc = GiskardLocation(target=Pose([1, 1, 1]), reachable_for=robot_desig).resolve()
+    print(loc.pose)
 ```
 
 If you are finished with this example you can close the world with the following cell:
