@@ -211,14 +211,16 @@ class Repeat(Language):
 
         :return:
         """
+        results = []
         for i in range(self.repeat):
             for child in self.children:
                 if self.interrupted:
                     return
                 try:
-                    child.resolve().perform()
+                    results.append(child.resolve().perform())
                 except PlanFailure as e:
                     self.root.exceptions[self] = e
+        return State.SUCCEEDED, results
 
     def __init__(self, parent: NodeMixin = None, children: Iterable[NodeMixin] = None, repeat: int = 1):
         """
