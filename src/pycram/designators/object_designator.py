@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses
 from typing_extensions import List, Optional, Callable, TYPE_CHECKING
 import sqlalchemy.orm
+from ..datastructures.enums import ObjectType
 from ..datastructures.world import World
 from ..world_concepts.world_object import Object as WorldObject
 from ..designator import ObjectDesignatorDescription
@@ -27,7 +28,7 @@ class BelieveObject(ObjectDesignatorDescription):
         """
 
         def to_sql(self) -> ORMBelieveObject:
-            return ORMBelieveObject(self.obj_type, self.name)
+            return ORMBelieveObject(name=self.name, obj_type=self.obj_type)
 
         def insert(self, session: sqlalchemy.orm.session.Session) -> ORMBelieveObject:
             metadata = ProcessMetaData().insert(session)
@@ -50,7 +51,7 @@ class ObjectPart(ObjectDesignatorDescription):
         part_pose: Pose
 
         def to_sql(self) -> ORMObjectPart:
-            return ORMObjectPart(self.obj_type, self.name)
+            return ORMObjectPart(obj_type=self.obj_type, name=self.name)
 
         def insert(self, session: sqlalchemy.orm.session.Session) -> ORMObjectPart:
             metadata = ProcessMetaData().insert(session)
@@ -64,7 +65,7 @@ class ObjectPart(ObjectDesignatorDescription):
 
     def __init__(self, names: List[str],
                  part_of: ObjectDesignatorDescription.Object,
-                 type: Optional[str] = None,
+                 type: Optional[ObjectType] = None,
                  resolver: Optional[Callable] = None):
         """
         Describing the relationship between an object and a specific part of it.
@@ -80,7 +81,7 @@ class ObjectPart(ObjectDesignatorDescription):
         if not part_of:
             raise AttributeError("part_of cannot be None.")
 
-        self.type: Optional[str] = type
+        self.type: Optional[ObjectType] = type
         self.names: Optional[List[str]] = names
         self.part_of = part_of
 
