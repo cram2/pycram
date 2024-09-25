@@ -296,3 +296,8 @@ class ObjectState(State):
 class WorldState(State):
     simulator_state_id: int
     object_states: Dict[str, ObjectState]
+
+@dataclass
+class ReasoningResult:
+    success: bool
+    reasoned_parameter: Dict[str, Any]

@@ -6,10 +6,13 @@ from abc import abstractmethod
 from .enums import Arms
 from .dataclasses import ReasoningResult
 from .pose import Pose
-from typing_extensions import List, Iterable, Dict, Any, Callable, Type
+from typing_extensions import List, Iterable, Dict, Any, Callable, Type, TYPE_CHECKING
 from anytree import NodeMixin, PreOrderIter, Node
 from ..plan_failures import ObjectNotVisible, ManipulationPoseUnreachable, NavigationGoalInCollision, ObjectUnfetchable, \
     GripperOccupied, PlanFailure
+
+if TYPE_CHECKING:
+    from ..designators.object_designator import ObjectDesignatorDescription
 
 class Property(NodeMixin):
     """
@@ -74,7 +77,9 @@ class Property(NodeMixin):
         :param kwargs: keyword args to pass to the function
         :return: result of the function
         """
-        return func(*args, **kwargs)
+        reasoning_result = func(*args, **kwargs)
+        self.root.variables.update(reasoning_result.reasoned_parameter)
+        return reasoning_result.success
 
 
 class PropertyOperator(Property):
@@ -255,7 +260,7 @@ class ResolvedProperty(Property):
 
     def __call__(self) -> bool:
         """
-        Manages the io of the call to the property function and then calles the function. If the function returns False,
+        Manages the io of the call to the property function and then calls the function. If the function returns False,
         the exception defined in :attr:`property_exception` will be raised.
 
         :return: The result of the property function
@@ -281,12 +286,12 @@ class ReachableProperty(Property):
 class GraspableProperty(Property):
     property_exception = ObjectUnfetchable
 
-    def __init__(self, object_designator: 'ObjectDesignatorDescription'):
+    def __init__(self, object_designator: ObjectDesignatorDescription):
         super().__init__(None, None)
         self.object_designator = object_designator
 
     @abstractmethod
-    def graspable(self, object_designator: 'ObjectDesignatorDescription') -> bool:
+    def graspable(self, object_designator: ObjectDesignatorDescription) -> ReasoningResult:
         raise NotImplementedError
 
 
@@ -298,7 +303,7 @@ class SpaceIsFreeProperty(Property):
         self.pose = pose
 
     @abstractmethod
-    def space_is_free(self, pose: Pose) -> bool:
+    def space_is_free(self, pose: Pose) -> ReasoningResult:
         raise NotImplementedError
 
 
@@ -310,17 +315,17 @@ class GripperIsFreeProperty(Property):
         self.gripper = gripper
 
     @abstractmethod
-    def gripper_is_free(self, gripper: Arms) -> bool:
+    def gripper_is_free(self, gripper: Arms) -> ReasoningResult:
         raise NotImplementedError
 
 
 class VisibleProperty(Property):
     property_exception = ObjectNotVisible
 
-    def __init__(self, object_designator: 'ObjectDesignatorDescription'):
+    def __init__(self, object_designator: ObjectDesignatorDescription):
         super().__init__(None, None)
         self.object_designator = object_designator
 
     @abstractmethod
-    def is_visible(self, object_designator: 'ObjectDesignatorDescription') -> bool:
+    def is_visible(self, object_designator: ObjectDesignatorDescription) -> ReasoningResult:
         raise NotImplementedError
