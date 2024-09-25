@@ -40,6 +40,11 @@ class WorldConfig:
     The prefix for the prospection world name.
     """
 
+    simulation_frequency: int = 240
+    """
+    The simulation frequency (Hz), used for calculating the equivalent real time in the simulation.
+    """
+
     update_poses_from_sim_on_get: bool = True
     """
     Whether to update the poses from the simulator when getting the object poses.

@@ -57,7 +57,6 @@ class Multiverse(World):
 
     def __init__(self, mode: Optional[WorldMode] = WorldMode.DIRECT,
                  is_prospection: Optional[bool] = False,
-                 simulation_frequency: float = conf.simulation_frequency,
                  simulation_name: str = "pycram_test",
                  clear_cache: bool = False):
         """
@@ -65,7 +64,6 @@ class Multiverse(World):
 
         :param mode: The mode of the world (DIRECT or GUI).
         :param is_prospection: Whether the world is prospection or not.
-        :param simulation_frequency: The frequency of the simulation.
         :param simulation_name: The name of the simulation.
         :param clear_cache: Whether to clear the cache or not.
         """
@@ -84,7 +82,7 @@ class Multiverse(World):
         self.client_manager = MultiverseClientManager(self.conf.simulation_wait_time_factor)
         self._init_clients(is_prospection=is_prospection)
 
-        World.__init__(self, mode, is_prospection, simulation_frequency)
+        World.__init__(self, mode, is_prospection)
 
         self._init_constraint_and_object_id_name_map_collections()
 
