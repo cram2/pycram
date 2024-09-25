@@ -1,16 +1,21 @@
+from __future__ import annotations
+
 import inspect
 
 import rospy
 from anytree import PreOrderIter
+from typeguard import check_type, TypeCheckError
 
 from ..datastructures.property import Property, ResolvedProperty
 from .knowledge_source import KnowledgeSource
 # from ..designator import DesignatorDescription, ActionDesignatorDescription
-from typing_extensions import Type, Callable, List
+from typing_extensions import Type, Callable, List, TYPE_CHECKING, Dict
 
 from ..plan_failures import KnowledgeNotAvailable
 # This import is needed since the subclasses of KnowledgeSource need to be imported to be known at runtime
 from .knowledge_sources import *
+if TYPE_CHECKING:
+    from ..designator import ActionDesignatorDescription
 
 
 class KnowledgeEngine:
@@ -153,3 +158,35 @@ class KnowledgeEngine:
             if (property.__class__ in list(source.__class__.__bases__)
                     and source.is_connected):
                 return source
+
+    def match_reasoned_parameter(self, condition: Type[Property], designator: Type[ActionDesignatorDescription]):
+        """
+        Match the reasoned parameters, in the root node of the property expression, to the corresponding parameter in
+        the designator
+        """
+        parameter = condition.root.variables
+        self._match_by_name(parameter, designator)
+        self._match_by_type(parameter, designator)
+
+    @staticmethod
+    def _match_by_name(parameter: Dict[str, any], designator: Type[ActionDesignatorDescription]):
+        """
+        Match the reasoned parameters to the corresponding parameter in the designator by name
+        """
+        for key, value in parameter.items():
+            if key in designator.get_optional_parameter() and designator.__getattribute__(key) is None:
+                designator.__setattr__(key, value)
+
+    @staticmethod
+    def _match_by_type(parameter: Dict[str, any], designator: Type[ActionDesignatorDescription]):
+        """
+        Match the reasoned parameters to the corresponding parameter in the designator by type
+        """
+        for param in designator.get_optional_parameter():
+            if designator.__getattribute__(param) is None:
+                for key, value in parameter.items():
+                    try:
+                        check_type(value, designator.get_type_hints()[param])
+                        designator.__setattr__(param, value)
+                    except TypeCheckError as e:
+                        continue

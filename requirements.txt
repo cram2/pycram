@@ -17,3 +17,16 @@ psutil==5.9.7
 lxml==4.9.1
 typing_extensions==4.9.0
 owlready2>=0.45
+
+Pygments~=2.14.0
+rospy~=1.15.14
+tf~=1.13.2
+rosgraph~=1.15.14
+rosservice~=1.15.14
+rdflib~=6.3.2
+typeguard~=4.3.0
+matplotlib~=3.7.3
+actionlib~=1.13.2
+rosnode~=1.15.14
+roslaunch~=1.15.14
+catkin-pkg~=0.5.2

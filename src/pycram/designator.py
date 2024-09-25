@@ -1,11 +1,13 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+import typing_extensions
 from dataclasses import dataclass, field, fields
 from abc import ABC, abstractmethod
 from inspect import isgenerator, isgeneratorfunction
 
 import rospy
+import inspect
 
 from .knowledge.knowledge_engine import KnowledgeEngine
 
@@ -51,7 +53,8 @@ class DesignatorError(Exception):
 
 
 class ResolutionError(Exception):
-    def __init__(self, missing_properties: List[str], wrong_type: Dict, current_type: Any, designator: DesignatorDescription):
+    def __init__(self, missing_properties: List[str], wrong_type: Dict, current_type: Any,
+                 designator: DesignatorDescription):
         self.error = f"\nSome requiered properties where missing or had the wrong type when grounding the Designator: {designator}.\n"
         self.missing = f"The missing properties where: {missing_properties}\n"
         self.wrong = f"The properties with the wrong type along with the currrent -and right type :\n"
@@ -125,6 +128,26 @@ class DesignatorDescription(ABC):
         """
         return self.ontology_concept_holders[0].ontology_concept if self.ontology_concept_holders else None
 
+    def get_optional_parameter(self) -> List[str]:
+        """
+        Returns a list of optional parameter names of this designator description.
+        """
+        return [param_name for param_name, param in inspect.signature(self.__init__).parameters.items() if
+                param.default != param.empty]
+
+    def get_all_parameter(self) -> List[str]:
+        """
+        Returns a list of all parameter names of this designator description.
+        """
+        return [param_name for param_name, param in inspect.signature(self.__init__).parameters.items()]
+
+    def get_type_hints(self) -> Dict[str, Any]:
+        """
+        Returns the type hints of the __init__ method of this designator description.
+
+        :return:
+        """
+        return typing_extensions.get_type_hints(self.__init__)
 
 class ActionDesignatorDescription(DesignatorDescription, Language):
     """
@@ -158,7 +181,8 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
 
         def __post_init__(self):
             self.robot_position = World.robot.get_pose()
-            self.robot_torso_height = World.robot.get_joint_position(RobotDescription.current_robot_description.torso_joint)
+            self.robot_torso_height = World.robot.get_joint_position(
+                RobotDescription.current_robot_description.torso_joint)
             self.robot_type = World.robot.obj_type
 
         @with_tree
@@ -240,7 +264,7 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
                 if concept_class:
                     existing_holders = OntologyConceptHolderStore().get_ontology_concept_holders_by_class(concept_class)
                     self.ontology_concept_holders.extend(existing_holders if existing_holders \
-                                                         else [OntologyConceptHolder(concept_class(concept_name))])
+                                                             else [OntologyConceptHolder(concept_class(concept_name))])
 
     def __iter__(self):
         """
@@ -277,7 +301,7 @@ class LocationDesignatorDescription(DesignatorDescription):
         raise NotImplementedError(f"{type(self)}.ground() is not implemented.")
 
 
-#this knowledge should be somewhere else i guess
+# this knowledge should be somewhere else i guess
 SPECIAL_KNOWLEDGE = {
     'bigknife':
         [("top", [-0.08, 0, 0])],
