@@ -52,11 +52,6 @@ class World(StateEntity, ABC):
     The configurations of the world, the default configurations are defined in world_conf.py in the config folder.
     """
 
-    simulation_frequency: float
-    """
-    Global reference for the simulation frequency (Hz), used in calculating the equivalent real time in the simulation.
-    """
-
     current_world: Optional[World] = None
     """
     Global reference to the currently used World, usually this is the
@@ -76,8 +71,7 @@ class World(StateEntity, ABC):
     Global reference for the cache manager, this is used to cache the description files of the robot and the objects.
     """
 
-    def __init__(self, mode: WorldMode, is_prospection_world: bool, simulation_frequency: float,
-                 clear_cache: bool = False):
+    def __init__(self, mode: WorldMode, is_prospection_world: bool = False, clear_cache: bool = False):
         """
         Create a new simulation, the mode decides if the simulation should be a rendered window or just run in the
         background. There can only be one rendered simulation.
@@ -86,7 +80,6 @@ class World(StateEntity, ABC):
         :param mode: Can either be "GUI" for rendered window or "DIRECT" for non-rendered. The default parameter is
          "GUI"
         :param is_prospection_world: For internal usage, decides if this World should be used as a prospection world.
-        :param simulation_frequency: The frequency of the simulation in Hz.
         :param clear_cache: Whether to clear the cache directory.
         """
 
@@ -96,7 +89,6 @@ class World(StateEntity, ABC):
             self.cache_manager.clear_cache()
 
         GoalValidator.raise_error = self.conf.raise_goal_validator_error
-        World.simulation_frequency = simulation_frequency
 
         if World.current_world is None:
             World.current_world = self
@@ -252,8 +244,7 @@ class World(StateEntity, ABC):
             self.prospection_world = None
         else:
             self.prospection_world: World = self.__class__(WorldMode.DIRECT,
-                                                           True,
-                                                           World.simulation_frequency)
+                                                           True)
 
     def _sync_prospection_world(self):
         """
@@ -287,7 +278,7 @@ class World(StateEntity, ABC):
         """
         The time step of the simulation in seconds.
         """
-        return 1 / self.__class__.simulation_frequency
+        return 1 / self.__class__.conf.simulation_frequency
 
     @abstractmethod
     def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[Pose] = None,
@@ -561,7 +552,7 @@ class World(StateEntity, ABC):
         :param real_time: If the simulation should happen in real time or faster.
         """
         self.set_realtime(real_time)
-        for i in range(0, int(seconds * self.simulation_frequency)):
+        for i in range(0, int(seconds * self.conf.simulation_frequency)):
             curr_time = rospy.Time.now()
             self.step()
             for objects, callbacks in self.coll_callbacks.items():

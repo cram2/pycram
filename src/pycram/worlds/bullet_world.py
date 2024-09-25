@@ -39,7 +39,7 @@ class BulletWorld(World):
     if rosgraph.is_master_online():  # and "/pycram" not in rosnode.get_node_names():
         rospy.init_node('pycram')
 
-    def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection_world: bool = False, sim_frequency=240):
+    def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection_world: bool = False):
         """
         Creates a new simulation, the type decides of the simulation should be a rendered window or just run in the
         background. There can only be one rendered simulation.
@@ -48,7 +48,7 @@ class BulletWorld(World):
         :param mode: Can either be "GUI" for rendered window or "DIRECT" for non-rendered. The default is "GUI"
         :param is_prospection_world: For internal usage, decides if this BulletWorld should be used as a shadow world.
         """
-        super().__init__(mode=mode, is_prospection_world=is_prospection_world, simulation_frequency=sim_frequency)
+        super().__init__(mode=mode, is_prospection_world=is_prospection_world)
 
         # This disables file caching from PyBullet, since this would also cache
         # files that can not be loaded
