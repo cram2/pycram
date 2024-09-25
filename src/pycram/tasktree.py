@@ -10,21 +10,13 @@ import anytree
 import sqlalchemy.orm.session
 import tqdm
 from .datastructures.world import World
+from .helper import Singleton
 from .orm.action_designator import Action
 from .orm.tasktree import TaskTreeNode as ORMTaskTreeNode
 from .orm.base import ProcessMetaData
 from .plan_failures import PlanFailure
 from .datastructures.enums import TaskStatus
 from .datastructures.dataclasses import Color
-
-
-def singleton(class_):
-    instances = {}
-    def getinstance(*args, **kwargs):
-        if class_ not in instances:
-            instances[class_] = class_(*args, **kwargs)
-        return instances[class_]
-    return getinstance
 
 
 class NoOperation:
@@ -204,35 +196,51 @@ class SimulatedTaskTree:
         World.current_world.remove_text()
 
 
-@singleton
-class TaskTree:
+class TaskTree(metaclass=Singleton):
+    """
+    TaskTree represents the tree of functions that were called during a pycram plan. Consists of TaskTreeNodes.
+    Must be a singleton.
+    """
+
     def __init__(self):
+        """
+        Create a new TaskTree with a root node.
+        """
         self.root = TaskTreeNode()
         self.current_node = self.root
 
     def __len__(self):
-        """Get the number of nodes that are in this TaskTree."""
+        """
+        Get the number of nodes that are in this TaskTree.
+
+        :return: The number of nodes.
+        """
         return len(self.root.children)
 
     def reset_tree(self):
-        """Reset the current task tree to an empty root (NoOperation) node."""
+        """
+        Reset the current task tree to an empty root (NoOperation) node.
+        """
         self.root = TaskTreeNode()
         self.root.start_time = datetime.datetime.now()
         self.root.status = TaskStatus.RUNNING
         self.current_node = self.root
 
-    def get_root(self) -> TaskTreeNode:
-        """Return the root of the task tree."""
-        return self.root
-
     def add_node(self, action: Optional[Action] = None) -> TaskTreeNode:
-        """Add a new node to the task tree and make it the current node."""
+        """
+        Add a new node to the task tree and make it the current node.
+
+        :param action: The action that is performed in this node.
+        :return: The new node.
+        """
         new_node = TaskTreeNode(action=action, parent=self.current_node)
         self.current_node = new_node
         return new_node
 
+
 task_tree = TaskTree()
 """Current TaskTreeNode"""
+
 
 def with_tree(fun: Callable) -> Callable:
     """
@@ -262,9 +270,6 @@ def with_tree(fun: Callable) -> Callable:
 
             # if it succeeded set the flag
             task_tree.current_node.status = TaskStatus.SUCCEEDED
-            if task_tree.current_node.parent is not None:
-                task_tree.current_node.end_time = datetime.datetime.now()
-                task_tree.current_node = task_tree.current_node.parent
 
         # iff a PlanFailure occurs
         except PlanFailure as e:
@@ -273,10 +278,12 @@ def with_tree(fun: Callable) -> Callable:
             logging.exception("Task execution failed at %s. Reason %s" % (repr(task_tree.current_node), e))
             task_tree.current_node.reason = e
             task_tree.current_node.status = TaskStatus.FAILED
+            raise e
+
+        finally:
             if task_tree.current_node.parent is not None:
                 task_tree.current_node.end_time = datetime.datetime.now()
                 task_tree.current_node = task_tree.current_node.parent
-            raise e
 
         return result
 

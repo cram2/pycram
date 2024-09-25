@@ -102,7 +102,7 @@ After finishing the experiments, we insert the results into the database.
 
 ```python
 pycram.orm.base.ProcessMetaData().description = "Experimenting with Pick Up Actions"
-fpa.sample_amount = 500
+fpa.sample_amount = 100
 with simulated_robot:
     fpa.batch_rollout()
 task_tree.root.insert(session)

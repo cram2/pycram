@@ -565,11 +565,11 @@ class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC):
 
         action = super().insert(session)
 
-        # get all class parameters (ignore inherited ones)
+        # get all class parameters
         class_variables = {key: value for key, value in vars(self).items()
                            if key in inspect.getfullargspec(self.__init__).args}
 
-        # get all orm class parameters (ignore inherited ones)
+        # get all orm class parameters
         orm_class_variables = inspect.getfullargspec(self.orm_class.__init__).args
 
         # loop through all class parameters and insert them into the session unless they are already added by the ORM

@@ -230,14 +230,21 @@ class ORMActionDesignatorTestCase(DatabaseTestCaseMixin):
 
     def test_pickUpAction(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])
-        action = PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT)
+        previous_position = object_description.resolve().pose
         with simulated_robot:
             NavigateActionPerformable(Pose([0.6, 0.4, 0], [0, 0, 0, 1])).perform()
-            action.perform()
+            PickUpActionPerformable(object_description.resolve(), Arms.LEFT, Grasp.FRONT).perform()
+            NavigateActionPerformable(Pose([1.3, 1, 0.9], [0, 0, 0, 1])).perform()
+            PlaceActionPerformable(object_description.resolve(), Arms.LEFT, Pose([2.0, 1.6, 1.8], [0, 0, 0, 1])).perform()
         pycram.orm.base.ProcessMetaData().description = "pickUpAction_test"
         pycram.tasktree.task_tree.root.insert(self.session)
-        result = self.session.scalars(select(pycram.orm.action_designator.PickUpAction)).all()
-        self.assertEqual(result[0].arm, Arms.LEFT)
+        result = self.session.scalars(select(pycram.orm.base.Position)
+                                      .join(pycram.orm.action_designator.PickUpAction.object)
+                                      .join(pycram.orm.object_designator.Object.pose)
+                                      .join(pycram.orm.base.Pose.position)).first()
+        self.assertEqual(result.x, previous_position.position.x)
+        self.assertEqual(result.y, previous_position.position.y)
+        self.assertEqual(result.z, previous_position.position.z)
 
     def test_lookAt_and_detectAction(self):
         object_description = object_designator.ObjectDesignatorDescription(names=["milk"])

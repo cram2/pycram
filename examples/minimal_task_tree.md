@@ -108,6 +108,14 @@ Task tree can be manipulated with ordinary anytree manipulation. If we for examp
 tt.root.children = (tt.root.children[0],)
 print(anytree.RenderTree(tt.root, style=anytree.render.AsciiStyle()))
 ```
+We can now re-execute this (modified) plan by executing the leaf in pre-ordering iteration using the anytree functionality. This will not append the re-execution to the task tree.
+
+```python
+world.reset_world()
+with simulated_robot:
+    [node.code.execute() for node in tt.root.leaves]
+print(anytree.RenderTree(tt.root, style=anytree.render.AsciiStyle()))
+```
 
 Nodes in the task tree contain additional information about the status and time of a task.
 
