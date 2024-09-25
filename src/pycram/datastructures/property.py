@@ -4,6 +4,7 @@ from __future__ import annotations
 from abc import abstractmethod
 
 from .enums import Arms
+from .dataclasses import ReasoningResult
 from .pose import Pose
 from typing_extensions import List, Iterable, Dict, Any, Callable, Type
 from anytree import NodeMixin, PreOrderIter, Node
@@ -22,12 +23,9 @@ class Property(NodeMixin):
     the root node.
     """
 
-    def __init__(self, parent: NodeMixin = None, children: Iterable[NodeMixin] = None,
-                 input: str = None, output: str = None):
+    def __init__(self, parent: NodeMixin = None, children: Iterable[NodeMixin] = None):
         super().__init__()
         self.parent = parent
-        self.input = input
-        self.output = output
         self.variables = {}
         if children:
             self.children = children
@@ -68,26 +66,14 @@ class Property(NodeMixin):
 
     def manage_io(self, func: Callable, *args, **kwargs) -> bool:
         """
-        Manages the input and output variables across the whole property tree. If the property has an input variable, the
-        value of this variable will be taken from the variables dictionary of the root node. If an output is defined,
-        the result of the function will be stored in the variables dictionary of the root node.
+        Manages the ReasoningResult of a property function. The success of the method will be passed to the parent node
+        while the reasoned parameters will be stored in the variables dictionary of the root node.
 
         :param func: Property function to call
         :param args: args to pass to the function
         :param kwargs: keyword args to pass to the function
         :return: result of the function
         """
-        if self.input:
-            if self.input not in self.root.variables.keys():
-                raise AttributeError(f"Variable {self.input} not found in variables")
-            input_var = self.root.variables[self.input]
-            result = func(input_var)
-            if self.output:
-                self.variables[self.output] = result
-        elif self.output:
-            result = func(*args, **kwargs)
-            self.variables[self.output] = result
-            return result
         return func(*args, **kwargs)
 
 
@@ -253,19 +239,16 @@ class ResolvedProperty(Property):
     Exception that should be raised if the property is not fulfilled.
     """
 
-    def __init__(self, resolved_property_function: Callable, property_exception: Type[PlanFailure], parent: NodeMixin = None,
-                 input: str = None, output: str = None):
+    def __init__(self, resolved_property_function: Callable, property_exception: Type[PlanFailure], parent: NodeMixin = None):
         """
         Initialize the ResolvedProperty with the resolved property function, the exception that should be raised if the property
-        is not fulfilled, the parent node, and the input and output variables.
+        is not fulfilled, the parent node.
 
         :param resolved_property_function: Reference to the function in the knowledge source
         :param property_exception: Exception that should be raised if the property is not fulfilled
         :param parent: Parent node of this property
-        :param input: Input variable name of this property
-        :param output: Output variable name of this property
         """
-        super().__init__(parent, None, input, output)
+        super().__init__(parent, None)
         self.resolved_property_function = resolved_property_function
         self.property_exception = property_exception
         self.parameter = {}
@@ -286,20 +269,20 @@ class ResolvedProperty(Property):
 class ReachableProperty(Property):
     property_exception = ManipulationPoseUnreachable
 
-    def __init__(self, pose: Pose, input: str = None, output: str = None):
-        super().__init__(None, None, input, output)
+    def __init__(self, pose: Pose):
+        super().__init__(None, None)
         self.pose = pose
 
     @abstractmethod
-    def reachable(self, pose: Pose) -> bool:
+    def reachable(self, pose: Pose) -> ReasoningResult:
         raise NotImplementedError
 
 
 class GraspableProperty(Property):
     property_exception = ObjectUnfetchable
 
-    def __init__(self, object_designator: 'ObjectDesignatorDescription', input: str = None, output: str = None):
-        super().__init__(None, None, input, output)
+    def __init__(self, object_designator: 'ObjectDesignatorDescription'):
+        super().__init__(None, None)
         self.object_designator = object_designator
 
     @abstractmethod
@@ -310,8 +293,8 @@ class GraspableProperty(Property):
 class SpaceIsFreeProperty(Property):
     property_exception = NavigationGoalInCollision
 
-    def __init__(self, pose: Pose, input: str = None, output: str = None):
-        super().__init__(None, None, input, output)
+    def __init__(self, pose: Pose):
+        super().__init__(None, None)
         self.pose = pose
 
     @abstractmethod
@@ -322,8 +305,8 @@ class SpaceIsFreeProperty(Property):
 class GripperIsFreeProperty(Property):
     property_exception = GripperOccupied
 
-    def __init__(self, gripper: Arms, input: str = None, output: str = None):
-        super().__init__(None, None, input, output)
+    def __init__(self, gripper: Arms):
+        super().__init__(None, None)
         self.gripper = gripper
 
     @abstractmethod
@@ -334,8 +317,8 @@ class GripperIsFreeProperty(Property):
 class VisibleProperty(Property):
     property_exception = ObjectNotVisible
 
-    def __init__(self, object_designator: 'ObjectDesignatorDescription', input: str = None, output: str = None):
-        super().__init__(None, None, input, output)
+    def __init__(self, object_designator: 'ObjectDesignatorDescription'):
+        super().__init__(None, None)
         self.object_designator = object_designator
 
     @abstractmethod

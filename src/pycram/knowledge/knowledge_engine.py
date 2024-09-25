@@ -98,7 +98,7 @@ class KnowledgeEngine:
                      not fun.startswith("__") and not fun == "property_exception"][0])
 
                 # child.resolved_property_instance = source
-                node = ResolvedProperty(resolved_aspect_function, child.property_exception, child.parent, child.input, child.output)
+                node = ResolvedProperty(resolved_aspect_function, child.property_exception, child.parent)
                 for param in inspect.signature(resolved_aspect_function).parameters.keys():
                     node.parameter[param] = child.__getattribute__(param)
                 child.parent = None
