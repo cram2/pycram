@@ -45,7 +45,7 @@ class BulletWorldTestCase(unittest.TestCase):
     # Tests in here would not be properly executed in the CI
 
     def tearDown(self):
-        pycram.tasktree.reset_tree()
+        pycram.tasktree.task_tree.reset_tree()
         time.sleep(0.05)
         self.world.reset_world(remove_saved_states=True)
         with UseProspectionWorld():
