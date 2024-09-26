@@ -2,6 +2,7 @@ import os
 import pathlib
 import xml.etree.ElementTree as ET
 
+import numpy as np
 import rospkg
 import rospy
 from geometry_msgs.msg import Point
@@ -46,7 +47,8 @@ class LinkDescription(AbstractLinkDescription):
         :return: the VisualShape of the given URDF geometry.
         """
         if isinstance(urdf_geometry, URDF_Box):
-            return BoxVisualShape(Color(), [0, 0, 0], urdf_geometry.size)
+            half_extents = np.array(urdf_geometry.size) / 2
+            return BoxVisualShape(Color(), [0, 0, 0], half_extents.tolist())
         if isinstance(urdf_geometry, URDF_Cylinder):
             return CylinderVisualShape(Color(), [0, 0, 0], urdf_geometry.radius, urdf_geometry.length)
         if isinstance(urdf_geometry, URDF_Sphere):

@@ -70,7 +70,8 @@ class BulletWorld(World):
         self._gui_thread.start()
         time.sleep(0.1)
 
-    def load_generic_object_and_get_id(self, description: GenericObjectDescription) -> int:
+    def load_generic_object_and_get_id(self, description: GenericObjectDescription,
+                                       pose: Optional[Pose] = None) -> int:
         """
         Creates a visual and collision box in the simulation.
         """
@@ -86,6 +87,8 @@ class BulletWorld(World):
                                    basePosition=description.origin.position_as_list(),
                                    baseOrientation=description.origin.orientation_as_list(), physicsClientId=self.id)
 
+        if pose is not None:
+            self._set_object_pose_by_id(obj_id, pose)
         # Assuming you have a list to keep track of created objects
         return obj_id
 
@@ -238,7 +241,10 @@ class BulletWorld(World):
 
     @validate_object_pose
     def reset_object_base_pose(self, obj: Object, pose: Pose) -> bool:
-        p.resetBasePositionAndOrientation(obj.id, pose.position_as_list(), pose.orientation_as_list(),
+        return self._set_object_pose_by_id(obj.id, pose)
+
+    def _set_object_pose_by_id(self, obj_id: int, pose: Pose) -> bool:
+        p.resetBasePositionAndOrientation(obj_id, pose.position_as_list(), pose.orientation_as_list(),
                                           physicsClientId=self.id)
         return True
 
