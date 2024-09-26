@@ -160,6 +160,11 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
     Knowledge condition that have to be fulfilled before executing the action.
     """
 
+    performable_class: Type[ActionDesignatorDescription.Action]
+    """
+    Reference to the performable class that is used to execute the action.
+    """
+
     @dataclass
     class Action:
         """
@@ -185,12 +190,37 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
                 RobotDescription.current_robot_description.torso_joint)
             self.robot_type = World.robot.obj_type
 
-        @with_tree
         def perform(self) -> Any:
             """
             Executes the action with the single parameters from the description.
+
+            :return: The result of the action in the plan
+            """
+            self.pre_perform()
+            result = self.plan()
+            self.post_perform()
+            return result
+
+        @with_tree
+        def plan(self) -> Any:
+            """
+            Plan of the action. To be overridden by subclasses.
+
+            :return: The result of the action, if there is any
             """
             raise NotImplementedError()
+
+        def pre_perform(self):
+            """
+            This method is called before the perform method is executed. To be overridden by subclasses.
+            """
+            pass
+
+        def post_perform(self):
+            """
+            This method is called after the perform method is executed. To be overridden by subclasses.
+            """
+            pass
 
         def to_sql(self) -> ORMAction:
             """
