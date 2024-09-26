@@ -296,7 +296,7 @@ class Object(WorldEntity):
         :return: The unique id of the object and the path of the file that was loaded.
         """
         if isinstance(self.description, GenericObjectDescription):
-            return self.world.load_generic_object_and_get_id(self.description)
+            return self.world.load_generic_object_and_get_id(self.description, pose=self._current_pose)
 
         path = self.path if self.world.conf.let_pycram_handle_spawning else self.name
 

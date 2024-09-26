@@ -293,9 +293,13 @@ class World(StateEntity, ABC):
         """
         pass
 
-    def load_generic_object_and_get_id(self, description: GenericObjectDescription) -> int:
+    def load_generic_object_and_get_id(self, description: GenericObjectDescription,
+                                       pose: Optional[Pose] = None) -> int:
         """
         Create a visual and collision box in the simulation and returns the id of the loaded object.
+
+        :param description: The object description.
+        :param pose: The pose at which the object should be loaded.
         """
         raise NotImplementedError
 
