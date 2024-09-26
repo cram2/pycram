@@ -11,12 +11,21 @@ from ..description import JointDescription as AbstractJointDescription, LinkDesc
     ObjectDescription as AbstractObjectDescription
 
 
+class NamedBoxVisualShape(BoxVisualShape):
+    def __init__(self, name: str, color: Color, visual_frame_position: List[float], half_extents: List[float]):
+        super().__init__(color, visual_frame_position, half_extents)
+        self._name: str = name
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+
 class LinkDescription(AbstractLinkDescription):
 
     def __init__(self, name: str, visual_frame_position: List[float], half_extents: List[float],
                  color: Color = Color()):
-        self.parsed_description: BoxVisualShape = BoxVisualShape(color, visual_frame_position, half_extents)
-        self._name: str = name
+        super().__init__(NamedBoxVisualShape(name, color, visual_frame_position, half_extents))
 
     @property
     def geometry(self) -> Union[VisualShape, None]:
@@ -28,7 +37,7 @@ class LinkDescription(AbstractLinkDescription):
 
     @property
     def name(self) -> str:
-        return self._name
+        return self.parsed_description.name
 
     @property
     def color(self) -> Color:
@@ -104,15 +113,15 @@ class ObjectDescription(AbstractObjectDescription):
         ...
 
     @classmethod
-    def generate_from_mesh_file(cls, path: str, name: str) -> str:
+    def generate_from_mesh_file(cls, path: str, name: str, save_path: str) -> str:
         raise NotImplementedError
 
     @classmethod
-    def generate_from_description_file(cls, path: str, make_mesh_paths_absolute: bool = True) -> str:
+    def generate_from_description_file(cls, path: str, save_path: str, make_mesh_paths_absolute: bool = True) -> str:
         raise NotImplementedError
 
     @classmethod
-    def generate_from_parameter_server(cls, name: str) -> str:
+    def generate_from_parameter_server(cls, name: str, save_path: str) -> str:
         raise NotImplementedError
 
     @property
