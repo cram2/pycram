@@ -49,7 +49,7 @@ class Object(WorldEntity):
     A dictionary that maps the file extension to the corresponding ObjectDescription type.
     """
 
-    def __init__(self, name: str, obj_type: ObjectType, path: str,
+    def __init__(self, name: str, obj_type: ObjectType, path: Optional[str] = None,
                  description: Optional[ObjectDescription] = None,
                  pose: Optional[Pose] = None,
                  world: Optional[World] = None,
@@ -65,7 +65,7 @@ class Object(WorldEntity):
         :param name: The name of the object
         :param obj_type: The type of the object as an ObjectType enum.
         :param path: The path to the source file, if only a filename is provided then the resources directories will be
-         searched.
+         searched, it could be None in some cases when for example it is a generic object.
         :param description: The ObjectDescription of the object, this contains the joints and links of the object.
         :param pose: The pose at which the Object should be spawned
         :param world: The World in which the object should be spawned, if no world is specified the
