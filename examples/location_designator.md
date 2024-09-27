@@ -68,9 +68,9 @@ print(pose)
 
 ## Reachable
 
-Next we want to locations from where the robot can reach a specific point, like an object the robot should pick up. This
+Next we want to have locations from where the robot can reach a specific point, like an object the robot should pick up. This
 can also be done with the {meth}`~pycram.designators.location_designator.CostmapLocation` description, but this time we need to provide an additional argument.
-The additional argument is the robo which should be able to reach the pose.
+The additional argument is the robot which should be able to reach the pose.
 
 Since a robot is needed we will use the PR2 and use a milk as a target point for the robot to reach. The torso of the
 PR2 will be set to 0.2 since otherwise the arms of the robot will be too low to reach on the countertop.
@@ -97,7 +97,7 @@ print(location_description.resolve())
 As you can see we get a pose near the countertop where the robot can be placed without colliding with it. Furthermore,
 we get a list of arms with which the robot can reach the given object.
 
-## Visibile
+## Visible
 
 The {meth}`~pycram.designators.location_designator.CostmapLocation` can also find position from which the robot can see a given object or location. This is very
 similar to how reachable locations are described, meaning we provide a object designator or a pose and a robot
@@ -215,7 +215,7 @@ print(access_location.pose)
 
 ## Giskard Location
 
-Some robots like the HSR or the Stretch2 need a full-body ik solver to utilize the whole body. For this case robots
+Some robots like the HSR or the Stretch2 need a full-body ik solver to utilize the whole body. For this case
 the {meth}`~pycram.designators.specialized_designators.location.giskard_location.GiskardLocation` can be used. This location designator uses giskard as an ik solver to find a pose for the
 robot to reach a target pose.
 

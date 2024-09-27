@@ -30,10 +30,10 @@ A BulletWorld can be created by simply creating an object of the BulletWorld cla
 ```python
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
-from pycram.datastructures.enums import ObjectType
+from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import Pose
 
-world = BulletWorld()
+world = BulletWorld(mode=WorldMode.GUI)
 ```
 
 The BulletWorld allows to render images from arbitrary positions. In the following example we render images with the
@@ -342,6 +342,8 @@ cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", p
 ```
 
 ```python
+from pycram.datastructures.enums import Grasp
+
 cereal_desig = ObjectDesignatorDescription(names=["cereal"])
 kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
 robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
@@ -355,7 +357,7 @@ with simulated_robot:
 
     NavigateAction(target_locations=[pickup_pose.pose]).resolve().perform()
 
-    PickUpAction(object_designator_description=cereal_desig, arms=[pickup_arm], grasps=["front"]).resolve().perform()
+    PickUpAction(object_designator_description=cereal_desig, arms=[pickup_arm], grasps=[Grasp.FRONT]).resolve().perform()
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
@@ -380,10 +382,10 @@ Task trees are a hierarchical representation of all Actions involved in a plan. 
 inspect and restructure the execution order of Actions in the plan.
 
 ```python
-import pycram.task
+import pycram.tasktree
 import anytree
 
-tt = pycram.task.task_tree
+tt = pycram.tasktree.task_tree
 print(anytree.RenderTree(tt))
 ```
 
