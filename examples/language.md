@@ -180,7 +180,7 @@ with simulated_robot:
 ## Combination of Expressions
 
 You can also combine different language expressions to further structure your plans. If you combine sequential and
-parallel expression please keep in mind that sequential expressions bind stringer than parallel ones. For example:
+parallel expression please keep in mind that sequential expressions bind stronger than parallel ones. For example:
 
 ```
 navigate | park + move_torso

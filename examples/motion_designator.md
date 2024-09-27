@@ -16,7 +16,7 @@ jupyter:
 
 Motion designators are similar to action designators, but unlike action designators, motion designators represent atomic
 low-level motions. Motion designators only take the parameter that they should execute and not a list of possible
-parameters, like the other designators. Like action designators, motion designators can be performed, performing motion
+parameters, like the other designators. Like action designators, motion designators can be performed. Performing a motion
 designator verifies the parameter and passes the designator to the respective process module.
 
 Since motion designators perform a motion on the robot, we need a robot which we can use. Therefore, we will create a
