@@ -3,6 +3,7 @@ import threading
 import time
 from typing import List, Optional, Tuple
 
+import numpy as np
 import rospy
 from geometry_msgs.msg import Vector3
 from std_msgs.msg import ColorRGBA
@@ -35,7 +36,7 @@ class VizMarkerPublisher:
         self.thread = threading.Thread(target=self._publish)
         self.kill_event = threading.Event()
         self.main_world = World.current_world if not World.current_world.is_prospection_world else World.current_world.world_sync.world
-
+        self.lock = self.main_world.object_lock
         self.thread.start()
         atexit.register(self._stop_publishing)
 
@@ -44,8 +45,9 @@ class VizMarkerPublisher:
         Constantly publishes the Marker Array. To the given topic name at a fixed rate.
         """
         while not self.kill_event.is_set():
+            self.lock.acquire()
             marker_array = self._make_marker_array()
-
+            self.lock.release()
             self.pub.publish(marker_array)
             time.sleep(self.interval)
 
@@ -79,7 +81,7 @@ class VizMarkerPublisher:
                 link_pose_with_origin = link_pose * link_origin
                 msg.pose = link_pose_with_origin.to_pose().pose
 
-                color = [1, 1, 1, 1] if obj.link_name_to_id[link] == -1 else obj.get_link_color(link).get_rgba()
+                color = obj.get_link_color(link).get_rgba()
 
                 msg.color = ColorRGBA(*color)
                 msg.lifetime = rospy.Duration(1)
@@ -94,7 +96,8 @@ class VizMarkerPublisher:
                     msg.scale = Vector3(geom.radius * 2, geom.radius * 2, geom.length)
                 elif isinstance(geom, BoxVisualShape):
                     msg.type = Marker.CUBE
-                    msg.scale = Vector3(*geom.size)
+                    size = np.array(geom.size) * 2
+                    msg.scale = Vector3(size[0], size[1], size[2])
                 elif isinstance(geom, SphereVisualShape):
                     msg.type = Marker.SPHERE
                     msg.scale = Vector3(geom.radius * 2, geom.radius * 2, geom.radius * 2)

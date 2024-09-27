@@ -1,16 +1,16 @@
 import numpy as np
 import tf
-from typing_extensions import Tuple, List, Union, Dict, Iterable
 
-from .datastructures.pose import Pose, Transform
 from .datastructures.world import World
-from .external_interfaces.ik import request_ik
-from .local_transformer import LocalTransformer
-from .plan_failures import IKError
-from .robot_description import RobotDescription
 from .world_concepts.world_object import Object
 from .world_reasoning import contact
 from .costmaps import Costmap
+from .local_transformer import LocalTransformer
+from .datastructures.pose import Pose, Transform
+from .robot_description import RobotDescription
+from .external_interfaces.ik import request_ik
+from .failures import IKError
+from typing_extensions import Tuple, List, Union, Dict, Iterable
 
 
 class PoseGenerator:
@@ -119,13 +119,13 @@ def visibility_validator(pose: Pose,
     robot_pose = robot.get_pose()
     if isinstance(object_or_pose, Object):
         robot.set_pose(pose)
-        camera_pose = robot.get_link_pose(RobotDescription.current_robot_description.get_camera_frame())
+        camera_pose = robot.get_link_pose(RobotDescription.current_robot_description.get_camera_link())
         robot.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
         ray = world.ray_test(camera_pose.position_as_list(), object_or_pose.get_position_as_list())
         res = ray == object_or_pose.id
     else:
         robot.set_pose(pose)
-        camera_pose = robot.get_link_pose(RobotDescription.current_robot_description.get_camera_frame())
+        camera_pose = robot.get_link_pose(RobotDescription.current_robot_description.get_camera_link())
         robot.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
         # TODO: Check if this is correct
         ray = world.ray_test(camera_pose.position_as_list(), object_or_pose)
@@ -203,14 +203,14 @@ def reachability_validator(pose: Pose,
             # test the possible solution and apply it to the robot
             pose, joint_states = request_ik(target, robot, joints, tool_frame)
             robot.set_pose(pose)
-            robot.set_joint_positions(joint_states)
+            robot.set_multiple_joint_positions(joint_states)
             # _apply_ik(robot, resp, joints)
 
             in_contact = collision_check(robot, allowed_collision)
             if not in_contact:  # only check for retract pose if pose worked
                 pose, joint_states = request_ik(retract_target_pose, robot, joints, tool_frame)
                 robot.set_pose(pose)
-                robot.set_joint_positions(joint_states)
+                robot.set_multiple_joint_positions(joint_states)
                 # _apply_ik(robot, resp, joints)
                 in_contact = collision_check(robot, allowed_collision)
             if not in_contact:
@@ -218,7 +218,7 @@ def reachability_validator(pose: Pose,
         except IKError:
             pass
         finally:
-            robot.set_joint_positions(joint_state_before_ik)
+            robot.set_multiple_joint_positions(joint_state_before_ik)
     if arms:
         res = True
     return res, arms
@@ -246,5 +246,6 @@ def collision_check(robot: Object, allowed_collision: Dict[Object, List]):
         if obj.name == "floor":
             continue
         in_contact = _in_contact(robot, obj, allowed_collision, allowed_robot_links)
-
+        if in_contact:
+            break
     return in_contact

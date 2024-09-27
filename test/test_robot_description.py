@@ -3,7 +3,7 @@ import unittest
 from pycram.robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     CameraDescription, RobotDescriptionManager
 from pycram.datastructures.enums import Arms, GripperState
-from urdf_parser_py.urdf import URDF
+from pycram.object_descriptors.urdf import ObjectDescription as URDF
 
 
 class TestRobotDescription(unittest.TestCase):
@@ -11,8 +11,8 @@ class TestRobotDescription(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.path = str(pathlib.Path(__file__).parent.resolve()) + '/../resources/robots/' + "pr2" + '.urdf'
-        cls.urdf_obj = URDF.from_xml_file(cls.path)
         cls.path_turtlebot = str(pathlib.Path(__file__).parent.resolve()) + '/../resources/robots/' + "turtlebot" + '.urdf'
+        cls.urdf_obj = URDF(cls.path)
 
     def test_robot_description_construct(self):
         robot_description = RobotDescription("pr2", "base_link", "torso_lift_link", "torso_lift_joint", self.path)

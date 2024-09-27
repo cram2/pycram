@@ -9,7 +9,7 @@ from pycram.designator import ObjectDesignatorDescription
 from pycram.designators.action_designator import MoveTorsoActionPerformable
 from pycram.designators.specialized_designators.probabilistic.probabilistic_action import (MoveAndPickUp,
                                                                                            GaussianCostmapModel)
-from pycram.plan_failures import PlanFailure
+from pycram.failures import PlanFailure
 from pycram.process_module import simulated_robot
 
 

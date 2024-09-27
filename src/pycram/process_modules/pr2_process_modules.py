@@ -87,7 +87,7 @@ class Pr2Detecting(ProcessModule):
         robot = World.robot
         object_type = desig.object_type
         # Should be "wide_stereo_optical_frame"
-        cam_frame_name = RobotDescription.current_robot_description.get_camera_frame()
+        camera_link_name = RobotDescription.current_robot_description.get_camera_link()
         # should be [0, 0, 1]
         camera_description = RobotDescription.current_robot_description.cameras[
             list(RobotDescription.current_robot_description.cameras.keys())[0]]
@@ -95,7 +95,7 @@ class Pr2Detecting(ProcessModule):
 
         objects = World.current_world.get_object_by_type(object_type)
         for obj in objects:
-            if btr.visible(obj, robot.get_link_pose(cam_frame_name), front_facing_axis):
+            if btr.visible(obj, robot.get_link_pose(camera_link_name), front_facing_axis):
                 return obj
 
 
@@ -121,9 +121,9 @@ class Pr2MoveArmJoints(ProcessModule):
 
         robot = World.robot
         if desig.right_arm_poses:
-            robot.set_joint_positions(desig.right_arm_poses)
+            robot.set_multiple_joint_positions(desig.right_arm_poses)
         if desig.left_arm_poses:
-            robot.set_joint_positions(desig.left_arm_poses)
+            robot.set_multiple_joint_positions(desig.left_arm_poses)
 
 
 class PR2MoveJoints(ProcessModule):
@@ -133,7 +133,7 @@ class PR2MoveJoints(ProcessModule):
 
     def _execute(self, desig: MoveJointsMotion):
         robot = World.robot
-        robot.set_joint_positions(dict(zip(desig.names, desig.positions)))
+        robot.set_multiple_joint_positions(dict(zip(desig.names, desig.positions)))
 
 
 class Pr2WorldStateDetecting(ProcessModule):

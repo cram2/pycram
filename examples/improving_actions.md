@@ -44,7 +44,7 @@ from random_events.product_algebra import Event, SimpleEvent
 
 import pycram.orm.base
 from pycram.designators.action_designator import MoveTorsoActionPerformable
-from pycram.plan_failures import PlanFailure
+from pycram.failures import PlanFailure
 from pycram.designators.object_designator import ObjectDesignatorDescription
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object

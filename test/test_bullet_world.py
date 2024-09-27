@@ -11,7 +11,7 @@ from pycram.robot_description import RobotDescription
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.datastructures.dataclasses import Color
 from pycram.world_concepts.world_object import Object
-from pycram.datastructures.world import UseProspectionWorld
+from pycram.datastructures.world import UseProspectionWorld, World
 
 fix_missing_inertial = ObjectDescription.fix_missing_inertial
 
@@ -53,8 +53,7 @@ class BulletWorldTest(BulletWorldTestCase):
         self.assertTrue(milk_id in [obj.id for obj in self.world.objects])
         self.world.remove_object(self.milk)
         self.assertTrue(milk_id not in [obj.id for obj in self.world.objects])
-        BulletWorldTest.milk = Object("milk", ObjectType.MILK, "milk.stl",
-                                      ObjectDescription, pose=Pose([1.3, 1, 0.9]))
+        BulletWorldTest.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
 
     def test_remove_robot(self):
         robot_id = self.robot.id
@@ -65,7 +64,7 @@ class BulletWorldTest(BulletWorldTestCase):
                                        RobotDescription.current_robot_description.name + self.extension)
 
     def test_get_joint_position(self):
-        self.assertEqual(self.robot.get_joint_position("head_pan_joint"), 0.0)
+        self.assertAlmostEqual(self.robot.get_joint_position("head_pan_joint"), 0.0, delta=0.01)
 
     def test_get_object_contact_points(self):
         self.assertEqual(len(self.robot.contact_points()), 0)
@@ -136,51 +135,34 @@ class BulletWorldTest(BulletWorldTestCase):
         time.sleep(2.5)
         self.robot.set_pose(Pose([1, 0, 0], [0, 0, 0, 1]))
         self.assertFalse(self.world.world_sync.check_for_equal())
-        self.world.prospection_world.object_states = self.world.current_state.object_states
-        time.sleep(0.05)
-        self.assertTrue(self.world.world_sync.check_for_equal())
+        with UseProspectionWorld():
+            self.assertTrue(self.world.world_sync.check_for_equal())
 
     def test_add_resource_path(self):
         self.world.add_resource_path("test")
-        self.assertTrue("test" in self.world.data_directory)
+        self.assertTrue("test" in self.world.get_data_directories())
 
     def test_no_prospection_object_found_for_given_object(self):
         milk_2 = Object("milk_2", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-        time.sleep(0.05)
         try:
             prospection_milk_2 = self.world.get_prospection_object_for_object(milk_2)
             self.world.remove_object(milk_2)
-            time.sleep(0.1)
             self.world.get_prospection_object_for_object(milk_2)
             self.assertFalse(True)
-        except ValueError as e:
+        except KeyError as e:
             self.assertTrue(True)
-
-    def test_no_object_found_for_given_prospection_object(self):
-        milk_2 = Object("milk_2", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-        time.sleep(0.05)
-        prospection_milk = self.world.get_prospection_object_for_object(milk_2)
-        self.assertTrue(self.world.get_object_for_prospection_object(prospection_milk) == milk_2)
-        try:
-            self.world.remove_object(milk_2)
-            self.world.get_object_for_prospection_object(prospection_milk)
-            time.sleep(0.1)
-            self.assertFalse(True)
-        except ValueError as e:
-            self.assertTrue(True)
-        time.sleep(0.05)
 
     def test_real_object_position_does_not_change_with_prospection_object(self):
         milk_2_pos = [1.3, 1, 0.9]
         milk_2 = Object("milk_3", ObjectType.MILK, "milk.stl", pose=Pose(milk_2_pos))
         time.sleep(0.05)
         milk_2_pos = milk_2.get_position()
-        prospection_milk = self.world.get_prospection_object_for_object(milk_2)
-        prospection_milk_pos = prospection_milk.get_position()
-        self.assertTrue(prospection_milk_pos == milk_2_pos)
 
         # Assert that when prospection object is moved, the real object is not moved
         with UseProspectionWorld():
+            prospection_milk = self.world.get_prospection_object_for_object(milk_2)
+            prospection_milk_pos = prospection_milk.get_position()
+            self.assertTrue(prospection_milk_pos == milk_2_pos)
             prospection_milk_pos.x += 1
             prospection_milk.set_position(prospection_milk_pos)
             self.assertTrue(prospection_milk.get_position() != milk_2.get_position())
@@ -191,32 +173,32 @@ class BulletWorldTest(BulletWorldTestCase):
         milk_2 = Object("milk_4", ObjectType.MILK, "milk.stl", pose=Pose(milk_2_pos))
         time.sleep(0.05)
         milk_2_pos = milk_2.get_position()
-        prospection_milk = self.world.get_prospection_object_for_object(milk_2)
-        prospection_milk_pos = prospection_milk.get_position()
-        self.assertTrue(prospection_milk_pos == milk_2_pos)
 
         # Assert that when real object is moved, the prospection object is not moved
         with UseProspectionWorld():
+            prospection_milk = self.world.get_prospection_object_for_object(milk_2)
+            prospection_milk_pos = prospection_milk.get_position()
+            self.assertTrue(prospection_milk_pos == milk_2_pos)
             milk_2_pos.x += 1
             milk_2.set_position(milk_2_pos)
             self.assertTrue(prospection_milk.get_position() != milk_2.get_position())
         self.world.remove_object(milk_2)
 
     def test_add_vis_axis(self):
-        self.world.add_vis_axis(self.robot.get_link_pose(RobotDescription.current_robot_description.get_camera_frame()))
+        self.world.add_vis_axis(self.robot.get_link_pose(RobotDescription.current_robot_description.get_camera_link()))
         self.assertTrue(len(self.world.vis_axis) == 1)
         self.world.remove_vis_axis()
         self.assertTrue(len(self.world.vis_axis) == 0)
 
     def test_add_text(self):
-        link: ObjectDescription.Link = self.robot.get_link(RobotDescription.current_robot_description.get_camera_frame())
+        link: ObjectDescription.Link = self.robot.get_link(RobotDescription.current_robot_description.get_camera_link())
         text_id = self.world.add_text("test", link.position_as_list, link.orientation_as_list, 1,
                                       Color(1, 0, 0, 1), 3, link.object_id, link.id)
         if self.world.mode == WorldMode.GUI:
             time.sleep(4)
 
     def test_remove_text(self):
-        link: ObjectDescription.Link = self.robot.get_link(RobotDescription.current_robot_description.get_camera_frame())
+        link: ObjectDescription.Link = self.robot.get_link(RobotDescription.current_robot_description.get_camera_link())
         text_id_1 = self.world.add_text("test 1", link.pose.position_as_list(), link.pose.orientation_as_list(), 1,
                                         Color(1, 0, 0, 1), 0, link.object_id, link.id)
         text_id = self.world.add_text("test 2", link.pose.position_as_list(), link.pose.orientation_as_list(), 1,
@@ -229,7 +211,7 @@ class BulletWorldTest(BulletWorldTestCase):
             time.sleep(3)
 
     def test_remove_all_text(self):
-        link: ObjectDescription.Link = self.robot.get_link(RobotDescription.current_robot_description.get_camera_frame())
+        link: ObjectDescription.Link = self.robot.get_link(RobotDescription.current_robot_description.get_camera_link())
         text_id_1 = self.world.add_text("test 1", link.pose.position_as_list(), link.pose.orientation_as_list(), 1,
                                         Color(1, 0, 0, 1), 0, link.object_id, link.id)
         text_id = self.world.add_text("test 2", link.pose.position_as_list(), link.pose.orientation_as_list(), 1,

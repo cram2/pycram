@@ -20,7 +20,8 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
         self.assertEqual(description.ground().position, 0.3)
         with simulated_robot:
             description.resolve().perform()
-        self.assertEqual(self.world.robot.get_joint_position(RobotDescription.current_robot_description.torso_joint), 0.3)
+        self.assertEqual(self.world.robot.get_joint_position(RobotDescription.current_robot_description.torso_joint),
+                         0.3)
 
     def test_set_gripper(self):
         description = action_designator.SetGripperAction([Arms.LEFT], [GripperState.OPEN, GripperState.CLOSE])
@@ -146,7 +147,3 @@ class TestActionDesignatorGrounding(BulletWorldTestCase):
             FaceAtPerformable(self.milk.pose).perform()
             milk_in_robot_frame = LocalTransformer().transform_to_object_frame(self.milk.pose, self.robot)
             self.assertAlmostEqual(milk_in_robot_frame.position.y, 0.)
-
-
-if __name__ == '__main__':
-    unittest.main()

@@ -29,8 +29,7 @@ from .world_concepts.world_object import Object
 from .datastructures.pose import Pose, Transform
 from .datastructures.world import World
 from .datastructures.dataclasses import AxisAlignedBoundingBox, BoxVisualShape, Color
-
-import pycram_bullet as p
+from tf.transformations import quaternion_from_matrix
 
 
 @dataclass
@@ -121,42 +120,21 @@ class Costmap:
         # Creation of the visual shapes, for documentation of the visual shapes
         # please look here: https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#heading=h.q1gn7v6o58bf
         for box in boxes:
-            visual = p.createVisualShape(p.GEOM_BOX,
-                                         halfExtents=[(box[1] * self.resolution) / 2, (box[2] * self.resolution) / 2,
-                                                      0.001],
-                                         rgbaColor=[1, 0, 0, 0.6],
-                                         visualFramePosition=[(box[0][0] + box[1] / 2) * self.resolution,
-                                                              (box[0][1] + box[2] / 2) * self.resolution, 0.])
+            box = BoxVisualShape(Color(1, 0, 0, 0.6),
+                                 [(box[0][0] + box[1] / 2) * self.resolution,
+                                  (box[0][1] + box[2] / 2) * self.resolution, 0.],
+                                 [(box[1] * self.resolution) / 2, (box[2] * self.resolution) / 2, 0.001])
+            visual = self.world.create_visual_shape(box)
             cells.append(visual)
         # Set to 127 for since this is the maximal amount of links in a multibody
         for cell_parts in self._chunks(cells, 127):
-            # Dummy paramater since these are needed to spawn visual shapes as a
-            # multibody.
-            link_poses = [[0, 0, 0] for c in cell_parts]
-            link_orientations = [[0, 0, 0, 1] for c in cell_parts]
-            link_masses = [1.0 for c in cell_parts]
-            link_parent = [0 for c in cell_parts]
-            link_joints = [p.JOINT_FIXED for c in cell_parts]
-            link_collision = [-1 for c in cell_parts]
-            link_joint_axis = [[1, 0, 0] for c in cell_parts]
-            # The position at which the multibody will be spawned. Offset such that
-            # the origin referes to the centre of the costmap.
-            # origin_pose = self.origin.position_as_list()
-            # base_pose = [origin_pose[0] - self.height / 2 * self.resolution,
-            #              origin_pose[1] - self.width / 2 * self.resolution, origin_pose[2]]
-
             offset = [[-self.height / 2 * self.resolution, -self.width / 2 * self.resolution, 0.05], [0, 0, 0, 1]]
-            new_pose = p.multiplyTransforms(self.origin.position_as_list(), self.origin.orientation_as_list(),
-                                            offset[0], offset[1])
-
-            map_obj = p.createMultiBody(baseVisualShapeIndex=-1, linkVisualShapeIndices=cell_parts,
-                                        basePosition=new_pose[0], baseOrientation=new_pose[1], linkPositions=link_poses,
-                                        # [0, 0, 1, 0]
-                                        linkMasses=link_masses, linkOrientations=link_orientations,
-                                        linkInertialFramePositions=link_poses,
-                                        linkInertialFrameOrientations=link_orientations, linkParentIndices=link_parent,
-                                        linkJointTypes=link_joints, linkJointAxis=link_joint_axis,
-                                        linkCollisionShapeIndices=link_collision)
+            origin_transform = (Transform(self.origin.position_as_list(), self.origin.orientation_as_list())
+                                .get_homogeneous_matrix())
+            offset_transform = (Transform(offset[0], offset[1]).get_homogeneous_matrix())
+            new_pose_transform = np.dot(origin_transform, offset_transform)
+            new_pose = Pose(new_pose_transform[:3, 3].tolist(), quaternion_from_matrix(new_pose_transform))
+            map_obj = self.world.create_multi_body_from_visual_shapes(cell_parts, new_pose)
             self.vis_ids.append(map_obj)
 
     def _chunks(self, lst: List, n: int) -> List:
@@ -175,7 +153,7 @@ class Costmap:
         Removes the visualization from the World.
         """
         for v_id in self.vis_ids:
-            self.world.remove_object_by_id(v_id)
+            self.world.remove_visual_object(v_id)
         self.vis_ids = []
 
     def _find_consectuive_line(self, start: Tuple[int, int], map: np.ndarray) -> int:
@@ -471,7 +449,6 @@ class OccupancyCostmap(Costmap):
         i = 0
         j = 0
         for n in self._chunks(np.array(rays), 16380):
-            # with UseProspectionWorld():
             r_t = World.current_world.ray_test_batch(n[:, 0], n[:, 1], num_threads=0)
             while r_t is None:
                 r_t = World.current_world.ray_test_batch(n[:, 0], n[:, 1], num_threads=0)
@@ -797,11 +774,10 @@ class SemanticCostmap(Costmap):
 
     def get_aabb_for_link(self) -> AxisAlignedBoundingBox:
         """
-        Returns the axis aligned bounding box (AABB) of the link provided when creating this costmap. To try and let the
-        AABB as close to the actual object as possible, the Object will be rotated such that the link will be in the
-        identity orientation.
 
-        :return: Two points in world coordinate space, which span a rectangle
+        :return: The axis aligned bounding box (AABB) of the link provided when creating this costmap. To try and let
+         the AABB as close to the actual object as possible, the Object will be rotated such that the link will be in the
+        identity orientation.
         """
         prospection_object = World.current_world.get_prospection_object_for_object(self.object)
         with UseProspectionWorld():

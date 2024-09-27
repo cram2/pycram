@@ -14,7 +14,7 @@ from ..utils import _apply_ik
 from ..local_transformer import LocalTransformer
 from ..datastructures.pose import Pose
 from ..robot_description import RobotDescription
-from ..plan_failures import IKError
+from ..failures import IKError
 from ..external_interfaces.giskard import projection_cartesian_goal, allow_gripper_collision
 
 
@@ -234,7 +234,7 @@ def request_giskard_ik(target_pose: Pose, robot: Object, gripper: str) -> Tuple[
             robot_joint_states[joint_name] = state
 
     with UseProspectionWorld():
-        prospection_robot.set_joint_positions(robot_joint_states)
+        prospection_robot.set_multiple_joint_positions(robot_joint_states)
         prospection_robot.set_pose(pose)
 
         tip_pose = prospection_robot.get_link_pose(gripper)

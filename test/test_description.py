@@ -1,3 +1,4 @@
+import os.path
 import pathlib
 
 from bullet_world_testcase import BulletWorldTestCase
@@ -22,10 +23,16 @@ class DescriptionTest(BulletWorldTestCase):
 
     def test_generate_description_from_mesh(self):
         file_path = pathlib.Path(__file__).parent.resolve()
-        self.assertTrue(self.milk.description.generate_description_from_file(str(file_path) + "/../resources/cached/milk.stl",
-                                                                             "milk", ".stl"))
+        cache_path = self.world.cache_manager.cache_dir
+        cache_path = os.path.join(cache_path, f"{self.milk.description.name}.urdf")
+        self.milk.description.generate_from_mesh_file(str(file_path) + "/../resources/milk.stl", "milk", cache_path)
+        self.assertTrue(self.world.cache_manager.is_cached(f"{self.milk.name}", self.milk.description))
 
     def test_generate_description_from_description_file(self):
         file_path = pathlib.Path(__file__).parent.resolve()
-        self.assertTrue(self.milk.description.generate_description_from_file(str(file_path) + "/../resources/cached/milk.urdf",
-                                                                             "milk", ".urdf"))
+        file_extension = self.robot.description.get_file_extension()
+        pr2_path = str(file_path) + f"/../resources/robots/{self.robot.description.name}{file_extension}"
+        cache_path = self.world.cache_manager.cache_dir
+        cache_path = os.path.join(cache_path, f"{self.robot.description.name}.urdf")
+        self.robot.description.generate_from_description_file(pr2_path, cache_path)
+        self.assertTrue(self.world.cache_manager.is_cached(self.robot.name, self.robot.description))

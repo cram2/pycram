@@ -5,16 +5,18 @@ from bullet_world_testcase import BulletWorldTestCase
 from pycram.datastructures.enums import JointType, ObjectType
 from pycram.datastructures.pose import Pose
 from pycram.datastructures.dataclasses import Color
+from pycram.failures import UnsupportedFileExtension
 from pycram.world_concepts.world_object import Object
 from pycram.object_descriptors.generic import ObjectDescription as GenericObjectDescription
 
 from geometry_msgs.msg import Point, Quaternion
 import pathlib
 
+
 class TestObject(BulletWorldTestCase):
 
     def test_wrong_object_description_path(self):
-        with self.assertRaises(FileNotFoundError):
+        with self.assertRaises(UnsupportedFileExtension):
             milk = Object("milk_not_found", ObjectType.MILK, "wrong_path.sk")
 
     def test_malformed_object_description(self):
@@ -166,6 +168,7 @@ class TestObject(BulletWorldTestCase):
 class GenericObjectTestCase(BulletWorldTestCase):
 
     def test_init_generic_object(self):
-        gen_obj_desc = lambda: GenericObjectDescription("robokudo_object", [0,0,0], [0.1, 0.1, 0.1])
+        gen_obj_desc = GenericObjectDescription("robokudo_object", [0,0,0], [0.1, 0.1, 0.1])
         obj = Object("robokudo_object", ObjectType.MILK, None, gen_obj_desc)
-        self.assertTrue(True)
+        pose = obj.get_pose()
+        self.assertTrue(isinstance(pose, Pose))

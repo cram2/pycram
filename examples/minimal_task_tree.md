@@ -31,7 +31,7 @@ from pycram.designators.object_designator import *
 from pycram.datastructures.pose import Pose
 from pycram.datastructures.enums import ObjectType, WorldMode
 import anytree
-import pycram.plan_failures
+import pycram.failures
 ```
 
 Next we will create a bullet world with a PR2 in a kitchen containing milk and cereal.

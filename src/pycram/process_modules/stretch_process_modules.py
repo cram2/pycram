@@ -132,7 +132,7 @@ def _move_arm_tcp(target: Pose, robot: Object, arm: Arms) -> None:
     # inv = request_ik(target, robot, joints, gripper)
     pose, joint_states = request_giskard_ik(target, robot, gripper)
     robot.set_pose(pose)
-    robot.set_joint_positions(joint_states)
+    robot.set_multiple_joint_positions(joint_states)
 
 
 ###########################################################
