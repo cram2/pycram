@@ -3,9 +3,11 @@ import sys
 from IPython.core.display_functions import clear_output
 
 from demos.pycram_virtual_building_demos.src.cleanup_demo import cleanup_demo
+from demos.pycram_virtual_building_demos.src.follow_demo import follow_simple_example
 from demos.pycram_virtual_building_demos.src.generlized_actions_demo import start_generalized_demo
 from demos.pycram_virtual_building_demos.src.transport_demo import transporting_demo
 from pycram.utils import suppress_stdout_stderr
+import threading
 
 # sys.path.insert(0, '/home/vee/robocup_workspaces/pycram_ws/src/pycram')
 sys.path.insert(0, '/home/jovyan/workspace/ros/src/pycram')
@@ -26,6 +28,16 @@ from pycram.worlds.bullet_world import BulletWorld
 output = None
 
 
+def input_thread():
+    while True:
+        user_input = input("Bitte gib etwas ein: ")
+        if user_input.lower() == 'exit':  # Eingabe 'exit' beendet den Thread
+            print("Eingabeverarbeitung wird beendet...")
+            break
+        else:
+            print(f"Du hast eingegeben: {user_input}")
+
+
 def start_demo():
     # get params
     environment_param = rospy.get_param('/nbparam_environments')
@@ -39,7 +51,7 @@ def start_demo():
     text_widget = display_loading_gif_with_text()
     update_text(text_widget, 'Loading process~ Please wait...')
 
-    world = BulletWorld(WorldMode.DIRECT)
+    world = BulletWorld(WorldMode)
     VizMarkerPublisher()
     robot = Object(robot_name, ObjectType.ROBOT, f"{robot_name}{extension}", pose=Pose([1, 2, 0]))
     apartment = Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
@@ -60,7 +72,7 @@ def start_demo_local():
     # get params
     environment_param = 'apartment'
     robot_param = 'pr2'
-    task_param = 'pouring'
+    task_param = 'follow'
 
     robot_name = get_robot_name(robot_param)
 
@@ -69,7 +81,7 @@ def start_demo_local():
     world = BulletWorld(WorldMode)
     VizMarkerPublisher()
     robot = Object(robot_name, ObjectType.ROBOT, f"{robot_name}{extension}", pose=Pose([1, 2, 0]))
-    apartment = Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}-small{extension}")
+    apartment = Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}-follow{extension}")
     tf = TFBroadcaster()
 
     demo_selecting(apartment, robot, task_param)
@@ -79,6 +91,8 @@ def start_demo_local():
 def demo_selecting(apartment, robot, task_param):
     if task_param == "navigate":
         navigate_simple_example()
+    elif task_param == "follow":
+        follow_simple_example(robot)
     elif task_param == "transport":
         with suppress_stdout_stderr():
             transporting_demo(apartment, robot)
@@ -92,4 +106,4 @@ def demo_selecting(apartment, robot, task_param):
         start_generalized_demo(task_param, object_tool, object_target, specialized_task)
 
 #
-# start_demo()
+start_demo_local()
