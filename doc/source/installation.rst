@@ -105,7 +105,6 @@ Then install the Python packages in the requirements.txt file
 .. code-block:: shell
 
     sudo pip3 install -r requirements.txt
-    sudo pip3 install -r src/neem_interface_python/requirements.txt
 
 This installs the packages into ``/usr/local/lib``. If you prefer to not clutter your system-wide python installation,
 you can also install the packages into the catkin workspace as follows:
