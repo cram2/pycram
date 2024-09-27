@@ -105,8 +105,19 @@ Then install the Python packages in the requirements.txt file
 .. code-block:: shell
 
     sudo pip3 install -r requirements.txt
-    sudo pip3 install -r src/neem_interface_python/requirements.txt
 
+This installs the packages into ``/usr/local/lib``. If you prefer to not clutter your system-wide python installation,
+you can also install the packages into the catkin workspace as follows:
+
+.. code-block:: shell
+
+    # install packages into catkin workspace instead of ~/.local
+    export PYTHONUSERBASE=~/workspace/ros/devel
+    # don't install packages that are available in system
+    export PIP_IGNORE_INSTALLED=0
+
+    pip3 install -r requirements.txt
+    pip3 install -r src/neem_interface_python/requirements.txt
 
 Building your ROS workspace
 ===========================
