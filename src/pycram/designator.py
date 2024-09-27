@@ -365,9 +365,8 @@ class DesignatorDescription(ABC):
 
     def get_slots(self) -> List[str]:
         """
-        Returns a list of all slots of this description. Can be used for inspecting different descriptions and debugging.
-
-        :return: A list of all slots.
+        :return: a list of all slots of this description. Can be used for inspecting different descriptions and
+         debugging.
         """
         return list(self.__dict__.keys())
 
@@ -376,7 +375,7 @@ class DesignatorDescription(ABC):
 
     def get_default_ontology_concept(self) -> owlready2.Thing | None:
         """
-        Returns the first element of ontology_concept_holders if there is, else None
+        :return: The first element of ontology_concept_holders if there is, else None
         """
         return self.ontology_concept_holders[0].ontology_concept if self.ontology_concept_holders else None
 
@@ -597,8 +596,6 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
         def frozen_copy(self) -> 'ObjectDesignatorDescription.Object':
             """
-            Returns a copy of this designator containing only the fields.
-
             :return: A copy containing only the fields of this class. The WorldObject attached to this pycram object is not copied. The _pose gets set to a method that statically returns the pose of the object when this method was called.
             """
             result = ObjectDesignatorDescription.Object(self.name, self.obj_type, None)
@@ -633,7 +630,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
         def special_knowledge_adjustment_pose(self, grasp: str, pose: Pose) -> Pose:
             """
-            Returns the adjusted target pose based on special knowledge for "grasp front".
+            Get the adjusted target pose based on special knowledge for "grasp front".
 
             :param grasp: From which side the object should be grasped
             :param pose: Pose at which the object should be grasped, before adjustment

@@ -8,10 +8,12 @@ from pycram.process_module import simulated_robot, with_simulated_robot
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.dataclasses import Color
+from pycram.ros.viz_marker_publisher import VizMarkerPublisher
 
 extension = ObjectDescription.get_file_extension()
 
 world = BulletWorld(WorldMode.GUI)
+
 robot = Object("pr2", ObjectType.ROBOT, f"pr2{extension}", pose=Pose([1, 2, 0]))
 apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")
 
@@ -94,3 +96,5 @@ with simulated_robot:
     PlaceAction(spoon_desig, [spoon_target_pose], [pickup_arm]).resolve().perform()
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
+
+world.exit()

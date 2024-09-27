@@ -30,9 +30,10 @@ import tqdm
 import pycram.orm.base
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object as BulletWorldObject
-from pycram.designators.action_designator import MoveTorsoAction, PickUpAction, NavigateAction, ParkArmsAction, ParkArmsActionPerformable, MoveTorsoActionPerformable
+from pycram.designators.action_designator import MoveTorsoAction, PickUpAction, NavigateAction, ParkArmsAction,
+    ParkArmsActionPerformable, MoveTorsoActionPerformable
 from pycram.designators.object_designator import ObjectDesignatorDescription
-from pycram.plan_failures import PlanFailure
+from pycram.failures import PlanFailure
 from pycram.process_module import ProcessModule
 from pycram.datastructures.enums import Arms, ObjectType, Grasp, WorldMode
 from pycram.process_module import simulated_robot

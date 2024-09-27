@@ -2,6 +2,7 @@ import time
 import unittest
 
 import pycram.tasktree
+from pycram.datastructures.world import UseProspectionWorld
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.pose import Pose
@@ -29,13 +30,15 @@ class BulletWorldTestCase(unittest.TestCase):
                            RobotDescription.current_robot_description.name + cls.extension)
         cls.kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen" + cls.extension)
         cls.cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl",
-                            ObjectDescription, pose=Pose([1.3, 0.7, 0.95]))
+                            pose=Pose([1.3, 0.7, 0.95]))
         ProcessModule.execution_delay = False
         cls.viz_marker_publisher = VizMarkerPublisher()
         OntologyManager(SOMA_ONTOLOGY_IRI)
 
     def setUp(self):
-        self.world.reset_world()
+        self.world.reset_world(remove_saved_states=True)
+        with UseProspectionWorld():
+            pass
 
     # DO NOT WRITE TESTS HERE!!!
     # Test related to the BulletWorld should be written in test_bullet_world.py
@@ -44,7 +47,9 @@ class BulletWorldTestCase(unittest.TestCase):
     def tearDown(self):
         pycram.tasktree.task_tree.reset_tree()
         time.sleep(0.05)
-        self.world.reset_world()
+        self.world.reset_world(remove_saved_states=True)
+        with UseProspectionWorld():
+            pass
 
     @classmethod
     def tearDownClass(cls):
@@ -67,7 +72,7 @@ class BulletWorldGUITestCase(unittest.TestCase):
                            RobotDescription.current_robot_description.name + cls.extension)
         cls.kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen" + cls.extension)
         cls.cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl",
-                            ObjectDescription, pose=Pose([1.3, 0.7, 0.95]))
+                            pose=Pose([1.3, 0.7, 0.95]))
         ProcessModule.execution_delay = False
         cls.viz_marker_publisher = VizMarkerPublisher()
 

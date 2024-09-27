@@ -1,12 +1,14 @@
+import numpy as np
 from typing_extensions import List, Tuple, Optional, Union, Dict
 
-import numpy as np
-
-from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
+from .datastructures.dataclasses import ContactPointsList
 from .datastructures.pose import Pose, Transform
-from .robot_description import RobotDescription
-from .world_concepts.world_object import Object
 from .datastructures.world import World, UseProspectionWorld
+from .external_interfaces.ik import try_to_reach, try_to_reach_with_grasp
+from .robot_description import RobotDescription
+from .utils import RayTestUtils
+from .world_concepts.world_object import Object
+from .config import world_conf as conf
 
 
 def stable(obj: Object) -> bool:
@@ -49,40 +51,43 @@ def contact(
     with UseProspectionWorld():
         prospection_obj1 = World.current_world.get_prospection_object_for_object(object1)
         prospection_obj2 = World.current_world.get_prospection_object_for_object(object2)
-
         World.current_world.perform_collision_detection()
-        con_points = World.current_world.get_contact_points_between_two_objects(prospection_obj1, prospection_obj2)
-
+        con_points: ContactPointsList = World.current_world.get_contact_points_between_two_objects(prospection_obj1,
+                                                                                                   prospection_obj2)
+        objects_are_in_contact = len(con_points) > 0
         if return_links:
-            contact_links = []
-            for point in con_points:
-                contact_links.append((prospection_obj1.get_link_by_id(point[3]),
-                                      prospection_obj2.get_link_by_id(point[4])))
-            return con_points != (), contact_links
-
+            contact_links = [(point.link_a, point.link_b) for point in con_points]
+            return objects_are_in_contact, contact_links
         else:
-            return con_points != ()
+            return objects_are_in_contact
 
 
 def get_visible_objects(
         camera_pose: Pose,
-        front_facing_axis: Optional[List[float]] = None) -> Tuple[np.ndarray, Pose]:
+        front_facing_axis: Optional[List[float]] = None,
+        plot_segmentation_mask: bool = False) -> Tuple[np.ndarray, Pose]:
     """
-    Returns a segmentation mask of the objects that are visible from the given camera pose and the front facing axis.
+    Return a segmentation mask of the objects that are visible from the given camera pose and the front facing axis.
 
     :param camera_pose: The pose of the camera in world coordinate frame.
     :param front_facing_axis: The axis, of the camera frame, which faces to the front of the robot. Given as list of xyz
+    :param plot_segmentation_mask: If the segmentation mask should be plotted
     :return: A segmentation mask of the objects that are visible and the pose of the point at exactly 2 meters in front of the camera in the direction of the front facing axis with respect to the world coordinate frame.
     """
-    front_facing_axis = RobotDescription.current_robot_description.get_default_camera().front_facing_axis
+    if front_facing_axis is None:
+        front_facing_axis = RobotDescription.current_robot_description.get_default_camera().front_facing_axis
 
-    world_to_cam = camera_pose.to_transform("camera")
+    camera_frame = RobotDescription.current_robot_description.get_camera_frame()
+    world_to_cam = camera_pose.to_transform(camera_frame)
 
-    cam_to_point = Transform(list(np.multiply(front_facing_axis, 2)), [0, 0, 0, 1], "camera",
+    cam_to_point = Transform(list(np.multiply(front_facing_axis, 2)), [0, 0, 0, 1], camera_frame,
                              "point")
     target_point = (world_to_cam * cam_to_point).to_pose()
 
     seg_mask = World.current_world.get_images_for_target(target_point, camera_pose)[2]
+
+    if plot_segmentation_mask:
+        RayTestUtils.plot_segmentation_mask(seg_mask)
 
     return seg_mask, target_point
 
@@ -91,7 +96,8 @@ def visible(
         obj: Object,
         camera_pose: Pose,
         front_facing_axis: Optional[List[float]] = None,
-        threshold: float = 0.8) -> bool:
+        threshold: float = 0.8,
+        plot_segmentation_mask: bool = False) -> bool:
     """
     Checks if an object is visible from a given position. This will be achieved by rendering the object
     alone and counting the visible pixel, then rendering the complete scene and compare the visible pixels with the
@@ -101,6 +107,7 @@ def visible(
     :param camera_pose: The pose of the camera in map frame
     :param front_facing_axis: The axis, of the camera frame, which faces to the front of the robot. Given as list of xyz
     :param threshold: The minimum percentage of the object that needs to be visible for this method to return true.
+    :param plot_segmentation_mask: If the segmentation mask should be plotted.
     :return: True if the object is visible from the camera_position False if not
     """
     with UseProspectionWorld():
@@ -115,7 +122,7 @@ def visible(
             else:
                 obj.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]), set_attachments=False)
 
-        seg_mask, target_point = get_visible_objects(camera_pose, front_facing_axis)
+        seg_mask, target_point = get_visible_objects(camera_pose, front_facing_axis, plot_segmentation_mask)
         max_pixel = np.array(seg_mask == prospection_obj.id).sum()
 
         World.current_world.restore_state(state_id)
@@ -133,7 +140,8 @@ def visible(
 def occluding(
         obj: Object,
         camera_pose: Pose,
-        front_facing_axis: Optional[List[float]] = None) -> List[Object]:
+        front_facing_axis: Optional[List[float]] = None,
+        plot_segmentation_mask: bool = False) -> List[Object]:
     """
     Lists all objects which are occluding the given object. This works similar to 'visible'.
     First the object alone will be rendered and the position of the pixels of the object in the picture will be saved.
@@ -143,6 +151,7 @@ def occluding(
     :param obj: The object for which occlusion should be checked
     :param camera_pose: The pose of the camera in world coordinate frame
     :param front_facing_axis: The axis, of the camera frame, which faces to the front of the robot. Given as list of xyz
+    :param plot_segmentation_mask: If the segmentation mask should be plotted
     :return: A list of occluding objects
     """
 
@@ -156,7 +165,7 @@ def occluding(
             else:
                 other_obj.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
 
-        seg_mask, target_point = get_visible_objects(camera_pose, front_facing_axis)
+        seg_mask, target_point = get_visible_objects(camera_pose, front_facing_axis, plot_segmentation_mask)
 
         # All indices where the object that could be occluded is in the image
         # [0] at the end is to reduce by one dimension because dstack adds an unnecessary dimension
@@ -224,17 +233,15 @@ def blocking(
     :return: A list of objects the robot is in collision with when reaching for the specified object or None if the pose or object is not reachable.
     """
 
-    prospection_robot = World.current_world.get_prospection_object_for_object(robot)
     with UseProspectionWorld():
+        prospection_robot = World.current_world.get_prospection_object_for_object(robot)
         if grasp:
             try_to_reach_with_grasp(pose_or_object, prospection_robot, gripper_name, grasp)
         else:
             try_to_reach(pose_or_object, prospection_robot, gripper_name)
 
-        block = []
-        for obj in World.current_world.objects:
-            if contact(prospection_robot, obj):
-                block.append(World.current_world.get_object_for_prospection_object(obj))
+        block = [World.current_world.get_object_for_prospection_object(obj) for obj in World.current_world.objects
+                 if contact(prospection_robot, obj)]
     return block
 
 
@@ -257,7 +264,7 @@ def link_pose_for_joint_config(
         joint_config: Dict[str, float],
         link_name: str) -> Pose:
     """
-    Returns the pose a link would be in if the given joint configuration would be applied to the object.
+    Get the pose a link would be in if the given joint configuration would be applied to the object.
     This is done by using the respective object in the prospection world and applying the joint configuration
     to this one. After applying the joint configuration the link position is taken from there.
 

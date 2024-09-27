@@ -6,11 +6,11 @@ import rospy
 from typing_extensions import Iterable, Optional, Callable, Dict, Any, List, Union, Tuple
 from anytree import NodeMixin, Node, PreOrderIter
 
-from pycram.datastructures.enums import State
+from .datastructures.enums import State
 import threading
 
 from .fluent import Fluent
-from .plan_failures import PlanFailure, NotALanguageExpression
+from .failures import PlanFailure, NotALanguageExpression
 from .external_interfaces import giskard
 
 
