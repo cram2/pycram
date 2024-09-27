@@ -7,7 +7,6 @@ from demos.pycram_virtual_building_demos.src.follow_demo import follow_simple_ex
 from demos.pycram_virtual_building_demos.src.generlized_actions_demo import start_generalized_demo
 from demos.pycram_virtual_building_demos.src.transport_demo import transporting_demo
 from pycram.utils import suppress_stdout_stderr
-import threading
 
 # sys.path.insert(0, '/home/vee/robocup_workspaces/pycram_ws/src/pycram')
 sys.path.insert(0, '/home/jovyan/workspace/ros/src/pycram')
@@ -27,15 +26,6 @@ from pycram.worlds.bullet_world import BulletWorld
 
 output = None
 
-
-def input_thread():
-    while True:
-        user_input = input("Bitte gib etwas ein: ")
-        if user_input.lower() == 'exit':  # Eingabe 'exit' beendet den Thread
-            print("Eingabeverarbeitung wird beendet...")
-            break
-        else:
-            print(f"Du hast eingegeben: {user_input}")
 
 
 def start_demo():
