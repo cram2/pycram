@@ -3,6 +3,8 @@ import tf
 from typing_extensions import List, Union, Tuple, Dict
 
 import rospy
+
+from ..ros.logging import loginfo_once, logerr
 from ..ros.service import get_service_proxy, wait_for_service
 from moveit_msgs.msg import PositionIKRequest
 from moveit_msgs.msg import RobotState
@@ -75,7 +77,7 @@ def call_ik(root_link: str, tip_link: str, target_pose: Pose, robot_object: Obje
     else:
         ik_service = "/kdl_ik_service/get_ik"
 
-    rospy.loginfo_once(f"Waiting for IK service: {ik_service}")
+    loginfo_once(f"Waiting for IK service: {ik_service}")
     #rospy.wait_for_service(ik_service)
     wait_for_service(ik_service)
 
@@ -154,7 +156,7 @@ def try_to_reach(pose_or_object: Union[Pose, Object], prospection_robot: Object,
     try:
         inv = request_ik(input_pose, prospection_robot, joints, gripper_name)
     except IKError as e:
-        rospy.logerr(f"Pose is not reachable: {e}")
+        logerr(f"Pose is not reachable: {e}")
         return None
     _apply_ik(prospection_robot, inv)
 
@@ -216,7 +218,7 @@ def request_giskard_ik(target_pose: Pose, robot: Object, gripper: str) -> Tuple[
     :param gripper: Name of the tool frame which should grasp, this should be at the end of the given joint chain.
     :return: A list of joint values.
     """
-    rospy.loginfo_once(f"Using Giskard for full body IK")
+    loginfo_once(f"Using Giskard for full body IK")
     local_transformer = LocalTransformer()
     target_map = local_transformer.transform_pose(target_pose, "map")
 

@@ -15,6 +15,7 @@ from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
 from tf import transformations
 from ..orm.base import Pose as ORMPose, Position, Quaternion, ProcessMetaData
 from ..validation.error_checkers import calculate_pose_error
+from ..ros.logging import logwarn, logerr
 
 
 def get_normalized_quaternion(quaternion: np.ndarray) -> GeoQuaternion:
@@ -148,7 +149,7 @@ class Pose(PoseStamped):
         """
         if (not isinstance(value, list) and not isinstance(value, tuple) and not isinstance(value, GeoPose)
                 and not isinstance(value, Point)):
-            rospy.logerr("Position can only be a list or geometry_msgs/Pose")
+            logerr("Position can only be a list or geometry_msgs/Pose")
             raise TypeError("Position can only be a list/tuple or geometry_msgs/Pose")
         if isinstance(value, list) or isinstance(value, tuple) and len(value) == 3:
             self.pose.position.x = value[0]
@@ -174,7 +175,7 @@ class Pose(PoseStamped):
         :param value: New orientation, either a list or geometry_msgs/Quaternion
         """
         if not isinstance(value, Sized) and not isinstance(value, GeoQuaternion):
-            rospy.logwarn("Orientation can only be an iterable (list, tuple, ...etc.) or a geometry_msgs/Quaternion")
+            logwarn("Orientation can only be an iterable (list, tuple, ...etc.) or a geometry_msgs/Quaternion")
             return
 
         if isinstance(value, Sized) and len(value) == 4:
@@ -182,7 +183,7 @@ class Pose(PoseStamped):
         elif isinstance(value, GeoQuaternion):
             orientation = np.array([value.x, value.y, value.z, value.w])
         else:
-            rospy.logerr("Orientation has to be a list or geometry_msgs/Quaternion")
+            logerr("Orientation has to be a list or geometry_msgs/Quaternion")
             raise TypeError("Orientation has to be a list or geometry_msgs/Quaternion")
         # This is used instead of np.linalg.norm since numpy is too slow on small arrays
         self.pose.orientation = get_normalized_quaternion(orientation)
@@ -445,7 +446,7 @@ class Transform(TransformStamped):
         :param value: The new value for the translation, either a list or geometry_msgs/Vector3
         """
         if not isinstance(value, list) and not isinstance(value, Vector3):
-            rospy.logwarn("Value of a translation can only be a list of a geometry_msgs/Vector3")
+            logwarn("Value of a translation can only be a list of a geometry_msgs/Vector3")
             return
         if isinstance(value, list) and len(value) == 3:
             self.transform.translation.x = value[0]
@@ -470,7 +471,7 @@ class Transform(TransformStamped):
         :param value: The new value for the rotation, either a list or geometry_msgs/Quaternion
         """
         if not isinstance(value, list) and not isinstance(value, GeoQuaternion):
-            rospy.logwarn("Value of the rotation can only be a list or a geometry.msgs/Quaternion")
+            logwarn("Value of the rotation can only be a list or a geometry.msgs/Quaternion")
             return
         if isinstance(value, list) and len(value) == 4:
             rotation = np.array(value)
@@ -534,7 +535,7 @@ class Transform(TransformStamped):
         :return: The resulting Transform from the multiplication
         """
         if not isinstance(other, Transform):
-            rospy.logerr(f"Can only multiply two Transforms")
+            logerr(f"Can only multiply two Transforms")
             return
         self_trans = transformations.translation_matrix(self.translation_as_list())
         self_rot = transformations.quaternion_matrix(self.rotation_as_list())

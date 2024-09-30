@@ -23,6 +23,7 @@ from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenObjects, Un
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription as URDF
+from ..ros.logging import logwarn
 
 try:
     from ..object_descriptors.mjcf import ObjectDescription as MJCF
@@ -1226,7 +1227,7 @@ class Object(WorldEntity):
                 container_joint = element
                 break
         if not container_joint:
-            rospy.logwarn(f"No joint of type {joint_type} found above link {link_name}")
+            logwarn(f"No joint of type {joint_type} found above link {link_name}")
         return container_joint
 
     def get_multiple_joint_positions(self, joint_names: List[str]) -> Dict[str, float]:

@@ -2,7 +2,6 @@ import logging
 from time import sleep
 
 import numpy as np
-import rospy
 from tf.transformations import quaternion_matrix
 from typing_extensions import List, Dict, Optional, Union, Tuple
 
@@ -17,6 +16,7 @@ from ..datastructures.world import World
 from ..description import Link, Joint, ObjectDescription
 from ..object_descriptors.mjcf import ObjectDescription as MJCF
 from ..robot_description import RobotDescription
+from ..ros.logging import logwarn
 from ..utils import RayTestUtils, wxyz_to_xyzw, xyzw_to_wxyz
 from ..validation.goal_validator import validate_object_pose, validate_multiple_joint_positions, \
     validate_joint_position, validate_multiple_object_poses
@@ -473,14 +473,14 @@ class Multiverse(World):
         self.reader.join()
 
     def _remove_visual_object(self, obj_id: int) -> bool:
-        rospy.logwarn("Currently multiverse does not create visual objects")
+        logwarn("Currently multiverse does not create visual objects")
         return False
 
     def remove_object_from_simulator(self, obj: Object) -> bool:
         if obj.obj_type != ObjectType.ENVIRONMENT:
             self.writer.remove_body(obj.name)
             return True
-        rospy.logwarn("Cannot remove environment objects")
+        logwarn("Cannot remove environment objects")
         return False
 
     def add_constraint(self, constraint: Constraint) -> int:

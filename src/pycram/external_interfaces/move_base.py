@@ -1,8 +1,8 @@
 import sys
 
-import rospy
 import actionlib
 from ..ros.action_lib import create_action_client
+from ..ros.logging import logwarn, loginfo
 from ..ros.ros_tools import get_node_names
 
 from geometry_msgs.msg import PoseStamped
@@ -11,7 +11,7 @@ from typing import Callable
 try:
     from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 except ModuleNotFoundError as e:
-    rospy.logwarn(f"Could not import MoveBase messages, Navigation interface could not be initialized")
+    logwarn(f"Could not import MoveBase messages, Navigation interface could not be initialized")
 
 
 # Global variables for shared resources
@@ -23,7 +23,7 @@ def create_nav_action_client() -> actionlib.SimpleActionClient:
     """Creates a new action client for the move_base interface."""
     # client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
     client = create_action_client("move_base", MoveBaseAction)
-    rospy.loginfo("Waiting for move_base action server")
+    loginfo("Waiting for move_base action server")
     client.wait_for_server()
     return client
 
@@ -39,15 +39,15 @@ def init_nav_interface(func: Callable) -> Callable:
             return func(*args, **kwargs)
 
         if "move_base_msgs" not in sys.modules:
-            rospy.logwarn("Could not initialize the navigation interface: move_base_msgs not imported")
+            logwarn("Could not initialize the navigation interface: move_base_msgs not imported")
             return
 
         if "/move_base" in get_node_names():
             nav_action_client = create_nav_action_client()
-            rospy.loginfo("Successfully initialized navigation interface")
+            loginfo("Successfully initialized navigation interface")
             is_init = True
         else:
-            rospy.logwarn("Move_base is not running, could not initialize navigation interface")
+            logwarn("Move_base is not running, could not initialize navigation interface")
             return
 
         return func(*args, **kwargs)
@@ -62,10 +62,10 @@ def query_pose_nav(navpose: PoseStamped):
     global query_result
 
     def active_callback():
-        rospy.loginfo("Sent query to move_base")
+        loginfo("Sent query to move_base")
 
     def done_callback(state, result):
-        rospy.loginfo("Finished moving")
+        loginfo("Finished moving")
         global query_result
         query_result = result
 

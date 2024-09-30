@@ -26,6 +26,7 @@ from ..datastructures.world_entity import StateEntity
 from ..failures import ProspectionObjectNotFound, WorldObjectNotFound
 from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
+from ..ros.logging import logwarn
 from ..validation.goal_validator import (MultiPoseGoalValidator,
                                          PoseGoalValidator, JointPositionGoalValidator,
                                          MultiJointPositionGoalValidator, GoalValidator,
@@ -352,7 +353,7 @@ class World(StateEntity, ABC):
         if removed:
             self.update_simulator_state_id_in_original_state()
         else:
-            rospy.logwarn(f"Object with id {obj_id} could not be removed.")
+            logwarn(f"Object with id {obj_id} could not be removed.")
         return removed
 
     @abstractmethod
@@ -1468,7 +1469,7 @@ class World(StateEntity, ABC):
         """
         See :py:meth:`~pycram.world.World.add_vis_axis`
         """
-        rospy.logwarn(f"Visual axis is not supported in {self.__class__.__name__}")
+        logwarn(f"Visual axis is not supported in {self.__class__.__name__}")
 
     def remove_vis_axis(self) -> None:
         """
@@ -1480,7 +1481,7 @@ class World(StateEntity, ABC):
         """
         See :py:meth:`~pycram.world.World.remove_vis_axis`
         """
-        rospy.logwarn(f"Visual axis is not supported in {self.__class__.__name__}")
+        logwarn(f"Visual axis is not supported in {self.__class__.__name__}")
 
     def _simulator_object_creator(self, creator_func: Callable, *args, **kwargs) -> int:
         """

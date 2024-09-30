@@ -3,8 +3,9 @@ import pathlib
 import xml.etree.ElementTree as ET
 
 import numpy as np
+
+from ..ros.logging import logerr
 from ..ros.ros_tools import create_ros_pack, ResourceNotFound, get_parameter
-import rospy
 from geometry_msgs.msg import Point
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
 from typing_extensions import Union, List, Optional, Dict, Tuple
@@ -291,7 +292,7 @@ class ObjectDescription(AbstractObjectDescription):
             urdf_string = self.replace_relative_references_with_absolute_paths(urdf_string)
             urdf_string = self.fix_missing_inertial(urdf_string)
         except ResourceNotFound as e:
-            rospy.logerr(f"Could not find resource package linked in this URDF")
+            logerr(f"Could not find resource package linked in this URDF")
             raise e
         urdf_string = self.make_mesh_paths_absolute(urdf_string, path) if make_mesh_paths_absolute else urdf_string
         self.write_description_to_file(urdf_string, save_path)

@@ -4,10 +4,10 @@ Classes:
 Singleton -- implementation of singleton metaclass
 """
 import os
-
-import rospy
 from typing_extensions import Dict, Optional
 import xml.etree.ElementTree as ET
+
+from pycram.ros.logging import logwarn
 
 
 class Singleton(type):
@@ -63,7 +63,7 @@ def get_robot_mjcf_path(robot_relative_dir: str, robot_name: str, xml_name: Opti
     try:
         robot_folder = os.path.join(multiverse_resources, 'robots', robot_relative_dir, robot_name)
     except TypeError:
-        rospy.logwarn("Multiverse resources path not found.")
+        logwarn("Multiverse resources path not found.")
         return None
     if multiverse_resources is not None:
         list_dir = os.listdir(robot_folder)

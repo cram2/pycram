@@ -1,6 +1,8 @@
 import sys
 import logging
 
+from .ros.logging import logerr
+
 if 'world' in sys.modules:
     logging.warning("(publisher) Make sure that you are not loading this module from pycram.world.")
 import rospy
@@ -88,7 +90,7 @@ class LocalTransformer(TransformerROS):
         copy_pose = pose.copy()
         copy_pose.header.stamp = rospy.Time(0)
         if not self.canTransform(target_frame, pose.frame, rospy.Time(0)):
-            rospy.logerr(
+            logerr(
                 f"Can not transform pose: \n {pose}\n to frame: {target_frame}."
                 f"\n Maybe try calling 'update_transforms_for_object'")
             return
