@@ -2,8 +2,9 @@ import sys
 from threading import Lock, RLock
 from typing import Any
 
-import actionlib
-import rosnode
+from ..ros.action_lib import create_action_client
+from ..ros.ros_tools import get_node_names
+
 import rospy
 from geometry_msgs.msg import PointStamped
 from typing_extensions import List, Callable, Optional
@@ -53,9 +54,9 @@ def init_robokudo_interface(func: Callable) -> Callable:
 
     def wrapper(*args, **kwargs):
         global is_init
-        if is_init and "/robokudo" in rosnode.get_node_names():
+        if is_init and "/robokudo" in get_node_names():
             return func(*args, **kwargs)
-        elif is_init and "/robokudo" not in rosnode.get_node_names():
+        elif is_init and "/robokudo" not in get_node_names():
             rospy.logwarn("Robokudo node is not available anymore, could not initialize robokudo interface")
             is_init = False
             giskard_wrapper = None
@@ -65,7 +66,7 @@ def init_robokudo_interface(func: Callable) -> Callable:
             rospy.logwarn("Could not initialize the Robokudo interface since the robokudo_msgs are not imported")
             return
 
-        if "/robokudo" in rosnode.get_node_names():
+        if "/robokudo" in get_node_names():
             rospy.loginfo_once("Successfully initialized Robokudo interface")
             is_init = True
         else:
@@ -89,7 +90,8 @@ def send_query(obj_type: Optional[str] = None, region: Optional[str] = None,
     if attributes:
         goal.obj.attribute = attributes
 
-    client = actionlib.SimpleActionClient('robokudo/query', QueryAction)
+    # client = actionlib.SimpleActionClient('robokudo/query', QueryAction)
+    client = create_action_client("robokudo/query", QueryAction)
     rospy.loginfo("Waiting for action server")
     client.wait_for_server()
 
@@ -135,8 +137,8 @@ def query_human() -> PointStamped:
 @init_robokudo_interface
 def stop_query():
     """Stop any ongoing query to RoboKudo."""
-    init_robokudo_interface()
-    client = actionlib.SimpleActionClient('robokudo/query', QueryAction)
+    #client = actionlib.SimpleActionClient('robokudo/query', QueryAction)
+    client = create_action_client('robokudo/query', QueryAction)
     client.wait_for_server()
     client.cancel_all_goals()
     rospy.loginfo("Cancelled current RoboKudo query goal")

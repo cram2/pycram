@@ -1,10 +1,9 @@
-import rospkg
+from ..ros.ros_tools import get_ros_package_path
 
-from pycram.robot_description import RobotDescriptionManager, RobotDescription
+from ..robot_description import RobotDescriptionManager, RobotDescription
 
 # Description for turtlebot3_waffle_pi
-rospack = rospkg.RosPack()
-filename = rospack.get_path('pycram') + '/resources/robots/' + "turtlebot" + '.urdf'
+filename = get_ros_package_path('pycram') + '/resources/robots/' + "turtlebot" + '.urdf'
 
 turtlebot = RobotDescription("turtlebot", "world", "base_link", "base_joint",
                              filename)

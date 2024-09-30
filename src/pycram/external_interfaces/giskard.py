@@ -4,15 +4,13 @@ import time
 
 import rospy
 import sys
-import rosnode
+from ..ros.ros_tools import get_node_names
 
 from ..datastructures.enums import JointType, ObjectType
 from ..datastructures.pose import Pose
-# from ..robot_descriptions import robot_description
 from ..datastructures.world import World
 from ..datastructures.dataclasses import MeshVisualShape
 from ..world_concepts.world_object import Object
-# from ..robot_description import ManipulatorDescription
 from ..robot_description import RobotDescription
 
 from typing_extensions import List, Dict, Callable, Optional
@@ -65,9 +63,9 @@ def init_giskard_interface(func: Callable) -> Callable:
         global giskard_wrapper
         global giskard_update_service
         global is_init
-        if is_init and "/giskard" in rosnode.get_node_names():
+        if is_init and "/giskard" in get_node_names():
             return func(*args, **kwargs)
-        elif is_init and "/giskard" not in rosnode.get_node_names():
+        elif is_init and "/giskard" not in get_node_names():
             rospy.logwarn("Giskard node is not available anymore, could not initialize giskard interface")
             is_init = False
             giskard_wrapper = None
@@ -77,7 +75,7 @@ def init_giskard_interface(func: Callable) -> Callable:
             rospy.logwarn("Could not initialize the Giskard interface since the giskard_msgs are not imported")
             return
 
-        if "/giskard" in rosnode.get_node_names():
+        if "/giskard" in get_node_names():
             giskard_wrapper = GiskardWrapper()
             giskard_update_service = rospy.ServiceProxy("/giskard/update_world", UpdateWorld)
             rospy.loginfo_once("Successfully initialized Giskard interface")
@@ -86,7 +84,6 @@ def init_giskard_interface(func: Callable) -> Callable:
             rospy.logwarn("Giskard is not running, could not initialize Giskard interface")
             return
         return func(*args, **kwargs)
-
     return wrapper
 
 

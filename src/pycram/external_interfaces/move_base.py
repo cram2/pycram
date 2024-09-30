@@ -2,7 +2,9 @@ import sys
 
 import rospy
 import actionlib
-import rosnode
+from ..ros.action_lib import create_action_client
+from ..ros.ros_tools import get_node_names
+
 from geometry_msgs.msg import PoseStamped
 from typing import Callable
 
@@ -19,7 +21,8 @@ is_init = False
 
 def create_nav_action_client() -> actionlib.SimpleActionClient:
     """Creates a new action client for the move_base interface."""
-    client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
+    # client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
+    client = create_action_client("move_base", MoveBaseAction)
     rospy.loginfo("Waiting for move_base action server")
     client.wait_for_server()
     return client
@@ -39,7 +42,7 @@ def init_nav_interface(func: Callable) -> Callable:
             rospy.logwarn("Could not initialize the navigation interface: move_base_msgs not imported")
             return
 
-        if "/move_base" in rosnode.get_node_names():
+        if "/move_base" in get_node_names():
             nav_action_client = create_nav_action_client()
             rospy.loginfo("Successfully initialized navigation interface")
             is_init = True

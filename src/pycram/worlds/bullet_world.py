@@ -6,7 +6,7 @@ import time
 
 import numpy as np
 import pycram_bullet as p
-import rosgraph
+from ..ros.ros_tools import is_master_online
 import rospy
 from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Any
@@ -36,7 +36,7 @@ class BulletWorld(World):
     """
 
     # Check is for sphinx autoAPI to be able to work in a CI workflow
-    if rosgraph.is_master_online():  # and "/pycram" not in rosnode.get_node_names():
+    if is_master_online():  # and "/pycram" not in rosnode.get_node_names():
         rospy.init_node('pycram')
 
     def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection_world: bool = False):

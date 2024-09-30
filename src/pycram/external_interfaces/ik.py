@@ -3,6 +3,7 @@ import tf
 from typing_extensions import List, Union, Tuple, Dict
 
 import rospy
+from ..ros.service import get_service_proxy, wait_for_service
 from moveit_msgs.msg import PositionIKRequest
 from moveit_msgs.msg import RobotState
 from moveit_msgs.srv import GetPositionIK
@@ -75,11 +76,13 @@ def call_ik(root_link: str, tip_link: str, target_pose: Pose, robot_object: Obje
         ik_service = "/kdl_ik_service/get_ik"
 
     rospy.loginfo_once(f"Waiting for IK service: {ik_service}")
-    rospy.wait_for_service(ik_service)
+    #rospy.wait_for_service(ik_service)
+    wait_for_service(ik_service)
 
     req = _make_request_msg(root_link, tip_link, target_pose, robot_object, joints)
     req.pose_stamped.header.frame_id = root_link
-    ik = rospy.ServiceProxy(ik_service, GetPositionIK)
+    #ik = rospy.ServiceProxy(ik_service, GetPositionIK)
+    ik = get_service_proxy(ik_service, GetPositionIK)
     try:
         resp = ik(req)
     except rospy.ServiceException as e:

@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import psutil
 import random_events
-import rospy
 import tf
 from matplotlib import colors
 from nav_msgs.msg import OccupancyGrid, MapMetaData
@@ -18,6 +17,7 @@ from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
 from typing_extensions import Tuple, List, Optional, Iterator
 
+from .ros.ros_tools import wait_for_message
 from .datastructures.dataclasses import AxisAlignedBoundingBox
 from .datastructures.pose import Pose
 from .datastructures.world import UseProspectionWorld
@@ -354,7 +354,7 @@ class OccupancyCostmap(Costmap):
         :return: The costmap as a numpy array.
         """
         print("Waiting for Map")
-        map = rospy.wait_for_message("/map", OccupancyGrid)
+        map = wait_for_message("/map", OccupancyGrid)
         print("Recived Map")
         return np.array(map.data)
 
@@ -367,7 +367,7 @@ class OccupancyCostmap(Costmap):
         :return: The meta-data for the costmap array.
         """
         print("Waiting for Map Meta Data")
-        meta = rospy.wait_for_message("/map_metadata", MapMetaData)
+        meta = wait_for_message("/map_metadata", MapMetaData)
         print("Recived Meta Data")
         return meta
 
