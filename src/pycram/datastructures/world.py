@@ -122,6 +122,24 @@ class World(StateEntity, ABC):
 
         self.original_state_id = self.save_state()
 
+        self.on_add_object_callbacks: List[Callable[[Object], None]] = []
+
+    def add_callback_on_add_object(self, callback: Callable[[Object], None]) -> None:
+        """
+        Add a callback that is called when an object is added to the world.
+
+        :param callback: The callback.
+        """
+        self.on_add_object_callbacks.append(callback)
+
+    def remove_callback_on_add_object(self, callback: Callable[[Object], None]) -> None:
+        """
+        Remove a callback that is called when an object is added to the world.
+
+        :param callback: The callback.
+        """
+        self.on_add_object_callbacks.remove(callback)
+
     @classmethod
     def get_cache_dir(cls) -> str:
         """
@@ -139,6 +157,16 @@ class World(StateEntity, ABC):
         self.objects.append(obj)
         self.add_object_to_original_state(obj)
         self.object_lock.release()
+        self.invoke_on_add_object_callbacks(obj)
+
+    def invoke_on_add_object_callbacks(self, obj: Object) -> None:
+        """
+        Invoke the object added callbacks.
+
+        :param obj: The object.
+        """
+        for callback in self.on_add_object_callbacks:
+            callback(obj)
 
     @property
     def robot_description(self) -> RobotDescription:
