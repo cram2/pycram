@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from queue import Queue
-import rospy
 from typing_extensions import Iterable, Optional, Callable, Dict, Any, List, Union, Tuple
 from anytree import NodeMixin, Node, PreOrderIter
 
@@ -12,6 +11,7 @@ import threading
 from .fluent import Fluent
 from .failures import PlanFailure, NotALanguageExpression
 from .external_interfaces import giskard
+from .ros.ros_tools import sleep
 
 
 class Language(NodeMixin):
@@ -294,7 +294,7 @@ class Monitor(Language):
                 except Exception as e:
                     self.exception_queue.put(e)
                     return
-                rospy.sleep(0.1)
+                sleep(0.1)
 
         t = threading.Thread(target=check_condition)
         t.start()

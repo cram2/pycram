@@ -5,7 +5,6 @@ import os
 from pathlib import Path
 
 import numpy as np
-import rospy
 from deprecated import deprecated
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
@@ -1247,7 +1246,7 @@ class Object(WorldEntity):
         """
         return {j.name: j.position for j in self.joints.values()}
 
-    def update_link_transforms(self, transform_time: Optional[rospy.Time] = None) -> None:
+    def update_link_transforms(self, transform_time: Optional[Time] = None) -> None:
         """
         Update the transforms of all links of this object using time 'transform_time' or the current ros time.
 

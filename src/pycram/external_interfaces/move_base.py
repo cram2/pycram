@@ -1,7 +1,6 @@
 import sys
 
-import actionlib
-from ..ros.action_lib import create_action_client
+from ..ros.action_lib import create_action_client, SimpleActionClient
 from ..ros.logging import logwarn, loginfo
 from ..ros.ros_tools import get_node_names
 
@@ -19,9 +18,8 @@ nav_action_client = None
 is_init = False
 
 
-def create_nav_action_client() -> actionlib.SimpleActionClient:
+def create_nav_action_client() -> SimpleActionClient:
     """Creates a new action client for the move_base interface."""
-    # client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
     client = create_action_client("move_base", MoveBaseAction)
     loginfo("Waiting for move_base action server")
     client.wait_for_server()

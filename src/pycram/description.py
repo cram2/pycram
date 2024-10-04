@@ -5,7 +5,7 @@ import os
 import pathlib
 from abc import ABC, abstractmethod
 
-import rospy
+from .ros.data_typs import Time
 import trimesh
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING, Self, deprecated
@@ -309,7 +309,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
         """
         return self.object.get_root_link_id() == self.id
 
-    def update_transform(self, transform_time: Optional[rospy.Time] = None) -> None:
+    def update_transform(self, transform_time: Optional[Time] = None) -> None:
         """
         Update the transformation of this link at the given time.
 

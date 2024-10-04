@@ -8,12 +8,12 @@ from tf.transformations import euler_from_quaternion
 from typing_extensions import List, Union, Optional, Sized, Self
 
 import numpy as np
-import rospy
 import sqlalchemy.orm
 from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3, Point
 from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
 from tf import transformations
 from ..orm.base import Pose as ORMPose, Position, Quaternion, ProcessMetaData
+from ..ros.data_typs import Time
 from ..validation.error_checkers import calculate_pose_error
 from ..ros.logging import logwarn, logerr
 
@@ -51,7 +51,7 @@ class Pose(PoseStamped):
     """
 
     def __init__(self, position: Optional[List[float]] = None, orientation: Optional[List[float]] = None,
-                 frame: str = "map", time: rospy.Time = None):
+                 frame: str = "map", time: Time = None):
         """
         Poses can be initialized by a position and orientation given as lists, this is optional. By default, Poses are
         initialized with the position being [0, 0, 0], the orientation being [0, 0, 0, 1] and the frame being 'map'.
@@ -72,7 +72,7 @@ class Pose(PoseStamped):
 
         self.header.frame_id = frame
 
-        self.header.stamp = time if time else rospy.Time.now()
+        self.header.stamp = time if time else Time().now()
 
         self.frame = frame
 
@@ -343,7 +343,7 @@ class Transform(TransformStamped):
         Rotation: A quaternion representing the conversion of rotation between both frames
     """
     def __init__(self, translation: Optional[List[float]] = None, rotation: Optional[List[float]] = None,
-                 frame: Optional[str] = "map", child_frame: Optional[str] = "", time: rospy.Time = None):
+                 frame: Optional[str] = "map", child_frame: Optional[str] = "", time: Time = None):
         """
         Transforms take a translation, rotation, frame and child_frame as optional arguments. If nothing is given the
         Transform will be initialized with [0, 0, 0] for translation, [0, 0, 0, 1] for rotation, 'map' for frame and an
@@ -366,7 +366,7 @@ class Transform(TransformStamped):
 
         self.header.frame_id = frame
         self.child_frame_id = child_frame
-        self.header.stamp = time if time else rospy.Time.now()
+        self.header.stamp = time if time else Time().now()
 
         self.frame = frame
 

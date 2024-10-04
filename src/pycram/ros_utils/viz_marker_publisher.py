@@ -4,7 +4,6 @@ import time
 from typing import List, Optional, Tuple
 
 import numpy as np
-import rospy
 from geometry_msgs.msg import Vector3
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
@@ -13,6 +12,10 @@ from ..datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, Me
 from ..datastructures.pose import Pose, Transform
 from ..designator import ObjectDesignatorDescription
 from ..datastructures.world import World
+from ..ros.data_typs import Duration, Time
+from ..ros.logging import loginfo, logwarn, logerr
+from ..ros.publisher import create_publisher
+from ..ros.ros_tools import sleep
 
 
 class VizMarkerPublisher:
@@ -31,7 +34,7 @@ class VizMarkerPublisher:
         self.topic_name = topic_name
         self.interval = interval
 
-        self.pub = rospy.Publisher(self.topic_name, MarkerArray, queue_size=10)
+        self.pub = create_publisher(self.topic_name, MarkerArray, queue_size=10)
 
         self.thread = threading.Thread(target=self._publish)
         self.kill_event = threading.Event()
@@ -84,7 +87,7 @@ class VizMarkerPublisher:
                 color = obj.get_link_color(link).get_rgba()
 
                 msg.color = ColorRGBA(*color)
-                msg.lifetime = rospy.Duration(1)
+                msg.lifetime = Duration(1)
 
                 if isinstance(geom, MeshVisualShape):
                     msg.type = Marker.MESH_RESOURCE
@@ -127,7 +130,7 @@ class ManualMarkerPublisher:
         :param interval: Interval at which the marker should be published
         """
         self.start_time = None
-        self.marker_array_pub = rospy.Publisher(topic_name, MarkerArray, queue_size=10)
+        self.marker_array_pub = create_publisher(topic_name, MarkerArray, queue_size=10)
 
         self.marker_array = MarkerArray()
         self.marker_overview = {}
@@ -154,7 +157,7 @@ class ManualMarkerPublisher:
         self.start_time = time.time()
         thread = threading.Thread(target=self._publish, args=(pose, bw_object, name, color))
         thread.start()
-        rospy.loginfo(self.log_message)
+        loginfo(self.log_message)
         thread.join()
 
     def _publish(self, pose: Pose, bw_object: Optional[ObjectDesignatorDescription] = None, name: Optional[str] = None,
@@ -173,7 +176,7 @@ class ManualMarkerPublisher:
             else:
                 self._publish_object(name=name, pose=pose, bw_object=bw_object)
 
-            rospy.sleep(self.interval)
+            sleep(self.interval)
 
     def _publish_pose(self, name: str, pose: Pose, color: Optional[List] = None):
         """
@@ -242,7 +245,7 @@ class ManualMarkerPublisher:
         new_marker.id = self.current_id
         new_marker.header.frame_id = frame_id
         new_marker.ns = name
-        new_marker.header.stamp = rospy.Time.now()
+        new_marker.header.stamp = Time.now()
         new_marker.type = marker_type
         new_marker.action = Marker.ADD
         new_marker.pose = marker_pose.pose
@@ -281,7 +284,7 @@ class ManualMarkerPublisher:
                 return True
 
         # Update was not successful
-        rospy.logwarn(f"Marker {marker_id} not found for update")
+        logwarn(f"Marker {marker_id} not found for update")
         return False
 
     def remove_marker(self, bw_object: Optional[ObjectDesignatorDescription] = None, name: Optional[str] = None):
@@ -297,7 +300,7 @@ class ManualMarkerPublisher:
             name = bw_real.name
 
         if name is None:
-            rospy.logerr('No name for object given, cannot remove marker')
+            logerr('No name for object given, cannot remove marker')
             return
 
         marker_id = self.marker_overview.pop(name)
@@ -309,7 +312,7 @@ class ManualMarkerPublisher:
         self.marker_array_pub.publish(self.marker_array)
         self.marker_array.markers.pop(marker_id)
 
-        rospy.loginfo(f"Removed Marker '{name}'")
+        loginfo(f"Removed Marker '{name}'")
 
     def clear_all_marker(self):
         """
@@ -321,4 +324,4 @@ class ManualMarkerPublisher:
         self.marker_overview = {}
         self.marker_array_pub.publish(self.marker_array)
 
-        rospy.loginfo('Removed all markers')
+        loginfo('Removed all markers')

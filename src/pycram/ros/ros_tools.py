@@ -36,3 +36,10 @@ def wait_for_message(topic_name: str):
 
 def is_master_online():
     return rosgraph.is_master_online()
+
+
+def sleep(duration: float):
+    rospy.sleep(duration)
+
+def create_timer(duration: int, callback, oneshot=False):
+    return rospy.Timer(rospy.Duration(duration), callback, oneshot=oneshot)

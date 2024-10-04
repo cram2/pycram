@@ -6,8 +6,6 @@ import time
 
 import numpy as np
 import pycram_bullet as p
-from ..ros.ros_tools import is_master_online
-import rospy
 from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Any
 
@@ -34,10 +32,6 @@ class BulletWorld(World):
     class is the main interface to the Bullet Physics Engine and should be used to spawn Objects, simulate Physic and
     manipulate the Bullet World.
     """
-
-    # Check is for sphinx autoAPI to be able to work in a CI workflow
-    if is_master_online():  # and "/pycram" not in rosnode.get_node_names():
-        rospy.init_node('pycram')
 
     def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection_world: bool = False):
         """

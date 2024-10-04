@@ -1,5 +1,4 @@
 import time
-import rospy
 import threading
 import atexit
 
@@ -7,6 +6,9 @@ from ..datastructures.pose import Pose
 from ..datastructures.world import World
 from ..datastructures.enums import ExecutionType
 from tf2_msgs.msg import TFMessage
+
+from ..ros.publisher import create_publisher
+from ..ros.data_typs import Time
 
 
 class TFBroadcaster:
@@ -24,8 +26,8 @@ class TFBroadcaster:
         """
         self.world = World.current_world
 
-        self.tf_static_publisher = rospy.Publisher("/tf_static", TFMessage, queue_size=10)
-        self.tf_publisher = rospy.Publisher("/tf", TFMessage, queue_size=10)
+        self.tf_static_publisher = create_publisher("/tf_static", TFMessage, queue_size=10)
+        self.tf_publisher = create_publisher("/tf", TFMessage, queue_size=10)
         self.thread = threading.Thread(target=self._publish, daemon=True)
         self.kill_event = threading.Event()
         self.interval = interval
@@ -53,11 +55,11 @@ class TFBroadcaster:
         """
         for obj in self.world.objects:
             pose = obj.get_pose()
-            pose.header.stamp = rospy.Time.now()
+            pose.header.stamp = Time.now()
             self._publish_pose(obj.tf_frame, pose)
             for link in obj.link_name_to_id.keys():
                 link_pose = obj.get_link_pose(link)
-                link_pose.header.stamp = rospy.Time.now()
+                link_pose.header.stamp = Time.now()
                 self._publish_pose(obj.get_link_tf_frame(link), link_pose)
 
     def _update_static_odom(self) -> None:

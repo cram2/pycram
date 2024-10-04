@@ -1,14 +1,13 @@
 import sys
 import logging
 
+from .ros.data_typs import Time, Duration
 from .ros.logging import logerr
 
 if 'world' in sys.modules:
     logging.warning("(publisher) Make sure that you are not loading this module from pycram.world.")
-import rospy
 
 from tf import TransformerROS
-from rospy import Duration
 
 from .datastructures.pose import Pose, Transform
 from typing_extensions import List, Optional, Union, Iterable
@@ -88,8 +87,8 @@ class LocalTransformer(TransformerROS):
         self.update_transforms_for_objects([obj for obj in objects if obj is not None])
 
         copy_pose = pose.copy()
-        copy_pose.header.stamp = rospy.Time(0)
-        if not self.canTransform(target_frame, pose.frame, rospy.Time(0)):
+        copy_pose.header.stamp = Time(0)
+        if not self.canTransform(target_frame, pose.frame, Time(0)):
             logerr(
                 f"Can not transform pose: \n {pose}\n to frame: {target_frame}."
                 f"\n Maybe try calling 'update_transforms_for_object'")
@@ -98,7 +97,7 @@ class LocalTransformer(TransformerROS):
 
         copy_pose.pose = new_pose.pose
         copy_pose.header.frame_id = new_pose.header.frame_id
-        copy_pose.header.stamp = rospy.Time.now()
+        copy_pose.header.stamp = Time().now()
 
         return Pose(*copy_pose.to_list(), frame=new_pose.header.frame_id)
 
@@ -128,7 +127,7 @@ class LocalTransformer(TransformerROS):
         return object_name[0] if len(object_name) > 0 else None
 
     def lookup_transform_from_source_to_target_frame(self, source_frame: str, target_frame: str,
-                                                     time: Optional[rospy.rostime.Time] = None) -> Transform:
+                                                     time: Optional[Time] = None) -> Transform:
         """
         Update the transforms for all world objects then Look up for the latest known transform that transforms a point
          from source frame to target frame. If no time is given the last common time between the two frames is used.
@@ -145,12 +144,12 @@ class LocalTransformer(TransformerROS):
         translation, rotation = self.lookupTransform(source_frame, target_frame, tf_time)
         return Transform(translation, rotation, source_frame, target_frame)
 
-    def update_transforms(self, transforms: Iterable[Transform], time: rospy.Time = None) -> None:
+    def update_transforms(self, transforms: Iterable[Transform], time: Time = None) -> None:
         """
         Updates transforms by updating the time stamps of the header of each transform. If no time is given the current
         time is used.
         """
-        time = time if time else rospy.Time.now()
+        time = time if time else Time().now()
         for transform in transforms:
             transform.header.stamp = time
             self.setTransform(transform)

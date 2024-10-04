@@ -2,9 +2,9 @@ import json
 import threading
 import time
 
-import rospy
 import sys
 
+from ..ros.data_typs import Time
 from ..ros.logging import logwarn, loginfo_once
 from ..ros.ros_tools import get_node_names
 
@@ -666,7 +666,7 @@ def make_point_stamped(point: List[float]) -> PointStamped:
     :return: A PointStamped message
     """
     msg = PointStamped()
-    msg.header.stamp = rospy.Time.now()
+    msg.header.stamp = Time().now()
     msg.header.frame_id = "map"
 
     msg.point.x = point[0]
@@ -684,7 +684,7 @@ def make_quaternion_stamped(quaternion: List[float]) -> QuaternionStamped:
     :return: A QuaternionStamped message
     """
     msg = QuaternionStamped()
-    msg.header.stamp = rospy.Time.now()
+    msg.header.stamp = Time().now()
     msg.header.frame_id = "map"
 
     msg.quaternion.x = quaternion[0]
@@ -703,7 +703,7 @@ def make_vector_stamped(vector: List[float]) -> Vector3Stamped:
     :return: A Vector3Stamped message
     """
     msg = Vector3Stamped()
-    msg.header.stamp = rospy.Time.now()
+    msg.header.stamp = Time().now()
     msg.header.frame_id = "map"
 
     msg.vector.x = vector[0]

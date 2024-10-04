@@ -2,8 +2,7 @@ import rosnode
 import tf
 from typing_extensions import List, Union, Tuple, Dict
 
-import rospy
-
+from ..ros.data_typs import Duration, ServiceException
 from ..ros.logging import loginfo_once, logerr
 from ..ros.service import get_service_proxy, wait_for_service
 from moveit_msgs.msg import PositionIKRequest
@@ -52,7 +51,7 @@ def _make_request_msg(root_link: str, tip_link: str, target_pose: Pose, robot_ob
     msg_request.pose_stamped = target_pose
     msg_request.avoid_collisions = False
     msg_request.robot_state = robot_state
-    msg_request.timeout = rospy.Duration(secs=1000)
+    msg_request.timeout = Duration(1000)
     # msg_request.attempts = 1000
 
     return msg_request
@@ -78,16 +77,14 @@ def call_ik(root_link: str, tip_link: str, target_pose: Pose, robot_object: Obje
         ik_service = "/kdl_ik_service/get_ik"
 
     loginfo_once(f"Waiting for IK service: {ik_service}")
-    #rospy.wait_for_service(ik_service)
     wait_for_service(ik_service)
 
     req = _make_request_msg(root_link, tip_link, target_pose, robot_object, joints)
     req.pose_stamped.header.frame_id = root_link
-    #ik = rospy.ServiceProxy(ik_service, GetPositionIK)
     ik = get_service_proxy(ik_service, GetPositionIK)
     try:
         resp = ik(req)
-    except rospy.ServiceException as e:
+    except ServiceException as e:
         if RobotDescription.current_robot_description.name == "pr2":
             raise IKError(target_pose, root_link, tip_link)
         else:
