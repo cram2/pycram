@@ -17,7 +17,7 @@ def _get_caller_method_line():
     Get the line of the method that called the function from which this function is called. It is intended as a helper
     function for the log functions.
 
-    :return: Line numver of the method that called the function from which this function is called.
+    :return: Line number of the method that called the function from which this function is called.
     """
     return inspect.stack()[2][2]
 
