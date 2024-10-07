@@ -5,6 +5,7 @@ import os
 import pathlib
 from abc import ABC, abstractmethod
 
+import numpy as np
 import rospy
 import trimesh
 from geometry_msgs.msg import Point, Quaternion
@@ -620,6 +621,7 @@ class ObjectDescription(EntityDescription):
         self._joints: Optional[List[JointDescription]] = None
         self._link_map: Optional[Dict[str, Any]] = None
         self._joint_map: Optional[Dict[str, Any]] = None
+        self.original_path: Optional[str] = path
 
         if path:
             self.update_description_from_file(path)
@@ -737,7 +739,8 @@ class ObjectDescription(EntityDescription):
         pass
 
     def generate_description_from_file(self, path: str, name: str, extension: str, save_path: str,
-                                       scale_mesh: Optional[float] = None) -> None:
+                                       scale_mesh: Optional[float] = None,
+                                       mesh_transform: Optional[Transform] = None) -> None:
         """
         Generate and preprocess the description from the file at the given path and save the preprocessed
         description. The generated description will be saved at the given save path.
@@ -747,15 +750,19 @@ class ObjectDescription(EntityDescription):
         :param extension: The file extension of the file to preprocess.
         :param save_path: The path to save the generated description file.
         :param scale_mesh: The scale of the mesh.
+        :param mesh_transform: The transformation matrix to apply to the mesh.
         :raises ObjectDescriptionNotFound: If the description file could not be found/read.
         """
 
         if extension in self.mesh_extensions:
             if extension == ".ply":
                 mesh = trimesh.load(path)
-                path = path.replace(extension, ".obj")
                 if scale_mesh is not None:
                     mesh.apply_scale(scale_mesh)
+                if mesh_transform is not None:
+                    transform = mesh_transform.get_homogeneous_matrix()
+                    mesh.apply_transform(transform)
+                path = path.replace(extension, ".obj")
                 mesh.export(path)
             self.generate_from_mesh_file(path, name, save_path=save_path)
         elif extension == self.get_file_extension():
