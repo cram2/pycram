@@ -55,7 +55,8 @@ class Object(WorldEntity):
                  world: Optional[World] = None,
                  color: Color = Color(),
                  ignore_cached_files: bool = False,
-                 scale_mesh: Optional[float] = None):
+                 scale_mesh: Optional[float] = None,
+                 mesh_transform: Optional[Transform] = None):
         """
         The constructor loads the description file into the given World, if no World is specified the
         :py:attr:`~World.current_world` will be used. It is also possible to load .obj and .stl file into the World.
@@ -93,7 +94,8 @@ class Object(WorldEntity):
         if path is not None:
             self.path = self.world.preprocess_object_file_and_get_its_cache_path(path, ignore_cached_files,
                                                                                  self.description, self.name,
-                                                                                 scale_mesh=scale_mesh)
+                                                                                 scale_mesh=scale_mesh,
+                                                                                 mesh_transform=mesh_transform)
 
             self.description.update_description_from_file(self.path)
 
