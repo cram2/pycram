@@ -239,7 +239,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
 
     def get_mesh_path(self) -> str:
         """
-        :return: The path of the mesh file of this link if the geometry is a mesh, otherwise raise a ValueError.
+        :return: The path of the mesh file of this link if the geometry is a mesh.
         """
         mesh_filename = self.get_mesh_filename()
         return self.world.cache_manager.look_for_file_in_data_dir(pathlib.Path(mesh_filename))
