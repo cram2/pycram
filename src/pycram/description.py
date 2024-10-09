@@ -16,7 +16,7 @@ from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Colo
 from .datastructures.enums import JointType
 from .datastructures.pose import Pose, Transform
 from .datastructures.world_entity import WorldEntity
-from .failures import ObjectDescriptionNotFound
+from .failures import ObjectDescriptionNotFound, LinkHasNoGeometry, LinkGeometryHasNoMesh
 from .local_transformer import LocalTransformer
 
 if TYPE_CHECKING:
@@ -246,15 +246,16 @@ class Link(ObjectEntity, LinkDescription, ABC):
 
     def get_mesh_filename(self) -> str:
         """
-        :return: The mesh file name of this link if the geometry is a mesh, otherwise raise a ValueError.
-        :raises ValueError: If the geometry is not a mesh or if the link has no geometry.
+        :return: The mesh file name of this link if the geometry is a mesh, otherwise raise a LinkGeometryHasNoMesh.
+        :raises LinkHasNoGeometry: If the link has no geometry.
+        :raises LinkGeometryHasNoMesh: If the geometry is not a mesh.
         """
         if self.geometry is None:
-            raise ValueError("The link has no geometry.")
-        if not isinstance(self.geometry, MeshVisualShape):
-            raise ValueError(f"The link geometry is not of type {MeshVisualShape.__name__},"
-                             f" it is {type(self.geometry)}.")
-        return self.geometry.file_name
+            raise LinkHasNoGeometry(self.name)
+        if isinstance(self.geometry, MeshVisualShape):
+            return self.geometry.file_name
+        else:
+            raise LinkGeometryHasNoMesh(self.name, type(self.geometry).__name__)
 
     def set_pose(self, pose: Pose) -> None:
         """
