@@ -5,14 +5,13 @@ import os
 import pathlib
 from abc import ABC, abstractmethod
 
-import numpy as np
 import rospy
 import trimesh
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING, Self, deprecated
 
 from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape, \
-    MeshVisualShape
+    MeshVisualShape, RotatedBoundingBox
 from .datastructures.enums import JointType
 from .datastructures.pose import Pose, Transform
 from .datastructures.world_entity import WorldEntity
@@ -221,21 +220,32 @@ class Link(ObjectEntity, LinkDescription, ABC):
         self._current_pose: Optional[Pose] = None
         self.update_pose()
 
-    def get_axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
+    def get_bounding_box(self, rotated: bool = False) -> Union[AxisAlignedBoundingBox, RotatedBoundingBox]:
         """
-        :return: The axis-aligned bounding box of a link. First try to get it from the simulator, if not, then calculate
-         it depending on the type of the link geometry.
+        :param rotated: If True, return the rotated bounding box, otherwise the axis-aligned bounding box.
+        :return: The axis-aligned or rotated bounding box of a link. First try to get it from the simulator, if not,
+         then calculate it depending on the type of the link geometry.
         """
         try:
-            return self.world.get_link_axis_aligned_bounding_box(self)
+            if rotated:
+                return self.world.get_link_rotated_bounding_box(self)
+            else:
+                return self.world.get_link_axis_aligned_bounding_box(self)
         except NotImplementedError:
             if isinstance(self.geometry, MeshVisualShape):
                 mesh_path = self.get_mesh_path()
                 mesh = trimesh.load(mesh_path)
                 min_bound, max_bound = mesh.bounds
-                return AxisAlignedBoundingBox.from_min_max(min_bound, max_bound).get_transformed_box(self.transform)
+                if rotated:
+                    return RotatedBoundingBox.from_min_max(min_bound, max_bound, self.transform)
+                else:
+                    return AxisAlignedBoundingBox.from_min_max(min_bound, max_bound).get_transformed_box(self.transform)
             else:
-                return self.geometry.axis_aligned_bounding_box.get_transformed_box(self.transform)
+                bounding_box = self.geometry.axis_aligned_bounding_box
+                if rotated:
+                    return RotatedBoundingBox.from_axis_aligned_bounding_box(bounding_box, self.transform)
+                else:
+                    return bounding_box.get_transformed_box(self.transform)
 
     def get_mesh_path(self) -> str:
         """

@@ -19,7 +19,7 @@ from ..datastructures.dataclasses import (Color, AxisAlignedBoundingBox, Collisi
                                           SphereVisualShape,
                                           CapsuleVisualShape, PlaneVisualShape, MeshVisualShape,
                                           ObjectState, WorldState, ClosestPointsList,
-                                          ContactPointsList, VirtualMobileBaseJoints)
+                                          ContactPointsList, VirtualMobileBaseJoints, RotatedBoundingBox)
 from ..datastructures.enums import JointType, ObjectType, WorldMode, Arms
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world_entity import StateEntity
@@ -837,8 +837,6 @@ class World(StateEntity, ABC):
     @abstractmethod
     def get_link_color(self, link: Link) -> Color:
         """
-        This method returns the rgba_color of this link.
-
         :param link: The link for which the rgba_color should be returned.
         :return: The rgba_color as Color object with RGBA values between 0 and 1.
         """
@@ -847,31 +845,44 @@ class World(StateEntity, ABC):
     @abstractmethod
     def get_colors_of_object_links(self, obj: Object) -> Dict[str, Color]:
         """
-        Get the RGBA colors of each link in the object as a dictionary from link name to rgba_color.
-
         :param obj: The object
-        :return: A dictionary with link names as keys and a Color object for each link as value.
+        :return: The RGBA colors of each link in the object as a dictionary from link name to rgba_color.
         """
         pass
 
     @abstractmethod
     def get_object_axis_aligned_bounding_box(self, obj: Object) -> AxisAlignedBoundingBox:
         """
-        Return the axis aligned bounding box of this object. The return of this method are two points in
-        world coordinate frame which define a bounding box.
-
         :param obj: The object for which the bounding box should be returned.
-        :return: AxisAlignedBoundingBox object containing the min and max points of the bounding box.
+        :return: the axis aligned bounding box of this object. The return of this method are two points in
+        world coordinate frame which define a bounding box.
         """
         pass
+
+    def get_object_rotated_bounding_box(self, obj: Object) -> RotatedBoundingBox:
+        """
+        :param obj: The object for which the bounding box should be returned.
+        :return: the rotated bounding box of this object. The return of this method are two points in
+        world coordinate frame which define a bounding box.
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
         """
-        Return the axis aligned bounding box of the link. The return of this method are two points in
+        :param link: The link for which the bounding box should be returned.
+        :return: The axis aligned bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
         pass
+
+    def get_link_rotated_bounding_box(self, link: Link) -> RotatedBoundingBox:
+        """
+        :param link: The link for which the bounding box should be returned.
+        :return: The rotated bounding box of the link. The return of this method are two points in
+        world coordinate frame which define a bounding box.
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def set_realtime(self, real_time: bool) -> None:

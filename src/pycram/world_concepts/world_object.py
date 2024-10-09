@@ -12,7 +12,7 @@ from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
-                                          ContactPointsList)
+                                          ContactPointsList, RotatedBoundingBox)
 from ..datastructures.enums import ObjectType, JointType
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world import World
@@ -500,7 +500,7 @@ class Object(WorldEntity):
         :param link_name: The name of the link.
         :return: The axis aligned bounding box of the link.
         """
-        return self.links[link_name].get_axis_aligned_bounding_box()
+        return self.links[link_name].get_bounding_box()
 
     def get_transform_between_links(self, from_link: str, to_link: str) -> Transform:
         """
@@ -1356,9 +1356,20 @@ class Object(WorldEntity):
         :return: The axis aligned bounding box of this object.
         """
         if self.has_one_link:
-            return self.links[self.description.get_root()].get_axis_aligned_bounding_box()
+            return self.links[self.description.get_root()].get_bounding_box()
         else:
             return self.world.get_object_axis_aligned_bounding_box(self)
+
+    def get_rotated_bounding_box(self) -> RotatedBoundingBox:
+        """
+        Return the rotated bounding box of this object.
+
+        :return: The rotated bounding box of this object.
+        """
+        if self.has_one_link:
+            return self.links[self.description.get_root()].get_bounding_box(rotated=True)
+        else:
+            return self.world.get_object_rotated_bounding_box(self)
 
     def get_base_origin(self) -> Pose:
         """
