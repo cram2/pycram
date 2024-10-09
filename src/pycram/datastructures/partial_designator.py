@@ -1,19 +1,24 @@
+# used for delayed evaluation of typing until python 3.11 becomes mainstream
+from __future__ import annotations
+
 from collections import Iterable
-from typing_extensions import Type, List, Tuple, Any, Dict
+from typing_extensions import Type, List, Tuple, Any, Dict, TYPE_CHECKING
 from itertools import product
 from inspect import signature
 
-from pycram.designator import ActionDesignatorDescription
+
+if TYPE_CHECKING:
+    from ..designator import ActionDesignatorDescription
 
 
 class PartialDesignator:
     """
-    A partial designator is somewhat between a DesignatorDescription and a specified designator. Basically it is a
-    partially initialized specified designator which can take a list of input arguments (like a DesignatorDescription)
+    A partial designator_description is somewhat between a DesignatorDescription and a specified designator_description. Basically it is a
+    partially initialized specified designator_description which can take a list of input arguments (like a DesignatorDescription)
     and generate a list of specified designators with all possible permutations of the input arguments.
 
     PartialDesignators are designed as generators, as such they need to be iterated over to yield the possible specified
-    designators. Please also keep in mind that at the time of iteration all parameter of the specified designator need
+    designators. Please also keep in mind that at the time of iteration all parameter of the specified designator_description need
     to be filled, otherwise a TypeError will be raised, see the example below for usage.
 
     .. code-block:: python
@@ -35,7 +40,7 @@ class PartialDesignator:
     Keyword arguments that are passed to the performable
     """
 
-    def __init__(self, performable = Type[ActionDesignatorDescription.Action], *args, **kwargs):
+    def __init__(self, performable: Type[ActionDesignatorDescription.Action], *args, **kwargs):
         self.performable = performable
         self.args = args
         self.kwargs = kwargs
