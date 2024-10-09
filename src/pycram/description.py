@@ -11,7 +11,8 @@ import trimesh
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING, Self, deprecated
 
-from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape
+from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape, \
+    MeshVisualShape
 from .datastructures.enums import JointType
 from .datastructures.pose import Pose, Transform
 from .datastructures.world_entity import WorldEntity
@@ -220,6 +221,41 @@ class Link(ObjectEntity, LinkDescription, ABC):
         self._current_pose: Optional[Pose] = None
         self.update_pose()
 
+    def get_axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
+        """
+        :return: The axis-aligned bounding box of a link. First try to get it from the simulator, if not, then calculate
+         it depending on the type of the link geometry.
+        """
+        try:
+            return self.world.get_link_axis_aligned_bounding_box(self)
+        except NotImplementedError:
+            if isinstance(self.geometry, MeshVisualShape):
+                mesh_path = self.get_mesh_path()
+                mesh = trimesh.load(mesh_path)
+                min_bound, max_bound = mesh.bounds
+                return AxisAlignedBoundingBox.from_min_max(min_bound, max_bound).get_transformed_box(self.transform)
+            else:
+                return self.geometry.axis_aligned_bounding_box.get_transformed_box(self.transform)
+
+    def get_mesh_path(self) -> str:
+        """
+        :return: The path of the mesh file of this link if the geometry is a mesh, otherwise raise a ValueError.
+        """
+        mesh_filename = self.get_mesh_filename()
+        return self.world.cache_manager.look_for_file_in_data_dir(pathlib.Path(mesh_filename))
+
+    def get_mesh_filename(self) -> str:
+        """
+        :return: The mesh file name of this link if the geometry is a mesh, otherwise raise a ValueError.
+        :raises ValueError: If the geometry is not a mesh or if the link has no geometry.
+        """
+        if self.geometry is None:
+            raise ValueError("The link has no geometry.")
+        if not isinstance(self.geometry, MeshVisualShape):
+            raise ValueError(f"The link geometry is not of type {MeshVisualShape.__name__},"
+                             f" it is {type(self.geometry)}.")
+        return self.geometry.file_name
+
     def set_pose(self, pose: Pose) -> None:
         """
         Set the pose of this link to the given pose.
@@ -338,12 +374,6 @@ class Link(ObjectEntity, LinkDescription, ABC):
         :return: A Pose object with the pose of this link with respect to the given link.
         """
         return self.local_transformer.transform_pose(self.pose, link.tf_frame)
-
-    def get_axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
-        """
-        :return: An AxisAlignedBoundingBox object with the axis aligned bounding box of this link.
-        """
-        return self.world.get_link_axis_aligned_bounding_box(self)
 
     @property
     def position(self) -> Point:
