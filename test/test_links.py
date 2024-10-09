@@ -1,8 +1,36 @@
+import numpy as np
+from matplotlib import pyplot as plt
+from tf.transformations import quaternion_from_euler
+
 from bullet_world_testcase import BulletWorldTestCase
 from pycram.datastructures.dataclasses import Color
+from pycram.datastructures.pose import Pose
 
 
 class TestLinks(BulletWorldTestCase):
+
+    def test_rotated_bounding_box(self):
+        self.milk.set_pose(Pose([1, 1, 1], quaternion_from_euler(np.pi/4, 0, 0).tolist()))
+        aabb = self.milk.get_axis_aligned_bounding_box()
+        aabb_points = np.array(aabb.get_points_list())
+        rbb = self.milk.get_rotated_bounding_box()
+        rot_points = np.array(rbb.get_points_list())
+        plot = False
+        if plot:
+            fig = plt.figure()
+            ax = fig.add_subplot(projection='3d')
+
+            ax.scatter(rot_points[:, 0], rot_points[:, 1], rot_points[:, 2], c='r', marker='o')
+            ax.scatter(aabb_points[:, 0], aabb_points[:, 1], aabb_points[:, 2], c='b', marker='o')
+
+            ax.set_xlabel('X Label')
+            ax.set_ylabel('Y Label')
+            ax.set_zlabel('Z Label')
+            plt.xlim(0, 2)
+            plt.ylim(0, 2)
+            ax.set_zlim(0, 2)
+
+            plt.show()
 
     def test_add_constraint(self):
         milk_link = self.milk.root_link

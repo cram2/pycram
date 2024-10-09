@@ -55,7 +55,8 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     def test_get_axis_aligned_bounding_box_for_one_link_object(self):
         position = [1, 1, 0.1]
-        milk = self.spawn_milk(position)
+        milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1, 1, 0.1],
+                                                                     quaternion_from_euler(np.pi/4, 0, 0).tolist()))
         aabb = milk.get_axis_aligned_bounding_box()
         self.assertIsInstance(aabb, AxisAlignedBoundingBox)
         min_p_1, max_p_1 = aabb.get_min_max()
