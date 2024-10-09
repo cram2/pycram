@@ -1572,7 +1572,7 @@ class WorldSync(threading.Thread):
     if reasoning should be done in the prospection world.
     """
 
-    WAIT_TIME_AS_N_SIMULATION_STEPS = 30
+    WAIT_TIME_AS_N_SIMULATION_STEPS = 0
     """
     The time in simulation steps to wait between each iteration of the syncing loop.
     """
