@@ -116,6 +116,17 @@ class Object(WorldEntity):
 
         self.world.add_object(self)
 
+    def get_mesh_path(self) -> str:
+        """
+        Get the path to the mesh file of the object.
+
+        :return: The path to the mesh file.
+        """
+        if self.has_one_link:
+            return self.root_link.get_mesh_path()
+        else:
+            raise ValueError("The object has more than one link, therefore the mesh path cannot be determined.")
+
     def _resolve_description(self, path: Optional[str] = None, description: Optional[ObjectDescription] = None) -> None:
         """
         Find the correct description type of the object and initialize it and set the description of this object to it.
@@ -1344,7 +1355,10 @@ class Object(WorldEntity):
 
         :return: The axis aligned bounding box of this object.
         """
-        return self.world.get_object_axis_aligned_bounding_box(self)
+        if self.has_one_link:
+            return self.links[self.description.get_root()].get_axis_aligned_bounding_box()
+        else:
+            return self.world.get_object_axis_aligned_bounding_box(self)
 
     def get_base_origin(self) -> Pose:
         """

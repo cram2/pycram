@@ -4,10 +4,11 @@ from abc import ABC, abstractmethod
 from copy import deepcopy, copy
 from dataclasses import dataclass
 
-from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING
+import numpy as np
+from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING, Iterable, Sequence
 
 from .enums import JointType, Shape, VirtualMobileBaseJointName
-from .pose import Pose, Point
+from .pose import Pose, Point, Transform
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
 
 if TYPE_CHECKING:
@@ -100,7 +101,7 @@ class AxisAlignedBoundingBox:
     max_z: float
 
     @classmethod
-    def from_min_max(cls, min_point: List[float], max_point: List[float]):
+    def from_min_max(cls, min_point: Sequence[float], max_point: Sequence[float]):
         """
         Set the axis-aligned bounding box from a minimum and maximum point.
 
@@ -108,6 +109,16 @@ class AxisAlignedBoundingBox:
         :param max_point: The maximum point
         """
         return cls(min_point[0], min_point[1], min_point[2], max_point[0], max_point[1], max_point[2])
+
+    def get_transformed_box(self, transform: Transform) -> 'AxisAlignedBoundingBox':
+        """
+        Apply a transformation to the axis-aligned bounding box and return the transformed axis-aligned bounding box.
+
+        :param transform: The transformation to apply
+        :return: The transformed axis-aligned bounding box
+        """
+        transformed_points = transform.apply_transform_to_array_of_points(np.array(self.get_min_max()))
+        return AxisAlignedBoundingBox.from_min_max(transformed_points[0], transformed_points[1])
 
     def get_min_max_points(self) -> Tuple[Point, Point]:
         """
@@ -196,6 +207,13 @@ class VisualShape(ABC):
         """
         pass
 
+    @property
+    def axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
+        """
+        :return: The axis-aligned bounding box of the visual shape.
+        """
+        raise NotImplementedError
+
 
 @dataclass
 class BoxVisualShape(VisualShape):
@@ -215,6 +233,14 @@ class BoxVisualShape(VisualShape):
     def size(self) -> List[float]:
         return self.half_extents
 
+    @property
+    def axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
+        """
+        :return: The axis-aligned bounding box of the box visual shape.
+        """
+        return AxisAlignedBoundingBox(-self.half_extents[0], -self.half_extents[1], -self.half_extents[2],
+                                      self.half_extents[0], self.half_extents[1], self.half_extents[2])
+
 
 @dataclass
 class SphereVisualShape(VisualShape):
@@ -229,6 +255,13 @@ class SphereVisualShape(VisualShape):
     @property
     def visual_geometry_type(self) -> Shape:
         return Shape.SPHERE
+
+    @property
+    def axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
+        """
+        :return: The axis-aligned bounding box of the sphere visual shape.
+        """
+        return AxisAlignedBoundingBox(-self.radius, -self.radius, -self.radius, self.radius, self.radius, self.radius)
 
 
 @dataclass
@@ -245,6 +278,14 @@ class CapsuleVisualShape(VisualShape):
     @property
     def visual_geometry_type(self) -> Shape:
         return Shape.CAPSULE
+
+    @property
+    def axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
+        """
+        :return: The axis-aligned bounding box of the capsule visual shape.
+        """
+        return AxisAlignedBoundingBox(-self.radius, -self.radius, -self.length / 2,
+                                      self.radius, self.radius, self.length / 2)
 
 
 @dataclass

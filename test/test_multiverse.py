@@ -7,7 +7,7 @@ import psutil
 from tf.transformations import quaternion_from_euler, quaternion_multiply
 from typing_extensions import Optional, List
 
-from pycram.datastructures.dataclasses import ContactPointsList, ContactPoint
+from pycram.datastructures.dataclasses import ContactPointsList, ContactPoint, AxisAlignedBoundingBox
 from pycram.datastructures.enums import ObjectType, Arms, JointType
 from pycram.datastructures.pose import Pose
 from pycram.robot_description import RobotDescriptionManager
@@ -52,6 +52,33 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     def tearDown(self):
         self.multiverse.remove_all_objects()
+
+    def test_get_axis_aligned_bounding_box_for_one_link_object(self):
+        position = [1, 1, 0.1]
+        milk = self.spawn_milk(position)
+        aabb = milk.get_axis_aligned_bounding_box()
+        self.assertIsInstance(aabb, AxisAlignedBoundingBox)
+        min_p_1, max_p_1 = aabb.get_min_max()
+        width = max_p_1[0] - min_p_1[0]
+        length = max_p_1[1] - min_p_1[1]
+        height = max_p_1[2] - min_p_1[2]
+        self.assertTrue(width > 0)
+        self.assertTrue(length > 0)
+        self.assertTrue(height > 0)
+        # Move the object and check if the bounding box is updated correctly
+        position_shift = 1
+        milk.set_position([position[0] + position_shift, position[1] + position_shift, 0.1])
+        aabb = milk.get_axis_aligned_bounding_box()
+        min_p_2, max_p_2 = aabb.get_min_max()
+        width_2 = max_p_2[0] - min_p_2[0]
+        length_2 = max_p_2[1] - min_p_2[1]
+        height_2 = max_p_2[2] - min_p_2[2]
+        self.assertAlmostEqual(width, width_2, delta=0.001)
+        self.assertAlmostEqual(length, length_2, delta=0.001)
+        self.assertAlmostEqual(height, height_2, delta=0.001)
+        for i in range(3):
+            self.assertAlmostEqual(min_p_1[0] + position_shift, min_p_2[0], delta=0.001)
+            self.assertAlmostEqual(max_p_1[0] + position_shift, max_p_2[0], delta=0.001)
 
     def test_spawn_mesh_object(self):
         milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1, 1, 0.1]))
