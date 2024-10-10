@@ -356,7 +356,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def spawn_milk(position: List, orientation: Optional[List] = None, frame="map") -> Object:
         if orientation is None:
             orientation = [0, 0, 0, 1]
-        milk = Object("milk_box", ObjectType.MILK, "milk_box.urdf",
+        milk = Object("milk_box", ObjectType.MILK, "milk_box.xml",
                       pose=Pose(position, orientation, frame=frame))
         return milk
 
