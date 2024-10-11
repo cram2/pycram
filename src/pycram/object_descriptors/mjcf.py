@@ -1,3 +1,4 @@
+import os
 import pathlib
 
 import numpy as np
@@ -5,6 +6,7 @@ import rospy
 from dm_control import mjcf
 from geometry_msgs.msg import Point
 from typing_extensions import Union, List, Optional, Dict, Tuple
+from xml.etree import ElementTree as ET
 
 from ..datastructures.dataclasses import Color, VisualShape, BoxVisualShape, CylinderVisualShape, \
     SphereVisualShape, MeshVisualShape
@@ -239,6 +241,16 @@ class ObjectDescription(AbstractObjectDescription):
     A class that represents an object description of an object.
     """
 
+    COMPILER_TAG = 'compiler'
+    """
+    The tag of the compiler element in the MJCF file.
+    """
+    MESH_DIR_ATTR = 'meshdir'
+    TEXTURE_DIR_ATTR = 'texturedir'
+    """
+    The attributes of the compiler element in the MJCF file. The meshdir attribute is the directory where the mesh files
+    are stored and the texturedir attribute is the directory where the texture files are stored."""
+
     class Link(AbstractObjectDescription.Link, LinkDescription):
         ...
 
@@ -368,8 +380,24 @@ class ObjectDescription(AbstractObjectDescription):
         factory.export_to_mjcf(output_file_path=save_path)
 
     def generate_from_description_file(self, path: str, save_path: str, make_mesh_paths_absolute: bool = True) -> None:
-        mjcf_model = mjcf.from_file(path)
-        self.write_description_to_file(mjcf_model, save_path)
+        model_str = self.replace_relative_paths_with_absolute_paths(path)
+        self.write_description_to_file(model_str, save_path)
+
+    def replace_relative_paths_with_absolute_paths(self, model_path: str) -> str:
+        """
+        Replace the relative paths in the xml file to be absolute paths.
+
+        :param model_path: The path to the xml file.
+        """
+        tree = ET.parse(model_path)
+        root = tree.getroot()
+        compiler = root.find(self.COMPILER_TAG)
+        model_dir = pathlib.Path(model_path).parent
+        for rel_dir_attrib in [self.MESH_DIR_ATTR, self.TEXTURE_DIR_ATTR]:
+            rel_dir = compiler.get(rel_dir_attrib)
+            abs_dir = str(pathlib.Path(os.path.join(model_dir, rel_dir)).resolve())
+            compiler.set(rel_dir_attrib, abs_dir)
+        return ET.tostring(root, encoding='unicode', method='xml')
 
     def generate_from_parameter_server(self, name: str, save_path: str) -> None:
         mjcf_string = rospy.get_param(name)

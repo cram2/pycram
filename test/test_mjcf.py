@@ -26,7 +26,6 @@ class TestMjcf(TestCase):
         joint2 = body3.add('joint', name='joint2', type='slide')
 
         cls.model = MJCFObjDesc()
-        print(model.to_xml_string())
         cls.model.update_description_from_string(model.to_xml_string())
 
     def test_child_map(self):
@@ -38,3 +37,4 @@ class TestMjcf(TestCase):
     def test_get_chain(self):
         self.assertEqual(self.model.get_chain('body1', 'body3'),
                          ['body1', 'joint1', 'body2', 'joint2', 'body3'])
+
