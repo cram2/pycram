@@ -4,10 +4,11 @@ from abc import ABC, abstractmethod
 from copy import deepcopy, copy
 from dataclasses import dataclass
 
-from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING
+import numpy as np
+from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING, Sequence
 
 from .enums import JointType, Shape, VirtualMobileBaseJointName
-from .pose import Pose, Point
+from .pose import Pose, Point, Transform
 from ..validation.error_checkers import calculate_joint_position_error, is_error_acceptable
 
 if TYPE_CHECKING:
@@ -24,6 +25,14 @@ def get_point_as_list(point: Point) -> List[float]:
     :return: The point as a list
     """
     return [point.x, point.y, point.z]
+
+
+def get_list_from_points(points: List[Point]) -> List[List[float]]:
+    """
+    :param points: The points as a list of Point instances.
+    :return: The points as a list of lists of floats
+    """
+    return [get_point_as_list(point) for point in points]
 
 
 @dataclass
@@ -88,7 +97,7 @@ class Color:
 
 
 @dataclass
-class AxisAlignedBoundingBox:
+class BoundingBox:
     """
     Dataclass for storing an axis-aligned bounding box.
     """
@@ -99,8 +108,91 @@ class AxisAlignedBoundingBox:
     max_y: float
     max_z: float
 
+    def get_axis_aligned_corners(self) -> List[List[float]]:
+        """
+        :return: The points of the bounding box as a list of lists of floats.
+        """
+        return [[self.min_x, self.min_y, self.min_z],
+                [self.min_x, self.min_y, self.max_z],
+                [self.min_x, self.max_y, self.min_z],
+                [self.min_x, self.max_y, self.max_z],
+                [self.max_x, self.min_y, self.min_z],
+                [self.max_x, self.min_y, self.max_z],
+                [self.max_x, self.max_y, self.min_z],
+                [self.max_x, self.max_y, self.max_z]]
+
+    def get_transformed_min_max_points(self, transform: Transform) -> Tuple[Point, Point]:
+        """
+        Apply a transformation to the bounding box and return the transformed minimum and maximum points.
+
+        :param transform: The transformation to apply
+        :return: The transformed minimum and maximum points
+        """
+        transformed_points = transform.apply_transform_to_array_of_points(np.array(self.get_min_max()))
+        min_p = [min(transformed_points[:, i]) for i in range(3)]
+        max_p = [max(transformed_points[:, i]) for i in range(3)]
+        return Point(*min_p), Point(*max_p)
+
+    def get_min_max_points(self) -> Tuple[Point, Point]:
+        """
+        :return: The minimum and maximum points of the bounding box
+        """
+        return self.get_min_point(), self.get_max_point()
+
+    def get_min_point(self) -> Point:
+        """
+        :return: The minimum point of the bounding box
+        """
+        return Point(self.min_x, self.min_y, self.min_z)
+
+    def get_max_point(self) -> Point:
+        """
+        :return: The maximum point of the bounding box
+        """
+        return Point(self.max_x, self.max_y, self.max_z)
+
+    def get_min_max(self) -> Tuple[List[float], List[float]]:
+        """
+        :return: The minimum and maximum points of the bounding box as lists of floats
+        """
+        return self.get_min(), self.get_max()
+
+    def get_min(self) -> List[float]:
+        """
+        :return: The minimum point of the axis-aligned bounding box as a list of floats
+        """
+        return [self.min_x, self.min_y, self.min_z]
+
+    def get_max(self) -> List[float]:
+        """
+        :return: The maximum point of the axis-aligned bounding box as a list of floats
+        """
+        return [self.max_x, self.max_y, self.max_z]
+
+
+@dataclass
+class AxisAlignedBoundingBox(BoundingBox):
+
+    def get_corners(self) -> List[List[float]]:
+        """
+        :return: The points of the axis-aligned bounding box.
+        """
+        return self.get_axis_aligned_corners()
+
+    def get_transformed_box(self, transform: Transform) -> 'AxisAlignedBoundingBox':
+        """
+        Apply a transformation to the axis-aligned bounding box and return the transformed axis-aligned bounding box.
+
+        :param transform: The transformation to apply
+        :return: The transformed axis-aligned bounding box
+        """
+        transformed_points = transform.apply_transform_to_array_of_points(np.array(self.get_min_max()))
+        min_p = [min(transformed_points[:, i]) for i in range(3)]
+        max_p = [max(transformed_points[:, i]) for i in range(3)]
+        return AxisAlignedBoundingBox.from_min_max(min_p, max_p)
+
     @classmethod
-    def from_min_max(cls, min_point: List[float], max_point: List[float]):
+    def from_min_max(cls, min_point: Sequence[float], max_point: Sequence[float]):
         """
         Set the axis-aligned bounding box from a minimum and maximum point.
 
@@ -109,41 +201,55 @@ class AxisAlignedBoundingBox:
         """
         return cls(min_point[0], min_point[1], min_point[2], max_point[0], max_point[1], max_point[2])
 
-    def get_min_max_points(self) -> Tuple[Point, Point]:
-        """
-        :return: The axis-aligned bounding box as a tuple of minimum and maximum points
-        """
-        return self.get_min_point(), self.get_max_point()
 
-    def get_min_point(self) -> Point:
-        """
-        :return: The axis-aligned bounding box as a minimum point
-        """
-        return Point(self.min_x, self.min_y, self.min_z)
+@dataclass
+class RotatedBoundingBox(BoundingBox):
+    """
+    Dataclass for storing a rotated bounding box.
+    """
 
-    def get_max_point(self) -> Point:
-        """
-        :return: The axis-aligned bounding box as a maximum point
-        """
-        return Point(self.max_x, self.max_y, self.max_z)
+    def __init__(self, min_x: float, min_y: float, min_z: float, max_x: float, max_y: float, max_z: float,
+                 transform: Transform, points: Optional[List[Point]] = None):
+        self.min_x, self.min_y, self.min_z = min_x, min_y, min_z
+        self.max_x, self.max_y, self.max_z = max_x, max_y, max_z
+        self.transform: Transform = transform
+        self._points_list: Optional[List[List[float]]] = get_list_from_points(points) if points is not None else None
 
-    def get_min_max(self) -> Tuple[List[float], List[float]]:
+    @classmethod
+    def from_min_max_and_transform(cls, min_point: Sequence[float], max_point: Sequence[float], transform: Transform):
         """
-        :return: The axis-aligned bounding box as a tuple of minimum and maximum points
-        """
-        return self.get_min(), self.get_max()
+        Set the rotated bounding box from a minimum, maximum point, and a transformation.
 
-    def get_min(self) -> List[float]:
+        :param min_point: The minimum point
+        :param max_point: The maximum point
+        :param transform: The transformation
         """
-        :return: The minimum point of the axis-aligned bounding box
-        """
-        return [self.min_x, self.min_y, self.min_z]
+        return cls(min_point[0], min_point[1], min_point[2], max_point[0], max_point[1], max_point[2], transform)
 
-    def get_max(self) -> List[float]:
+    @classmethod
+    def from_axis_aligned_bounding_box(cls, axis_aligned_bounding_box: AxisAlignedBoundingBox,
+                                       transform: Transform) -> 'RotatedBoundingBox':
         """
-        :return: The maximum point of the axis-aligned bounding box
+        Set the rotated bounding box from an axis-aligned bounding box and a transformation.
+
+        :param axis_aligned_bounding_box: The axis-aligned bounding box.
+        :param transform: The transformation.
         """
-        return [self.max_x, self.max_y, self.max_z]
+        return cls(axis_aligned_bounding_box.min_x, axis_aligned_bounding_box.min_y, axis_aligned_bounding_box.min_z,
+                   axis_aligned_bounding_box.max_x, axis_aligned_bounding_box.max_y, axis_aligned_bounding_box.max_z,
+                   transform)
+
+    def get_corners(self, transform: Optional[Transform] = None) -> List[List[float]]:
+        """
+        :param transform: The transformation to apply to the points, if None the stored transformation is used.
+        :return: The points of the rotated bounding box.
+        """
+        if (self._points_list is None) or (transform is not None):
+            if transform is not None:
+                self.transform = transform
+            points_array = np.array(self.get_axis_aligned_corners())
+            self._points_list = self.transform.apply_transform_to_array_of_points(points_array).tolist()
+        return self._points_list
 
 
 @dataclass
@@ -196,6 +302,13 @@ class VisualShape(ABC):
         """
         pass
 
+    @property
+    def axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
+        """
+        :return: The axis-aligned bounding box of the visual shape.
+        """
+        raise NotImplementedError
+
 
 @dataclass
 class BoxVisualShape(VisualShape):
@@ -215,6 +328,14 @@ class BoxVisualShape(VisualShape):
     def size(self) -> List[float]:
         return self.half_extents
 
+    @property
+    def axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
+        """
+        :return: The axis-aligned bounding box of the box visual shape.
+        """
+        return AxisAlignedBoundingBox(-self.half_extents[0], -self.half_extents[1], -self.half_extents[2],
+                                      self.half_extents[0], self.half_extents[1], self.half_extents[2])
+
 
 @dataclass
 class SphereVisualShape(VisualShape):
@@ -229,6 +350,13 @@ class SphereVisualShape(VisualShape):
     @property
     def visual_geometry_type(self) -> Shape:
         return Shape.SPHERE
+
+    @property
+    def axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
+        """
+        :return: The axis-aligned bounding box of the sphere visual shape.
+        """
+        return AxisAlignedBoundingBox(-self.radius, -self.radius, -self.radius, self.radius, self.radius, self.radius)
 
 
 @dataclass
@@ -245,6 +373,14 @@ class CapsuleVisualShape(VisualShape):
     @property
     def visual_geometry_type(self) -> Shape:
         return Shape.CAPSULE
+
+    @property
+    def axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
+        """
+        :return: The axis-aligned bounding box of the capsule visual shape.
+        """
+        return AxisAlignedBoundingBox(-self.radius, -self.radius, -self.length / 2,
+                                      self.radius, self.radius, self.length / 2)
 
 
 @dataclass
@@ -490,6 +626,7 @@ class ContactPointsList(list):
     """
     A list of contact points.
     """
+
     def get_links_that_got_removed(self, previous_points: 'ContactPointsList') -> List[Link]:
         """
         Return the links that are not in the current points list but were in the initial points list.

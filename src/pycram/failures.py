@@ -469,3 +469,13 @@ class UnsupportedJointType(Exception):
     def __init__(self, joint_type: 'JointType'):
         super().__init__(f"Unsupported joint type: {joint_type}")
 
+
+class LinkHasNoGeometry(Exception):
+    def __init__(self, link_name: str):
+        super().__init__(f"Link {link_name} has no geometry.")
+
+
+class LinkGeometryHasNoMesh(Exception):
+    def __init__(self, link_name: str, geometry_type: str):
+        super().__init__(f"Link {link_name} geometry with type {geometry_type} has no mesh.")
+
