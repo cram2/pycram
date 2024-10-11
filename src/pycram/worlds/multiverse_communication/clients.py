@@ -4,7 +4,6 @@ import os
 import threading
 from time import time, sleep
 
-import rospy
 from typing_extensions import List, Dict, Tuple, Optional, Callable, Union
 
 from .socket import MultiverseSocket, MultiverseMetaData
@@ -13,6 +12,7 @@ from ...datastructures.dataclasses import RayResult, MultiverseContactPoint
 from ...datastructures.enums import (MultiverseAPIName as API, MultiverseBodyProperty as BodyProperty,
                                      MultiverseProperty as Property)
 from ...datastructures.pose import Pose
+from ...ros.logging import logwarn
 from ...utils import wxyz_to_xyzw
 from ...world_concepts.constraints import Constraint
 from ...world_concepts.world_object import Object, Link
@@ -742,7 +742,7 @@ class MultiverseAPI(MultiverseClient):
         """
         contact_effort = contact_effort[0].split()
         if 'failed' in contact_effort:
-            rospy.logwarn("Failed to get contact effort")
+            logwarn("Failed to get contact effort")
             return [0.0] * 6
         return list(map(float, contact_effort))
 

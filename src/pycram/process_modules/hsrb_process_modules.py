@@ -1,5 +1,4 @@
 import numpy as np
-import rospy
 from threading import Lock
 from typing_extensions import Any
 
@@ -16,6 +15,8 @@ from pydub.playback import play
 from gtts import gTTS
 
 import io
+
+from ..ros.logging import logdebug
 
 
 class HSRBNavigation(ProcessModule):
@@ -49,7 +50,7 @@ class HSRBNavigationReal(ProcessModule):
     """
 
     def _execute(self, designator: MoveMotion) -> Any:
-        rospy.logdebug(f"Sending goal to giskard to Move the robot")
+        logdebug(f"Sending goal to giskard to Move the robot")
         # giskard.achieve_cartesian_goal(designator.target, robot_description.base_link, "map")
         # todome fix this
         # queryPoseNav(designator.target)
@@ -163,7 +164,7 @@ class HSRBNavigationSemiReal(ProcessModule):
     """
 
     def _execute(self, designator: MoveMotion) -> Any:
-        rospy.logdebug(f"Sending goal to giskard to Move the robot")
+        logdebug(f"Sending goal to giskard to Move the robot")
         giskard.teleport_robot(designator.target)
 
 

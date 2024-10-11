@@ -1,4 +1,3 @@
-import rospy
 from typing_extensions import List, Union, Optional
 from numpy.linalg import norm
 from numpy import array
@@ -13,6 +12,7 @@ from ....datastructures.pose import Pose, Transform
 from ....datastructures.enums import Arms, Grasp
 from ....robot_description import RobotDescription, KinematicChainDescription
 from ....designator import ObjectDesignatorDescription
+from ....ros.logging import loginfo
 
 
 class DualArmPickupAction(PickUpAction):
@@ -54,7 +54,7 @@ class DualArmPickupAction(PickUpAction):
         else:
             obj_desig = self.object_designator_description.resolve()
 
-        rospy.loginfo("Calculating closest gripper to object {}".format(obj_desig.name))
+        loginfo("Calculating closest gripper to object {}".format(obj_desig.name))
 
         local_transformer = LocalTransformer()
 
@@ -68,11 +68,11 @@ class DualArmPickupAction(PickUpAction):
             object_T_gripper: Pose = local_transformer.transform_pose(object_pose, gripper_frame)
             object_V_gripper: Vector3 = object_T_gripper.pose.position  # translation vector
             distance = norm(array([object_V_gripper.x, object_V_gripper.y, object_V_gripper.z]))
-            rospy.loginfo(f"Distance between {gripper} and {obj_desig.name}: {distance}")
+            loginfo(f"Distance between {gripper} and {obj_desig.name}: {distance}")
             distances.append(distance)
 
         min_index = distances.index(min(distances))
         winner = self.gripper_list[min_index]
-        rospy.loginfo(f"Winner is {winner.arm_type.name} with distance {min(distances):.2f}")
+        loginfo(f"Winner is {winner.arm_type.name} with distance {min(distances):.2f}")
 
         return PickUpActionPerformable(object_designator=obj_desig, arm=winner.arm_type, grasp=self.grasps[0])

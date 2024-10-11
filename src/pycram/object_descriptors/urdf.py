@@ -3,8 +3,9 @@ import pathlib
 import xml.etree.ElementTree as ET
 
 import numpy as np
-import rospkg
-import rospy
+
+from ..ros.logging import logerr
+from ..ros.ros_tools import create_ros_pack, ResourceNotFound, get_parameter
 from geometry_msgs.msg import Point
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
 from typing_extensions import Union, List, Optional, Dict, Tuple
@@ -290,14 +291,14 @@ class ObjectDescription(AbstractObjectDescription):
         try:
             urdf_string = self.replace_relative_references_with_absolute_paths(urdf_string)
             urdf_string = self.fix_missing_inertial(urdf_string)
-        except rospkg.ResourceNotFound as e:
-            rospy.logerr(f"Could not find resource package linked in this URDF")
+        except ResourceNotFound as e:
+            logerr(f"Could not find resource package linked in this URDF")
             raise e
         urdf_string = self.make_mesh_paths_absolute(urdf_string, path) if make_mesh_paths_absolute else urdf_string
         self.write_description_to_file(urdf_string, save_path)
 
     def generate_from_parameter_server(self, name: str, save_path: str) -> None:
-        urdf_string = rospy.get_param(name)
+        urdf_string = get_parameter(name)
         urdf_string = self.replace_relative_references_with_absolute_paths(urdf_string)
         urdf_string = self.fix_missing_inertial(urdf_string)
         self.write_description_to_file(urdf_string, save_path)
@@ -363,7 +364,7 @@ class ObjectDescription(AbstractObjectDescription):
         :param urdf_string: The name of the URDf on the parameter server
         :return: The URDF string with paths in the filesystem instead of ROS packages
         """
-        r = rospkg.RosPack()
+        r = create_ros_pack()
         new_urdf_string = ""
         for line in urdf_string.split('\n'):
             if "package://" in line:

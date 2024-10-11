@@ -1,10 +1,9 @@
-import rospkg
+from ..ros.ros_tools import get_ros_package_path
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
 from ..datastructures.enums import Arms, Grasp, GripperState
 
-rospack = rospkg.RosPack()
-filename = rospack.get_path('pycram') + '/resources/robots/' + "iai_donbot" + '.urdf'
+filename = get_ros_package_path('pycram') + '/resources/robots/' + "iai_donbot" + '.urdf'
 
 donbot_description = RobotDescription("iai_donbot", "base_link", "ur5_base_link", "arm_base_mounting_joint",
                                       filename)

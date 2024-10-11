@@ -53,6 +53,10 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def tearDown(self):
         self.multiverse.remove_all_objects()
 
+    def test_spawn_xml_object(self):
+        bread = Object("bread_1", ObjectType.GENERIC_OBJECT, "bread_1.xml", pose=Pose([1, 1, 0.1]))
+        self.assert_poses_are_equal(bread.get_pose(), Pose([1, 1, 0.1]))
+
     def test_get_axis_aligned_bounding_box_for_one_link_object(self):
         position = [1, 1, 0.1]
         milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1, 1, 0.1],

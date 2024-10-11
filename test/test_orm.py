@@ -13,7 +13,7 @@ import pycram.tasktree
 from bullet_world_testcase import BulletWorldTestCase
 from pycram.datastructures.dataclasses import Color
 from pycram.ontology.ontology import OntologyManager, SOMA_ONTOLOGY_IRI
-from pycram.ros.viz_marker_publisher import VizMarkerPublisher
+from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
 from pycram.world_concepts.world_object import Object
 from pycram.designators import action_designator, object_designator, motion_designator
 from pycram.designators.action_designator import *
