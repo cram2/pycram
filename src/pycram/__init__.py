@@ -11,7 +11,7 @@ import target
 Now launch run.py to start your program.
 
 Modules:
-designator -- implementation of designators.
+designator_description -- implementation of designators.
 fluent -- implementation of fluents and the whenever macro.
 helper -- implementation of helper classes and functions for internal usage only.
 language -- implementation of the CRAM language.
