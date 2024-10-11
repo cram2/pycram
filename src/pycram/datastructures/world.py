@@ -962,21 +962,16 @@ class World(StateEntity, ABC):
 
         sim_state_id = self.save_physics_simulator_state(state_id=state_id, use_same_id=use_same_id)
 
-        if self.conf.use_physics_simulator_state:
-            object_states = None
-        else:
-            if state_id is None:
-                if self.latest_state_id is None:
-                    self.latest_state_id = 0
-                else:
-                    self.latest_state_id += 0 if use_same_id else 1
-                state_id = self.latest_state_id
+        if state_id is None:
+            if self.latest_state_id is None:
+                self.latest_state_id = 0
+            else:
+                self.latest_state_id += 0 if use_same_id else 1
+            state_id = self.latest_state_id
 
-            self.save_objects_state(state_id)
+        self.save_objects_state(state_id)
 
-            object_states = self.object_states
-
-        self._current_state = WorldState(sim_state_id, object_states)
+        self._current_state = WorldState(self.object_states, sim_state_id)
 
         return super().save_state(state_id)
 
@@ -985,17 +980,30 @@ class World(StateEntity, ABC):
         if self._current_state is None:
             simulator_state_id = None if not self.conf.use_physics_simulator_state else (
                 self.save_physics_simulator_state(use_same_id=True))
-            self._current_state = WorldState(simulator_state_id, self.object_states)
-        return WorldState(self._current_state.simulator_state_id, self.object_states)
+            self._current_state = WorldState(self.object_states, simulator_state_id)
+        return WorldState(self.object_states, self._current_state.simulator_state_id)
 
     @current_state.setter
     def current_state(self, state: WorldState) -> None:
         if self.current_state != state:
             if self.conf.use_physics_simulator_state:
                 self.restore_physics_simulator_state(state.simulator_state_id)
+                self.set_object_states_without_poses(state.object_states)
             else:
                 for obj in self.objects:
                     self.get_object_by_name(obj.name).current_state = state.object_states[obj.name]
+
+    def set_object_states_without_poses(self, states: Dict[str, ObjectState]) -> None:
+        """
+        Set the states of all objects in the World except the poses.
+
+        :param states: A dictionary with the object id as key and the object state as value.
+        """
+        for obj_name, obj_state in states.items():
+            obj = self.get_object_by_name(obj_name)
+            obj.set_attachments(obj_state.attachments)
+            obj.link_states = obj_state.link_states
+            obj.joint_states = obj_state.joint_states
 
     @property
     def object_states(self) -> Dict[str, ObjectState]:
@@ -1172,7 +1180,7 @@ class World(StateEntity, ABC):
         self.restore_state(self.original_state_id)
         if remove_saved_states:
             self.remove_saved_states()
-        self.original_state_id = self.save_state()
+        self.save_state(use_same_id=True)
 
     def remove_saved_states(self) -> None:
         """

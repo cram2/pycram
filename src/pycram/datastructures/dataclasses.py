@@ -404,17 +404,12 @@ class WorldState(State):
     """
     Dataclass for storing the state of the world.
     """
+    object_states: Dict[str, ObjectState]
     simulator_state_id: Optional[int] = None
-    object_states: Optional[Dict[str, ObjectState]] = None
 
     def __eq__(self, other: 'WorldState'):
-        if self.object_states is None and other.object_states is None:
-            return self.simulator_state_is_equal(other)
-        elif self.object_states is None or other.object_states is None:
-            return False
-        else:
-            return (self.simulator_state_is_equal(other) and self.all_objects_exist(other)
-                    and self.all_objects_states_are_equal(other))
+        return (self.simulator_state_is_equal(other) and self.all_objects_exist(other)
+                and self.all_objects_states_are_equal(other))
 
     def simulator_state_is_equal(self, other: 'WorldState') -> bool:
         """
@@ -447,8 +442,9 @@ class WorldState(State):
                                                           other.object_states.values())])
 
     def __copy__(self):
-        return WorldState(simulator_state_id=self.simulator_state_id,
-                          object_states=deepcopy(self.object_states))
+        return WorldState(object_states=deepcopy(self.object_states),
+                          simulator_state_id=self.simulator_state_id
+                          )
 
 
 @dataclass
