@@ -16,8 +16,10 @@ from .location_designator import CostmapLocation
 from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveArmJointsMotion, MoveTCPMotion, MoveMotion, \
     LookingMotion, DetectingMotion, OpeningMotion, ClosingMotion
 from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
+from ..datastructures.partial_designator import PartialDesignator
 from ..datastructures.property import GraspableProperty, ReachableProperty, GripperIsFreeProperty, SpaceIsFreeProperty, \
     VisibleProperty
+from ..knowledge.knowledge_engine import ReasoningInstance
 from ..local_transformer import LocalTransformer
 from ..plan_failures import ObjectUnfetchable, ReachabilityFailure
 # from ..robot_descriptions import robot_description
@@ -55,7 +57,7 @@ from dataclasses import dataclass, field
 @dataclass
 class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC):
     """Base class for performable performables."""
-    orm_class: Type[ORMAction] = field(init=False, default=None)
+    orm_class: Type[ORMAction] = field(init=False, default=None, repr=False)
     """
     The ORM class that is used to insert this action into the database. Must be overwritten by every action in order to
     be able to insert the action into the database.
@@ -240,7 +242,7 @@ class PickUpActionPerformable(ActionAbstract):
 
     object_designator: ObjectDesignatorDescription.Object
     """
-    Object designator describing the object that should be picked up
+    Object designator_description describing the object that should be picked up
     """
 
     arm: Arms
@@ -253,7 +255,7 @@ class PickUpActionPerformable(ActionAbstract):
     The grasp that should be used. For example, 'left' or 'right'
     """
 
-    object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False)
+    object_at_execution: Optional[ObjectDesignatorDescription.Object] = field(init=False, repr=False)
     """
     The object at the time this Action got created. It is used to be a static, information holding entity. It is
     not updated when the BulletWorld object is changed.
@@ -273,7 +275,7 @@ class PickUpActionPerformable(ActionAbstract):
         oTm = object.get_pose()
         # Transform the object pose to the object frame, basically the origin of the object frame
         mTo = object.local_transformer.transform_to_object_frame(oTm, object)
-        # Adjust the pose according to the special knowledge of the object designator
+        # Adjust the pose according to the special knowledge of the object designator_description
         adjusted_pose = self.object_designator.special_knowledge_adjustment_pose(self.grasp, mTo)
         # Transform the adjusted pose to the map frame
         adjusted_oTm = object.local_transformer.transform_pose(adjusted_pose, "map")
@@ -329,7 +331,7 @@ class PlaceActionPerformable(ActionAbstract):
 
     object_designator: ObjectDesignatorDescription.Object
     """
-    Object designator describing the object that should be place
+    Object designator_description describing the object that should be place
     """
     arm: Arms
     """
@@ -388,7 +390,7 @@ class TransportActionPerformable(ActionAbstract):
 
     object_designator: ObjectDesignatorDescription.Object
     """
-    Object designator describing the object that should be transported.
+    Object designator_description describing the object that should be transported.
     """
     arm: Arms
     """
@@ -450,12 +452,12 @@ class LookAtActionPerformable(ActionAbstract):
 @dataclass
 class DetectActionPerformable(ActionAbstract):
     """
-    Detects an object that fits the object description and returns an object designator describing the object.
+    Detects an object that fits the object description and returns an object designator_description describing the object.
     """
 
     object_designator: ObjectDesignatorDescription.Object
     """
-    Object designator loosely describing the object, e.g. only type. 
+    Object designator_description loosely describing the object, e.g. only type. 
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMDetectAction)
 
@@ -472,7 +474,7 @@ class OpenActionPerformable(ActionAbstract):
 
     object_designator: ObjectPart.Object
     """
-    Object designator describing the object that should be opened
+    Object designator_description describing the object that should be opened
     """
     arm: Arms
     """
@@ -496,7 +498,7 @@ class CloseActionPerformable(ActionAbstract):
 
     object_designator: ObjectPart.Object
     """
-    Object designator describing the object that should be closed
+    Object designator_description describing the object that should be closed
     """
     arm: Arms
     """
@@ -613,18 +615,21 @@ class MoveAndPickUpPerformable(ActionAbstract):
         FaceAtPerformable(self.object_designator.pose).perform()
         PickUpActionPerformable(self.object_designator, self.arm, self.grasp).perform()
 
+# ----------------------------------------------------------------------------
+#               Action Designators Description
+# ----------------------------------------------------------------------------
 
 
 class MoveTorsoAction(ActionDesignatorDescription):
     """
     Action Designator for Moving the torso of the robot up and down
     """
-    PerformableClass = MoveTorsoActionPerformable
+    performable_class = MoveTorsoActionPerformable
 
     def __init__(self, positions: List[float],
                  ontology_concept_holders: Optional[List[OntologyConceptHolder]] = None):
         """
-        Create a designator description to move the torso of the robot up and down.
+        Create a designator_description description to move the torso of the robot up and down.
 
         :param positions: List of possible positions of the robots torso, possible position is a float of height in metres
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
@@ -637,17 +642,17 @@ class MoveTorsoAction(ActionDesignatorDescription):
 
     def ground(self) -> MoveTorsoActionPerformable:
         """
-        Creates a performable action designator with the first element from the list of possible torso heights.
+        Creates a performable action designator_description with the first element from the list of possible torso heights.
 
-        :return: A performable action designator
+        :return: A performable action designator_description
         """
         return MoveTorsoActionPerformable(self.positions[0])
 
     def __iter__(self):
         """
-        Iterates over all possible values for this designator and returns a performable action designator with the value.
+        Iterates over all possible values for this designator_description and returns a performable action designator_description with the value.
 
-        :return: A performable action designator
+        :return: A performable action designator_description
         """
         for position in self.positions:
             yield MoveTorsoActionPerformable(position)
@@ -685,9 +690,9 @@ class SetGripperAction(ActionDesignatorDescription):
 
     def ground(self) -> SetGripperActionPerformable:
         """
-        Default specialized_designators that returns a performable designator with the first element in the grippers and motions list.
+        Default specialized_designators that returns a performable designator_description with the first element in the grippers and motions list.
 
-        :return: A performable designator
+        :return: A performable designator_description
         """
         return SetGripperActionPerformable(self.grippers[0], self.motions[0])
 
@@ -695,7 +700,7 @@ class SetGripperAction(ActionDesignatorDescription):
         """
         Iterates over all possible combinations of grippers and motions
 
-        :return: A performable designator with a combination of gripper and motion
+        :return: A performable designator_description with a combination of gripper and motion
         """
         for parameter_combination in itertools.product(self.grippers, self.motions):
             yield SetGripperActionPerformable(*parameter_combination)
@@ -773,9 +778,9 @@ class ParkArmsAction(ActionDesignatorDescription):
 
     def ground(self) -> ParkArmsActionPerformable:
         """
-        Default specialized_designators that returns a performable designator with the first element of the list of possible arms
+        Default specialized_designators that returns a performable designator_description with the first element of the list of possible arms
 
-        :return: A performable designator
+        :return: A performable designator_description
         """
         return ParkArmsActionPerformable(self.arms[0])
 
@@ -792,10 +797,10 @@ class PickUpAction(ActionDesignatorDescription):
                  arms: List[Arms] = None, grasps: List[Grasp] = None,
                  ontology_concept_holders: Optional[List[Thing]] = None):
         """
-        Lets the robot pick up an object. The description needs an object designator describing the object that should be
+        Lets the robot pick up an object. The description needs an object designator_description describing the object that should be
         picked up, an arm that should be used as well as the grasp from which side the object should be picked up.
 
-        :param object_designator_description: List of possible object designator
+        :param object_designator_description: List of possible object designator_description
         :param arms: List of possible arms that could be used
         :param grasps: List of possible grasps for the object
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
@@ -811,19 +816,24 @@ class PickUpAction(ActionDesignatorDescription):
         if self.soma:
             self.init_ontology_concepts({"picking_up": self.soma.PickingUp})
 
-    def ground(self) -> PickUpActionPerformable:
-        """
-        Default specialized_designators, returns a performable designator with the first entries from the lists of possible parameter.
+    # def ground(self) -> PickUpActionPerformable:
+    #     """
+    #     Default specialized_designators, returns a performable designator_description with the first entries from the lists of possible parameter.
+    #
+    #     :return: A performable designator_description
+    #     """
+    #     if isinstance(self.object_designator_description, ObjectDesignatorDescription.Object):
+    #         obj_desig = self.object_designator_description
+    #     else:
+    #         obj_desig = self.object_designator_description.resolve()
+    #
+    #     return PickUpActionPerformable(obj_desig, self.arms[0], self.grasps[0])
 
-        :return: A performable designator
-        """
-        if isinstance(self.object_designator_description, ObjectDesignatorDescription.Object):
-            obj_desig = self.object_designator_description
-        else:
-            obj_desig = self.object_designator_description.resolve()
-
-        return PickUpActionPerformable(obj_desig, self.arms[0], self.grasps[0])
-
+    def __iter__(self) -> PickUpActionPerformable:
+        ri = ReasoningInstance(self, PartialDesignator(PickUpActionPerformable, self.object_designator_description, self.arms, self.grasps))
+        # Here is where the magic happens
+        for desig in ri:
+            yield desig
 
 class PlaceAction(ActionDesignatorDescription):
     """
@@ -855,9 +865,9 @@ class PlaceAction(ActionDesignatorDescription):
 
     def ground(self) -> PlaceActionPerformable:
         """
-        Default specialized_designators that returns a performable designator with the first entries from the list of possible entries.
+        Default specialized_designators that returns a performable designator_description with the first entries from the list of possible entries.
 
-        :return: A performable designator
+        :return: A performable designator_description
         """
         obj_desig = self.object_designator_description if isinstance(self.object_designator_description,
                                                                      ObjectDesignatorDescription.Object) else self.object_designator_description.resolve()
@@ -895,9 +905,9 @@ class NavigateAction(ActionDesignatorDescription):
 
     def ground(self) -> NavigateActionPerformable:
         """
-        Default specialized_designators that returns a performable designator with the first entry of possible target locations.
+        Default specialized_designators that returns a performable designator_description with the first entry of possible target locations.
 
-        :return: A performable designator
+        :return: A performable designator_description
         """
         return NavigateActionPerformable(self.target_locations[0])
 
@@ -917,7 +927,7 @@ class TransportAction(ActionDesignatorDescription):
         """
         Designator representing a pick and place plan.
 
-        :param object_designator_description: Object designator description or a specified Object designator that should be transported
+        :param object_designator_description: Object designator_description description or a specified Object designator_description that should be transported
         :param arms: A List of possible arms that could be used for transporting
         :param target_locations: A list of possible target locations for the object to be placed
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
@@ -933,9 +943,9 @@ class TransportAction(ActionDesignatorDescription):
 
     def ground(self) -> TransportActionPerformable:
         """
-        Default specialized_designators that returns a performable designator with the first entries from the lists of possible parameter.
+        Default specialized_designators that returns a performable designator_description with the first entries from the lists of possible parameter.
 
-        :return: A performable designator
+        :return: A performable designator_description
         """
         obj_desig = self.object_designator_description \
             if isinstance(self.object_designator_description, ObjectDesignatorDescription.Object) \
@@ -967,16 +977,16 @@ class LookAtAction(ActionDesignatorDescription):
 
     def ground(self) -> LookAtActionPerformable:
         """
-        Default specialized_designators that returns a performable designator with the first entry in the list of possible targets
+        Default specialized_designators that returns a performable designator_description with the first entry in the list of possible targets
 
-        :return: A performable designator
+        :return: A performable designator_description
         """
         return LookAtActionPerformable(self.targets[0])
 
 
 class DetectAction(ActionDesignatorDescription):
     """
-    Detects an object that fits the object description and returns an object designator describing the object.
+    Detects an object that fits the object description and returns an object designator_description describing the object.
     """
 
     performable_class = DetectActionPerformable
@@ -986,7 +996,7 @@ class DetectAction(ActionDesignatorDescription):
         """
         Tries to detect an object in the field of view (FOV) of the robot.
 
-        :param object_designator_description: Object designator describing the object
+        :param object_designator_description: Object designator_description describing the object
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
         super().__init__(ontology_concept_holders)
@@ -999,9 +1009,9 @@ class DetectAction(ActionDesignatorDescription):
 
     def ground(self) -> DetectActionPerformable:
         """
-        Default specialized_designators that returns a performable designator with the resolved object description.
+        Default specialized_designators that returns a performable designator_description with the executed object description.
 
-        :return: A performable designator
+        :return: A performable designator_description
         """
         return DetectActionPerformable(self.object_designator_description.resolve())
 
@@ -1020,7 +1030,7 @@ class OpenAction(ActionDesignatorDescription):
         """
         Moves the arm of the robot to open a container.
 
-        :param object_designator_description: Object designator describing the handle that should be used to open
+        :param object_designator_description: Object designator_description describing the handle that should be used to open
         :param arms: A list of possible arms that should be used
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
@@ -1035,10 +1045,10 @@ class OpenAction(ActionDesignatorDescription):
 
     def ground(self) -> OpenActionPerformable:
         """
-        Default specialized_designators that returns a performable designator with the resolved object description and the first entries
+        Default specialized_designators that returns a performable designator_description with the executed object description and the first entries
         from the lists of possible parameter.
 
-        :return: A performable designator
+        :return: A performable designator_description
         """
         return OpenActionPerformable(self.object_designator_description.resolve(), self.arms[0])
 
@@ -1057,7 +1067,7 @@ class CloseAction(ActionDesignatorDescription):
         """
         Attempts to close an open container
 
-        :param object_designator_description: Object designator description of the handle that should be used
+        :param object_designator_description: Object designator_description description of the handle that should be used
         :param arms: A list of possible arms to use
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
@@ -1072,10 +1082,10 @@ class CloseAction(ActionDesignatorDescription):
 
     def ground(self) -> CloseActionPerformable:
         """
-        Default specialized_designators that returns a performable designator with the resolved object designator and the first entry from
+        Default specialized_designators that returns a performable designator_description with the executed object designator_description and the first entry from
         the list of possible arms.
 
-        :return: A performable designator
+        :return: A performable designator_description
         """
         return CloseActionPerformable(self.object_designator_description.resolve(), self.arms[0])
 
@@ -1107,9 +1117,9 @@ class GraspingAction(ActionDesignatorDescription):
     def ground(self) -> GraspingActionPerformable:
         """
         Default specialized_designators that takes the first element from the list of arms and the first solution for the object
-        designator description ond returns it.
+        designator_description description ond returns it.
 
-        :return: A performable action designator that contains specific arguments
+        :return: A performable action designator_description that contains specific arguments
         """
         return GraspingActionPerformable(self.arms[0], self.object_description.resolve())
 
