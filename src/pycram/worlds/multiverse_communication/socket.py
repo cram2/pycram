@@ -2,12 +2,12 @@
 
 """Multiverse Client base class."""
 
-import rospy
 from multiverse_client_pybind import MultiverseClientPybind  # noqa
 from typing_extensions import Optional, List, Dict, Callable, TypeVar
 
 from ...datastructures.dataclasses import MultiverseMetaData
 from ...config.multiverse_conf import MultiverseConfig as Conf
+from ...ros.logging import loginfo, logwarn
 
 T = TypeVar("T")
 
@@ -208,14 +208,14 @@ class MultiverseSocket:
 
         :param message: The message to log.
         """
-        rospy.loginfo(self._message_template(message))
+        loginfo(self._message_template(message))
 
     def log_warn(self, message: str) -> None:
         """Warn the user.
 
         :param message: The message to warn about.
         """
-        rospy.logwarn(self._message_template(message))
+        logwarn(self._message_template(message))
 
     def _message_template(self, message: str) -> str:
         return (f"[{self.__class__.__name__}:{self.port}]: {message} : sim time {self.sim_time},"

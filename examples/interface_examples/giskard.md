@@ -67,7 +67,7 @@ in the BulletWorld with the pose and joint state of the real robot.
 You might need to change to topic names to fit the topic names as published by your robot.
 
 ```python
-from pycram.ros.robot_state_updater import RobotStateUpdater
+from pycram.ros_utils.robot_state_updater import RobotStateUpdater
 
 r = RobotStateUpdater("/tf", "/joint_states")
 ```

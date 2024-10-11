@@ -5,12 +5,13 @@ from dataclasses import dataclass, field, fields
 from abc import ABC, abstractmethod
 from inspect import isgenerator, isgeneratorfunction
 
-import rospy
+from .ros.logging import logwarn, loginfo
+
 try:
     import owlready2
 except ImportError:
     owlready2 = None
-    rospy.logwarn("owlready2 is not installed!")
+    logwarn("owlready2 is not installed!")
 
 from sqlalchemy.orm.session import Session
 
@@ -649,7 +650,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
                     pose_in_object.pose.position.x += value[0]
                     pose_in_object.pose.position.y += value[1]
                     pose_in_object.pose.position.z += value[2]
-                    rospy.loginfo("Adjusted target pose based on special knowledge for grasp: %s", grasp)
+                    loginfo("Adjusted target pose based on special knowledge for grasp: %s", grasp)
                     return pose_in_object
             return pose
 

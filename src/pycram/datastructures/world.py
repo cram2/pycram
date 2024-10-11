@@ -8,7 +8,6 @@ from abc import ABC, abstractmethod
 from copy import copy
 
 import numpy as np
-import rospy
 from geometry_msgs.msg import Point
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type
 
@@ -26,6 +25,8 @@ from ..datastructures.world_entity import StateEntity
 from ..failures import ProspectionObjectNotFound, WorldObjectNotFound
 from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
+from ..ros.data_types import Time
+from ..ros.logging import logwarn
 from ..validation.goal_validator import (MultiPoseGoalValidator,
                                          PoseGoalValidator, JointPositionGoalValidator,
                                          MultiJointPositionGoalValidator, GoalValidator,
@@ -383,7 +384,7 @@ class World(StateEntity, ABC):
         if removed:
             self.update_simulator_state_id_in_original_state()
         else:
-            rospy.logwarn(f"Object with id {obj_id} could not be removed.")
+            logwarn(f"Object with id {obj_id} could not be removed.")
         return removed
 
     @abstractmethod
@@ -588,7 +589,7 @@ class World(StateEntity, ABC):
         """
         self.set_realtime(real_time)
         for i in range(0, int(seconds * self.conf.simulation_frequency)):
-            curr_time = rospy.Time.now()
+            curr_time = Time().now()
             self.step()
             for objects, callbacks in self.coll_callbacks.items():
                 contact_points = self.get_contact_points_between_two_objects(objects[0], objects[1])
@@ -597,7 +598,7 @@ class World(StateEntity, ABC):
                 elif callbacks.no_collision_cb is not None:
                     callbacks.no_collision_cb()
             if real_time:
-                loop_time = rospy.Time.now() - curr_time
+                loop_time = Time().now() - curr_time
                 time_diff = self.simulation_time_step - loop_time.to_sec()
                 time.sleep(max(0, time_diff))
         self.update_all_objects_poses()
@@ -1217,7 +1218,7 @@ class World(StateEntity, ABC):
         """
         Updates transformations for all objects that are currently in :py:attr:`~pycram.world.World.current_world`.
         """
-        curr_time = rospy.Time.now()
+        curr_time = Time().now()
         for obj in list(self.current_world.objects):
             obj.update_link_transforms(curr_time)
 
@@ -1510,7 +1511,7 @@ class World(StateEntity, ABC):
         """
         See :py:meth:`~pycram.world.World.add_vis_axis`
         """
-        rospy.logwarn(f"Visual axis is not supported in {self.__class__.__name__}")
+        logwarn(f"Visual axis is not supported in {self.__class__.__name__}")
 
     def remove_vis_axis(self) -> None:
         """
@@ -1522,7 +1523,7 @@ class World(StateEntity, ABC):
         """
         See :py:meth:`~pycram.world.World.remove_vis_axis`
         """
-        rospy.logwarn(f"Visual axis is not supported in {self.__class__.__name__}")
+        logwarn(f"Visual axis is not supported in {self.__class__.__name__}")
 
     def _simulator_object_creator(self, creator_func: Callable, *args, **kwargs) -> int:
         """

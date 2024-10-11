@@ -2,9 +2,10 @@ import sys
 from threading import Lock, RLock
 from typing import Any
 
-import actionlib
-import rosnode
-import rospy
+from ..ros.action_lib import create_action_client
+from ..ros.logging import logwarn, loginfo, loginfo_once
+from ..ros.ros_tools import get_node_names
+
 from geometry_msgs.msg import PointStamped
 from typing_extensions import List, Callable, Optional
 
@@ -15,7 +16,7 @@ try:
     from robokudo_msgs.msg import ObjectDesignator as robokudo_ObjectDesignator
     from robokudo_msgs.msg import QueryAction, QueryGoal, QueryResult
 except ModuleNotFoundError as e:
-    rospy.logwarn("Failed to import Robokudo messages, the real robot will not be available")
+    logwarn("Failed to import Robokudo messages, the real robot will not be available")
 
 is_init = False
 
@@ -53,23 +54,22 @@ def init_robokudo_interface(func: Callable) -> Callable:
 
     def wrapper(*args, **kwargs):
         global is_init
-        if is_init and "/robokudo" in rosnode.get_node_names():
+        if is_init and "/robokudo" in get_node_names():
             return func(*args, **kwargs)
-        elif is_init and "/robokudo" not in rosnode.get_node_names():
-            rospy.logwarn("Robokudo node is not available anymore, could not initialize robokudo interface")
+        elif is_init and "/robokudo" not in get_node_names():
+            logwarn("Robokudo node is not available anymore, could not initialize robokudo interface")
             is_init = False
-            giskard_wrapper = None
             return
 
         if "robokudo_msgs" not in sys.modules:
-            rospy.logwarn("Could not initialize the Robokudo interface since the robokudo_msgs are not imported")
+            logwarn("Could not initialize the Robokudo interface since the robokudo_msgs are not imported")
             return
 
-        if "/robokudo" in rosnode.get_node_names():
-            rospy.loginfo_once("Successfully initialized Robokudo interface")
+        if "/robokudo" in get_node_names():
+            loginfo_once("Successfully initialized Robokudo interface")
             is_init = True
         else:
-            rospy.logwarn("Robokudo is not running, could not initialize Robokudo interface")
+            logwarn("Robokudo is not running, could not initialize Robokudo interface")
             return
         return func(*args, **kwargs)
 
@@ -89,8 +89,9 @@ def send_query(obj_type: Optional[str] = None, region: Optional[str] = None,
     if attributes:
         goal.obj.attribute = attributes
 
-    client = actionlib.SimpleActionClient('robokudo/query', QueryAction)
-    rospy.loginfo("Waiting for action server")
+    # client = actionlib.SimpleActionClient('robokudo/query', QueryAction)
+    client = create_action_client("robokudo/query", QueryAction)
+    loginfo("Waiting for action server")
     client.wait_for_server()
 
     query_result = None
@@ -98,7 +99,7 @@ def send_query(obj_type: Optional[str] = None, region: Optional[str] = None,
     def done_callback(state, result):
         nonlocal query_result
         query_result = result
-        rospy.loginfo("Query completed")
+        loginfo("Query completed")
 
     client.send_goal(goal, done_cb=done_callback)
     client.wait_for_result()
@@ -135,11 +136,11 @@ def query_human() -> PointStamped:
 @init_robokudo_interface
 def stop_query():
     """Stop any ongoing query to RoboKudo."""
-    init_robokudo_interface()
-    client = actionlib.SimpleActionClient('robokudo/query', QueryAction)
+    #client = actionlib.SimpleActionClient('robokudo/query', QueryAction)
+    client = create_action_client('robokudo/query', QueryAction)
     client.wait_for_server()
     client.cancel_all_goals()
-    rospy.loginfo("Cancelled current RoboKudo query goal")
+    loginfo("Cancelled current RoboKudo query goal")
 
 
 @init_robokudo_interface

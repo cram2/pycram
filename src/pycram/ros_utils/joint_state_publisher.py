@@ -2,11 +2,11 @@ import time
 import threading
 import atexit
 
-import rospy
-
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
 from ..datastructures.world import World
+from ..ros.data_types import Time
+from ..ros.publisher import create_publisher
 
 
 class JointStatePublisher:
@@ -23,7 +23,7 @@ class JointStatePublisher:
         """
         self.world = World.current_world
 
-        self.joint_state_pub = rospy.Publisher(joint_state_topic, JointState, queue_size=10)
+        self.joint_state_pub = create_publisher(joint_state_topic, JointState, queue_size=10)
         self.interval = interval
         self.kill_event = threading.Event()
         self.thread = threading.Thread(target=self._publish)
@@ -43,7 +43,7 @@ class JointStatePublisher:
         while not self.kill_event.is_set():
             current_joint_states = [robot.get_joint_position(joint_name) for joint_name in joint_names]
             h = Header()
-            h.stamp = rospy.Time.now()
+            h.stamp = Time().now()
             h.seq = seq
             h.frame_id = ""
             joint_state_msg = JointState()

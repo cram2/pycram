@@ -1,12 +1,12 @@
 from time import sleep, time
 
 import numpy as np
-import rospy
 from typing_extensions import Any, Callable, Optional, Union, Iterable, Dict, TYPE_CHECKING, Tuple
 
 from ..datastructures.enums import JointType
 from .error_checkers import ErrorChecker, PoseErrorChecker, PositionErrorChecker, \
     OrientationErrorChecker, SingleValueErrorChecker
+from ..ros.logging import logerr, logwarn
 
 if TYPE_CHECKING:
     from ..datastructures.world import World
@@ -87,10 +87,10 @@ class GoalValidator:
                       f" seconds, the current value is {current}, error is {self.current_error}, percentage" \
                       f" of goal achieved is {self.percentage_of_goal_achieved}"
                 if self.raise_error:
-                    rospy.logerr(msg)
+                    logerr(msg)
                     raise TimeoutError(msg)
                 else:
-                    rospy.logwarn(msg)
+                    logwarn(msg)
                     break
             current = self.current_value
         self.reset()

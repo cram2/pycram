@@ -2,12 +2,11 @@ from ..datastructures.dataclasses import VirtualMobileBaseJoints
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
 from ..datastructures.enums import Arms, Grasp, GripperState, GripperType
-import rospkg
+from ..ros.ros_tools import get_ros_package_path
 
 from ..helper import get_robot_mjcf_path
 
-rospack = rospkg.RosPack()
-filename = rospack.get_path('pycram') + '/resources/robots/' + "pr2" + '.urdf'
+filename = get_ros_package_path('pycram') + '/resources/robots/' + "pr2" + '.urdf'
 
 mjcf_filename = get_robot_mjcf_path("", "pr2")
 

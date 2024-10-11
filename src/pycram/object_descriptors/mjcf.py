@@ -2,7 +2,6 @@ import os
 import pathlib
 
 import numpy as np
-import rospy
 from dm_control import mjcf
 from geometry_msgs.msg import Point
 from typing_extensions import Union, List, Optional, Dict, Tuple
@@ -15,6 +14,7 @@ from ..datastructures.pose import Pose
 from ..description import JointDescription as AbstractJointDescription, \
     LinkDescription as AbstractLinkDescription, ObjectDescription as AbstractObjectDescription
 from ..failures import MultiplePossibleTipLinks
+from ..ros.ros_tools import get_parameter
 
 try:
     from multiverse_parser import Configuration, Factory, InertiaSource, GeomBuilder
@@ -400,7 +400,7 @@ class ObjectDescription(AbstractObjectDescription):
         return ET.tostring(root, encoding='unicode', method='xml')
 
     def generate_from_parameter_server(self, name: str, save_path: str) -> None:
-        mjcf_string = rospy.get_param(name)
+        mjcf_string = get_parameter(name)
         self.write_description_to_file(mjcf_string, save_path)
 
     @property
