@@ -57,7 +57,10 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         milk = self.spawn_milk([1, 1, 0.1])
         robot = self.spawn_robot()
         cup = self.spawn_cup([1, 2, 0.1])
-        apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
+        if "apartment" not in self.multiverse.get_object_names():
+            apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
+        else:
+            apartment = self.multiverse.get_object_by_name("apartment")
         apartment.set_joint_position("cabinet10_drawer1_joint", 0.1)
         robot.attach(milk)
         milk.attach(cup)
@@ -302,7 +305,10 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
                                         orientation_delta=self.multiverse.conf.orientation_tolerance)
 
     def test_get_environment_pose(self):
-        apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
+        if "apartment" not in self.multiverse.get_object_names():
+            apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
+        else:
+            apartment = self.multiverse.get_object_by_name("apartment")
         pose = apartment.get_pose()
         self.assertIsInstance(pose, Pose)
 
