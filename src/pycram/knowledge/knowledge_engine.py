@@ -6,14 +6,15 @@ import rospy
 from anytree import PreOrderIter
 from typeguard import check_type, TypeCheckError
 
+from ..datastructures.partial_designator import PartialDesignator
 from ..datastructures.property import Property, ResolvedProperty
 from .knowledge_source import KnowledgeSource
-# from ..designator import DesignatorDescription, ActionDesignatorDescription
-from typing_extensions import Type, Callable, List, TYPE_CHECKING, Dict
+from typing_extensions import Type, Callable, List, TYPE_CHECKING, Dict, Any
 
-from ..plan_failures import KnowledgeNotAvailable
+from ..plan_failures import KnowledgeNotAvailable, ReasoningError
 # This import is needed since the subclasses of KnowledgeSource need to be imported to be known at runtime
 from .knowledge_sources import *
+
 if TYPE_CHECKING:
     from ..designator import ActionDesignatorDescription
 
@@ -41,6 +42,10 @@ class KnowledgeEngine:
         return cls._instance
 
     def __init__(self):
+        """
+        Initialize the knowledge engine, this includes the collection of all knowledge sources and the initialization of
+        each source.
+        """
         if self._initialized: return
         if not self.enabled:
             rospy.logwarn("Knowledge engine is disabled")
@@ -76,7 +81,7 @@ class KnowledgeEngine:
 
     def query(self, designator: Type['ActionDesignatorDescription']) -> bool:
         """
-        Query to fill parameters of a designator from the knowledge sources
+        Query to fill parameters of a designator_description from the knowledge sources
 
         :return:
         """
@@ -85,17 +90,19 @@ class KnowledgeEngine:
             return True
         self.update_sources()
 
-        condition = self.resolve_aspects(designator.knowledge_condition)
+        condition = self.resolve_properties(designator.knowledge_condition)
         return condition(designator)
 
-    def resolve_aspects(self, aspects: Property):
+    def resolve_properties(self, properties: Property):
         """
         Traverses the tree of properties and resolves the property functions to the corresponding function in the knowledge
-        source.
+        source. Properties are executed in-place.
 
-        :param aspects: Root node of the tree of properties
+        :param properties: Root node of the tree of properties
         """
-        for child in PreOrderIter(aspects):
+        if properties.resolved:
+            return properties.root
+        for child in PreOrderIter(properties):
             if child.is_leaf:
                 source = self.find_source_for_property(child)
                 resolved_aspect_function = source.__getattribute__(
@@ -107,11 +114,11 @@ class KnowledgeEngine:
                 for param in inspect.signature(resolved_aspect_function).parameters.keys():
                     node.parameter[param] = child.__getattribute__(param)
                 child.parent = None
-        return node.root
+        return properties.root
 
     def update(self):
         """
-        Update the knowledge sources with new information contained in a designator
+        Update the knowledge sources with new information contained in a designator_description
 
         :return:
         """
@@ -125,29 +132,11 @@ class KnowledgeEngine:
 
         :return: True if the solution achieves the desired goal, False otherwise
         """
-        if not  self.enabled:
+        if not self.enabled:
             rospy.logwarn("Knowledge engine is disabled")
             return True
 
-    def call_source(self, query_function: Callable, *args, **kwargs):
-        """
-        Call the given query function on the knowledge source with the highest priority that is connected
-
-        :param query_function: The query function of the knowledge source
-        :param args: The arguments to pass to the query function
-        :param kwargs: The keyword arguments to pass to the query function
-        :return: The result of the query function
-        """
-        self.update_sources()
-        for source in self.knowledge_sources:
-            if (query_function.__name__ in list(source.__class__.__dict__.keys())
-                    and source.is_connected):
-                source_query_function = getattr(source, query_function.__name__)
-                return source_query_function(*args, **kwargs)
-        raise KnowledgeNotAvailable(
-            f"Query function {query_function.__name__} is not available in any connected knowledge source")
-
-    def find_source_for_property(self, property: Type[Property]):
+    def find_source_for_property(self, property: Type[Property]) -> Type[KnowledgeSource]:
         """
         Find the source for the given property
 
@@ -159,34 +148,80 @@ class KnowledgeEngine:
                     and source.is_connected):
                 return source
 
-    def match_reasoned_parameter(self, condition: Type[Property], designator: Type[ActionDesignatorDescription]):
+    def match_reasoned_parameter(self, reasoned_parameter: Dict[str, any],
+                                 designator: Type[ActionDesignatorDescription]) -> Dict[str, any]:
         """
         Match the reasoned parameters, in the root node of the property expression, to the corresponding parameter in
-        the designator
+        the designator_description
         """
-        parameter = condition.root.variables
-        self._match_by_name(parameter, designator)
-        self._match_by_type(parameter, designator)
+        matched_parameter = {}
+        matched_parameter.update(self._match_by_name(reasoned_parameter, designator))
+        matched_parameter.update(self._match_by_type(reasoned_parameter, designator))
+        return matched_parameter
 
     @staticmethod
-    def _match_by_name(parameter: Dict[str, any], designator: Type[ActionDesignatorDescription]):
+    def _match_by_name(parameter: Dict[str, any], designator: Type[ActionDesignatorDescription]) -> Dict[str, any]:
         """
-        Match the reasoned parameters to the corresponding parameter in the designator by name
+        Match the reasoned parameters to the corresponding parameter in the designator_description by name
         """
+        result_dict = {}
         for key, value in parameter.items():
-            if key in designator.get_optional_parameter() and designator.__getattribute__(key) is None:
-                designator.__setattr__(key, value)
+            # if key in designator_description.get_optional_parameter() and designator_description.__getattribute__(key) is None:
+            if key in designator.performable_class.get_type_hints().keys():
+                result_dict[key] = value
+        return result_dict
 
     @staticmethod
-    def _match_by_type(parameter: Dict[str, any], designator: Type[ActionDesignatorDescription]):
+    def _match_by_type(parameter: Dict[str, any], designator: Type[ActionDesignatorDescription]) -> Dict[str, any]:
         """
-        Match the reasoned parameters to the corresponding parameter in the designator by type
+        Match the reasoned parameters to the corresponding parameter in the designator_description by type
         """
-        for param in designator.get_optional_parameter():
-            if designator.__getattribute__(param) is None:
-                for key, value in parameter.items():
-                    try:
-                        check_type(value, designator.get_type_hints()[param])
-                        designator.__setattr__(param, value)
-                    except TypeCheckError as e:
-                        continue
+        result_dict = {}
+        for key, value in parameter.items():
+            for parameter_name, type_hint in designator.performable_class.get_type_hints().items():
+                try:
+                    check_type(value, type_hint)
+                    result_dict[parameter_name] = value
+                except TypeCheckError as e:
+                    continue
+        return result_dict
+
+
+class ReasoningInstance:
+    """
+    A reasoning instance is a generator class that reasons about the missing parameter as well as the feasibility of
+    the designator_description given.
+    Since this is a generator it keeps its state while yielding full designator and can be used to generate the next
+    full designator at a later time.
+    """
+
+    def __init__(self, designator_description: Type[ActionDesignatorDescription], partial_designator: PartialDesignator):
+        """
+        Initialize the reasoning instance with the designator_description and the partial designator
+
+        :param designator_description: The description from which the designator should be created
+        :param partial_designator: A partial initialized designator_description using the PartialDesignator class
+        """
+        self.designator_description = designator_description
+        self.knowledge_engine = KnowledgeEngine()
+        self.resolved_property = self.knowledge_engine.resolve_properties(self.designator_description.knowledge_condition)
+        self.parameter_to_be_reasoned = [param_name for param_name in self.designator_description.get_optional_parameter() if
+                                         self.designator_description.__getattribute__(param_name) is None]
+        self.partial_designator = partial_designator
+
+    def __iter__(self) -> Type[ActionDesignatorDescription.Action]:
+        """
+        Executes property structure, matches the reasoned and missing parameter and generates a completes designator.
+
+        :yield: A complete designator with all parameters filled
+        """
+        self.resolved_property(self.designator_description)
+
+        matched_parameter = self.knowledge_engine.match_reasoned_parameter(self.resolved_property.root.variables, self.designator_description)
+        # Check if the parameter that need to be filled are contained in the set of reasoned parameters
+        if not set(matched_parameter).issuperset(set(self.partial_designator.missing_parameter())):
+            not_reasoned = set(self.partial_designator.missing_parameter()).difference(set(matched_parameter))
+            raise ReasoningError(f"The parameters {not_reasoned} could not be inferred from the knowledge sources. Therefore, a complete designator can not be generated. ")
+
+        for designator in self.partial_designator(**matched_parameter):
+            yield designator
