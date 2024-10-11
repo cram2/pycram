@@ -237,7 +237,7 @@ class Link(ObjectEntity, LinkDescription, ABC):
                 mesh = trimesh.load(mesh_path)
                 min_bound, max_bound = mesh.bounds
                 if rotated:
-                    return RotatedBoundingBox.from_min_max(min_bound, max_bound, self.transform)
+                    return RotatedBoundingBox.from_min_max_and_transform(min_bound, max_bound, self.transform)
                 else:
                     return AxisAlignedBoundingBox.from_min_max(min_bound, max_bound).get_transformed_box(self.transform)
             else:

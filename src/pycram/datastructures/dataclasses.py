@@ -35,14 +35,6 @@ def get_list_from_points(points: List[Point]) -> List[List[float]]:
     return [get_point_as_list(point) for point in points]
 
 
-def get_points_from_list(points: List[List[float]]) -> List[Point]:
-    """
-    :param points: The points as a list of lists of floats.
-    :return: The points as a list of Point instances.
-    """
-    return [Point(*point) for point in points]
-
-
 @dataclass
 class Color:
     """
@@ -252,7 +244,7 @@ class RotatedBoundingBox(BoundingBox):
         :param transform: The transformation to apply to the points, if None the stored transformation is used.
         :return: The points of the rotated bounding box.
         """
-        if (self._points is None) or (transform is not None):
+        if (self._points_list is None) or (transform is not None):
             if transform is not None:
                 self.transform = transform
             points_array = np.array(self.get_axis_aligned_corners())

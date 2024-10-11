@@ -12,9 +12,9 @@ class TestLinks(BulletWorldTestCase):
     def test_rotated_bounding_box(self):
         self.milk.set_pose(Pose([1, 1, 1], quaternion_from_euler(np.pi/4, 0, 0).tolist()))
         aabb = self.milk.get_axis_aligned_bounding_box()
-        aabb_points = np.array(aabb.get_points_list())
+        aabb_points = np.array(aabb.get_corners())
         rbb = self.milk.get_rotated_bounding_box()
-        rot_points = np.array(rbb.get_points_list())
+        rot_points = np.array(rbb.get_corners())
         plot = False
         if plot:
             fig = plt.figure()
