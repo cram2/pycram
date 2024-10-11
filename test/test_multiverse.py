@@ -81,6 +81,10 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             self.assertAlmostEqual(min_p_1[0] + position_shift, min_p_2[0], delta=0.001)
             self.assertAlmostEqual(max_p_1[0] + position_shift, max_p_2[0], delta=0.001)
 
+    def test_spawn_xml_object(self):
+        bread = Object("bread_1", ObjectType.GENERIC_OBJECT, "bread_1.xml", pose=Pose([1, 1, 0.1]))
+        self.assert_poses_are_equal(bread.get_pose(), Pose([1, 1, 0.1]))
+
     def test_spawn_mesh_object(self):
         milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1, 1, 0.1]))
         self.assert_poses_are_equal(milk.get_pose(), Pose([1, 1, 0.1]))
@@ -380,7 +384,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def spawn_milk(position: List, orientation: Optional[List] = None, frame="map") -> Object:
         if orientation is None:
             orientation = [0, 0, 0, 1]
-        milk = Object("milk_box", ObjectType.MILK, "milk_box.urdf",
+        milk = Object("milk_box", ObjectType.MILK, "milk_box.xml",
                       pose=Pose(position, orientation, frame=frame))
         return milk
 
