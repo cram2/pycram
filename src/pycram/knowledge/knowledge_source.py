@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 
-# from ..designator import DesignatorDescription
+from typing_extensions import TYPE_CHECKING
 from ..plan_failures import KnowledgeNotAvailable
 
+if TYPE_CHECKING:
+    from ..designator import DesignatorDescription
 
 class KnowledgeSource(ABC):
     """
@@ -58,7 +62,7 @@ class KnowledgeSource(ABC):
 
 
 class QueryKnowledge:
-    def query_pose_for_object(self, designator: 'DesignatorDescription') -> 'DesignatorDescription':
+    def query_pose_for_object(self, designator: DesignatorDescription) -> DesignatorDescription:
         """
         Query the pose for an object from the knowledge source
 
@@ -68,7 +72,7 @@ class QueryKnowledge:
         """
         pass
 
-    def query_grasp_for_object(self, designator: 'DesignatorDescription') -> 'DesignatorDescription':
+    def query_grasp_for_object(self, designator: DesignatorDescription) -> DesignatorDescription:
         """
         Query the grasp for an object from the knowledge source
 
