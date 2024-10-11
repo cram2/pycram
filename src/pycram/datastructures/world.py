@@ -1615,7 +1615,7 @@ class WorldSync(threading.Thread):
     if reasoning should be done in the prospection world.
     """
 
-    WAIT_TIME_AS_N_SIMULATION_STEPS = 20
+    WAIT_TIME_AS_N_SIMULATION_STEPS = 0
     """
     The time in simulation steps to wait between each iteration of the syncing loop.
     """
@@ -1698,7 +1698,8 @@ class WorldSync(threading.Thread):
         """
         Adds all objects that are in the main world but not in the prospection world to the prospection world.
         """
-        [self.add_object(obj) for obj in self.world.objects if obj not in self.object_to_prospection_object_map]
+        obj_map_copy = copy(self.object_to_prospection_object_map)
+        [self.add_object(obj) for obj in self.world.objects if obj not in obj_map_copy.keys()]
 
     def add_object(self, obj: Object) -> None:
         """

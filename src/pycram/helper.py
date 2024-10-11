@@ -100,6 +100,7 @@ def find_multiverse_path() -> Optional[str]:
     """
     # Get the value of PYTHONPATH environment variable
     pythonpath = os.getenv('PYTHONPATH')
+    multiverse_relative_path = "Multiverse/multiverse"
 
     # Check if PYTHONPATH is set
     if pythonpath:
@@ -108,8 +109,8 @@ def find_multiverse_path() -> Optional[str]:
 
         # Iterate through each path and check if 'Multiverse' is in it
         for path in paths:
-            if 'multiverse' in path:
-                multiverse_path = path.split('multiverse')[0]
-                return multiverse_path + 'multiverse'
+            if multiverse_relative_path in path:
+                multiverse_path = path.split(multiverse_relative_path)[0]
+                return multiverse_path + multiverse_relative_path
 
 
