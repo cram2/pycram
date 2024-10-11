@@ -10,11 +10,12 @@ import trimesh
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING, Self, deprecated
 
-from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape
+from .datastructures.dataclasses import JointState, AxisAlignedBoundingBox, Color, LinkState, VisualShape, \
+    MeshVisualShape, RotatedBoundingBox
 from .datastructures.enums import JointType
 from .datastructures.pose import Pose, Transform
 from .datastructures.world_entity import WorldEntity
-from .failures import ObjectDescriptionNotFound
+from .failures import ObjectDescriptionNotFound, LinkHasNoGeometry, LinkGeometryHasNoMesh
 from .local_transformer import LocalTransformer
 
 if TYPE_CHECKING:
@@ -219,6 +220,53 @@ class Link(ObjectEntity, LinkDescription, ABC):
         self._current_pose: Optional[Pose] = None
         self.update_pose()
 
+    def get_bounding_box(self, rotated: bool = False) -> Union[AxisAlignedBoundingBox, RotatedBoundingBox]:
+        """
+        :param rotated: If True, return the rotated bounding box, otherwise the axis-aligned bounding box.
+        :return: The axis-aligned or rotated bounding box of a link. First try to get it from the simulator, if not,
+         then calculate it depending on the type of the link geometry.
+        """
+        try:
+            if rotated:
+                return self.world.get_link_rotated_bounding_box(self)
+            else:
+                return self.world.get_link_axis_aligned_bounding_box(self)
+        except NotImplementedError:
+            if isinstance(self.geometry, MeshVisualShape):
+                mesh_path = self.get_mesh_path()
+                mesh = trimesh.load(mesh_path)
+                min_bound, max_bound = mesh.bounds
+                if rotated:
+                    return RotatedBoundingBox.from_min_max(min_bound, max_bound, self.transform)
+                else:
+                    return AxisAlignedBoundingBox.from_min_max(min_bound, max_bound).get_transformed_box(self.transform)
+            else:
+                bounding_box = self.geometry.axis_aligned_bounding_box
+                if rotated:
+                    return RotatedBoundingBox.from_axis_aligned_bounding_box(bounding_box, self.transform)
+                else:
+                    return bounding_box.get_transformed_box(self.transform)
+
+    def get_mesh_path(self) -> str:
+        """
+        :return: The path of the mesh file of this link if the geometry is a mesh.
+        """
+        mesh_filename = self.get_mesh_filename()
+        return self.world.cache_manager.look_for_file_in_data_dir(pathlib.Path(mesh_filename))
+
+    def get_mesh_filename(self) -> str:
+        """
+        :return: The mesh file name of this link if the geometry is a mesh, otherwise raise a LinkGeometryHasNoMesh.
+        :raises LinkHasNoGeometry: If the link has no geometry.
+        :raises LinkGeometryHasNoMesh: If the geometry is not a mesh.
+        """
+        if self.geometry is None:
+            raise LinkHasNoGeometry(self.name)
+        if isinstance(self.geometry, MeshVisualShape):
+            return self.geometry.file_name
+        else:
+            raise LinkGeometryHasNoMesh(self.name, type(self.geometry).__name__)
+
     def set_pose(self, pose: Pose) -> None:
         """
         Set the pose of this link to the given pose.
@@ -337,12 +385,6 @@ class Link(ObjectEntity, LinkDescription, ABC):
         :return: A Pose object with the pose of this link with respect to the given link.
         """
         return self.local_transformer.transform_pose(self.pose, link.tf_frame)
-
-    def get_axis_aligned_bounding_box(self) -> AxisAlignedBoundingBox:
-        """
-        :return: An AxisAlignedBoundingBox object with the axis aligned bounding box of this link.
-        """
-        return self.world.get_link_axis_aligned_bounding_box(self)
 
     @property
     def position(self) -> Point:
@@ -620,6 +662,7 @@ class ObjectDescription(EntityDescription):
         self._joints: Optional[List[JointDescription]] = None
         self._link_map: Optional[Dict[str, Any]] = None
         self._joint_map: Optional[Dict[str, Any]] = None
+        self.original_path: Optional[str] = path
 
         if path:
             self.update_description_from_file(path)
@@ -737,7 +780,8 @@ class ObjectDescription(EntityDescription):
         pass
 
     def generate_description_from_file(self, path: str, name: str, extension: str, save_path: str,
-                                       scale_mesh: Optional[float] = None) -> None:
+                                       scale_mesh: Optional[float] = None,
+                                       mesh_transform: Optional[Transform] = None) -> None:
         """
         Generate and preprocess the description from the file at the given path and save the preprocessed
         description. The generated description will be saved at the given save path.
@@ -747,15 +791,19 @@ class ObjectDescription(EntityDescription):
         :param extension: The file extension of the file to preprocess.
         :param save_path: The path to save the generated description file.
         :param scale_mesh: The scale of the mesh.
+        :param mesh_transform: The transformation matrix to apply to the mesh.
         :raises ObjectDescriptionNotFound: If the description file could not be found/read.
         """
 
         if extension in self.mesh_extensions:
             if extension == ".ply":
                 mesh = trimesh.load(path)
-                path = path.replace(extension, ".obj")
                 if scale_mesh is not None:
                     mesh.apply_scale(scale_mesh)
+                if mesh_transform is not None:
+                    transform = mesh_transform.get_homogeneous_matrix()
+                    mesh.apply_transform(transform)
+                path = path.replace(extension, ".obj")
                 mesh.export(path)
             self.generate_from_mesh_file(path, name, save_path=save_path)
         elif extension == self.get_file_extension():

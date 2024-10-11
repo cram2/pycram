@@ -3,10 +3,12 @@ import os
 import pathlib
 import shutil
 
+import numpy as np
 from typing_extensions import List, TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from .description import ObjectDescription
+    from .datastructures.pose import Transform
 
 
 class CacheManager:
@@ -50,7 +52,8 @@ class CacheManager:
 
     def update_cache_dir_with_object(self, path: str, ignore_cached_files: bool,
                                      object_description: 'ObjectDescription', object_name: str,
-                                     scale_mesh: Optional[float] = None) -> str:
+                                     scale_mesh: Optional[float] = None,
+                                     mesh_transform: Optional['Transform'] = None) -> str:
         """
         Check if the file is already in the cache directory, if not preprocess and save in the cache.
 
@@ -60,6 +63,7 @@ class CacheManager:
         :param object_description: The object description of the file.
         :param object_name: The name of the object.
         :param scale_mesh: The scale of the mesh.
+        :param mesh_transform: The transformation matrix to apply to the mesh.
         :return: The path of the cached file.
         """
         path_object = pathlib.Path(path)
@@ -73,7 +77,9 @@ class CacheManager:
         if not self.is_cached(path, object_description) or ignore_cached_files:
             # if file is not yet cached preprocess the description file and save it in the cache directory.
             path = self.look_for_file_in_data_dir(path_object)
-            object_description.generate_description_from_file(path, object_name, extension, cache_path, scale_mesh)
+            object_description.original_path = path
+            object_description.generate_description_from_file(path, object_name, extension, cache_path,
+                                                              scale_mesh, mesh_transform)
 
         return cache_path
 

@@ -12,7 +12,7 @@ from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
-                                          ContactPointsList)
+                                          ContactPointsList, RotatedBoundingBox)
 from ..datastructures.enums import ObjectType, JointType
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world import World
@@ -55,7 +55,8 @@ class Object(WorldEntity):
                  world: Optional[World] = None,
                  color: Color = Color(),
                  ignore_cached_files: bool = False,
-                 scale_mesh: Optional[float] = None):
+                 scale_mesh: Optional[float] = None,
+                 mesh_transform: Optional[Transform] = None):
         """
         The constructor loads the description file into the given World, if no World is specified the
         :py:attr:`~World.current_world` will be used. It is also possible to load .obj and .stl file into the World.
@@ -93,7 +94,8 @@ class Object(WorldEntity):
         if path is not None:
             self.path = self.world.preprocess_object_file_and_get_its_cache_path(path, ignore_cached_files,
                                                                                  self.description, self.name,
-                                                                                 scale_mesh=scale_mesh)
+                                                                                 scale_mesh=scale_mesh,
+                                                                                 mesh_transform=mesh_transform)
 
             self.description.update_description_from_file(self.path)
 
@@ -113,6 +115,17 @@ class Object(WorldEntity):
         self.attachments: Dict[Object, Attachment] = {}
 
         self.world.add_object(self)
+
+    def get_mesh_path(self) -> str:
+        """
+        Get the path to the mesh file of the object.
+
+        :return: The path to the mesh file.
+        """
+        if self.has_one_link:
+            return self.root_link.get_mesh_path()
+        else:
+            raise ValueError("The object has more than one link, therefore the mesh path cannot be determined.")
 
     def _resolve_description(self, path: Optional[str] = None, description: Optional[ObjectDescription] = None) -> None:
         """
@@ -487,7 +500,7 @@ class Object(WorldEntity):
         :param link_name: The name of the link.
         :return: The axis aligned bounding box of the link.
         """
-        return self.links[link_name].get_axis_aligned_bounding_box()
+        return self.links[link_name].get_bounding_box()
 
     def get_transform_between_links(self, from_link: str, to_link: str) -> Transform:
         """
@@ -1342,7 +1355,21 @@ class Object(WorldEntity):
 
         :return: The axis aligned bounding box of this object.
         """
-        return self.world.get_object_axis_aligned_bounding_box(self)
+        if self.has_one_link:
+            return self.links[self.description.get_root()].get_bounding_box()
+        else:
+            return self.world.get_object_axis_aligned_bounding_box(self)
+
+    def get_rotated_bounding_box(self) -> RotatedBoundingBox:
+        """
+        Return the rotated bounding box of this object.
+
+        :return: The rotated bounding box of this object.
+        """
+        if self.has_one_link:
+            return self.links[self.description.get_root()].get_bounding_box(rotated=True)
+        else:
+            return self.world.get_object_rotated_bounding_box(self)
 
     def get_base_origin(self) -> Pose:
         """

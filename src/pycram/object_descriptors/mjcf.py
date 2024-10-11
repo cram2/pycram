@@ -57,7 +57,8 @@ class LinkDescription(AbstractLinkDescription):
         if mjcf_geometry.type == MJCFGeomType.SPHERE.value:
             return SphereVisualShape(Color(), [0, 0, 0], mjcf_geometry.size[0])
         if mjcf_geometry.type == MJCFGeomType.MESH.value:
-            return MeshVisualShape(Color(), [0, 0, 0], mjcf_geometry.scale, mjcf_geometry.filename)
+            mesh_filename = mjcf_geometry.mesh.file.prefix + mjcf_geometry.mesh.file.extension
+            return MeshVisualShape(Color(), [0, 0, 0], mjcf_geometry.mesh.scale, mesh_filename)
         return None
 
     @property
