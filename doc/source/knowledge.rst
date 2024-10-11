@@ -12,7 +12,12 @@ Concept
 -------
 The concept of knowledge in PyCRAM is based on the idea that knowledge can be represented in different ways and provided
 from different sources which can be specialized for different tasks. These different sources of knowledge are implemented
-behind a common interface which provides a set of methods to query the knowledge.
+behind a common interface which provides a set of methods to query the knowledge. This architecture can be seen in the
+following image:
+
+.. image:: ../images/knowledge/knowledge_arch.png
+    :align: center
+    :alt: Knowledge Architecture
 
 The methods provided by the knowledge sources, are called "properties" since they are used to reason about the properties
 of entities in the world. Properties can be combined to create more complex expressions which describe conditions
@@ -35,7 +40,11 @@ is to take a combined property and resolve the individual properties to the avai
 the methods needed to answer the question. The resolved properties are then combined in the same way as the input property
 and evaluated.
 
-## TODO Picture to showcase
+This image shows the process of resolving the properties through the knowledge engine:
+.. image:: ../images/knowledge/property_resolution.png
+    :align: center
+    :alt: Property Resolution
+
 
 
 -----------------
@@ -48,14 +57,16 @@ PyCRAM does not care how the knowledge is accesses or where it is from as as lon
 abstract methods.
 
 The methods that a Knowledge Source must implement are some basic methods to manage connecting to the knowledge itself
-and more importantly, methods to query the knowledge. The methods to access the knowledge are defined to reason about the
-a given action or object. The methods are:
+and more importantly, methods to query the knowledge. Which methods are provided by each knowledge source decides each
+knowledge source on its own by using the respective property as a mix-in of the knowledge source. The properties curren
+available and which a knowledge source can implement are:
 
- * reachable
- * graspable
- * space_is_free
- * gripper_is_free
- * is_visible
+- `GraspableProperty`: Checks if an object is graspable
+- `ReachableProperty`: Checks if a pose is reachable
+- `SpaceIsFreeProperty`: Checks if a space is free for the robot to move to
+- `GripperIsFreeProperty`: Checks if the gripper is free to grasp an object
+- `VisibleProperty`: Checks if an object is visible
+
 
 ## TODO link to example of knowledge source
 
