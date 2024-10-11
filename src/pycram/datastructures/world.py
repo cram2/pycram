@@ -1157,7 +1157,6 @@ class World(StateEntity, ABC):
 
         :param state_id: The used specified unique id representing the state.
         :param use_same_id: If the same id should be used for the state.
-        :param state_id: The used specified unique id representing the state.
         :return: The unique id representing the state.
         """
         pass
