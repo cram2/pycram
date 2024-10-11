@@ -28,8 +28,10 @@ class Property(NodeMixin):
 
     def __init__(self, parent: NodeMixin = None, children: Iterable[NodeMixin] = None):
         super().__init__()
-        self.parent = parent
-        self.variables = {}
+        self.parent: Property = parent
+        self.variables: Dict[str, Any] = {}
+        self.executed: bool = False
+        self.result: ReasoningResult = None
         if children:
             self.children = children
 
@@ -69,8 +71,8 @@ class Property(NodeMixin):
 
     def manage_io(self, func: Callable, *args, **kwargs) -> bool:
         """
-        Manages the ReasoningResult of a property function. The success of the method will be passed to the parent node
-        while the reasoned parameters will be stored in the variables dictionary of the root node.
+        Manages the ReasoningResult of a property function and calls it. The success of the method will be passed to the
+        parent node while the reasoned parameters will be stored in the variables dictionary of the root node.
 
         :param func: Property function to call
         :param args: args to pass to the function
@@ -79,7 +81,34 @@ class Property(NodeMixin):
         """
         reasoning_result = func(*args, **kwargs)
         self.root.variables.update(reasoning_result.reasoned_parameter)
+        self.result = reasoning_result
         return reasoning_result.success
+
+    @property
+    def successful(self) -> bool:
+        """
+        Returns the result of the complete tree structure. This is done by iterating over the tree and checking if all
+        nodes return True.
+
+        :return: True if all nodes in the tree are True, False otherwise
+        """
+        success = self.result
+        for node in PreOrderIter(self.root):
+            success &= node.result.success
+        return success
+
+    @property
+    def resolved(self) -> bool:
+        """
+        Returns True if all nodes in the tree are resolved. This is done by iterating over the tree and checking if all
+        nodes are either a ResolvedProperty or a PropertyOperator.
+
+        :return: True if all nodes in the tree are resolved, False otherwise
+        """
+        res = True
+        for node in PreOrderIter(self.root):
+            res &= isinstance(node, (ResolvedProperty, PropertyOperator))
+        return res
 
 
 class PropertyOperator(Property):
@@ -97,6 +126,7 @@ class PropertyOperator(Property):
         :param properties: A list of properties to which are the children of this node
         """
         super().__init__(parent=None, children=properties)
+        self.result = True
 
     def simplify(self):
         """
@@ -132,10 +162,10 @@ class And(PropertyOperator):
 
     def __init__(self, properties: List[Property]):
         """
-        Initialize the And with a list of aspects as the children of this node. This node will be the root of the
+        Initialize the And with a list of properties as the children of this node. This node will be the root of the
         tree.
 
-        :param properties: A list of aspects which are the children of this node
+        :param properties: A list of properties which are the children of this node
         """
         super().__init__(properties)
         self.simplify()
@@ -152,7 +182,7 @@ class And(PropertyOperator):
         """
         result = True
         for child in self.children:
-            # Child is a Property and the resolved function should be called
+            # Child is a Property and the executed function should be called
             if child.is_leaf:
                 result = result and child(*args, **kwargs)
             # Child is a PropertyOperator
@@ -171,10 +201,10 @@ class Or(PropertyOperator):
 
     def __init__(self, properties: List[Property]):
         """
-        Initialize the Or with a list of aspects as the children of this node. This node will be the root of the
+        Initialize the Or with a list of properties as the children of this node. This node will be the root of the
         tree.
 
-        :param properties: A list of aspects which are the children of this node
+        :param properties: A list of properties which are the children of this node
         """
         super().__init__(properties)
         self.simplify()
@@ -191,7 +221,7 @@ class Or(PropertyOperator):
         """
         result = False
         for child in self.children:
-            # Child is a Property and the resolved function should be called
+            # Child is a Property and the executed function should be called
             if child.is_leaf:
                 result = result or child(*args, **kwargs)
             # Child is a PropertyOperator
@@ -230,7 +260,7 @@ class Not(PropertyOperator):
 
 class ResolvedProperty(Property):
     """
-    Class to represent a resolved property function. It holds the reference to the respective function in the knowledge
+    Class to represent a executed property function. It holds the reference to the respective function in the knowledge
     source and the exception that should be raised if the property is not fulfilled. Its main purpose is to manage the
     call to the property function as well as handle the input and output variables.
     """
@@ -246,7 +276,7 @@ class ResolvedProperty(Property):
 
     def __init__(self, resolved_property_function: Callable, property_exception: Type[PlanFailure], parent: NodeMixin = None):
         """
-        Initialize the ResolvedProperty with the resolved property function, the exception that should be raised if the property
+        Initialize the ResolvedProperty with the executed property function, the exception that should be raised if the property
         is not fulfilled, the parent node.
 
         :param resolved_property_function: Reference to the function in the knowledge source
@@ -258,7 +288,7 @@ class ResolvedProperty(Property):
         self.property_exception = property_exception
         self.parameter = {}
 
-    def __call__(self) -> bool:
+    def __call__(self, *args, **kwargs) -> bool:
         """
         Manages the io of the call to the property function and then calls the function. If the function returns False,
         the exception defined in :attr:`property_exception` will be raised.
