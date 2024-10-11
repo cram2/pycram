@@ -42,8 +42,9 @@ class PartialDesignator:
 
     def __init__(self, performable: Type[ActionDesignatorDescription.Action], *args, **kwargs):
         self.performable = performable
-        self.args = args
-        self.kwargs = kwargs
+        # Remove None values fom the given arguments and keyword arguments
+        self.args = tuple(filter(None, args))
+        self.kwargs = {k:v for k,v in kwargs.items() if v is not None}
 
     def __call__(self, *fargs, **fkwargs):
         """
