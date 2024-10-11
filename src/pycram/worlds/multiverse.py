@@ -8,7 +8,7 @@ from typing_extensions import List, Dict, Optional, Union, Tuple
 from .multiverse_communication.client_manager import MultiverseClientManager
 from .multiverse_communication.clients import MultiverseController, MultiverseReader, MultiverseWriter, MultiverseAPI
 from ..config.multiverse_conf import MultiverseConfig
-from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint, MeshVisualShape
+from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
 from ..datastructures.enums import WorldMode, JointType, ObjectType, MultiverseBodyProperty, MultiverseJointPosition, \
     MultiverseJointCMD
 from ..datastructures.pose import Pose
@@ -16,7 +16,7 @@ from ..datastructures.world import World
 from ..description import Link, Joint
 from ..object_descriptors.mjcf import ObjectDescription as MJCF
 from ..robot_description import RobotDescription
-from ..ros.logging import logwarn
+from ..ros.logging import logwarn, logerr
 from ..utils import RayTestUtils, wxyz_to_xyzw, xyzw_to_wxyz
 from ..validation.goal_validator import validate_object_pose, validate_multiple_joint_positions, \
     validate_joint_position, validate_multiple_object_poses
@@ -327,7 +327,7 @@ class Multiverse(World):
         :param joint_positions: The dictionary of joints and positions.
         """
         controlled_joints_data = {self.get_actuator_for_joint(joint):
-                                      {self.get_joint_cmd_name(joint.type): [position]}
+                                  {self.get_joint_cmd_name(joint.type): [position]}
                                   for joint, position in joint_positions.items()}
         self.joint_controller.send_multiple_body_data_to_server(controlled_joints_data)
         return True
@@ -621,30 +621,30 @@ class Multiverse(World):
         self.api_requester.load(self.saved_simulator_states[state_id])
 
     def set_link_color(self, link: Link, rgba_color: Color):
-        rospy.logwarn("set_link_color is not implemented in Multiverse")
+        logwarn("set_link_color is not implemented in Multiverse")
 
     def get_link_color(self, link: Link) -> Color:
-        rospy.logwarn("get_link_color is not implemented in Multiverse")
+        logwarn("get_link_color is not implemented in Multiverse")
         return Color()
 
     def get_colors_of_object_links(self, obj: Object) -> Dict[str, Color]:
-        rospy.logwarn("get_colors_of_object_links is not implemented in Multiverse")
+        logwarn("get_colors_of_object_links is not implemented in Multiverse")
         return {}
 
     def get_object_axis_aligned_bounding_box(self, obj: Object) -> AxisAlignedBoundingBox:
-        rospy.logerr("get_object_axis_aligned_bounding_box for multi-link objects is not implemented in Multiverse")
+        logerr("get_object_axis_aligned_bounding_box for multi-link objects is not implemented in Multiverse")
         raise NotImplementedError
 
     def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
-        rospy.logerr("get_link_axis_aligned_bounding_box is not implemented in Multiverse")
+        logerr("get_link_axis_aligned_bounding_box is not implemented in Multiverse")
         raise NotImplementedError
 
     def set_realtime(self, real_time: bool) -> None:
-        rospy.logwarn("set_realtime is not implemented as an API in Multiverse, it is configured in the"
-                      "multiverse configuration file (.muv file) as rtf_required where a value of 1 means real-time")
+        logwarn("set_realtime is not implemented as an API in Multiverse, it is configured in the"
+                "multiverse configuration file (.muv file) as rtf_required where a value of 1 means real-time")
 
     def set_gravity(self, gravity_vector: List[float]) -> None:
-        rospy.logwarn("set_gravity is not implemented in Multiverse")
+        logwarn("set_gravity is not implemented in Multiverse")
 
     def check_object_exists(self, obj: Object) -> bool:
         """
