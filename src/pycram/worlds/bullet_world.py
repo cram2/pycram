@@ -302,7 +302,7 @@ class BulletWorld(World):
         if self._gui_thread:
             self._gui_thread.join()
 
-    def save_physics_simulator_state(self, use_same_id: bool = False) -> int:
+    def save_physics_simulator_state(self, use_same_id: bool = False, state_id: Optional[int] = None) -> int:
         return p.saveState(physicsClientId=self.id)
 
     def restore_physics_simulator_state(self, state_id):
