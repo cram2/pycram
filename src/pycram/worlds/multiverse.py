@@ -16,7 +16,7 @@ from ..datastructures.world import World
 from ..description import Link, Joint, ObjectDescription
 from ..object_descriptors.mjcf import ObjectDescription as MJCF
 from ..robot_description import RobotDescription
-from ..ros.logging import logwarn
+from ..ros.logging import logwarn, logerr
 from ..utils import RayTestUtils, wxyz_to_xyzw, xyzw_to_wxyz
 from ..validation.goal_validator import validate_object_pose, validate_multiple_joint_positions, \
     validate_joint_position, validate_multiple_object_poses
@@ -608,7 +608,7 @@ class Multiverse(World):
             sleep(self.simulation_time_step)
             self.api_requester.pause_simulation()
 
-    def save_physics_simulator_state(self, use_same_id: bool = False, state_id: Optional[int] = None) -> int:
+    def save_physics_simulator_state(self, state_id: Optional[int] = None, use_same_id: bool = False) -> int:
         if state_id is None:
             self.latest_save_id = 0 if self.latest_save_id is None else self.latest_save_id + int(not use_same_id)
             state_id = self.latest_save_id
@@ -623,30 +623,30 @@ class Multiverse(World):
         self.api_requester.load(self.saved_simulator_states[state_id])
 
     def set_link_color(self, link: Link, rgba_color: Color):
-        logging.warning("set_link_color is not implemented in Multiverse")
+        logwarn("set_link_color is not implemented in Multiverse")
 
     def get_link_color(self, link: Link) -> Color:
-        logging.warning("get_link_color is not implemented in Multiverse")
+        logwarn("get_link_color is not implemented in Multiverse")
         return Color()
 
     def get_colors_of_object_links(self, obj: Object) -> Dict[str, Color]:
-        logging.warning("get_colors_of_object_links is not implemented in Multiverse")
+        logwarn("get_colors_of_object_links is not implemented in Multiverse")
         return {}
 
     def get_object_axis_aligned_bounding_box(self, obj: Object) -> AxisAlignedBoundingBox:
-        logging.error("get_object_axis_aligned_bounding_box is not implemented in Multiverse")
+        logerr("get_object_axis_aligned_bounding_box for multi-link objects is not implemented in Multiverse")
         raise NotImplementedError
 
     def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
-        logging.error("get_link_axis_aligned_bounding_box is not implemented in Multiverse")
+        logerr("get_link_axis_aligned_bounding_box is not implemented in Multiverse")
         raise NotImplementedError
 
     def set_realtime(self, real_time: bool) -> None:
-        logging.warning("set_realtime is not implemented as an API in Multiverse, it is configured in the"
-                        "multiverse configuration file (.muv file) as rtf_required where a value of 1 means real-time")
+        logwarn("set_realtime is not implemented as an API in Multiverse, it is configured in the"
+                      "multiverse configuration file (.muv file) as rtf_required where a value of 1 means real-time")
 
     def set_gravity(self, gravity_vector: List[float]) -> None:
-        logging.warning("set_gravity is not implemented in Multiverse")
+        logwarn("set_gravity is not implemented in Multiverse")
 
     def check_object_exists(self, obj: Object) -> bool:
         """

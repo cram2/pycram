@@ -967,7 +967,7 @@ class World(StateEntity, ABC):
     def current_state(self) -> WorldState:
         if self._current_state is None:
             simulator_state = None if self.conf.use_physics_simulator_state else (
-            self.save_physics_simulator_state(use_same_id=True))
+                self.save_physics_simulator_state(use_same_id=True))
             self._current_state = WorldState(simulator_state, self.object_states)
         return WorldState(self._current_state.simulator_state_id, self.object_states)
 
@@ -1007,12 +1007,12 @@ class World(StateEntity, ABC):
             obj.save_state(state_id)
 
     @abstractmethod
-    def save_physics_simulator_state(self, use_same_id: bool = False, state_id: Optional[int] = None) -> int:
+    def save_physics_simulator_state(self, state_id: Optional[int] = None, use_same_id: bool = False) -> int:
         """
         Save the state of the physics simulator and returns the unique id of the state.
 
-        :param use_same_id: If the same id should be used for the state.
         :param state_id: The used specified unique id representing the state.
+        :param use_same_id: If the same id should be used for the state.
         :return: The unique id representing the state.
         """
         pass
