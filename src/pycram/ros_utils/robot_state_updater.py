@@ -7,7 +7,7 @@ from sensor_msgs.msg import JointState
 from ..datastructures.world import World
 from ..robot_descriptions import robot_description
 from ..datastructures.pose import Pose
-from ..ros.data_typs import Time, Duration
+from ..ros.data_types import Time, Duration
 from ..ros.ros_tools import wait_for_message, create_timer
 
 

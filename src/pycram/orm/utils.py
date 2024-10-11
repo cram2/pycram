@@ -4,9 +4,8 @@ from .base import Base
 from ..designators.object_designator import *
 import json
 
-from ..designators.action_designator import *
 from ..ros.logging import loginfo, logwarn
-import pycram.orm
+
 
 
 def write_database_to_file(in_sessionmaker: sqlalchemy.orm.sessionmaker, filename: str,
@@ -121,7 +120,7 @@ def copy_database(source_session_maker: sqlalchemy.orm.sessionmaker,
 
 
 def update_primary_key_constrains(session_maker: sqlalchemy.orm.sessionmaker):
-    '''
+    """
     Iterates through all tables related to any ORM Class and sets in their corresponding foreign keys in the given
     endpoint to "ON UPDATE CASCADING".
 
@@ -130,7 +129,7 @@ def update_primary_key_constrains(session_maker: sqlalchemy.orm.sessionmaker):
 
     :param session_maker:
     :return: empty
-    '''
+    """
     with session_maker() as session:
         for table in Base.metadata.sorted_tables:
             try:

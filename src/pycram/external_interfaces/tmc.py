@@ -4,7 +4,7 @@ from ..datastructures.enums import GripperState
 from ..designators.motion_designator import MoveGripperMotion, TalkingMotion
 from ..ros.logging import loginfo
 from ..ros.publisher import create_publisher
-from ..ros.data_typs import Rate
+from ..ros.data_types import Rate
 
 is_init = False
 

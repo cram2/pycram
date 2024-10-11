@@ -12,7 +12,7 @@ from ..datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, Me
 from ..datastructures.pose import Pose, Transform
 from ..designator import ObjectDesignatorDescription
 from ..datastructures.world import World
-from ..ros.data_typs import Duration, Time
+from ..ros.data_types import Duration, Time
 from ..ros.logging import loginfo, logwarn, logerr
 from ..ros.publisher import create_publisher
 from ..ros.ros_tools import sleep

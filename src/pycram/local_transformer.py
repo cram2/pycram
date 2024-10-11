@@ -1,7 +1,7 @@
 import sys
 import logging
 
-from .ros.data_typs import Time, Duration
+from .ros.data_types import Time, Duration
 from .ros.logging import logerr
 
 if 'world' in sys.modules:

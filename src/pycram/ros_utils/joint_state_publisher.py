@@ -5,7 +5,7 @@ import atexit
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
 from ..datastructures.world import World
-from ..ros.data_typs import Time
+from ..ros.data_types import Time
 from ..ros.publisher import create_publisher
 
 

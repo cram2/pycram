@@ -5,7 +5,7 @@ import threading
 from geometry_msgs.msg import WrenchStamped
 from std_msgs.msg import Header
 from ..datastructures.world import World
-from ..ros.data_typs import Time
+from ..ros.data_types import Time
 from ..ros.publisher import create_publisher
 
 

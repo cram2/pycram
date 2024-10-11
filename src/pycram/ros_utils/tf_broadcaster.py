@@ -8,7 +8,7 @@ from ..datastructures.enums import ExecutionType
 from tf2_msgs.msg import TFMessage
 
 from ..ros.publisher import create_publisher
-from ..ros.data_typs import Time
+from ..ros.data_types import Time
 
 
 class TFBroadcaster:

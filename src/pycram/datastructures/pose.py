@@ -13,7 +13,7 @@ from geometry_msgs.msg import PoseStamped, TransformStamped, Vector3, Point
 from geometry_msgs.msg import (Pose as GeoPose, Quaternion as GeoQuaternion)
 from tf import transformations
 from ..orm.base import Pose as ORMPose, Position, Quaternion, ProcessMetaData
-from ..ros.data_typs import Time
+from ..ros.data_types import Time
 from ..validation.error_checkers import calculate_pose_error
 from ..ros.logging import logwarn, logerr
 

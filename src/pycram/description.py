@@ -5,7 +5,7 @@ import os
 import pathlib
 from abc import ABC, abstractmethod
 
-from .ros.data_typs import Time
+from .ros.data_types import Time
 import trimesh
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Tuple, Union, Any, List, Optional, Dict, TYPE_CHECKING, Self, deprecated

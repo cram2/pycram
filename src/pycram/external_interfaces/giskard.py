@@ -4,7 +4,7 @@ import time
 
 import sys
 
-from ..ros.data_typs import Time
+from ..ros.data_types import Time
 from ..ros.logging import logwarn, loginfo_once
 from ..ros.ros_tools import get_node_names
 

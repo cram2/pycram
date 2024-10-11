@@ -25,7 +25,7 @@ from ..datastructures.world_entity import StateEntity
 from ..failures import ProspectionObjectNotFound, WorldObjectNotFound
 from ..local_transformer import LocalTransformer
 from ..robot_description import RobotDescription
-from ..ros.data_typs import Time
+from ..ros.data_types import Time
 from ..ros.logging import logwarn
 from ..validation.goal_validator import (MultiPoseGoalValidator,
                                          PoseGoalValidator, JointPositionGoalValidator,
