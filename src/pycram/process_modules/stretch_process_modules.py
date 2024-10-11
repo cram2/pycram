@@ -1,8 +1,7 @@
 from typing import Any
 
-import rospy
-
 from ..external_interfaces.robokudo import *
+from ..ros.logging import logdebug
 from ..utils import _apply_ik
 from ..external_interfaces import giskard
 from .default_process_modules import *
@@ -146,7 +145,7 @@ class StretchNavigationReal(ProcessModule):
     """
 
     def _execute(self, designator: MoveMotion) -> Any:
-        rospy.logdebug(f"Sending goal to giskard to Move the robot")
+        logdebug(f"Sending goal to giskard to Move the robot")
         giskard.achieve_cartesian_goal(designator.target, RobotDescription.current_robot_description.base_link, "map")
 
 

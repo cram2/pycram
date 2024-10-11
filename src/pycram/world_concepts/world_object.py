@@ -5,7 +5,6 @@ import os
 from pathlib import Path
 
 import numpy as np
-import rospy
 from deprecated import deprecated
 from geometry_msgs.msg import Point, Quaternion
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
@@ -23,6 +22,7 @@ from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenObjects, Un
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription as URDF
+from ..ros.logging import logwarn
 
 try:
     from ..object_descriptors.mjcf import ObjectDescription as MJCF
@@ -1226,7 +1226,7 @@ class Object(WorldEntity):
                 container_joint = element
                 break
         if not container_joint:
-            rospy.logwarn(f"No joint of type {joint_type} found above link {link_name}")
+            logwarn(f"No joint of type {joint_type} found above link {link_name}")
         return container_joint
 
     def get_multiple_joint_positions(self, joint_names: List[str]) -> Dict[str, float]:
@@ -1246,7 +1246,7 @@ class Object(WorldEntity):
         """
         return {j.name: j.position for j in self.joints.values()}
 
-    def update_link_transforms(self, transform_time: Optional[rospy.Time] = None) -> None:
+    def update_link_transforms(self, transform_time: Optional[Time] = None) -> None:
         """
         Update the transforms of all links of this object using time 'transform_time' or the current ros time.
 

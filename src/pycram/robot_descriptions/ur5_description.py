@@ -1,10 +1,9 @@
-import rospkg
+from ..ros.ros_tools import get_ros_package_path
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager
 from ..datastructures.enums import Arms, Grasp, GripperState
 
-rospack = rospkg.RosPack()
-filename = rospack.get_path('pycram') + '/resources/robots/' + "ur5_robotiq" + '.urdf'
+filename = get_ros_package_path('pycram') + '/resources/robots/' + "ur5_robotiq" + '.urdf'
 
 ur5_description = RobotDescription("ur5_robotiq", "world", "base_link", "ee_link",
                                    filename)

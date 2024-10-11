@@ -5,10 +5,10 @@ import actionlib
 
 from .. import world_reasoning as btr
 import numpy as np
-import rospy
 
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..external_interfaces.ik import request_ik
+from ..ros.logging import logdebug
 from ..utils import _apply_ik
 from ..local_transformer import LocalTransformer
 from ..designators.object_designator import ObjectDesignatorDescription
@@ -206,7 +206,7 @@ class Pr2NavigationReal(ProcessModule):
     """
 
     def _execute(self, designator: MoveMotion) -> Any:
-        rospy.logdebug(f"Sending goal to giskard to Move the robot")
+        logdebug(f"Sending goal to giskard to Move the robot")
         giskard.achieve_cartesian_goal(designator.target, RobotDescription.current_robot_description.base_link, "map")
 
 
@@ -315,10 +315,10 @@ class Pr2MoveGripperReal(ProcessModule):
 
     def _execute(self, designator: MoveGripperMotion) -> Any:
         def activate_callback():
-            rospy.loginfo("Started gripper Movement")
+            loginfo("Started gripper Movement")
 
         def done_callback(state, result):
-            rospy.loginfo(f"Reached goal {designator.motion}: {result.reached_goal}")
+            loginfo(f"Reached goal {designator.motion}: {result.reached_goal}")
 
         def feedback_callback(msg):
             pass
@@ -331,7 +331,7 @@ class Pr2MoveGripperReal(ProcessModule):
         else:
             controller_topic = "l_gripper_controller/gripper_action"
         client = actionlib.SimpleActionClient(controller_topic, Pr2GripperCommandAction)
-        rospy.loginfo("Waiting for action server")
+        loginfo("Waiting for action server")
         client.wait_for_server()
         client.send_goal(goal, active_cb=activate_callback, done_cb=done_callback, feedback_cb=feedback_callback)
         wait = client.wait_for_result()

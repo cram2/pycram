@@ -11,12 +11,11 @@ import time
 from abc import ABC
 from typing_extensions import Callable, Type, Any, Union
 
-import rospy
-
 from .language import Language
 from .robot_description import RobotDescription
 from typing_extensions import TYPE_CHECKING
 from .datastructures.enums import ExecutionType
+from .ros.logging import logerr, logwarn_once
 
 if TYPE_CHECKING:
     from .designators.motion_designator import BaseMotion
@@ -282,7 +281,7 @@ class ProcessModuleManager(ABC):
         manager = None
         _default_manager = None
         if not ProcessModuleManager.execution_type:
-            rospy.logerr(
+            logerr(
                 f"No execution_type is set, did you use the with_simulated_robot or with_real_robot decorator?")
             return
 
@@ -295,11 +294,11 @@ class ProcessModuleManager(ABC):
         if manager:
             return manager
         elif _default_manager:
-            rospy.logwarn_once(f"No Process Module Manager found for robot: '{RobotDescription.current_robot_description.name}'"
+            logwarn_once(f"No Process Module Manager found for robot: '{RobotDescription.current_robot_description.name}'"
                                f", using default process modules")
             return _default_manager
         else:
-            rospy.logerr(f"No Process Module Manager found for robot: '{RobotDescription.current_robot_description.name}'"
+            logerr(f"No Process Module Manager found for robot: '{RobotDescription.current_robot_description.name}'"
                          f", and no default process modules available")
             return None
 

@@ -3,6 +3,9 @@ import roslaunch
 import rospy
 import rospkg
 
+from pycram.ros.logging import loginfo
+from pycram.ros.ros_tools import create_ros_pack
+
 
 def launch_pr2():
     """
@@ -39,14 +42,14 @@ def launch_robot(launch_file, package='pycram', launch_folder='/launch/'):
     :param launch_folder: Location of the launch file inside the package
     """
 
-    rospath = rospkg.RosPack()
+    rospath = create_ros_pack()
 
     uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
     roslaunch.configure_logging(uuid)
     launch = roslaunch.parent.ROSLaunchParent(uuid, [rospath.get_path(package) + launch_folder + launch_file])
     launch.start()
 
-    rospy.loginfo(f'{launch_file} started')
+    loginfo(f'{launch_file} started')
 
     # Wait for ik server to launch
     time.sleep(2)

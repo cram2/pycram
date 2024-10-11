@@ -1,12 +1,11 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
-
-import rospy
 from typing_extensions import List, Dict, Union, Optional
 
 from .datastructures.dataclasses import VirtualMobileBaseJoints
 from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType
 from .object_descriptors.urdf import ObjectDescription as URDFObject
+from .ros.logging import logerr
 from .utils import suppress_stdout_stderr
 from .helper import parse_mjcf_actuators
 
@@ -49,7 +48,7 @@ class RobotDescriptionManager:
                     RobotDescription.current_robot_description = self.descriptions[key]
                     return self.descriptions[key]
             else:
-                rospy.logerr(f"Robot description {name} not found")
+                logerr(f"Robot description {name} not found")
 
     def register_description(self, description: RobotDescription):
         """
@@ -508,7 +507,7 @@ class KinematicChainDescription:
         try:
             return self.static_joint_states[name]
         except KeyError:
-            rospy.logerr(f"Static joint states for chain {name} not found")
+            logerr(f"Static joint states for chain {name} not found")
 
     def get_tool_frame(self) -> str:
         """
