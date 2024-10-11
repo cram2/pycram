@@ -603,7 +603,7 @@ class ContactPointsList(list):
         return list({point.link_b.object for point in self})
 
     def __str__(self):
-        return f"ContactPointsList: {', '.join(self.get_names_of_objects_that_have_points())}"
+        return f"ContactPointsList: {', '.join([point.__str__() for point in self])}"
 
     def __repr__(self):
         return self.__str__()
