@@ -45,10 +45,10 @@ if TYPE_CHECKING:
 
 
 class DesignatorError(Exception):
-    """Implementation of designator errors."""
+    """Implementation of designator_description errors."""
 
     def __init__(self, *args, **kwargs):
-        """Create a new designator error."""
+        """Create a new designator_description error."""
         Exception.__init__(self, *args, **kwargs)
 
 
@@ -73,14 +73,14 @@ class ResolutionError(Exception):
 
 class DesignatorDescription(ABC):
     """
-    :ivar resolve: The specialized_designators function to use for this designator, defaults to self.ground
+    :ivar resolve: The specialized_designators function to use for this designator_description, defaults to self.ground
     """
 
     def __init__(self, ontology_concept_holders: Optional[List[OntologyConceptHolder]] = None):
         """
         Create a Designator description.
 
-        :param ontology_concept_holders: A list of holders of ontology concepts that the designator is categorized as or associated with
+        :param ontology_concept_holders: A list of holders of ontology concepts that the designator_description is categorized as or associated with
         """
 
         # self.resolve = self.ground
@@ -130,20 +130,20 @@ class DesignatorDescription(ABC):
 
     def get_optional_parameter(self) -> List[str]:
         """
-        Returns a list of optional parameter names of this designator description.
+        Returns a list of optional parameter names of this designator_description description.
         """
         return [param_name for param_name, param in inspect.signature(self.__init__).parameters.items() if
                 param.default != param.empty]
 
     def get_all_parameter(self) -> List[str]:
         """
-        Returns a list of all parameter names of this designator description.
+        Returns a list of all parameter names of this designator_description description.
         """
         return [param_name for param_name, param in inspect.signature(self.__init__).parameters.items()]
 
     def get_type_hints(self) -> Dict[str, Any]:
         """
-        Returns the type hints of the __init__ method of this designator description.
+        Returns the type hints of the __init__ method of this designator_description description.
 
         :return:
         """
@@ -151,7 +151,7 @@ class DesignatorDescription(ABC):
 
 class ActionDesignatorDescription(DesignatorDescription, Language):
     """
-    Abstract class for action designator descriptions.
+    Abstract class for action designator_description descriptions.
     Descriptions hold possible parameter ranges for action designators.
     """
 
@@ -168,7 +168,7 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
     @dataclass
     class Action:
         """
-        The performable designator with a single element for each list of possible parameter.
+        The performable designator_description with a single element for each list of possible parameter.
         """
         robot_position: Pose = field(init=False)
         """
@@ -259,9 +259,18 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
 
             return action
 
+        @classmethod
+        def get_type_hints(cls) -> Dict[str, Any]:
+            """
+            Returns the type hints of the __init__ method of this designator_description description.
+
+            :return:
+            """
+            return typing_extensions.get_type_hints(cls)
+
     def __init__(self, ontology_concept_holders: Optional[List[OntologyConceptHolder]] = None):
         """
-        Base of all action designator descriptions.
+        Base of all action designator_description descriptions.
 
         :param ontology_concept_holders: A list of ontology concepts that the action is categorized as or associated with
         """
@@ -271,11 +280,16 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
         self.soma = OntologyManager().soma
         self.knowledge_conditions = None
 
-    def resolve(self):
-        if self.knowledge_condition:
-            ke = KnowledgeEngine()
-            ke.query(self)
-        return self.ground()
+    def resolve(self) -> Type[ActionDesignatorDescription.Action]:
+        """
+        Resolves this designator_description to a performable designtor by using the reasoning of the knowledge engine.
+        This method will simply take the first result from iterating over the designator_description.
+
+        :return: A fully specified Action Designator
+        """
+        if getattr(self, "__iter__", None):
+            return next(iter(self))
+        raise NotImplementedError(f"{type(self)} has no __iter__ method.")
 
     def ground(self) -> Action:
         """Fill all missing parameters and chose plan to execute. """
@@ -283,7 +297,7 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
 
     def init_ontology_concepts(self, ontology_concept_classes: Dict[str, Type[owlready2.Thing]]):
         """
-        Initialize the ontology concept holders for this action designator
+        Initialize the ontology concept holders for this action designator_description
 
         :param ontology_concept_classes: The ontology concept classes that the action is categorized as or associated with
         :param ontology_concept_name: The name of the ontology concept instance to be created
@@ -296,29 +310,22 @@ class ActionDesignatorDescription(DesignatorDescription, Language):
                     self.ontology_concept_holders.extend(existing_holders if existing_holders \
                                                              else [OntologyConceptHolder(concept_class(concept_name))])
 
-    def __iter__(self):
-        """
-        Iterate through all possible performables fitting this description
-
-        :yield: A resolved action designator
-        """
-        yield self.ground()
 
 
 class LocationDesignatorDescription(DesignatorDescription):
     """
-    Parent class of location designator descriptions.
+    Parent class of location designator_description descriptions.
     """
 
     @dataclass
     class Location:
         """
         Resolved location that represents a specific point in the world which satisfies the constraints of the location
-        designator description.
+        designator_description description.
         """
         pose: Pose
         """
-        The resolved pose of the location designator. Pose is inherited by all location designator.
+        The executed pose of the location designator_description. Pose is inherited by all location designator_description.
         """
 
     def __init__(self, ontology_concept_holders: Optional[List[owlready2.Thing]] = None):
@@ -345,7 +352,7 @@ SPECIAL_KNOWLEDGE = {
 
 class ObjectDesignatorDescription(DesignatorDescription):
     """
-    Class for object designator descriptions.
+    Class for object designator_description descriptions.
     Descriptions hold possible parameter ranges for object designators.
     """
 
@@ -399,7 +406,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
             metadata = ProcessMetaData().insert(session)
             pose = self.pose.insert(session)
 
-            # create object orm designator
+            # create object orm designator_description
             obj = self.to_sql()
             obj.process_metadata = metadata
             obj.pose = pose
@@ -408,7 +415,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
         def frozen_copy(self) -> 'ObjectDesignatorDescription.Object':
             """
-            Returns a copy of this designator containing only the fields.
+            Returns a copy of this designator_description containing only the fields.
 
             :return: A copy containing only the fields of this class. The WorldObject attached to this pycram object is not copied. The _pose gets set to a method that statically returns the pose of the object when this method was called.
             """
@@ -470,7 +477,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
     def __init__(self, names: Optional[List[str]] = None, types: Optional[List[ObjectType]] = None,
                  ontology_concept_holders: Optional[List[owlready2.Thing]] = None):
         """
-        Base of all object designator descriptions. Every object designator has the name and type of the object.
+        Base of all object designator_description descriptions. Every object designator_description has the name and type of the object.
 
         :param names: A list of names that could describe the object
         :param types: A list of types that could represent the object
@@ -484,7 +491,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
         """
         Return the first object from the world that fits the description.
 
-        :return: A resolved object designator
+        :return: A executed object designator_description
         """
         return next(iter(self))
 
@@ -492,7 +499,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
         """
         Iterate through all possible objects fitting this description
 
-        :yield: A resolved object designator
+        :yield: A executed object designator_description
         """
         # for every world object
         for obj in World.current_world.objects:
