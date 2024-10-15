@@ -26,12 +26,13 @@ class TestAttachment(BulletWorldTestCase):
             pass
         self.milk.detach(self.robot)
         with UseProspectionWorld():
-            self.assertTrue(self.milk not in self.robot.attachments)
-            self.assertTrue(self.robot not in self.milk.attachments)
-            prospection_milk = self.world.get_prospection_object_for_object(self.milk)
-            prospection_robot = self.world.get_prospection_object_for_object(self.robot)
-            self.assertTrue(prospection_milk not in prospection_robot.attachments)
-            self.assertTrue(prospection_robot not in prospection_milk.attachments)
+            pass
+        self.assertTrue(self.milk not in self.robot.attachments)
+        self.assertTrue(self.robot not in self.milk.attachments)
+        prospection_milk = self.world.get_prospection_object_for_object(self.milk)
+        prospection_robot = self.world.get_prospection_object_for_object(self.robot)
+        self.assertTrue(prospection_milk not in prospection_robot.attachments)
+        self.assertTrue(prospection_robot not in prospection_milk.attachments)
 
     def test_attachment_behavior(self):
         self.robot.attach(self.milk)
@@ -104,5 +105,3 @@ class TestAttachment(BulletWorldTestCase):
 
         new_milk_pos = self.milk.get_position()
         self.assertEqual(new_milk_pos.x, milk_pos.x + 1)
-
-
