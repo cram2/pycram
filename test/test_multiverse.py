@@ -53,6 +53,36 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def tearDown(self):
         self.multiverse.remove_all_objects()
 
+    def test_save_and_restore_state(self):
+        milk = self.spawn_milk([1, 1, 0.1])
+        robot = self.spawn_robot()
+        cup = self.spawn_cup([1, 2, 0.1])
+        if "apartment" not in self.multiverse.get_object_names():
+            apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
+        else:
+            apartment = self.multiverse.get_object_by_name("apartment")
+        apartment.set_joint_position("cabinet10_drawer1_joint", 0.1)
+        robot.attach(milk)
+        milk.attach(cup)
+        all_object_attachments = {obj: obj.attachments.copy() for obj in self.multiverse.objects}
+        state_id = self.multiverse.save_state()
+        milk.detach(cup)
+        robot_link = robot.root_link
+        milk_link = milk.root_link
+        cid = robot_link.constraint_ids[milk_link]
+        self.assertTrue(cid == robot.attachments[milk].id)
+        self.multiverse.remove_constraint(cid)
+        apartment.set_joint_position("cabinet10_drawer1_joint", 0.0)
+        self.multiverse.restore_state(state_id)
+        cid = robot_link.constraint_ids[milk_link]
+        self.assertTrue(milk_link in robot_link.constraint_ids)
+        self.assertTrue(cid == robot.attachments[milk].id)
+        for obj in self.multiverse.objects:
+            self.assertTrue(len(obj.attachments) == len(all_object_attachments[obj]))
+            for att in obj.attachments:
+                self.assertTrue(att in all_object_attachments[obj])
+        self.assertTrue(apartment.get_joint_position("cabinet10_drawer1_joint") == 0.1)
+
     def test_spawn_xml_object(self):
         bread = Object("bread_1", ObjectType.GENERIC_OBJECT, "bread_1.xml", pose=Pose([1, 1, 0.1]))
         self.assert_poses_are_equal(bread.get_pose(), Pose([1, 1, 0.1]))
@@ -243,7 +273,10 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
                                         orientation_delta=self.multiverse.conf.orientation_tolerance)
 
     def test_get_environment_pose(self):
-        apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
+        if "apartment" not in self.multiverse.get_object_names():
+            apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
+        else:
+            apartment = self.multiverse.get_object_by_name("apartment")
         pose = apartment.get_pose()
         self.assertIsInstance(pose, Pose)
 
@@ -306,7 +339,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             self.assertEqual(len(contact_points), 1)
             self.assertIsInstance(contact_points[0], ContactPoint)
             self.assertTrue(contact_points[0].link_b.object, self.multiverse.floor)
-            cup = self.spawn_cup([1, 1, 0.2])
+            cup = self.spawn_cup([1, 1, 0.15])
             # This is needed because the cup is spawned in the air, so it needs to fall
             # to get in contact with the milk
             self.multiverse.simulate(0.3)
@@ -320,7 +353,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def test_get_contact_points_between_two_objects(self):
         for i in range(3):
             milk = self.spawn_milk([1, 1, 0.01], [0, -0.707, 0, 0.707])
-            cup = self.spawn_cup([1, 1, 0.2])
+            cup = self.spawn_cup([1, 1, 0.15])
             # This is needed because the cup is spawned in the air so it needs to fall
             # to get in contact with the milk
             self.multiverse.simulate(0.3)

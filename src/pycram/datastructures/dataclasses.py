@@ -404,8 +404,8 @@ class WorldState(State):
     """
     Dataclass for storing the state of the world.
     """
-    simulator_state_id: Optional[int]
     object_states: Dict[str, ObjectState]
+    simulator_state_id: Optional[int] = None
 
     def __eq__(self, other: 'WorldState'):
         return (self.simulator_state_is_equal(other) and self.all_objects_exist(other)
@@ -442,8 +442,9 @@ class WorldState(State):
                                                           other.object_states.values())])
 
     def __copy__(self):
-        return WorldState(simulator_state_id=self.simulator_state_id,
-                          object_states=deepcopy(self.object_states))
+        return WorldState(object_states=deepcopy(self.object_states),
+                          simulator_state_id=self.simulator_state_id
+                          )
 
 
 @dataclass
