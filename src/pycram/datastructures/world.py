@@ -1566,10 +1566,7 @@ class UseProspectionWorld:
         with UseProspectionWorld():
             NavigateAction.Action([[1, 0, 0], [0, 0, 0, 1]]).perform()
     """
-    WAIT_TIME_AS_N_SIMULATION_STEPS: int = 20
-    """
-    The time in simulation steps to wait before switching to the prospection world
-    """
+
 
     def __init__(self):
         self.prev_world: Optional[World] = None
@@ -1579,12 +1576,12 @@ class UseProspectionWorld:
         """
         This method is called when entering the with block, it will set the current world to the prospection world
         """
+        # Please do not edit this function, it works as it is now!
         if not World.current_world.is_prospection_world:
             self.prev_world = World.current_world
             World.current_world = World.current_world.prospection_world
-            World.current_world.resume_world_sync()
-            time.sleep(self.WAIT_TIME_AS_N_SIMULATION_STEPS * World.current_world.simulation_time_step)
-            World.current_world.pause_world_sync()
+            # This is also a join statement since it is called from the main thread.
+            World.current_world.world_sync.sync_worlds()
 
     def __exit__(self, *args):
         """
@@ -1686,7 +1683,8 @@ class WorldSync(threading.Thread):
         """
         Adds all objects that are in the main world but not in the prospection world to the prospection world.
         """
-        [self.add_object(obj) for obj in self.world.objects if obj not in self.object_to_prospection_object_map]
+        obj_map_copy = copy(self.object_to_prospection_object_map)
+        [self.add_object(obj) for obj in self.world.objects if obj not in obj_map_copy.keys()]
 
     def add_object(self, obj: Object) -> None:
         """
