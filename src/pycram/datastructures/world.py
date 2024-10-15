@@ -1222,19 +1222,19 @@ class World(StateEntity, ABC):
         self.restore_state(self.original_state_id)
         if remove_saved_states:
             self.remove_saved_states()
-        self.save_state(use_same_id=True)
+        self.original_state_id = self.save_state(use_same_id=True)
 
     def remove_saved_states(self) -> None:
         """
         Remove all saved states of the World.
         """
         if self.conf.use_physics_simulator_state:
-            for state_id in self.saved_states:
-                if state_id is not None:
-                    self.remove_physics_simulator_state(state_id)
+            for state in self.saved_states.values():
+                self.remove_physics_simulator_state(state.simulator_state_id)
         else:
             self.remove_objects_saved_states()
         super().remove_saved_states()
+        self.latest_state_id = None
         self.original_state_id = None
 
     def remove_objects_saved_states(self) -> None:
@@ -1608,10 +1608,7 @@ class UseProspectionWorld:
         with UseProspectionWorld():
             NavigateAction.Action([[1, 0, 0], [0, 0, 0, 1]]).perform()
     """
-    WAIT_TIME_AS_N_SIMULATION_STEPS: int = 20
-    """
-    The time in simulation steps to wait before switching to the prospection world
-    """
+
 
     def __init__(self):
         self.prev_world: Optional[World] = None
@@ -1621,12 +1618,12 @@ class UseProspectionWorld:
         """
         This method is called when entering the with block, it will set the current world to the prospection world
         """
+        # Please do not edit this function, it works as it is now!
         if not World.current_world.is_prospection_world:
             self.prev_world = World.current_world
             World.current_world = World.current_world.prospection_world
-            World.current_world.resume_world_sync()
-            time.sleep(self.WAIT_TIME_AS_N_SIMULATION_STEPS * World.current_world.simulation_time_step)
-            World.current_world.pause_world_sync()
+            # This is also a join statement since it is called from the main thread.
+            World.current_world.world_sync.sync_worlds()
 
     def __exit__(self, *args):
         """
@@ -1645,7 +1642,7 @@ class WorldSync(threading.Thread):
     if reasoning should be done in the prospection world.
     """
 
-    WAIT_TIME_AS_N_SIMULATION_STEPS = 0
+    WAIT_TIME_AS_N_SIMULATION_STEPS = 20
     """
     The time in simulation steps to wait between each iteration of the syncing loop.
     """
