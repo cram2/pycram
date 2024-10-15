@@ -8,7 +8,8 @@ from typing_extensions import List, Dict, Tuple, Optional, Callable, Union
 
 from .socket import MultiverseSocket, MultiverseMetaData
 from ...config.multiverse_conf import MultiverseConfig as Conf
-from ...datastructures.dataclasses import RayResult, MultiverseContactPoint
+from ...datastructures.dataclasses import RayResult, MultiverseObjectContactData, MultiverseContactPoint, \
+    MultiverseContactData
 from ...datastructures.enums import (MultiverseAPIName as API, MultiverseBodyProperty as BodyProperty,
                                      MultiverseProperty as Property)
 from ...datastructures.pose import Pose
@@ -666,18 +667,61 @@ class MultiverseAPI(MultiverseClient):
         """
         return self._request_single_api_callback(API.EXIST, obj.name)[0] == 'yes'
 
-    def get_contact_points(self, obj: Object) -> List[MultiverseContactPoint]:
+    def get_all_contact_data_of_object(self, obj: Object) -> MultiverseObjectContactData:
         """
-        Request the contact points of an object, this includes the object names and the contact forces and torques.
+        Request the contact data of an object, this includes the object names, the contact forces/torques, and the
+        contact points.
 
         :param obj: The object.
-        :return: The contact points of the object as a list of MultiverseContactPoint.
+        :return: The contact data of the object as a MultiverseObjectContactData.
         """
-        api_response_data = self._get_contact_points(obj.name)
+        api_response_data = self._get_all_contact_data_of_object(obj.name)
         body_names = api_response_data[API.GET_CONTACT_BODIES]
-        contact_efforts = self._parse_constraint_effort(api_response_data[API.GET_CONSTRAINT_EFFORT])
-        return [MultiverseContactPoint(body_names[i], contact_efforts[:3], contact_efforts[3:])
-                for i in range(len(body_names))]
+        points = self._parse_contact_points(api_response_data[API.GET_CONTACT_POINTS])
+        forces, torques = self._parse_constraint_effort(api_response_data[API.GET_CONSTRAINT_EFFORT])
+        return MultiverseObjectContactData(body_names, MultiverseContactData(points, {obj.name: forces},
+                                                                             {obj.name: torques}))
+
+    def get_all_contact_data_between_objects(self, obj1: Object, obj2: Object) -> MultiverseContactData:
+        """
+        Request the contact data between two objects, this includes the contact forces/torques, and the contact points.
+
+        :param obj1: The first object.
+        :param obj2: The second object.
+        :return: The contact data between the objects as a MultiverseContactData.
+        """
+        api_response = self._get_all_contact_data_between_objects(obj1.name, obj2.name)
+        points = self._parse_contact_points(api_response[API.GET_CONTACT_POINTS])
+        force_on_a, torque_on_a = self._parse_constraint_effort(api_response[API.GET_CONSTRAINT_EFFORT][obj1.name])
+        force_on_b, torque_on_b = self._parse_constraint_effort(api_response[API.GET_CONSTRAINT_EFFORT][obj2.name])
+        return MultiverseContactData(points, {obj1.name: force_on_a, obj2.name: force_on_b},
+                                     {obj1.name: torque_on_a, obj2.name: torque_on_b})
+
+    def _get_all_contact_data_between_objects(self, obj1_name: str, obj2_name: str) -> Dict[API, List]:
+        """
+        Request the contact data between two objects, this includes the contact forces/torques, and the contact points.
+
+        :param obj1_name: The name of the first object.
+        :param obj2_name: The name of the second object.
+        :return: The contact data between the objects as a dictionary.
+        """
+        data_1 = self._request_apis_callbacks({API.GET_CONTACT_POINTS: [obj1_name, obj2_name],
+                                               API.GET_CONSTRAINT_EFFORT: [obj1_name],
+                                               })
+        data_2 = self._request_single_api_callback(API.GET_CONSTRAINT_EFFORT, obj2_name)
+        data_1[API.GET_CONSTRAINT_EFFORT].extend(data_2)
+        return data_1
+
+    def _get_contact_points_between_objects(self, obj1_name: str, obj2_name: str) -> List[MultiverseContactPoint]:
+        """
+        Request the contact points between two objects.
+
+        :param obj1_name: The name of the first object.
+        :param obj2_name: The name of the second object.
+        :return: The contact points between the objects as a list of MultiverseContactPoint.
+        """
+        points = self._request_single_api_callback(API.GET_CONTACT_POINTS, obj1_name, obj2_name)
+        return self._parse_contact_points(points)
 
     def get_objects_intersected_with_rays(self, from_positions: List[List[float]],
                                           to_positions: List[List[float]]) -> List[RayResult]:
@@ -733,7 +777,7 @@ class MultiverseAPI(MultiverseClient):
         return " ".join([f"{position[0]} {position[1]} {position[2]}" for position in positions])
 
     @staticmethod
-    def _parse_constraint_effort(contact_effort: List[str]) -> List[float]:
+    def _parse_constraint_effort(contact_effort: List[str]) -> Tuple[List[float], List[float]]:
         """
         Parse the contact effort of an object.
 
@@ -744,17 +788,42 @@ class MultiverseAPI(MultiverseClient):
         if 'failed' in contact_effort:
             logwarn("Failed to get contact effort")
             return [0.0] * 6
-        return list(map(float, contact_effort))
+        contact_effort = list(map(float, contact_effort))
+        forces, torques = contact_effort[:3], contact_effort[3:]
+        return forces, torques
 
-    def _get_contact_points(self, object_name) -> Dict[API, List]:
+    def _get_contact_points(self, obj: Object) -> List[MultiverseContactPoint]:
         """
-        Request the contact points of an object.
+        Get the 3d positions of the contacts of an object.
+
+        :param obj: The object.
+        :return: The contact points of the object as a list of MultiverseContactPoint.
+        """
+        api_response = self._request_single_api_callback(API.GET_CONTACT_POINTS, obj.name)
+        return self._parse_contact_points(api_response)
+
+    @staticmethod
+    def _parse_contact_points(contact_points: List[str]) -> List[MultiverseContactPoint]:
+        """
+        Parse the contact points of an object.
+
+        :param contact_points: The contact points of the object as a list of strings.
+        :return: The contact positions, and normal vectors as a list of MultiverseContactPoint.
+        """
+        contact_point_data = [list(map(float, contact_point.split())) for contact_point in contact_points]
+        return [MultiverseContactPoint(point[:3], point[3:]) for point in contact_point_data]
+
+    def _get_all_contact_data_of_object(self, object_name) -> Dict[API, List]:
+        """
+        Request the names of bodies/objects that are in contact of an object,
+         the contact forces and torques, and the contact points.
 
         :param object_name: The name of the object.
-        :return: The contact points api response as a dictionary.
+        :return: The contact bodies, contact forces and torques, and contact points as a dictionary.
         """
         return self._request_apis_callbacks({API.GET_CONTACT_BODIES: [object_name],
-                                             API.GET_CONSTRAINT_EFFORT: [object_name]
+                                             API.GET_CONSTRAINT_EFFORT: [object_name],
+                                             API.GET_CONTACT_POINTS: [object_name]
                                              })
 
     def pause_simulation(self) -> None:

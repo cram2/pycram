@@ -690,10 +690,28 @@ class RayResult:
 
 
 @dataclass
+class MultiverseObjectContactData:
+    """
+    A dataclass to store all the contact data returned from Multiverse for a single object.
+    """
+    body_names: List[str]
+    data: MultiverseContactData
+
+
+@dataclass
+class MultiverseContactData:
+    """
+    A dataclass to store the contact data returned from Multiverse between two objects.
+    """
+    points: List[MultiverseContactPoint]
+    forces: Dict[str, List[float]]
+    torques: Dict[str, List[float]]
+
+
+@dataclass
 class MultiverseContactPoint:
     """
     A dataclass to store the contact point returned from Multiverse.
     """
-    body_name: str
-    contact_force: List[float]
-    contact_torque: List[float]
+    position: List[float]
+    normal: List[float]

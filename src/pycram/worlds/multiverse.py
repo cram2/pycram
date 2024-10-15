@@ -516,24 +516,27 @@ class Multiverse(World):
         """
         Note: Currently Multiverse only gets one contact point per contact objects.
         """
-        multiverse_contact_points = self.api_requester.get_contact_points(obj)
+        multiverse_contact_data = self.api_requester.get_all_contact_data_of_object(obj)
+        force = multiverse_contact_data.data.contact_force
+        torque = multiverse_contact_data.data.contact_torque
+        normal = multiverse_contact_data.data.points
         contact_points = ContactPointsList([])
         body_link = None
-        for point in multiverse_contact_points:
-            if point.body_name == "world":
-                point.body_name = "floor"
-            body_object = self.get_object_by_name(point.body_name)
+        for body_name in multiverse_contact_data.body_names:
+            if body_name == "world":
+                body_name = "floor"
+            body_object = self.get_object_by_name(body_name)
             if body_object is None:
                 for obj in self.objects:
                     for link in obj.links.values():
-                        if link.name == point.body_name:
+                        if link.name == body_name:
                             body_link = link
                             break
             else:
                 body_link = body_object.root_link
             if body_link is None:
-                logging.error(f"Body link not found: {point.body_name}")
-                raise ValueError(f"Body link not found: {point.body_name}")
+                logging.error(f"Body link not found: {body_name}")
+                raise ValueError(f"Body link not found: {body_name}")
             contact_points.append(ContactPoint(obj.root_link, body_link))
             contact_points[-1].force_x_in_world_frame = point.contact_force[0]
             contact_points[-1].force_y_in_world_frame = point.contact_force[1]
