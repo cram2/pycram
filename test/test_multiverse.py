@@ -371,7 +371,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             self.assertEqual(len(contact_points), 1)
             self.assertIsInstance(contact_points[0], ContactPoint)
             self.assertTrue(contact_points[0].link_b.object, self.multiverse.floor)
-            cup = self.spawn_cup([1, 1, 0.15])
+            cup = self.spawn_cup([1, 1, 0.12])
             # This is needed because the cup is spawned in the air, so it needs to fall
             # to get in contact with the milk
             self.multiverse.simulate(0.3)
@@ -385,7 +385,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
     def test_get_contact_points_between_two_objects(self):
         for i in range(3):
             milk = self.spawn_milk([1, 1, 0.01], [0, -0.707, 0, 0.707])
-            cup = self.spawn_cup([1, 1, 0.15])
+            cup = self.spawn_cup([1, 1, 0.12])
             # This is needed because the cup is spawned in the air so it needs to fall
             # to get in contact with the milk
             self.multiverse.simulate(0.3)
