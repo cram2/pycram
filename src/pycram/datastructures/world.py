@@ -1180,19 +1180,19 @@ class World(StateEntity, ABC):
         self.restore_state(self.original_state_id)
         if remove_saved_states:
             self.remove_saved_states()
-        self.save_state(use_same_id=True)
+        self.original_state_id = self.save_state(use_same_id=True)
 
     def remove_saved_states(self) -> None:
         """
         Remove all saved states of the World.
         """
         if self.conf.use_physics_simulator_state:
-            for state_id in self.saved_states:
-                if state_id is not None:
-                    self.remove_physics_simulator_state(state_id)
+            for state in self.saved_states.values():
+                self.remove_physics_simulator_state(state.simulator_state_id)
         else:
             self.remove_objects_saved_states()
         super().remove_saved_states()
+        self.latest_state_id = None
         self.original_state_id = None
 
     def remove_objects_saved_states(self) -> None:
