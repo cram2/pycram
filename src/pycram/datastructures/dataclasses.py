@@ -864,9 +864,8 @@ class MultiverseContactPoint:
     """
     A dataclass to store the contact point returned from Multiverse.
     """
-    body_name: str
-    contact_force: List[float]
-    contact_torque: List[float]
+    position: List[float]
+    normal: List[float]
 
 
 @dataclass
