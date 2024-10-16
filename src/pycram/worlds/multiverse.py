@@ -8,7 +8,8 @@ from typing_extensions import List, Dict, Optional, Union, Tuple
 from .multiverse_communication.client_manager import MultiverseClientManager
 from .multiverse_communication.clients import MultiverseController, MultiverseReader, MultiverseWriter, MultiverseAPI
 from ..config.multiverse_conf import MultiverseConfig
-from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
+from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint, \
+    MultiverseContactPoint
 from ..datastructures.enums import WorldMode, JointType, ObjectType, MultiverseBodyProperty, MultiverseJointPosition, \
     MultiverseJointCMD
 from ..datastructures.pose import Pose
@@ -516,34 +517,41 @@ class Multiverse(World):
         """
         Note: Currently Multiverse only gets one contact point per contact objects.
         """
-        multiverse_contact_data = self.api_requester.get_all_contact_data_of_object(obj)
-        force = multiverse_contact_data.data.contact_force
-        torque = multiverse_contact_data.data.contact_torque
-        normal = multiverse_contact_data.data.points
+        contact_bodies = self.api_requester.get_contact_bodies_of_object(obj)
         contact_points = ContactPointsList([])
-        body_link = None
-        for body_name in multiverse_contact_data.body_names:
-            if body_name == "world":
-                body_name = "floor"
-            body_object = self.get_object_by_name(body_name)
-            if body_object is None:
-                for obj in self.objects:
-                    for link in obj.links.values():
-                        if link.name == body_name:
-                            body_link = link
-                            break
-            else:
-                body_link = body_object.root_link
+        for body_name in contact_bodies:
+            multiverse_contact_points = self.api_requester.get_contact_points_between_objects(obj.name, body_name)
+            body_object, body_link = self.get_object_with_body_name(body_name)
             if body_link is None:
-                logging.error(f"Body link not found: {body_name}")
+                logerr(f"Body link not found: {body_name}")
                 raise ValueError(f"Body link not found: {body_name}")
-            contact_points.append(ContactPoint(obj.root_link, body_link))
-            contact_points[-1].force_x_in_world_frame = point.contact_force[0]
-            contact_points[-1].force_y_in_world_frame = point.contact_force[1]
-            contact_points[-1].force_z_in_world_frame = point.contact_force[2]
-            contact_points[-1].normal_on_b = point.contact_force[2]
-            contact_points[-1].normal_force = point.contact_force[2]
+            for point in multiverse_contact_points:
+                contact_points.append(ContactPoint(obj.root_link, body_link))
+                contact_points[-1].normal_on_b = point.normal
+                contact_points[-1].position_on_b = point.position
         return contact_points
+
+    def get_object_with_body_name(self, body_name: str) -> Tuple[Optional[Object],Optional[Link]]:
+        """
+        Get the object with the body name in the simulator, the body name can be the name of the object or the link.
+
+        :param body_name: The name of the body.
+        :return: The object if found otherwise None, and the link if the body name is a link.
+        """
+        if body_name == "world":
+            body_name = "floor"
+        body_object = self.get_object_by_name(body_name)
+        body_link = None
+        if body_object is None:
+            for obj in self.objects:
+                for link in obj.links.values():
+                    if link.name == body_name:
+                        body_link = link
+                        body_object = obj
+                        break
+        else:
+            body_link = body_object.root_link
+        return body_object, body_link
 
     @staticmethod
     def _get_normal_force_on_object_from_contact_force(obj: Object, contact_force: List[float]) -> float:
