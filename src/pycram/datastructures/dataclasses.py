@@ -898,17 +898,7 @@ class MultiverseObjectContactData:
     A dataclass to store all the contact data returned from Multiverse for a single object.
     """
     body_names: List[str]
-    data: MultiverseContactData
-
-
-@dataclass
-class MultiverseContactData:
-    """
-    A dataclass to store the contact data returned from Multiverse between two objects.
-    """
-    points: List[MultiverseContactPoint]
-    forces: Dict[str, List[float]]
-    torques: Dict[str, List[float]]
+    data: List[MultiverseContactPoint]
 
 
 @dataclass
