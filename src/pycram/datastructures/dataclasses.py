@@ -464,14 +464,11 @@ class ContactPoint:
     link_b: Link
     position_on_object_a: Optional[List[float]] = None
     position_on_object_b: Optional[List[float]] = None
-    normal_on_b: Optional[List[float]] = None  # normal on object b pointing towards object a
-    distance: Optional[float] = None
+    normal_on_b: Optional[List[float]] = None  # the contact normal vector on object b pointing towards object a
+    distance: Optional[float] = None  # distance between the two objects (+ve for separation, -ve for penetration)
     normal_force: Optional[List[float]] = None  # normal force applied during last step simulation
     lateral_friction_1: Optional[LateralFriction] = None
     lateral_friction_2: Optional[LateralFriction] = None
-    force_x_in_world_frame: Optional[float] = None
-    force_y_in_world_frame: Optional[float] = None
-    force_z_in_world_frame: Optional[float] = None
 
     def __str__(self):
         return f"ContactPoint: {self.link_a.object.name} - {self.link_b.object.name}"
@@ -695,17 +692,7 @@ class MultiverseObjectContactData:
     A dataclass to store all the contact data returned from Multiverse for a single object.
     """
     body_names: List[str]
-    data: MultiverseContactData
-
-
-@dataclass
-class MultiverseContactData:
-    """
-    A dataclass to store the contact data returned from Multiverse between two objects.
-    """
-    points: List[MultiverseContactPoint]
-    forces: Dict[str, List[float]]
-    torques: Dict[str, List[float]]
+    data: List[MultiverseContactPoint]
 
 
 @dataclass
