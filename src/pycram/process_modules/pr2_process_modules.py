@@ -1,5 +1,5 @@
 from threading import Lock
-from typing_extensions import Any
+from typing_extensions import Any, TYPE_CHECKING
 
 import actionlib
 
@@ -11,7 +11,7 @@ from ..external_interfaces.ik import request_ik
 from ..ros.logging import logdebug
 from ..utils import _apply_ik
 from ..local_transformer import LocalTransformer
-from ..designators.object_designator import ObjectDesignatorDescription
+
 from ..designators.motion_designator import MoveMotion, LookingMotion, \
     DetectingMotion, MoveTCPMotion, MoveArmJointsMotion, WorldStateDetectingMotion, MoveJointsMotion, \
     MoveGripperMotion, OpeningMotion, ClosingMotion
@@ -22,6 +22,9 @@ from ..datastructures.pose import Pose
 from ..datastructures.enums import JointType, ObjectType, Arms, ExecutionType
 from ..external_interfaces import giskard
 from ..external_interfaces.robokudo import *
+
+if TYPE_CHECKING:
+    from ..designators.object_designator import ObjectDesignatorDescription
 
 try:
     from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2

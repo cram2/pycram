@@ -23,3 +23,6 @@ deprecated
 probabilistic_model>=5.1.0
 random_events>=3.0.7
 sympy
+
+Pygments~=2.14.0
+typeguard~=4.3.0

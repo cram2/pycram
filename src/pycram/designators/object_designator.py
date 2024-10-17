@@ -65,18 +65,15 @@ class ObjectPart(ObjectDesignatorDescription):
 
     def __init__(self, names: List[str],
                  part_of: ObjectDesignatorDescription.Object,
-                 type: Optional[ObjectType] = None,
-                 resolver: Optional[Callable] = None):
+                 type: Optional[ObjectType] = None):
         """
         Describing the relationship between an object and a specific part of it.
 
         :param names: Possible names for the part
         :param part_of: Parent object of which the part should be described
         :param type: Type of the part
-        :param resolver: An alternative specialized_designators to resolve the input parameter to an object designator
-        :param ontology_concept_holders: A list of ontology concepts that the object part is categorized as or associated with
         """
-        super().__init__(names, type, resolver)
+        super().__init__(names, type)
 
         if not part_of:
             raise AttributeError("part_of cannot be None.")
@@ -123,7 +120,7 @@ class LocatedObject(ObjectDesignatorDescription):
         """
 
     def __init__(self, names: List[str], types: List[str],
-                 reference_frames: List[str], timestamps: List[float], resolver: Optional[Callable] = None,
+                 reference_frames: List[str], timestamps: List[float],
                  ontology_concept_holders: Optional[List[owlready2.Thing]] = None):
         """
         Describing an object resolved through knowrob.
@@ -132,10 +129,9 @@ class LocatedObject(ObjectDesignatorDescription):
         :param types: List of possible types describing the object
         :param reference_frames: Frame of reference in which the object position should be
         :param timestamps: Timestamps for which positions should be returned
-        :param resolver: An alternative specialized_designators that resolves the input parameter to an object designator.
         :param ontology_concept_holders: A list of ontology concepts that the object is categorized as
         """
-        super(LocatedObject, self).__init__(names, types, resolver, ontology_concept_holders)
+        super(LocatedObject, self).__init__(names, types, ontology_concept_holders)
         self.reference_frames: List[str] = reference_frames
         self.timestamps: List[float] = timestamps
 
@@ -157,15 +153,14 @@ class RealObject(ObjectDesignatorDescription):
         """
 
     def __init__(self, names: Optional[List[str]] = None, types: Optional[List[str]] = None,
-                 world_object: WorldObject = None, resolver: Optional[Callable] = None):
+                 world_object: WorldObject = None):
         """
 
         :param names:
         :param types:
         :param world_object:
-        :param resolver:
         """
-        super().__init__(resolver)
+        super().__init__()
         self.types: Optional[List[str]] = types
         self.names: Optional[List[str]] = names
         self.world_object: WorldObject = world_object

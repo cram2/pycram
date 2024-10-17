@@ -1,10 +1,10 @@
 from dataclasses import field
 from typing import Optional
 
-from pycram.orm.base import Base, MapperArgsMixin, PoseMixin, Pose
+from .base import Base, MapperArgsMixin, PoseMixin, Pose
 from sqlalchemy.orm import Mapped, mapped_column, declared_attr, relationship, MappedAsDataclass
 from sqlalchemy import ForeignKey
-from pycram.datastructures.enums import ObjectType
+from ..datastructures.enums import ObjectType
 
 
 class ObjectMixin(MappedAsDataclass):

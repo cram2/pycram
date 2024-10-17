@@ -697,3 +697,11 @@ class MultiverseContactPoint:
     body_name: str
     contact_force: List[float]
     contact_torque: List[float]
+
+@dataclass
+class ReasoningResult:
+    """
+    Result of a reasoning result of knowledge source
+    """
+    success: bool
+    reasoned_parameter: Dict[str, Any]
