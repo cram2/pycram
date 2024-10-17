@@ -8,10 +8,12 @@ from pycram.process_module import simulated_robot, with_simulated_robot
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.dataclasses import Color
+from pycram.ros.viz_marker_publisher import VizMarkerPublisher
 
 extension = ObjectDescription.get_file_extension()
 
 world = BulletWorld(WorldMode.GUI)
+
 robot = Object("pr2", ObjectType.ROBOT, f"pr2{extension}", pose=Pose([1, 2, 0]))
 apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment{extension}")
 
@@ -49,15 +51,15 @@ with simulated_robot:
 
     milk_desig = move_and_detect(ObjectType.MILK)
 
-    TransportAction(milk_desig, ["left"], [Pose([4.8, 3.55, 0.8])]).resolve().perform()
+    TransportAction(milk_desig, [Arms.LEFT], [Pose([4.8, 3.55, 0.8])]).resolve().perform()
 
     cereal_desig = move_and_detect(ObjectType.BREAKFAST_CEREAL)
 
-    TransportAction(cereal_desig, ["right"], [Pose([5.2, 3.4, 0.8], [0, 0, 1, 1])]).resolve().perform()
+    TransportAction(cereal_desig, [Arms.RIGHT], [Pose([5.2, 3.4, 0.8], [0, 0, 1, 1])]).resolve().perform()
 
     bowl_desig = move_and_detect(ObjectType.BOWL)
 
-    TransportAction(bowl_desig, ["left"], [Pose([5, 3.3, 0.8], [0, 0, 1, 1])]).resolve().perform()
+    TransportAction(bowl_desig, [Arms.LEFT], [Pose([5, 3.3, 0.8], [0, 0, 1, 1])]).resolve().perform()
 
     # Finding and navigating to the drawer holding the spoon
     handle_desig = ObjectPart(names=["handle_cab10_t"], part_of=apartment_desig.resolve())
@@ -74,10 +76,10 @@ with simulated_robot:
 
     spoon_desig = DetectAction(BelieveObject(types=[ObjectType.SPOON])).resolve().perform()
 
-    pickup_arm = "left" if drawer_open_loc.arms[0] == "right" else "right"
-    PickUpAction(spoon_desig, [pickup_arm], ["top"]).resolve().perform()
+    pickup_arm = Arms.LEFT if drawer_open_loc.arms[0] == Arms.RIGHT else Arms.RIGHT
+    PickUpAction(spoon_desig, [pickup_arm], [Grasp.TOP]).resolve().perform()
 
-    ParkArmsAction([Arms.LEFT if pickup_arm == "left" else Arms.RIGHT]).resolve().perform()
+    ParkArmsAction([Arms.LEFT if pickup_arm == Arms.LEFT else Arms.RIGHT]).resolve().perform()
 
     CloseAction(object_designator_description=handle_desig, arms=[drawer_open_loc.arms[0]]).resolve().perform()
 
@@ -94,3 +96,5 @@ with simulated_robot:
     PlaceAction(spoon_desig, [spoon_target_pose], [pickup_arm]).resolve().perform()
 
     ParkArmsAction([Arms.BOTH]).resolve().perform()
+
+world.exit()

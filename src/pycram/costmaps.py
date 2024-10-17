@@ -1,26 +1,35 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
-from typing_extensions import Tuple, List, Optional
-
-import matplotlib.pyplot as plt
 from dataclasses import dataclass
 
+import matplotlib.pyplot as plt
 import numpy as np
 import psutil
-import rospy
+import random_events
+import tf
 from matplotlib import colors
 from nav_msgs.msg import OccupancyGrid, MapMetaData
+from probabilistic_model.probabilistic_circuit.nx.distributions import UniformDistribution
+from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit, ProductUnit
+from random_events.interval import Interval, reals, closed_open, closed
+from random_events.product_algebra import Event, SimpleEvent
+from random_events.variable import Continuous
+from typing_extensions import Tuple, List, Optional, Iterator
 
+from .ros.ros_tools import wait_for_message
+from .datastructures.dataclasses import AxisAlignedBoundingBox
+from .datastructures.pose import Pose
 from .datastructures.world import UseProspectionWorld
-from .world_concepts.world_object import Object
+from .datastructures.world import World
 from .description import Link
 from .local_transformer import LocalTransformer
+from .world_concepts.world_object import Object
+
 from .datastructures.pose import Pose, Transform
 from .datastructures.world import World
 from .datastructures.dataclasses import AxisAlignedBoundingBox, BoxVisualShape, Color
-
-import pybullet as p
+from tf.transformations import quaternion_from_matrix
 
 
 @dataclass
@@ -111,42 +120,21 @@ class Costmap:
         # Creation of the visual shapes, for documentation of the visual shapes
         # please look here: https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#heading=h.q1gn7v6o58bf
         for box in boxes:
-            visual = p.createVisualShape(p.GEOM_BOX,
-                                         halfExtents=[(box[1] * self.resolution) / 2, (box[2] * self.resolution) / 2,
-                                                      0.001],
-                                         rgbaColor=[1, 0, 0, 0.6],
-                                         visualFramePosition=[(box[0][0] + box[1] / 2) * self.resolution,
-                                                              (box[0][1] + box[2] / 2) * self.resolution, 0.])
+            box = BoxVisualShape(Color(1, 0, 0, 0.6),
+                                 [(box[0][0] + box[1] / 2) * self.resolution,
+                                  (box[0][1] + box[2] / 2) * self.resolution, 0.],
+                                 [(box[1] * self.resolution) / 2, (box[2] * self.resolution) / 2, 0.001])
+            visual = self.world.create_visual_shape(box)
             cells.append(visual)
         # Set to 127 for since this is the maximal amount of links in a multibody
         for cell_parts in self._chunks(cells, 127):
-            # Dummy paramater since these are needed to spawn visual shapes as a
-            # multibody.
-            link_poses = [[0, 0, 0] for c in cell_parts]
-            link_orientations = [[0, 0, 0, 1] for c in cell_parts]
-            link_masses = [1.0 for c in cell_parts]
-            link_parent = [0 for c in cell_parts]
-            link_joints = [p.JOINT_FIXED for c in cell_parts]
-            link_collision = [-1 for c in cell_parts]
-            link_joint_axis = [[1, 0, 0] for c in cell_parts]
-            # The position at which the multibody will be spawned. Offset such that
-            # the origin referes to the centre of the costmap.
-            # origin_pose = self.origin.position_as_list()
-            # base_pose = [origin_pose[0] - self.height / 2 * self.resolution,
-            #              origin_pose[1] - self.width / 2 * self.resolution, origin_pose[2]]
-
             offset = [[-self.height / 2 * self.resolution, -self.width / 2 * self.resolution, 0.05], [0, 0, 0, 1]]
-            new_pose = p.multiplyTransforms(self.origin.position_as_list(), self.origin.orientation_as_list(),
-                                            offset[0], offset[1])
-
-            map_obj = p.createMultiBody(baseVisualShapeIndex=-1, linkVisualShapeIndices=cell_parts,
-                                        basePosition=new_pose[0], baseOrientation=new_pose[1], linkPositions=link_poses,
-                                        # [0, 0, 1, 0]
-                                        linkMasses=link_masses, linkOrientations=link_orientations,
-                                        linkInertialFramePositions=link_poses,
-                                        linkInertialFrameOrientations=link_orientations, linkParentIndices=link_parent,
-                                        linkJointTypes=link_joints, linkJointAxis=link_joint_axis,
-                                        linkCollisionShapeIndices=link_collision)
+            origin_transform = (Transform(self.origin.position_as_list(), self.origin.orientation_as_list())
+                                .get_homogeneous_matrix())
+            offset_transform = (Transform(offset[0], offset[1]).get_homogeneous_matrix())
+            new_pose_transform = np.dot(origin_transform, offset_transform)
+            new_pose = Pose(new_pose_transform[:3, 3].tolist(), quaternion_from_matrix(new_pose_transform))
+            map_obj = self.world.create_multi_body_from_visual_shapes(cell_parts, new_pose)
             self.vis_ids.append(map_obj)
 
     def _chunks(self, lst: List, n: int) -> List:
@@ -165,7 +153,7 @@ class Costmap:
         Removes the visualization from the World.
         """
         for v_id in self.vis_ids:
-            self.world.remove_object_by_id(v_id)
+            self.world.remove_visual_object(v_id)
         self.vis_ids = []
 
     def _find_consectuive_line(self, start: Tuple[int, int], map: np.ndarray) -> int:
@@ -366,7 +354,7 @@ class OccupancyCostmap(Costmap):
         :return: The costmap as a numpy array.
         """
         print("Waiting for Map")
-        map = rospy.wait_for_message("/map", OccupancyGrid)
+        map = wait_for_message("/map", OccupancyGrid)
         print("Recived Map")
         return np.array(map.data)
 
@@ -379,7 +367,7 @@ class OccupancyCostmap(Costmap):
         :return: The meta-data for the costmap array.
         """
         print("Waiting for Map Meta Data")
-        meta = rospy.wait_for_message("/map_metadata", MapMetaData)
+        meta = wait_for_message("/map_metadata", MapMetaData)
         print("Recived Meta Data")
         return meta
 
@@ -448,8 +436,8 @@ class OccupancyCostmap(Costmap):
         indices = np.concatenate(np.dstack(np.mgrid[int(-size / 2):int(size / 2), int(-size / 2):int(size / 2)]),
                                  axis=0) * resolution + np.array(origin_position[:2])
         # Add the z-coordinate to the grid, which is either 0 or 10
-        indices_0 = np.pad(indices, (0, 1), mode='constant', constant_values=0)[:-1]
-        indices_10 = np.pad(indices, (0, 1), mode='constant', constant_values=10)[:-1]
+        indices_0 = np.pad(indices, (0, 1), mode='constant', constant_values=5)[:-1]
+        indices_10 = np.pad(indices, (0, 1), mode='constant', constant_values=0)[:-1]
         # Zips both arrays such that there are tuples for every coordinate that
         # only differ in the z-coordinate
         rays = np.dstack(np.dstack((indices_0, indices_10))).T
@@ -461,10 +449,9 @@ class OccupancyCostmap(Costmap):
         i = 0
         j = 0
         for n in self._chunks(np.array(rays), 16380):
-            # with UseProspectionWorld():
-            r_t = self.world.ray_test_batch(n[:, 0], n[:, 1], num_threads=0)
+            r_t = World.current_world.ray_test_batch(n[:, 0], n[:, 1], num_threads=0)
             while r_t is None:
-                r_t = self.world.ray_test_batch(n[:, 0], n[:, 1], num_threads=0)
+                r_t = World.current_world.ray_test_batch(n[:, 0], n[:, 1], num_threads=0)
             j += len(n)
             if World.robot:
                 attached_objs_id = [o.id for o in self.world.robot.attachments.keys()]
@@ -787,11 +774,10 @@ class SemanticCostmap(Costmap):
 
     def get_aabb_for_link(self) -> AxisAlignedBoundingBox:
         """
-        Returns the axis aligned bounding box (AABB) of the link provided when creating this costmap. To try and let the
-        AABB as close to the actual object as possible, the Object will be rotated such that the link will be in the
-        identity orientation.
 
-        :return: Two points in world coordinate space, which span a rectangle
+        :return: The axis aligned bounding box (AABB) of the link provided when creating this costmap. To try and let
+         the AABB as close to the actual object as possible, the Object will be rotated such that the link will be in the
+        identity orientation.
         """
         prospection_object = World.current_world.get_prospection_object_for_object(self.object)
         with UseProspectionWorld():
@@ -800,6 +786,160 @@ class SemanticCostmap(Costmap):
             inverse_trans = link_pose_trans.invert()
             prospection_object.set_orientation(inverse_trans.to_pose())
             return self.link.get_axis_aligned_bounding_box()
+
+
+class AlgebraicSemanticCostmap(SemanticCostmap):
+    """
+    Class for a semantic costmap that is based on an algebraic set-description of the valid area.
+    """
+    x: Continuous = Continuous("x")
+    """
+    The variable for height.
+    """
+
+    y: Continuous = Continuous("y")
+    """
+    The variable for width.
+    """
+
+    original_valid_area: Optional[SimpleEvent]
+    """
+    The original rectangle of the valid area.
+    """
+
+    valid_area: Optional[Event]
+    """
+    A description of the valid positions as set.
+    """
+
+    number_of_samples: int
+    """
+    The number of samples to generate for the iter.
+    """
+
+    def __init__(self, object, urdf_link_name, world=None, number_of_samples=1000):
+        super().__init__(object, urdf_link_name, world=world)
+        self.number_of_samples = number_of_samples
+
+    def check_valid_area_exists(self):
+        assert self.valid_area is not None, ("The map has to be created before semantics can be applied. "
+                                             "Call 'generate_map first'")
+
+    def left(self, margin = 0.) -> Event:
+        """
+        Create an event left of the origins Y-Coordinate.
+        :param margin: The margin of the events left bound.
+        :return: The left event.
+        """
+        self.check_valid_area_exists()
+        y_origin = self.origin.position.y
+        left = self.original_valid_area[self.y].simple_sets[0].lower
+        left += margin
+        event = SimpleEvent(
+            {self.x: reals(), self.y: random_events.interval.open(left, y_origin)}).as_composite_set()
+        return event
+
+    def right(self, margin = 0.) -> Event:
+        """
+        Create an event right of the origins Y-Coordinate.
+        :param margin: The margin of the events right bound.
+        :return: The right event.
+        """
+        self.check_valid_area_exists()
+        y_origin = self.origin.position.y
+        right = self.original_valid_area[self.y].simple_sets[0].upper
+        right -= margin
+        event = SimpleEvent({self.x: reals(), self.y: closed_open(y_origin, right)}).as_composite_set()
+        return event
+
+    def top(self, margin = 0.) -> Event:
+        """
+        Create an event above the origins X-Coordinate.
+        :param margin: The margin of the events upper bound.
+        :return: The top event.
+        """
+        self.check_valid_area_exists()
+        x_origin = self.origin.position.x
+        top = self.original_valid_area[self.x].simple_sets[0].upper
+        top -= margin
+        event = SimpleEvent(
+            {self.x: random_events.interval.closed_open(x_origin, top), self.y: reals()}).as_composite_set()
+        return event
+
+    def bottom(self, margin = 0.) -> Event:
+        """
+        Create an event below the origins X-Coordinate.
+        :param margin: The margin of the events lower bound.
+        :return: The bottom event.
+        """
+        self.check_valid_area_exists()
+        x_origin = self.origin.position.x
+        lower = self.original_valid_area[self.x].simple_sets[0].lower
+        lower += margin
+        event = SimpleEvent(
+            {self.x: random_events.interval.open(lower, x_origin), self.y: reals()}).as_composite_set()
+        return event
+
+    def inner(self, margin=0.2):
+        min_x = self.original_valid_area[self.x].simple_sets[0].lower
+        max_x = self.original_valid_area[self.x].simple_sets[0].upper
+        min_y = self.original_valid_area[self.y].simple_sets[0].lower
+        max_y = self.original_valid_area[self.y].simple_sets[0].upper
+
+        min_x += margin
+        max_x -= margin
+        min_y += margin
+        max_y -= margin
+
+        inner_event = SimpleEvent({self.x: closed(min_x, max_x),
+                                   self.y: closed(min_y, max_y)}).as_composite_set()
+        return inner_event
+
+    def border(self, margin=0.2):
+        return ~self.inner(margin)
+
+    def generate_map(self) -> None:
+        super().generate_map()
+        valid_area = Event()
+        for rectangle in self.partitioning_rectangles():
+            # rectangle.scale(1/self.resolution, 1/self.resolution)
+            rectangle.translate(self.origin.position.x, self.origin.position.y)
+            valid_area.simple_sets.add(SimpleEvent({self.x: closed(rectangle.x_lower, rectangle.x_upper),
+                                                    self.y: closed(rectangle.y_lower, rectangle.y_upper)}))
+
+        assert len(valid_area.simple_sets) == 1, ("The map at the basis of a Semantic costmap must be an axis aligned"
+                                                  "bounding box")
+        self.valid_area = valid_area
+        self.original_valid_area = self.valid_area.simple_sets[0]
+
+    def as_distribution(self) -> ProbabilisticCircuit:
+        p_xy = ProductUnit()
+        u_x = UniformDistribution(self.x, self.original_valid_area[self.x].simple_sets[0])
+        u_y = UniformDistribution(self.y, self.original_valid_area[self.y].simple_sets[0])
+        p_xy.add_subcircuit(u_x)
+        p_xy.add_subcircuit(u_y)
+
+        conditional, _ = p_xy.conditional(self.valid_area)
+        return conditional.probabilistic_circuit
+
+    def sample_to_pose(self, sample: np.ndarray) -> Pose:
+        """
+        Convert a sample from the costmap to a pose.
+        :param sample: The sample to convert
+        :return: The pose corresponding to the sample
+        """
+        x = sample[0]
+        y = sample[1]
+        position = [x, y, self.origin.position.z]
+        angle = np.arctan2(position[1] - self.origin.position.y, position[0] - self.origin.position.x) + np.pi
+        orientation = list(tf.transformations.quaternion_from_euler(0, 0, angle, axes="sxyz"))
+        return Pose(position, orientation, self.origin.frame)
+
+    def __iter__(self) -> Iterator[Pose]:
+        model = self.as_distribution()
+        samples = model.sample(self.number_of_samples)
+        for sample in samples:
+            yield self.sample_to_pose(sample)
 
 
 cmap = colors.ListedColormap(['white', 'black', 'green', 'red', 'blue'])

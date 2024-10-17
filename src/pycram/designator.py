@@ -6,7 +6,8 @@ from dataclasses import dataclass, field, fields
 from abc import ABC, abstractmethod
 from inspect import isgenerator, isgeneratorfunction
 
-import rospy
+from .ros.logging import logwarn, loginfo
+
 import inspect
 
 from .knowledge.knowledge_engine import KnowledgeEngine
@@ -15,7 +16,7 @@ try:
     import owlready2
 except ImportError:
     owlready2 = None
-    rospy.logwarn("owlready2 is not installed!")
+    logwarn("owlready2 is not installed!")
 
 from sqlalchemy.orm.session import Session
 
@@ -24,7 +25,7 @@ from .world_concepts.world_object import Object as WorldObject
 from .utils import GeneratorList, bcolors
 from threading import Lock
 from time import time
-from typing_extensions import Type, List, Dict, Any, Optional, Union, get_type_hints, Callable, Iterable, TYPE_CHECKING
+from typing_extensions import Type, List, Dict, Any, Optional, Union, get_type_hints, Callable, Iterable, TYPE_CHECKING, get_args, get_origin
 
 from .local_transformer import LocalTransformer
 from .language import Language
@@ -36,6 +37,7 @@ import logging
 
 from .orm.action_designator import (Action as ORMAction)
 from .orm.object_designator import (Object as ORMObjectDesignator)
+from .orm.motion_designator import Motion as ORMMotionDesignator
 
 from .orm.base import RobotState, ProcessMetaData
 from .tasktree import with_tree
@@ -113,9 +115,8 @@ class DesignatorDescription(ABC):
 
     def get_slots(self) -> List[str]:
         """
-        Returns a list of all slots of this description. Can be used for inspecting different descriptions and debugging.
-
-        :return: A list of all slots.
+        :return: a list of all slots of this description. Can be used for inspecting different descriptions and
+         debugging.
         """
         return list(self.__dict__.keys())
 
@@ -124,7 +125,7 @@ class DesignatorDescription(ABC):
 
     def get_default_ontology_concept(self) -> owlready2.Thing | None:
         """
-        Returns the first element of ontology_concept_holders if there is, else None
+        :return: The first element of ontology_concept_holders if there is, else None
         """
         return self.ontology_concept_holders[0].ontology_concept if self.ontology_concept_holders else None
 
@@ -393,7 +394,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
             :return: The created ORM object.
             """
-            return ORMObjectDesignator(self.obj_type, self.name)
+            return ORMObjectDesignator(name=self.name, obj_type=self.obj_type)
 
         def insert(self, session: Session) -> ORMObjectDesignator:
             """
@@ -451,7 +452,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
         def special_knowledge_adjustment_pose(self, grasp: Grasp, pose: Pose) -> Pose:
             """
-            Returns the adjusted target pose based on special knowledge for "grasp front".
+            Get the adjusted target pose based on special knowledge for "grasp front".
 
             :param grasp: From which side the object should be grasped
             :param pose: Pose at which the object should be grasped, before adjustment
@@ -470,7 +471,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
                     pose_in_object.pose.position.x += value[0]
                     pose_in_object.pose.position.y += value[1]
                     pose_in_object.pose.position.z += value[2]
-                    rospy.loginfo("Adjusted target pose based on special knowledge for grasp: %s", grasp)
+                    loginfo("Adjusted target pose based on special knowledge for grasp: %s", grasp)
                     return pose_in_object
             return pose
 
@@ -513,3 +514,69 @@ class ObjectDesignatorDescription(DesignatorDescription):
                 continue
 
             yield self.Object(obj.name, obj.obj_type, obj)
+
+@dataclass
+class BaseMotion(ABC):
+
+    @abstractmethod
+    def perform(self):
+        """
+        Passes this designator to the process module for execution. Will be overwritten by each motion.
+        """
+        pass
+        # return ProcessModule.perform(self)
+
+    @abstractmethod
+    def to_sql(self) -> ORMMotionDesignator:
+        """
+        Create an ORM object that corresponds to this description. Will be overwritten by each motion.
+
+        :return: The created ORM object.
+        """
+        return ORMMotionDesignator()
+
+    @abstractmethod
+    def insert(self, session: Session, *args, **kwargs) -> ORMMotionDesignator:
+        """
+        Add and commit this and all related objects to the session.
+        Auto-Incrementing primary keys and foreign keys have to be filled by this method.
+
+        :param session: Session with a database that is used to add and commit the objects
+        :param args: Possible extra arguments
+        :param kwargs: Possible extra keyword arguments
+        :return: The completely instanced ORM motion.
+        """
+        metadata = ProcessMetaData().insert(session)
+
+        motion = self.to_sql()
+        motion.process_metadata = metadata
+
+        return motion
+
+    def __post_init__(self):
+        """
+        Checks if types are missing or wrong
+        """
+        right_types = get_type_hints(self)
+        attributes = self.__dict__.copy()
+
+        missing = []
+        wrong_type = {}
+        current_type = {}
+
+        for k in attributes.keys():
+            attribute = attributes[k]
+            attribute_type = type(attributes[k])
+            right_type = right_types[k]
+            types = get_args(right_type)
+            if attribute is None:
+                if not any([x is type(None) for x in get_args(right_type)]):
+                    missing.append(k)
+            elif attribute_type is not right_type:
+                if attribute_type not in types:
+                    if attribute_type not in [get_origin(x) for x in types if x is not type(None)]:
+                        wrong_type[k] = right_types[k]
+                        current_type[k] = attribute_type
+        if missing != [] or wrong_type != {}:
+            raise ResolutionError(missing, wrong_type, current_type, self.__class__)
+

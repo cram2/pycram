@@ -89,13 +89,13 @@ class BoxyMoveHead(ProcessModule):
         pose_in_shoulder = local_transformer.transform_pose(target, robot.get_link_tf_frame("neck_shoulder_link"))
 
         if pose_in_shoulder.position.x >= 0 and pose_in_shoulder.position.x >= abs(pose_in_shoulder.position.y):
-            robot.set_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("neck", "front"))
+            robot.set_multiple_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("neck", "front"))
         if pose_in_shoulder.position.y >= 0 and pose_in_shoulder.position.y >= abs(pose_in_shoulder.position.x):
-            robot.set_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("neck", "neck_right"))
+            robot.set_multiple_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("neck", "neck_right"))
         if pose_in_shoulder.position.x <= 0 and abs(pose_in_shoulder.position.x) > abs(pose_in_shoulder.position.y):
-            robot.set_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("neck", "back"))
+            robot.set_multiple_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("neck", "back"))
         if pose_in_shoulder.position.y <= 0 and abs(pose_in_shoulder.position.y) > abs(pose_in_shoulder.position.x):
-            robot.set_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("neck", "neck_left"))
+            robot.set_multiple_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("neck", "neck_left"))
 
         pose_in_shoulder = local_transformer.transform_pose(target, robot.get_link_tf_frame("neck_shoulder_link"))
 
@@ -115,7 +115,7 @@ class BoxyMoveGripper(ProcessModule):
         robot = World.robot
         gripper = desig.gripper
         motion = desig.motion
-        robot.set_joint_positions(RobotDescription.current_robot_description.kinematic_chains[gripper].get_static_gripper_state(motion))
+        robot.set_multiple_joint_positions(RobotDescription.current_robot_description.kinematic_chains[gripper].get_static_gripper_state(motion))
 
 
 class BoxyDetecting(ProcessModule):
@@ -160,9 +160,9 @@ class BoxyMoveArmJoints(ProcessModule):
 
         robot = World.robot
         if desig.right_arm_poses:
-            robot.set_joint_positions(desig.right_arm_poses)
+            robot.set_multiple_joint_positions(desig.right_arm_poses)
         if desig.left_arm_poses:
-            robot.set_joint_positions(desig.left_arm_poses)
+            robot.set_multiple_joint_positions(desig.left_arm_poses)
 
 
 class BoxyWorldStateDetecting(ProcessModule):
@@ -200,29 +200,29 @@ class BoxyManager(ProcessModuleManager):
         self._close_lock = Lock()
 
     def navigate(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return BoxyNavigation(self._navigate_lock)
 
     def looking(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return BoxyMoveHead(self._looking_lock)
 
     def detecting(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return BoxyDetecting(self._detecting_lock)
 
     def move_tcp(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return BoxyMoveTCP(self._move_tcp_lock)
 
     def move_arm_joints(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return BoxyMoveArmJoints(self._move_arm_joints_lock)
 
     def world_state_detecting(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return BoxyWorldStateDetecting(self._world_state_detecting_lock)
 
     def move_gripper(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return BoxyMoveGripper(self._move_gripper_lock)

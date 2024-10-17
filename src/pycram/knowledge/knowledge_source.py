@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from typing_extensions import TYPE_CHECKING
-from ..plan_failures import KnowledgeNotAvailable
+from ..failures import KnowledgeNotAvailable
 
 if TYPE_CHECKING:
     from ..designator import DesignatorDescription

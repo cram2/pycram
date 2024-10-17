@@ -8,7 +8,7 @@ from pycram.tasktree import with_tree
 import unittest
 import anytree
 from bullet_world_testcase import BulletWorldTestCase
-import pycram.plan_failures
+import pycram.failures
 from pycram.designators import object_designator, action_designator
 
 
@@ -27,7 +27,7 @@ class TaskTreeTestCase(BulletWorldTestCase):
 
     def setUp(self):
         super().setUp()
-        pycram.tasktree.reset_tree()
+        pycram.tasktree.task_tree.reset_tree()
 
     def test_tree_creation(self):
         """Test the creation and content of a task tree."""
@@ -48,11 +48,11 @@ class TaskTreeTestCase(BulletWorldTestCase):
 
         @with_tree
         def failing_plan():
-            raise pycram.plan_failures.PlanFailure("PlanFailure for UnitTesting")
+            raise pycram.failures.PlanFailure("PlanFailure for UnitTesting")
 
-        pycram.tasktree.reset_tree()
+        pycram.tasktree.task_tree.reset_tree()
 
-        self.assertRaises(pycram.plan_failures.PlanFailure, failing_plan)
+        self.assertRaises(pycram.failures.PlanFailure, failing_plan)
 
         tt = pycram.tasktree.task_tree
 
@@ -85,6 +85,19 @@ class TaskTreeTestCase(BulletWorldTestCase):
         result = tt.root.to_sql()
         self.assertIsNotNone(result)
 
+    def test_task_tree_singleton(self):
+        # Instantiate one TaskTree object
+        tree1 = pycram.tasktree.TaskTree()
+
+        # Fill the tree
+        self.plan()
+
+        # Instantiate another TaskTree object
+        tree2 = pycram.tasktree.TaskTree()
+
+        # Check if both instances point to the same object and contain the same number of elements
+        self.assertEqual(len(tree1.root), len(tree2.root))
+        self.assertIs(tree1, tree2)
 
 if __name__ == '__main__':
     unittest.main()

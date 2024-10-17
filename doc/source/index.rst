@@ -52,19 +52,19 @@ The code for this plan can be seen below.
 
 .. code-block:: python
 
-    from pycram.world.bullet_world import BulletWorld
-    from pycram.world_concepts.world_concepts import Object
+    from pycram.worlds.bullet_world import BulletWorld
+    from pycram.world_concepts.world_object import Object
     from pycram.process_module import simulated_robot
     from pycram.designators.motion_designator import *
     from pycram.designators.location_designator import *
     from pycram.designators.action_designator import *
     from pycram.designators.object_designator import *
-    from pycram.datastructures.enums import ObjectType, Arms, Grasps
+    from pycram.datastructures.enums import ObjectType, Arms, Grasp, WorldMode
 
-    world = BulletWorld()
+    world = BulletWorld(WorldMode.GUI)
     kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
     robot = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
-    cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", position=[1.4, 1, 0.95])
+    cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", pose=Pose([1.4, 1, 0.95]))
 
     cereal_desig = ObjectDesignatorDescription(names=["cereal"])
     kitchen_desig = ObjectDesignatorDescription(names=["kitchen"])
@@ -80,7 +80,7 @@ The code for this plan can be seen below.
 
         NavigateAction(target_locations=[pickup_pose.pose]).resolve().perform()
 
-        PickUpAction(object_designator_description=cereal_desig, arms=[pickup_arm], grasps=[Grasps.FRONT]).resolve().perform()
+        PickUpAction(object_designator_description=cereal_desig, arms=[pickup_arm], grasps=[Grasp.FRONT]).resolve().perform()
 
         ParkArmsAction([Arms.BOTH]).resolve().perform()
 
@@ -96,39 +96,20 @@ The code for this plan can be seen below.
 
     world.exit()
 
-Tutorials
----------
 
-There are a handful of tutorials to get you started on using PyCRAM. These tutorials are:
+Citing PyCRAM
+=============
 
- * `Setup your Python REPL <http://cram-system.org/tutorials/pycram/repl>`_
- * `Interact with the BulletWorld <http://cram-system.org/tutorials/pycram/bullet_world>`_
- * `Add your own robot <http://cram-system.org/tutorials/pycram/own_robot)>`_
+If you want to cite PyCRAM in your work, you can use the following bibtex entry:
 
+.. code-block:: bibtex
 
-
-Authors
--------
-
- * **Jonas Dech** <jdech@uni-bremen.de>
- * **Andy Augsten** <a.augsten@uni-bremen.de>
- * **Dustin Augsten** <augsten@uni-bremen.de>
- * **Christopher Pollok** <cpollok@uni-bremen.de>
- * **Thomas Lipps** <tlipps@uni-bremen.de>
- * **Benjamin Alt** <benjamin.alt@uni-bremen.de>
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-   installation
-   designators
-   resolvers
-   new_robot
-   examples
-   troubleshooting
-   ros_utils
-   remarks
+        @software{dech2024pycram,
+        author = {Dech, Jonas},
+        title = {PyCRAM: A Python framework for cognition-enbabled robtics},
+        url = {https://github.com/cram2/pycram},
+        version = {0.2.0},
+        }
 
 
 

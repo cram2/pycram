@@ -1,8 +1,7 @@
 from typing import Any
 
-import rospy
-
-from ..external_interfaces.robokudo import query
+from ..external_interfaces.robokudo import *
+from ..ros.logging import logdebug
 from ..utils import _apply_ik
 from ..external_interfaces import giskard
 from .default_process_modules import *
@@ -132,7 +131,7 @@ def _move_arm_tcp(target: Pose, robot: Object, arm: Arms) -> None:
     # inv = request_ik(target, robot, joints, gripper)
     pose, joint_states = request_giskard_ik(target, robot, gripper)
     robot.set_pose(pose)
-    robot.set_joint_positions(joint_states)
+    robot.set_multiple_joint_positions(joint_states)
 
 
 ###########################################################
@@ -146,7 +145,7 @@ class StretchNavigationReal(ProcessModule):
     """
 
     def _execute(self, designator: MoveMotion) -> Any:
-        rospy.logdebug(f"Sending goal to giskard to Move the robot")
+        logdebug(f"Sending goal to giskard to Move the robot")
         giskard.achieve_cartesian_goal(designator.target, RobotDescription.current_robot_description.base_link, "map")
 
 
@@ -295,59 +294,59 @@ class StretchManager(ProcessModuleManager):
         self._close_lock = Lock()
 
     def navigate(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return StretchNavigate(self._navigate_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type ==  ExecutionType.REAL:
             return StretchNavigationReal(self._navigate_lock)
 
     def looking(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return StretchMoveHead(self._looking_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type ==  ExecutionType.REAL:
             return StretchMoveHeadReal(self._looking_lock)
 
     def detecting(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return StretchDetecting(self._detecting_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type ==  ExecutionType.REAL:
             return StretchDetectingReal(self._detecting_lock)
 
     def move_tcp(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return StretchMoveTCP(self._move_tcp_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type ==  ExecutionType.REAL:
             return StretchMoveTCPReal(self._move_tcp_lock)
 
     def move_arm_joints(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return StretchMoveArmJoints(self._move_arm_joints_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type ==  ExecutionType.REAL:
             return StretchMoveArmJointsReal(self._move_arm_joints_lock)
 
     def world_state_detecting(self):
-        if ProcessModuleManager.execution_type == "simulated" or ProcessModuleManager.execution_type == "real":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED or ProcessModuleManager.execution_type ==  ExecutionType.REAL:
             return StretchWorldStateDetecting(self._world_state_detecting_lock)
 
     def move_joints(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return StretchMoveJoints(self._move_joints_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type ==  ExecutionType.REAL:
             return StretchMoveJointsReal(self._move_joints_lock)
 
     def move_gripper(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return StretchMoveGripper(self._move_gripper_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type ==  ExecutionType.REAL:
             return StretchMoveGripperReal(self._move_gripper_lock)
 
     def open(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return StretchOpen(self._open_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type ==  ExecutionType.REAL:
             return StretchOpenReal(self._open_lock)
 
     def close(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return StretchClose(self._close_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type ==  ExecutionType.REAL:
             return StretchCloseReal(self._close_lock)

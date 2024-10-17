@@ -11,7 +11,7 @@ from ..datastructures.property import Property, ResolvedProperty
 from .knowledge_source import KnowledgeSource
 from typing_extensions import Type, Callable, List, TYPE_CHECKING, Dict, Any
 
-from ..plan_failures import KnowledgeNotAvailable, ReasoningError
+from ..failures import KnowledgeNotAvailable, ReasoningError
 # This import is needed since the subclasses of KnowledgeSource need to be imported to be known at runtime
 from .knowledge_sources import *
 

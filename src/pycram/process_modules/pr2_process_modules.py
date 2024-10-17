@@ -1,17 +1,17 @@
 from threading import Lock
-from typing_extensions import Any
+from typing_extensions import Any, TYPE_CHECKING
 
 import actionlib
 
 from .. import world_reasoning as btr
 import numpy as np
-import rospy
 
 from ..process_module import ProcessModule, ProcessModuleManager
 from ..external_interfaces.ik import request_ik
+from ..ros.logging import logdebug
 from ..utils import _apply_ik
 from ..local_transformer import LocalTransformer
-from ..designators.object_designator import ObjectDesignatorDescription
+
 from ..designators.motion_designator import MoveMotion, LookingMotion, \
     DetectingMotion, MoveTCPMotion, MoveArmJointsMotion, WorldStateDetectingMotion, MoveJointsMotion, \
     MoveGripperMotion, OpeningMotion, ClosingMotion
@@ -19,9 +19,12 @@ from ..robot_description import RobotDescription
 from ..datastructures.world import World
 from ..world_concepts.world_object import Object
 from ..datastructures.pose import Pose
-from ..datastructures.enums import JointType, ObjectType, Arms
+from ..datastructures.enums import JointType, ObjectType, Arms, ExecutionType
 from ..external_interfaces import giskard
-from ..external_interfaces.robokudo import query
+from ..external_interfaces.robokudo import *
+
+if TYPE_CHECKING:
+    from ..designators.object_designator import ObjectDesignatorDescription
 
 try:
     from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2
@@ -87,7 +90,7 @@ class Pr2Detecting(ProcessModule):
         robot = World.robot
         object_type = desig.object_type
         # Should be "wide_stereo_optical_frame"
-        cam_frame_name = RobotDescription.current_robot_description.get_camera_frame()
+        camera_link_name = RobotDescription.current_robot_description.get_camera_link()
         # should be [0, 0, 1]
         camera_description = RobotDescription.current_robot_description.cameras[
             list(RobotDescription.current_robot_description.cameras.keys())[0]]
@@ -95,7 +98,7 @@ class Pr2Detecting(ProcessModule):
 
         objects = World.current_world.get_object_by_type(object_type)
         for obj in objects:
-            if btr.visible(obj, robot.get_link_pose(cam_frame_name), front_facing_axis):
+            if btr.visible(obj, robot.get_link_pose(camera_link_name), front_facing_axis):
                 return obj
 
 
@@ -121,9 +124,9 @@ class Pr2MoveArmJoints(ProcessModule):
 
         robot = World.robot
         if desig.right_arm_poses:
-            robot.set_joint_positions(desig.right_arm_poses)
+            robot.set_multiple_joint_positions(desig.right_arm_poses)
         if desig.left_arm_poses:
-            robot.set_joint_positions(desig.left_arm_poses)
+            robot.set_multiple_joint_positions(desig.left_arm_poses)
 
 
 class PR2MoveJoints(ProcessModule):
@@ -133,7 +136,7 @@ class PR2MoveJoints(ProcessModule):
 
     def _execute(self, desig: MoveJointsMotion):
         robot = World.robot
-        robot.set_joint_positions(dict(zip(desig.names, desig.positions)))
+        robot.set_multiple_joint_positions(dict(zip(desig.names, desig.positions)))
 
 
 class Pr2WorldStateDetecting(ProcessModule):
@@ -206,7 +209,7 @@ class Pr2NavigationReal(ProcessModule):
     """
 
     def _execute(self, designator: MoveMotion) -> Any:
-        rospy.logdebug(f"Sending goal to giskard to Move the robot")
+        logdebug(f"Sending goal to giskard to Move the robot")
         giskard.achieve_cartesian_goal(designator.target, RobotDescription.current_robot_description.base_link, "map")
 
 
@@ -315,10 +318,10 @@ class Pr2MoveGripperReal(ProcessModule):
 
     def _execute(self, designator: MoveGripperMotion) -> Any:
         def activate_callback():
-            rospy.loginfo("Started gripper Movement")
+            loginfo("Started gripper Movement")
 
         def done_callback(state, result):
-            rospy.loginfo(f"Reached goal {designator.motion}: {result.reached_goal}")
+            loginfo(f"Reached goal {designator.motion}: {result.reached_goal}")
 
         def feedback_callback(msg):
             pass
@@ -331,7 +334,7 @@ class Pr2MoveGripperReal(ProcessModule):
         else:
             controller_topic = "l_gripper_controller/gripper_action"
         client = actionlib.SimpleActionClient(controller_topic, Pr2GripperCommandAction)
-        rospy.loginfo("Waiting for action server")
+        loginfo("Waiting for action server")
         client.wait_for_server()
         client.send_goal(goal, active_cb=activate_callback, done_cb=done_callback, feedback_cb=feedback_callback)
         wait = client.wait_for_result()
@@ -375,59 +378,60 @@ class Pr2Manager(ProcessModuleManager):
         self._close_lock = Lock()
 
     def navigate(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return Pr2Navigation(self._navigate_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return Pr2NavigationReal(self._navigate_lock)
 
     def looking(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return Pr2MoveHead(self._looking_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return Pr2MoveHeadReal(self._looking_lock)
 
     def detecting(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return Pr2Detecting(self._detecting_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return Pr2DetectingReal(self._detecting_lock)
 
     def move_tcp(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return Pr2MoveTCP(self._move_tcp_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return Pr2MoveTCPReal(self._move_tcp_lock)
 
     def move_arm_joints(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return Pr2MoveArmJoints(self._move_arm_joints_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return Pr2MoveArmJointsReal(self._move_arm_joints_lock)
 
     def world_state_detecting(self):
-        if ProcessModuleManager.execution_type == "simulated" or ProcessModuleManager.execution_type == "real":
+        if (ProcessModuleManager.execution_type == ExecutionType.SIMULATED or
+                ProcessModuleManager.execution_type == ExecutionType.REAL):
             return Pr2WorldStateDetecting(self._world_state_detecting_lock)
 
     def move_joints(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return PR2MoveJoints(self._move_joints_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return Pr2MoveJointsReal(self._move_joints_lock)
 
     def move_gripper(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return Pr2MoveGripper(self._move_gripper_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return Pr2MoveGripperReal(self._move_gripper_lock)
 
     def open(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return Pr2Open(self._open_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return Pr2OpenReal(self._open_lock)
 
     def close(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return Pr2Close(self._close_lock)
-        elif ProcessModuleManager.execution_type == "real":
+        elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return Pr2CloseReal(self._close_lock)

@@ -120,7 +120,7 @@ class PoseMixin(MappedAsDataclass):
 
     @declared_attr
     def pose_id(self) -> Mapped[int]:
-        return mapped_column(ForeignKey(f'{Pose.__tablename__}.id'), init=self.pose_to_init)
+        return mapped_column(ForeignKey(f'{Pose.__tablename__}.id'), init=self.pose_to_init, nullable=True)
 
     @declared_attr
     def pose(self):

@@ -3,13 +3,14 @@ from __future__ import annotations
 import dataclasses
 from typing_extensions import List, Optional, Callable, TYPE_CHECKING
 import sqlalchemy.orm
+from ..datastructures.enums import ObjectType
 from ..datastructures.world import World
 from ..world_concepts.world_object import Object as WorldObject
 from ..designator import ObjectDesignatorDescription
 from ..orm.base import ProcessMetaData
 from ..orm.object_designator import (BelieveObject as ORMBelieveObject, ObjectPart as ORMObjectPart)
 from ..datastructures.pose import Pose
-from ..external_interfaces.robokudo import query
+from ..external_interfaces.robokudo import *
 
 if TYPE_CHECKING:
     import owlready2
@@ -27,7 +28,7 @@ class BelieveObject(ObjectDesignatorDescription):
         """
 
         def to_sql(self) -> ORMBelieveObject:
-            return ORMBelieveObject(self.obj_type, self.name)
+            return ORMBelieveObject(name=self.name, obj_type=self.obj_type)
 
         def insert(self, session: sqlalchemy.orm.session.Session) -> ORMBelieveObject:
             metadata = ProcessMetaData().insert(session)
@@ -50,7 +51,7 @@ class ObjectPart(ObjectDesignatorDescription):
         part_pose: Pose
 
         def to_sql(self) -> ORMObjectPart:
-            return ORMObjectPart(self.obj_type, self.name)
+            return ORMObjectPart(obj_type=self.obj_type, name=self.name)
 
         def insert(self, session: sqlalchemy.orm.session.Session) -> ORMObjectPart:
             metadata = ProcessMetaData().insert(session)
@@ -64,7 +65,7 @@ class ObjectPart(ObjectDesignatorDescription):
 
     def __init__(self, names: List[str],
                  part_of: ObjectDesignatorDescription.Object,
-                 type: Optional[str] = None):
+                 type: Optional[ObjectType] = None):
         """
         Describing the relationship between an object and a specific part of it.
 
@@ -77,7 +78,7 @@ class ObjectPart(ObjectDesignatorDescription):
         if not part_of:
             raise AttributeError("part_of cannot be None.")
 
-        self.type: Optional[str] = type
+        self.type: Optional[ObjectType] = type
         self.names: Optional[List[str]] = names
         self.part_of = part_of
 
@@ -135,6 +136,8 @@ class LocatedObject(ObjectDesignatorDescription):
         self.timestamps: List[float] = timestamps
 
 
+@DeprecationWarning
+# Depricated class this will be done differently
 class RealObject(ObjectDesignatorDescription):
     """
     Object designator representing an object in the real world, when resolving this object designator description ]
@@ -152,9 +155,9 @@ class RealObject(ObjectDesignatorDescription):
     def __init__(self, names: Optional[List[str]] = None, types: Optional[List[str]] = None,
                  world_object: WorldObject = None):
         """
-        
-        :param names: 
-        :param types: 
+
+        :param names:
+        :param types:
         :param world_object:
         """
         super().__init__()

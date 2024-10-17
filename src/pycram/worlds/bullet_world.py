@@ -5,18 +5,20 @@ import threading
 import time
 
 import numpy as np
-import pybullet as p
-import rosgraph
-import rospy
+import pycram_bullet as p
 from geometry_msgs.msg import Point
-from typing_extensions import List, Optional, Dict
+from typing_extensions import List, Optional, Dict, Any
 
+from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape, \
+    ClosestPoint, LateralFriction, ContactPoint, ContactPointsList, ClosestPointsList
 from ..datastructures.enums import ObjectType, WorldMode, JointType
 from ..datastructures.pose import Pose
-from ..object_descriptors.urdf import ObjectDescription
 from ..datastructures.world import World
+from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
+from ..object_descriptors.urdf import ObjectDescription
+from ..validation.goal_validator import (validate_multiple_joint_positions, validate_joint_position,
+                                         validate_object_pose, validate_multiple_object_poses)
 from ..world_concepts.constraints import Constraint
-from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape
 from ..world_concepts.world_object import Object
 
 Link = ObjectDescription.Link
@@ -31,13 +33,7 @@ class BulletWorld(World):
     manipulate the Bullet World.
     """
 
-    extension: str = ObjectDescription.get_file_extension()
-
-    # Check is for sphinx autoAPI to be able to work in a CI workflow
-    if rosgraph.is_master_online():  # and "/pycram" not in rosnode.get_node_names():
-        rospy.init_node('pycram')
-
-    def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection_world: bool = False, sim_frequency=240):
+    def __init__(self, mode: WorldMode = WorldMode.DIRECT, is_prospection_world: bool = False):
         """
         Creates a new simulation, the type decides of the simulation should be a rendered window or just run in the
         background. There can only be one rendered simulation.
@@ -46,7 +42,7 @@ class BulletWorld(World):
         :param mode: Can either be "GUI" for rendered window or "DIRECT" for non-rendered. The default is "GUI"
         :param is_prospection_world: For internal usage, decides if this BulletWorld should be used as a shadow world.
         """
-        super().__init__(mode=mode, is_prospection_world=is_prospection_world, simulation_frequency=sim_frequency)
+        super().__init__(mode=mode, is_prospection_world=is_prospection_world)
 
         # This disables file caching from PyBullet, since this would also cache
         # files that can not be loaded
@@ -60,7 +56,7 @@ class BulletWorld(World):
         self.set_gravity([0, 0, -9.8])
 
         if not is_prospection_world:
-            _ = Object("floor", ObjectType.ENVIRONMENT, "plane" + self.extension,
+            _ = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf",
                        world=self)
 
     def _init_world(self, mode: WorldMode):
@@ -68,7 +64,30 @@ class BulletWorld(World):
         self._gui_thread.start()
         time.sleep(0.1)
 
-    def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[Pose] = None) -> int:
+    def load_generic_object_and_get_id(self, description: GenericObjectDescription,
+                                       pose: Optional[Pose] = None) -> int:
+        """
+        Creates a visual and collision box in the simulation.
+        """
+        # Create visual shape
+        vis_shape = p.createVisualShape(p.GEOM_BOX, halfExtents=description.shape_data,
+                                        rgbaColor=description.color.get_rgba(), physicsClientId=self.id)
+
+        # Create collision shape
+        col_shape = p.createCollisionShape(p.GEOM_BOX, halfExtents=description.shape_data, physicsClientId=self.id)
+
+        # Create MultiBody with both visual and collision shapes
+        obj_id = p.createMultiBody(baseMass=1.0, baseCollisionShapeIndex=col_shape, baseVisualShapeIndex=vis_shape,
+                                   basePosition=description.origin.position_as_list(),
+                                   baseOrientation=description.origin.orientation_as_list(), physicsClientId=self.id)
+
+        if pose is not None:
+            self._set_object_pose_by_id(obj_id, pose)
+        # Assuming you have a list to keep track of created objects
+        return obj_id
+
+    def load_object_and_get_id(self, path: Optional[str] = None, pose: Optional[Pose] = None,
+                               obj_type: Optional[ObjectType] = None) -> int:
         if pose is None:
             pose = Pose()
         return self._load_object_and_get_id(path, pose)
@@ -80,11 +99,21 @@ class BulletWorld(World):
                           basePosition=pose.position_as_list(),
                           baseOrientation=pose.orientation_as_list(), physicsClientId=self.id)
 
-    def remove_object_from_simulator(self, obj: Object) -> None:
-        p.removeBody(obj.id, self.id)
+    def _remove_visual_object(self, obj_id: int) -> bool:
+        self._remove_body(obj_id)
+        return True
 
-    def remove_object_by_id(self, obj_id: int) -> None:
-        p.removeBody(obj_id, self.id)
+    def remove_object_from_simulator(self, obj: Object) -> bool:
+        self._remove_body(obj.id)
+        return True
+
+    def _remove_body(self, body_id: int) -> Any:
+        """
+        Remove a body from PyBullet using the body id.
+
+        :param body_id: The id of the body.
+        """
+        return p.removeBody(body_id, self.id)
 
     def add_constraint(self, constraint: Constraint) -> int:
 
@@ -111,6 +140,21 @@ class BulletWorld(World):
         return [p.getJointInfo(obj.id, i, physicsClientId=self.id)[1].decode('utf-8')
                 for i in range(self.get_object_number_of_joints(obj))]
 
+    def get_multiple_link_poses(self, links: List[Link]) -> Dict[str, Pose]:
+        return {link.name: self.get_link_pose(link) for link in links}
+
+    def get_multiple_link_positions(self, links: List[Link]) -> Dict[str, List[float]]:
+        return {link.name: self.get_link_position(link) for link in links}
+
+    def get_multiple_link_orientations(self, links: List[Link]) -> Dict[str, List[float]]:
+        return {link.name: self.get_link_orientation(link) for link in links}
+
+    def get_link_position(self, link: Link) -> List[float]:
+        return self.get_link_pose(link).position_as_list()
+
+    def get_link_orientation(self, link: Link) -> List[float]:
+        return self.get_link_pose(link).orientation_as_list()
+
     def get_link_pose(self, link: ObjectDescription.Link) -> Pose:
         bullet_link_state = p.getLinkState(link.object_id, link.id, physicsClientId=self.id)
         return Pose(*bullet_link_state[4:6])
@@ -128,28 +172,93 @@ class BulletWorld(World):
     def perform_collision_detection(self) -> None:
         p.performCollisionDetection(physicsClientId=self.id)
 
-    def get_object_contact_points(self, obj: Object) -> List:
+    def get_object_contact_points(self, obj: Object) -> ContactPointsList:
         """
-        For a more detailed explanation of the
-         returned list please look at:
-         `PyBullet Doc <https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/edit#>`_
+        Get the contact points of the object with akk other objects in the world. The contact points are returned as a
+        ContactPointsList object.
+
+        :param obj: The object for which the contact points should be returned.
+        :return: The contact points of the object with all other objects in the world.
         """
         self.perform_collision_detection()
-        return p.getContactPoints(obj.id, physicsClientId=self.id)
+        points_list = p.getContactPoints(obj.id, physicsClientId=self.id)
+        return ContactPointsList([ContactPoint(**self.parse_points_list_to_args(point)) for point in points_list
+                                  if len(point) > 0])
 
-    def get_contact_points_between_two_objects(self, obj1: Object, obj2: Object) -> List:
+    def get_contact_points_between_two_objects(self, obj_a: Object, obj_b: Object) -> ContactPointsList:
         self.perform_collision_detection()
-        return p.getContactPoints(obj1.id, obj2.id, physicsClientId=self.id)
+        points_list = p.getContactPoints(obj_a.id, obj_b.id, physicsClientId=self.id)
+        return ContactPointsList([ContactPoint(**self.parse_points_list_to_args(point)) for point in points_list
+                                  if len(point) > 0])
 
-    def reset_joint_position(self, joint: ObjectDescription.Joint, joint_position: str) -> None:
+    def get_closest_points_between_objects(self, obj_a: Object, obj_b: Object, distance: float) -> ClosestPointsList:
+        points_list = p.getClosestPoints(obj_a.id, obj_b.id, distance, physicsClientId=self.id)
+        return ClosestPointsList([ClosestPoint(**self.parse_points_list_to_args(point)) for point in points_list
+                                  if len(point) > 0])
+
+    def parse_points_list_to_args(self, point: List) -> Dict:
+        """
+        Parses the list of points to a list of dictionaries with the keys as the names of the arguments of the
+        ContactPoint class.
+
+        :param point: The list of points.
+        """
+        return {"link_a": self.get_object_by_id(point[1]).get_link_by_id(point[3]),
+                "link_b": self.get_object_by_id(point[2]).get_link_by_id(point[4]),
+                "position_on_object_a": point[5],
+                "position_on_object_b": point[6],
+                "normal_on_b": point[7],
+                "distance": point[8],
+                "normal_force": point[9],
+                "lateral_friction_1": LateralFriction(point[10], point[11]),
+                "lateral_friction_2": LateralFriction(point[12], point[13])}
+
+    @validate_multiple_joint_positions
+    def set_multiple_joint_positions(self, joint_positions: Dict[Joint, float]) -> bool:
+        for joint, joint_position in joint_positions.items():
+            self.reset_joint_position(joint, joint_position)
+        return True
+
+    @validate_joint_position
+    def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
         p.resetJointState(joint.object_id, joint.id, joint_position, physicsClientId=self.id)
+        return True
 
-    def reset_object_base_pose(self, obj: Object, pose: Pose) -> None:
-        p.resetBasePositionAndOrientation(obj.id, pose.position_as_list(), pose.orientation_as_list(),
+    def get_multiple_joint_positions(self, joints: List[Joint]) -> Dict[str, float]:
+        return {joint.name: self.get_joint_position(joint) for joint in joints}
+
+    @validate_multiple_object_poses
+    def reset_multiple_objects_base_poses(self, objects: Dict[Object, Pose]) -> bool:
+        for obj, pose in objects.items():
+            self.reset_object_base_pose(obj, pose)
+        return True
+
+    @validate_object_pose
+    def reset_object_base_pose(self, obj: Object, pose: Pose) -> bool:
+        return self._set_object_pose_by_id(obj.id, pose)
+
+    def _set_object_pose_by_id(self, obj_id: int, pose: Pose) -> bool:
+        p.resetBasePositionAndOrientation(obj_id, pose.position_as_list(), pose.orientation_as_list(),
                                           physicsClientId=self.id)
+        return True
 
     def step(self):
         p.stepSimulation(physicsClientId=self.id)
+
+    def get_multiple_object_poses(self, objects: List[Object]) -> Dict[str, Pose]:
+        return {obj.name: self.get_object_pose(obj) for obj in objects}
+
+    def get_multiple_object_positions(self, objects: List[Object]) -> Dict[str, List[float]]:
+        return {obj.name: self.get_object_pose(obj).position_as_list() for obj in objects}
+
+    def get_multiple_object_orientations(self, objects: List[Object]) -> Dict[str, List[float]]:
+        return {obj.name: self.get_object_pose(obj).orientation_as_list() for obj in objects}
+
+    def get_object_position(self, obj: Object) -> List[float]:
+        return self.get_object_pose(obj).position_as_list()
+
+    def get_object_orientation(self, obj: Object) -> List[float]:
+        return self.get_object_pose(obj).orientation_as_list()
 
     def get_object_pose(self, obj: Object) -> Pose:
         return Pose(*p.getBasePositionAndOrientation(obj.id, physicsClientId=self.id))
@@ -193,7 +302,7 @@ class BulletWorld(World):
         if self._gui_thread:
             self._gui_thread.join()
 
-    def save_physics_simulator_state(self) -> int:
+    def save_physics_simulator_state(self, state_id: Optional[int] = None, use_same_id: bool = False) -> int:
         return p.saveState(physicsClientId=self.id)
 
     def restore_physics_simulator_state(self, state_id):
@@ -202,14 +311,15 @@ class BulletWorld(World):
     def remove_physics_simulator_state(self, state_id: int):
         p.removeState(state_id, physicsClientId=self.id)
 
-    def add_vis_axis(self, pose: Pose,
-                     length: Optional[float] = 0.2) -> None:
+    def _add_vis_axis(self, pose: Pose,
+                      length: Optional[float] = 0.2) -> int:
         """
         Creates a Visual object which represents the coordinate frame at the given
         position and orientation. There can be an unlimited amount of vis axis objects.
 
         :param pose: The pose at which the axis should be spawned
         :param length: Optional parameter to configure the length of the axes
+        :return: The id of the spawned object
         """
 
         pose_in_map = self.local_transformer.transform_pose(pose, "map")
@@ -231,9 +341,11 @@ class BulletWorld(World):
                               link_joint_axis=[Point(1, 0, 0), Point(0, 1, 0), Point(0, 0, 1)],
                               link_collision_shape_indices=[-1, -1, -1])
 
-        self.vis_axis.append(self.create_multi_body(multibody))
+        body_id = self._create_multi_body(multibody)
+        self.vis_axis.append(body_id)
+        return body_id
 
-    def remove_vis_axis(self) -> None:
+    def _remove_vis_axis(self) -> None:
         """
         Removes all spawned vis axis objects that are currently in this BulletWorld.
         """
@@ -250,13 +362,13 @@ class BulletWorld(World):
         return p.rayTestBatch(from_positions, to_positions, numThreads=num_threads,
                               physicsClientId=self.id)
 
-    def create_visual_shape(self, visual_shape: VisualShape) -> int:
+    def _create_visual_shape(self, visual_shape: VisualShape) -> int:
         return p.createVisualShape(visual_shape.visual_geometry_type.value,
                                    rgbaColor=visual_shape.rgba_color.get_rgba(),
                                    visualFramePosition=visual_shape.visual_frame_position,
                                    physicsClientId=self.id, **visual_shape.shape_data())
 
-    def create_multi_body(self, multi_body: MultiBody) -> int:
+    def _create_multi_body(self, multi_body: MultiBody) -> int:
         return p.createMultiBody(baseVisualShapeIndex=-multi_body.base_visual_shape_index,
                                  linkVisualShapeIndices=multi_body.link_visual_shape_indices,
                                  basePosition=multi_body.base_pose.position_as_list(),
@@ -289,9 +401,9 @@ class BulletWorld(World):
         return list(p.getCameraImage(size, size, view_matrix, projection_matrix,
                                      physicsClientId=self.id))[2:5]
 
-    def add_text(self, text: str, position: List[float], orientation: Optional[List[float]] = None,
-                 size: Optional[float] = None, color: Optional[Color] = Color(), life_time: Optional[float] = 0,
-                 parent_object_id: Optional[int] = None, parent_link_id: Optional[int] = None) -> int:
+    def _add_text(self, text: str, position: List[float], orientation: Optional[List[float]] = None,
+                  size: Optional[float] = None, color: Optional[Color] = Color(), life_time: Optional[float] = 0,
+                  parent_object_id: Optional[int] = None, parent_link_id: Optional[int] = None) -> int:
         args = {}
         if orientation:
             args["textOrientation"] = orientation
@@ -305,7 +417,7 @@ class BulletWorld(World):
             args["parentLinkIndex"] = parent_link_id
         return p.addUserDebugText(text, position, color.get_rgb(), physicsClientId=self.id, **args)
 
-    def remove_text(self, text_id: Optional[int] = None) -> None:
+    def _remove_text(self, text_id: Optional[int] = None) -> None:
         if text_id is not None:
             p.removeUserDebugItem(text_id, physicsClientId=self.id)
         else:
@@ -395,7 +507,7 @@ class Gui(threading.Thread):
                 width, height, dist = (p.getDebugVisualizerCamera()[0],
                                        p.getDebugVisualizerCamera()[1],
                                        p.getDebugVisualizerCamera()[10])
-                #print("width: ", width, "height: ", height, "dist: ", dist)
+                # print("width: ", width, "height: ", height, "dist: ", dist)
                 camera_target_position = p.getDebugVisualizerCamera(self.world.id)[11]
 
                 # Get vectors used for movement on x,y,z Vector
@@ -550,5 +662,6 @@ class Gui(threading.Thread):
                                              cameraTargetPosition=camera_target_position, physicsClientId=self.world.id)
                 if visible == 0:
                     camera_target_position = (0.0, -50, 50)
-                p.resetBasePositionAndOrientation(sphere_uid, camera_target_position, [0, 0, 0, 1], physicsClientId=self.world.id)
+                p.resetBasePositionAndOrientation(sphere_uid, camera_target_position, [0, 0, 0, 1],
+                                                  physicsClientId=self.world.id)
                 time.sleep(1. / 80.)

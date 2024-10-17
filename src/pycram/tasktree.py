@@ -2,27 +2,21 @@
 
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
-
-from typing_extensions import TYPE_CHECKING
-
 import datetime
 import inspect
 import logging
 from typing_extensions import List, Optional, Callable
-
 import anytree
 import sqlalchemy.orm.session
 import tqdm
-
 from .datastructures.world import World
+from .helper import Singleton
+from .orm.action_designator import Action
 from .orm.tasktree import TaskTreeNode as ORMTaskTreeNode
 from .orm.base import ProcessMetaData
-from .plan_failures import PlanFailure
+from .failures import PlanFailure
 from .datastructures.enums import TaskStatus
 from .datastructures.dataclasses import Color
-
-if TYPE_CHECKING:
-    from .designators.performables import Action
 
 
 class NoOperation:
@@ -80,7 +74,7 @@ class TaskTreeNode(anytree.NodeMixin):
 
         self.action = action
         self.status = TaskStatus.CREATED
-        self.start_time = None
+        self.start_time = datetime.datetime.now()
         self.end_time = None
         self.parent = parent
         self.reason: Optional[Exception] = reason
@@ -117,7 +111,7 @@ class TaskTreeNode(anytree.NodeMixin):
         else:
             reason = None
 
-        return ORMTaskTreeNode(self.start_time, self.end_time, self.status.name, reason)
+        return ORMTaskTreeNode(start_time=self.start_time, end_time=self.end_time, status=self.status, reason=reason)
 
     def insert(self, session: sqlalchemy.orm.session.Session, recursive: bool = True,
                parent: Optional[TaskTreeNode] = None, use_progress_bar: bool = True,
@@ -186,7 +180,7 @@ class SimulatedTaskTree:
 
         self.suspended_tree = task_tree
         self.world_state = World.current_world.save_state()
-        self.simulated_root = TaskTreeNode()
+        self.simulated_root = TaskTree()
         task_tree = self.simulated_root
         World.current_world.add_text("Simulating...", [0, 0, 1.75], color=Color.from_rgb([0, 0, 0]),
                                      parent_object_id=1)
@@ -202,21 +196,50 @@ class SimulatedTaskTree:
         World.current_world.remove_text()
 
 
-task_tree: Optional[TaskTreeNode] = None
+class TaskTree(metaclass=Singleton):
+    """
+    TaskTree represents the tree of functions that were called during a pycram plan. Consists of TaskTreeNodes.
+    Must be a singleton.
+    """
+
+    def __init__(self):
+        """
+        Create a new TaskTree with a root node.
+        """
+        self.root = TaskTreeNode()
+        self.current_node = self.root
+
+    def __len__(self):
+        """
+        Get the number of nodes that are in this TaskTree.
+
+        :return: The number of nodes.
+        """
+        return len(self.root.children)
+
+    def reset_tree(self):
+        """
+        Reset the current task tree to an empty root (NoOperation) node.
+        """
+        self.root = TaskTreeNode()
+        self.root.start_time = datetime.datetime.now()
+        self.root.status = TaskStatus.RUNNING
+        self.current_node = self.root
+
+    def add_node(self, action: Optional[Action] = None) -> TaskTreeNode:
+        """
+        Add a new node to the task tree and make it the current node.
+
+        :param action: The action that is performed in this node.
+        :return: The new node.
+        """
+        new_node = TaskTreeNode(action=action, parent=self.current_node)
+        self.current_node = new_node
+        return new_node
+
+
+task_tree = TaskTree()
 """Current TaskTreeNode"""
-
-
-def reset_tree() -> None:
-    """
-    Reset the current task tree to an empty root (NoOperation) node.
-    """
-    global task_tree
-    task_tree = TaskTreeNode()
-    task_tree.start_time = datetime.datetime.now()
-    task_tree.status = TaskStatus.RUNNING
-
-
-reset_tree()
 
 
 def with_tree(fun: Callable) -> Callable:
@@ -227,7 +250,6 @@ def with_tree(fun: Callable) -> Callable:
     """
 
     def handle_tree(*args, **kwargs):
-
         # get the task tree
         global task_tree
 
@@ -238,29 +260,31 @@ def with_tree(fun: Callable) -> Callable:
         action = keyword_arguments.get("self", None)
 
         # create the task tree node
-        task_tree = TaskTreeNode(action, parent=task_tree)
+        task_tree.add_node(action)
 
         # Try to execute the task
         try:
-            task_tree.status = TaskStatus.CREATED
-            task_tree.start_time = datetime.datetime.now()
+            task_tree.current_node.status = TaskStatus.CREATED
+            task_tree.current_node.start_time = datetime.datetime.now()
             result = fun(*args, **kwargs)
 
             # if it succeeded set the flag
-            task_tree.status = TaskStatus.SUCCEEDED
+            task_tree.current_node.status = TaskStatus.SUCCEEDED
 
         # iff a PlanFailure occurs
         except PlanFailure as e:
 
             # log the error and set the flag
-            logging.exception("Task execution failed at %s. Reason %s" % (repr(task_tree), e))
-            task_tree.reason = e
-            task_tree.status = TaskStatus.FAILED
+            logging.exception("Task execution failed at %s. Reason %s" % (repr(task_tree.current_node), e))
+            task_tree.current_node.reason = e
+            task_tree.current_node.status = TaskStatus.FAILED
             raise e
+
         finally:
-            # set and time and update current node pointer
-            task_tree.end_time = datetime.datetime.now()
-            task_tree = task_tree.parent
+            if task_tree.current_node.parent is not None:
+                task_tree.current_node.end_time = datetime.datetime.now()
+                task_tree.current_node = task_tree.current_node.parent
+
         return result
 
     return handle_tree

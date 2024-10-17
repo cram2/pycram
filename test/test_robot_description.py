@@ -3,7 +3,7 @@ import unittest
 from pycram.robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     CameraDescription, RobotDescriptionManager
 from pycram.datastructures.enums import Arms, GripperState
-from urdf_parser_py.urdf import URDF
+from pycram.object_descriptors.urdf import ObjectDescription as URDF
 
 
 class TestRobotDescription(unittest.TestCase):
@@ -11,7 +11,8 @@ class TestRobotDescription(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.path = str(pathlib.Path(__file__).parent.resolve()) + '/../resources/robots/' + "pr2" + '.urdf'
-        cls.urdf_obj = URDF.from_xml_file(cls.path)
+        cls.path_turtlebot = str(pathlib.Path(__file__).parent.resolve()) + '/../resources/robots/' + "turtlebot" + '.urdf'
+        cls.urdf_obj = URDF(cls.path)
 
     def test_robot_description_construct(self):
         robot_description = RobotDescription("pr2", "base_link", "torso_lift_link", "torso_lift_joint", self.path)
@@ -190,3 +191,13 @@ class TestRobotDescription(unittest.TestCase):
         rdm.register_description(robot_description)
         rdm.load_description("pr2_test2")
         self.assertIs(RobotDescription.current_robot_description, robot_description)
+
+    def test_robot_description_turtlebot(self):
+        robot_description = RobotDescription("turtlebot", "base_link", "base_link", "base_joint", self.path_turtlebot)
+        self.assertEqual(robot_description.name, "turtlebot")
+        self.assertEqual(robot_description.base_link, "base_link")
+        self.assertEqual(robot_description.torso_link, "base_link")
+        self.assertEqual(robot_description.torso_joint, "base_joint")
+        self.assertTrue(type(robot_description.urdf_object) is URDF)
+        self.assertEqual(len(robot_description.links), 11)
+        self.assertEqual(len(robot_description.joints), 10)

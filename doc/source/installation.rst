@@ -1,5 +1,3 @@
-.. _installation:
-
 ============
 Installation
 ============
@@ -70,7 +68,7 @@ Now you can install PyCRAM into your ROS workspace.
     cd ..
     catkin_make
     source devel/setup.bash
-    echo "~/workspace/ros/devel/setup.bash" >> ~/.bashrc
+    echo "source ~/workspace/ros/devel/setup.bash" >> ~/.bashrc
 
 The cloning and setting up can take several minutes. After the command finishes you should see a number of repositories
 in your ROS workspace.
@@ -107,8 +105,19 @@ Then install the Python packages in the requirements.txt file
 .. code-block:: shell
 
     sudo pip3 install -r requirements.txt
-    sudo pip3 install -r src/neem_interface_python/requirements.txt
 
+This installs the packages into ``/usr/local/lib``. If you prefer to not clutter your system-wide python installation,
+you can also install the packages into the catkin workspace as follows:
+
+.. code-block:: shell
+
+    # install packages into catkin workspace instead of ~/.local
+    export PYTHONUSERBASE=~/workspace/ros/devel
+    # don't install packages that are available in system
+    export PIP_IGNORE_INSTALLED=0
+
+    pip3 install -r requirements.txt
+    pip3 install -r src/neem_interface_python/requirements.txt
 
 Building your ROS workspace
 ===========================
@@ -147,20 +156,21 @@ IK solver.
 Building the documentation
 ==========================
 
-The documentation uses sphinx as engine.
-Building sphinx based documentations requires pandoc
-to be installed. Pandoc can be installed via the package manager of Ubuntu.
+The documentation uses jupyter-book as engine.
+Building the documentation requires Python 3.9 to avoid dependency conflicts.
+To install Python 3.9 on Ubuntu 20.04, use the following commands:
 
 .. code-block:: shell
 
-    sudo apt install pandoc
+    sudo apt install python3.9
 
-After installing pandoc, install sphinx on your device.
+It is recommended to use a virtual environment to avoid conflicts with the system Python.
 
 .. code-block:: shell
 
-    sudo apt install python3-sphinx
-
+    apt-get install python3-virtualenv
+    virtualenv -p python3.9 --system-site-packages build-doc
+    source build-doc/bin/activate
 
 Install the requirements in your python interpreter.
 
@@ -175,14 +185,14 @@ Run pycram and build the docs.
 
     cd ~/workspace/ros
     roslaunch pycram ik_and_description.launch
-    cd src/pycram/doc
-    make html
+    cd src/pycram/doc/source
+    jupyter-book build .
 
 Show the index.
 
 .. code-block::
 
-    firefox build/html/index.html
+    firefox _build/html/index.html
 
 
 
@@ -282,7 +292,7 @@ To verify that it works, you can execute any Testcase.
 **Useful tips**
 
 - `Keyboard shortcuts <https://www.jetbrains.com/help/pycharm/mastering-keyboard-shortcuts.html>`_
-    - `Keymap <https://www.jetbrains.com/help/pycharm/mastering-keyboard-shortcuts.html#ws_print_keymap>`_
+    - `Keymap <https://www.jetbrains.com/help/pycharm/mastering-keyboard-shortcuts.html#ws_print_keymap>`_, which can be configured in **Settings | Keymap**. The default is GNOME.
 
 - `Python interpreter <https://www.jetbrains.com/help/pycharm/configuring-python-interpreter.html>`_
     - `Python virtual environment <https://www.jetbrains.com/help/pycharm/creating-virtual-environment.html>`_
@@ -296,6 +306,8 @@ To verify that it works, you can execute any Testcase.
 - **F12**: Open terminal
 
 - **Double Shift**: Quick file search
+
+- **Alt + Shift + 1**: Reveal/Select current file in Project View
 
 - **Ctrl F/R**: Find/Replace text in current file
 

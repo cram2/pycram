@@ -5,84 +5,19 @@ from sqlalchemy.orm import Session
 from .object_designator import ObjectDesignatorDescription, ObjectPart, RealObject
 from ..designator import ResolutionError
 from ..orm.base import ProcessMetaData
-from ..plan_failures import PerceptionObjectNotFound
+from ..failures import PerceptionObjectNotFound
 from ..process_module import ProcessModuleManager
 from ..orm.motion_designator import (MoveMotion as ORMMoveMotion,
                                      MoveTCPMotion as ORMMoveTCPMotion, LookingMotion as ORMLookingMotion,
                                      MoveGripperMotion as ORMMoveGripperMotion, DetectingMotion as ORMDetectingMotion,
                                      OpeningMotion as ORMOpeningMotion, ClosingMotion as ORMClosingMotion,
                                      Motion as ORMMotionDesignator)
-from ..datastructures.enums import ObjectType, Arms, GripperState
+from ..datastructures.enums import ObjectType, Arms, GripperState, ExecutionType
 
-from typing_extensions import Dict, Optional, get_type_hints, get_args, get_origin
+from typing_extensions import Dict, Optional, get_type_hints
 from ..datastructures.pose import Pose
 from ..tasktree import with_tree
-
-
-@dataclass
-class BaseMotion(ABC):
-
-    @abstractmethod
-    def perform(self):
-        """
-        Passes this designator to the process module for execution. Will be overwritten by each motion.
-        """
-        pass
-        # return ProcessModule.perform(self)
-
-    @abstractmethod
-    def to_sql(self) -> ORMMotionDesignator:
-        """
-        Create an ORM object that corresponds to this description. Will be overwritten by each motion.
-
-        :return: The created ORM object.
-        """
-        return ORMMotionDesignator()
-
-    @abstractmethod
-    def insert(self, session: Session, *args, **kwargs) -> ORMMotionDesignator:
-        """
-        Add and commit this and all related objects to the session.
-        Auto-Incrementing primary keys and foreign keys have to be filled by this method.
-
-        :param session: Session with a database that is used to add and commit the objects
-        :param args: Possible extra arguments
-        :param kwargs: Possible extra keyword arguments
-        :return: The completely instanced ORM motion.
-        """
-        metadata = ProcessMetaData().insert(session)
-
-        motion = self.to_sql()
-        motion.process_metadata = metadata
-
-        return motion
-
-    def __post_init__(self):
-        """
-        Checks if types are missing or wrong
-        """
-        right_types = get_type_hints(self)
-        attributes = self.__dict__.copy()
-
-        missing = []
-        wrong_type = {}
-        current_type = {}
-
-        for k in attributes.keys():
-            attribute = attributes[k]
-            attribute_type = type(attributes[k])
-            right_type = right_types[k]
-            types = get_args(right_type)
-            if attribute is None:
-                if not any([x is type(None) for x in get_args(right_type)]):
-                    missing.append(k)
-            elif attribute_type is not right_type:
-                if attribute_type not in types:
-                    if attribute_type not in [get_origin(x) for x in types if x is not type(None)]:
-                        wrong_type[k] = right_types[k]
-                        current_type[k] = attribute_type
-        if missing != [] or wrong_type != {}:
-            raise ResolutionError(missing, wrong_type, current_type, self.__class__)
+from ..designator import BaseMotion
 
 
 @dataclass
@@ -226,9 +161,9 @@ class DetectingMotion(BaseMotion):
         if not world_object:
             raise PerceptionObjectNotFound(
                 f"Could not find an object with the type {self.object_type} in the FOV of the robot")
-        if ProcessModuleManager.execution_type == "real":
+        if ProcessModuleManager.execution_type == ExecutionType.REAL:
             return RealObject.Object(world_object.name, world_object.obj_type,
-                                                  world_object, world_object.get_pose())
+                                     world_object, world_object.get_pose())
 
         return ObjectDesignatorDescription.Object(world_object.name, world_object.obj_type,
                                                   world_object)
@@ -379,3 +314,26 @@ class ClosingMotion(BaseMotion):
         session.add(motion)
 
         return motion
+
+
+@dataclass
+class TalkingMotion(BaseMotion):
+    """
+    Talking Motion, lets the robot say a sentence.
+    """
+
+    cmd: str
+    """
+    Talking Motion, let the robot say a sentence.
+    """
+
+    @with_tree
+    def perform(self):
+        pm_manager = ProcessModuleManager.get_manager()
+        return pm_manager.talk().execute(self)
+
+    def to_sql(self) -> ORMMotionDesignator:
+        pass
+
+    def insert(self, session: Session, *args, **kwargs) -> ORMMotionDesignator:
+        pass

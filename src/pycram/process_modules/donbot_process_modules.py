@@ -69,13 +69,13 @@ class DonbotMoveHead(ProcessModule):
         pose_in_shoulder = local_transformer.transform_pose(target, robot.get_link_tf_frame("ur5_shoulder_link"))
 
         if pose_in_shoulder.position.x >= 0 and pose_in_shoulder.position.x >= abs(pose_in_shoulder.position.y):
-            robot.set_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("left", "front"))
+            robot.set_multiple_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("left", "front"))
         if pose_in_shoulder.position.y >= 0 and pose_in_shoulder.position.y >= abs(pose_in_shoulder.position.x):
-            robot.set_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("left", "arm_right"))
+            robot.set_multiple_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("left", "arm_right"))
         if pose_in_shoulder.position.x <= 0 and abs(pose_in_shoulder.position.x) > abs(pose_in_shoulder.position.y):
-            robot.set_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("left", "back"))
+            robot.set_multiple_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("left", "back"))
         if pose_in_shoulder.position.y <= 0 and abs(pose_in_shoulder.position.y) > abs(pose_in_shoulder.position.x):
-            robot.set_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("left", "arm_left"))
+            robot.set_multiple_joint_positions(RobotDescription.current_robot_description.get_static_joint_chain("left", "arm_left"))
 
         pose_in_shoulder = local_transformer.transform_pose(target, robot.get_link_tf_frame("ur5_shoulder_link"))
 
@@ -94,7 +94,7 @@ class DonbotMoveGripper(ProcessModule):
         robot = World.robot
         gripper = desig.gripper
         motion = desig.motion
-        robot.set_joint_positions(RobotDescription.current_robot_description.get_arm_chain(gripper).get_static_gripper_state(motion))
+        robot.set_multiple_joint_positions(RobotDescription.current_robot_description.get_arm_chain(gripper).get_static_gripper_state(motion))
 
 
 class DonbotMoveTCP(ProcessModule):
@@ -118,7 +118,7 @@ class DonbotMoveJoints(ProcessModule):
     def _execute(self, desig: MoveArmJointsMotion):
         robot = World.robot
         if desig.left_arm_poses:
-            robot.set_joint_positions(desig.left_arm_poses)
+            robot.set_multiple_joint_positions(desig.left_arm_poses)
 
 
 class DonbotWorldStateDetecting(ProcessModule):
@@ -149,33 +149,33 @@ class DonbotManager(ProcessModuleManager):
         self._close_lock = Lock()
 
     def navigate(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return DonbotNavigation(self._navigate_lock)
 
     def place(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return DonbotPlace(self._place_lock)
 
     def looking(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return DonbotMoveHead(self._looking_lock)
 
     def detecting(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return DonbotDetecting(self._detecting_lock)
 
     def move_tcp(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return DonbotMoveTCP(self._move_tcp_lock)
 
     def move_arm_joints(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return DonbotMoveJoints(self._move_arm_joints_lock)
 
     def world_state_detecting(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return DonbotWorldStateDetecting(self._world_state_detecting_lock)
 
     def move_gripper(self):
-        if ProcessModuleManager.execution_type == "simulated":
+        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
             return DonbotMoveGripper(self._move_gripper_lock)

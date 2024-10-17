@@ -108,4 +108,3 @@ real_robot environments. This is also explained in the `Action Designator Exampl
 
    with simulated_robot:
       NavigateAction([Pose()]).resolve().perform()
-

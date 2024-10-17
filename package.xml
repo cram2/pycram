@@ -53,7 +53,10 @@
   <build_depend>geometry_msgs</build_depend>
   <exec_depend>geometry_msgs</exec_depend>
 
+  <exec_depend>pr2_arm_kinematics</exec_depend>
+  <exec_depend>moveit_kinematics</exec_depend>
 
+  <exec_depend>pr2_common</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

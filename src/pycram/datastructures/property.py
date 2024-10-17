@@ -8,7 +8,7 @@ from .dataclasses import ReasoningResult
 from .pose import Pose
 from typing_extensions import List, Iterable, Dict, Any, Callable, Type, TYPE_CHECKING
 from anytree import NodeMixin, PreOrderIter, Node
-from ..plan_failures import ObjectNotVisible, ManipulationPoseUnreachable, NavigationGoalInCollision, ObjectUnfetchable, \
+from ..failures import ObjectNotVisible, ManipulationPoseUnreachable, NavigationGoalInCollision, ObjectUnfetchable, \
     GripperOccupied, PlanFailure
 
 if TYPE_CHECKING:
