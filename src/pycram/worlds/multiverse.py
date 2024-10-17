@@ -10,7 +10,7 @@ from .multiverse_communication.client_manager import MultiverseClientManager
 from .multiverse_communication.clients import MultiverseController, MultiverseReader, MultiverseWriter, MultiverseAPI
 from ..config.multiverse_conf import MultiverseConfig
 from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint, \
-    MultiverseContactPoint
+    MultiverseContactPoint, MeshVisualShape
 from ..datastructures.enums import WorldMode, JointType, ObjectType, MultiverseBodyProperty, MultiverseJointPosition, \
     MultiverseJointCMD
 from ..datastructures.pose import Pose
@@ -541,7 +541,7 @@ class Multiverse(World):
                 contact_points[-1].position_on_b = point.position
         return contact_points
 
-    def get_object_with_body_name(self, body_name: str) -> Tuple[Optional[Object],Optional[Link]]:
+    def get_object_with_body_name(self, body_name: str) -> Tuple[Optional[Object], Optional[Link]]:
         """
         Get the object with the body name in the simulator, the body name can be the name of the object or the link.
 
@@ -653,14 +653,6 @@ class Multiverse(World):
     def get_colors_of_object_links(self, obj: Object) -> Dict[str, Color]:
         logwarn("get_colors_of_object_links is not implemented in Multiverse")
         return {}
-
-    def get_object_axis_aligned_bounding_box(self, obj: Object) -> AxisAlignedBoundingBox:
-        logerr("get_object_axis_aligned_bounding_box for multi-link objects is not implemented in Multiverse")
-        raise NotImplementedError
-
-    def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
-        logerr("get_link_axis_aligned_bounding_box is not implemented in Multiverse")
-        raise NotImplementedError
 
     def set_realtime(self, real_time: bool) -> None:
         logwarn("set_realtime is not implemented as an API in Multiverse, it is configured in the"
