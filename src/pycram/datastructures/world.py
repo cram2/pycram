@@ -852,14 +852,13 @@ class World(StateEntity, ABC):
         """
         pass
 
-    @abstractmethod
     def get_object_axis_aligned_bounding_box(self, obj: Object) -> AxisAlignedBoundingBox:
         """
         :param obj: The object for which the bounding box should be returned.
         :return: the axis aligned bounding box of this object. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
-        pass
+        raise NotImplementedError
 
     def get_object_rotated_bounding_box(self, obj: Object) -> RotatedBoundingBox:
         """
@@ -869,14 +868,13 @@ class World(StateEntity, ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
     def get_link_axis_aligned_bounding_box(self, link: Link) -> AxisAlignedBoundingBox:
         """
         :param link: The link for which the bounding box should be returned.
         :return: The axis aligned bounding box of the link. The return of this method are two points in
         world coordinate frame which define a bounding box.
         """
-        pass
+        raise NotImplementedError
 
     def get_link_rotated_bounding_box(self, link: Link) -> RotatedBoundingBox:
         """
