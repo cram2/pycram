@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - dev
+      - test-test-ci
   pull_request:
     branches:
       - master
@@ -48,9 +49,13 @@ jobs:
         run: |
           cd /opt/ros/overlay_ws/src/pycram/examples
           mkdir tmp
-          jupytext --to notebook *.ipynb
+          jupytext --to notebook *.md
           mv *.ipynb tmp && cd tmp
 
+      - name: Source and start ROS
+        run: |
+          source /opt/ros/overlay_ws/devel/setup.bash 
+          roslaunch pycram ik_and_description.launch &
 
       - name: Run tests
         run: |
