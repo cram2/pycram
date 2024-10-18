@@ -8,7 +8,7 @@ import time
 import numpy as np
 import pycram_bullet as p
 from geometry_msgs.msg import Point
-from typing_extensions import List, Optional, Dict, Any
+from typing_extensions import List, Optional, Dict, Any, Callable
 
 from pycrap import Floor
 from ..datastructures.dataclasses import Color, AxisAlignedBoundingBox, MultiBody, VisualShape, BoxVisualShape, \
@@ -18,7 +18,7 @@ from ..datastructures.pose import Pose
 from ..datastructures.world import World
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription
-from ..ros.logging import loginfo
+from ..ros.logging import logwarn, loginfo
 from ..validation.goal_validator import (validate_multiple_joint_positions, validate_joint_position,
                                          validate_object_pose, validate_multiple_object_poses)
 from ..world_concepts.constraints import Constraint
@@ -245,7 +245,11 @@ class BulletWorld(World):
                                           physicsClientId=self.id)
         return True
 
-    def step(self):
+    def step(self, func: Optional[Callable[[], None]] = None, step_seconds: Optional[float] = None) -> None:
+        if func is not None:
+            logwarn("The BulletWorld step function does not support a function argument.")
+        if step_seconds is not None:
+            logwarn("The BulletWorld step function does not support a step_seconds argument.")
         p.stepSimulation(physicsClientId=self.id)
 
     def get_multiple_object_poses(self, objects: List[Object]) -> Dict[str, Pose]:

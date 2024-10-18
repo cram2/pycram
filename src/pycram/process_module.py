@@ -285,8 +285,10 @@ class ProcessModuleManager(ABC):
                 f"No execution_type is set, did you use the with_simulated_robot or with_real_robot decorator?")
             return
 
+        robot_description = RobotDescription.current_robot_description
         for pm_manager in ProcessModuleManager.available_pms:
-            if pm_manager.robot_name == RobotDescription.current_robot_description.name:
+            if pm_manager.robot_name == robot_description.name or\
+                    ((pm_manager.robot_name == robot_description.gripper_name) and robot_description.gripper_name):
                 manager = pm_manager
             if pm_manager.robot_name == "default":
                 _default_manager = pm_manager

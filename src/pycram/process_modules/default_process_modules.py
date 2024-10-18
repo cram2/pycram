@@ -67,16 +67,19 @@ class DefaultMoveHead(ProcessModule):
 class DefaultMoveGripper(ProcessModule):
     """
     This process module controls the gripper of the robot. They can either be opened or closed.
-    Furthermore, it can only moved one gripper at a time.
+    Furthermore, it can only move one gripper at a time.
     """
 
     def _execute(self, desig: MoveGripperMotion):
-        robot = World.robot
+        robot_description = RobotDescription.current_robot_description
+        if robot_description.gripper_name is not None:
+            robot = World.current_world.get_object_by_name(robot_description.gripper_name)
+        else:
+            robot = World.robot
         gripper = desig.gripper
         motion = desig.motion
-        for joint, state in RobotDescription.current_robot_description.get_arm_chain(gripper).get_static_gripper_state(
-                motion).items():
-            robot.set_joint_position(joint, state)
+        arm_chain = robot_description.get_arm_chain(gripper)
+        robot.set_multiple_joint_positions(arm_chain.get_static_gripper_state(motion))
 
 
 class DefaultDetecting(ProcessModule):

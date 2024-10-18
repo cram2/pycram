@@ -1,18 +1,21 @@
 import os
 
 from ..datastructures.enums import Arms, GripperState
-from ..helper import get_robot_mjcf_path, find_multiverse_resources_path
+from ..helper import get_robot_mjcf_path, find_multiverse_resources_path, get_robot_urdf_path_from_multiverse
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager
+from ..object_descriptors.urdf import ObjectDescription as URDFObject
+
 
 multiverse_resources = find_multiverse_resources_path()
 robot_relative_dir = "universal_robot"
 robot_name = "ur5e"
-filename = os.path.join(multiverse_resources, 'robots', robot_relative_dir, 'ur5e_with_gripper', 'urdf/ur5e.urdf')
-mjcf_filename = get_robot_mjcf_path(robot_relative_dir, 'ur5e')
+gripper_name = "gripper-2F-85"
+filename = get_robot_urdf_path_from_multiverse(robot_relative_dir, robot_name, resources_dir=multiverse_resources)
+mjcf_filename = get_robot_mjcf_path(robot_relative_dir, robot_name)
 
 ur5_description = RobotDescription(robot_name, "base_link", "", "",
-                                   filename, mjcf_path=mjcf_filename)
+                                   filename, mjcf_path=mjcf_filename, gripper_name=gripper_name)
 
 ################################## Arm ##################################
 arm = KinematicChainDescription("manipulator", "base_link", "wrist_3_link",
@@ -28,8 +31,12 @@ arm.add_static_joint_states("home", {'shoulder_pan_joint': 3.14,
 ur5_description.add_kinematic_chain_description(arm)
 
 ################################## Gripper ##################################
-gripper = EndEffectorDescription("gripper", "gripper_2F_85", "right_pad",
-                                 ur5_description.urdf_object)
+gripper_relative_dir = "robotiq"
+gripper_filename = get_robot_urdf_path_from_multiverse(gripper_relative_dir, gripper_name,
+                                                       resources_dir=multiverse_resources)
+gripper_urdf_obj = URDFObject(gripper_filename)
+gripper = EndEffectorDescription("gripper", gripper_name, "right_pad",
+                                 gripper_urdf_obj)
 
 gripper.add_static_joint_states(GripperState.OPEN, {'right_driver_joint': 0.0,
                                                     'right_coupler_joint': 0.0,

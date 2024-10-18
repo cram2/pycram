@@ -65,6 +65,7 @@ class ObjectType(int, Enum):
     BREAKFAST_CEREAL = auto()
     JEROEN_CUP = auto()
     ROBOT = auto()
+    GRIPPER = auto()
     ENVIRONMENT = auto()
     GENERIC_OBJECT = auto()
     HUMAN = auto()

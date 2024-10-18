@@ -47,6 +47,12 @@ def parse_mjcf_actuators(file_path: str) -> Dict[str, str]:
     return joint_actuators
 
 
+def get_robot_urdf_path_from_multiverse(relative_dir: str, robot_name: str, resources_dir: Optional[str] = None) -> str:
+    if resources_dir is None:
+        resources_dir = find_multiverse_resources_path()
+    return os.path.join(resources_dir, 'robots', relative_dir, robot_name, f'urdf/{robot_name}.urdf')
+
+
 def get_robot_mjcf_path(robot_relative_dir: str, robot_name: str, xml_name: Optional[str] = None) -> Optional[str]:
     """
     Get the path to the MJCF file of a robot.

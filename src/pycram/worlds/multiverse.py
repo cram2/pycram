@@ -4,7 +4,7 @@ from time import sleep
 
 import numpy as np
 from tf.transformations import quaternion_matrix
-from typing_extensions import List, Dict, Optional, Union, Tuple
+from typing_extensions import List, Dict, Optional, Union, Tuple, Callable
 
 from .multiverse_communication.client_manager import MultiverseClientManager
 from .multiverse_communication.clients import MultiverseController, MultiverseReader, MultiverseWriter, MultiverseAPI
@@ -620,13 +620,18 @@ class Multiverse(World):
         else:
             return results
 
-    def step(self):
+    def step(self, func: Optional[Callable[[], None]] = None, step_seconds: Optional[float] = None) -> None:
         """
         Perform a simulation step in the simulator, this is useful when use_static_mode is True.
+
+        :param func: A function to be called after the simulation step.
+        :param step_seconds: The number of seconds to step the simulation.
         """
         if self.conf.use_static_mode:
             self.api_requester.unpause_simulation()
-            sleep(self.simulation_time_step)
+            if func is not None:
+                func()
+            sleep(self.simulation_time_step if step_seconds is None else step_seconds)
             self.api_requester.pause_simulation()
 
     def save_physics_simulator_state(self, state_id: Optional[int] = None, use_same_id: bool = False) -> int:

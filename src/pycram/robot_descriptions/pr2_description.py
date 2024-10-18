@@ -10,8 +10,9 @@ filename = get_ros_package_path('pycram') + '/resources/robots/' + "pr2" + '.urd
 
 mjcf_filename = get_robot_mjcf_path("", "pr2")
 
-pr2_description = RobotDescription("pr2", "base_link", "torso_lift_link", "torso_lift_joint",
-                                   filename, virtual_mobile_base_joints=VirtualMobileBaseJoints(), mjcf_path=mjcf_filename)
+pr2_description = RobotDescription("pr2", "base_link", "torso_lift_link",
+                                   "torso_lift_joint", filename,
+                                   virtual_mobile_base_joints=VirtualMobileBaseJoints(), mjcf_path=mjcf_filename)
 
 ################################## Left Arm ##################################
 left_arm = KinematicChainDescription("left", "torso_lift_link", "l_wrist_roll_link",
