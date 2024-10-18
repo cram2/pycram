@@ -245,7 +245,7 @@ class AccessingLocation(LocationDesignatorDescription):
         # ground_pose = [[self.handle.part_pose[0][0], self.handle.part_pose[0][1], 0], self.handle.part_pose[1]]
         ground_pose = Pose(self.handle.part_pose.position_as_list())
         ground_pose.position.z = 0
-        occupancy = OccupancyCostmap(distance_to_obstacle=0.4, from_ros=False, size=200, resolution=0.02,
+        occupancy = OccupancyCostmap(distance_to_obstacle=0.25, from_ros=False, size=200, resolution=0.02,
                                      origin=ground_pose)
         gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)
 
