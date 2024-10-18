@@ -53,7 +53,8 @@ def get_robot_urdf_path_from_multiverse(relative_dir: str, robot_name: str, reso
     return os.path.join(resources_dir, 'robots', relative_dir, robot_name, f'urdf/{robot_name}.urdf')
 
 
-def get_robot_mjcf_path(robot_relative_dir: str, robot_name: str, xml_name: Optional[str] = None) -> Optional[str]:
+def get_robot_mjcf_path(robot_relative_dir: str, robot_name: str, xml_name: Optional[str] = None,
+                        multiverse_resources: Optional[str] = None) -> Optional[str]:
     """
     Get the path to the MJCF file of a robot.
 
@@ -62,10 +63,10 @@ def get_robot_mjcf_path(robot_relative_dir: str, robot_name: str, xml_name: Opti
     :param xml_name: The name of the XML file of the robot.
     :return: The path to the MJCF file of the robot if it exists, otherwise None.
     """
+    multiverse_resources = find_multiverse_resources_path() if multiverse_resources is None else multiverse_resources
     xml_name = xml_name if xml_name is not None else robot_name
     if '.xml' not in xml_name:
         xml_name = xml_name + '.xml'
-    multiverse_resources = find_multiverse_resources_path()
     try:
         robot_folder = os.path.join(multiverse_resources, 'robots', robot_relative_dir, robot_name)
     except TypeError:

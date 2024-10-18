@@ -286,9 +286,13 @@ class ProcessModuleManager(ABC):
             return
 
         robot_description = RobotDescription.current_robot_description
+        chains = robot_description.get_manipulator_chains()
+        gripper_name = [chain.end_effector.gripper_object_name for chain in chains
+                        if chain.end_effector.gripper_object_name]
+        gripper_name = gripper_name[0] if len(gripper_name) > 0 else None
         for pm_manager in ProcessModuleManager.available_pms:
             if pm_manager.robot_name == robot_description.name or\
-                    ((pm_manager.robot_name == robot_description.gripper_name) and robot_description.gripper_name):
+                    ((pm_manager.robot_name == gripper_name) and gripper_name):
                 manager = pm_manager
             if pm_manager.robot_name == "default":
                 _default_manager = pm_manager

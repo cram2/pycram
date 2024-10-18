@@ -63,7 +63,7 @@ class MultiverseConfig(WorldConfig):
     Whether to use the physics simulator state when restoring or saving the world state.
     """
 
-    clear_cache_at_start = False
+    clear_cache_at_start = True
 
     let_pycram_move_attached_objects = False
     let_pycram_handle_spawning = False

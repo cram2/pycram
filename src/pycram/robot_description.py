@@ -116,15 +116,9 @@ class RobotDescription:
     Virtual mobile base joint names for mobile robots, these joints are not part of the URDF, however they are used to
     move the robot in the simulation (e.g. set_pose for the robot would actually move these joints)
     """
-    gripper_name: Optional[str] = None
-    """
-    Name of the gripper of the robot if it has one, this is used when the gripper is a different Object with its own
-    description file outside the robot description file.
-    """
 
     def __init__(self, name: str, base_link: str, torso_link: str, torso_joint: str, urdf_path: str,
-                 virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = None, mjcf_path: Optional[str] = None,
-                 gripper_name: Optional[str] = None):
+                 virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = None, mjcf_path: Optional[str] = None):
         """
         Initialize the RobotDescription. The URDF is loaded from the given path and used as basis for the kinematic
         chains.
@@ -136,7 +130,6 @@ class RobotDescription:
         :param urdf_path: Path to the URDF file of the robot
         :param virtual_mobile_base_joints: Virtual mobile base joint names for mobile robots
         :param mjcf_path: Path to the MJCF file of the robot
-        :param gripper_name: Name of the gripper of the robot if it has one and is a separate Object.
         """
         self.name = name
         self.base_link = base_link
@@ -153,7 +146,6 @@ class RobotDescription:
         self.links: List[str] = [l.name for l in self.urdf_object.links]
         self.joints: List[str] = [j.name for j in self.urdf_object.joints]
         self.virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = virtual_mobile_base_joints
-        self.gripper_name = gripper_name
 
     @property
     def has_actuators(self):
@@ -638,8 +630,14 @@ class EndEffectorDescription:
     """
     Distance the gripper can open, in cm
     """
+    gripper_object_name: Optional[str] = None
+    """
+    Name of the gripper of the robot if it has one, this is used when the gripper is a different Object with its own
+    description file outside the robot description file.
+    """
 
-    def __init__(self, name: str, start_link: str, tool_frame: str, urdf_object: URDFObject):
+    def __init__(self, name: str, start_link: str, tool_frame: str, urdf_object: URDFObject,
+                 gripper_object_name: Optional[str] = None):
         """
         Initialize the EndEffectorDescription object.
 
@@ -647,6 +645,7 @@ class EndEffectorDescription:
         :param start_link: Root link of the end effector, every link below this link in the URDF is part of the end effector
         :param tool_frame: Name of the tool frame link in the URDf
         :param urdf_object: URDF object of the robot
+        :param gripper_object_name: Name of the gripper if it is a separate Object outside the robot description.
         """
         self.name: str = name
         self.start_link: str = start_link
@@ -656,6 +655,8 @@ class EndEffectorDescription:
         self.joint_names: List[str] = []
         self.static_joint_states: Dict[GripperState, Dict[str, float]] = {}
         self._init_links_joints()
+        self.gripper_object_name = gripper_object_name
+
 
     def _init_links_joints(self):
         """

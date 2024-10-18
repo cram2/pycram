@@ -72,13 +72,13 @@ class DefaultMoveGripper(ProcessModule):
 
     def _execute(self, desig: MoveGripperMotion):
         robot_description = RobotDescription.current_robot_description
-        if robot_description.gripper_name is not None:
-            robot = World.current_world.get_object_by_name(robot_description.gripper_name)
+        gripper = desig.gripper
+        arm_chain = robot_description.get_arm_chain(gripper)
+        if arm_chain.end_effector.gripper_object_name is not None:
+            robot = World.current_world.get_object_by_name(arm_chain.end_effector.gripper_object_name)
         else:
             robot = World.robot
-        gripper = desig.gripper
         motion = desig.motion
-        arm_chain = robot_description.get_arm_chain(gripper)
         robot.set_multiple_joint_positions(arm_chain.get_static_gripper_state(motion))
 
 
