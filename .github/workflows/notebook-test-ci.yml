@@ -28,9 +28,15 @@ jobs:
       - name: Checkout 🛎
         uses: actions/checkout@v3
 
+
+      - name: Install setuptools dependencies 🍼
+        uses: py-actions/py-dependency-install@v4
+        with:
+          path: "requirements-setuptools.txt"
+
       # ----------------------------------------------------------------------------------------------------------------
 
-      - name: Install dependencies 🍼
+      - name: Install dependencies 📚
         uses: py-actions/py-dependency-install@v4
         with:
           path: "requirements.txt"
