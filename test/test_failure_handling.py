@@ -7,7 +7,7 @@ from pycram.designator import ActionDesignatorDescription
 from pycram.designators.action_designator import ParkArmsAction
 from pycram.datastructures.enums import ObjectType, Arms, WorldMode
 from pycram.failure_handling import Retry
-from pycram.plan_failures import PlanFailure
+from pycram.failures import PlanFailure
 from pycram.process_module import ProcessModule, simulated_robot
 from pycram.robot_description import RobotDescription
 from pycram.object_descriptors.urdf import ObjectDescription
@@ -33,8 +33,8 @@ class FailureHandlingTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.world = BulletWorld(WorldMode.DIRECT)
-        cls.robot = Object(RobotDescription.current_robot_description.name, ObjectType.ROBOT, RobotDescription.current_robot_description.name + extension,
-                           ObjectDescription)
+        cls.robot = Object(RobotDescription.current_robot_description.name, ObjectType.ROBOT,
+                           RobotDescription.current_robot_description.name + extension)
         ProcessModule.execution_delay = True
 
     def setUp(self):

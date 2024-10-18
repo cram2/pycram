@@ -31,13 +31,13 @@ from pycram.designators.object_designator import *
 from pycram.datastructures.pose import Pose
 from pycram.datastructures.enums import ObjectType, WorldMode
 import anytree
-import pycram.plan_failures
+import pycram.failures
 ```
 
 Next we will create a bullet world with a PR2 in a kitchen containing milk and cereal.
 
 ```python
-world = BulletWorld(WorldMode.GUI)
+world = BulletWorld(WorldMode.DIRECT)
 pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
 kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
 milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
@@ -83,7 +83,7 @@ Now we get the task tree from its module and render it. Rendering can be done wi
 
 ```python
 tt = pycram.tasktree.task_tree
-print(anytree.RenderTree(tt))
+print(anytree.RenderTree(tt.root))
 ```
 
 As we see every task in the plan got recorded correctly. It is noticeable that the tree begins with a NoOperation node. This is done because several, not connected, plans that get executed after each other should still appear in the task tree. Hence, a NoOperation node is the root of any tree. If we re-execute the plan we would see them appear in the same tree even though they are not connected.
@@ -91,24 +91,23 @@ As we see every task in the plan got recorded correctly. It is noticeable that t
 ```python
 world.reset_world()
 plan()
-print(anytree.RenderTree(tt))
+print(anytree.RenderTree(tt.root))
 ```
 
 Projecting a plan in a new environment with its own task tree that only exists while the projected plan is running can be done with the ``with`` keyword. When this is done, both the bullet world and task tree are saved and new, freshly reset objects are available. At the end of a with block the old state is restored. The root for such things is then called ``simulation()``.
 
 ```python
 with pycram.tasktree.SimulatedTaskTree() as stt:
-    print(anytree.RenderTree(pycram.tasktree.task_tree))
-print(anytree.RenderTree(pycram.tasktree.task_tree))
+    print(anytree.RenderTree(pycram.tasktree.task_tree.root))
+print(anytree.RenderTree(pycram.tasktree.task_tree.root))
 ```
 
 Task tree can be manipulated with ordinary anytree manipulation. If we for example want to discard the second plan, we would write
 
 ```python
 tt.root.children = (tt.root.children[0],)
-print(anytree.RenderTree(tt, style=anytree.render.AsciiStyle()))
+print(anytree.RenderTree(tt.root, style=anytree.render.AsciiStyle()))
 ```
-
 We can now re-execute this (modified) plan by executing the leaf in pre-ordering iteration using the anytree functionality. This will not append the re-execution to the task tree.
 
 ```python

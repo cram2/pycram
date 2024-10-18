@@ -20,35 +20,29 @@ In this tutorial, we will get to see more examples of ORM querying.
 First, we will gather a lot of data. In order to achieve that we will write a randomized experiment for grasping a couple of objects.
 In the experiment the robot will try to grasp a randomized object using random poses and torso heights.
 
-
 ```python
 from tf import transformations
 import itertools
-import time
 from typing import Optional, List, Tuple
-
 import numpy as np
-
 import sqlalchemy.orm
-import tf
 import tqdm
-
 import pycram.orm.base
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object as BulletWorldObject
-from pycram.designators.action_designator import MoveTorsoAction, PickUpAction, NavigateAction, ParkArmsAction, ParkArmsActionPerformable, MoveTorsoActionPerformable
+from pycram.designators.action_designator import MoveTorsoAction, PickUpAction, NavigateAction, ParkArmsAction,
+    ParkArmsActionPerformable, MoveTorsoActionPerformable
 from pycram.designators.object_designator import ObjectDesignatorDescription
-from pycram.plan_failures import PlanFailure
+from pycram.failures import PlanFailure
 from pycram.process_module import ProcessModule
-from pycram.datastructures.enums import Arms, ObjectType, Grasp
-
+from pycram.datastructures.enums import Arms, ObjectType, Grasp, WorldMode
 from pycram.process_module import simulated_robot
-import sqlalchemy.orm
-import pycram.orm
-from pycram.orm.base import Position, RobotState
-from pycram.orm.tasktree import TaskTreeNode
 from pycram.orm.action_designator import PickUpAction as ORMPickUpAction
+from pycram.orm.base import RobotState, Position, ProcessMetaData, Pose as ORMPose
+from pycram.orm.tasktree import TaskTreeNode
 from pycram.orm.object_designator import Object
+from pycram.tasktree import task_tree, TaskTree
+import pycram.orm
 import sqlalchemy.sql
 import pandas as pd
 
@@ -57,7 +51,7 @@ from pycram.datastructures.pose import Pose
 np.random.seed(420)
 
 ProcessModule.execution_delay = False
-pycram.orm.base.ProcessMetaData().description = "Tutorial for learning from experience in a Grasping action."
+ProcessMetaData().description = "Tutorial for learning from experience in a Grasping action."
 
 
 class GraspingExplorer:
@@ -81,16 +75,17 @@ class GraspingExplorer:
             self.robots: List[Tuple[str, str]] = [("pr2", "pr2.urdf")]
 
         if not objects:
-            self.objects: List[Tuple[str, ObjectType, str]] = [("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl"),
-                                                                            ("bowl", ObjectType.BOWL, "bowl.stl"),
-                                                                            ("milk", ObjectType.MILK, "milk.stl"),
-                                                                            ("spoon", ObjectType.SPOON, "spoon.stl")]
+            self.objects: List[Tuple[str, ObjectType, str]] = [
+                ("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl"),
+                ("bowl", ObjectType.BOWL, "bowl.stl"),
+                ("milk", ObjectType.MILK, "milk.stl"),
+                ("spoon", ObjectType.SPOON, "spoon.stl")]
 
         if not arms:
-            self.arms: List[str] = [Arms.LEFT, Arms.RIGHT]
+            self.arms: List[Arms] = [Arms.LEFT, Arms.RIGHT]
 
         if not grasps:
-            self.grasps: List[str] = [Grasp.LEFT, Grasp.RIGHT, Grasp.FRONT, Grasp.TOP]
+            self.grasps: List[Grasp] = [Grasp.LEFT, Grasp.RIGHT, Grasp.FRONT, Grasp.TOP]
 
         # store trials per scenario
         self.samples_per_scenario: int = samples_per_scenario
@@ -111,7 +106,7 @@ class GraspingExplorer:
         progress_bar = tqdm.tqdm(
             total=np.prod([len(p) for p in self.hyper_parameters]) * self.samples_per_scenario)
 
-        self.world = BulletWorld("DIRECT")
+        self.world = BulletWorld(WorldMode.DIRECT)
 
         # for every robot
         for robot, robot_urdf in self.robots:
@@ -171,8 +166,8 @@ class GraspingExplorer:
                             self.total_tries += 1
 
                             # insert into database
-                            pycram.tasktree.task_tree.insert(session, use_progress_bar=False)
-                            pycram.tasktree.reset_tree()
+                            task_tree.root.insert(session, use_progress_bar=False)
+                            task_tree.reset_tree()
 
                             progress_bar.update()
                             progress_bar.set_postfix(success_rate=(self.total_tries - self.total_failures) /
@@ -207,17 +202,16 @@ Let's say we want to select positions of robots that were able to grasp a specif
 from sqlalchemy import select
 from pycram.datastructures.enums import ObjectType
 
-milk = BulletWorldObject("Milk", ObjectType.MILK, "milk.stl")
+milk = BulletWorldObject("milk", ObjectType.MILK, "milk.stl")
 
 # query all relative robot positions in regard to an objects position
 # make sure to order the joins() correctly
 query = (select(ORMPickUpAction.arm, ORMPickUpAction.grasp, RobotState.torso_height, Position.x, Position.y)
-         .join(TaskTreeNode.code)
-         .join(Code.designator.of_type(ORMPickUpAction))
+         .join(TaskTreeNode.action.of_type(ORMPickUpAction))
          .join(ORMPickUpAction.robot_state)
          .join(RobotState.pose)
-         .join(pycram.orm.base.Pose.position)
-         .join(ORMPickUpAction.object).where(Object.type == milk.type)
+         .join(ORMPose.position)
+         .join(ORMPickUpAction.object).where(Object.obj_type == milk.obj_type)
                                       .where(TaskTreeNode.status == "SUCCEEDED"))
 print(query)
 
@@ -235,19 +229,16 @@ The effect of this function can also be seen in the printed query of above's out
 Another interesting query: Let's say we want to select the torso height and positions of robots relative to the object they were trying to grasp:
 
 ```python
-from pycram.orm.base import Pose as ORMPose
-
 robot_pose = sqlalchemy.orm.aliased(ORMPose)
 object_pose = sqlalchemy.orm.aliased(ORMPose)
 robot_position = sqlalchemy.orm.aliased(Position)
 object_position = sqlalchemy.orm.aliased(Position)
 
-query = (select(TaskTreeNode.status, Object.type, 
+query = (select(TaskTreeNode.status, Object.obj_type, 
                        sqlalchemy.label("relative torso height", object_position.z - RobotState.torso_height),
                        sqlalchemy.label("x", robot_position.x - object_position.x),
                        sqlalchemy.label("y", robot_position.y - object_position.y))
-         .join(TaskTreeNode.code)
-         .join(Code.designator.of_type(ORMPickUpAction))
+         .join(TaskTreeNode.action.of_type(ORMPickUpAction))
          .join(ORMPickUpAction.robot_state)
          .join(robot_pose, RobotState.pose)
          .join(robot_position, robot_pose.position)

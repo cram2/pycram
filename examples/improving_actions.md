@@ -44,7 +44,7 @@ from random_events.product_algebra import Event, SimpleEvent
 
 import pycram.orm.base
 from pycram.designators.action_designator import MoveTorsoActionPerformable
-from pycram.plan_failures import PlanFailure
+from pycram.failures import PlanFailure
 from pycram.designators.object_designator import ObjectDesignatorDescription
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
@@ -54,7 +54,7 @@ from pycram.datastructures.pose import Pose
 from pycram.ros.viz_marker_publisher import VizMarkerPublisher
 from pycram.process_module import ProcessModule, simulated_robot
 from pycram.designators.specialized_designators.probabilistic.probabilistic_action import MoveAndPickUp, Arms, Grasp
-from pycram.tasktree import task_tree, reset_tree
+from pycram.tasktree import task_tree, TaskTree 
 
 ProcessModule.execution_delay = False
 np.random.seed(69)
@@ -76,7 +76,7 @@ Now we construct an empty world with just a floating milk, where we can learn ab
 ```python
 world = BulletWorld(WorldMode.DIRECT)
 print(world.prospection_world)
-robot = Object(robot_description.name, ObjectType.ROBOT, robot_description.name + ".urdf")
+robot = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
 milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
 viz_marker_publisher = VizMarkerPublisher()
 milk_description = ObjectDesignatorDescription(types=[ObjectType.MILK]).ground()
@@ -102,20 +102,20 @@ After finishing the experiments, we insert the results into the database.
 
 ```python
 pycram.orm.base.ProcessMetaData().description = "Experimenting with Pick Up Actions"
-fpa.sample_amount = 500
-print(world.current_world)
+fpa.sample_amount = 100
 with simulated_robot:
-    print(world.current_world)
     fpa.batch_rollout()
-task_tree.insert(session)
-reset_tree()
+task_tree.root.insert(session)
 session.commit()
+task_tree.reset_tree()
 ```
 
 Let's query the data that is needed to learn a pick up action and have a look at it.
 
 ```python
 samples = pd.read_sql(fpa.query_for_database(), engine)
+samples["arm"] = samples["arm"].astype(str)
+samples["grasp"] = samples["grasp"].astype(str)
 samples
 ```
 
@@ -147,7 +147,7 @@ Let's make a monte carlo estimate on the success probability of the new model.
 
 ```python
 fpa.policy = model
-fpa.sample_amount = 100
+fpa.sample_amount = 500
 with simulated_robot:
     fpa.batch_rollout()
 ```

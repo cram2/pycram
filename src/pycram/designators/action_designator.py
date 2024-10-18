@@ -8,17 +8,14 @@ import itertools
 import numpy as np
 from sqlalchemy.orm import Session
 from tf import transformations
-from typing_extensions import Any, List, Union, Callable, Optional, Type
-
-import rospy
+from typing_extensions import List, Union, Callable, Optional, Type
 
 from .location_designator import CostmapLocation
 from .motion_designator import MoveJointsMotion, MoveGripperMotion, MoveArmJointsMotion, MoveTCPMotion, MoveMotion, \
     LookingMotion, DetectingMotion, OpeningMotion, ClosingMotion
 from .object_designator import ObjectDesignatorDescription, BelieveObject, ObjectPart
 from ..local_transformer import LocalTransformer
-from ..plan_failures import ObjectUnfetchable, ReachabilityFailure
-# from ..robot_descriptions import robot_description
+from ..failures import ObjectUnfetchable, ReachabilityFailure
 from ..robot_description import RobotDescription
 from ..tasktree import with_tree
 
@@ -537,11 +534,11 @@ class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC):
 
         :return: An instance of the ORM equivalent of the action with the parameters set
         """
-        # get all class parameters (ignore inherited ones)
+        # get all class parameters
         class_variables = {key: value for key, value in vars(self).items()
                            if key in inspect.getfullargspec(self.__init__).args}
 
-        # get all orm class parameters (ignore inherited ones)
+        # get all orm class parameters
         orm_class_variables = inspect.getfullargspec(self.orm_class.__init__).args
 
         # list of parameters that will be passed to the ORM class. If the name does not match the orm_class equivalent
@@ -565,11 +562,11 @@ class ActionAbstract(ActionDesignatorDescription.Action, abc.ABC):
 
         action = super().insert(session)
 
-        # get all class parameters (ignore inherited ones)
+        # get all class parameters
         class_variables = {key: value for key, value in vars(self).items()
                            if key in inspect.getfullargspec(self.__init__).args}
 
-        # get all orm class parameters (ignore inherited ones)
+        # get all orm class parameters
         orm_class_variables = inspect.getfullargspec(self.orm_class.__init__).args
 
         # loop through all class parameters and insert them into the session unless they are already added by the ORM
@@ -716,10 +713,13 @@ class PickUpActionPerformable(ActionAbstract):
     """
     orm_class: Type[ActionAbstract] = field(init=False, default=ORMPickUpAction)
 
-    @with_tree
-    def perform(self) -> None:
+    def __post_init__(self):
+        super(ActionAbstract, self).__post_init__()
         # Store the object's data copy at execution
         self.object_at_execution = self.object_designator.frozen_copy()
+
+    @with_tree
+    def perform(self) -> None:
         robot = World.robot
         # Retrieve object and robot from designators
         object = self.object_designator.world_object
@@ -774,6 +774,17 @@ class PickUpActionPerformable(ActionAbstract):
 
         # Remove the vis axis from the world
         World.current_world.remove_vis_axis()
+
+    #TODO find a way to use object_at_execution instead of object_designator in the automatic orm mapping in ActionAbstract
+    def to_sql(self) -> Action:
+        return ORMPickUpAction(arm=self.arm, grasp=self.grasp)
+
+    def insert(self, session: Session, **kwargs) -> Action:
+        action = super(ActionAbstract, self).insert(session)
+        action.object = self.object_at_execution.insert(session)
+
+        session.add(action)
+        return action
 
 
 @dataclass
@@ -860,7 +871,7 @@ class TransportActionPerformable(ActionAbstract):
         ParkArmsActionPerformable(Arms.BOTH).perform()
         pickup_loc = CostmapLocation(target=self.object_designator, reachable_for=robot_desig.resolve(),
                                      reachable_arm=self.arm)
-        # Tries to find a pick-up posotion for the robot that uses the given arm
+        # Tries to find a pick-up position for the robot that uses the given arm
         pickup_pose = None
         for pose in pickup_loc:
             if self.arm in pose.reachable_arms:

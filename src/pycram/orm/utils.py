@@ -1,12 +1,11 @@
 import traceback
-import rospy
 import sqlalchemy
-import pycram.orm.base
-from pycram.designators.object_designator import *
+from .base import Base
+from ..designators.object_designator import *
 import json
 
-from pycram.designators.action_designator import *
-import pycram.orm
+from ..ros.logging import loginfo, logwarn
+
 
 
 def write_database_to_file(in_sessionmaker: sqlalchemy.orm.sessionmaker, filename: str,
@@ -21,7 +20,7 @@ def write_database_to_file(in_sessionmaker: sqlalchemy.orm.sessionmaker, filenam
     with in_sessionmaker() as session:
         with open("whatever.txt", "w") as f:
             to_json_dict = dict()
-            for table in pycram.orm.base.Base.metadata.sorted_tables:
+            for table in Base.metadata.sorted_tables:
                 list_of_row = list()
                 for column_object in session.query(table).all():
                     list_of_row.append(column_object)
@@ -37,13 +36,13 @@ def print_database(in_sessionmaker: sqlalchemy.orm.sessionmaker):
     :param in_sessionmaker: Database Session which should be printed
     """
     with in_sessionmaker() as session:
-        for table in pycram.orm.base.Base.metadata.sorted_tables:
+        for table in Base.metadata.sorted_tables:
             try:
                 smt = sqlalchemy.select('*').select_from(table)
                 result = session.execute(smt).all()
-                rospy.loginfo("Table: {}\tcontent:{}".format(table, result))
+                loginfo("Table: {}\tcontent:{}".format(table, result))
             except sqlalchemy.exc.ArgumentError as e:
-                rospy.logwarn(e)
+                logwarn(e)
 
 
 def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
@@ -60,7 +59,7 @@ def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
     """
     destination_session = destination_session_maker()
     source_session = source_session_maker()
-    sortedTables = pycram.orm.base.Base.metadata.sorted_tables
+    sortedTables = Base.metadata.sorted_tables
     for table in sortedTables:
         try:
             list_of_primary_keys_of_this_table = table.primary_key.columns.values()
@@ -77,7 +76,7 @@ def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
                 results = destination_session.execute(sqlalchemy.select(table))
                 for column_object in results:  # iterate over all columns
                     if column_object.__getattr__(key.name) in all_source_key_values:
-                        rospy.loginfo(
+                        loginfo(
                             "Found primary_key collision in table {} value: {} max value in memory {}".format(table,
                                                                                                               column_object.__getattr__(
                                                                                                                   key.name),
@@ -90,8 +89,8 @@ def update_primary_key(source_session_maker: sqlalchemy.orm.sessionmaker,
                         highest_free_key_value += 1
             destination_session.commit()  # commit after every table
         except AttributeError as e:
-            rospy.logwarn("Possible found abstract ORM class {}".format(e.__name__))
-            rospy.logwarn(e)
+            logwarn("Possible found abstract ORM class {}".format(e.__name__))
+            logwarn(e)
     destination_session.close()
 
 
@@ -112,7 +111,7 @@ def copy_database(source_session_maker: sqlalchemy.orm.sessionmaker,
     """
 
     with source_session_maker() as source_session, destination_session_maker() as destination_session:
-        sorted_tables = pycram.orm.base.Base.metadata.sorted_tables
+        sorted_tables = Base.metadata.sorted_tables
         for table in sorted_tables:
             for value in source_session.query(table).all():
                 insert_statement = sqlalchemy.insert(table).values(value)
@@ -121,7 +120,7 @@ def copy_database(source_session_maker: sqlalchemy.orm.sessionmaker,
 
 
 def update_primary_key_constrains(session_maker: sqlalchemy.orm.sessionmaker):
-    '''
+    """
     Iterates through all tables related to any ORM Class and sets in their corresponding foreign keys in the given
     endpoint to "ON UPDATE CASCADING".
 
@@ -130,15 +129,15 @@ def update_primary_key_constrains(session_maker: sqlalchemy.orm.sessionmaker):
 
     :param session_maker:
     :return: empty
-    '''
+    """
     with session_maker() as session:
-        for table in pycram.orm.base.Base.metadata.sorted_tables:
+        for table in Base.metadata.sorted_tables:
             try:
                 foreign_key_statement = sqlalchemy.text(
                     "SELECT con.oid, con.conname, con.contype, con.confupdtype, con.confdeltype, con.confmatchtype, pg_get_constraintdef(con.oid) FROM pg_catalog.pg_constraint con INNER JOIN pg_catalog.pg_class rel ON rel.oid = con.conrelid INNER JOIN pg_catalog.pg_namespace nsp ON nsp.oid = connamespace WHERE rel.relname = '{}';".format(
                         table))
                 response = session.execute(foreign_key_statement)
-                rospy.loginfo(25 * '~' + "{}".format(table) + 25 * '~')
+                loginfo(25 * '~' + "{}".format(table) + 25 * '~')
                 for line in response:
                     if line.conname.endswith("fkey"):
                         if 'a' in line.confupdtype:  # a --> no action | if there is no action we set it to cascading
@@ -157,7 +156,7 @@ def update_primary_key_constrains(session_maker: sqlalchemy.orm.sessionmaker):
                                 alter_statement)  # There is no real data coming back for this
                             session.commit()
             except AttributeError:
-                rospy.loginfo("Attribute Error: {} has no attribute __tablename__".format(table))
+                loginfo("Attribute Error: {} has no attribute __tablename__".format(table))
 
 
 def migrate_neems(source_session_maker: sqlalchemy.orm.sessionmaker,

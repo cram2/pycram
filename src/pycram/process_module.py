@@ -11,12 +11,11 @@ import time
 from abc import ABC
 from typing_extensions import Callable, Type, Any, Union
 
-import rospy
-
 from .language import Language
 from .robot_description import RobotDescription
 from typing_extensions import TYPE_CHECKING
 from .datastructures.enums import ExecutionType
+from .ros.logging import logerr, logwarn_once
 
 if TYPE_CHECKING:
     from .designators.motion_designator import BaseMotion
@@ -277,14 +276,12 @@ class ProcessModuleManager(ABC):
     @staticmethod
     def get_manager() -> Union[ProcessModuleManager, None]:
         """
-        Returns the Process Module manager for the currently loaded robot or None if there is no Manager.
-
         :return: ProcessModuleManager instance of the current robot
         """
         manager = None
         _default_manager = None
         if not ProcessModuleManager.execution_type:
-            rospy.logerr(
+            logerr(
                 f"No execution_type is set, did you use the with_simulated_robot or with_real_robot decorator?")
             return
 
@@ -297,17 +294,17 @@ class ProcessModuleManager(ABC):
         if manager:
             return manager
         elif _default_manager:
-            rospy.logwarn_once(f"No Process Module Manager found for robot: '{RobotDescription.current_robot_description.name}'"
+            logwarn_once(f"No Process Module Manager found for robot: '{RobotDescription.current_robot_description.name}'"
                                f", using default process modules")
             return _default_manager
         else:
-            rospy.logerr(f"No Process Module Manager found for robot: '{RobotDescription.current_robot_description.name}'"
+            logerr(f"No Process Module Manager found for robot: '{RobotDescription.current_robot_description.name}'"
                          f", and no default process modules available")
             return None
 
     def navigate(self) -> Type[ProcessModule]:
         """
-        Returns the Process Module for navigating the robot with respect to
+        Get the Process Module for navigating the robot with respect to
          the :py:attr:`~ProcessModuleManager.execution_type`
 
         :return: The Process Module for navigating
@@ -317,7 +314,7 @@ class ProcessModuleManager(ABC):
 
     def pick_up(self) -> Type[ProcessModule]:
         """
-        Returns the Process Module for picking up with respect to the :py:attr:`~ProcessModuleManager.execution_type`
+        Get the Process Module for picking up with respect to the :py:attr:`~ProcessModuleManager.execution_type`
 
         :return: The Process Module for picking up an object
         """
@@ -326,7 +323,7 @@ class ProcessModuleManager(ABC):
 
     def place(self) -> Type[ProcessModule]:
         """
-        Returns the Process Module for placing with respect to the :py:attr:`~ProcessModuleManager.execution_type`
+        Get the Process Module for placing with respect to the :py:attr:`~ProcessModuleManager.execution_type`
 
         :return: The Process Module for placing an Object
         """
@@ -335,7 +332,7 @@ class ProcessModuleManager(ABC):
 
     def looking(self) -> Type[ProcessModule]:
         """
-        Returns the Process Module for looking at a point with respect to
+        Get the Process Module for looking at a point with respect to
          the :py:attr:`~ProcessModuleManager.execution_type`
 
         :return: The Process Module for looking at a specific point
@@ -345,7 +342,7 @@ class ProcessModuleManager(ABC):
 
     def detecting(self) -> Type[ProcessModule]:
         """
-        Returns the Process Module for detecting an object with respect to
+        Get the Process Module for detecting an object with respect to
          the :py:attr:`~ProcessModuleManager.execution_type`
 
         :return: The Process Module for detecting an object
@@ -355,7 +352,7 @@ class ProcessModuleManager(ABC):
 
     def move_tcp(self) -> Type[ProcessModule]:
         """
-        Returns the Process Module for moving the Tool Center Point with respect to
+        Get the Process Module for moving the Tool Center Point with respect to
          the :py:attr:`~ProcessModuleManager.execution_type`
 
         :return: The Process Module for moving the TCP
@@ -365,7 +362,7 @@ class ProcessModuleManager(ABC):
 
     def move_arm_joints(self) -> Type[ProcessModule]:
         """
-        Returns the Process Module for moving the joints of the robot arm
+        Get the Process Module for moving the joints of the robot arm
         with respect to the :py:attr:`~ProcessModuleManager.execution_type`
 
         :return: The Process Module for moving the arm joints
@@ -375,7 +372,7 @@ class ProcessModuleManager(ABC):
 
     def world_state_detecting(self) -> Type[ProcessModule]:
         """
-        Returns the Process Module for detecting an object using the world state with respect to the
+        Get the Process Module for detecting an object using the world state with respect to the
         :py:attr:`~ProcessModuleManager.execution_type`
 
         :return: The Process Module for world state detecting
@@ -385,7 +382,7 @@ class ProcessModuleManager(ABC):
 
     def move_joints(self) -> Type[ProcessModule]:
         """
-        Returns the Process Module for moving any joint of the robot with respect to the
+        Get the Process Module for moving any joint of the robot with respect to the
         :py:attr:`~ProcessModuleManager.execution_type`
 
         :return: The Process Module for moving joints
@@ -395,7 +392,7 @@ class ProcessModuleManager(ABC):
 
     def move_gripper(self) -> Type[ProcessModule]:
         """
-        Returns the Process Module for moving the gripper with respect to
+        Get the Process Module for moving the gripper with respect to
          the :py:attr:`~ProcessModuleManager.execution_type`
 
         :return: The Process Module for moving the gripper
@@ -405,7 +402,7 @@ class ProcessModuleManager(ABC):
 
     def open(self) -> Type[ProcessModule]:
         """
-        Returns the Process Module for opening drawers with respect to
+        Get the Process Module for opening drawers with respect to
          the :py:attr:`~ProcessModuleManager.execution_type`
 
         :return: The Process Module for opening drawers
@@ -415,7 +412,7 @@ class ProcessModuleManager(ABC):
 
     def close(self) -> Type[ProcessModule]:
         """
-        Returns the Process Module for closing drawers with respect to
+        Get the Process Module for closing drawers with respect to
          the :py:attr:`~ProcessModuleManager.execution_type`
 
         :return: The Process Module for closing drawers

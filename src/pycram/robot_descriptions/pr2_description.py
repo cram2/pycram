@@ -1,13 +1,17 @@
+from ..datastructures.dataclasses import VirtualMobileBaseJoints
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
 from ..datastructures.enums import Arms, Grasp, GripperState, GripperType
-import rospkg
+from ..ros.ros_tools import get_ros_package_path
 
-rospack = rospkg.RosPack()
-filename = rospack.get_path('pycram') + '/resources/robots/' + "pr2" + '.urdf'
+from ..helper import get_robot_mjcf_path
+
+filename = get_ros_package_path('pycram') + '/resources/robots/' + "pr2" + '.urdf'
+
+mjcf_filename = get_robot_mjcf_path("", "pr2")
 
 pr2_description = RobotDescription("pr2", "base_link", "torso_lift_link", "torso_lift_joint",
-                                   filename)
+                                   filename, virtual_mobile_base_joints=VirtualMobileBaseJoints(), mjcf_path=mjcf_filename)
 
 ################################## Left Arm ##################################
 left_arm = KinematicChainDescription("left", "torso_lift_link", "l_wrist_roll_link",

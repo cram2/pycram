@@ -2,17 +2,18 @@ import json
 import threading
 import time
 
-import rospy
 import sys
-import rosnode
+
+from ..ros.data_types import Time
+from ..ros.logging import logwarn, loginfo_once
+from ..ros.ros_tools import get_node_names
 
 from ..datastructures.enums import JointType, ObjectType
 from ..datastructures.pose import Pose
-# from ..robot_descriptions import robot_description
 from ..datastructures.world import World
 from ..datastructures.dataclasses import MeshVisualShape
+from ..ros.service import get_service_proxy
 from ..world_concepts.world_object import Object
-# from ..robot_description import ManipulatorDescription
 from ..robot_description import RobotDescription
 
 from typing_extensions import List, Dict, Callable, Optional
@@ -21,9 +22,9 @@ from threading import Lock, RLock
 
 try:
     from giskardpy.python_interface.old_python_interface import OldGiskardWrapper as GiskardWrapper
-    from giskard_msgs.msg import WorldBody, CollisionEntry
+    from giskard_msgs.msg import WorldBody, MoveResult, CollisionEntry
 except ModuleNotFoundError as e:
-    rospy.logwarn("Failed to import Giskard messages, the real robot will not be available")
+    logwarn("Failed to import Giskard messages, the real robot will not be available")
 
 giskard_wrapper = None
 giskard_update_service = None
@@ -65,28 +66,27 @@ def init_giskard_interface(func: Callable) -> Callable:
         global giskard_wrapper
         global giskard_update_service
         global is_init
-        if is_init and "/giskard" in rosnode.get_node_names():
+        if is_init and "/giskard" in get_node_names():
             return func(*args, **kwargs)
-        elif is_init and "/giskard" not in rosnode.get_node_names():
-            rospy.logwarn("Giskard node is not available anymore, could not initialize giskard interface")
+        elif is_init and "/giskard" not in get_node_names():
+            logwarn("Giskard node is not available anymore, could not initialize giskard interface")
             is_init = False
             giskard_wrapper = None
             return
 
         if "giskard_msgs" not in sys.modules:
-            rospy.logwarn("Could not initialize the Giskard interface since the giskard_msgs are not imported")
+            logwarn("Could not initialize the Giskard interface since the giskard_msgs are not imported")
             return
 
-        if "/giskard" in rosnode.get_node_names():
+        if "/giskard" in get_node_names():
             giskard_wrapper = GiskardWrapper()
-            giskard_update_service = rospy.ServiceProxy("/giskard/update_world", UpdateWorld)
-            rospy.loginfo_once("Successfully initialized Giskard interface")
+            giskard_update_service = get_service_proxy("/giskard/update_world", UpdateWorld)
+            loginfo_once("Successfully initialized Giskard interface")
             is_init = True
         else:
-            rospy.logwarn("Giskard is not running, could not initialize Giskard interface")
+            logwarn("Giskard is not running, could not initialize Giskard interface")
             return
         return func(*args, **kwargs)
-
     return wrapper
 
 
@@ -168,7 +168,7 @@ def spawn_object(object: Object) -> None:
     :param object: World object that should be spawned
     """
     if len(object.link_name_to_id) == 1:
-        geometry = object.get_link_geometry(object.root_link_name)
+        geometry = object.get_link_geometry(object.root_link.name)
         if isinstance(geometry, MeshVisualShape):
             filename = geometry.file_name
             spawn_mesh(object.name, filename, object.get_pose())
@@ -590,9 +590,7 @@ def allow_gripper_collision(gripper: str) -> None:
 @init_giskard_interface
 def get_gripper_group_names() -> List[str]:
     """
-    Returns a list of groups that are registered in giskard which have 'gripper' in their name.
-
-    :return: The list of gripper groups
+    :return: The list of groups that are registered in giskard which have 'gripper' in their name.
     """
     groups = giskard_wrapper.get_group_names()
     return list(filter(lambda elem: "gripper" in elem, groups))
@@ -601,7 +599,7 @@ def get_gripper_group_names() -> List[str]:
 @init_giskard_interface
 def add_gripper_groups() -> None:
     """
-    Adds the gripper links as a group for collision avoidance.
+    Add the gripper links as a group for collision avoidance.
 
     :return: Response of the RegisterGroup Service
     """
@@ -645,7 +643,7 @@ def avoid_collisions(object1: Object, object2: Object) -> None:
 @init_giskard_interface
 def make_world_body(object: Object) -> 'WorldBody':
     """
-    Creates a WorldBody message for a World Object. The WorldBody will contain the URDF of the World Object
+    Create a WorldBody message for a World Object. The WorldBody will contain the URDF of the World Object
 
     :param object: The World Object
     :return: A WorldBody message for the World Object
@@ -668,7 +666,7 @@ def make_point_stamped(point: List[float]) -> PointStamped:
     :return: A PointStamped message
     """
     msg = PointStamped()
-    msg.header.stamp = rospy.Time.now()
+    msg.header.stamp = Time().now()
     msg.header.frame_id = "map"
 
     msg.point.x = point[0]
@@ -686,7 +684,7 @@ def make_quaternion_stamped(quaternion: List[float]) -> QuaternionStamped:
     :return: A QuaternionStamped message
     """
     msg = QuaternionStamped()
-    msg.header.stamp = rospy.Time.now()
+    msg.header.stamp = Time().now()
     msg.header.frame_id = "map"
 
     msg.quaternion.x = quaternion[0]
@@ -705,7 +703,7 @@ def make_vector_stamped(vector: List[float]) -> Vector3Stamped:
     :return: A Vector3Stamped message
     """
     msg = Vector3Stamped()
-    msg.header.stamp = rospy.Time.now()
+    msg.header.stamp = Time().now()
     msg.header.frame_id = "map"
 
     msg.vector.x = vector[0]

@@ -6,7 +6,7 @@ from pycram.designators.object_designator import BelieveObject
 from pycram.datastructures.enums import ObjectType, State
 from pycram.failure_handling import RetryMonitor
 from pycram.fluent import Fluent
-from pycram.plan_failures import PlanFailure, NotALanguageExpression
+from pycram.failures import PlanFailure, NotALanguageExpression
 from pycram.datastructures.pose import Pose
 from pycram.language import Sequential, Language, Parallel, TryAll, TryInOrder, Monitor, Code
 from pycram.process_module import simulated_robot

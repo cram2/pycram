@@ -1,6 +1,6 @@
 from .datastructures.enums import State
 from .designator import DesignatorDescription
-from .plan_failures import PlanFailure
+from .failures import PlanFailure
 from threading import Lock
 from typing_extensions import Union, Tuple, Any, List
 from .language import Language, Monitor

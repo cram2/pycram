@@ -1,8 +1,8 @@
 import numpy as np
 import tqdm
-from probabilistic_model.probabilistic_circuit.distributions import GaussianDistribution, SymbolicDistribution
-from probabilistic_model.probabilistic_circuit.probabilistic_circuit import ProbabilisticCircuit, \
-    DecomposableProductUnit
+from probabilistic_model.probabilistic_circuit.nx.distributions import GaussianDistribution, SymbolicDistribution
+from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit, \
+    ProductUnit
 from probabilistic_model.utils import MissingDict
 from random_events.interval import *
 from random_events.product_algebra import Event, SimpleEvent
@@ -19,7 +19,7 @@ from ....datastructures.world import World
 from ....designator import ActionDesignatorDescription, ObjectDesignatorDescription
 from ....local_transformer import LocalTransformer
 from ....orm.views import PickUpWithContextView
-from ....plan_failures import ObjectUnreachable, PlanFailure
+from ....failures import ObjectUnreachable, PlanFailure
 
 
 class Grasp(SetElement):
@@ -124,7 +124,7 @@ class GaussianCostmapModel:
         """
         Create a fully factorized gaussian at the center of the map.
         """
-        centered_model = DecomposableProductUnit()
+        centered_model = ProductUnit()
         centered_model.add_subcircuit(GaussianDistribution(self.relative_x, 0., np.sqrt(self.variance)))
         centered_model.add_subcircuit(GaussianDistribution(self.relative_y, 0., np.sqrt(self.variance)))
 
@@ -206,7 +206,7 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
         pose = Pose(position, frame=self.object_designator.world_object.tf_frame)
         standing_position = LocalTransformer().transform_pose(pose, "map")
         standing_position.position.z = 0
-        action = MoveAndPickUpPerformable(standing_position, self.object_designator, EArms(int(arm)), EGrasp(int(grasp)))
+        action = MoveAndPickUpPerformable(standing_position, self.object_designator, EArms[Arms(int(arm)).name], EGrasp(int(grasp)))
         return action
 
     def events_from_occupancy_and_visibility_costmap(self) -> Event:
@@ -300,8 +300,6 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
     def batch_rollout(self):
         """
         Try the policy without conditioning on visibility and occupancy and count the successful tries.
-
-        :amount: The amount of tries
         """
 
         # initialize statistics

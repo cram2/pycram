@@ -1,3 +1,5 @@
+from typing import Optional, Tuple
+
 from typing_extensions import List, Any, Union, Dict
 
 from geometry_msgs.msg import Point
@@ -9,11 +11,21 @@ from ..description import JointDescription as AbstractJointDescription, LinkDesc
     ObjectDescription as AbstractObjectDescription
 
 
+class NamedBoxVisualShape(BoxVisualShape):
+    def __init__(self, name: str, color: Color, visual_frame_position: List[float], half_extents: List[float]):
+        super().__init__(color, visual_frame_position, half_extents)
+        self._name: str = name
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+
 class LinkDescription(AbstractLinkDescription):
 
-    def __init__(self, name: str, visual_frame_position: List[float], half_extents: List[float], color: Color = Color()):
-        self.parsed_description: BoxVisualShape = BoxVisualShape(color, visual_frame_position, half_extents)
-        self._name: str = name
+    def __init__(self, name: str, visual_frame_position: List[float], half_extents: List[float],
+                 color: Color = Color()):
+        super().__init__(NamedBoxVisualShape(name, color, visual_frame_position, half_extents))
 
     @property
     def geometry(self) -> Union[VisualShape, None]:
@@ -25,7 +37,7 @@ class LinkDescription(AbstractLinkDescription):
 
     @property
     def name(self) -> str:
-        return self._name
+        return self.parsed_description.name
 
     @property
     def color(self) -> Color:
@@ -33,6 +45,14 @@ class LinkDescription(AbstractLinkDescription):
 
 
 class JointDescription(AbstractJointDescription):
+
+    @property
+    def parent(self) -> str:
+        raise NotImplementedError
+
+    @property
+    def child(self) -> str:
+        raise NotImplementedError
 
     @property
     def type(self) -> JointType:
@@ -93,16 +113,38 @@ class ObjectDescription(AbstractObjectDescription):
         ...
 
     @classmethod
-    def generate_from_mesh_file(cls, path: str, name: str) -> str:
+    def generate_from_mesh_file(cls, path: str, name: str, save_path: str) -> str:
         raise NotImplementedError
 
     @classmethod
-    def generate_from_description_file(cls, path: str) -> str:
+    def generate_from_description_file(cls, path: str, save_path: str, make_mesh_paths_absolute: bool = True) -> str:
         raise NotImplementedError
 
     @classmethod
-    def generate_from_parameter_server(cls, name: str) -> str:
+    def generate_from_parameter_server(cls, name: str, save_path: str) -> str:
         raise NotImplementedError
+
+    @property
+    def parent_map(self) -> Dict[str, Tuple[str, str]]:
+        return {}
+
+    @property
+    def link_map(self) -> Dict[str, LinkDescription]:
+        return {self._links[0].name: self._links[0]}
+
+    @property
+    def joint_map(self) -> Dict[str, JointDescription]:
+        return {}
+
+    @property
+    def child_map(self) -> Dict[str, List[Tuple[str, str]]]:
+        return {}
+
+    def add_joint(self, name: str, child: str, joint_type: JointType,
+                  axis: Point, parent: Optional[str] = None, origin: Optional[Pose] = None,
+                  lower_limit: Optional[float] = None, upper_limit: Optional[float] = None,
+                  is_virtual: Optional[bool] = False) -> None:
+        ...
 
     @property
     def shape_data(self) -> List[float]:
@@ -130,7 +172,8 @@ class ObjectDescription(AbstractObjectDescription):
     def get_root(self) -> str:
         return self._links[0].name
 
-    def get_chain(self, start_link_name: str, end_link_name: str) -> List[str]:
+    def get_chain(self, start_link_name: str, end_link_name: str, joints: Optional[bool] = True,
+                  links: Optional[bool] = True, fixed: Optional[bool] = True) -> List[str]:
         raise NotImplementedError("Do Not Do This on generic objects as they have no chains")
 
     @staticmethod

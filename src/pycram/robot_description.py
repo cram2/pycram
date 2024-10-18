@@ -1,12 +1,13 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
-
-import rospy
 from typing_extensions import List, Dict, Union, Optional
-from urdf_parser_py.urdf import URDF
 
+from .datastructures.dataclasses import VirtualMobileBaseJoints
+from .datastructures.enums import Arms, Grasp, GripperState, GripperType, JointType
+from .object_descriptors.urdf import ObjectDescription as URDFObject
+from .ros.logging import logerr
 from .utils import suppress_stdout_stderr
-from .datastructures.enums import Arms, Grasp, GripperState, GripperType
+from .helper import parse_mjcf_actuators
 
 
 class RobotDescriptionManager:
@@ -42,7 +43,12 @@ class RobotDescriptionManager:
             RobotDescription.current_robot_description = self.descriptions[name]
             return self.descriptions[name]
         else:
-            rospy.logerr(f"Robot description {name} not found")
+            for key in self.descriptions.keys():
+                if key in name.lower():
+                    RobotDescription.current_robot_description = self.descriptions[key]
+                    return self.descriptions[key]
+            else:
+                logerr(f"Robot description {name} not found")
 
     def register_description(self, description: RobotDescription):
         """
@@ -81,7 +87,7 @@ class RobotDescription:
     """
     Torso joint of the robot
     """
-    urdf_object: URDF
+    urdf_object: URDFObject
     """
     Parsed URDF of the robot
     """
@@ -105,8 +111,14 @@ class RobotDescription:
     """
     All joints defined in the URDF, by default fixed joints are not included
     """
+    virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = None
+    """
+    Virtual mobile base joint names for mobile robots, these joints are not part of the URDF, however they are used to
+     move the robot in the simulation (e.g. set_pose for the robot would actually move these joints)
+    """
 
-    def __init__(self, name: str, base_link: str, torso_link: str, torso_joint: str, urdf_path: str):
+    def __init__(self, name: str, base_link: str, torso_link: str, torso_joint: str, urdf_path: str,
+                 virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = None, mjcf_path: Optional[str] = None):
         """
         Initialize the RobotDescription. The URDF is loaded from the given path and used as basis for the kinematic
         chains.
@@ -116,6 +128,8 @@ class RobotDescription:
         :param torso_link: Torso link of the robot
         :param torso_joint: Torso joint of the robot, this is the joint that moves the torso upwards if there is one
         :param urdf_path: Path to the URDF file of the robot
+        :param virtual_mobile_base_joints: Virtual mobile base joint names for mobile robots
+        :param mjcf_path: Path to the MJCF file of the robot
         """
         self.name = name
         self.base_link = base_link
@@ -123,12 +137,35 @@ class RobotDescription:
         self.torso_joint = torso_joint
         with suppress_stdout_stderr():
             # Since parsing URDF causes a lot of warning messages which can't be deactivated, we suppress them
-            self.urdf_object = URDF.from_xml_file(urdf_path)
+            self.urdf_object = URDFObject(urdf_path)
+        self.joint_types = {joint.name: joint.type for joint in self.urdf_object.joints}
+        self.joint_actuators: Optional[Dict] = parse_mjcf_actuators(mjcf_path) if mjcf_path is not None else None
         self.kinematic_chains: Dict[str, KinematicChainDescription] = {}
         self.cameras: Dict[str, CameraDescription] = {}
         self.grasps: Dict[Grasp, List[float]] = {}
         self.links: List[str] = [l.name for l in self.urdf_object.links]
         self.joints: List[str] = [j.name for j in self.urdf_object.joints]
+        self.virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = virtual_mobile_base_joints
+
+    @property
+    def has_actuators(self):
+        """
+        Property to check if the robot has actuators defined in the MJCF file.
+
+        :return: True if the robot has actuators, False otherwise
+        """
+        return self.joint_actuators is not None
+
+    def get_actuator_for_joint(self, joint: str) -> Optional[str]:
+        """
+        Get the actuator name for a given joint.
+
+        :param joint: Name of the joint
+        :return: Name of the actuator
+        """
+        if self.has_actuators:
+            return self.joint_actuators.get(joint)
+        return None
 
     def add_kinematic_chain_description(self, chain: KinematicChainDescription):
         """
@@ -200,7 +237,7 @@ class RobotDescription:
 
     def get_manipulator_chains(self) -> List[KinematicChainDescription]:
         """
-        Returns a list of all manipulator chains of the robot which posses an end effector.
+        Get a list of all manipulator chains of the robot which posses an end effector.
 
         :return: A list of KinematicChainDescription objects
         """
@@ -210,7 +247,7 @@ class RobotDescription:
                 result.append(chain)
         return result
 
-    def get_camera_frame(self) -> str:
+    def get_camera_link(self) -> str:
         """
         Quick method to get the name of a link of a camera. Uses the first camera in the list of cameras.
 
@@ -218,9 +255,17 @@ class RobotDescription:
         """
         return self.cameras[list(self.cameras.keys())[0]].link_name
 
+    def get_camera_frame(self) -> str:
+        """
+        Quick method to get the name of a link of a camera. Uses the first camera in the list of cameras.
+
+        :return: A name of the link of a camera
+        """
+        return f"{self.name}/{self.cameras[list(self.cameras.keys())[0]].link_name}"
+
     def get_default_camera(self) -> CameraDescription:
         """
-        Returns the first camera in the list of cameras.
+        Get the first camera in the list of cameras.
 
         :return: A CameraDescription object
         """
@@ -228,7 +273,7 @@ class RobotDescription:
 
     def get_static_joint_chain(self, kinematic_chain_name: str, configuration_name: str):
         """
-        Returns the static joint states of a kinematic chain for a specific configuration. When trying to access one of
+        Get the static joint states of a kinematic chain for a specific configuration. When trying to access one of
         the robot arms the function `:func: get_arm_chain` should be used.
 
         :param kinematic_chain_name:
@@ -246,7 +291,7 @@ class RobotDescription:
 
     def get_parent(self, name: str) -> str:
         """
-        Returns the parent of a link or joint in the URDF. Always returns the imeadiate parent, for a link this is a joint
+        Get the parent of a link or joint in the URDF. Always returns the imeadiate parent, for a link this is a joint
         and vice versa.
 
         :param name: Name of the link or joint in the URDF
@@ -266,7 +311,7 @@ class RobotDescription:
 
     def get_child(self, name: str, return_multiple_children: bool = False) -> Union[str, List[str]]:
         """
-        Returns the child of a link or joint in the URDF. Always returns the immediate child, for a link this is a joint
+        Get the child of a link or joint in the URDF. Always returns the immediate child, for a link this is a joint
         and vice versa. Since a link can have multiple children, the return_multiple_children parameter can be set to
         True to get a list of all children.
 
@@ -293,9 +338,19 @@ class RobotDescription:
             child_link = self.urdf_object.joint_map[name].child
             return child_link
 
+    def get_arm_tool_frame(self, arm: Arms) -> str:
+        """
+        Get the name of the tool frame of a specific arm.
+
+        :param arm: Arm for which the tool frame should be returned
+        :return: The name of the link of the tool frame in the URDF.
+        """
+        chain = self.get_arm_chain(arm)
+        return chain.get_tool_frame()
+
     def get_arm_chain(self, arm: Arms) -> Union[KinematicChainDescription, List[KinematicChainDescription]]:
         """
-        Returns the kinematic chain of a specific arm. If the arm is set to BOTH, all kinematic chains are returned.
+        Get the kinematic chain of a specific arm. If the arm is set to BOTH, all kinematic chains are returned.
 
         :param arm: Arm for which the chain should be returned
         :return: KinematicChainDescription object of the arm
@@ -329,7 +384,7 @@ class KinematicChainDescription:
     """
     Last link of the chain
     """
-    urdf_object: URDF
+    urdf_object: URDFObject
     """
     Parsed URDF of the robot
     """
@@ -358,7 +413,7 @@ class KinematicChainDescription:
     Dictionary of static joint states for the chain
     """
 
-    def __init__(self, name: str, start_link: str, end_link: str, urdf_object: URDF, arm_type: Arms = None,
+    def __init__(self, name: str, start_link: str, end_link: str, urdf_object: URDFObject, arm_type: Arms = None,
                  include_fixed_joints=False):
         """
         Initialize the KinematicChainDescription object.
@@ -373,7 +428,7 @@ class KinematicChainDescription:
         self.name: str = name
         self.start_link: str = start_link
         self.end_link: str = end_link
-        self.urdf_object: URDF = urdf_object
+        self.urdf_object: URDFObject = urdf_object
         self.include_fixed_joints: bool = include_fixed_joints
         self.link_names: List[str] = []
         self.joint_names: List[str] = []
@@ -395,11 +450,12 @@ class KinematicChainDescription:
         Initializes the joints of the chain by getting the chain from the URDF object.
         """
         joints = self.urdf_object.get_chain(self.start_link, self.end_link, links=False)
-        self.joint_names = list(filter(lambda j: self.urdf_object.joint_map[j].type != "fixed" or self.include_fixed_joints, joints))
+        self.joint_names = list(filter(lambda j: self.urdf_object.joint_map[j].type != JointType.FIXED
+                                                 or self.include_fixed_joints, joints))
 
     def get_joints(self) -> List[str]:
         """
-        Returns a list of all joints of the chain.
+        Get a list of all joints of the chain.
 
         :return: List of joint names
         """
@@ -407,9 +463,7 @@ class KinematicChainDescription:
 
     def get_links(self) -> List[str]:
         """
-        Returns a list of all links of the chain.
-
-        :return: List of link names
+        :return: A list of all links of the chain.
         """
         return self.link_names
 
@@ -445,7 +499,7 @@ class KinematicChainDescription:
 
     def get_static_joint_states(self, name: str) -> Dict[str, float]:
         """
-        Returns the dictionary of static joint states for a given name of the static joint states.
+        Get the dictionary of static joint states for a given name of the static joint states.
 
         :param name: Name of the static joint states
         :return: Dictionary of joint names and their values
@@ -453,11 +507,11 @@ class KinematicChainDescription:
         try:
             return self.static_joint_states[name]
         except KeyError:
-            rospy.logerr(f"Static joint states for chain {name} not found")
+            logerr(f"Static joint states for chain {name} not found")
 
     def get_tool_frame(self) -> str:
         """
-        Returns the name of the tool frame of the end effector of this chain, if it has an end effector.
+        Get the name of the tool frame of the end effector of this chain, if it has an end effector.
 
         :return: The name of the link of the tool frame in the URDF.
         """
@@ -468,7 +522,7 @@ class KinematicChainDescription:
 
     def get_static_gripper_state(self, state: GripperState) -> Dict[str, float]:
         """
-        Returns the static joint states for the gripper of the chain.
+        Get the static joint states for the gripper of the chain.
 
         :param state: Name of the static joint states
         :return: Dictionary of joint names and their values
@@ -552,7 +606,7 @@ class EndEffectorDescription:
     """
     Name of the tool frame link in the URDf
     """
-    urdf_object: URDF
+    urdf_object: URDFObject
     """
     Parsed URDF of the robot
     """
@@ -577,7 +631,7 @@ class EndEffectorDescription:
     Distance the gripper can open, in cm
     """
 
-    def __init__(self, name: str, start_link: str, tool_frame: str, urdf_object: URDF):
+    def __init__(self, name: str, start_link: str, tool_frame: str, urdf_object: URDFObject):
         """
         Initialize the EndEffectorDescription object.
 
@@ -589,7 +643,7 @@ class EndEffectorDescription:
         self.name: str = name
         self.start_link: str = start_link
         self.tool_frame: str = tool_frame
-        self.urdf_object: URDF = urdf_object
+        self.urdf_object: URDFObject = urdf_object
         self.link_names: List[str] = []
         self.joint_names: List[str] = []
         self.static_joint_states: Dict[GripperState, Dict[str, float]] = {}
