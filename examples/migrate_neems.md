@@ -23,7 +23,7 @@ connect your pycram process to it.
 
 After you recorded your data locally you can migrate the data using the `migrate_neems` function.
 
-First, lets create an in memory database engine called `source_engine` where we record our current process.
+First, lets create an in-memory database engine called `source_engine` where we record our current process.
 
 ```python
 import sqlalchemy.orm

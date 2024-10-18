@@ -180,7 +180,7 @@ with simulated_robot:
 ## Combination of Expressions
 
 You can also combine different language expressions to further structure your plans. If you combine sequential and
-parallel expression please keep in mind that sequential expressions bind stringer than parallel ones. For example:
+parallel expression please keep in mind that sequential expressions bind stronger than parallel ones. For example:
 
 ```
 navigate | park + move_torso
@@ -254,7 +254,7 @@ We will see how exceptions are handled at a simple example.
 from pycram.designators.action_designator import *
 from pycram.process_module import simulated_robot
 from pycram.language import Code
-from pycram.plan_failures import PlanFailure
+from pycram.failures import PlanFailure
 
 
 def code_test():

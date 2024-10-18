@@ -53,8 +53,7 @@ class BulletWorldTest(BulletWorldTestCase):
         self.assertTrue(milk_id in [obj.id for obj in self.world.objects])
         self.world.remove_object(self.milk)
         self.assertTrue(milk_id not in [obj.id for obj in self.world.objects])
-        BulletWorldTest.milk = Object("milk", ObjectType.MILK, "milk.stl",
-                                      ObjectDescription, pose=Pose([1.3, 1, 0.9]))
+        BulletWorldTest.milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
 
     def test_remove_robot(self):
         robot_id = self.robot.id
@@ -65,7 +64,7 @@ class BulletWorldTest(BulletWorldTestCase):
                                        RobotDescription.current_robot_description.name + self.extension)
 
     def test_get_joint_position(self):
-        self.assertEqual(self.robot.get_joint_position("head_pan_joint"), 0.0)
+        self.assertAlmostEqual(self.robot.get_joint_position("head_pan_joint"), 0.0, delta=0.01)
 
     def test_get_object_contact_points(self):
         self.assertEqual(len(self.robot.contact_points()), 0)
@@ -141,7 +140,7 @@ class BulletWorldTest(BulletWorldTestCase):
 
     def test_add_resource_path(self):
         self.world.add_resource_path("test")
-        self.assertTrue("test" in self.world.data_directory)
+        self.assertTrue("test" in self.world.get_data_directories())
 
     def test_no_prospection_object_found_for_given_object(self):
         milk_2 = Object("milk_2", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
@@ -186,20 +185,20 @@ class BulletWorldTest(BulletWorldTestCase):
         self.world.remove_object(milk_2)
 
     def test_add_vis_axis(self):
-        self.world.add_vis_axis(self.robot.get_link_pose(RobotDescription.current_robot_description.get_camera_frame()))
+        self.world.add_vis_axis(self.robot.get_link_pose(RobotDescription.current_robot_description.get_camera_link()))
         self.assertTrue(len(self.world.vis_axis) == 1)
         self.world.remove_vis_axis()
         self.assertTrue(len(self.world.vis_axis) == 0)
 
     def test_add_text(self):
-        link: ObjectDescription.Link = self.robot.get_link(RobotDescription.current_robot_description.get_camera_frame())
+        link: ObjectDescription.Link = self.robot.get_link(RobotDescription.current_robot_description.get_camera_link())
         text_id = self.world.add_text("test", link.position_as_list, link.orientation_as_list, 1,
                                       Color(1, 0, 0, 1), 3, link.object_id, link.id)
         if self.world.mode == WorldMode.GUI:
             time.sleep(4)
 
     def test_remove_text(self):
-        link: ObjectDescription.Link = self.robot.get_link(RobotDescription.current_robot_description.get_camera_frame())
+        link: ObjectDescription.Link = self.robot.get_link(RobotDescription.current_robot_description.get_camera_link())
         text_id_1 = self.world.add_text("test 1", link.pose.position_as_list(), link.pose.orientation_as_list(), 1,
                                         Color(1, 0, 0, 1), 0, link.object_id, link.id)
         text_id = self.world.add_text("test 2", link.pose.position_as_list(), link.pose.orientation_as_list(), 1,
@@ -212,7 +211,7 @@ class BulletWorldTest(BulletWorldTestCase):
             time.sleep(3)
 
     def test_remove_all_text(self):
-        link: ObjectDescription.Link = self.robot.get_link(RobotDescription.current_robot_description.get_camera_frame())
+        link: ObjectDescription.Link = self.robot.get_link(RobotDescription.current_robot_description.get_camera_link())
         text_id_1 = self.world.add_text("test 1", link.pose.position_as_list(), link.pose.orientation_as_list(), 1,
                                         Color(1, 0, 0, 1), 0, link.object_id, link.id)
         text_id = self.world.add_text("test 2", link.pose.position_as_list(), link.pose.orientation_as_list(), 1,

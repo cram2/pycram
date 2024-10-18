@@ -4,17 +4,16 @@ import inspect
 import itertools
 import logging
 import os.path
+import sqlite3
 
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Type, Tuple, Union
 
-import owlready2
-import rospy
-
 from owlready2 import (Namespace, Ontology, World as OntologyWorld, Thing, EntityClass, Imp,
                        Property, ObjectProperty, OwlReadyError, types,
                        onto_path, default_world, get_namespace, get_ontology, destroy_entity,
-                       sync_reasoner_pellet, sync_reasoner_hermit)
+                       sync_reasoner_pellet, sync_reasoner_hermit,
+                       OwlReadyOntologyParsingError)
 from owlready2.class_construct import GeneralClassAxiom
 
 from ..datastructures.enums import ObjectType
@@ -22,7 +21,9 @@ from ..helper import Singleton
 from ..designator import DesignatorDescription, ObjectDesignatorDescription
 
 from ..ontology.ontology_common import (OntologyConceptHolderStore, OntologyConceptHolder,
-                                        ONTOLOGY_SQL_BACKEND_FILE_EXTENSION)
+                                        ONTOLOGY_SQL_BACKEND_FILE_EXTENSION,
+                                        ONTOLOGY_SQL_IN_MEMORY_BACKEND)
+from ..ros.logging import loginfo, logerr, logwarn
 
 SOMA_HOME_ONTOLOGY_IRI = "http://www.ease-crc.org/ont/SOMA-HOME.owl"
 SOMA_ONTOLOGY_IRI = "http://www.ease-crc.org/ont/SOMA.owl"
@@ -35,12 +36,14 @@ class OntologyManager(object, metaclass=Singleton):
     Singleton class as the adapter accessing data of an OWL ontology, largely based on owlready2.
     """
 
-    def __init__(self, main_ontology_iri: Optional[str] = None, ontology_search_path: Optional[str] = None,
+    def __init__(self, main_ontology_iri: Optional[str] = None, main_sql_backend_filename: Optional[str] = None,
+                 ontology_search_path: Optional[str] = None,
                  use_global_default_world: bool = True):
         """
         Create the singleton object of OntologyManager class
 
         :param main_ontology_iri: Ontology IRI (Internationalized Resource Identifier), either a URL to a remote OWL file or the full name path of a local one
+        :param main_sql_backend_filename: a full file path (no need to already exist) being used as SQL backend for the ontology world. If None, in-memory is used instead
         :param ontology_search_path: directory path from which a possibly existing ontology is searched. This is appended to `owlready2.onto_path`, a global variable containing a list of directories for searching local copies of ontologies (similarly to python `sys.path` for modules/packages). If not specified, the path is "$HOME/ontologies"
         :param use_global_default_world: whether or not using the owlready2-provided global default persistent world
         """
@@ -74,22 +77,14 @@ class OntologyManager(object, metaclass=Singleton):
         #: Namespace of the main ontology
         self.main_ontology_namespace: Optional[Namespace] = None
 
-        # Create the main ontology world holding triples, of which a sqlite3 file path, of same name with `main_ontology` &
-        # at the same folder with `main_ontology_iri` (if it is a local abosulte path), is automatically registered as cache of the world
-        self.main_ontology_world = self.create_ontology_world(
-            sql_backend_filename=os.path.join(self.get_main_ontology_dir(),
-                                              f"{Path(self.main_ontology_iri).stem}{ONTOLOGY_SQL_BACKEND_FILE_EXTENSION}"),
-            use_global_default_world=use_global_default_world)
+        #: SQL backend for :attr:`main_ontology_world`, being either "memory" or a full file path (no need to already exist)
+        self.main_ontology_sql_backend = main_sql_backend_filename if main_sql_backend_filename else ONTOLOGY_SQL_IN_MEMORY_BACKEND
 
-        # Load ontologies from `main_ontology_iri` to `main_ontology_world`
-        # If `main_ontology_iri` is a remote URL, Owlready2 first searches for a local copy of the OWL file (from `onto_path`),
-        # if not found, tries to download it from the Internet.
-        ontology_info = self.load_ontology(self.main_ontology_iri)
-        if ontology_info:
-            self.main_ontology, self.main_ontology_namespace = ontology_info
-            if self.main_ontology and self.main_ontology.loaded:
-                self.soma = self.ontologies.get(SOMA_ONTOLOGY_NAMESPACE)
-                self.dul = self.ontologies.get(DUL_ONTOLOGY_NAMESPACE)
+        # Create the main ontology world holding triples
+        self.create_main_ontology_world(use_global_default_world=use_global_default_world)
+
+        # Create the main ontology & its namespace, fetching :attr:`soma`, :attr:`dul` if loading from SOMA ontology
+        self.create_main_ontology()
 
     @staticmethod
     def print_ontology_class(ontology_class: Type[Thing]):
@@ -100,20 +95,20 @@ class OntologyManager(object, metaclass=Singleton):
         """
         if ontology_class is None:
             return
-        rospy.loginfo(f"{ontology_class} {type(ontology_class)}")
-        rospy.loginfo(f"Defined class: {ontology_class.get_defined_class()}")
-        rospy.loginfo(f"Super classes: {ontology_class.is_a}")
-        rospy.loginfo(f"Equivalent to: {EntityClass.get_equivalent_to(ontology_class)}")
-        rospy.loginfo(f"Indirectly equivalent to: {ontology_class.get_indirect_equivalent_to()}")
-        rospy.loginfo(f"Ancestors: {list(ontology_class.ancestors())}")
-        rospy.loginfo(f"Subclasses: {list(ontology_class.subclasses())}")
-        rospy.loginfo(f"Disjoint unions: {ontology_class.get_disjoint_unions()}")
-        rospy.loginfo(f"Properties: {list(ontology_class.get_class_properties())}")
-        rospy.loginfo(f"Indirect Properties: {list(ontology_class.INDIRECT_get_class_properties())}")
-        rospy.loginfo(f"Instances: {list(ontology_class.instances())}")
-        rospy.loginfo(f"Direct Instances: {list(ontology_class.direct_instances())}")
-        rospy.loginfo(f"Inverse Restrictions: {list(ontology_class.inverse_restrictions())}")
-        rospy.loginfo("-------------------")
+        loginfo(f"{ontology_class} {type(ontology_class)}")
+        loginfo(f"Defined class: {ontology_class.get_defined_class()}")
+        loginfo(f"Super classes: {ontology_class.is_a}")
+        loginfo(f"Equivalent to: {EntityClass.get_equivalent_to(ontology_class)}")
+        loginfo(f"Indirectly equivalent to: {ontology_class.get_indirect_equivalent_to()}")
+        loginfo(f"Ancestors: {list(ontology_class.ancestors())}")
+        loginfo(f"Subclasses: {list(ontology_class.subclasses())}")
+        loginfo(f"Disjoint unions: {ontology_class.get_disjoint_unions()}")
+        loginfo(f"Properties: {list(ontology_class.get_class_properties())}")
+        loginfo(f"Indirect Properties: {list(ontology_class.INDIRECT_get_class_properties())}")
+        loginfo(f"Instances: {list(ontology_class.instances())}")
+        loginfo(f"Direct Instances: {list(ontology_class.direct_instances())}")
+        loginfo(f"Inverse Restrictions: {list(ontology_class.inverse_restrictions())}")
+        loginfo("-------------------")
 
     @staticmethod
     def print_ontology_property(ontology_property: Property):
@@ -125,17 +120,17 @@ class OntologyManager(object, metaclass=Singleton):
         if ontology_property is None:
             return
         property_class = type(ontology_property)
-        rospy.loginfo(f"{ontology_property} {property_class}")
-        rospy.loginfo(f"Relations: {list(ontology_property.get_relations())}")
-        rospy.loginfo(f"Domain: {ontology_property.get_domain()}")
-        rospy.loginfo(f"Range: {ontology_property.get_range()}")
+        loginfo(f"{ontology_property} {property_class}")
+        loginfo(f"Relations: {list(ontology_property.get_relations())}")
+        loginfo(f"Domain: {ontology_property.get_domain()}")
+        loginfo(f"Range: {ontology_property.get_range()}")
         if hasattr(property_class, "_equivalent_to"):
-            rospy.loginfo(f"Equivalent classes: {EntityClass.get_equivalent_to(property_class)}")
+            loginfo(f"Equivalent classes: {EntityClass.get_equivalent_to(property_class)}")
         if hasattr(property_class, "_indirect"):
-            rospy.loginfo(f"Indirectly equivalent classes: {EntityClass.get_indirect_equivalent_to(property_class)}")
-        rospy.loginfo(f"Property chain: {ontology_property.get_property_chain()}")
-        rospy.loginfo(f"Class property type: {ontology_property.get_class_property_type()}")
-        rospy.loginfo("-------------------")
+            loginfo(f"Indirectly equivalent classes: {EntityClass.get_indirect_equivalent_to(property_class)}")
+        loginfo(f"Property chain: {ontology_property.get_property_chain()}")
+        loginfo(f"Class property type: {ontology_property.get_class_property_type()}")
+        loginfo("-------------------")
 
     @staticmethod
     def get_default_ontology_search_path() -> Optional[str]:
@@ -147,7 +142,7 @@ class OntologyManager(object, metaclass=Singleton):
         if onto_path:
             return onto_path[0]
         else:
-            rospy.logerr("No ontology search path has been configured!")
+            logerr("No ontology search path has been configured!")
             return None
 
     def get_main_ontology_dir(self) -> Optional[str]:
@@ -160,34 +155,87 @@ class OntologyManager(object, metaclass=Singleton):
         return os.path.dirname(self.main_ontology_iri) if os.path.isabs(
             self.main_ontology_iri) else self.get_default_ontology_search_path()
 
+    def is_main_ontology_sql_backend_in_memory(self) -> bool:
+        """
+        Whether the main ontology's SQL backend is in-memory
+
+        :return: true if the main ontology's SQL backend is in-memory
+        """
+        return self.main_ontology_sql_backend == ONTOLOGY_SQL_IN_MEMORY_BACKEND
+
+    def create_main_ontology_world(self, use_global_default_world: bool = True) -> None:
+        """
+        Create the main ontology world, either reusing the owlready2-provided global default ontology world or create a new one
+        A backend sqlite3 file of same name with `main_ontology` is also created at the same folder with :attr:`main_ontology_iri`
+        (if it is a local absolute path). The file is automatically registered as cache for the main ontology world.
+
+        :param use_global_default_world: whether or not using the owlready2-provided global default persistent world
+        :param sql_backend_filename: a full file path (no need to already exist) being used as SQL backend for the ontology world. If None, memory is used instead
+        """
+        self.main_ontology_world = self.create_ontology_world(
+            sql_backend_filename=self.main_ontology_sql_backend,
+            use_global_default_world=use_global_default_world)
+
     @staticmethod
     def create_ontology_world(use_global_default_world: bool = False,
                               sql_backend_filename: Optional[str] = None) -> OntologyWorld:
         """
-        Either reuse the owlready2-provided global default ontology world or create a new one
+        Either reuse the owlready2-provided global default ontology world or create a new one.
 
         :param use_global_default_world: whether or not using the owlready2-provided global default persistent world
-        :param sql_backend_filename: a full file path (no need to already exist) being used as SQL backend for the ontology world. If None, memory is used instead
+        :param sql_backend_filename: an absolute file path (no need to already exist) being used as SQL backend for the ontology world. If it is None or non-absolute path, in-memory is used instead
         :return: owlready2-provided global default ontology world or a newly created ontology world
         """
         world = default_world
-        sql_backend_path_valid = sql_backend_filename and os.path.isabs(sql_backend_filename)
-        sql_backend_name = sql_backend_filename if sql_backend_path_valid else "memory"
-        if use_global_default_world:
-            # Reuse default world
-            if sql_backend_path_valid:
-                world.set_backend(filename=sql_backend_filename, exclusive=False, enable_thread_parallelism=True)
+        sql_backend_path_absolute = (sql_backend_filename and os.path.isabs(sql_backend_filename))
+        if sql_backend_filename and (sql_backend_filename != ONTOLOGY_SQL_IN_MEMORY_BACKEND):
+            if not sql_backend_path_absolute:
+                logerr(f"For ontology world accessing, either f{ONTOLOGY_SQL_IN_MEMORY_BACKEND}"
+                              f"or an absolute path to its SQL file backend is expected: {sql_backend_filename}")
+                return default_world
+            elif not sql_backend_filename.endswith(ONTOLOGY_SQL_BACKEND_FILE_EXTENSION):
+                logerr(
+                    f"Ontology world SQL backend file path, {sql_backend_filename},"
+                    f"is expected to be of extension {ONTOLOGY_SQL_BACKEND_FILE_EXTENSION}!")
+                return default_world
+
+        sql_backend_path_valid = sql_backend_path_absolute
+        sql_backend_name = sql_backend_filename if sql_backend_path_valid else ONTOLOGY_SQL_IN_MEMORY_BACKEND
+        try:
+            if use_global_default_world:
+                # Reuse default world
+                if sql_backend_path_valid:
+                    world.set_backend(filename=sql_backend_filename, exclusive=False, enable_thread_parallelism=True)
+                else:
+                    world.set_backend(exclusive=False, enable_thread_parallelism=True)
+                loginfo(f"Using global default ontology world with SQL backend: {sql_backend_name}")
             else:
-                world.set_backend(exclusive=False, enable_thread_parallelism=True)
-            rospy.loginfo(f"Using global default ontology world with SQL backend: {sql_backend_name}")
-        else:
-            # Create a new world with parallelized file parsing enabled
-            if sql_backend_path_valid:
-                world = OntologyWorld(filename=sql_backend_filename, exclusive=False, enable_thread_parallelism=True)
-            else:
-                world = OntologyWorld(exclusive=False, enable_thread_parallelism=True)
-            rospy.loginfo(f"Created a new ontology world with SQL backend: {sql_backend_name}")
+                # Create a new world with parallelized file parsing enabled
+                if sql_backend_path_valid:
+                    world = OntologyWorld(filename=sql_backend_filename, exclusive=False, enable_thread_parallelism=True)
+                else:
+                    world = OntologyWorld(exclusive=False, enable_thread_parallelism=True)
+                loginfo(f"Created a new ontology world with SQL backend: {sql_backend_name}")
+        except sqlite3.Error as e:
+            logerr(f"Failed accessing the SQL backend of ontology world: {sql_backend_name}",
+                          e.sqlite_errorcode, e.sqlite_errorname)
         return world
+
+    def create_main_ontology(self) -> bool:
+        """
+        Load ontologies from :attr:`main_ontology_iri` to :attr:`main_ontology_world`
+        If `main_ontology_iri` is a remote URL, Owlready2 first searches for a local copy of the OWL file (from `onto_path`),
+        if not found, tries to download it from the Internet.
+
+        :return: True if loading succeeds
+        """
+        ontology_info = self.load_ontology(self.main_ontology_iri)
+        if ontology_info:
+            self.main_ontology, self.main_ontology_namespace = ontology_info
+            if self.main_ontology and self.main_ontology.loaded:
+                self.soma = self.ontologies.get(SOMA_ONTOLOGY_NAMESPACE)
+                self.dul = self.ontologies.get(DUL_ONTOLOGY_NAMESPACE)
+        return ontology_info is not None
 
     def load_ontology(self, ontology_iri: str) -> Optional[Tuple[Ontology, Namespace]]:
         """
@@ -197,34 +245,49 @@ class OntologyManager(object, metaclass=Singleton):
         :return: A tuple including an ontology instance & its namespace
         """
         if not ontology_iri:
-            rospy.logerr("Ontology IRI is empty")
+            logerr("Ontology IRI is empty")
             return None
 
-        # If `ontology_iri` is a local path -> create an empty ontology file if not existing
-        if not (ontology_iri.startswith("http:") or ontology_iri.startswith("https:")) \
-                and not Path(ontology_iri).exists():
-            with open(ontology_iri, 'w'):
+        is_local_ontology_iri = not (ontology_iri.startswith("http:") or ontology_iri.startswith("https:"))
+
+        # If `ontology_iri` is a local path
+        if is_local_ontology_iri and not Path(ontology_iri).exists():
+            # -> Create an empty ontology file if not existing
+            ontology_path = ontology_iri if os.path.isabs(ontology_iri) else (
+                os.path.join(self.get_main_ontology_dir(), ontology_iri))
+            with open(ontology_path, 'w'):
                 pass
 
         # Load ontology from `ontology_iri`
-        if self.main_ontology_world:
-            ontology = self.main_ontology_world.get_ontology(ontology_iri).load(reload_if_newer=True)
-        else:
-            ontology = get_ontology(ontology_iri).load(reload_if_newer=True)
+        ontology = None
+        try:
+            if self.main_ontology_world:
+                ontology = self.main_ontology_world.get_ontology(ontology_iri).load(reload_if_newer=True)
+            else:
+                ontology = get_ontology(ontology_iri).load(reload_if_newer=True)
+        except OwlReadyOntologyParsingError as error:
+            logwarn(error)
+            if is_local_ontology_iri:
+                logerr(f"Main ontology failed being loaded from {ontology_iri}")
+            else:
+                logwarn(f"Main ontology failed being downloaded from the remote {ontology_iri}")
+            return None
+
+        # Browse loaded `ontology`, fetching sub-ontologies
         ontology_namespace = get_namespace(ontology_iri)
-        if ontology.loaded:
-            rospy.loginfo(
+        if ontology and ontology.loaded:
+            loginfo(
                 f'Ontology [{ontology.base_iri}]\'s name: {ontology.name} has been loaded')
-            rospy.loginfo(f'- main namespace: {ontology_namespace.name}')
-            rospy.loginfo(f'- loaded ontologies:')
+            loginfo(f'- main namespace: {ontology_namespace.name}')
+            loginfo(f'- loaded ontologies:')
 
             def fetch_ontology(ontology__):
                 self.ontologies[ontology__.name] = ontology__
-                rospy.loginfo(ontology__.base_iri)
+                loginfo(ontology__.base_iri)
 
             self.browse_ontologies(ontology, condition=None, func=lambda ontology__: fetch_ontology(ontology__))
         else:
-            rospy.logerr(f"Ontology [{ontology.base_iri}]\'s name: {ontology.name} failed being loaded")
+            logerr(f"Ontology [{ontology.base_iri}]\'s name: {ontology.name} failed being loaded")
         return ontology, ontology_namespace
 
     def initialized(self) -> bool:
@@ -246,10 +309,10 @@ class OntologyManager(object, metaclass=Singleton):
         :param func: a Callable specifying the operations to perform on all the loaded ontologies if condition is None, otherwise only the first ontology which meets the condition
         """
         if ontology is None:
-            rospy.logerr(f"Ontology {ontology=} is None!")
+            logerr(f"Ontology {ontology=} is None!")
             return
         elif not ontology.loaded:
-            rospy.logerr(f"Ontology {ontology} was not loaded!")
+            logerr(f"Ontology {ontology} was not loaded!")
             return
 
         will_do_func = func is not None
@@ -283,23 +346,23 @@ class OntologyManager(object, metaclass=Singleton):
             else f"{self.get_main_ontology_dir()}/{Path(self.main_ontology_iri).name}"
         save_to_same_file = is_current_ontology_local and (target_filename == current_ontology_filename)
         if save_to_same_file and not overwrite:
-            rospy.logerr(
+            logerr(
                 f"Ontologies cannot be saved to the originally loaded [{target_filename}] if not by overwriting")
             return False
         else:
             save_filename = target_filename if target_filename else current_ontology_filename
             self.main_ontology.save(save_filename)
             if save_to_same_file and overwrite:
-                rospy.logwarn(f"Main ontology {self.main_ontology.name} has been overwritten to {save_filename}")
+                logwarn(f"Main ontology {self.main_ontology.name} has been overwritten to {save_filename}")
             else:
-                rospy.loginfo(f"Main ontology {self.main_ontology.name} has been saved to {save_filename}")
+                loginfo(f"Main ontology {self.main_ontology.name} has been saved to {save_filename}")
 
             # Commit the whole graph data of the current ontology world, saving it into SQLite3, to be reused the next time
             # the ontologies are loaded
             main_ontology_sql_filename = self.main_ontology_world.filename
             self.main_ontology_world.save()
             if os.path.isfile(main_ontology_sql_filename):
-                rospy.loginfo(
+                loginfo(
                     f"Main ontology world for {self.main_ontology.name} has been cached and saved to SQL: {main_ontology_sql_filename}")
             #else: it could be using memory cache as SQL backend
             return True
@@ -322,7 +385,7 @@ class OntologyManager(object, metaclass=Singleton):
             return ontology_concept_class
 
         if getattr(ontology, class_name, None):
-            rospy.logerr(f"Ontology concept class {ontology.name}.{class_name} already exists")
+            logerr(f"Ontology concept class {ontology.name}.{class_name} already exists")
             return None
 
         with ontology:
@@ -348,7 +411,7 @@ class OntologyManager(object, metaclass=Singleton):
             else None
 
         if getattr(ontology, class_name, None):
-            rospy.logerr(f"Ontology property class {ontology.name}.{class_name} already exists")
+            logerr(f"Ontology property class {ontology.name}.{class_name} already exists")
             return None
 
         with ontology:
@@ -378,7 +441,7 @@ class OntologyManager(object, metaclass=Singleton):
                         return out_classes
 
         if not out_classes:
-            rospy.loginfo(f"No class with {kwargs} is found in the ontology {self.main_ontology}")
+            loginfo(f"No class with {kwargs} is found in the ontology {self.main_ontology}")
         return out_classes
 
     @staticmethod
@@ -499,7 +562,7 @@ class OntologyManager(object, metaclass=Singleton):
                                                                         ontology_subject_parent_class,
                                                                         ontology=ontology)
             if not ontology_subject_class:
-                rospy.logerr(f"{ontology.name}: Failed creating ontology subject class named {subject_class_name}")
+                logerr(f"{ontology.name}: Failed creating ontology subject class named {subject_class_name}")
                 return False
 
             # Object
@@ -512,7 +575,7 @@ class OntologyManager(object, metaclass=Singleton):
                 ontology_object_class = ontology_object_parent_class
 
             if not ontology_object_class:
-                rospy.logerr(f"{ontology.name}: Failed creating ontology object class named {object_class_name}")
+                logerr(f"{ontology.name}: Failed creating ontology object class named {object_class_name}")
                 return False
 
             # Predicate
@@ -520,7 +583,7 @@ class OntologyManager(object, metaclass=Singleton):
                                                                            ontology_property_parent_class,
                                                                            ontology=ontology)
             if not ontology_predicate_class:
-                rospy.logerr(f"{ontology.name}: Failed creating ontology predicate class named {predicate_class_name}")
+                logerr(f"{ontology.name}: Failed creating ontology predicate class named {predicate_class_name}")
                 return False
             ontology_predicate_class.domain = [ontology_subject_class]
             ontology_predicate_class.range = [ontology_object_class]
@@ -532,7 +595,7 @@ class OntologyManager(object, metaclass=Singleton):
                                                                                        ontology_inverse_property_parent_class,
                                                                                        ontology=ontology)
                 if not ontology_inverse_predicate_class:
-                    rospy.logerr(
+                    logerr(
                         f"{ontology.name}: Failed creating ontology inverse-predicate class named {inverse_predicate_class_name}")
                     return False
                 ontology_inverse_predicate_class.inverse_property = ontology_predicate_class
@@ -574,7 +637,7 @@ class OntologyManager(object, metaclass=Singleton):
         """
         ontology_concept_name = f'{object_name}_concept'
         if len(OntologyConceptHolderStore().get_designators_of_ontology_concept(ontology_concept_name)) > 0:
-            rospy.logerr(
+            logerr(
                 f"A designator named [{object_name}] is already created for ontology concept [{ontology_concept_name}]")
             return None
 
@@ -582,7 +645,7 @@ class OntologyManager(object, metaclass=Singleton):
         is_object_designator = issubclass(designator_class, ObjectDesignatorDescription)
         if is_object_designator:
             if not object_name:
-                rospy.logerr(
+                logerr(
                     f"An empty object name was given as creating its Object designator for ontology concept class [{ontology_concept_class.name}]")
                 return None
             designator = designator_class(names=[object_name])
@@ -635,7 +698,7 @@ class OntologyManager(object, metaclass=Singleton):
                         object_concepts_list.append(holder.ontology_concept)
                 return True
             else:
-                rospy.logerr(f"Ontology concept [{subject_concept.name}] has no predicate named [{predicate_name}]")
+                logerr(f"Ontology concept [{subject_concept.name}] has no predicate named [{predicate_name}]")
                 return False
 
     @staticmethod
@@ -778,7 +841,7 @@ class OntologyManager(object, metaclass=Singleton):
                 reasoner_name = "HermiT"
                 sync_reasoner_hermit(x=reasoning_world, infer_property_values=True)
         except OwlReadyError as error:
-            rospy.logerr(f"{reasoner_name} reasoning failed: {error}")
+            logerr(f"{reasoner_name} reasoning failed: {error}")
             return False
-        rospy.loginfo(f"{reasoner_name} reasoning finishes!")
+        loginfo(f"{reasoner_name} reasoning finishes!")
         return True

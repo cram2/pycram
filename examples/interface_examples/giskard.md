@@ -15,7 +15,7 @@ jupyter:
 # Giskard interface in PyCRAM
 
 This notebook should provide you with an example on how to use the Giskard interface. This includes how to use the
-interface, how it actually works and how to extend it.
+interface, how it actually works, and how to extend it.
 
 We start by installing and launching Giskard. For the installation please follow the
 instructions [here](https://github.com/SemRoCo/giskardpy).
@@ -67,7 +67,7 @@ in the BulletWorld with the pose and joint state of the real robot.
 You might need to change to topic names to fit the topic names as published by your robot.
 
 ```python
-from pycram.ros.robot_state_updater import RobotStateUpdater
+from pycram.ros_utils.robot_state_updater import RobotStateUpdater
 
 r = RobotStateUpdater("/tf", "/joint_states")
 ```

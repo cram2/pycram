@@ -1,8 +1,7 @@
 from typing import Any
 
-import rospy
-
-from ..external_interfaces.robokudo import query
+from ..external_interfaces.robokudo import *
+from ..ros.logging import logdebug
 from ..utils import _apply_ik
 from ..external_interfaces import giskard
 from .default_process_modules import *
@@ -132,7 +131,7 @@ def _move_arm_tcp(target: Pose, robot: Object, arm: Arms) -> None:
     # inv = request_ik(target, robot, joints, gripper)
     pose, joint_states = request_giskard_ik(target, robot, gripper)
     robot.set_pose(pose)
-    robot.set_joint_positions(joint_states)
+    robot.set_multiple_joint_positions(joint_states)
 
 
 ###########################################################
@@ -146,7 +145,7 @@ class StretchNavigationReal(ProcessModule):
     """
 
     def _execute(self, designator: MoveMotion) -> Any:
-        rospy.logdebug(f"Sending goal to giskard to Move the robot")
+        logdebug(f"Sending goal to giskard to Move the robot")
         giskard.achieve_cartesian_goal(designator.target, RobotDescription.current_robot_description.base_link, "map")
 
 

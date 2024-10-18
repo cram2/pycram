@@ -7,9 +7,9 @@ import pybullet as pb
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.datastructures.world import Object
 from pycram.datastructures.pose import Pose
-from pycram.ros.force_torque_sensor import ForceTorqueSensor
-from pycram.ros.joint_state_publisher import JointStatePublisher
-from pycram.ros.tf_broadcaster import TFBroadcaster
+from pycram.ros_utils.force_torque_sensor import ForceTorqueSensor
+from pycram.ros_utils.joint_state_publisher import JointStatePublisher
+from pycram.ros_utils.tf_broadcaster import TFBroadcaster
 
 SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
 PYCRAM_DIR = os.path.join(SCRIPT_DIR, os.pardir, os.pardir)

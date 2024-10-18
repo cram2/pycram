@@ -5,12 +5,13 @@ from dataclasses import dataclass, field, fields
 from abc import ABC, abstractmethod
 from inspect import isgenerator, isgeneratorfunction
 
-import rospy
+from .ros.logging import logwarn, loginfo
+
 try:
     import owlready2
 except ImportError:
     owlready2 = None
-    rospy.logwarn("owlready2 is not installed!")
+    logwarn("owlready2 is not installed!")
 
 from sqlalchemy.orm.session import Session
 
@@ -365,9 +366,8 @@ class DesignatorDescription(ABC):
 
     def get_slots(self) -> List[str]:
         """
-        Returns a list of all slots of this description. Can be used for inspecting different descriptions and debugging.
-
-        :return: A list of all slots.
+        :return: a list of all slots of this description. Can be used for inspecting different descriptions and
+         debugging.
         """
         return list(self.__dict__.keys())
 
@@ -376,7 +376,7 @@ class DesignatorDescription(ABC):
 
     def get_default_ontology_concept(self) -> owlready2.Thing | None:
         """
-        Returns the first element of ontology_concept_holders if there is, else None
+        :return: The first element of ontology_concept_holders if there is, else None
         """
         return self.ontology_concept_holders[0].ontology_concept if self.ontology_concept_holders else None
 
@@ -575,7 +575,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
             :return: The created ORM object.
             """
-            return ORMObjectDesignator(self.obj_type, self.name)
+            return ORMObjectDesignator(name=self.name, obj_type=self.obj_type)
 
         def insert(self, session: Session) -> ORMObjectDesignator:
             """
@@ -597,8 +597,6 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
         def frozen_copy(self) -> 'ObjectDesignatorDescription.Object':
             """
-            Returns a copy of this designator containing only the fields.
-
             :return: A copy containing only the fields of this class. The WorldObject attached to this pycram object is not copied. The _pose gets set to a method that statically returns the pose of the object when this method was called.
             """
             result = ObjectDesignatorDescription.Object(self.name, self.obj_type, None)
@@ -633,7 +631,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
 
         def special_knowledge_adjustment_pose(self, grasp: str, pose: Pose) -> Pose:
             """
-            Returns the adjusted target pose based on special knowledge for "grasp front".
+            Get the adjusted target pose based on special knowledge for "grasp front".
 
             :param grasp: From which side the object should be grasped
             :param pose: Pose at which the object should be grasped, before adjustment
@@ -652,7 +650,7 @@ class ObjectDesignatorDescription(DesignatorDescription):
                     pose_in_object.pose.position.x += value[0]
                     pose_in_object.pose.position.y += value[1]
                     pose_in_object.pose.position.z += value[2]
-                    rospy.loginfo("Adjusted target pose based on special knowledge for grasp: %s", grasp)
+                    loginfo("Adjusted target pose based on special knowledge for grasp: %s", grasp)
                     return pose_in_object
             return pose
 

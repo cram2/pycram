@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from .object_designator import ObjectDesignatorDescription, ObjectPart, RealObject
 from ..designator import ResolutionError
 from ..orm.base import ProcessMetaData
-from ..plan_failures import PerceptionObjectNotFound
+from ..failures import PerceptionObjectNotFound
 from ..process_module import ProcessModuleManager
 from ..orm.motion_designator import (MoveMotion as ORMMoveMotion,
                                      MoveTCPMotion as ORMMoveTCPMotion, LookingMotion as ORMLookingMotion,

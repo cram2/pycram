@@ -1,3 +1,12 @@
+from pathlib import Path
+
+from typing_extensions import TYPE_CHECKING, List
+
+if TYPE_CHECKING:
+    from .world_concepts.world_object import Object
+    from .datastructures.enums import JointType
+
+
 class PlanFailure(Exception):
     """Implementation of plan failures."""
 
@@ -127,8 +136,10 @@ class ManipulationGoalNotReached(ManipulationLowLevelFailure):
 
 class IKError(PlanFailure):
     """Thrown when no inverse kinematics solution could be found"""
+
     def __init__(self, pose, base_frame, tip_frame):
-        self.message = "Position {} in frame '{}' is not reachable for end effector: '{}'".format(pose, base_frame, tip_frame)
+        self.message = "Position {} in frame '{}' is not reachable for end effector: '{}'".format(pose, base_frame,
+                                                                                                  tip_frame)
         super(IKError, self).__init__(self.message)
 
 
@@ -395,3 +406,66 @@ class ReasoningError(PlanFailure):
 class CollisionError(PlanFailure):
     def __init__(*args, **kwargs):
         super().__init__(*args, **kwargs)
+
+
+"""
+The following exceptions are used in the PyCRAM framework to handle errors related to the world and the objects in it.
+They are usually related to a bug in the code or a misuse of the framework (e.g. logical errors in the code).
+"""
+
+
+class ProspectionObjectNotFound(KeyError):
+    def __init__(self, obj: 'Object'):
+        super().__init__(f"The given object {obj.name} is not in the prospection world.")
+
+
+class WorldObjectNotFound(KeyError):
+    def __init__(self, obj: 'Object'):
+        super().__init__(f"The given object {obj.name} is not in the main world.")
+
+
+class ObjectAlreadyExists(Exception):
+    def __init__(self, obj: 'Object'):
+        super().__init__(f"An object with the name {obj.name} already exists in the world.")
+
+
+class ObjectDescriptionNotFound(KeyError):
+    def __init__(self, object_name: str, path: str, extension: str):
+        super().__init__(f"{object_name} with path {path} and extension {extension} is not in supported extensions, and"
+                         f" the description data was not found on the ROS parameter server")
+
+
+class WorldMismatchErrorBetweenObjects(Exception):
+    def __init__(self, obj_1: 'Object', obj_2: 'Object'):
+        super().__init__(f"World mismatch between the attached objects {obj_1.name} and {obj_2.name},"
+                         f"obj_1.world: {obj_1.world}, obj_2.world: {obj_2.world}")
+
+
+class ObjectFrameNotFoundError(KeyError):
+    def __init__(self, frame_name: str):
+        super().__init__(f"Frame {frame_name} does not belong to any of the objects in the world.")
+
+
+class MultiplePossibleTipLinks(Exception):
+    def __init__(self, object_name: str, start_link: str, tip_links: List[str]):
+        super().__init__(f"Multiple possible tip links found for object {object_name} with start link {start_link}:"
+                         f" {tip_links}")
+
+
+class UnsupportedFileExtension(Exception):
+    def __init__(self, object_name: str, path: str):
+        extension = Path(path).suffix
+        super().__init__(f"Unsupported file extension for object {object_name} with path {path}"
+                         f"and extension {extension}")
+
+
+class ObjectDescriptionUndefined(Exception):
+    def __init__(self, object_name: str):
+        super().__init__(f"Object description for object {object_name} is not defined, eith a path or a description"
+                         f"object should be provided.")
+
+
+class UnsupportedJointType(Exception):
+    def __init__(self, joint_type: 'JointType'):
+        super().__init__(f"Unsupported joint type: {joint_type}")
+

@@ -1,18 +1,21 @@
 import time
-import rospy
 import threading
 import atexit
 
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
+from ..datastructures.enums import ExecutionType
 from tf2_msgs.msg import TFMessage
+
+from ..ros.publisher import create_publisher
+from ..ros.data_types import Time
 
 
 class TFBroadcaster:
     """
     Broadcaster that publishes TF frames for every object in the World.
     """
-    def __init__(self, projection_namespace= ExecutionType.SIMULATED, odom_frame="odom", interval=0.1):
+    def __init__(self, projection_namespace=ExecutionType.SIMULATED, odom_frame="odom", interval=0.1):
         """
         The broadcaster prefixes all published TF messages with a projection namespace to distinguish between the TF
         frames from the simulation and the one from the real robot.
@@ -23,8 +26,8 @@ class TFBroadcaster:
         """
         self.world = World.current_world
 
-        self.tf_static_publisher = rospy.Publisher("/tf_static", TFMessage, queue_size=10)
-        self.tf_publisher = rospy.Publisher("/tf", TFMessage, queue_size=10)
+        self.tf_static_publisher = create_publisher("/tf_static", TFMessage, queue_size=10)
+        self.tf_publisher = create_publisher("/tf", TFMessage, queue_size=10)
         self.thread = threading.Thread(target=self._publish, daemon=True)
         self.kill_event = threading.Event()
         self.interval = interval
@@ -52,11 +55,11 @@ class TFBroadcaster:
         """
         for obj in self.world.objects:
             pose = obj.get_pose()
-            pose.header.stamp = rospy.Time.now()
+            pose.header.stamp = Time.now()
             self._publish_pose(obj.tf_frame, pose)
             for link in obj.link_name_to_id.keys():
                 link_pose = obj.get_link_pose(link)
-                link_pose.header.stamp = rospy.Time.now()
+                link_pose.header.stamp = Time.now()
                 self._publish_pose(obj.get_link_tf_frame(link), link_pose)
 
     def _update_static_odom(self) -> None:
@@ -78,8 +81,8 @@ class TFBroadcaster:
         frame_id = pose.frame
         if frame_id != child_frame_id:
             tf_stamped = pose.to_transform(child_frame_id)
-            tf_stamped.frame = self.projection_namespace + "/" + tf_stamped.frame
-            tf_stamped.child_frame_id = self.projection_namespace + "/" + tf_stamped.child_frame_id
+            tf_stamped.frame = self.projection_namespace.name + "/" + tf_stamped.frame
+            tf_stamped.child_frame_id = self.projection_namespace.name + "/" + tf_stamped.child_frame_id
             tf2_msg = TFMessage()
             tf2_msg.transforms.append(tf_stamped)
             if static:

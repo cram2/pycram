@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import itertools
 from typing import Callable, Dict, List, Optional, Type, TYPE_CHECKING
-import rospy
 
 from ..helper import Singleton
+from ..ros.logging import logerr
+
 if TYPE_CHECKING:
     from ..designator import DesignatorDescription
 
 from owlready2 import issubclass, Thing
 
 ONTOLOGY_SQL_BACKEND_FILE_EXTENSION = ".sqlite3"
+ONTOLOGY_SQL_IN_MEMORY_BACKEND = "memory"
 ONTOLOGY_OWL_FILE_EXTENSION = ".owl"
 
 
@@ -35,7 +37,7 @@ class OntologyConceptHolderStore(object, metaclass=Singleton):
         :return: True if the ontology concept can be added into the concept store (if not already existing), otherwise False
         """
         if ontology_concept_name in self.__all_ontology_concept_holders:
-            rospy.logerr(f"OntologyConceptHolder for `{ontology_concept_name}` was already created!")
+            logerr(f"OntologyConceptHolder for `{ontology_concept_name}` was already created!")
             return False
         else:
             self.__all_ontology_concept_holders.setdefault(ontology_concept_name, ontology_concept_holder)

@@ -2,11 +2,11 @@ import atexit
 import time
 import threading
 
-import rospy
-
 from geometry_msgs.msg import WrenchStamped
 from std_msgs.msg import Header
 from ..datastructures.world import World
+from ..ros.data_types import Time
+from ..ros.publisher import create_publisher
 
 
 class ForceTorqueSensor:
@@ -34,7 +34,7 @@ class ForceTorqueSensor:
                                f" does not exist in robot object")
         self.world.enable_joint_force_torque_sensor(self.world.robot, self.fts_joint_idx)
 
-        self.fts_pub = rospy.Publisher(fts_topic, WrenchStamped, queue_size=10)
+        self.fts_pub = create_publisher(fts_topic, WrenchStamped, queue_size=10)
         self.interval = interval
         self.kill_event = threading.Event()
 
@@ -53,7 +53,7 @@ class ForceTorqueSensor:
             joint_ft = self.world.get_joint_reaction_force_torque(self.world.robot, self.fts_joint_idx)
             h = Header()
             h.seq = seq
-            h.stamp = rospy.Time.now()
+            h.stamp = Time().now()
             h.frame_id = self.joint_name
 
             wrench_msg = WrenchStamped()

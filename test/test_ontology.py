@@ -28,9 +28,10 @@ if owlready2:
 
 from pycram.ontology.ontology import OntologyManager, SOMA_HOME_ONTOLOGY_IRI, SOMA_ONTOLOGY_IRI
 from pycram.ontology.ontology_common import (OntologyConceptHolderStore, OntologyConceptHolder,
-                                             ONTOLOGY_SQL_BACKEND_FILE_EXTENSION, ONTOLOGY_OWL_FILE_EXTENSION)
+                                             ONTOLOGY_SQL_BACKEND_FILE_EXTENSION, ONTOLOGY_OWL_FILE_EXTENSION,
+                                             ONTOLOGY_SQL_IN_MEMORY_BACKEND)
 
-
+DEFAULT_LOCAL_ONTOLOGY_IRI = "default.owl"
 class TestOntologyManager(unittest.TestCase):
     ontology_manager: OntologyManager
     main_ontology: Optional[owlready2.Ontology]
@@ -39,23 +40,29 @@ class TestOntologyManager(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.ontology_manager = OntologyManager(SOMA_ONTOLOGY_IRI)
+        # Try loading from remote `SOMA_ONTOLOGY_IRI`, which will fail given no internet access
+        cls.ontology_manager = OntologyManager(main_ontology_iri=SOMA_ONTOLOGY_IRI,
+                                               main_sql_backend_filename=os.path.join(Path.home(),
+                                               f"{Path(SOMA_ONTOLOGY_IRI).stem}{ONTOLOGY_SQL_BACKEND_FILE_EXTENSION}"))
         if cls.ontology_manager.initialized():
-            cls.main_ontology = cls.ontology_manager.main_ontology
             cls.soma = cls.ontology_manager.soma
             cls.dul = cls.ontology_manager.dul
         else:
-            cls.main_ontology = None
+            # Else, load from `DEFAULT_LOCAL_ONTOLOGY_IRI`
             cls.soma = None
             cls.dul = None
+            cls.ontology_manager.main_ontology_iri = DEFAULT_LOCAL_ONTOLOGY_IRI
+            cls.ontology_manager.main_ontology_sql_backend = ONTOLOGY_SQL_IN_MEMORY_BACKEND
+            cls.ontology_manager.create_main_ontology_world()
+            cls.ontology_manager.create_main_ontology()
+        cls.main_ontology = cls.ontology_manager.main_ontology
 
     @classmethod
     def tearDownClass(cls):
         save_dir = cls.ontology_manager.get_main_ontology_dir()
         owl_filepath = f"{save_dir}/{Path(cls.ontology_manager.main_ontology_iri).stem}{ONTOLOGY_OWL_FILE_EXTENSION}"
-        sql_filepath = f"{save_dir}/{Path(owl_filepath).stem}{ONTOLOGY_SQL_BACKEND_FILE_EXTENSION}"
         os.remove(owl_filepath)
-        cls.remove_sql_file(sql_filepath)
+        cls.remove_sql_file(cls.ontology_manager.main_ontology_sql_backend)
 
     @classmethod
     def remove_sql_file(cls, sql_filepath: str):
@@ -234,7 +241,7 @@ class TestOntologyManager(unittest.TestCase):
                                                                              ontology_property_parent_class=owlready2.ObjectProperty,
                                                                              ontology=reasoning_ontology))
 
-        # Define rules for "bigger_than" in [reasoning_ontology]
+        # Define rules for `transportability` & `co-residence` in [reasoning_ontology]
         with reasoning_ontology:
             def can_transport_itself(a: reasoning_ontology.Entity) -> bool:
                 return a in a.can_transport
@@ -295,11 +302,11 @@ class TestOntologyManager(unittest.TestCase):
     def test_ontology_save(self):
         save_dir = self.ontology_manager.get_main_ontology_dir()
         owl_filepath = f"{save_dir}/{Path(self.ontology_manager.main_ontology_iri).stem}{ONTOLOGY_OWL_FILE_EXTENSION}"
-        sql_filepath = f"{save_dir}/{Path(owl_filepath).stem}{ONTOLOGY_SQL_BACKEND_FILE_EXTENSION}"
         self.assertTrue(self.ontology_manager.save(owl_filepath))
         self.assertTrue(Path(owl_filepath).is_file())
-        self.assertTrue(Path(sql_filepath).is_file())
-
+        sql_backend = self.ontology_manager.main_ontology_sql_backend
+        if sql_backend != ONTOLOGY_SQL_IN_MEMORY_BACKEND:
+            self.assertTrue(Path(sql_backend).is_file())
 
 if __name__ == '__main__':
     unittest.main()
