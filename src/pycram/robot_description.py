@@ -119,10 +119,16 @@ class RobotDescription:
     Virtual mobile base joint names for mobile robots, these joints are not part of the URDF, however they are used to
     move the robot in the simulation (e.g. set_pose for the robot would actually move these joints)
     """
+    gripper_name: Optional[str] = None
+    """
+    Name of the gripper of the robot if it has one, this is used when the gripper is a different Object with its own
+    description file outside the robot description file.
+    """
 
     def __init__(self, name: str, base_link: str, torso_link: str, torso_joint: str, urdf_path: str,
                  virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = None, mjcf_path: Optional[str] = None,
-                 ignore_joints: Optional[List[str]] = None):
+                 ignore_joints: Optional[List[str]] = None,
+                 gripper_name: Optional[str] = None):
         """
         Initialize the RobotDescription. The URDF is loaded from the given path and used as basis for the kinematic
         chains.
@@ -135,6 +141,7 @@ class RobotDescription:
         :param virtual_mobile_base_joints: Virtual mobile base joint names for mobile robots
         :param mjcf_path: Path to the MJCF file of the robot
         :param ignore_joints: List of joint names that are not used.
+        :param gripper_name: Name of the gripper of the robot if it has one and is a separate Object.
         """
         self.name = name
         self.base_link = base_link
@@ -152,6 +159,7 @@ class RobotDescription:
         self.links: List[str] = [l.name for l in self.urdf_object.links]
         self.joints: List[str] = [j.name for j in self.urdf_object.joints]
         self.virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = virtual_mobile_base_joints
+        self.gripper_name = gripper_name
 
     @property
     def has_actuators(self):
