@@ -140,7 +140,6 @@ class GraspingExplorer:
 
                         # try to execute a grasping plan
                         with simulated_robot:
-
                             ParkArmsActionPerformable(Arms.BOTH).perform()
                             # navigate to sampled position
                             NavigateAction([Pose(position, orientation)]).resolve().perform()

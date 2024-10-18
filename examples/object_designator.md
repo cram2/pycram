@@ -88,10 +88,6 @@ For this example we need just need the kitchen, if you didn't spawn it in the pr
 following cell.
 
 ```python
-kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
-```
-
-```python
 from pycram.designators.object_designator import ObjectPart, BelieveObject
 
 kitchen_desig = BelieveObject(names=["kitchen"]).resolve()
@@ -107,13 +103,6 @@ Similar to location designators object designators can be used as generators to 
 are describing. We will see this at the example of an object designator describing every type of food.
 
 For this we need some objects, so if you didn't already spawn them you can use the next cell for this.
-
-```python
-kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
-milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-cereal = Object("froot_loops", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", pose=Pose([1.3, 0.9, 0.95]))
-spoon = Object("spoon", ObjectType.SPOON, "spoon.stl", pose=Pose([1.3, 1.1, 0.87]))
-```
 
 ```python
 from pycram.designators.object_designator import BelieveObject

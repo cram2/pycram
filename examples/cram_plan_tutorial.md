@@ -1,4 +1,4 @@
----
+from pycram.robot_description import RobotDescriptionfrom pycram.datastructures.enums import ObjectType---
 jupyter:
   jupytext:
     text_representation:
@@ -19,10 +19,10 @@ In this tutorial we will walk through the capabilities of task trees in pycram.
 First we have to import the necessary functionality from pycram.
 
 ```python
-from pycram.bullet_world import BulletWorld
-from pycram.robot_descriptions import robot_description
+from pycram.worlds import BulletWorld
+from pycram.robot_description import RobotDescription
 import pycram.task
-from pycram.resolver.plans import Arms
+from pycram.datastructures.enums import Arms, ObjectType
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
@@ -35,7 +35,7 @@ Next we will create a bullet world with a PR2 in a kitchen containing milk and c
 
 ```python
 world = BulletWorld()
-robot = Object(robot_description.name, "robot", robot_description.name + ".urdf")
+robot = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
 robot_desig = ObjectDesignatorDescription(names=['pr2']).resolve()
 apartment = Object("apartment", "environment", "apartment.urdf", position=[-1.5, -2.5, 0])
 apartment_desig = ObjectDesignatorDescription(names=['apartment']).resolve()

@@ -7,7 +7,7 @@ jupyter:
       format_version: '1.3'
       jupytext_version: 1.16.3
   kernelspec:
-    display_name: Python 3
+    display_name: Python 3 (ipykernel)
     language: python
     name: python3
 ---
@@ -207,7 +207,7 @@ print(f"Milk visible: {visible}")
 ```python
 milk.set_position(Pose([1, 0, 0.05]))
 
-plane = BulletWorld.current_bullet_world.objects[0]
+plane = World.current_world.objects[0]
 contact = btr.contact(milk, plane)
 print(f"Milk is in contact with the floor: {contact}")
 ```
@@ -336,6 +336,7 @@ a cereal box from the kitchen counter and place it on the kitchen island. This i
 
 ```python
 from pycram.designators.object_designator import *
+from pycram.datastructures.enums import Grasp
 
 cereal = Object("cereal", ObjectType.BREAKFAST_CEREAL, "breakfast_cereal.stl", pose=Pose([1.4, 1, 0.95]))
 

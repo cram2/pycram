@@ -1,0 +1,64 @@
+name: Test Jupyter Notebook Examples
+
+on:
+  push:
+    branches:
+      - dev
+      - test-test-ci
+  pull_request:
+    branches:
+      - master
+      - dev
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+defaults:
+  run:
+    shell: bash
+    working-directory: .
+
+jobs:
+  test-and-build:
+    name: Test Jupyter Notebooks
+    runs-on: ubuntu-20.04
+    container:
+      image: "pycram/pycram:dev"
+
+    steps:
+
+      - name: Checkout 🛎
+        uses: actions/checkout@v3
+
+      # ----------------------------------------------------------------------------------------------------------------
+
+      - name: Install python dependencies
+        run: |
+          pip3 install --upgrade pip --root-user-action=ignore
+          cd /opt/ros/overlay_ws/src/pycram
+          pip3 install -r requirements.txt
+          pip3 install -r requirements-resolver.txt
+
+      # ----------------------------------------------------------------------------------------------------------------
+
+      - name: Install Jupytext & Jupyter notebook
+        run: |
+          pip3 install jupytext treon
+
+      # ----------------------------------------------------------------------------------------------------------------
+      - name: Convert Notebooks
+        run: |
+          cd /opt/ros/overlay_ws/src/pycram/examples
+          mkdir tmp
+          jupytext --to notebook *.md
+          mv *.ipynb tmp && cd tmp
+
+      - name: Source and start ROS
+        run: |
+          source /opt/ros/overlay_ws/devel/setup.bash 
+          roslaunch pycram ik_and_description.launch &
+
+      - name: Run tests
+        run: |
+          source /opt/ros/overlay_ws/devel/setup.bash 
+          roscd pycram/examples/tmp
+          treon --thread 1 -v
