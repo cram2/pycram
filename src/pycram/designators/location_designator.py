@@ -129,6 +129,7 @@ class CostmapLocation(LocationDesignatorDescription):
         :param visible_for: Object for which the visibility should be calculated, usually a robot
         :param reachable_arm: An optional arm with which the target should be reached
         :param resolver: An alternative specialized_designators that returns a resolved location for the given input of this description
+        :param used_grasps: An optional list of grasps that should be used to reach the target
         """
         super().__init__(resolver)
         self.target: Union[Pose, ObjectDesignatorDescription.Object] = target
@@ -180,15 +181,15 @@ class CostmapLocation(LocationDesignatorDescription):
         map_resolution = 0.15
         occupancy = OccupancyCostmap(distance_to_obstacle+0.2, False, map_size*2, map_resolution, ground_pose)
         final_map = occupancy
-        final_map.publish()
+        # final_map.publish()
         if self.reachable_for:
             gaussian = GaussianCostmap(map_size, 15, map_resolution, ground_pose, True)
-            gaussian.publish()
+            # gaussian.publish()
             final_map += gaussian
         if self.visible_for:
             visible = VisibilityCostmap(min_height, max_height, map_size, map_resolution, Pose(target_pose.position_as_list()))
             final_map += visible
-        final_map.publish()
+        # final_map.publish()
 
         if self.visible_for or self.reachable_for:
             robot_object = self.visible_for.world_object if self.visible_for else self.reachable_for.world_object

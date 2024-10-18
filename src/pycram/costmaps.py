@@ -477,10 +477,8 @@ class OccupancyCostmap(Costmap):
         :param size: The size of this costmap. The size specifies the length of one side of the costmap. The costmap is created as a square.
         :param resolution: The resolution of this costmap. This determines how much meter a pixel in the costmap represents.
         """
-        # Convert size from cm to meters
         size_m = size / 100.0
 
-        # Calculate the number of pixels along each axis
         num_pixels = int(size_m / resolution)
 
         origin_position = self.origin.position_as_list()
@@ -491,7 +489,6 @@ class OccupancyCostmap(Costmap):
         indices = np.concatenate(np.dstack(np.mgrid[-half_num_pixels:upper_bound,
                                            -half_num_pixels:upper_bound]),
                                  axis=0) * resolution + np.array(origin_position[:2])
-
 
         # Add the z-coordinate to the grid, which is either 0 or 10
         indices_0 = np.pad(indices, (0, 1), mode='constant', constant_values=5)[:-1]
@@ -770,11 +767,12 @@ class GaussianCostmap(Costmap):
 
         :param mean: The mean input for the gaussian distribution, this also specifies
             the length of the side of the resulting costmap in centimeter. The costmap is Created
-            as a square.
+            as a square by default.
         :param sigma: The sigma input for the gaussian distribution.
         :param resolution: The resolution of the costmap, this specifies how much
             meter a pixel represents.
         :param origin: The origin of the costmap around which it will be created.
+        :param circular: If True a circular mask will be applied to the costmap.
         """
         self.size = mean / 100.0
         self.resolution = resolution
@@ -806,18 +804,11 @@ class GaussianCostmap(Costmap):
         :param num_pixels: The number of pixels along one axis of the square grid.
         :return: The masked grid, with values outside the circle set to 0.
         """
-        # Create coordinate grid
         y, x = np.ogrid[:num_pixels, :num_pixels]
         center = num_pixels / 2
         radius = center
-
-        # Calculate the distance from the center for each grid point
         distance_from_center = np.sqrt((x - center) ** 2 + (y - center) ** 2)
-
-        # Create the circular mask
         circular_mask = distance_from_center <= radius
-
-        # Apply the mask to the grid
         masked_grid = np.where(circular_mask, grid, 0)
         return masked_grid
 
