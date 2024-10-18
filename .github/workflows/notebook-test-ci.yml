@@ -1,4 +1,4 @@
-name: Build Jupyter-Book documentation 📖
+name: Test Jupyter Notebook Examples
 
 on:
   push:
