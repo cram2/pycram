@@ -333,7 +333,6 @@ class ManualMarkerPublisher:
         self.marker_array.markers.pop(marker_id)
         # rospy.loginfo(f"Removed Marker '{name}'")
 
-
     def clear_all_marker(self):
         """
         Clear all existing markers
@@ -385,15 +384,17 @@ class AxisMarkerPublisher:
         color = self.colorclass
 
         for pose in self.poses:
-            self._create_line(pose, AxisIdentifier.X.value, self.duration, self.length, color.get_color_from_string('red'))
-            self._create_line(pose, AxisIdentifier.Y.value, self.duration, self.length, color.get_color_from_string('green'))
-            self._create_line(pose, AxisIdentifier.Z.value, self.duration, self.length, color.get_color_from_string('blue'))
+            self._create_line(pose, AxisIdentifier.X.value, self.duration, self.length,
+                              color.get_color_from_string('red'))
+            self._create_line(pose, AxisIdentifier.Y.value, self.duration, self.length,
+                              color.get_color_from_string('green'))
+            self._create_line(pose, AxisIdentifier.Z.value, self.duration, self.length,
+                              color.get_color_from_string('blue'))
 
         self.thread.start()
         # rospy.loginfo("Publishing axis visualization")
         self.thread.join()
         # rospy.logdebug("Stopped Axis visualization")
-
 
     def _publish(self):
         if self.name in self.marker_overview.keys():
@@ -534,3 +535,186 @@ class AxisMarkerPublisher:
         # Update was not successful
         # rospy.logwarn(f"Marker {marker_id} not found for update")
         return False
+
+
+class CostmapPublisher:
+    """
+    Class to manually add and remove marker of objects and poses.
+    """
+
+    def __init__(self, topic_name: str = '/pycram/costmap_marker', interval: float = 0.1):
+        """
+        The Publisher creates an Array of Visualization marker with a marker for a pose or object.
+        This Array is published with a rate of interval.
+
+        :param topic_name: Name of the marker topic
+        :param interval: Interval at which the marker should be published
+        """
+        self.start_time = None
+        self.marker_array_pub = rospy.Publisher(topic_name, Marker, queue_size=10)
+
+        self.marker = Marker()
+        self.marker_overview = {}
+        self.current_id = 0
+
+        self.interval = interval
+        self.log_message = None
+
+    def publish(self, poses: List[Pose], size: float = None, color: Optional[List] = None, name: Optional[str] = None):
+        """
+        Publish a pose or an object into the MarkerArray.
+        Priorities to add an object if possible
+
+        :param poses: List of Pose of the Costmap
+        :param color: Color of the marker if no object is given
+        :param name: Name of the marker
+        """
+
+        if color is None:
+            color = [1, 0, 1, 1]
+
+        self.start_time = time.time()
+        thread = threading.Thread(target=self._publish, args=(poses, name, color, size))
+        thread.start()
+        # rospy.loginfo(self.log_message)
+        thread.join()
+
+    def _publish(self, poses: List[Pose], name: Optional[str] = None,
+                 color: Optional[List] = None, size=None):
+        """
+        Publish the marker into the MarkerArray
+        """
+        stop_thread = False
+        duration = 2
+
+        while not stop_thread:
+            if time.time() - self.start_time > duration:
+                stop_thread = True
+            self._publish_costmap(name=name, poses=poses, color=color, size=size)
+
+            rospy.sleep(self.interval)
+
+    def _publish_costmap(self, name: str, poses: List[Pose], color: Optional[List] = None, size=None):
+        """
+        Publish a Pose as a marker
+
+        :param name: Name of the marker
+        :param pose: Pose of the marker
+        :param color: Color of the marker
+        """
+
+        if name is None:
+            name = 'costmap_marker'
+
+        if name in self.marker_overview.keys():
+            self._update_marker(self.marker_overview[name], new_poses=poses)
+            return
+
+        color_rgba = ColorRGBA(*color)
+        self._make_marker_array(name=name, marker_type=Marker.POINTS, costmap_poses=poses,
+                                marker_scales=(size, size, size), color_rgba=color_rgba)
+        self.marker_array_pub.publish(self.marker)
+        self.log_message = f"Pose '{name}' published"
+
+    def _make_marker_array(self, name, marker_type: int, costmap_poses: List[Pose],
+                           marker_scales: Tuple = (1.0, 1.0, 1.0),
+                           color_rgba: ColorRGBA = ColorRGBA(*[1.0, 1.0, 1.0, 1.0]),
+                           path_to_resource: Optional[str] = None):
+        """
+        Create a Marker and add it to the MarkerArray
+
+        :param name: Name of the Marker
+        :param marker_type: Type of the marker to create
+        :param marker_pose: Pose of the marker
+        :param marker_scales: individual scaling of the markers axes
+        :param color_rgba: Color of the marker as RGBA
+        :param path_to_resource: Path to the resource of a Bulletworld object
+        """
+
+        frame_id = "pycram/map"
+        new_marker = Marker()
+        new_marker.id = self.current_id
+        new_marker.header.frame_id = frame_id
+        new_marker.ns = name
+        new_marker.header.stamp = rospy.Time.now()
+        new_marker.type = marker_type
+        new_marker.action = Marker.ADD
+        for costmap_pose in costmap_poses:
+            new_marker.scale.x = marker_scales[0]
+            new_marker.scale.y = marker_scales[1]
+            new_marker.scale.z = marker_scales[2]
+            new_marker.color.a = color_rgba.a
+            new_marker.color.r = color_rgba.r
+            new_marker.color.g = color_rgba.g
+            new_marker.color.b = color_rgba.b
+
+            point = Point()
+            point.x = costmap_pose.position.x
+            point.y = costmap_pose.position.y
+            point.z = costmap_pose.position.z
+            new_marker.points.append(point)
+
+        self.marker = new_marker
+        self.marker_overview[name] = new_marker.id
+        self.current_id += 1
+
+    def _update_marker(self, marker_id: int, new_poses: List[Pose]) -> bool:
+        """
+        Update an existing marker to a new pose
+
+        :param marker_id: id of the marker that should be updated
+        :param new_pose: Pose where the updated marker is set
+
+        :return: True if update was successful, False otherwise
+        """
+
+        # Find the marker with the specified ID
+        if self.marker.id == marker_id:
+            # Update successful
+            new_points = []
+            for new_pose in new_poses:
+                self.marker.points = []
+                point = Point()
+                point.x = new_pose.position.x
+                point.y = new_pose.position.y
+                point.z = new_pose.position.z
+                new_points.append(point)
+            self.marker.points = new_points
+            self.log_message = f"Marker '{self.marker.ns}' updated"
+            self.marker_array_pub.publish(self.marker)
+            return True
+
+        # Update was not successful
+        # rospy.logwarn(f"Marker {marker_id} not found for update")
+        return False
+
+    def remove_marker(self, name: Optional[str] = None):
+        """
+        Remove a marker by object or name
+
+        :param bw_object: Object which marker should be removed
+        :param name: Name of object that should be removed
+        """
+
+        if name is None:
+            # rospy.logerr('No name for object given, cannot remove marker')
+            return
+
+        marker_id = self.marker_overview.pop(name)
+
+        if self.marker.id == marker_id:
+            self.marker.action = Marker.DELETE
+
+        self.marker_array_pub.publish(self.marker)
+        # rospy.loginfo(f"Removed Marker '{name}'")
+
+    def clear_all_marker(self):
+        """
+        Clear all existing markers
+        """
+        self.marker.action = Marker.DELETE
+
+        self.marker_overview = {}
+        self.marker_array_pub.publish(self.marker)
+
+        # rospy.loginfo('Removed all markers')

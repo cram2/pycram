@@ -1,3 +1,5 @@
+import numpy as np
+
 from ..robot_description import RobotDescription, KinematicChainDescription, EndEffectorDescription, \
     RobotDescriptionManager, CameraDescription
 from ..datastructures.enums import Arms, Grasp, GripperState, GripperType, TorsoState
@@ -83,6 +85,10 @@ grasps = {Grasp.FRONT: [0, 0, 0, 1],
 right_gripper.add_grasp_orientations(grasps)
 left_gripper.add_grasp_orientations(grasps)
 
+################################## Additionals ##################################
+pr2_description.set_max_reach("l_shoulder_pan_link", "l_gripper_tool_frame")
+
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()
 rdm.register_description(pr2_description)
+
