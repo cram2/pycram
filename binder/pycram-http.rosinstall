@@ -5,8 +5,8 @@ repositories:
     version: master
   iai_robots:
     type: git
-    url: http://github.com/code-iai/iai_robots.git
-    version: master
+    url: http://github.com/LucaKro/iai_robots.git
+    version: armar6
   pr2_common:
     type: git
     url: https://github.com/PR2/pr2_common.git
