@@ -54,6 +54,13 @@ def launch_donbot():
     args = ["robot:=donbot"]
     launch_robot(executable, args=args)
 
+def launch_armar():
+    # name = 'Armar6'
+    # urdf = 'Armar6.urdf'
+    executable = 'ik_and_description.launch'
+    args = ["robot:=armar"]
+    launch_robot(executable, args=args)
+
 
 def launch_robot(launch_file, package='pycram', launch_folder='/launch/', args: List[str] = None):
     """

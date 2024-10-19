@@ -146,6 +146,7 @@ right_gripper.add_grasp_orientations({Grasp.FRONT: [0.707, 0.707, 0.707, 0.707],
 
 ################################# Additionals ##################################
 armar_description.set_costmap_offset(0.4)
+armar_description.set_max_reach("arm_cla_r0", "left_tool_frame")
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()

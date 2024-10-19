@@ -39,7 +39,6 @@ def transporting_demo(apartment, robot):
     robot_desig = BelieveObject(names=[robot.name])
     apartment_desig = BelieveObject(names=[apartment.name])
 
-
     @with_simulated_robot
     def move_and_detect(obj_type):
         NavigateAction(target_locations=[Pose([1.7, 2, 0])]).resolve().perform()

@@ -178,6 +178,8 @@ class CostmapLocation(LocationDesignatorDescription):
                 elif RobotDescription.current_robot_description.name == "pr2":
                     distance_to_obstacle = 0.1
         map_size = RobotDescription.current_robot_description.get_max_reach() * 100 * 2
+        print(RobotDescription.current_robot_description.get_max_reach())
+        print(map_size)
         map_resolution = 0.15
         occupancy = OccupancyCostmap(distance_to_obstacle+0.2, False, map_size*2, map_resolution, ground_pose)
         final_map = occupancy
@@ -189,7 +191,7 @@ class CostmapLocation(LocationDesignatorDescription):
         if self.visible_for:
             visible = VisibilityCostmap(min_height, max_height, map_size, map_resolution, Pose(target_pose.position_as_list()))
             final_map += visible
-        # final_map.publish()
+        final_map.publish()
 
         if self.visible_for or self.reachable_for:
             robot_object = self.visible_for.world_object if self.visible_for else self.reachable_for.world_object
