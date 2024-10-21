@@ -62,7 +62,7 @@ class VizMarkerPublisher:
         obj_coloring = False
         marker_array = MarkerArray()
         for obj in self.main_world.objects:
-            if obj.obj_type == ObjectType.ROBOT or obj.name == "floor":
+            if obj.obj_type == ObjectType.ROBOT or obj.name == "floor" and not obj.name == "rollin_justin":
                 continue
             if obj.obj_type == ObjectType.GENERIC_OBJECT:
                 obj_coloring = True

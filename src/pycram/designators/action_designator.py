@@ -705,13 +705,13 @@ class MixingPerformable(ActionAbstract):
             """
         # Retrieve object and robot from designators
         local_tf = LocalTransformer()
-        obj = self.object_designator.world_object
+        obj = self.object_.world_object
 
         obj_dim = obj.get_object_dimensions()
 
         dim = [max(obj_dim[0], obj_dim[1]), min(obj_dim[0], obj_dim[1]), obj_dim[2]]
         obj_height = dim[2]
-        oTm = self.object_designator.pose
+        oTm = self.object_.pose
         object_pose = local_tf.transform_to_object_frame(oTm, obj)
 
         def generate_spiral(pose, upward_increment, radial_increment, angle_increment, steps):
@@ -812,8 +812,6 @@ class PouringPerformable(ActionAbstract):
         adjusted_oTgm = oTgm.copy()
 
         new_q = utils.axis_angle_to_quaternion([1, 0, 0], self.angle)
-        rospy.loginfo(adjusted_oTgm.pose.orientation)
-
         # Multiply the quaternions to combine rotations
         adjusted_oTgm.multiply_quaternions(new_q)
 
@@ -821,8 +819,6 @@ class PouringPerformable(ActionAbstract):
         #     new_q = utils.axis_angle_to_quaternion([0, 0, 1], -self.angle)
         # else:
         #     new_q = utils.axis_angle_to_quaternion([0, 0, 1], self.angle)
-
-        rospy.loginfo(adjusted_oTgm.pose.orientation)
 
         World.current_world.add_vis_axis(adjusted_oTgm)
         MoveTCPMotion(adjusted_oTgm, self.arm, allow_gripper_collision=False).perform()
