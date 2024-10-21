@@ -63,7 +63,7 @@ def start_demo_local():
     environment_param = 'apartment'
     robot_param = 'pr2'
     task_param = 'follow'
-    rospy.set_param('/nbparam_specialized_task', "slicing")
+
 
     robot_name = get_robot_name(robot_param)
 
@@ -80,7 +80,7 @@ def start_demo_local():
 
 
 def demo_selecting(apartment, robot, task_param):
-    if task_param == "navigating":
+    if task_param == "navigate":
         navigate_simple_example()
     elif task_param == "follow":
         follow_simple_example(robot)
