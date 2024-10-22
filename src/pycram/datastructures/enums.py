@@ -68,6 +68,7 @@ class ObjectType(int, Enum):
     ENVIRONMENT = auto()
     GENERIC_OBJECT = auto()
     HUMAN = auto()
+    IMAGINED_SURFACE = auto()
 
 
 class State(int, Enum):
