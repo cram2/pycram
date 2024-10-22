@@ -1,4 +1,5 @@
 import logging
+import os
 from time import sleep
 
 import numpy as np
@@ -15,7 +16,8 @@ from ..datastructures.enums import WorldMode, JointType, ObjectType, MultiverseB
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
 from ..description import Link, Joint
-from ..object_descriptors.mjcf import ObjectDescription as MJCF
+from ..object_descriptors.mjcf import ObjectDescription as MJCF, ObjectFactory, PrimitiveObjectFactory
+from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..robot_description import RobotDescription
 from ..ros.logging import logwarn, logerr
 from ..utils import RayTestUtils, wxyz_to_xyzw, xyzw_to_wxyz
@@ -153,6 +155,14 @@ class Multiverse(World):
         """
         self.floor = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf",
                             world=self)
+
+    def load_generic_object_and_get_id(self, description: GenericObjectDescription,
+                                       pose: Optional[Pose] = None) -> int:
+        save_path = os.path.join(self.cache_manager.cache_dir, description.name + ".xml")
+        object_factory = PrimitiveObjectFactory(description.name, description.links[0].geometry, save_path)
+        object_factory.build_shape()
+        object_factory.export_to_mjcf(save_path)
+        return self.load_object_and_get_id(description.name, pose, ObjectType.GENERIC_OBJECT)
 
     def get_images_for_target(self, target_pose: Pose,
                               cam_pose: Pose,
