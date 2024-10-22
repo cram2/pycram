@@ -419,6 +419,10 @@ class PlaneVisualShape(VisualShape):
         return Shape.PLANE
 
 
+VisualShapeUnion = Union[BoxVisualShape, SphereVisualShape, CapsuleVisualShape, CylinderVisualShape, MeshVisualShape,
+                         PlaneVisualShape]
+
+
 @dataclass
 class State(ABC):
     """

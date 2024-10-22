@@ -7,13 +7,14 @@ import psutil
 from tf.transformations import quaternion_from_euler, quaternion_multiply
 from typing_extensions import Optional, List
 
-from pycram.datastructures.dataclasses import ContactPointsList, ContactPoint, AxisAlignedBoundingBox
+from pycram.datastructures.dataclasses import ContactPointsList, ContactPoint, AxisAlignedBoundingBox, Color
 from pycram.datastructures.enums import ObjectType, Arms, JointType
 from pycram.datastructures.pose import Pose
 from pycram.robot_description import RobotDescriptionManager
 from pycram.world_concepts.world_object import Object
 from pycram.validation.error_checkers import calculate_angle_between_quaternions
 from pycram.helper import get_robot_mjcf_path, parse_mjcf_actuators
+from pycram.object_descriptors.generic import ObjectDescription as GenericObjectDescription
 
 multiverse_installed = True
 try:
@@ -52,6 +53,16 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     def tearDown(self):
         self.multiverse.remove_all_objects()
+
+    def test_load_generic_object(self):
+        obj_desc = GenericObjectDescription('test_cube', [0, 0, 0], [0.1, 0.1, 0.1],
+                                            color=Color(1, 0, 0, 1))
+        obj = Object(obj_desc.name, ObjectType.GENERIC_OBJECT, description=obj_desc)
+        self.assertIsInstance(obj, Object)
+        self.assertTrue(obj in self.multiverse.objects)
+        obj.set_position([1, 1, 0.1])
+        pose = obj.get_pose()
+        self.assert_poses_are_equal(pose, Pose([1, 1, 0.1], [0, 0, 0, 1]))
 
     def test_save_and_restore_state(self):
         milk = self.spawn_milk([1, 1, 0.1])
