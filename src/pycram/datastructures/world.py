@@ -1262,8 +1262,9 @@ class World(StateEntity, ABC):
         Remove all saved states of the World.
         """
         if self.conf.use_physics_simulator_state:
-            for state in self.saved_states.values():
-                self.remove_physics_simulator_state(state.simulator_state_id)
+            simulator_state_ids = set([state.simulator_state_id for state in self.saved_states.values()])
+            for ssid in simulator_state_ids:
+                self.remove_physics_simulator_state(ssid)
         else:
             self.remove_objects_saved_states()
         super().remove_saved_states()
