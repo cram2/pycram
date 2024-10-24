@@ -3,6 +3,7 @@ import sys
 from IPython.core.display_functions import clear_output
 
 from demos.pycram_virtual_building_demos.src.cleanup_demo import cleanup_demo
+from demos.pycram_virtual_building_demos.src.follow_demo import follow_simple_example
 from demos.pycram_virtual_building_demos.src.generlized_actions_demo import start_generalized_demo
 from demos.pycram_virtual_building_demos.src.transport_demo import transporting_demo
 from pycram.utils import suppress_stdout_stderr
@@ -24,6 +25,7 @@ from pycram.world_concepts.world_object import Object
 from pycram.worlds.bullet_world import BulletWorld
 
 output = None
+
 
 
 def start_demo():
@@ -60,8 +62,9 @@ def start_demo_local():
     # get params
     environment_param = 'apartment'
     robot_param = 'pr2'
-    task_param = 'cutting'
-    rospy.set_param('/nbparam_specialized_task', "slicing")
+    task_param = 'follow'
+
+
     robot_name = get_robot_name(robot_param)
 
     extension = ObjectDescription.get_file_extension()
@@ -77,8 +80,10 @@ def start_demo_local():
 
 
 def demo_selecting(apartment, robot, task_param):
-    if task_param == "navigating":
+    if task_param == "navigate":
         navigate_simple_example()
+    elif task_param == "follow":
+        follow_simple_example(robot)
     elif task_param == "transporting":
         specialized_task = rospy.get_param('/nbparam_specialized_task')
         if specialized_task == "clean":
@@ -100,5 +105,6 @@ def demo_selecting(apartment, robot, task_param):
         specialized_task = rospy.get_param('/nbparam_specialized_task')
         start_generalized_demo(task_param, object_tool, object_target, specialized_task)
 
-#
+
 #start_demo_local()
+
