@@ -1,10 +1,13 @@
-from pycram.ros.viz_marker_publisher import VizMarkerPublisher, AxisMarkerPublisher
+from pycram.external_interfaces.ik import request_ik
+from pycram.plan_failures import IKError
+from pycram.ros.viz_marker_publisher import VizMarkerPublisher, AxisMarkerPublisher, CostmapPublisher
+from pycram.utils import _apply_ik
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.designators.object_designator import *
 from pycram.datastructures.enums import ObjectType, WorldMode, TorsoState
-from pycram.datastructures.pose import Pose
+from pycram.datastructures.pose import Pose, Transform
 from pycram.process_module import simulated_robot, with_simulated_robot
 from pycram.object_descriptors.urdf import ObjectDescription
 from pycram.world_concepts.world_object import Object
@@ -14,7 +17,7 @@ extension = ObjectDescription.get_file_extension()
 
 world = BulletWorld(WorldMode.DIRECT)
 viz = VizMarkerPublisher()
-robot_name = "tiago_dual"
+robot_name = "pr2"
 robot = Object(robot_name, ObjectType.ROBOT, f"{robot_name}{extension}", pose=Pose([1, 2, 0]))
 
 apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment-small{extension}")
@@ -47,6 +50,8 @@ def move_and_detect(obj_type):
 
 
 with simulated_robot:
+    NavigateAction([Pose([0, 0, 0])]).resolve().perform()
+
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
     MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
@@ -126,7 +131,8 @@ with simulated_robot:
 
         # Find a pose to place the spoon, move and then place it
         spoon_target_pose = Pose([4.85, 3.3, 0.8], [0, 0, 1, 1])
-        placing_loc = CostmapLocation(target=spoon_target_pose, reachable_for=robot_desig.resolve(), reachable_arm=pickup_arm, used_grasps=[Grasp.TOP]).resolve()
+        placing_loc = CostmapLocation(target=spoon_target_pose, reachable_for=robot_desig.resolve(),
+                                      reachable_arm=pickup_arm, used_grasps=[Grasp.TOP]).resolve()
 
         NavigateAction([placing_loc.pose]).resolve().perform()
 

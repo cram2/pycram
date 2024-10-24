@@ -58,8 +58,9 @@ class PoseGenerator:
         # Determines how many positions should be sampled from the costmap
         if self.number_of_samples == -1:
             self.number_of_samples = self.costmap.map.flatten().shape[0]
-        indices = np.argpartition(self.costmap.map.flatten(), -self.number_of_samples)[-self.number_of_samples:]
-        indices = np.dstack(np.unravel_index(indices, self.costmap.map.shape)).reshape(self.number_of_samples, 2)
+        number_of_samples = min(self.number_of_samples, self.costmap.map.size)
+        indices = np.argpartition(self.costmap.map.flatten(), -number_of_samples)[-number_of_samples:]
+        indices = np.dstack(np.unravel_index(indices, self.costmap.map.shape)).reshape(number_of_samples, 2)
 
         height = self.costmap.map.shape[0]
         width = self.costmap.map.shape[1]
