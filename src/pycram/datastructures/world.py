@@ -285,7 +285,6 @@ class World(StateEntity, ABC):
             self.world_sync = None
         else:
             self.world_sync: WorldSync = WorldSync(self, self.prospection_world)
-            self.pause_world_sync()
             self.world_sync.start()
 
     def preprocess_object_file_and_get_its_cache_path(self, path: str, ignore_cached_files: bool,
@@ -987,7 +986,6 @@ class World(StateEntity, ABC):
         Terminate the world sync thread.
         """
         self.world_sync.terminate = True
-        self.resume_world_sync()
         self.world_sync.join()
 
     def save_state(self, state_id: Optional[int] = None, use_same_id: bool = False) -> int:
@@ -1525,7 +1523,8 @@ class World(StateEntity, ABC):
         """
         Resume the world synchronization.
         """
-        self.world_sync.sync_lock.release()
+        if self.world_sync.sync_lock.locked():
+            self.world_sync.sync_lock.release()
 
     def add_vis_axis(self, pose: Pose) -> int:
         """
@@ -1670,10 +1669,8 @@ class WorldSync(threading.Thread):
         """
         while not self.terminate:
             self.sync_lock.acquire()
-            if not self.terminate:
-                self.sync_worlds()
-            self.sync_lock.release()
             time.sleep(WorldSync.WAIT_TIME_AS_N_SIMULATION_STEPS * self.world.simulation_time_step)
+            self.sync_lock.release()
 
     def get_world_object(self, prospection_object: Object) -> Object:
         """
