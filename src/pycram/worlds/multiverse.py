@@ -47,12 +47,6 @@ class Multiverse(World):
     A flag to check if the multiverse resources have been added.
     """
 
-    simulation: Optional[str] = None
-    """
-    The simulation name to be used in the Multiverse world (this is the name defined in
-     the multiverse configuration file).
-    """
-
     Object.extension_to_description_type[MJCF.get_file_extension()] = MJCF
     """
     Add the MJCF description extension to the extension to description type mapping for the objects.
@@ -60,14 +54,12 @@ class Multiverse(World):
 
     def __init__(self, mode: Optional[WorldMode] = WorldMode.DIRECT,
                  is_prospection: Optional[bool] = False,
-                 simulation_name: str = "pycram_test",
                  clear_cache: bool = False):
         """
         Initialize the Multiverse Socket and the PyCram World.
 
         :param mode: The mode of the world (DIRECT or GUI).
         :param is_prospection: Whether the world is prospection or not.
-        :param simulation_name: The name of the simulation.
         :param clear_cache: Whether to clear the cache or not.
         """
 
@@ -75,13 +67,7 @@ class Multiverse(World):
         self.saved_simulator_states: Dict = {}
         self._make_sure_multiverse_resources_are_added(clear_cache=clear_cache)
 
-        if Multiverse.simulation is None:
-            if simulation_name is None:
-                logging.error("Simulation name not provided")
-                raise ValueError("Simulation name not provided")
-            Multiverse.simulation = simulation_name
-
-        self.simulation = (self.conf.prospection_world_prefix if is_prospection else "") + Multiverse.simulation
+        self.simulation = self.conf.prospection_world_prefix if is_prospection else "belief_state"
         self.client_manager = MultiverseClientManager(self.conf.simulation_wait_time_factor)
         self._init_clients(is_prospection=is_prospection)
 

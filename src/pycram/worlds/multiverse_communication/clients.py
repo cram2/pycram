@@ -32,9 +32,8 @@ class MultiverseClient(MultiverseSocket):
             increase or decrease the wait time for the simulation.
         """
         meta_data = MultiverseMetaData()
-        meta_data.simulation_name = (Conf.prospection_world_prefix if is_prospection_world else "") + name
-        meta_data.world_name = ((Conf.prospection_world_prefix if is_prospection_world else "")
-                                + meta_data.world_name)
+        meta_data.simulation_name = (Conf.prospection_world_prefix if is_prospection_world else "belief_state") + name
+        meta_data.world_name = Conf.prospection_world_prefix if is_prospection_world else "belief_state"
         self.is_prospection_world = is_prospection_world
         super().__init__(port=str(port), meta_data=meta_data)
         self.simulation_wait_time_factor = simulation_wait_time_factor
