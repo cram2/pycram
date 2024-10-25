@@ -1,14 +1,17 @@
 from pycram.datastructures.enums import ObjectType, GripperState, Arms
+from pycram.datastructures.world import UseProspectionWorld
 from pycram.process_module import simulated_robot, real_robot
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.pose import Pose
 from pycram.worlds.multiverse import Multiverse
 from pycram.designators.action_designator import SetGripperAction
+from pycram.ros_utils.robot_state_updater import RobotStateUpdater
 
 
 if __name__ == '__main__':
     # Create a new world
-    world = Multiverse(simulation_name="ur5e_with_task_board")
+    world = Multiverse()
+    RobotStateUpdater(tf_topic="/tf", joint_state_topic="/real/ur5e/joint_states")
 
     # Load the robot and the gripper
     robot = Object("ur5e", ObjectType.ROBOT, "universal_robot/ur5e/urdf/ur5e.urdf")
@@ -25,5 +28,6 @@ if __name__ == '__main__':
     # Perform the plan
     with real_robot:
         SetGripperAction(robot_arms, [GripperState.CLOSE]).resolve().perform()
+
 
     world.exit()
