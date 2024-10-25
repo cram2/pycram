@@ -56,8 +56,8 @@ class RobotStateUpdater:
         """
         try:
             msg = wait_for_message(self.joint_state_topic, JointState)
-            for name, position in zip(msg.name, msg.position):
-                World.robot.set_joint_position(name, position)
+            joint_positions = dict(zip(msg.name, msg.position))
+            World.robot.set_multiple_joint_positions(joint_positions)
         except AttributeError:
             pass
 
