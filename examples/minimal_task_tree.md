@@ -7,7 +7,7 @@ jupyter:
       format_version: '1.3'
       jupytext_version: 1.16.3
   kernelspec:
-    display_name: Python 3
+    display_name: Python 3 (ipykernel)
     language: python
     name: python3
 ---
@@ -127,7 +127,7 @@ print(pycram.tasktree.task_tree.children[0])
 The task tree can also be reset to an empty one by invoking
 
 ```python
-pycram.tasktree.reset_tree()
+pycram.tasktree.task_tree.reset_tree()
 print(anytree.RenderTree(pycram.tasktree.task_tree, style=anytree.render.AsciiStyle()))
 ```
 
@@ -136,11 +136,11 @@ If a plan fails using the PlanFailure exception, the plan will not stop. Instead
 ```python
 @pycram.tasktree.with_tree
 def failing_plan():
-    raise pycram.plan_failures.PlanFailure("Oopsie!")
+    raise pycram.failures.PlanFailure("Oopsie!")
 
 try:
     failing_plan()
-except pycram.plan_failures.PlanFailure as e:
+except pycram.failures.PlanFailure as e:
     print(e)
 ```
 

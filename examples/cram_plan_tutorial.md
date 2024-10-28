@@ -19,14 +19,15 @@ In this tutorial we will walk through the capabilities of task trees in pycram.
 First we have to import the necessary functionality from pycram.
 
 ```python
-from pycram.worlds import BulletWorld
+from pycram.worlds.bullet_world import BulletWorld
 from pycram.robot_description import RobotDescription
-import pycram.task
+import pycram.tasktree
 from pycram.datastructures.enums import Arms, ObjectType
 from pycram.designators.action_designator import *
 from pycram.designators.location_designator import *
 from pycram.process_module import simulated_robot
 from pycram.designators.object_designator import *
+from pycram.datastructures.pose import Pose
 import anytree
 import pycram.failures
 ```
@@ -37,7 +38,7 @@ Next we will create a bullet world with a PR2 in a kitchen containing milk and c
 world = BulletWorld()
 robot = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
 robot_desig = ObjectDesignatorDescription(names=['pr2']).resolve()
-apartment = Object("apartment", "environment", "apartment.urdf", position=[-1.5, -2.5, 0])
+apartment = Object("apartment", "environment", "apartment.urdf", pose=Pose([-1.5, -2.5, 0]))
 apartment_desig = ObjectDesignatorDescription(names=['apartment']).resolve()
 table_top = apartment.get_link_position("cooktop")
 # milk = Object("milk", "milk", "milk.stl", position=[table_top[0]-0.15, table_top[1], table_top[2]])
@@ -53,7 +54,7 @@ import numpy as np
 
 
 def get_n_random_positions(pose_list, n=4, dist=0.5, random=True):
-    positions = [pos[0] for pos in pose_list[:1000]]
+    positions = [pose.position_as_list() for pose in pose_list[:1000]]
     all_indices = list(range(len(positions)))
     print(len(all_indices))
     pos_idx = np.random.choice(all_indices) if random else all_indices[0]
@@ -98,11 +99,11 @@ def get_n_random_positions(pose_list, n=4, dist=0.5, random=True):
 
 ```python
 from pycram.costmaps import SemanticCostmap
-from pycram.pose_generator_and_validator import pose_generator
+from pycram.pose_generator_and_validator import PoseGenerator
 
 scm = SemanticCostmap(apartment, "island_countertop")
-poses_list = list(pose_generator(scm, number_of_samples=-1))
-poses_list.sort(reverse=True, key=lambda x: np.linalg.norm(x[0]))
+poses_list = list(PoseGenerator(scm, number_of_samples=-1))
+poses_list.sort(reverse=True, key=lambda x: np.linalg.norm(x.position_as_list()))
 object_poses = get_n_random_positions(poses_list)
 object_names = ["bowl", "milk", "breakfast_cereal", "spoon"]
 objects = {}
@@ -111,9 +112,9 @@ for obj_name, obj_pose in zip(object_names, object_poses):
     print(obj_name)
     print(obj_pose)
     objects[obj_name] = Object(obj_name, obj_name, obj_name + ".stl",
-                               position=[obj_pose[0][0], obj_pose[0][1], table_top[2]])
-    objects[obj_name].move_base_to_origin_pos()
-    objects[obj_name].original_pose = objects[obj_name].get_position_and_orientation()
+                               pose=Pose([obj_pose.position.x, obj_pose.position.y, table_top.z]))
+    objects[obj_name].move_base_to_origin_pose()
+    objects[obj_name].original_pose = objects[obj_name].pose
     object_desig[obj_name] = ObjectDesignatorDescription(names=[obj_name], types=[obj_name]).resolve()
 print(object_poses)
 ```
@@ -125,12 +126,12 @@ import pybullet as p
 
 for link_name in apartment.links.keys():
     world.add_vis_axis(apartment.get_link_pose(link_name))
-    p.addUserDebugText(link_name, apartment.get_link_position(link_name))
+    #p.addUserDebugText(link_name, apartment.get_link_position(link_name), physicsClientId=world.id)
 ```
 
 ```python
 world.remove_vis_axis()
-p.removeAllUserDebugItems()
+#p.removeAllUserDebugItems()
 ```
 
 Finally, we create a plan where the robot parks his arms, walks to the kitchen counter and picks the thingy. Then we
@@ -138,11 +139,12 @@ execute the plan.
 
 ```python
 from pycram.external_interfaces.ik import IKError
+from pycram.datastructures.enums import Grasp
 
 
-@pycram.task.with_tree
+@pycram.tasktree.with_tree
 def plan(obj, obj_desig, torso=0.2, place="countertop"):
-    world.reset_bullet_world()
+    world.reset_world()
     with simulated_robot:
         ParkArmsActionPerformable(Arms.BOTH).perform()
 
@@ -154,7 +156,7 @@ def plan(obj, obj_desig, torso=0.2, place="countertop"):
         ParkArmsActionPerformable(Arms.BOTH).perform()
         good_torsos.append(torso)
         picked_up_arm = pose.reachable_arms[0]
-        PickUpActionPerformable(object_designator=obj_desig, arm=pose.reachable_arms[0], grasp="front").perform()
+        PickUpActionPerformable(object_designator=obj_desig, arm=pose.reachable_arms[0], grasp=Grasp.FRONT).perform()
 
         ParkArmsActionPerformable(Arms.BOTH).perform()
         scm = SemanticCostmapLocation(place, apartment_desig, obj_desig)
@@ -180,7 +182,7 @@ for obj_name in object_names:
         try:
             plan(objects[obj_name], object_desig[obj_name], torso=torso, place="island_countertop")
             done = True
-            objects[obj_name].original_pose = objects[obj_name].get_position_and_orientation()
+            objects[obj_name].original_pose = objects[obj_name].pose
         except (StopIteration, IKError) as e:
             print(type(e))
             print(e)
@@ -195,7 +197,7 @@ Now we get the task tree from its module and render it. Rendering can be done wi
 anytree package. We will use ascii rendering here for ease of displaying.
 
 ```python
-tt = pycram.task.task_tree
+tt = pycram.tasktree.task_tree
 print(anytree.RenderTree(tt, style=anytree.render.AsciiStyle()))
 ```
 
@@ -205,8 +207,8 @@ tree. Hence, a NoOperation node is the root of any tree. If we re-execute the pl
 tree even though they are not connected.
 
 ```python
-world.reset_bullet_world()
-plan()
+world.reset_world()
+plan(objects["milk"], object_desig["milk"])
 print(anytree.RenderTree(tt, style=anytree.render.AsciiStyle()))
 ```
 
@@ -216,9 +218,9 @@ reset objects are available. At the end of a with block the old state is restore
 called ``simulation()``.
 
 ```python
-with pycram.task.SimulatedTaskTree() as stt:
-    print(anytree.RenderTree(pycram.task.task_tree, style=anytree.render.AsciiStyle()))
-print(anytree.RenderTree(pycram.task.task_tree, style=anytree.render.AsciiStyle()))
+with pycram.tasktree.SimulatedTaskTree() as stt:
+    print(anytree.RenderTree(pycram.tasktree.task_tree, style=anytree.render.AsciiStyle()))
+print(anytree.RenderTree(pycram.tasktree.task_tree, style=anytree.render.AsciiStyle()))
 ```
 
 Task tree can be manipulated with ordinary anytree manipulation. If we for example want to discard the second plan, we
@@ -233,30 +235,30 @@ We can now re-execute this (modified) plan by executing the leaf in pre-ordering
 functionality. This will not append the re-execution to the task tree.
 
 ```python
-world.reset_bullet_world()
+world.reset_world()
 with simulated_robot:
-    [node.code.execute() for node in tt.root.leaves]
-print(anytree.RenderTree(pycram.task.task_tree, style=anytree.render.AsciiStyle()))
+    [node.action.perform() for node in tt.root.leaves]
+print(anytree.RenderTree(pycram.tasktree.task_tree, style=anytree.render.AsciiStyle()))
 ```
 
 Nodes in the task tree contain additional information about the status and time of a task.
 
 ```python
-print(pycram.task.task_tree.children[0])
+print(pycram.tasktree.task_tree.children[0])
 ```
 
 The task tree can also be reset to an empty one by invoking:
 
 ```python
-pycram.task.reset_tree()
-print(anytree.RenderTree(pycram.task.task_tree, style=anytree.render.AsciiStyle()))
+pycram.tasktree.task_tree.reset_tree()
+print(anytree.RenderTree(pycram.tasktree.task_tree, style=anytree.render.AsciiStyle()))
 ```
 
 If a plan fails using the PlanFailure exception, the plan will not stop. Instead, the error will be logged and saved in
 the task tree as a failed subtask. First let's create a simple failing plan and execute it.
 
 ```python
-@pycram.task.with_tree
+@pycram.tasktree.with_tree
 def failing_plan():
     raise pycram.plan_failures.PlanFailure("Oopsie!")
 
@@ -267,8 +269,8 @@ failing_plan()
 We can now investigate the nodes of the tree, and we will see that the tree indeed contains a failed task.
 
 ```python
-print(anytree.RenderTree(pycram.task.task_tree, style=anytree.render.AsciiStyle()))
-print(pycram.task.task_tree.children[0])
+print(anytree.RenderTree(pycram.tasktree.task_tree, style=anytree.render.AsciiStyle()))
+print(pycram.tasktree.task_tree.children[0])
 ```
 
 ```python
