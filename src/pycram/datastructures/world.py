@@ -1540,8 +1540,6 @@ class UseProspectionWorld:
         with UseProspectionWorld():
             NavigateAction.Action([[1, 0, 0], [0, 0, 0, 1]]).perform()
     """
-
-
     def __init__(self):
         self.prev_world: Optional[World] = None
         # The previous world is saved to restore it after the with block is exited.

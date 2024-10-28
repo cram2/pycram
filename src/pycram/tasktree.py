@@ -208,6 +208,9 @@ class TaskTree(metaclass=Singleton):
         """
         self.root = TaskTreeNode()
         self.current_node = self.root
+        self.children = self.root.children
+        self.name = "TaskTree"
+        self.insert = self.root.insert
 
     def __len__(self):
         """
