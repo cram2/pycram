@@ -191,6 +191,7 @@ print(f"Milk visible: {visible}")
 
 ```python
 from pycram.world_reasoning import contact
+from pycram.datastructures.world import World
 
 milk.set_position(Pose([1, 0, 0.05]))
 
