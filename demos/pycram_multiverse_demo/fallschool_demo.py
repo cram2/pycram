@@ -1,3 +1,5 @@
+from tf.transformations import quaternion_from_euler
+
 from pycram.datastructures.dataclasses import Color
 from pycram.datastructures.enums import ObjectType, Arms
 from pycram.datastructures.pose import Pose
@@ -19,12 +21,20 @@ def move_and_detect(obj_type: ObjectType, pick_pose: Pose):
 
     return object_desig
 
-world = Multiverse()
-robot = Object('pr2', ObjectType.ROBOT, f'pr2.urdf', pose=Pose([1.3, 2, 0.01]))
-apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
 
-milk = Object("milk", ObjectType.MILK, f"milk.stl", pose=Pose([2.4, 2, 1.02]),
+world = Multiverse()
+robot = Object('pr2', ObjectType.ROBOT, f'pr2.urdf', pose=Pose([1.3, 2.6, 0.01]))
+apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
+milk = Object("milk", ObjectType.MILK, f"milk.stl", pose=Pose([0.4, 2.6, 1.34]),
               color=Color(1, 0, 0, 1))
+apartment.set_joint_position("fridge_door1_joint", 2)
+# milk.set_orientation(Pose(orientation=[1, 0, 0, 1]))
+# apartment.attach(milk, 'fridge_base')
+fridge_base_pose = apartment.get_link_pose("fridge_base")
+fridge_base_pose.position.z -= 0.12
+fridge_base_pose.position.x += 0.2
+milk.set_pose(fridge_base_pose, base=True)
+
 
 robot_desig = BelieveObject(names=[robot.name])
 apartment_desig = BelieveObject(names=[apartment.name])
@@ -36,9 +46,9 @@ with simulated_robot:
 
     MoveTorsoAction([0.25]).resolve().perform()
 
-    NavigateAction(target_locations=[Pose([1.7, 2, 0])]).resolve().perform()
+    NavigateAction(target_locations=[Pose([1.3, 3, 0.01], quaternion_from_euler(0, 0, 3.14))]).resolve().perform()
 
-    LookAtAction(targets=[Pose([2.6, 2.15, 1])]).resolve().perform()
+    LookAtAction(targets=[Pose(milk.get_position_as_list())]).resolve().perform()
 
     milk_desig = DetectAction(BelieveObject(types=[milk.obj_type])).resolve().perform()
 
