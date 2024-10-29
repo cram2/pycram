@@ -91,7 +91,7 @@ class DefaultDetecting(ProcessModule):
 
     def _execute(self, designator: DetectingMotion):
         robot = World.robot
-        cam_frame_name = RobotDescription.current_robot_description.get_camera_link()
+        cam_link_name = RobotDescription.current_robot_description.get_camera_link()
         camera_description = RobotDescription.current_robot_description.cameras[
             list(RobotDescription.current_robot_description.cameras.keys())[0]]
         front_facing_axis = camera_description.front_facing_axis
@@ -116,7 +116,7 @@ class DefaultDetecting(ProcessModule):
         elif designator.technique == DetectionTechnique.HUMAN_WAVING:
             raise NotImplementedError("Detection by waving human is not yet implemented in simulation")
         for obj in world_objects:
-            if visible(obj, robot.get_link_pose(cam_frame_name), front_facing_axis):
+            if visible(obj, robot.get_link_pose(cam_link_name), front_facing_axis):
                 query_result.append(obj)
         if query_result is None:
             raise PerceptionObjectNotFound(
