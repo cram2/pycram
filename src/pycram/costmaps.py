@@ -17,6 +17,7 @@ from random_events.product_algebra import Event, SimpleEvent
 from random_events.variable import Continuous
 from typing_extensions import Tuple, List, Optional, Iterator
 
+from .ros.logging import logwarn
 from .ros.ros_tools import wait_for_message
 from .datastructures.dataclasses import AxisAlignedBoundingBox
 from .datastructures.pose import Pose
@@ -218,10 +219,15 @@ class Costmap:
         elif self.resolution != other_cm.resolution:
             raise ValueError("To merge two costmaps their resolution must be equal.")
         new_map = np.zeros((self.height, self.width))
-        # A nunpy array of the positions where both costmaps are greater than 0
+        # A numpy array of the positions where both costmaps are greater than 0
         merge = np.logical_and(self.map > 0, other_cm.map > 0)
         new_map[merge] = self.map[merge] * other_cm.map[merge]
-        new_map = (new_map / np.max(new_map)).reshape((self.height, self.width))
+        max_val = np.max(new_map)
+        if max_val > 0:
+            new_map = (new_map / np.max(new_map)).reshape((self.height, self.width))
+        else:
+            new_map = new_map.reshape((self.height, self.width))
+            logwarn("Merged costmap is empty.")
         return Costmap(self.resolution, self.height, self.width, self.origin, new_map)
 
     def __add__(self, other: Costmap) -> Costmap:
