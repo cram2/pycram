@@ -4,6 +4,8 @@ import rospy
 from txaio.tx import sleep
 import os
 import requests
+
+from demos.playingfield.requester import procThorInterface
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.world_concepts.world_object import Object
@@ -13,17 +15,16 @@ from pycram.datastructures.dataclasses import Color
 from demos.playingfield.sandcastle import generic_plan
 from pycram import World
 from pycram.external_interfaces.giskard import giskard_wrapper
-from pycram.plan_failures import PlanFailure, IKError
-from pycram.tasktree import task_tree, reset_tree
+from pycram.failures import PlanFailure, IKError
+from pycram.tasktree import task_tree
 from sandcastle import param_plan,param_plan2
 import traceback
 import hashlib
 import sqlalchemy
 import pycram.orm.base
 import pycram.external_interfaces.giskard as giskard
-import requester
+from requester import ProcThorInterface
 
-# extension = ObjectDescription.get_file_extension()
 # Many Plans in many environments with many robots
 # Don't know where to store NEEM so I start with the memory db
 engine = sqlalchemy.create_engine("sqlite+pysqlite:///:memory:", echo=False)
@@ -32,38 +33,36 @@ session = session_maker()
 # ToDo: Many Plans missing, but this needs function pointers and I am not comfortable with it
 # plans=[]
 robots =[]
-environments=[]
 robot_name="pr2.urdf"
-environment_name="house_2.urdf"
 robots.append(robot_name)
-# environments.append("house_42.urdf")g
-environments.append("apartment.urdf")
-environments.append("house_1337.urdf")
-environments.append("house_666.urdf")
-# environments.append(environment_name)
-# environments.append("Murphys_Law")
 pycram.orm.base.Base.metadata.create_all(engine)
 session.commit()
-# Example usage
-base_url = 'http://192.168.102.44/environment/'
+#Set up for ProcThor stuff Example usage
+base_url = 'http://procthor.informatik.uni-bremen.de/environment/'
 download_folder = "/home/nleusmann/catkin_ws/src/pycram/resources/tmp/"
-if len(os.listdir(download_folder)) == 0:
-    print("Downloading new environments")
-    requester.download_all_files(base_url, download_folder)
-else:
-    print("Environment folder not empty. Stopped download")
+procThorInterface=ProcThorInterface(base_url="http://procthor.informatik.uni-bremen.de:5000/")
+number_of_test_environment=5
 
+#Get Environments
+number_of_known_environment=len(procThorInterface.get_all_environments_stored_below_folder(procThorInterface.source_folder))
+print("Number of known Environments:{}".format(number_of_known_environment))
+print("Number of needed Testenvironments:{}".format(number_of_test_environment))
+
+if number_of_known_environment < number_of_test_environment:
+    print("Downloading missing environments...")
+    procThorInterface.download_num_random_environment(number_of_test_environment-number_of_known_environment)
 
 def run():
+    known_environments=procThorInterface.get_all_environments_stored_below_folder(procThorInterface.source_folder)
     v=0
     works=0
     fails=0
     for robot in robots:
-        for environment in requester.get_all_environments(download_folder):
+        for environment in known_environments:
             v+=1
-            print("Trying plan: {} with robot: {} in: {}".format("param_plan", robot, environment))
+            print("Trying plan: {} with robot: {} in: {}".format("param_plan", robot, environment["name"]))
             try:
-                param_plan2(robot, environment)
+                param_plan(robot, environment["storage_place"])
                 works+=1
                 print("Successfully!\n Overall successful tries: {}".format(works))
 
@@ -89,13 +88,13 @@ def run():
             finally:
                 try:
                     process_meta_data = pycram.orm.base.ProcessMetaData()
-                    process_meta_data.description = "CEO Test run number {} robot:{} enviroment:{}".format(v,robot,environment)
+                    process_meta_data.description = "CEO Test run number {} robot:{} enviroment:{}".format(v,robot,environment["name"])
                     process_meta_data.insert(session)
                     task_tree.root.insert(session)
                 except Exception as e:
                     traceback.print_exc()
                     print("Error while storing the NEEM. This should not happen.")
-                reset_tree()
+                task_tree.reset_tree()
                 if World.current_world is not None:
                     World.current_world.exit()
                 # sleep(2)
@@ -110,6 +109,7 @@ def runWorld():
     v = 0
     works = 0
     fails = 0
+    known_environments = procThorInterface.get_all_environments_stored_below_folder(procThorInterface.source_folder)
     world=BulletWorld(WorldMode.GUI)
     apartment=None
     milk_pos = Pose([1, -1.78, 0.55], [1, 0, 0, 0])
@@ -117,12 +117,11 @@ def runWorld():
                   color=Color(1, 0, 0, 1))
     for robot in robots:
         robot_obj=Object("pr2", ObjectType.ROBOT, robot, pose=Pose([1, 2, 0]))
-        for environment in requester.get_all_environments(download_folder):
+        for environment in known_environments:
             v += 1
-            print("Trying plan: {} with robot: {} in: {}".format("param_plan", robot, environment))
+            print("Trying plan: {} with robot: {} in: {}".format("param_plan", robot, environment["name"]))
             try:
-                house_name=environment.split("/")[-1].split(".")[0]
-                apartment = Object(house_name, ObjectType.ENVIRONMENT,environment)
+                apartment = Object(environment["name"], ObjectType.ENVIRONMENT,environment["storage_place"])
                 generic_plan(world)
                 works += 1
                 print("Successfully!\n Overall successful tries: {}".format(works))
@@ -147,7 +146,7 @@ def runWorld():
                 except Exception as e:
                     traceback.print_exc()
                     print("Error while storing the NEEM. This should not happen.")
-                reset_tree()
+                task_tree.reset_tree()
                 if World.current_world is not None and apartment is not None:
                     world.remove_object(apartment)
                     milk.set_pose(milk_pos)
@@ -158,4 +157,6 @@ def runWorld():
 
     print("Resume:\nOverall successful tries: {}\nOverall failed tries: {}".format(works, fails))
     World.current_world.exit()
+
+
 runWorld()
