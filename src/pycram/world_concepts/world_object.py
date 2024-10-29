@@ -1135,6 +1135,11 @@ class Object(WorldEntity, HasConcept):
         :param joint_name: The name of the joint
         :param joint_position: The target pose for this joint
         """
+        if (self.joints[joint_name].has_limits and
+                (not self.joints[joint_name].lower_limit <= joint_position <= self.joints[joint_name].upper_limit)):
+            joint_position = np.clip(joint_position, self.joints[joint_name].lower_limit,
+                                     self.joints[joint_name].upper_limit)
+            logwarn(f"Joint position for joint {joint_name} was clipped to the joint limits.")
         if self.world.reset_joint_position(self.joints[joint_name], joint_position):
             self._update_on_joint_position_change()
 
@@ -1153,6 +1158,18 @@ class Object(WorldEntity, HasConcept):
                            for joint_name, joint_position in joint_positions.items()}
         if self.world.set_multiple_joint_positions(joint_positions):
             self._update_on_joint_position_change()
+
+    def clip_joint_positions_to_limits(self, joint_positions: Dict[str, float]) -> Dict[str, float]:
+        """
+        Clip the given joint positions to the joint limits.
+
+        :param joint_positions: A dictionary with the joint names as keys and the target positions as values.
+        :return: A dictionary with the joint names as keys and the clipped positions as values.
+        """
+        return {joint_name: np.clip(joint_position, self.joints[joint_name].lower_limit,
+                                    self.joints[joint_name].upper_limit)
+                if self.joints[joint_name].has_limits else joint_position
+                for joint_name, joint_position in joint_positions.items()}
 
     def _update_on_joint_position_change(self):
         self.update_pose()
