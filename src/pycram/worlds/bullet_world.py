@@ -1,6 +1,7 @@
 # used for delayed evaluation of typing until python 3.11 becomes mainstream
 from __future__ import annotations
 
+import os
 import threading
 import time
 
@@ -447,6 +448,9 @@ class Gui(threading.Thread):
         threading.Thread.__init__(self)
         self.world = world
         self.mode: WorldMode = mode
+
+        if not os.environ["DISPLAY"]:
+            self.mode = WorldMode.DIRECT
 
     def run(self):
         """
