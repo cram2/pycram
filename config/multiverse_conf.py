@@ -47,8 +47,7 @@ class MultiverseConfig(WorldConfig):
     similar to bullet_world which uses the bullet physics engine.
     """
 
-    use_controller: bool = False
-    use_controller = use_controller and not use_static_mode
+    use_controller: bool = True
     """
     Only used when use_static_mode is False. This turns on the controller for the robot joints.
     """

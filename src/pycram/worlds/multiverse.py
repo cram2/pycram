@@ -91,11 +91,13 @@ class Multiverse(World):
 
         self.ray_test_utils = RayTestUtils(self.ray_test_batch, self.object_id_to_name)
 
+        self.is_paused: bool = False
+
         if not self.is_prospection_world:
             self._spawn_floor()
 
         if self.conf.use_static_mode:
-            self.api_requester.pause_simulation()
+            self.pause_simulation()
 
     def _init_clients(self, is_prospection: bool = False):
         """
@@ -155,6 +157,20 @@ class Multiverse(World):
         """
         self.floor = Object("floor", ObjectType.ENVIRONMENT, "plane.urdf",
                             world=self)
+
+    def pause_simulation(self) -> None:
+        """
+        Pause the simulation.
+        """
+        self.api_requester.pause_simulation()
+        self.is_paused = True
+
+    def unpause_simulation(self) -> None:
+        """
+        Unpause the simulation.
+        """
+        self.api_requester.unpause_simulation()
+        self.is_paused = False
 
     def load_generic_object_and_get_id(self, description: GenericObjectDescription,
                                        pose: Optional[Pose] = None) -> int:
@@ -269,7 +285,7 @@ class Multiverse(World):
 
     @validate_joint_position
     def reset_joint_position(self, joint: Joint, joint_position: float) -> bool:
-        if self.conf.use_controller and self.joint_has_actuator(joint):
+        if not self.is_paused and self.conf.use_controller and self.joint_has_actuator(joint):
             self._reset_joint_position_using_controller(joint, joint_position)
         else:
             self._set_multiple_joint_positions_without_controller({joint: joint_position})
@@ -299,7 +315,7 @@ class Multiverse(World):
          errors, but not necessarily that the joint positions are set to the specified values).
         """
 
-        if self.conf.use_controller:
+        if not self.is_paused and self.conf.use_controller:
             controlled_joints = self.get_controlled_joints(list(joint_positions.keys()))
             if len(controlled_joints) > 0:
                 controlled_joint_positions = {joint: joint_positions[joint] for joint in controlled_joints}
@@ -625,9 +641,11 @@ class Multiverse(World):
         Perform a simulation step in the simulator, this is useful when use_static_mode is True.
         """
         if self.conf.use_static_mode:
-            self.api_requester.unpause_simulation()
-            sleep(self.simulation_time_step)
-            self.api_requester.pause_simulation()
+            self.unpause_simulation()
+            if func is not None:
+                func()
+            sleep(self.simulation_time_step if step_seconds is None else step_seconds)
+            self.pause_simulation()
 
     def save_physics_simulator_state(self, state_id: Optional[int] = None, use_same_id: bool = False) -> int:
         if state_id is None:
