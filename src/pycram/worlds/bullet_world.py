@@ -449,7 +449,7 @@ class Gui(threading.Thread):
         self.world = world
         self.mode: WorldMode = mode
 
-        if not os.environ["DISPLAY"]:
+        if not "DISPLAY" in os.environ:
             self.mode = WorldMode.DIRECT
 
     def run(self):
