@@ -16,7 +16,7 @@ jupyter:
 
 In this tutorial we will walk through the capabilities of task trees in pycram.
 
-First we have to import the necessary functionality from pycram.
+Next we will create a bullet world with a PR2 in a kitchen containing milk and cereal.
 
 ```python
 from pycram.worlds.bullet_world import BulletWorld
@@ -31,11 +31,7 @@ from pycram.datastructures.pose import Pose
 from pycram.world_concepts.world_object import Object
 import anytree
 import pycram.failures
-```
 
-Next we will create a bullet world with a PR2 in a kitchen containing milk and cereal.
-
-```python
 world = BulletWorld()
 robot = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
 robot_desig = ObjectDesignatorDescription(names=['pr2']).resolve()
