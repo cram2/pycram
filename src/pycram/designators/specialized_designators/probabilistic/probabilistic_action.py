@@ -1,6 +1,8 @@
 import numpy as np
 import tqdm
-from probabilistic_model.probabilistic_circuit.nx.distributions import GaussianDistribution, SymbolicDistribution
+from probabilistic_model.distributions import GaussianDistribution, SymbolicDistribution
+from probabilistic_model.probabilistic_circuit.nx.distributions.distributions import UnivariateContinuousLeaf, \
+    UnivariateDiscreteLeaf
 from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit, \
     ProductUnit
 from probabilistic_model.utils import MissingDict
@@ -17,9 +19,9 @@ from ....datastructures.enums import Arms as EArms, Grasp as EGrasp, TaskStatus
 from ....datastructures.pose import Pose
 from ....datastructures.world import World
 from ....designator import ActionDesignatorDescription, ObjectDesignatorDescription
+from ....failures import ObjectUnreachable, PlanFailure
 from ....local_transformer import LocalTransformer
 from ....orm.views import PickUpWithContextView
-from ....failures import ObjectUnreachable, PlanFailure
 
 
 class Grasp(SetElement):
@@ -125,17 +127,21 @@ class GaussianCostmapModel:
         Create a fully factorized gaussian at the center of the map.
         """
         centered_model = ProductUnit()
-        centered_model.add_subcircuit(GaussianDistribution(self.relative_x, 0., np.sqrt(self.variance)))
-        centered_model.add_subcircuit(GaussianDistribution(self.relative_y, 0., np.sqrt(self.variance)))
+        centered_model.add_subcircuit(UnivariateContinuousLeaf(
+            GaussianDistribution(self.relative_x, 0., np.sqrt(self.variance))))
+        centered_model.add_subcircuit(UnivariateContinuousLeaf
+                                      (GaussianDistribution(self.relative_y, 0., np.sqrt(self.variance))))
 
         grasp_probabilities = MissingDict(float, {int(element): 1 / len(self.grasp.domain.simple_sets) for element in
                                                   self.grasp.domain.simple_sets})
 
-        centered_model.add_subcircuit(SymbolicDistribution(self.grasp, grasp_probabilities))
+        centered_model.add_subcircuit(UnivariateDiscreteLeaf(
+            SymbolicDistribution(self.grasp, grasp_probabilities)))
 
         arm_probabilities = MissingDict(float, {int(element): 1 / len(self.arm.domain.simple_sets) for element in
                                                 self.arm.domain.simple_sets})
-        centered_model.add_subcircuit(SymbolicDistribution(self.arm, arm_probabilities))
+        centered_model.add_subcircuit(UnivariateDiscreteLeaf(
+            SymbolicDistribution(self.arm, arm_probabilities)))
         return centered_model.probabilistic_circuit
 
     def create_model(self) -> ProbabilisticCircuit:
@@ -206,7 +212,8 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
         pose = Pose(position, frame=self.object_designator.world_object.tf_frame)
         standing_position = LocalTransformer().transform_pose(pose, "map")
         standing_position.position.z = 0
-        action = MoveAndPickUpPerformable(standing_position, self.object_designator, EArms[Arms(int(arm)).name], EGrasp(int(grasp)))
+        action = MoveAndPickUpPerformable(standing_position, self.object_designator, EArms[Arms(int(arm)).name],
+                                          EGrasp(int(grasp)))
         return action
 
     def events_from_occupancy_and_visibility_costmap(self) -> Event:
