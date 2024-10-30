@@ -60,6 +60,7 @@ jobs:
           pip3 install --upgrade pip --root-user-action=ignore
           cd /opt/ros/overlay_ws/src/pycram
           pip3 install -r requirements.txt
+          sudo apt-get install -y libpq-dev
           pip3 install -r requirements-resolver.txt
 
       - name: Install pytest & pyjpt
