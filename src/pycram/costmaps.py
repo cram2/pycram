@@ -454,6 +454,7 @@ class OccupancyCostmap(Costmap):
         # 16383 is the maximal number of rays that can be processed in a batch
         i = 0
         j = 0
+        floor_id = self.world.get_object_by_name("floor").id
         for n in self._chunks(np.array(rays), 16380):
             r_t = World.current_world.ray_test_batch(n[:, 0], n[:, 1], num_threads=0)
             while r_t is None:
@@ -462,10 +463,10 @@ class OccupancyCostmap(Costmap):
             if World.robot:
                 attached_objs_id = [o.id for o in self.world.robot.attachments.keys()]
                 res[i:j] = [
-                    1 if ray[0] == -1 or ray[0] == self.world.robot.id or ray[0] in attached_objs_id else 0 for
+                    1 if ray[0] in [-1, self.world.robot.id, floor_id] + attached_objs_id else 0 for
                     ray in r_t]
             else:
-                res[i:j] = [1 if ray[0] == -1 else 0 for ray in r_t]
+                res[i:j] = [1 if ray[0] in [-1, floor_id] else 0 for ray in r_t]
             i += len(n)
 
         res = np.flip(np.reshape(np.array(res), (size, size)))
