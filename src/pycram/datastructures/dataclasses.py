@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from matplotlib import pyplot as plt
 from std_msgs.msg import ColorRGBA
 from typing_extensions import List, Optional, Tuple, Callable, Dict, Any, Union, TYPE_CHECKING
 from .enums import JointType, Shape
@@ -113,6 +114,32 @@ class Color:
             return ColorRGBA(r=value(0), g=value(255), b=value(255), a=1.0)
 
         return converted_color
+
+    @staticmethod
+    def gaussian_color_map(value, min_val=0.0, max_val=0.4, colormap='viridis'):
+        """
+        Maps a Gaussian-scaled value to a `ColorRGBA` object for color visualization.
+
+        This function normalizes `value` within a specified range and maps it to an RGB color
+        using a specified colormap. The alpha (opacity) is set to full (1.0).
+
+        Args:
+            value (float): The Gaussian value to map, expected within `min_val` and `max_val`.
+            min_val (float, optional): Minimum value of the mapping range. Defaults to 0.0.
+            max_val (float, optional): Maximum value of the mapping range. Defaults to 0.4.
+            colormap (str, optional): The name of the Matplotlib colormap to use. Defaults to 'viridis'.
+
+        Returns:
+            ColorRGBA: A `ColorRGBA` object where the RGB channels correspond to the color
+                       mapped from `value` using the specified colormap, and alpha is 1.0.
+        """
+        clamped_value = max(min(value, max_val), min_val)
+        normalized_value = (clamped_value - min_val) / (max_val - min_val)
+
+        color_map = plt.get_cmap(colormap)
+        rgba_color = color_map(normalized_value)
+
+        return ColorRGBA(r=rgba_color[0], g=rgba_color[1], b=rgba_color[2], a=1.0)
 
 
 @dataclass
