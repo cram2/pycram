@@ -102,7 +102,7 @@ scm = SemanticCostmap(apartment, "island_countertop")
 poses_list = list(PoseGenerator(scm, number_of_samples=-1))
 poses_list.sort(reverse=True, key=lambda x: np.linalg.norm(x.position_as_list()))
 object_poses = get_n_random_positions(poses_list)
-object_names = ["bowl", "milk", "breakfast_cereal", "spoon"]
+object_names = ["bowl", "breakfast_cereal", "spoon"]
 objects = {}
 object_desig = {}
 for obj_name, obj_pose in zip(object_names, object_poses):
@@ -119,7 +119,7 @@ print(object_poses)
 If You want to visualize all apartment frames
 
 ```python
-import pybullet as p
+import pycram_bullet as p
 
 for link_name in apartment.links.keys():
     world.add_vis_axis(apartment.get_link_pose(link_name))
@@ -157,7 +157,12 @@ def plan(obj, obj_desig, torso=0.2, place="countertop"):
 
         ParkArmsActionPerformable(Arms.BOTH).perform()
         scm = SemanticCostmapLocation(place, apartment_desig, obj_desig)
-        pose_island = scm.resolve()
+        scm = iter(scm)
+        pose_island = None
+        for i in range(np.random.randint(5, 15)):
+            pose_island = next(scm)
+        print(pose_island)
+
 
         place_location = CostmapLocation(target=pose_island.pose, reachable_for=robot_desig,
                                          reachable_arm=picked_up_arm)
@@ -205,7 +210,7 @@ tree even though they are not connected.
 
 ```python
 world.reset_world()
-plan(objects["milk"], object_desig["milk"])
+plan(objects["bowl"], object_desig["bowl"], torso=0.25)
 print(anytree.RenderTree(tt, style=anytree.render.AsciiStyle()))
 ```
 
@@ -251,16 +256,18 @@ pycram.tasktree.task_tree.reset_tree()
 print(anytree.RenderTree(pycram.tasktree.task_tree, style=anytree.render.AsciiStyle()))
 ```
 
-If a plan fails using the PlanFailure exception, the plan will not stop. Instead, the error will be logged and saved in
-the task tree as a failed subtask. First let's create a simple failing plan and execute it.
+If a plan fails using the PlanFailure exception, the plan will stop and raise the respective error. 
+Additionally, the error will be logged in the node of the TaskTree. First let's create a simple failing plan and execute it.
 
 ```python
 @pycram.tasktree.with_tree
 def failing_plan():
-    raise pycram.plan_failures.PlanFailure("Oopsie!")
+    raise pycram.failures.PlanFailure("Oopsie!")
 
-
-failing_plan()
+try:
+    failing_plan()
+except pycram.failures.PlanFailure as e:
+    print(e)
 ```
 
 We can now investigate the nodes of the tree, and we will see that the tree indeed contains a failed task.
