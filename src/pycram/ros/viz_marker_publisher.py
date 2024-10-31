@@ -560,27 +560,24 @@ class CostmapPublisher:
         self.interval = interval
         self.log_message = None
 
-    def publish(self, poses: List[Pose], size: float = None, color: Optional[List] = None, name: Optional[str] = None):
+    def publish(self, poses: List[Pose], size: float = None, name: Optional[str] = None, scale: Optional[float] = 0.4):
         """
         Publish a pose or an object into the MarkerArray.
         Priorities to add an object if possible
 
         :param poses: List of Pose of the Costmap
-        :param color: Color of the marker if no object is given
+        :param scale: Scale of the z-axis of the costmap
         :param name: Name of the marker
         """
 
-        if color is None:
-            color = [1, 0, 1, 1]
-
         self.start_time = time.time()
-        thread = threading.Thread(target=self._publish, args=(poses, name, color, size))
+        thread = threading.Thread(target=self._publish, args=(poses, name, size, scale))
         thread.start()
         # rospy.loginfo(self.log_message)
         thread.join()
 
     def _publish(self, poses: List[Pose], name: Optional[str] = None,
-                 color: Optional[List] = None, size=None):
+                 size=None, scale=0.4):
         """
         Publish the marker into the MarkerArray
         """
@@ -590,17 +587,17 @@ class CostmapPublisher:
         while not stop_thread:
             if time.time() - self.start_time > duration:
                 stop_thread = True
-            self._publish_costmap(name=name, poses=poses, color=color, size=size)
+            self._publish_costmap(name=name, poses=poses, size=size, scale=scale)
 
             rospy.sleep(self.interval)
 
-    def _publish_costmap(self, name: str, poses: List[Pose], color: Optional[List] = None, size=None):
+    def _publish_costmap(self, name: str, poses: List[Pose], size=None, scale=0.4):
         """
         Publish a Pose as a marker
 
         :param name: Name of the marker
         :param pose: Pose of the marker
-        :param color: Color of the marker
+        :param scale: Scale of the z-axis of the costmap
         """
 
         if name is None:
@@ -610,16 +607,13 @@ class CostmapPublisher:
             self._update_marker(self.marker_overview[name], new_poses=poses)
             return
 
-        color_rgba = ColorRGBA(*color)
         self._make_marker_array(name=name, marker_type=Marker.POINTS, costmap_poses=poses,
-                                marker_scales=(size, size, size), color_rgba=color_rgba)
+                                marker_scales=(size, size, size), z_scale=scale)
         self.marker_array_pub.publish(self.marker)
         self.log_message = f"Pose '{name}' published"
 
     def _make_marker_array(self, name, marker_type: int, costmap_poses: List[Pose],
-                           marker_scales: Tuple = (1.0, 1.0, 1.0),
-                           color_rgba: ColorRGBA = ColorRGBA(*[1.0, 1.0, 1.0, 1.0]),
-                           path_to_resource: Optional[str] = None):
+                           marker_scales: Tuple = (1.0, 1.0, 1.0), z_scale: float = 0.4):
         """
         Create a Marker and add it to the MarkerArray
 
@@ -627,8 +621,7 @@ class CostmapPublisher:
         :param marker_type: Type of the marker to create
         :param marker_pose: Pose of the marker
         :param marker_scales: individual scaling of the markers axes
-        :param color_rgba: Color of the marker as RGBA
-        :param path_to_resource: Path to the resource of a Bulletworld object
+        :param scale: Scale of the z-axis of the costmap
         """
 
         frame_id = "pycram/map"
@@ -640,13 +633,11 @@ class CostmapPublisher:
         new_marker.type = marker_type
         new_marker.action = Marker.ADD
         for costmap_pose in costmap_poses:
+            color_rgba = Color.gaussian_color_map(costmap_pose.position.z, 0, z_scale)
             new_marker.scale.x = marker_scales[0]
             new_marker.scale.y = marker_scales[1]
             new_marker.scale.z = marker_scales[2]
-            new_marker.color.a = color_rgba.a
-            new_marker.color.r = color_rgba.r
-            new_marker.color.g = color_rgba.g
-            new_marker.color.b = color_rgba.b
+            new_marker.colors.append(color_rgba)
 
             point = Point()
             point.x = costmap_pose.position.x
