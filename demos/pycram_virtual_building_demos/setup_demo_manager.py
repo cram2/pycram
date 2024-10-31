@@ -5,7 +5,6 @@ from IPython.core.display_functions import clear_output
 from demos.pycram_virtual_building_demos.src.cleanup_demo import cleanup_demo
 from demos.pycram_virtual_building_demos.src.generlized_actions_demo import start_generalized_demo
 from demos.pycram_virtual_building_demos.src.transport_demo import transporting_demo
-from pycram.utils import suppress_stdout_stderr
 
 # sys.path.insert(0, '/home/vee/robocup_workspaces/pycram_ws/src/pycram')
 sys.path.insert(0, '/home/jovyan/workspace/ros/src/pycram')
@@ -40,6 +39,10 @@ def start_demo():
     update_text(text_widget, 'Loading process~ Please wait...')
 
     world = BulletWorld(WorldMode.DIRECT)
+
+    # Set this to True to publish costmaps and axis marker during the demo. May slow down the simulation.
+    world.allow_publish_debug_poses = False
+
     VizMarkerPublisher()
     robot = Object(robot_name, ObjectType.ROBOT, f"{robot_name}{extension}", pose=Pose([1, 2, 0]))
     apartment = Object(environment_param, ObjectType.ENVIRONMENT, f"{environment_param}{extension}")
