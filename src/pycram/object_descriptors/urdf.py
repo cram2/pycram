@@ -16,7 +16,7 @@ from ..description import JointDescription as AbstractJointDescription, \
     LinkDescription as AbstractLinkDescription, ObjectDescription as AbstractObjectDescription
 from ..datastructures.dataclasses import Color, VisualShape, BoxVisualShape, CylinderVisualShape, \
     SphereVisualShape, MeshVisualShape
-from ..utils import suppress_stdout_stderr
+from ..utils import load_urdf_silently, suppress_stdout_stderr
 
 
 class LinkDescription(AbstractLinkDescription):
@@ -176,7 +176,7 @@ class ObjectDescription(AbstractObjectDescription):
         with open(path, 'r') as file:
             # Since parsing URDF causes a lot of warning messages which can't be deactivated, we suppress them
             with suppress_stdout_stderr():
-                return URDF.from_xml_string(file.read())
+                return load_urdf_silently(file.read(), from_string_instead_of_file=True)
 
     def generate_from_mesh_file(self, path: str, name: str, color: Optional[Color] = Color()) -> str:
         """
