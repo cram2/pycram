@@ -3,9 +3,10 @@ import rospy
 from typing_extensions import Any
 from scipy.spatial.transform import Rotation as R
 
-from ..datastructures.enums import JointType
+from ..datastructures.enums import JointType, Grasp
 from ..external_interfaces.ik import request_ik
 from ..external_interfaces.robokudo import query_object
+from ..helper import adjust_grasp_for_object_rotation
 from ..utils import _apply_ik
 from ..process_module import ProcessModule
 from ..external_interfaces import giskard
@@ -29,24 +30,22 @@ class DefaultNavigation(ProcessModule):
 
 class DefaultMoveHead(ProcessModule):
     """
-    This process module moves the head to look at a specific point in the world coordinate frame.
-    This point can either be a position or an object.
+    Moves the robot's head to look at a specified target point in the world coordinate frame.
+    The target can be either a position or an object.
     """
 
     def _execute(self, desig: LookingMotion):
         target = desig.target
         robot = World.robot
-
         local_transformer = LocalTransformer()
 
-        # since its usually joint1, link1, joint2, link2, to be able to catch joint1, even though we only use the
-        # kinematic chain from link1 to link2, we need to use the link0 as the first link, even though its technically
-        # not in this kinematic chain
-        pan_link = RobotDescription.current_robot_description.kinematic_chains["neck"].links[1]
-        tilt_link = RobotDescription.current_robot_description.kinematic_chains["neck"].links[2]
+        neck = RobotDescription.current_robot_description.get_neck()
+        pan_link = neck["yaw"][0]
+        tilt_link = neck["pitch"][0]
 
-        pan_joint = RobotDescription.current_robot_description.kinematic_chains["neck"].joints[0]
-        tilt_joint = RobotDescription.current_robot_description.kinematic_chains["neck"].joints[1]
+        pan_joint = neck["yaw"][1]
+        tilt_joint = neck["pitch"][1]
+
         pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame(pan_link)).position_as_list()
         pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame(tilt_link)).position_as_list()
 
@@ -58,6 +57,10 @@ class DefaultMoveHead(ProcessModule):
 
         new_tilt = -np.arctan2(rotation_tilt_offset[2],
                                np.sqrt(rotation_tilt_offset[0] ** 2 + rotation_tilt_offset[1] ** 2))
+
+        # @TODO: find a better way to handle this
+        if RobotDescription.current_robot_description.name in {"iCub", "tiago_dual"}:
+            new_tilt = -new_tilt
 
         current_pan = robot.get_joint_position(pan_joint)
         current_tilt = robot.get_joint_position(tilt_joint)
@@ -149,6 +152,7 @@ class DefaultMoveJoints(ProcessModule):
         robot.set_joint_positions(joint_poses)
         return ",", ","
 
+
 class DefaultWorldStateDetecting(ProcessModule):
     """
     This process moduledetectes an object even if it is not in the field of view of the robot.
@@ -161,18 +165,31 @@ class DefaultWorldStateDetecting(ProcessModule):
 
 class DefaultOpen(ProcessModule):
     """
-    Low-level implementation of opening a container in the simulation. Assumes the handle is already grasped.
+    Low-level implementation for opening a container in the simulation. Assumes that
+    the handle has already been grasped by the robot.
     """
 
     def _execute(self, desig: OpeningMotion):
+        # TODO: Should probably be a motion, but DefaultOpenReal does not do any of these calculations, so maybe its fine? Need to think about this
         part_of_object = desig.object_part.world_object
 
-        container_joint = part_of_object.find_joint_above_link(desig.object_part.name, JointType.PRISMATIC)
+        if desig.object_part.name == "handle_cab3_door_top":
+            container_joint = part_of_object.find_joint_above_link(desig.object_part.name, JointType.REVOLUTE)
+        else:
+            container_joint = part_of_object.find_joint_above_link(desig.object_part.name, JointType.PRISMATIC)
 
         goal_pose = link_pose_for_joint_config(part_of_object, {
             container_joint: part_of_object.get_joint_limits(container_joint)[1] - 0.05}, desig.object_part.name)
 
-        _move_arm_tcp(goal_pose, World.robot, desig.arm)
+        grasp = Grasp.FRONT
+        adjusted_grasp = adjust_grasp_for_object_rotation(goal_pose, grasp, desig.arm)
+        goal_pose = goal_pose.copy()
+        goal_pose.set_orientation(adjusted_grasp)
+
+        if desig.goal_location:
+            _navigate_to_pose(desig.goal_location.pose, World.robot)
+        else:
+            _move_arm_tcp(goal_pose, World.robot, desig.arm)
 
         desig.object_part.world_object.set_joint_position(container_joint,
                                                           part_of_object.get_joint_limits(
@@ -181,18 +198,30 @@ class DefaultOpen(ProcessModule):
 
 class DefaultClose(ProcessModule):
     """
-    Low-level implementation that lets the robot close a grasped container, in simulation
+    Low-level implementation for closing a grasped container in simulation.
+    Assumes the robot is already holding the container's handle.
     """
 
     def _execute(self, desig: ClosingMotion):
         part_of_object = desig.object_part.world_object
 
-        container_joint = part_of_object.find_joint_above_link(desig.object_part.name, JointType.PRISMATIC)
+        if desig.object_part.name == "handle_cab3_door_top":
+            container_joint = part_of_object.find_joint_above_link(desig.object_part.name, JointType.REVOLUTE)
+        else:
+            container_joint = part_of_object.find_joint_above_link(desig.object_part.name, JointType.PRISMATIC)
 
         goal_pose = link_pose_for_joint_config(part_of_object, {
             container_joint: part_of_object.get_joint_limits(container_joint)[0]}, desig.object_part.name)
 
-        _move_arm_tcp(goal_pose, World.robot, desig.arm)
+        grasp = Grasp.FRONT
+        adjusted_grasp = adjust_grasp_for_object_rotation(goal_pose, grasp, desig.arm)
+        goal_pose = goal_pose.copy()
+        goal_pose.set_orientation(adjusted_grasp)
+
+        if desig.goal_location:
+            _navigate_to_pose(desig.goal_location.pose, World.robot)
+        else:
+            _move_arm_tcp(goal_pose, World.robot, desig.arm)
 
         desig.object_part.world_object.set_joint_position(container_joint,
                                                           part_of_object.get_joint_limits(
@@ -206,6 +235,10 @@ def _move_arm_tcp(target: Pose, robot: Object, arm: Arms) -> None:
 
     inv = request_ik(target, robot, joints, gripper)
     _apply_ik(robot, inv)
+
+
+def _navigate_to_pose(target: Pose, robot: Object) -> None:
+    robot.set_pose(target)
 
 
 ###########################################################
@@ -224,8 +257,8 @@ class DefaultNavigationReal(ProcessModule):
 
 class DefaultMoveHeadReal(ProcessModule):
     """
-    Process module for the real robot to move that such that it looks at the given position. Uses the same calculation
-    as the simulated one
+    Process module for controlling the real robot's head to look at a specified position.
+    Uses the same calculations as the simulated version to orient the head.
     """
 
     def _execute(self, desig: LookingMotion):
@@ -234,14 +267,13 @@ class DefaultMoveHeadReal(ProcessModule):
 
         local_transformer = LocalTransformer()
 
-        # since its usually joint1, link1, joint2, link2, to be able to catch joint1, even though we only use the
-        # kinematic chain from link1 to link2, we need to use the link0 as the first link, even though its technically
-        # not in this kinematic chain
-        pan_link = RobotDescription.current_robot_description.kinematic_chains["neck"].links[1]
-        tilt_link = RobotDescription.current_robot_description.kinematic_chains["neck"].links[2]
+        neck = RobotDescription.current_robot_description.get_neck()
+        pan_link = neck["yaw"][0]
+        tilt_link = neck["pitch"][0]
 
-        pan_joint = RobotDescription.current_robot_description.kinematic_chains["neck"].joints[0]
-        tilt_joint = RobotDescription.current_robot_description.kinematic_chains["neck"].joints[1]
+        pan_joint = neck["yaw"][1]
+        tilt_joint = neck["pitch"][1]
+
         pose_in_pan = local_transformer.transform_pose(target, robot.get_link_tf_frame(pan_link)).position_as_list()
         pose_in_tilt = local_transformer.transform_pose(target, robot.get_link_tf_frame(tilt_link)).position_as_list()
 
@@ -254,9 +286,14 @@ class DefaultMoveHeadReal(ProcessModule):
         new_tilt = -np.arctan2(rotation_tilt_offset[2],
                                np.sqrt(rotation_tilt_offset[0] ** 2 + rotation_tilt_offset[1] ** 2))
 
+        # @TODO: find a better way to handle this
+        if RobotDescription.current_robot_description.name in {"iCub", "tiago_dual"}:
+            new_tilt = -new_tilt
+
         current_pan = robot.get_joint_position(pan_joint)
         current_tilt = robot.get_joint_position(tilt_joint)
 
+        # TODO: Not sure that this is enough to move head in real world
         robot.set_joint_position(pan_joint, new_pan + current_pan)
         robot.set_joint_position(tilt_joint, new_tilt + current_tilt)
 
@@ -371,59 +408,59 @@ class DefaultManager(ProcessModuleManager):
         super().__init__("default")
 
     def navigate(self):
-        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultNavigation(self._navigate_lock)
         elif ProcessModuleManager.execution_type == "real":
             return DefaultNavigationReal(self._navigate_lock)
 
     def looking(self):
-        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultMoveHead(self._looking_lock)
         elif ProcessModuleManager.execution_type == "real":
             return DefaultMoveHeadReal(self._looking_lock)
 
     def detecting(self):
-        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultDetecting(self._detecting_lock)
         elif ProcessModuleManager.execution_type == "real":
             return DefaultDetectingReal(self._detecting_lock)
 
     def move_tcp(self):
-        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultMoveTCP(self._move_tcp_lock)
         elif ProcessModuleManager.execution_type == "real":
             return DefaultMoveTCPReal(self._move_tcp_lock)
 
     def move_arm_joints(self):
-        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultMoveArmJoints(self._move_arm_joints_lock)
         elif ProcessModuleManager.execution_type == "real":
             return DefaultMoveArmJointsReal(self._move_arm_joints_lock)
 
     def world_state_detecting(self):
-        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultWorldStateDetecting(self._world_state_detecting_lock)
 
     def move_joints(self):
-        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultMoveJoints(self._move_joints_lock)
         elif ProcessModuleManager.execution_type == "real":
             return DefaultMoveJointsReal(self._move_joints_lock)
 
     def move_gripper(self):
-        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultMoveGripper(self._move_gripper_lock)
         elif ProcessModuleManager.execution_type == "real":
             return DefaultMoveGripperReal(self._move_gripper_lock)
 
     def open(self):
-        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultOpen(self._open_lock)
         elif ProcessModuleManager.execution_type == "real":
             return DefaultOpenReal(self._open_lock)
 
     def close(self):
-        if ProcessModuleManager.execution_type ==  ExecutionType.SIMULATED:
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return DefaultClose(self._close_lock)
         elif ProcessModuleManager.execution_type == "real":
             return DefaultCloseReal(self._close_lock)
