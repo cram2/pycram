@@ -7,12 +7,14 @@ from typing_extensions import Tuple, List, Optional
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
 
+from scipy.spatial.transform import Rotation as R
 import numpy as np
 import psutil
 import rospy
 from matplotlib import colors
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 
+from .datastructures.enums import Grasp
 from .datastructures.world import UseProspectionWorld
 from .ros.viz_marker_publisher import CostmapPublisher
 from .world_concepts.world_object import Object
@@ -52,27 +54,26 @@ class Rectangle:
 
 class Costmap:
     """
-    The base class of all Costmaps which implements the visualization of costmaps
-    in the World.
+    Base class for all costmaps, providing visualization of costmaps in the World.
+
+    This class handles essential properties such as resolution, dimensions, and origin
+    of the costmap, along with the costmap data itself.
     """
-
-    def __init__(self, resolution: float,
-                 height: int,
-                 width: int,
-                 origin: Pose,
-                 map: np.ndarray,
-                 world: Optional[World] = None):
+    def __init__(self, resolution: float, height: int, width: int, origin: Pose,
+                 map: np.ndarray, world: Optional[World] = None):
         """
-        The constructor of the base class of all Costmaps.
+        Initializes the Costmap with specified resolution, dimensions, origin, and map data.
 
-        :param resolution: The distance in metre in the real-world which is
-         represented by a single entry in the costmap.
-        :param height: The height of the costmap.
-        :param width: The width of the costmap.
-        :param origin: The origin of the costmap, in world coordinate frame. The origin of the costmap is located in the
-         centre of the costmap.
-        :param map: The costmap represents as a 2D numpy array.
-        :param world: The World for which the costmap should be created.
+        Args:
+            resolution (float): The real-world distance in meters represented by a single
+                                entry in the costmap.
+            height (int): The height of the costmap in grid cells.
+            width (int): The width of the costmap in grid cells.
+            origin (Pose): The origin of the costmap in world coordinates, centered
+                           in the middle of the costmap.
+            map (np.ndarray): A 2D numpy array representing the costmap data.
+            world (Optional[World]): The World instance in which this costmap will be used.
+                                     Defaults to the current world.
         """
         self.world = world if world else World.current_world
         self.resolution: float = resolution
@@ -80,7 +81,8 @@ class Costmap:
         self.height: int = height
         self.width: int = width
         local_transformer = LocalTransformer()
-        self.origin: Pose = local_transformer.transform_pose(origin, 'map')
+        self.origin = Pose(origin.position, [0, 0, 0, 1])
+        self.origin: Pose = local_transformer.transform_pose(self.origin, 'map')
         self.map: np.ndarray = map
         self.vis_ids: List[int] = []
 
@@ -151,28 +153,44 @@ class Costmap:
                                         linkCollisionShapeIndices=link_collision)
             self.vis_ids.append(map_obj)
 
-    def publish(self):
+    def publish(self, weighted: bool = False, scale: float = 0.4):
         """
-        Publishes the costmap to the World.
+        Publishes the costmap to the World, rendering it for visualization.
+
+        This method iterates over all positions in the costmap where values are greater than zero,
+        transforming them into poses relative to the world. Optionally, the map values can be
+        visualized with scaled weights.
+
+        Args:
+            weighted (bool): If True, scales the z-coordinate of each pose based on the costmap
+                             value to visualize "height" as intensity. Defaults to False.
+            scale (float): A scaling factor for the intensity values when `weighted` is True.
+                           Defaults to 0.4.
         """
         indices = np.argwhere(self.map > 0)
-        height = self.map.shape[0]
-        width = self.map.shape[1]
+        height, width = self.map.shape
         center = np.array([height // 2, width // 2])
 
         origin_to_map = self.origin.to_transform("origin").invert()
 
         poses = [
             Pose(
-                (Transform([*((center - ind) * self.resolution), 0], frame="point",
-                           child_frame="origin") * origin_to_map)
+                (Transform([*((center - ind) * self.resolution), 0],
+                           frame="point", child_frame="origin") * origin_to_map)
                 .invert().translation_as_list()
             )
             for ind in tqdm(indices)
         ]
 
+        if weighted:
+            weights = np.round(self.map, 2)
+            poses = [
+                Pose([pose.position.x, pose.position.y, weights[ind[0], ind[1]] * scale])
+                for pose, ind in zip(poses, indices)
+            ]
+
         costmap = CostmapPublisher()
-        costmap.publish(poses=poses, size=self.resolution)
+        costmap.publish(poses=poses, size=self.resolution, scale=scale)
 
     def _chunks(self, lst: List, n: int) -> List:
         """
@@ -232,19 +250,31 @@ class Costmap:
             curr_height += 1
         return curr_height
 
-    def merge(self, other_cm: Costmap) -> Costmap:
+    def merge_or_prioritize(self, other_cm: Costmap, prioritize_overlap: bool = False) -> Costmap:
         """
-        Merges the values of two costmaps and returns a new costmap that has for
-        every cell the merged values of both inputs. To merge two costmaps they
-        need to fulfill 2 constrains:
+        Merges two costmaps, creating a new costmap with updated cell values.
 
-        1. They need to have the same x and y coordinates in the origin
-        2. They need to have the same resolution
+        If `prioritize_overlap` is set to True, overlapping regions are prioritized
+        by adding 1 to the overlapping cells in the base costmap, instead of completely merging them. Otherwise, the
+        merged costmap will combine values by multiplying overlapping cells.
 
-        If any of these constrains is not fulfilled a ValueError will be raised.
+        Merging conditions:
 
-        :param other_cm: The other costmap with which this costmap should be merged.
-        :return: A new costmap that contains the merged values
+        1. The origin (x, y coordinates and orientation) of both costmaps must match.
+        2. The resolution of both costmaps must be identical.
+
+        If these conditions are not met, a `ValueError` is raised.
+
+        Args:
+            other_cm (Costmap): The other costmap to merge with this costmap.
+            prioritize_overlap (bool): If True, prioritize overlapping regions by adding
+                                       1 to the overlapping cells. Defaults to False.
+
+        Returns:
+            Costmap: A new costmap containing the merged values of both inputs.
+
+        Raises:
+            ValueError: If the origin or resolution of the costmaps do not match.
         """
         if self.origin.position.x != other_cm.origin.position.x or self.origin.position.y != other_cm.origin.position.y \
                 or self.origin.orientation != other_cm.origin.orientation:
@@ -259,29 +289,72 @@ class Costmap:
             larger_cm, smaller_cm = (self, other_cm) if self.size > other_cm.size else (other_cm, self)
             larger_size, smaller_size = larger_cm.size, smaller_cm.size
             offset = int(larger_size - smaller_size)
-            odd = 0 if offset % 2 == 0 else 1
+            odd = offset % 2 != 0
             smaller_map_padded = np.pad(smaller_cm.map, (offset // 2, offset // 2 + odd))
 
         dimensions = larger_cm.map.shape[0]
         new_map = np.zeros((dimensions, dimensions))
-        merge = np.logical_and(larger_cm.map > 0, smaller_map_padded > 0)
-        new_map[merge] = larger_cm.map[merge] * smaller_map_padded[merge]
-        new_map = (new_map / np.max(new_map)).reshape((dimensions, dimensions))
+        overlap_region = np.logical_and(larger_cm.map > 0, smaller_map_padded > 0)
 
-        return Costmap(larger_cm.resolution, dimensions, dimensions, larger_cm.origin, new_map)
+        if prioritize_overlap:
+            original_map = np.copy(larger_cm.map) if self.size >= other_cm.size else np.copy(smaller_map_padded)
+            original_map[overlap_region] += 1
+            new_map = original_map
+        else:
+            new_map[overlap_region] = larger_cm.map[overlap_region] * smaller_map_padded[overlap_region]
+
+        min_val = new_map.min()
+        max_val = new_map.max()
+        if max_val > min_val:
+            normalized_map = (new_map - min_val) / (max_val - min_val)
+        else:
+            normalized_map = np.ones_like(new_map)
+
+        normalized_map = (normalized_map / np.max(normalized_map)).reshape((dimensions, dimensions))
+        return Costmap(larger_cm.resolution, dimensions, dimensions, larger_cm.origin, normalized_map)
 
     def __add__(self, other: Costmap) -> Costmap:
         """
-        Overloading of the "+" operator for merging of Costmaps. Furthermore, checks if 'other' is actual a Costmap and
-        raises a ValueError if this is not the case. Please check :func:`~Costmap.merge` for further information of merging.
+        Overloads the "+" operator to merge two Costmaps.
 
-        :param other: Another Costmap
-        :return: A new Costmap that contains the merged values from this Costmap and the other Costmap
+        If the `other` parameter is not a Costmap, raises a `ValueError`. The merging
+        process follows the same behavior as the `merge_or_prioritize` method with
+        default settings.
+
+        Args:
+            other (Costmap): The other Costmap to merge with this Costmap.
+
+        Returns:
+            Costmap: A new Costmap containing merged values from this and the other Costmap.
+
+        Raises:
+            ValueError: If `other` is not a Costmap instance.
         """
         if isinstance(other, Costmap):
-            return self.merge(other)
+            return self.merge_or_prioritize(other)
         else:
-            raise ValueError(f"Can only combine two costmaps other type was {type(other)}")
+            raise ValueError(f"Can only combine two costmaps, but received type {type(other)}")
+
+    def __mul__(self, other: Costmap) -> Costmap:
+        """
+        Overloads the "*" operator for prioritizing overlapping areas in two Costmaps.
+
+        Uses the `merge_or_prioritize` method with `prioritize_overlap=True` to return
+        a new Costmap where weights in overlapping regions are increased.
+
+        Args:
+            other (Costmap): The other Costmap to prioritize overlap with this Costmap.
+
+        Returns:
+            Costmap: A new Costmap with prioritized overlapping weights.
+
+        Raises:
+            ValueError: If `other` is not a Costmap instance.
+        """
+        if isinstance(other, Costmap):
+            return self.merge_or_prioritize(other, prioritize_overlap=True)
+        else:
+            raise ValueError(f"Can only multiply with another Costmap, but received type {type(other)}")
 
     def partitioning_rectangles(self) -> List[Rectangle]:
         """
@@ -756,53 +829,77 @@ class VisibilityCostmap(Costmap):
 
 class GaussianCostmap(Costmap):
     """
-    Gaussian Costmaps are 2D gaussian distributions around the origin with the given mean and sigma
+    A costmap representing a 2D Gaussian distribution centered at the origin.
+
+    This class generates a square Gaussian distribution with specified mean and sigma.
+    Optionally, it can apply a circular mask to create a circular distribution.
     """
 
     def __init__(self, mean: int, sigma: float, resolution: Optional[float] = 0.02,
-                 origin: Optional[Pose] = None, circular: bool = False):
+                 origin: Optional[Pose] = None, circular: bool = False, distance: float = 0.0):
         """
-        This Costmap creates a 2D gaussian distribution around the origin with
-        the specified size.
+        Initializes a 2D Gaussian costmap with specified distribution parameters and options.
 
-        :param mean: The mean input for the gaussian distribution, this also specifies
-            the length of the side of the resulting costmap in centimeter. The costmap is Created
-            as a square by default.
-        :param sigma: The sigma input for the gaussian distribution.
-        :param resolution: The resolution of the costmap, this specifies how much
-            meter a pixel represents.
-        :param origin: The origin of the costmap around which it will be created.
-        :param circular: If True a circular mask will be applied to the costmap.
+        Args:
+            mean (int): The mean for the Gaussian distribution, which also determines the
+                        side length of the costmap in centimeters.
+            sigma (float): The standard deviation (sigma) of the Gaussian distribution.
+            resolution (Optional[float]): The resolution of the costmap, representing the
+                                          real-world meters per pixel. Defaults to 0.02.
+            origin (Optional[Pose]): The origin of the costmap in world coordinates. If None,
+                                     defaults to the center.
+            circular (bool): If True, applies a circular mask to the costmap to create a
+                             circular distribution. Defaults to False.
+            distance (float): The distance from the origin where the Gaussian peak should be placed.
+
         """
         self.size = mean / 100.0
         self.resolution = resolution
         num_pixels = int(self.size / self.resolution)
-        self.gau: np.ndarray = self._gaussian_window(num_pixels, sigma)
-        self.map: np.ndarray = np.outer(self.gau, self.gau)
+        self.distance = distance
+        self.map: np.ndarray = self._gaussian_costmap(num_pixels, sigma)
         if circular:
             self.map = self._apply_circular_mask(self.map, num_pixels)
         self.origin: Pose = Pose() if not origin else origin
         Costmap.__init__(self, resolution, num_pixels, num_pixels, self.origin, self.map)
 
-    def _gaussian_window(self, mean: int, std: float) -> np.ndarray:
+    def _gaussian_costmap(self, mean: int, std: float) -> np.ndarray:
         """
-        This method creates a window of values with a gaussian distribution of
-        size "mean" and standart deviation "std".
-        Code from `Scipy <https://github.com/scipy/scipy/blob/v0.14.0/scipy/signal/windows.py#L976>`_
+        Generates a 2D Gaussian ring costmap centered at the origin, where the peak is
+        located at a specified distance from the center.
+
+        This method creates a Gaussian distribution around a ring centered on the costmap,
+        allowing for a peak intensity at a specific radius from the center.
+
+        Args:
+            mean (int): The side length of the square costmap in pixels.
+            std (float): The standard deviation (sigma) of the Gaussian distribution.
+
+        Returns:
+            np.ndarray: A 2D numpy array representing the Gaussian ring distribution.
         """
-        n = np.arange(0, mean) - (mean - 1.0) / 2.0
-        sig2 = 2 * std * std
-        w = np.exp(-n ** 2 / sig2)
-        return w
+        radius_in_pixels = self.distance / self.resolution
+
+        y, x = np.ogrid[:mean, :mean]
+        center = (mean - 1) / 2.0
+        distance_from_center = np.sqrt((x - center) ** 2 + (y - center) ** 2)
+
+        ring_costmap = np.exp(-((distance_from_center - radius_in_pixels) ** 2) / (2 * std ** 2))
+        return ring_costmap
 
     def _apply_circular_mask(self, grid: np.ndarray, num_pixels: int) -> np.ndarray:
         """
-        Apply a circular mask to the given grid, zeroing out values outside the circle.
-        The radius of the circle will be half the size of the grid.
+        Applies a circular mask to a 2D grid, setting values outside the circle to zero.
 
-        :param grid: The 2D Gaussian grid to apply the mask to.
-        :param num_pixels: The number of pixels along one axis of the square grid.
-        :return: The masked grid, with values outside the circle set to 0.
+        The radius of the circular mask is half the size of the grid, so only values within
+        this radius from the center will be retained.
+
+        Args:
+            grid (np.ndarray): The 2D Gaussian grid to apply the mask to.
+            num_pixels (int): The number of pixels along one axis of the square grid.
+
+        Returns:
+            np.ndarray: The masked grid with values outside the circular area set to zero.
         """
         y, x = np.ogrid[:num_pixels, :num_pixels]
         center = num_pixels / 2
@@ -811,6 +908,93 @@ class GaussianCostmap(Costmap):
         circular_mask = distance_from_center <= radius
         masked_grid = np.where(circular_mask, grid, 0)
         return masked_grid
+
+class DirectionalCostmap(Costmap):
+    """
+    A 2D Gaussian-based costmap focused in specific directions relative to the origin pose.
+
+    The costmap is oriented such that it emphasizes the negative x-direction and both
+    positive and negative y-directions, while excluding the positive x-direction.
+    """
+
+    def __init__(self, size: int, face: Grasp, resolution: Optional[float] = 0.02,
+                 origin: Optional[Pose] = None, has_object: bool = False):
+        """
+        Initializes a directional costmap with Gaussian distribution focused in specific
+        directions, primarily the -x and y directions relative to the origin pose's orientation.
+
+        Args:
+            size (int): The side length of the costmap in centimeters.
+            face (Grasp): The specific grasp direction for costmap alignment.
+            resolution (Optional[float]): The resolution of the costmap in meters per pixel.
+                                          Defaults to 0.02.
+            origin (Optional[Pose]): The origin pose of the costmap, determining its orientation.
+                                     Defaults to the world center.
+            has_object (bool): If True, considers that an object is present and adjusts the
+                               costmap accordingly. Defaults to False.
+        """
+        self.size = size / 100.0
+        self.resolution = resolution
+        self.face = face
+        self.has_object = has_object
+        num_pixels = int(self.size / self.resolution)
+        self.origin = origin.copy() if origin else Pose()
+        self.origin.position.z = 0
+        self.map: np.ndarray = self._create_directional_map(num_pixels)
+        Costmap.__init__(self, resolution, num_pixels, num_pixels, self.origin, self.map)
+
+    def _create_directional_map(self, num_pixels: int) -> np.ndarray:
+        """
+        Creates a directional costmap based on Gaussian distributions, masking out the
+        positive x-direction relative to the local frame of the origin pose.
+
+        The orientation of the costmap is determined by the specified face direction
+        (e.g., front, back, left, right), with a mask applied to exclude areas in
+        the positive x-direction.
+
+        Args:
+            num_pixels (int): The number of pixels along one axis of the square grid.
+
+        Returns:
+            np.ndarray: A 2D numpy array representing the directional costmap.
+        """
+        object_orientation = self.origin.orientation_as_list()
+        relative_rotations = {
+            Grasp.FRONT: [0, 0, 0, 1],
+            Grasp.BACK: [0, 0, 1, 0],
+            Grasp.LEFT: [0, 0, -0.707, 0.707],
+            Grasp.RIGHT: [0, 0, 0.707, 0.707],
+            Grasp.TOP: [0, 0.707, 0, 0.707],
+            Grasp.BOTTOM: [0, -0.707, 0, 0.707]
+        }
+        # currently doesnt really do anything for TOP and BOTTOM, but didnt make any problems either
+        # and i havent had the time to investigate further or think of better handling for these cases
+        # TODO: investigate and improve handling for TOP and BOTTOM
+        face_rotation = relative_rotations[self.face]
+
+        object_rotation = R.from_quat(object_orientation)
+        face_rotation = R.from_quat(face_rotation)
+        combined_rotation = object_rotation * face_rotation
+        combined_orientation = combined_rotation.as_quat()
+
+        map = np.ones((num_pixels, num_pixels))
+
+
+        rotation = R.from_quat(combined_orientation)
+        rotation_matrix = rotation.as_matrix() if self.has_object else rotation.inv().as_matrix()
+
+        center = np.ceil(num_pixels / 2)
+        x, y = np.meshgrid(np.arange(num_pixels), np.arange(num_pixels))
+        x_offset = (x - center) * self.resolution
+        y_offset = (y - center) * self.resolution
+
+        coords = np.stack((x_offset, y_offset, np.zeros_like(x_offset)), axis=-1)
+        transformed_coords = coords.dot(rotation_matrix.T)
+
+        mask = transformed_coords[:, :, 1] >= 0
+
+        directional_map = np.where(mask, 0, map)
+        return directional_map
 
 
 class SemanticCostmap(Costmap):
