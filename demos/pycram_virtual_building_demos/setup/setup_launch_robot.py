@@ -61,18 +61,28 @@ def launch_armar():
     args = ["robot:=armar"]
     launch_robot(executable, args=args)
 
+def launch_icub():
+    # name = 'iCub'
+    # urdf = 'iCub.urdf'
+    executable = 'ik_and_description.launch'
+    args = ["robot:=icub"]
+    launch_robot(executable, args=args)
 
 def launch_robot(launch_file, package='pycram', launch_folder='/launch/', args: List[str] = None):
     """
-    General method to start a specified launch file with given parameters.
-    Default location for launch files here is in the folder 'launch' inside the pycram package
+    Starts a specified launch file with given parameters.
 
-    :param launch_file: File name of the launch file
-    :param package: Name of the package
-    :param launch_folder: Location of the launch file inside the package
-    :param args: List of arguments to pass onto the launch file
+    The default location for launch files is the 'launch' folder inside the pycram package.
+
+    Args:
+        launch_file (str): File name of the launch file.
+        package (str): Name of the package.
+        launch_folder (str): Location of the launch file inside the package.
+        args (list): List of arguments to pass to the launch file.
+
+    Returns:
+        None
     """
-    # Suppress all output from the function
     rospath = rospkg.RosPack()
 
     uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
@@ -89,6 +99,4 @@ def launch_robot(launch_file, package='pycram', launch_folder='/launch/', args: 
     launch.start()
 
     rospy.loginfo(f'{launch_file} started')
-
-    # Wait for ik server to launch
     time.sleep(2)

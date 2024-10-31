@@ -30,14 +30,26 @@ def update_text(text_widget, new_text):
     text_widget.value = f'<span style="font-size: 40px; color: lightblue;">{new_text}</span>'
 
 
-def get_robot_name(robot_name):
-    if robot_name == 'justin':
-        return 'rollin_justin'
-    elif robot_name == 'donbot':
-        return 'iai_donbot'
-    elif robot_name == 'tiago':
-        return 'tiago_dual'
-    elif robot_name == 'armar':
-        return "Armar6"
+def get_robot_name(robot_name: str):
+    """
+    Retrieves the internal identifier for a specified robot name.
 
-    return robot_name
+    This function maps a given `robot_name` to a predefined internal identifier.
+    If `robot_name` does not match any known names, it returns the input unchanged.
+
+    Args:
+        robot_name (str): The name of the robot to map to its internal identifier.
+
+    Returns:
+        str: The internal identifier for the specified robot name, or the input
+        `robot_name` if no predefined match is found.
+    """
+    robot_name_map = {
+        'justin': 'rollin_justin',
+        'donbot': 'iai_donbot',
+        'tiago': 'tiago_dual',
+        'armar': 'Armar6',
+        'icub': 'iCub'
+    }
+
+    return robot_name_map.get(robot_name, robot_name)
