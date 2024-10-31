@@ -3,6 +3,7 @@ import numpy as np
 
 from .datastructures.enums import Grasp
 from .datastructures.world import World
+from .ros.viz_marker_publisher import AxisMarkerPublisher
 from .world_concepts.world_object import Object
 from .world_reasoning import contact
 from .costmaps import Costmap
@@ -171,30 +172,39 @@ def visibility_validator(pose: Pose,
 def _in_contact(robot: Object, obj: Object, allowed_collision: Dict[Object, List[str]],
                 allowed_robot_links: List[str]) -> bool:
     """
-    This method checks if a given robot is in contact with a given object.
+    Checks if the specified robot is in contact with a given object, while accounting for
+    allowed collisions on specific links.
 
-    :param robot: The robot object that should be checked for contact.
-    :param obj: The object that should be checked for contact with the robot.
-    :param allowed_collision: A dictionary that contains the allowed collisions for links of each object in the world.
-    :param allowed_robot_links: A list of links of the robot that are allowed to be in contact with the object.
-    :return: True if the robot is in contact with the object and False otherwise.
+    Args:
+        robot (Object): The robot to check for contact.
+        obj (Object): The object to check for contact with the robot.
+        allowed_collision (Dict[Object, List[str]]): A dictionary of objects with lists of
+                                                     link names allowed to collide.
+        allowed_robot_links (List[str]): A list of robot link names that are allowed to be in
+                                         contact with the object.
+
+    Returns:
+        bool: True if the robot is in contact with the object on non-allowed links, False otherwise.
     """
     in_contact, contact_links = contact(robot, obj, return_links=True)
-    allowed_links = allowed_collision[obj] if obj in allowed_collision.keys() else []
+    if not in_contact:
+        return False
 
-    if in_contact:
-        for link in contact_links:
-            if link[0].name in allowed_robot_links or link[1].name in allowed_links:
-                in_contact = False
-                # TODO: in_contact is never set to True after it was set to False is that correct?
-                # TODO: If it is correct, then this loop should break after the first contact is found
-    return in_contact
+    allowed_links = allowed_collision.get(obj, [])
+
+    for link in contact_links:
+        if link[0].name not in allowed_robot_links and link[1].name not in allowed_links:
+            return True
+
+    return False
+
 
 
 def reachability_validator(pose: Pose,
                            robot: Object,
                            target: Union[Object, Pose],
-                           allowed_collision: Dict[Object, List] = None) -> Tuple[bool, List]:
+                           allowed_collision: Dict[Object, List] = None,
+                           translation_value: float = 0.1) -> Tuple[bool, List]:
     """
     Validates if a target position is reachable for a given pose candidate.
 
@@ -247,11 +257,12 @@ def reachability_validator(pose: Pose,
 
                 palm_axis = RobotDescription.current_robot_description.get_palm_axis()
 
-                translation_value = 0.1
-
                 retract_target_pose = translate_relative_to_object(target, palm_axis, translation_value)
 
                 retract_target_pose = LocalTransformer().transform_pose(retract_target_pose, "map")
+
+                marker = AxisMarkerPublisher()
+                marker.publish([pose, retract_target_pose], length=0.3)
 
                 pose, joint_states = request_ik(retract_target_pose, robot, joints, tool_frame)
                 robot.set_pose(pose)

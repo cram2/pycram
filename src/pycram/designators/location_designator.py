@@ -380,14 +380,14 @@ class AccessingLocation(LocationDesignatorDescription):
                 hand_links = [
                     link
                     for description in RobotDescription.current_robot_description.get_manipulator_chains()
-                    for link in description.links
+                    for link in description.end_effector.links
                 ]
 
                 valid_init, arms_init = reachability_validator(init_maybe_pose, test_robot, init_pose,
-                                                               allowed_collision={test_robot: hand_links})
+                                                               allowed_collision={test_robot: hand_links}, translation_value=0.05)
                 if valid_init:
                     valid_goal, arms_goal = reachability_validator(init_maybe_pose, test_robot, goal_pose,
-                                                                   allowed_collision={test_robot: hand_links})
+                                                                   allowed_collision={test_robot: hand_links}, translation_value=0.05)
                     goal_maybe_pose = init_maybe_pose.copy()
 
                     if not valid_goal:
