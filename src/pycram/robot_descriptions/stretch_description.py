@@ -39,6 +39,7 @@ arm_description.end_effector = gripper_description
 neck = KinematicChainDescription("neck", "link_head", "link_head_tilt", stretch_description.urdf_object)
 
 stretch_description.add_kinematic_chain_description(neck)
+stretch_description.set_neck("joint_head_pan", "joint_head_tilt")
 
 ################################## Torso ##################################
 torso = KinematicChainDescription("torso", "link_mast", "link_lift",
@@ -68,6 +69,11 @@ gripper_description.add_grasp_orientations({Grasp.FRONT: [0, 0, 0, 1],
                                             Grasp.LEFT: [0, 0, -1, 1],
                                             Grasp.RIGHT: [0, 0, 1, 1],
                                             Grasp.TOP: [0, 1, 0, 1]})
+
+############################## Additionals ################################
+# stretch_description.set_costmap_offset(0.3)  # set to correct offset if needed
+# stretch_description.set_palm_axis([0, 0, -1])  # set to correct axis if needed
+# stretch_description.set_max_reach("torso_lift_link", "gripper_left_tool_link")  # set to correct links if needed
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()

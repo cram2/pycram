@@ -6,11 +6,11 @@ import rospkg
 rospack = rospkg.RosPack()
 filename = rospack.get_path('pycram') + '/resources/robots/' + "Armar6" + '.urdf'
 
-armar_description = RobotDescription("Armar6", "platform", "torso", "torso_joint",
+armar_description = RobotDescription("Armar6", "world", "torso", "torso_joint",
                                       filename)
 
 ################################## Left Arm ##################################
-left_arm = KinematicChainDescription("left", "platform", "arm_t8_r0",
+left_arm = KinematicChainDescription("left", "world", "arm_t8_r0",
                                      armar_description.urdf_object, arm_type=Arms.LEFT)
 
 left_arm.add_static_joint_states("park", {"torso_joint": -0.15,
@@ -62,7 +62,7 @@ left_gripper.end_effector_type = GripperType.FINGER
 left_arm.end_effector = left_gripper
 
 ################################## Right Arm ##################################
-right_arm = KinematicChainDescription("right", "platform", "arm_t8_r1",
+right_arm = KinematicChainDescription("right", "world", "arm_t8_r1",
                                       armar_description.urdf_object, arm_type=Arms.RIGHT)
 
 right_arm.add_static_joint_states("park", {"torso_joint": -0.15,
@@ -114,7 +114,7 @@ right_gripper.end_effector_type = GripperType.FINGER
 right_arm.end_effector = right_gripper
 
 ################################## Torso ##################################
-torso = KinematicChainDescription("torso", "platform", "torso",
+torso = KinematicChainDescription("torso", "world", "torso",
                                   armar_description.urdf_object)
 
 torso.add_static_joint_states(TorsoState.HIGH, {"torso_joint": 0.0})
@@ -133,20 +133,17 @@ armar_description.add_camera_description(camera)
 
 ################################## Neck ##################################
 armar_description.add_kinematic_chain("neck", "lower_neck", "upper_neck")
+armar_description.set_neck("neck_1_yaw", "neck_2_pitch")
+
 
 ################################# Grasps ##################################
-left_gripper.add_grasp_orientations({Grasp.FRONT: [0.707, 0.707, 0.707, 0.707],
-                                     Grasp.LEFT: [1, 0, 0, 1],
-                                     Grasp.RIGHT: [0, 1, 1, 0],
-                                     Grasp.TOP: [-1, 0, 0, 0]})
-right_gripper.add_grasp_orientations({Grasp.FRONT: [0.707, 0.707, 0.707, 0.707],
-                                     Grasp.LEFT: [1, 0, 0, 1],
-                                     Grasp.RIGHT: [0, 1, 1, 0],
-                                     Grasp.TOP: [-1, 0, 0, 0]})
+left_gripper.generate_all_grasp_orientations_from_front_grasp([0.707, 0.707, 0.707, 0.707])
+right_gripper.generate_all_grasp_orientations_from_front_grasp([0.707, 0.707, 0.707, 0.707])
 
 ################################# Additionals ##################################
-armar_description.set_costmap_offset(0.4)
-armar_description.set_max_reach("arm_cla_r0", "left_tool_frame")
+armar_description.set_costmap_offset(0.3)
+armar_description.set_max_reach("torso", "left_tool_frame")
+armar_description.set_palm_axis([0, 0, 1])
 
 # Add to RobotDescriptionManager
 rdm = RobotDescriptionManager()
