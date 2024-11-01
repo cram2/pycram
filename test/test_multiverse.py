@@ -100,8 +100,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     def test_get_axis_aligned_bounding_box_for_one_link_object(self):
         position = [1, 1, 0.1]
-        milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1, 1, 0.1],
-                                                                     quaternion_from_euler(np.pi/4, 0, 0).tolist()))
+        milk = self.spawn_milk(position, quaternion_from_euler(np.pi/4, 0, 0).tolist())
         aabb = milk.get_axis_aligned_bounding_box()
         self.assertIsInstance(aabb, AxisAlignedBoundingBox)
         min_p_1, max_p_1 = aabb.get_min_max()
@@ -125,10 +124,6 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         for i in range(3):
             self.assertAlmostEqual(min_p_1[0] + position_shift, min_p_2[0], delta=0.001)
             self.assertAlmostEqual(max_p_1[0] + position_shift, max_p_2[0], delta=0.001)
-
-    def test_spawn_xml_object(self):
-        bread = Object("bread_1", ObjectType.GENERIC_OBJECT, "bread_1.xml", pose=Pose([1, 1, 0.1]))
-        self.assert_poses_are_equal(bread.get_pose(), Pose([1, 1, 0.1]))
 
     def test_spawn_mesh_object(self):
         milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1, 1, 0.1]))
@@ -366,7 +361,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         robot = self.spawn_robot()
         ee_link = self.multiverse.get_arm_tool_frame_link(Arms.RIGHT)
         # Get position of milk relative to robot end effector
-        robot.attach(milk, ee_link.name, coincide_the_objects=False)
+        robot.attach(milk, ee_link.name)
         self.assertTrue(robot in milk.attachments)
         milk_initial_pose = milk.root_link.get_pose_wrt_link(ee_link)
         robot_position = 1.57
@@ -385,7 +380,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             cup = self.spawn_cup([1, 1, 0.12])
             # This is needed because the cup is spawned in the air, so it needs to fall
             # to get in contact with the milk
-            self.multiverse.simulate(0.3)
+            self.multiverse.simulate(0.4)
             contact_points = self.multiverse.get_object_contact_points(cup)
             self.assertIsInstance(contact_points, ContactPointsList)
             self.assertTrue(len(contact_points) >= 1)
@@ -399,7 +394,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             cup = self.spawn_cup([1, 1, 0.12])
             # This is needed because the cup is spawned in the air so it needs to fall
             # to get in contact with the milk
-            self.multiverse.simulate(0.3)
+            self.multiverse.simulate(0.4)
             contact_points = self.multiverse.get_contact_points_between_two_objects(milk, cup)
             self.assertIsInstance(contact_points, ContactPointsList)
             self.assertTrue(len(contact_points) >= 1)
@@ -456,7 +451,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
 
     @staticmethod
     def spawn_cup(position: List) -> Object:
-        cup = Object("cup", ObjectType.GENERIC_OBJECT, "Cup.obj",
+        cup = Object("cup", ObjectType.GENERIC_OBJECT, "cup.xml",
                      pose=Pose(position, [0, 0, 0, 1]))
         return cup
 

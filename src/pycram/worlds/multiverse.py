@@ -1,5 +1,7 @@
 import logging
 import os
+import shutil
+from pathlib import Path
 from time import sleep
 
 import numpy as np
@@ -656,7 +658,8 @@ class Multiverse(World):
         return state_id
 
     def remove_physics_simulator_state(self, state_id: int) -> None:
-        self.saved_simulator_states.pop(state_id)
+        save_path = self.saved_simulator_states.pop(state_id)
+        shutil.rmtree(Path(save_path).parent)
 
     def restore_physics_simulator_state(self, state_id: int) -> None:
         self.api_requester.load(self.saved_simulator_states[state_id])

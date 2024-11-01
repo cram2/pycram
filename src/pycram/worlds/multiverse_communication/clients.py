@@ -557,7 +557,7 @@ class MultiverseAPI(MultiverseClient):
         :param save_directory: The save directory.
         :return: The save path.
         """
-        return save_name if save_directory is None else os.path.join(save_directory, save_name)
+        return save_name if not save_directory else os.path.join(save_directory, save_name)
 
     def attach(self, constraint: Constraint) -> None:
         """
@@ -763,7 +763,7 @@ class MultiverseAPI(MultiverseClient):
         contact_effort = contact_effort[0].split()
         if 'failed' in contact_effort:
             logwarn("Failed to get contact effort")
-            return [0.0] * 6
+            return [0.0] * 3, [0.0]*3
         contact_effort = list(map(float, contact_effort))
         forces, torques = contact_effort[:3], contact_effort[3:]
         return forces, torques
