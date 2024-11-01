@@ -5,6 +5,7 @@ from probabilistic_model.probabilistic_circuit.nx.distributions.distributions im
     UnivariateDiscreteLeaf
 from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit, \
     ProductUnit
+from probabilistic_model.probabilistic_model import ProbabilisticModel
 from probabilistic_model.utils import MissingDict
 from random_events.interval import *
 from random_events.product_algebra import Event, SimpleEvent
@@ -40,7 +41,7 @@ class Arms(SetElement):
 
 class ProbabilisticAction:
     """
-    Abstract class for probabilistic performables.
+    Abstract class for performables that have a probabilistic parametrization.
     """
 
     @dataclass
@@ -72,19 +73,18 @@ class ProbabilisticAction:
         self.policy = policy
         self.variables = self.Variables(*self.policy.variables)
 
-    def default_policy(self) -> ProbabilisticCircuit:
+    def default_policy(self) -> ProbabilisticModel:
         """
-        Create a default policy for the action.
-
-        :return: The default policy for the action
+        :return: The default policy for the action.
         """
         raise NotImplementedError
 
     def sample_to_action(self, sample: List) -> ActionAbstract:
         """
         Convert a sample from the policy to a performable action.
-        :param sample: The sample
-        :return: The action
+
+        :param sample: The sample.
+        :return: The action.
         """
         raise NotImplementedError
 
@@ -161,6 +161,7 @@ class GaussianCostmapModel:
 
 
 class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
+
     @dataclass
     class Variables:
         arm: Symbolic = Symbolic("arm", Arms)
@@ -197,6 +198,165 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
         self.object_designator = object_designator
         self.arms = arms
         self.grasps = grasps
+
+    def default_policy(self) -> ProbabilisticCircuit:
+        return GaussianCostmapModel().create_model()
+
+    def sample_to_action(self, sample: List) -> MoveAndPickUpPerformable:
+        """
+        Convert a sample from the underlying distribution to a performable action.
+        :param sample: The sample
+        :return:  action
+        """
+        arm, grasp, relative_x, relative_y = sample
+        position = [relative_x, relative_y, 0.]
+        pose = Pose(position, frame=self.object_designator.world_object.tf_frame)
+        standing_position = LocalTransformer().transform_pose(pose, "map")
+        standing_position.position.z = 0
+        action = MoveAndPickUpPerformable(standing_position, self.object_designator, EArms[Arms(int(arm)).name],
+                                          EGrasp(int(grasp)))
+        return action
+
+    def events_from_occupancy_and_visibility_costmap(self) -> Event:
+        """
+        Create events from the occupancy and visibility costmap.
+
+        :return: The events that can be used as evidence for the model.
+        """
+
+        # create occupancy and visibility costmap for the target object
+        ocm = OccupancyCostmap(distance_to_obstacle=0.3, from_ros=False, size=200, resolution=0.1,
+                               origin=self.object_designator.pose)
+        vcm = VisibilityCostmap(min_height=1.27, max_height=1.69,
+                                size=200, resolution=0.1, origin=self.object_designator.pose)
+        mcm = ocm + vcm
+
+        # convert rectangles to events
+        events = []
+        for rectangle in mcm.partitioning_rectangles():
+            event = SimpleEvent({self.variables.relative_x: open(rectangle.x_lower, rectangle.x_upper),
+                                 self.variables.relative_y: open(rectangle.y_lower, rectangle.y_upper)})
+            events.append(event)
+        return Event(*events)
+
+    def ground_model(self, model: Optional[ProbabilisticCircuit] = None,
+                     event: Optional[Event] = None) -> ProbabilisticCircuit:
+        """
+        Ground the model to the current evidence.
+
+        :param model: The model that should be grounded. If None, the policy is used.
+        :param event: The events that should be used as evidence. If None, the occupancy costmap is used.
+        :return: The grounded model
+        """
+
+        if model is None:
+            model = self.policy
+        if event is None:
+            event = self.events_from_occupancy_and_visibility_costmap()
+
+        result, probability = model.conditional(event)
+
+        if probability == 0:
+            raise ObjectUnreachable("No possible locations found")
+
+        return result
+
+    def iter_with_mode(self) -> Iterator[MoveAndPickUpPerformable]:
+        """
+        Generate performables by sampling from the mode of the policy conditioned on visibility and occupancy.
+        """
+        model = self.ground_model()
+        modes, _ = model.mode()
+        model = self.ground_model(model, modes)
+        samples = model.sample(self.sample_amount)
+
+        for sample in samples:
+            action = self.sample_to_action(sample)
+            yield action
+
+    def __iter__(self) -> Iterator[MoveAndPickUpPerformable]:
+        """
+        Generate performables by sampling from the policy conditioned on visibility and occupancy.
+        """
+        model = self.ground_model(self.policy, self.events_from_occupancy_and_visibility_costmap())
+        samples = model.sample(self.sample_amount)
+        likelihoods = model.likelihood(samples)
+
+        # sort samples by likelihood
+        samples = [x for _, x in sorted(zip(likelihoods, samples), key=lambda pair: pair[0], reverse=True)]
+
+        for sample in samples:
+            action = self.sample_to_action(sample)
+            yield action
+
+    def iterate_without_occupancy_costmap(self) -> Iterator[MoveAndPickUpPerformable]:
+        """
+        Generate performables by sampling from the policy without conditioning on visibility and occupancy.
+        """
+        samples = self.policy.sample(self.sample_amount)
+        for sample in samples:
+            action = self.sample_to_action(sample)
+            yield action
+
+    @staticmethod
+    def query_for_database():
+        view = PickUpWithContextView
+        query = (select(view.arm, view.grasp, view.relative_x, view.relative_y)
+                 .where(view.status == TaskStatus.SUCCEEDED))
+        return query
+
+    def batch_rollout(self):
+        """
+        Try the policy without conditioning on visibility and occupancy and count the successful tries.
+        """
+
+        # initialize statistics
+        successful_tries = 0
+        total_tries = 0
+
+        # create the progress bar
+        progress_bar = tqdm.tqdm(iter(self.iterate_without_occupancy_costmap()), total=self.sample_amount)
+
+        for action in progress_bar:
+            total_tries += 1
+            try:
+                action.perform()
+                successful_tries += 1
+            except PlanFailure as p:
+                pass
+
+            # update progress bar
+            progress_bar.set_postfix({"Success Probability": successful_tries / total_tries})
+
+            # reset world
+            World.current_world.reset_world()
+
+
+class MoveAndPlace(ActionDesignatorDescription, ProbabilisticAction):
+
+    @dataclass
+    class Variables:
+        arm: Symbolic = Symbolic("arm", Arms)
+        relative_x: Continuous = Continuous("relative_x")
+        relative_y: Continuous = Continuous("relative_y")
+
+    variables: Variables  # Type hint variables
+
+    sample_amount: int = 20
+    """
+    The amount of samples that should be drawn from the policy when iterating over it.
+    """
+
+    object_designator: ObjectDesignatorDescription.Object
+    """
+    The object designator that should be picked up.
+    """
+
+    arms: List[Arms]
+    """
+    The arms that can be used for the pick up.
+    """
+
 
     def default_policy(self) -> ProbabilisticCircuit:
         return GaussianCostmapModel().create_model()
