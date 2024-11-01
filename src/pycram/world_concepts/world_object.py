@@ -1470,7 +1470,7 @@ class Object(WorldEntity, HasConcept):
         :param world: The world to which the object should be copied.
         :return: The copied object in the given world.
         """
-        obj = Object(self.name, self.obj_type, self.path, self.description, self.get_pose(),
+        obj = Object(self.name, self.obj_type, self.path, self.description, self.original_pose,
                      world, self.color)
         return obj
 
