@@ -32,7 +32,8 @@ apartment.set_joint_position("fridge_door1_joint", 2)
 # apartment.attach(milk, 'fridge_base')
 fridge_base_pose = apartment.get_link_pose("fridge_base")
 fridge_base_pose.position.z -= 0.12
-fridge_base_pose.position.x += 0.2
+fridge_base_pose.position.x += 0.21
+fridge_base_pose.position.y += 0.1
 milk.set_pose(fridge_base_pose, base=True)
 
 
@@ -44,9 +45,9 @@ with simulated_robot:
     # Transport the milk
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-    MoveTorsoAction([0.25]).resolve().perform()
+    MoveTorsoAction([0.2]).resolve().perform()
 
-    NavigateAction(target_locations=[Pose([1.3, 3, 0.01], quaternion_from_euler(0, 0, 3.14))]).resolve().perform()
+    NavigateAction(target_locations=[Pose([1.1, 3.15, 0.01], quaternion_from_euler(0, 0, 3.14))]).resolve().perform()
 
     LookAtAction(targets=[Pose(milk.get_position_as_list())]).resolve().perform()
 
