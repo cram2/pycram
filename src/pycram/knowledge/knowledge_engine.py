@@ -7,7 +7,7 @@ from anytree import PreOrderIter
 from typeguard import check_type, TypeCheckError
 
 from ..datastructures.partial_designator import PartialDesignator
-from ..datastructures.property import Property, ResolvedProperty
+from ..datastructures.property import Property, ResolvedProperty, PropertyOperator
 from .knowledge_source import KnowledgeSource
 from typing_extensions import Type, Callable, List, TYPE_CHECKING, Dict, Any
 
@@ -114,7 +114,11 @@ class KnowledgeEngine:
                 for param in inspect.signature(resolved_aspect_function).parameters.keys():
                     node.parameter[param] = child.__getattribute__(param)
                 child.parent = None
-        return properties.root
+
+        if isinstance(properties.root, PropertyOperator):
+            return properties.root
+        else:
+            return node
 
     def update(self):
         """
