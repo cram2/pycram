@@ -1,11 +1,13 @@
 import atexit
+from datetime import timedelta
+
 import tf
 import time 
 
 from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import JointState
 from ..datastructures.world import World
-from ..robot_descriptions import robot_description
+from ..robot_description import RobotDescription
 from ..datastructures.pose import Pose
 from ..ros.data_types import Time, Duration
 from ..ros.ros_tools import wait_for_message, create_timer
@@ -20,7 +22,7 @@ class RobotStateUpdater:
         * The current joint state of the robot
     """
 
-    def __init__(self, tf_topic: str, joint_state_topic: str):
+    def __init__(self, tf_topic: str, joint_state_topic: str, update_rate: timedelta = timedelta(milliseconds=100)):
         """
         The robot state updater uses a TF topic and a joint state topic to get the current state of the robot.
 
@@ -32,8 +34,9 @@ class RobotStateUpdater:
         self.tf_topic = tf_topic
         self.joint_state_topic = joint_state_topic
 
-        self.tf_timer = create_timer(Duration().from_sec(0.1), self._subscribe_tf)
-        self.joint_state_timer = create_timer(Duration().from_sec(0.1), self._subscribe_joint_state)
+        self.tf_timer = create_timer(Duration().from_sec(update_rate.total_seconds()), self._subscribe_tf)
+        self.joint_state_timer = create_timer(Duration().from_sec(update_rate.total_seconds()),
+                                              self._subscribe_joint_state)
 
         atexit.register(self._stop_subscription)
 
@@ -43,7 +46,8 @@ class RobotStateUpdater:
 
         :param msg: TransformStamped message published to the topic
         """
-        trans, rot = self.tf_listener.lookupTransform("/map", robot_description.base_frame, Time(0))
+        base_link = RobotDescription.current_robot_description.base_link
+        trans, rot = self.tf_listener.lookupTransform("/map", base_link, Time(0))
         World.robot.set_pose(Pose(trans, rot))
 
     def _subscribe_joint_state(self, msg: JointState) -> None:
