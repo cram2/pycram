@@ -991,14 +991,16 @@ class World(StateEntity, ABC):
         self.resume_world_sync()
         self.world_sync.join()
 
-    def save_state(self, state_id: Optional[int] = None) -> int:
+    def save_state(self, state_id: Optional[int] = None, use_same_id: bool = False) -> int:
         """
         Return the id of the saved state of the World. The saved state contains the states of all the objects and
         the state of the physics simulator.
 
+        :param state_id: The id of the saved state.
+        :param use_same_id: Whether to use the same current state id for the new saved state.
         :return: A unique id of the state
         """
-        state_id = self.save_physics_simulator_state()
+        state_id = self.save_physics_simulator_state(state_id=state_id, use_same_id=use_same_id)
         self.save_objects_state(state_id)
         self._current_state = WorldState(state_id, self.object_states)
         return super().save_state(state_id)
@@ -1006,7 +1008,8 @@ class World(StateEntity, ABC):
     @property
     def current_state(self) -> WorldState:
         if self._current_state is None:
-            simulator_state = None if self.conf.use_physics_simulator_state else self.save_physics_simulator_state(True)
+            simulator_state = None if self.conf.use_physics_simulator_state else (
+                self.save_physics_simulator_state(use_same_id=True))
             self._current_state = WorldState(simulator_state, self.object_states)
         return WorldState(self._current_state.simulator_state_id, self.object_states)
 
@@ -1046,10 +1049,11 @@ class World(StateEntity, ABC):
             obj.save_state(state_id)
 
     @abstractmethod
-    def save_physics_simulator_state(self, use_same_id: bool = False) -> int:
+    def save_physics_simulator_state(self, state_id: Optional[int] = None, use_same_id: bool = False) -> int:
         """
         Save the state of the physics simulator and returns the unique id of the state.
 
+        :param state_id: The used specified unique id representing the state.
         :param use_same_id: If the same id should be used for the state.
         :return: The unique id representing the state.
         """
@@ -1556,7 +1560,7 @@ class World(StateEntity, ABC):
         :param use_same_id: If the same id should be used for the state.
         """
         if self.conf.use_physics_simulator_state:
-            self.original_state.simulator_state_id = self.save_physics_simulator_state(use_same_id)
+            self.original_state.simulator_state_id = self.save_physics_simulator_state(use_same_id=use_same_id)
 
     @property
     def original_state(self) -> WorldState:
@@ -1578,10 +1582,7 @@ class UseProspectionWorld:
         with UseProspectionWorld():
             NavigateAction.Action([[1, 0, 0], [0, 0, 0, 1]]).perform()
     """
-    WAIT_TIME_AS_N_SIMULATION_STEPS: int = 20
-    """
-    The time in simulation steps to wait before switching to the prospection world
-    """
+
 
     def __init__(self):
         self.prev_world: Optional[World] = None
@@ -1591,12 +1592,12 @@ class UseProspectionWorld:
         """
         This method is called when entering the with block, it will set the current world to the prospection world
         """
+        # Please do not edit this function, it works as it is now!
         if not World.current_world.is_prospection_world:
             self.prev_world = World.current_world
             World.current_world = World.current_world.prospection_world
-            World.current_world.resume_world_sync()
-            time.sleep(self.WAIT_TIME_AS_N_SIMULATION_STEPS * World.current_world.simulation_time_step)
-            World.current_world.pause_world_sync()
+            # This is also a join statement since it is called from the main thread.
+            World.current_world.world_sync.sync_worlds()
 
     def __exit__(self, *args):
         """
@@ -1698,7 +1699,8 @@ class WorldSync(threading.Thread):
         """
         Adds all objects that are in the main world but not in the prospection world to the prospection world.
         """
-        [self.add_object(obj) for obj in self.world.objects if obj not in self.object_to_prospection_object_map]
+        obj_map_copy = copy(self.object_to_prospection_object_map)
+        [self.add_object(obj) for obj in self.world.objects if obj not in obj_map_copy.keys()]
 
     def add_object(self, obj: Object) -> None:
         """

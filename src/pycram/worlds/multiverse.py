@@ -608,11 +608,13 @@ class Multiverse(World):
             sleep(self.simulation_time_step)
             self.api_requester.pause_simulation()
 
-    def save_physics_simulator_state(self, use_same_id: bool = False) -> int:
-        self.latest_save_id = 0 if self.latest_save_id is None else self.latest_save_id + int(not use_same_id)
-        save_name = f"save_{self.latest_save_id}"
-        self.saved_simulator_states[self.latest_save_id] = self.api_requester.save(save_name)
-        return self.latest_save_id
+    def save_physics_simulator_state(self, state_id: Optional[int] = None, use_same_id: bool = False) -> int:
+        if state_id is None:
+            self.latest_save_id = 0 if self.latest_save_id is None else self.latest_save_id + int(not use_same_id)
+            state_id = self.latest_save_id
+        save_name = f"save_{state_id}"
+        self.saved_simulator_states[state_id] = self.api_requester.save(save_name)
+        return state_id
 
     def remove_physics_simulator_state(self, state_id: int) -> None:
         self.saved_simulator_states.pop(state_id)
