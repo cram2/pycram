@@ -356,18 +356,26 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
                                       self.multiverse.conf.position_tolerance)
             self.tearDown()
 
-    def test_attach_with_robot(self):
-        milk = self.spawn_milk([-1, -1, 0.1])
+    def test_attach_with_robot_with_coincide(self):
+        self.generic_attach_with_robot(True)
+
+    def test_attach_with_robot_without_coincide(self):
+        self.generic_attach_with_robot(False)
+
+    def generic_attach_with_robot(self, coincide: bool):
+        milk = self.spawn_milk([-1, -1, 2])
         robot = self.spawn_robot()
+        joint_name = "arm_right_2_joint"
+        robot.set_joint_position(joint_name, 0)
         ee_link = self.multiverse.get_arm_tool_frame_link(Arms.RIGHT)
         # Get position of milk relative to robot end effector
-        robot.attach(milk, ee_link.name)
+        robot.attach(milk, ee_link.name, coincide_the_objects=coincide)
         self.assertTrue(robot in milk.attachments)
         milk_initial_pose = milk.root_link.get_pose_wrt_link(ee_link)
-        robot_position = 1.57
-        robot.set_joint_position("arm_right_2_joint", robot_position)
-        milk_pose = milk.root_link.get_pose_wrt_link(ee_link)
-        self.assert_poses_are_equal(milk_initial_pose, milk_pose)
+        for joint_pos in [0, 0.5, 1]:
+            robot.set_joint_position(joint_name, joint_pos)
+            milk_pose = milk.root_link.get_pose_wrt_link(ee_link)
+            self.assert_poses_are_equal(milk_initial_pose, milk_pose)
 
     def test_get_object_contact_points(self):
         for i in range(10):
