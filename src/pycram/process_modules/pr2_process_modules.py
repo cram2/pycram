@@ -210,7 +210,9 @@ class Pr2NavigationReal(ProcessModule):
 
     def _execute(self, designator: MoveMotion) -> Any:
         logdebug(f"Sending goal to giskard to Move the robot")
-        giskard.achieve_cartesian_goal(designator.target, RobotDescription.current_robot_description.base_link, "map")
+        giskard.achieve_cartesian_goal(designator.target, RobotDescription.current_robot_description.base_link, "map",
+                                       use_monitor=World.current_world.conf.use_giskard_monitor,
+                                       allow_gripper_collision=World.current_world.conf.allow_gripper_collision)
 
 
 class Pr2MoveHeadReal(ProcessModule):
@@ -390,7 +392,9 @@ class Pr2Manager(ProcessModuleManager):
             return Pr2MoveHeadReal(self._looking_lock)
 
     def detecting(self):
-        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
+        if ProcessModuleManager.execution_type == ExecutionType.SIMULATED or not robokudo_found:
+            if not robokudo_found:
+                logwarn("Robokudo not found, using simulated detection")
             return Pr2Detecting(self._detecting_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
             return Pr2DetectingReal(self._detecting_lock)
