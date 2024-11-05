@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from tf.transformations import quaternion_from_euler
 
 from pycram.datastructures.dataclasses import Color
@@ -6,7 +8,8 @@ from pycram.datastructures.pose import Pose
 from pycram.designators.action_designator import ParkArmsAction, MoveTorsoAction, TransportAction, NavigateAction, \
     LookAtAction, DetectAction
 from pycram.designators.object_designator import BelieveObject
-from pycram.process_module import simulated_robot, with_simulated_robot
+from pycram.process_module import simulated_robot, with_simulated_robot, real_robot
+from pycram.ros_utils.robot_state_updater import RobotStateUpdater
 from pycram.world_concepts.world_object import Object
 from pycram.worlds.multiverse import Multiverse
 
@@ -24,6 +27,7 @@ def move_and_detect(obj_type: ObjectType, pick_pose: Pose):
 
 world = Multiverse()
 robot = Object('pr2', ObjectType.ROBOT, f'pr2.urdf', pose=Pose([1.3, 2.6, 0.01]))
+RobotStateUpdater(tf_topic="/tf", joint_state_topic="/real/pr2/joint_states", update_rate=timedelta(seconds=1))
 apartment = Object("apartment", ObjectType.ENVIRONMENT, f"apartment.urdf")
 milk = Object("milk", ObjectType.MILK, f"milk.stl", pose=Pose([0.4, 2.6, 1.34]),
               color=Color(1, 0, 0, 1))
@@ -40,7 +44,7 @@ milk.set_pose(fridge_base_pose, base=True)
 robot_desig = BelieveObject(names=[robot.name])
 apartment_desig = BelieveObject(names=[apartment.name])
 
-with simulated_robot:
+with real_robot:
 
     # Transport the milk
     ParkArmsAction([Arms.BOTH]).resolve().perform()
