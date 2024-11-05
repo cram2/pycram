@@ -129,7 +129,6 @@ def visibility_validator(pose: Pose,
         robot.set_pose(Pose([100, 100, 0], [0, 0, 0, 1]))
         # TODO: Check if this is correct
         ray = world.ray_test(camera_pose.position_as_list(), object_or_pose)
-        print(ray)
         res = ray == -1
     robot.set_pose(robot_pose)
     return res

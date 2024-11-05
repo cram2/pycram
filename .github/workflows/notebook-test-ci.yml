@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - dev
-      - test-test-ci
+      - master
   pull_request:
     branches:
       - master

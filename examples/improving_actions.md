@@ -99,6 +99,7 @@ Next, we will perform pick up tasks using the default policy and observe the suc
 The robot will now experiment with the behaviour specified by the default policy and observe his success rate in doing
 so.
 After finishing the experiments, we insert the results into the database.
+If you want to generate some data locally, you can uncomment the following code.
 
 ```python
 # pycram.orm.base.ProcessMetaData().description = "Experimenting with Pick Up Actions"

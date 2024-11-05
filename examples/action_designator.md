@@ -168,9 +168,6 @@ with simulated_robot:
                  arms=[arm],
                  grasps=[Grasp.RIGHT]).resolve().perform()
 
-    # NavigateAction([Pose([-1.90, 0.78, 0.0],
-    #                     [0.0, 0.0, 0.16439898301071468, 0.9863939245479175])]).resolve().perform()
-
     PlaceAction(object_designator_description=milk_desig,
                 target_locations=[Pose([2.4, 1.8, 1], 
                                        [0, 0, 0, 1])],

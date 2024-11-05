@@ -113,7 +113,6 @@ We can now re-execute this (modified) plan by executing the leaf in pre-ordering
 ```python
 world.reset_world()
 with simulated_robot:
-    #[node.code.execute() for node in tt.root.leaves]
     [node.action.perform() for node in tt.root.leaves]
 print(anytree.RenderTree(pycram.tasktree.task_tree, style=anytree.render.AsciiStyle()))
 ```
