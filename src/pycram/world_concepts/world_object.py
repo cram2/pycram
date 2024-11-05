@@ -22,6 +22,7 @@ from ..failures import ObjectAlreadyExists, WorldMismatchErrorBetweenObjects, Un
 from ..local_transformer import LocalTransformer
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
 from ..object_descriptors.urdf import ObjectDescription as URDF
+from ..ros.data_types import Time
 from ..ros.logging import logwarn
 
 try:
@@ -640,6 +641,7 @@ class Object(WorldEntity):
 
         if coincide_the_objects and parent_to_child_transform is None:
             parent_to_child_transform = Transform()
+            child_link.set_pose(parent_link.pose)
         attachment = Attachment(parent_link, child_link, bidirectional, parent_to_child_transform)
 
         self.attachments[child_object] = attachment
