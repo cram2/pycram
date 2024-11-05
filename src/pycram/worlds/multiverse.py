@@ -6,20 +6,19 @@ from time import sleep
 
 import numpy as np
 from tf.transformations import quaternion_matrix
-from typing_extensions import List, Dict, Optional, Union, Tuple
+from typing_extensions import List, Dict, Optional, Union, Tuple, Callable
 
 from .multiverse_communication.client_manager import MultiverseClientManager
 from .multiverse_communication.clients import MultiverseController, MultiverseReader, MultiverseWriter, MultiverseAPI
 from ..config.multiverse_conf import MultiverseConfig
-from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint, \
-    MultiverseContactPoint, MeshVisualShape
+from ..datastructures.dataclasses import AxisAlignedBoundingBox, Color, ContactPointsList, ContactPoint
 from ..datastructures.enums import WorldMode, JointType, ObjectType, MultiverseBodyProperty, MultiverseJointPosition, \
     MultiverseJointCMD
 from ..datastructures.pose import Pose
 from ..datastructures.world import World
 from ..description import Link, Joint
-from ..object_descriptors.mjcf import ObjectDescription as MJCF, ObjectFactory, PrimitiveObjectFactory
 from ..object_descriptors.generic import ObjectDescription as GenericObjectDescription
+from ..object_descriptors.mjcf import ObjectDescription as MJCF, PrimitiveObjectFactory
 from ..robot_description import RobotDescription
 from ..ros.logging import logwarn, logerr
 from ..utils import RayTestUtils, wxyz_to_xyzw, xyzw_to_wxyz
@@ -545,7 +544,7 @@ class Multiverse(World):
                 contact_points[-1].position_on_b = point.position
         return contact_points
 
-    def get_object_with_body_name(self, body_name: str) -> Tuple[Optional[Object],Optional[Link]]:
+    def get_object_with_body_name(self, body_name: str) -> Tuple[Optional[Object], Optional[Link]]:
         """
         Get the object with the body name in the simulator, the body name can be the name of the object or the link.
 
@@ -624,9 +623,12 @@ class Multiverse(World):
         else:
             return results
 
-    def step(self):
+    def step(self, func: Optional[Callable[[], None]] = None, step_seconds: Optional[float] = None) -> None:
         """
         Perform a simulation step in the simulator, this is useful when use_static_mode is True.
+
+        :param func: A function to be called after the simulation step.
+        :param step_seconds: The number of seconds to step the simulation.
         """
         if self.conf.use_static_mode:
             self.unpause_simulation()
@@ -671,7 +673,7 @@ class Multiverse(World):
 
     def set_realtime(self, real_time: bool) -> None:
         logwarn("set_realtime is not implemented as an API in Multiverse, it is configured in the"
-                      "multiverse configuration file (.muv file) as rtf_required where a value of 1 means real-time")
+                "multiverse configuration file (.muv file) as rtf_required where a value of 1 means real-time")
 
     def set_gravity(self, gravity_vector: List[float]) -> None:
         logwarn("set_gravity is not implemented in Multiverse")
