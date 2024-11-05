@@ -33,7 +33,7 @@ import anytree
 import pycram.failures
 import numpy as np
 
-np.random.seed(1)
+np.random.seed(4)
 
 world = BulletWorld()
 robot = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
