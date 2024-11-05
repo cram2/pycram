@@ -58,7 +58,7 @@ class Pr2MoveGripperMultiverse(ProcessModule):
 
 class Pr2MoveGripperReal(ProcessModule):
     """
-    Opens or closes the gripper of the real robot, gripper uses an action server for this instead of giskard
+    Opens or closes the gripper of the real PR2, gripper uses an action server for this instead of giskard
     """
 
     def _execute(self, designator: MoveGripperMotion):
