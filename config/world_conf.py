@@ -84,6 +84,11 @@ class WorldConfig:
     Whether to use a percentage of the goal as the acceptable error.
     """
 
+    validate_goals: bool = False
+    """
+    Whether to validate the goals when executing them.
+    """
+
     raise_goal_validator_error: bool = False
     """
     Whether to raise an error if the goals are not achieved.

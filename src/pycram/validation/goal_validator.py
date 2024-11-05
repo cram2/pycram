@@ -468,6 +468,9 @@ def validate_object_pose(pose_setter_func):
 
     def wrapper(world: 'World', obj: 'Object', pose: 'Pose'):
 
+        if not world.current_world.conf.validate_goals:
+            return True
+
         world.pose_goal_validator.register_goal(pose, obj)
 
         if not pose_setter_func(world, obj, pose):
@@ -488,6 +491,9 @@ def validate_multiple_object_poses(pose_setter_func):
     """
 
     def wrapper(world: 'World', object_poses: Dict['Object', 'Pose']):
+
+        if not world.current_world.conf.validate_goals:
+            return True
 
         world.multi_pose_goal_validator.register_goal(list(object_poses.values()),
                                                       list(object_poses.keys()))
@@ -510,6 +516,9 @@ def validate_joint_position(position_setter_func):
     """
 
     def wrapper(world: 'World', joint: 'Joint', position: float):
+
+        if not world.current_world.conf.validate_goals:
+            return True
 
         joint_type = joint.type
         world.joint_position_goal_validator.register_goal(position, joint_type, joint)
@@ -535,6 +544,8 @@ def validate_multiple_joint_positions(position_setter_func):
     """
 
     def wrapper(world: 'World', joint_positions: Dict['Joint', float]):
+        if not world.current_world.conf.validate_goals:
+            return True
         joint_positions_to_validate = {joint: position for joint, position in joint_positions.items()
                                        if not joint.is_virtual}
         joint_types = [joint.type for joint in joint_positions_to_validate.keys()]
