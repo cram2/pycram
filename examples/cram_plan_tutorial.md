@@ -31,6 +31,9 @@ from pycram.datastructures.pose import Pose
 from pycram.world_concepts.world_object import Object
 import anytree
 import pycram.failures
+import numpy as np
+
+np.random.seed(1)
 
 world = BulletWorld()
 robot = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
