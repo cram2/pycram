@@ -118,7 +118,8 @@ class RobotDescription:
     """
 
     def __init__(self, name: str, base_link: str, torso_link: str, torso_joint: str, urdf_path: str,
-                 virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = None, mjcf_path: Optional[str] = None):
+                 virtual_mobile_base_joints: Optional[VirtualMobileBaseJoints] = None, mjcf_path: Optional[str] = None,
+                 ignore_joints: Optional[List[str]] = None):
         """
         Initialize the RobotDescription. The URDF is loaded from the given path and used as basis for the kinematic
         chains.
@@ -130,11 +131,13 @@ class RobotDescription:
         :param urdf_path: Path to the URDF file of the robot
         :param virtual_mobile_base_joints: Virtual mobile base joint names for mobile robots
         :param mjcf_path: Path to the MJCF file of the robot
+        :param ignore_joints: List of joint names that are not used.
         """
         self.name = name
         self.base_link = base_link
         self.torso_link = torso_link
         self.torso_joint = torso_joint
+        self.ignore_joints = ignore_joints if ignore_joints else []
         with suppress_stdout_stderr():
             # Since parsing URDF causes a lot of warning messages which can't be deactivated, we suppress them
             self.urdf_object = URDFObject(urdf_path)

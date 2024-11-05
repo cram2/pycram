@@ -12,7 +12,12 @@ mjcf_filename = get_robot_mjcf_path("", "pr2")
 
 pr2_description = RobotDescription("pr2", "base_link", "torso_lift_link",
                                    "torso_lift_joint", filename,
-                                   virtual_mobile_base_joints=VirtualMobileBaseJoints(), mjcf_path=mjcf_filename)
+                                   virtual_mobile_base_joints=VirtualMobileBaseJoints(),
+                                   mjcf_path=mjcf_filename,
+                                   ignore_joints=['torso_lift_motor_screw_joint','r_gripper_motor_slider_joint',
+                                                  'r_gripper_motor_screw_joint', 'r_gripper_joint',
+                                                  'l_gripper_motor_slider_joint', 'l_gripper_motor_screw_joint',
+                                                  'l_gripper_joint'])
 
 ################################## Left Arm ##################################
 left_arm = KinematicChainDescription("left", "torso_lift_link", "l_wrist_roll_link",
