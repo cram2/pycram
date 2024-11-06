@@ -305,12 +305,12 @@ class MoveAndPlace(ActionDesignatorDescription, ProbabilisticAction):
 
     def sample_to_action(self, sample: List) -> MoveAndPlacePerformable:
         relative_x, relative_y = sample
-        position = [relative_x, relative_y, 0.]
+        position = [relative_x + self.target_location.position.x, relative_y + self.target_location.position.y, 0.]
         pose = Pose(position, frame=self.target_location.frame)
         standing_position = LocalTransformer().transform_pose(pose, "map")
         standing_position.position.z = 0
         action = MoveAndPlacePerformable(standing_position, self.object_designator,
-                                         self.target_location, EArms.BOTH)
+                                         self.target_location, EArms.LEFT)
         return action
 
     def events_from_occupancy_and_visibility_costmap(self) -> Event:
@@ -357,12 +357,12 @@ class MoveAndPlace(ActionDesignatorDescription, ProbabilisticAction):
 
         return result
 
-    def iter_with_mode(self) -> Iterator[MoveAndPickUpPerformable]:
+    def iter_with_mode(self) -> Iterator[MoveAndPlacePerformable]:
         """
         Generate performables by sampling from the mode of the policy conditioned on visibility and occupancy.
         """
         model = self.ground_model()
-        modes, _ = model.mode()
+        modes, _ = model.log_mode(check_determinism=False)
         model = self.ground_model(model, modes)
         samples = model.sample(self.sample_amount)
 
