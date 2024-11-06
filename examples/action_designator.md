@@ -5,14 +5,13 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.2
+      jupytext_version: 1.16.3
   kernelspec:
-    display_name: Python 3
+    display_name: Python 3 (ipykernel)
     language: python
     name: python3
 ---
 
-<!-- #region -->
 
 # Action Designator
 
@@ -29,7 +28,7 @@ Designator Description will then pick one of the poses and return a performable 
 picked pose.
 
 
-<!-- #endregion -->
+
 
 ## Navigate Action
 
@@ -41,9 +40,12 @@ First, we need a BulletWorld with a robot.
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import ObjectType, WorldMode
+from pycram.datastructures.pose import Pose
 
 world = BulletWorld(WorldMode.GUI)
-pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf")
+pr2 = Object("pr2", ObjectType.ROBOT, "pr2.urdf", pose=Pose([1, 2, 0]))
+apartmet = Object("apartment", ObjectType.ENVIRONMENT, "apartment.urdf")
+milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([2.3, 2, 1.1]))
 ```
 
 To move the robot we need to create a description and resolve it to an actual Designator. The description of navigation
@@ -53,7 +55,7 @@ only needs a list of possible poses.
 from pycram.designators.action_designator import NavigateAction
 from pycram.datastructures.pose import Pose
 
-pose = Pose([1, 0, 0], [0, 0, 0, 1])
+pose = Pose([1.3, 2, 0], [0, 0, 0, 1])
 
 # This is the Designator Description
 navigate_description = NavigateAction(target_locations=[pose])
@@ -141,16 +143,11 @@ the example on object designators for more details.
 To start we need an environment in which we can pick up and place things as well as an object to pick up.
 
 ```python
-kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
-milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
-
 world.reset_world()
 ```
 
 ```python
-from pycram.designators.action_designator import PickUpAction, PlaceAction, ParkArmsAction, MoveTorsoAction,
-
-NavigateAction
+from pycram.designators.action_designator import PickUpAction, PlaceAction, ParkArmsAction, MoveTorsoAction,NavigateAction
 from pycram.designators.object_designator import BelieveObject
 from pycram.process_module import simulated_robot
 from pycram.datastructures.enums import Arms, Grasp
@@ -164,25 +161,17 @@ with simulated_robot:
 
     MoveTorsoAction([0.3]).resolve().perform()
 
-    NavigateAction([Pose([0.78, 1, 0.0],
-                         [0.0, 0.0, 0.014701099828940344, 0.9998919329926708])]).resolve().perform()
+    NavigateAction([Pose([1.8, 2, 0.0],
+                         [0.0, 0.0, 0., 1])]).resolve().perform()
 
     PickUpAction(object_designator_description=milk_desig,
                  arms=[arm],
                  grasps=[Grasp.RIGHT]).resolve().perform()
 
-    NavigateAction([Pose([-1.90, 0.78, 0.0],
-                         [0.0, 0.0, 0.16439898301071468, 0.9863939245479175])]).resolve().perform()
-
     PlaceAction(object_designator_description=milk_desig,
-                target_locations=[Pose([-1.20, 1.0192, 0.9624],
-                                       # [0.0, 0.0, 0.6339889056055381, 0.7733421413379024])], 
+                target_locations=[Pose([2.4, 1.8, 1], 
                                        [0, 0, 0, 1])],
                 arms=[arm]).resolve().perform()
-```
-
-```python
-world.reset_world()
 ```
 
 ## Look At
@@ -190,11 +179,15 @@ world.reset_world()
 Look at lets the robot look at a specific point, for example if it should look at an object for detecting.
 
 ```python
+world.reset_world()
+```
+
+```python
 from pycram.designators.action_designator import LookAtAction
 from pycram.process_module import simulated_robot
 from pycram.datastructures.pose import Pose
 
-target_location = Pose([1, 0, 0.5], [0, 0, 0, 1])
+target_location = Pose([3, 2, 0.5], [0, 0, 0, 1])
 with simulated_robot:
     LookAtAction(targets=[target_location]).resolve().perform()
 ```
@@ -206,7 +199,7 @@ up/place example, if you didn't execute that example you can spawn the milk with
 designator will return a resolved instance of an ObjectDesignatorDescription.
 
 ```python
-milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+world.reset_world()
 ```
 
 ```python
@@ -221,7 +214,7 @@ milk_desig = BelieveObject(names=["milk"])
 with simulated_robot:
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-    NavigateAction([Pose([0, 1, 0], [0, 0, 0, 1])]).resolve().perform()
+    NavigateAction([Pose([1.7, 2, 0], [0, 0, 0, 1])]).resolve().perform()
 
     LookAtAction(targets=[milk_desig.resolve().pose]).resolve().perform()
 
@@ -237,8 +230,7 @@ Place plan used in the Pick-up and Place example. Since we need an Object which 
 don't need to do this if you already have spawned it in a previous example.
 
 ```python
-kitchen = Object("kitchen", ObjectType.ENVIRONMENT, "kitchen.urdf")
-milk = Object("milk", ObjectType.MILK, "milk.stl", pose=Pose([1.3, 1, 0.9]))
+world.reset_world()
 ```
 
 ```python
@@ -252,8 +244,8 @@ milk_desig = BelieveObject(names=["milk"])
 
 description = TransportAction(milk_desig,
                               [Arms.LEFT],
-                              [Pose([-1.35, 0.78, 0.95],
-                                    [0.0, 0.0, 0.16439898301071468, 0.9863939245479175])])
+                              [Pose([2.4, 1.8, 1], 
+                                       [0, 0, 0, 1])])
 with simulated_robot:
     MoveTorsoAction([0.2]).resolve().perform()
     description.resolve().perform()
@@ -268,11 +260,7 @@ For the moment this designator works only in the apartment environment, therefor
 apartment.
 
 ```python
-kitchen.remove()
-```
-
-```python
-apartment = Object("apartment", ObjectType.ENVIRONMENT, "apartment.urdf")
+world.reset_world()
 ```
 
 ```python
@@ -300,15 +288,6 @@ describing the handle to be grasped.
 
 This action designator only works in the apartment environment for the moment, therefore we remove the kitchen and spawn
 the apartment. Additionally, we open the drawer such that we can close it with the action designator.
-
-```python
-kitchen.remove()
-```
-
-```python
-apartment = Object("apartment", ObjectType.ENVIRONMENT, "apartment.urdf")
-apartment.set_joint_state("cabinet10_drawer_top_joint", 0.4)
-```
 
 ```python
 from pycram.designators.action_designator import *
