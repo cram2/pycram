@@ -1079,6 +1079,7 @@ class MoveAndPickUpPerformable(ActionAbstract):
         FaceAtPerformable(self.object_designator.pose).perform()
         PickUpActionPerformable(self.object_designator, self.arm, self.grasp).perform()
 
+
 @dataclass
 class MoveAndPlacePerformable(ActionAbstract):
     """
@@ -1110,4 +1111,3 @@ class MoveAndPlacePerformable(ActionAbstract):
         NavigateActionPerformable(self.standing_position).perform()
         FaceAtPerformable(self.target_location).perform()
         PlaceActionPerformable(self.object_designator, self.arm, self.target_location).perform()
-

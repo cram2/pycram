@@ -1,13 +1,16 @@
-from dataclasses import fields
+import json
+from dataclasses import fields, dataclass
 
+import random_events
 import tqdm
 from probabilistic_model.probabilistic_circuit.nx.helper import fully_factorized
 from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit
 from probabilistic_model.probabilistic_model import ProbabilisticModel
-from random_events.interval import *
+from random_events.interval import SimpleInterval
 from random_events.product_algebra import Event, SimpleEvent
 from random_events.set import SetElement
 from random_events.variable import Symbolic, Continuous, Variable
+from sortedcontainers import SortedSet
 from sqlalchemy import select
 from typing_extensions import Optional, List, Iterator
 
@@ -95,6 +98,12 @@ class ProbabilisticAction:
         model = fully_factorized(self.all_variables(), means, variances)
         return model
 
+    def evidence_from_belief_state(self) -> Event:
+        """
+        :return: the evidence from the belief state that influences the distribution.
+        """
+        raise NotImplementedError
+
 
 class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
 
@@ -105,7 +114,7 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
         relative_x: Continuous = Continuous("relative_x")
         relative_y: Continuous = Continuous("relative_y")
 
-    variables = Variables()  # Type hint variables
+    variables: Variables
 
     sample_amount: int = 20
     """
@@ -162,8 +171,8 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
         # convert rectangles to events
         events = []
         for rectangle in mcm.partitioning_rectangles():
-            event = SimpleEvent({self.variables.relative_x: open(rectangle.x_lower, rectangle.x_upper),
-                                 self.variables.relative_y: open(rectangle.y_lower, rectangle.y_upper)})
+            event = SimpleEvent({self.variables.relative_x: random_events.interval.open(rectangle.x_lower, rectangle.x_upper),
+                                 self.variables.relative_y: random_events.interval.open(rectangle.y_lower, rectangle.y_upper)})
             events.append(event)
         return Event(*events)
 
@@ -194,8 +203,14 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
         Generate performables by sampling from the mode of the policy conditioned on visibility and occupancy.
         """
         model = self.ground_model()
-        modes, _ = model.mode()
-        model = self.ground_model(model, modes)
+
+        modes, log_max = model.log_mode(check_determinism=False)
+        print(modes)
+        print(log_max)
+        model, _ = model.conditional(modes)
+
+        print(model)
+
         samples = model.sample(self.sample_amount)
 
         for sample in samples:
@@ -267,6 +282,8 @@ class MoveAndPlace(ActionDesignatorDescription, ProbabilisticAction):
         relative_x: Continuous = Continuous("relative_x")
         relative_y: Continuous = Continuous("relative_y")
 
+    variables: Variables
+
     sample_amount: int = 20
     """
     The amount of samples that should be drawn from the policy when iterating over it.
@@ -292,13 +309,13 @@ class MoveAndPlace(ActionDesignatorDescription, ProbabilisticAction):
         self.target_location = target_location
 
     def sample_to_action(self, sample: List) -> MoveAndPlacePerformable:
-        arm, grasp, relative_x, relative_y = sample
+        relative_x, relative_y = sample
         position = [relative_x, relative_y, 0.]
-        pose = Pose(position, frame=self.object_designator.world_object.tf_frame)
+        pose = Pose(position, frame=self.target_location.frame)
         standing_position = LocalTransformer().transform_pose(pose, "map")
         standing_position.position.z = 0
-        action = MoveAndPlacePerformable(standing_position, self.object_designator, EArms[Arms(int(arm)).name],
-                                          EGrasp(int(grasp)))
+        action = MoveAndPlacePerformable(standing_position, self.object_designator,
+                                         self.target_location, EArms.BOTH)
         return action
 
     def events_from_occupancy_and_visibility_costmap(self) -> Event:
@@ -318,8 +335,8 @@ class MoveAndPlace(ActionDesignatorDescription, ProbabilisticAction):
         # convert rectangles to events
         events = []
         for rectangle in mcm.partitioning_rectangles():
-            event = SimpleEvent({self.variables.relative_x: open(rectangle.x_lower, rectangle.x_upper),
-                                 self.variables.relative_y: open(rectangle.y_lower, rectangle.y_upper)})
+            event = SimpleEvent({self.variables.relative_x: random_events.interval.open(rectangle.x_lower, rectangle.x_upper),
+                                 self.variables.relative_y: random_events.interval.open(rectangle.y_lower, rectangle.y_upper)})
             events.append(event)
         return Event(*events)
 
@@ -389,9 +406,6 @@ class MoveAndPlace(ActionDesignatorDescription, ProbabilisticAction):
         return query
 
     def batch_rollout(self):
-        """
-        Try the policy without conditioning on visibility and occupancy and count the successful tries.
-        """
 
         # initialize statistics
         successful_tries = 0
