@@ -128,7 +128,6 @@ variables = infer_variables_from_dataframe(samples, scale_continuous_types=False
                                            min_likelihood_improvement = 0.)
 model = JPT(variables, min_samples_leaf=25)
 model.fit(samples)
-model = model.probabilistic_circuit
 print(model)
 ```
 
