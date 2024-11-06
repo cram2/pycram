@@ -51,7 +51,7 @@ from pycram.world_concepts.world_object import Object
 from pycram.robot_descriptions import robot_description
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.datastructures.pose import Pose
-from pycram.ros.viz_marker_publisher import VizMarkerPublisher
+from pycram.ros_utils.viz_marker_publisher import VizMarkerPublisher
 from pycram.process_module import ProcessModule, simulated_robot
 from pycram.designators.specialized_designators.probabilistic.probabilistic_action import MoveAndPickUp, Arms, Grasp
 from pycram.tasktree import task_tree, TaskTree 
@@ -64,11 +64,11 @@ random.seed(69)
 Next, we connect to a database where we can store and load robot experiences.
 
 ```python
-pycrorm_uri = os.getenv('PYCRORM_URI')
+pycrorm_uri = "robot_enjoyer:I_love_robots_123@neem-2.informatik.uni-bremen.de:3306/pycram_ci"
 pycrorm_uri = "mysql+pymysql://" + pycrorm_uri
-engine = sqlalchemy.create_engine('sqlite:///:memory:')
+engine = sqlalchemy.create_engine(pycrorm_uri)
 session = sqlalchemy.orm.sessionmaker(bind=engine)()
-pycram.orm.base.Base.metadata.create_all(engine)
+# pycram.orm.base.Base.metadata.create_all(engine)
 ```
 
 Now we construct an empty world with just a floating milk, where we can learn about PickUp actions.
@@ -99,15 +99,16 @@ Next, we will perform pick up tasks using the default policy and observe the suc
 The robot will now experiment with the behaviour specified by the default policy and observe his success rate in doing
 so.
 After finishing the experiments, we insert the results into the database.
+If you want to generate some data locally, you can uncomment the following code.
 
 ```python
-pycram.orm.base.ProcessMetaData().description = "Experimenting with Pick Up Actions"
-fpa.sample_amount = 100
-with simulated_robot:
-    fpa.batch_rollout()
-task_tree.root.insert(session)
-session.commit()
-task_tree.reset_tree()
+# pycram.orm.base.ProcessMetaData().description = "Experimenting with Pick Up Actions"
+# fpa.sample_amount = 100
+# with simulated_robot:
+#     fpa.batch_rollout()
+# task_tree.root.insert(session)
+# session.commit()
+# task_tree.reset_tree()
 ```
 
 Let's query the data that is needed to learn a pick up action and have a look at it.
@@ -122,10 +123,13 @@ samples
 We can now learn a probabilistic model from the data. We will use the JPT algorithm to learn a model from the data.
 
 ```python
-variables = infer_variables_from_dataframe(samples, scale_continuous_types=False)
+variables = infer_variables_from_dataframe(samples, scale_continuous_types=False, 
+                                           min_samples_per_quantile=2, 
+                                           min_likelihood_improvement = 0.)
 model = JPT(variables, min_samples_leaf=25)
 model.fit(samples)
 model = model.probabilistic_circuit
+print(model)
 ```
 
 ```python
@@ -147,12 +151,12 @@ Let's make a monte carlo estimate on the success probability of the new model.
 
 ```python
 fpa.policy = model
-fpa.sample_amount = 500
+fpa.sample_amount = 5
 with simulated_robot:
     fpa.batch_rollout()
 ```
 
-We can see, that our new and improved model has a success probability of 60% as opposed to the 30% from the standard
+We can see, that our new and improved model has a better success probability as opposed to the 30% from the standard
 policy.
 
 Next, we put the learned model to the test in a complex environment, where the milk is placed in a difficult to access
@@ -206,6 +210,6 @@ with simulated_robot:
 ```
 
 ```python
-# world.exit()
-# viz_marker_publisher._stop_publishing()
+world.exit()
+viz_marker_publisher._stop_publishing()
 ```

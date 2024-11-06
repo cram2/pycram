@@ -91,7 +91,7 @@ class TaskTreeNode(anytree.NodeMixin):
                "Status: %s \n " \
                "start_time: %s \n " \
                "end_time: %s \n " \
-               "" % (str(self.action), self.start_time, self.status, self.end_time)
+               "" % (str(self.action), self.status, self.start_time, self.end_time)
 
     def __repr__(self):
         return str(self.action.__class__.__name__)
@@ -208,6 +208,12 @@ class TaskTree(metaclass=Singleton):
         """
         self.root = TaskTreeNode()
         self.current_node = self.root
+        self.name = "TaskTree"
+        self.insert = self.root.insert
+
+    @property
+    def children(self):
+        return self.root.children
 
     def __len__(self):
         """

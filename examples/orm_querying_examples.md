@@ -30,8 +30,7 @@ import tqdm
 import pycram.orm.base
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object as BulletWorldObject
-from pycram.designators.action_designator import MoveTorsoAction, PickUpAction, NavigateAction, ParkArmsAction,
-    ParkArmsActionPerformable, MoveTorsoActionPerformable
+from pycram.designators.action_designator import MoveTorsoAction, PickUpAction, NavigateAction, ParkArmsAction, ParkArmsActionPerformable, MoveTorsoActionPerformable
 from pycram.designators.object_designator import ObjectDesignatorDescription
 from pycram.failures import PlanFailure
 from pycram.process_module import ProcessModule
@@ -140,7 +139,6 @@ class GraspingExplorer:
 
                         # try to execute a grasping plan
                         with simulated_robot:
-
                             ParkArmsActionPerformable(Arms.BOTH).perform()
                             # navigate to sampled position
                             NavigateAction([Pose(position, orientation)]).resolve().perform()
@@ -188,7 +186,7 @@ session = sqlalchemy.orm.Session(bind=engine)
 pycram.orm.base.Base.metadata.create_all(bind=engine)
 session.commit()
 
-explorer = GraspingExplorer(samples_per_scenario=30)
+explorer = GraspingExplorer(samples_per_scenario=10)
 explorer.perform(session)
 ```
 
@@ -248,7 +246,7 @@ query = (select(TaskTreeNode.status, Object.obj_type,
 print(query)
 
 df = pd.read_sql(query, session.get_bind())
-df["status"] = df["status"].apply(lambda x: str(x.name))
+df["status"] = df["status"].apply(lambda x: str(x))
 print(df)
 ```
 
