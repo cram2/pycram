@@ -43,12 +43,12 @@ class MoveAndPickUpTestCase(BulletWorldTestCase):
         self.assertTrue(event.is_disjoint())
         self.assertIsNotNone(model)
 
-    def test_move_and_pick_up(self):
+    def test_move_and_pick_up_with_mode(self):
         object_designator = ObjectDesignatorDescription(types=[ObjectType.MILK]).resolve()
         move_and_pick = MoveAndPickUp(object_designator, arms=[Arms.LEFT, Arms.RIGHT],
                                       grasps=[Grasp.FRONT, Grasp.LEFT, Grasp.RIGHT, Grasp.TOP])
         with simulated_robot:
-            for action in move_and_pick:
+            for action in move_and_pick.iter_with_mode():
                 try:
                     MoveTorsoActionPerformable(0.3).perform()
                     action.perform()

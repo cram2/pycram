@@ -162,7 +162,7 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
         """
 
         # create occupancy and visibility costmap for the target object
-        ocm = OccupancyCostmap(distance_to_obstacle=0.3, from_ros=False, size=200, resolution=0.1,
+        ocm = OccupancyCostmap(distance_to_obstacle=0.4, from_ros=False, size=200, resolution=0.1,
                                origin=self.object_designator.pose)
         vcm = VisibilityCostmap(min_height=1.27, max_height=1.69,
                                 size=200, resolution=0.1, origin=self.object_designator.pose)
@@ -205,12 +205,7 @@ class MoveAndPickUp(ActionDesignatorDescription, ProbabilisticAction):
         model = self.ground_model()
 
         modes, log_max = model.log_mode(check_determinism=False)
-        print(modes)
-        print(log_max)
         model, _ = model.conditional(modes)
-
-        print(model)
-
         samples = model.sample(self.sample_amount)
 
         for sample in samples:
@@ -326,7 +321,7 @@ class MoveAndPlace(ActionDesignatorDescription, ProbabilisticAction):
         """
 
         # create occupancy and visibility costmap for the target object
-        ocm = OccupancyCostmap(distance_to_obstacle=0.3, from_ros=False, size=200, resolution=0.1,
+        ocm = OccupancyCostmap(distance_to_obstacle=0.4, from_ros=False, size=200, resolution=0.1,
                                origin=self.target_location)
         vcm = VisibilityCostmap(min_height=1.27, max_height=1.69,
                                 size=200, resolution=0.1, origin=self.target_location)
