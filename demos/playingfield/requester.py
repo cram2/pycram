@@ -1,25 +1,17 @@
-# import wget
-# import requests
-# import bs4 as BeautifulSoup
-# from matplotlib.style import available
-# from wget import download
-
 import fnmatch
 import os
 
 import requests
-from urllib.parse import urljoin
 from bs4 import BeautifulSoup
-import rospkg
+from pycram.ros import ros_tools
 from typing_extensions import Dict, Set
 
-rospack = rospkg.RosPack()
-filename = rospack.get_path('pycram')
+filename = ros_tools.get_ros_package_path('pycram')
 
 
 class ProcThorInterface:
     def __init__(self, base_url="http://procthor.informatik.uni-bremen.de:5000",
-                 source_folder=os.path.join(rospack.get_path('pycram'), "resources/tmp/")):
+                 source_folder=os.path.join(ros_tools.get_ros_package_path('pycram'), "resources/tmp/")):
         self.base_url = base_url
         self.source_folder = source_folder
         self.stored_environments = []
