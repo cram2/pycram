@@ -13,6 +13,7 @@ from pycram.datastructures.world import UseProspectionWorld, World
 from pycram.designators.action_designator import ParkArmsAction, MoveTorsoAction, TransportAction, NavigateAction, \
     LookAtAction, DetectAction
 from pycram.designators.object_designator import BelieveObject
+from pycram.failures import PerceptionObjectNotFound
 from pycram.process_module import simulated_robot, with_simulated_robot, real_robot
 from pycram.ros_utils.robot_state_updater import WorldStateUpdater
 from pycram.world_concepts.world_object import Object
@@ -59,6 +60,8 @@ fridge_base_pose.position.z -= 0.12
 fridge_base_pose.position.x += 0.16
 fridge_base_pose.position.y += -0.1
 milk.set_pose(fridge_base_pose, base=True)
+print(milk.get_position_as_list())
+print(milk.get_orientation_as_list())
 
 
 robot_desig = BelieveObject(names=[robot.name])
@@ -76,7 +79,10 @@ with real_robot:
 
     LookAtAction(targets=[Pose(milk.get_position_as_list())]).resolve().perform()
 
-    milk_desig = DetectAction(BelieveObject(types=[milk.obj_type])).resolve().perform()
+    try:
+        milk_desig = DetectAction(BelieveObject(types=[milk.obj_type])).resolve().perform()
+    except PerceptionObjectNotFound:
+        milk_desig = DetectAction(BelieveObject(types=[milk.obj_type])).resolve().perform()
 
     TransportAction(milk_desig, [Pose([2.4, 3, 1.02])], [Arms.LEFT]).resolve().perform()
 
