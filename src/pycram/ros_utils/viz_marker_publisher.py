@@ -4,11 +4,12 @@ import time
 from typing import List, Optional, Tuple
 
 import numpy as np
-from geometry_msgs.msg import Vector3
+import rospy
+from geometry_msgs.msg import Vector3, Point
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
 
-from ..datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, MeshVisualShape, SphereVisualShape
+from ..datastructures.dataclasses import BoxVisualShape, CylinderVisualShape, MeshVisualShape, SphereVisualShape, Color
 from ..datastructures.pose import Pose, Transform
 from ..designator import ObjectDesignatorDescription
 from ..datastructures.world import World
@@ -325,3 +326,200 @@ class ManualMarkerPublisher:
         self.marker_array_pub.publish(self.marker_array)
 
         loginfo('Removed all markers')
+
+
+
+class CostmapPublisher:
+    """
+    A class to publish costmap markers for visualization in ROS.
+
+    This class handles the creation, updating, and deletion of markers representing
+    costmaps in a ROS environment. It publishes markers to a specified topic at a
+    defined interval.
+    """
+
+    def __init__(self, topic_name: str = '/pycram/costmap_marker', interval: float = 0.1):
+        """
+        Initializes the CostmapPublisher with a topic name and publishing interval.
+
+        Args:
+            topic_name (str): The name of the ROS topic to publish markers to.
+            interval (float): The interval in seconds at which to publish markers.
+        """
+        self.marker_pub = rospy.Publisher(topic_name, Marker, queue_size=10)
+        self.marker_overview = {}
+        self.current_id = 0
+        self.interval = interval
+
+    def publish(self, poses: List[Pose], size: float = 0.1, name: Optional[str] = None, scale: float = 0.4):
+        """
+        Publishes poses as markers to the ROS topic.
+
+        This method starts a background thread that publishes the markers at the specified
+        interval for a certain duration.
+
+        Args:
+            poses (List[Pose]): A list of Pose objects representing the costmap.
+            size (float): The size of each marker point.
+            name (Optional[str]): The name of the marker namespace.
+            scale (float): The scaling factor for the z-axis of the costmap.
+        """
+        if name is None:
+            name = 'costmap_marker'
+
+        thread = threading.Thread(target=self._publish_thread, args=(poses, name, size, scale))
+        thread.daemon = True
+        thread.start()
+
+    def _publish_thread(self, poses: List[Pose], name: str, size: float, scale: float):
+        """
+        The thread function that publishes markers at regular intervals.
+
+        Args:
+            poses (List[Pose]): A list of Pose objects representing the costmap.
+            name (str): The name of the marker namespace.
+            size (float): The size of each marker point.
+            scale (float): The scaling factor for the z-axis of the costmap.
+        """
+        duration = 2
+        end_time = time.time() + duration
+
+        while time.time() < end_time and not rospy.is_shutdown():
+            self._publish_marker(name=name, poses=poses, size=size, scale=scale)
+            time.sleep(self.interval)
+
+    def _publish_marker(self, name: str, poses: List[Pose], size: float, scale: float):
+        """
+        Publishes a marker to the ROS topic.
+
+        Args:
+            name (str): The name of the marker namespace.
+            poses (List[Pose]): A list of Pose objects representing the costmap.
+            size (float): The size of each marker point.
+            scale (float): The scaling factor for the z-axis of the costmap.
+        """
+        if name in self.marker_overview:
+            marker_id = self.marker_overview[name]
+            marker = self._update_marker(marker_id, poses, size, scale)
+        else:
+            marker = self._create_marker(name, poses, size, scale)
+            self.marker_overview[name] = marker.id
+
+        self.marker_pub.publish(marker)
+
+    def _create_marker(self, name: str, poses: List[Pose], size: float, scale: float) -> Marker:
+        """
+        Creates a new marker for the given poses.
+
+        Args:
+            name (str): The name of the marker namespace.
+            poses (List[Pose]): A list of Pose objects representing the costmap.
+            size (float): The size of each marker point.
+            scale (float): The scaling factor for the z-axis of the costmap.
+
+        Returns:
+            Marker: The created Marker object.
+        """
+        marker = Marker()
+        marker.header.frame_id = "map"
+        marker.header.stamp = rospy.Time.now()
+        marker.ns = name
+        marker.id = self.current_id
+        marker.type = Marker.POINTS
+        marker.action = Marker.ADD
+        marker.scale.x = size
+        marker.scale.y = size
+        marker.scale.z = size
+        marker.lifetime = rospy.Duration()
+
+        for pose in poses:
+            point = Point()
+            point.x = pose.position.x
+            point.y = pose.position.y
+            point.z = pose.position.z
+
+            color_rgba = Color.gaussian_color_map(pose.position.z, 0, scale)
+
+            marker.points.append(point)
+            marker.colors.append(color_rgba)
+
+        self.current_id += 1
+        return marker
+
+    def _update_marker(self, marker_id: int, poses: List[Pose], size: float, scale: float) -> Marker:
+        """
+        Updates an existing marker with new poses.
+
+        Args:
+            marker_id (int): The ID of the marker to update.
+            poses (List[Pose]): A list of new Pose objects.
+            size (float): The size of each marker point.
+            scale (float): The scaling factor for the z-axis of the costmap.
+
+        Returns:
+            Marker: The updated Marker object.
+        """
+        marker = Marker()
+        marker.header.frame_id = "map"
+        marker.header.stamp = rospy.Time.now()
+        marker.ns = next(key for key, value in self.marker_overview.items() if value == marker_id)
+        marker.id = marker_id
+        marker.type = Marker.POINTS
+        marker.action = Marker.MODIFY
+        marker.scale.x = size
+        marker.scale.y = size
+        marker.scale.z = size
+        marker.lifetime = rospy.Duration()
+
+        marker.points.clear()
+        marker.colors.clear()
+
+        for pose in poses:
+            point = Point()
+            point.x = pose.position.x
+            point.y = pose.position.y
+            point.z = pose.position.z
+
+            color_rgba = Color.gaussian_color_map(pose.position.z, 0, scale)
+
+            marker.points.append(point)
+            marker.colors.append(color_rgba)
+
+        return marker
+
+    def remove_marker(self, name: str):
+        """
+        Removes a marker by name.
+
+        Args:
+            name (str): The name of the marker to remove.
+        """
+        if name not in self.marker_overview:
+            rospy.logwarn(f"No marker named '{name}' found to remove.")
+            return
+
+        marker_id = self.marker_overview.pop(name)
+        marker = Marker()
+        marker.header.frame_id = "map"
+        marker.header.stamp = rospy.Time.now()
+        marker.ns = name
+        marker.id = marker_id
+        marker.action = Marker.DELETE
+
+        self.marker_pub.publish(marker)
+
+    def clear_all_markers(self):
+        """
+        Clears all existing markers.
+        """
+        for name, marker_id in self.marker_overview.items():
+            marker = Marker()
+            marker.header.frame_id = "map"
+            marker.header.stamp = rospy.Time.now()
+            marker.ns = name
+            marker.id = marker_id
+            marker.action = Marker.DELETE
+
+            self.marker_pub.publish(marker)
+
+        self.marker_overview.clear()

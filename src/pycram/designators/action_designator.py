@@ -886,7 +886,7 @@ class TransportActionPerformable(ActionAbstract):
         ParkArmsActionPerformable(Arms.BOTH).perform()
         try:
             place_loc = CostmapLocation(target=self.target_location, reachable_for=robot_desig.resolve(),
-                                        reachable_arm=self.arm).resolve()
+                                        reachable_arm=self.arm, used_grasp=Grasp.FRONT).resolve()
         except StopIteration:
             raise ReachabilityFailure(
                 f"No location found from where the robot can reach the target location: {self.target_location}")

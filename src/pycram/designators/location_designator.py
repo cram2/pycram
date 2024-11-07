@@ -8,8 +8,8 @@ from ..datastructures.world import World, UseProspectionWorld
 from ..local_transformer import LocalTransformer
 from ..world_reasoning import link_pose_for_joint_config
 from ..designator import DesignatorError, LocationDesignatorDescription
-from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
-from ..datastructures.enums import JointType, Arms
+from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap, DirectionalCostmap
+from ..datastructures.enums import JointType, Arms, Grasp
 from ..pose_generator_and_validator import PoseGenerator, visibility_validator, reachability_validator
 from ..robot_description import RobotDescription
 from ..datastructures.pose import Pose
@@ -102,7 +102,7 @@ class ObjectRelativeLocation(LocationDesignatorDescription):
 
 class CostmapLocation(LocationDesignatorDescription):
     """
-    Uses Costmaps to create locations for complex constrains
+    Uses costmaps to create locations based on complex constraints, such as reachability and visibility.
     """
 
     @dataclasses.dataclass
@@ -115,7 +115,8 @@ class CostmapLocation(LocationDesignatorDescription):
     def __init__(self, target: Union[Pose, ObjectDesignatorDescription.Object],
                  reachable_for: Optional[ObjectDesignatorDescription.Object] = None,
                  visible_for: Optional[ObjectDesignatorDescription.Object] = None,
-                 reachable_arm: Optional[Arms] = None, resolver: Optional[Callable] = None):
+                 reachable_arm: Optional[Arms] = None, resolver: Optional[Callable] = None,
+                 used_grasp: Optional[Grasp] = None,  object_in_hand: Optional[ObjectDesignatorDescription.Object] = None):
         """
         Location designator that uses costmaps as base to calculate locations for complex constrains like reachable or
         visible. In case of reachable the resolved location contains a list of arms with which the location is reachable.
@@ -125,12 +126,16 @@ class CostmapLocation(LocationDesignatorDescription):
         :param visible_for: Object for which the visibility should be calculated, usually a robot
         :param reachable_arm: An optional arm with which the target should be reached
         :param resolver: An alternative specialized_designators that returns a resolved location for the given input of this description
+        :param used_grasp: The grasp that should be used for the target
+        :param object_in_hand: The object that is in the hand of the robot
         """
         super().__init__(resolver)
         self.target: Union[Pose, ObjectDesignatorDescription.Object] = target
         self.reachable_for: ObjectDesignatorDescription.Object = reachable_for
         self.visible_for: ObjectDesignatorDescription.Object = visible_for
         self.reachable_arm: Optional[Arms] = reachable_arm
+        self.used_grasp: Optional[Grasp] = used_grasp
+        self.object_in_hand: Optional[ObjectDesignatorDescription.Object] = object_in_hand
 
     def ground(self) -> Location:
         """
@@ -142,19 +147,22 @@ class CostmapLocation(LocationDesignatorDescription):
 
     def __iter__(self):
         """
-           Generates positions for a given set of constrains from a costmap and returns
-           them. The generation is based of a costmap which itself is the product of
-           merging costmaps, each for a different purpose. In any case an occupancy costmap
-           is used as the base, then according to the given constrains a visibility or
-           gaussian costmap is also merged with this. Once the costmaps are merged,
-           a generator generates pose candidates from the costmap. Each pose candidate
-           is then validated against the constraints given by the designator if all validators
-           pass the pose is considered valid and yielded.
+        Generates positions that satisfy the given constraints from a costmap.
 
-           :yield: An instance of CostmapLocation.Location with a valid position that satisfies the given constraints
-           """
+        This method creates a costmap by merging different costmaps, each serving a specific purpose.
+        An occupancy costmap is always used as the base. Depending on the provided constraints,
+        a visibility costmap and/or a Gaussian costmap are also merged with the base costmap.
+
+        Once the costmaps are merged, a pose generator produces candidate poses from the costmap.
+        Each candidate pose is then validated against the specified constraints.
+        If all validators pass, the pose is considered valid and yielded.
+
+        Yields:
+            Location: An instance of `CostmapLocation.Location` containing a valid position that satisfies the given constraints.
+        """
         min_height = RobotDescription.current_robot_description.get_default_camera().minimal_height
         max_height = RobotDescription.current_robot_description.get_default_camera().maximal_height
+
         # This ensures that the costmaps always get a position as their origin.
         if isinstance(self.target, ObjectDesignatorDescription.Object):
             target_pose = self.target.world_object.get_pose()
@@ -165,15 +173,26 @@ class CostmapLocation(LocationDesignatorDescription):
         ground_pose = Pose(target_pose.position_as_list())
         ground_pose.position.z = 0
 
-        occupancy = OccupancyCostmap(0.32, False, 200, 0.02, ground_pose)
+        map_resolution = 0.15
+
+        occupancy = OccupancyCostmap(0.32, False, 300, map_resolution, ground_pose)
         final_map = occupancy
 
         if self.reachable_for:
-            gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)
+            gaussian = GaussianCostmap(200, 1.5, map_resolution, ground_pose, True, 0.5)
             final_map += gaussian
+
         if self.visible_for:
-            visible = VisibilityCostmap(min_height, max_height, 200, 0.02, Pose(target_pose.position_as_list()))
+            visible = VisibilityCostmap(min_height, max_height, 200, map_resolution, Pose(target_pose.position_as_list()))
             final_map += visible
+
+        if self.used_grasp is not None and self.used_grasp not in [Grasp.TOP, Grasp.BOTTOM]:
+            directional = DirectionalCostmap(200, self.used_grasp, map_resolution, target_pose,
+                                             self.object_in_hand is not None)
+
+            final_map *= directional
+
+        final_map.publish(weighted=True)
 
         if self.visible_for or self.reachable_for:
             robot_object = self.visible_for.world_object if self.visible_for else self.reachable_for.world_object
@@ -181,22 +200,23 @@ class CostmapLocation(LocationDesignatorDescription):
 
         with UseProspectionWorld():
             for maybe_pose in PoseGenerator(final_map, number_of_samples=600):
-                res = True
+                is_valid = True
                 arms = None
                 if self.visible_for:
-                    res = res and visibility_validator(maybe_pose, test_robot, target_pose,
-                                                       World.current_world)
+                    is_valid = visibility_validator(maybe_pose, test_robot, target_pose, World.current_world)
+
                 if self.reachable_for:
                     hand_links = []
                     for description in RobotDescription.current_robot_description.get_manipulator_chains():
                         hand_links += description.end_effector.links
-                    valid, arms = reachability_validator(maybe_pose, test_robot, target_pose,
+
+                    is_reachable, arms = reachability_validator(maybe_pose, test_robot, target_pose,
                                                          allowed_collision={test_robot: hand_links})
                     if self.reachable_arm:
-                        res = res and valid and self.reachable_arm in arms
+                        is_valid = is_valid and is_reachable and self.reachable_arm in arms
                     else:
-                        res = res and valid
-                if res:
+                        is_valid = is_valid and is_reachable
+                if is_valid:
                     yield self.Location(maybe_pose, arms)
 
 
@@ -244,9 +264,12 @@ class AccessingLocation(LocationDesignatorDescription):
         # ground_pose = [[self.handle.part_pose[0][0], self.handle.part_pose[0][1], 0], self.handle.part_pose[1]]
         ground_pose = Pose(self.handle.part_pose.position_as_list())
         ground_pose.position.z = 0
-        occupancy = OccupancyCostmap(distance_to_obstacle=0.4, from_ros=False, size=200, resolution=0.02,
-                                     origin=ground_pose)
-        gaussian = GaussianCostmap(200, 15, 0.02, ground_pose)
+
+        map_resolution = 0.15
+
+        occupancy = OccupancyCostmap(0.32, False, 300, map_resolution, ground_pose)
+
+        gaussian = GaussianCostmap(200, 1.5, map_resolution, ground_pose, True, 0.6)
 
         final_map = occupancy + gaussian
 

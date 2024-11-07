@@ -31,11 +31,20 @@ class PoseGenerator:
 
     def __init__(self, costmap: Costmap, number_of_samples=100, orientation_generator=None):
         """
-        :param costmap: The costmap from which poses should be sampled.
-        :param number_of_samples: The number of samples from the costmap that should be returned at max
-        :param orientation_generator: function that generates an orientation given a position and the origin of the costmap
-        """
+        Initializes a PoseGenerator for sampling poses from a given costmap.
 
+        This class generates sampled poses within the specified costmap, using a defined number of samples
+        and an optional orientation generator. If no orientation generator is provided, a default generator
+        is used.
+
+        Args:
+            costmap (Costmap): The costmap from which poses should be sampled.
+            number_of_samples (int, optional): Maximum number of samples to be returned from the costmap. Defaults to 100.
+            orientation_generator (callable, optional): Function that generates an orientation given a position and the origin of the costmap.
+
+        Returns:
+            None
+        """
         if not PoseGenerator.current_orientation_generator:
             PoseGenerator.current_orientation_generator = PoseGenerator.generate_orientation
 
@@ -47,23 +56,40 @@ class PoseGenerator:
 
     def __iter__(self) -> Iterable:
         """
-        A generator that crates pose candidates from a given costmap. The generator
-        selects the highest 100 values and returns the corresponding positions.
-        Orientations are calculated such that the Robot faces the center of the costmap.
+        Generates pose candidates from a costmap by randomly sampling positions weighted by their values.
+        The number of samples is determined by `self.number_of_samples`. The orientations are calculated
+        such that the robot faces the center of the costmap.
 
-        :Yield: A tuple of position and orientation
+        Yields:
+            Pose: A Pose object containing position and orientation.
         """
+        np.random.seed(42)
 
-        # Determines how many positions should be sampled from the costmap
         if self.number_of_samples == -1:
             self.number_of_samples = self.costmap.map.flatten().shape[0]
-        indices = np.argpartition(self.costmap.map.flatten(), -self.number_of_samples)[-self.number_of_samples:]
-        indices = np.dstack(np.unravel_index(indices, self.costmap.map.shape)).reshape(self.number_of_samples, 2)
+        number_of_samples = min(self.number_of_samples, self.costmap.map.size)
 
-        height = self.costmap.map.shape[0]
-        width = self.costmap.map.shape[1]
+        height, width = self.costmap.map.shape
         center = np.array([height // 2, width // 2])
-        for ind in indices:
+
+        flat_values = self.costmap.map.flatten()
+
+        non_zero_indices = np.nonzero(flat_values)[0]
+        non_zero_weights = flat_values[non_zero_indices]
+        number_of_samples = min(number_of_samples, len(non_zero_indices))
+
+        if non_zero_weights.sum() > 0:
+            sampled_indices = np.random.choice(non_zero_indices, size=number_of_samples, replace=False,
+                                               p=non_zero_weights / non_zero_weights.sum())
+        else:
+            sampled_indices = []
+
+        indices = np.column_stack(np.unravel_index(sampled_indices, self.costmap.map.shape))
+
+        sampled_weights = flat_values[sampled_indices]
+        sorted_indices = indices[np.argsort(-sampled_weights)]
+
+        for ind in sorted_indices:
             if self.costmap.map[ind[0]][ind[1]] == 0:
                 continue
             # The position is calculated by creating a vector from the 2D position in the costmap (given by x and y)
