@@ -1,11 +1,5 @@
-import anytree
-import psutil
 import rospy
-from txaio.tx import sleep
-import os
-import requests
 
-from demos.playingfield.requester import procThorInterface
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.datastructures.enums import ObjectType, WorldMode
 from pycram.world_concepts.world_object import Object
@@ -14,16 +8,13 @@ from pycram.datastructures.pose import Pose
 from pycram.datastructures.dataclasses import Color
 from demos.playingfield.sandcastle import generic_plan
 from pycram import World
-from pycram.external_interfaces.giskard import giskard_wrapper
-from pycram.failures import PlanFailure, IKError
+from pycram.failures import PlanFailure
 from pycram.tasktree import task_tree
-from sandcastle import param_plan,param_plan2
+from sandcastle import param_plan
 import traceback
-import hashlib
 import sqlalchemy
 import pycram.orm.base
-import pycram.external_interfaces.giskard as giskard
-from requester import ProcThorInterface
+from pycram.external_interfaces.procthor import ProcThorInterface
 
 # Many Plans in many environments with many robots
 # Don't know where to store NEEM so I start with the memory db
