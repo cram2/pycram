@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from copy import deepcopy, copy
-from dataclasses import dataclass, field
+from dataclasses import dataclass, fields
 
 import numpy as np
 import trimesh
@@ -795,36 +795,59 @@ class TextAnnotation:
 
 
 @dataclass
+class VirtualJoint:
+    """
+    A virtual (not real) joint that is most likely used for simulation purposes.
+    """
+    name: str
+    type_: JointType
+    axes: Optional[Point] = None
+
+    @property
+    def type(self):
+        return self.type_
+
+    @property
+    def is_virtual(self):
+        return True
+
+    def __hash__(self):
+        return hash(self.name)
+
+
+@dataclass
 class VirtualMobileBaseJoints:
     """
     Dataclass for storing the names, types and axes of the virtual mobile base joints of a mobile robot.
     """
-    translation_x: Optional[str] = VirtualMobileBaseJointName.LINEAR_X.value
-    translation_y: Optional[str] = VirtualMobileBaseJointName.LINEAR_Y.value
-    angular_z: Optional[str] = VirtualMobileBaseJointName.ANGULAR_Z.value
+    translation_x: Optional[VirtualJoint] = VirtualJoint(VirtualMobileBaseJointName.LINEAR_X.value,
+                                                         JointType.PRISMATIC,
+                                                         Point(1, 0, 0))
+    translation_y: Optional[VirtualJoint] = VirtualJoint(VirtualMobileBaseJointName.LINEAR_Y.value,
+                                                         JointType.PRISMATIC,
+                                                         Point(0, 1, 0))
+    angular_z: Optional[VirtualJoint] = VirtualJoint(VirtualMobileBaseJointName.ANGULAR_Z.value,
+                                                     JointType.REVOLUTE,
+                                                     Point(0, 0, 1))
 
     @property
     def names(self) -> List[str]:
         """
         Return the names of the virtual mobile base joints.
         """
-        return [self.translation_x, self.translation_y, self.angular_z]
+        return [getattr(self, field.name).name for field in fields(self)]
 
     def get_types(self) -> Dict[str, JointType]:
         """
         Return the joint types of the virtual mobile base joints.
         """
-        return {self.translation_x: JointType.PRISMATIC,
-                self.translation_y: JointType.PRISMATIC,
-                self.angular_z: JointType.REVOLUTE}
+        return {getattr(self, field.name).name: getattr(self, field.name).type_ for field in fields(self)}
 
     def get_axes(self) -> Dict[str, Point]:
         """
         Return the axes (i.e. The axis on which the joint moves) of the virtual mobile base joints.
         """
-        return {self.translation_x: Point(1, 0, 0),
-                self.translation_y: Point(0, 1, 0),
-                self.angular_z: Point(0, 0, 1)}
+        return {getattr(self, field.name).name: getattr(self, field.name).axes for field in fields(self)}
 
 
 @dataclass

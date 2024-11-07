@@ -171,7 +171,7 @@ def request_ik(target_pose: Pose, robot: Object, joints: List[str], gripper: str
     :param gripper: Name of the tool frame which should grasp, this should be at the end of the given joint chain
     :return: A Pose at which the robt should stand as well as a dictionary of joint values
     """
-    if "/giskard" not in rosnode.get_node_names():
+    if "/giskard" not in rosnode.get_node_names() or True:
         return robot.pose, request_kdl_ik(target_pose, robot, joints, gripper)
     return request_giskard_ik(target_pose, robot, gripper)
 

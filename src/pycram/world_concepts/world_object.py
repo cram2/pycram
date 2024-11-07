@@ -13,7 +13,7 @@ from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
                                           AxisAlignedBoundingBox, VisualShape, ClosestPointsList,
-                                          ContactPointsList, RotatedBoundingBox)
+                                          ContactPointsList, RotatedBoundingBox, VirtualJoint)
 from ..datastructures.enums import ObjectType, JointType
 from ..datastructures.pose import Pose, Transform
 from ..datastructures.world import World
@@ -167,21 +167,22 @@ class Object(WorldEntity, HasConcept):
         :param pose: The target pose.
         """
         goal = self.get_mobile_base_joint_goal(pose)
+        goal = {vj.name: pos for vj, pos in goal.items()}
         self.set_multiple_joint_positions(goal)
 
-    def get_mobile_base_joint_goal(self, pose: Pose) -> Dict[str, float]:
+    def get_mobile_base_joint_goal(self, pose: Pose) -> Dict[VirtualJoint, float]:
         """
         Get the goal for the mobile base joints of a mobile robot to reach a target pose.
 
         :param pose: The target pose.
         :return: The goal for the mobile base joints.
         """
-        target_translation, target_angle = self.get_mobile_base_pose_difference(pose)
+        # target_translation, target_angle = self.get_mobile_base_pose_difference(pose)
         # Get the joints of the base link
         mobile_base_joints = self.world.get_robot_mobile_base_joints()
-        return {mobile_base_joints.translation_x: target_translation.x,
-                mobile_base_joints.translation_y: target_translation.y,
-                mobile_base_joints.angular_z: target_angle}
+        return {mobile_base_joints.translation_x: pose.position.x,
+                mobile_base_joints.translation_y: pose.position.y,
+                mobile_base_joints.angular_z: pose.z_angle}
 
     def get_mobile_base_pose_difference(self, pose: Pose) -> Tuple[Point, float]:
         """

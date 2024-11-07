@@ -5,13 +5,13 @@ from pycram.world_concepts.world_object import Object
 from pycram.datastructures.pose import Pose
 from pycram.worlds.multiverse import Multiverse
 from pycram.designators.action_designator import SetGripperAction
-from pycram.ros_utils.robot_state_updater import RobotStateUpdater
+from pycram.ros_utils.robot_state_updater import WorldStateUpdater
 
 
 if __name__ == '__main__':
     # Create a new world
     world = Multiverse()
-    RobotStateUpdater(tf_topic="/tf", joint_state_topic="/real/ur5e/joint_states")
+    WorldStateUpdater(tf_topic="/tf", joint_state_topic="/real/ur5e/joint_states")
 
     # Load the robot and the gripper
     robot = Object("ur5e", ObjectType.ROBOT, "universal_robot/ur5e/urdf/ur5e.urdf")

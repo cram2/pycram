@@ -320,20 +320,18 @@ class MultiverseWriter(MultiverseClient):
         super().__init__(name, port, is_prospection_world, simulation_wait_time_factor=simulation_wait_time_factor)
         self.simulation = simulation
 
-    def spawn_robot_with_actuators(self, robot_name: str, position: List[float], orientation: List[float],
+    def spawn_robot_with_actuators(self, robot_name: str,
                                    actuator_joint_commands: Optional[Dict[str, List[str]]] = None) -> None:
         """
         Spawn the robot with controlled actuators in the simulation.
 
         :param robot_name: The name of the robot.
-        :param position: The position of the robot.
-        :param orientation: The orientation of the robot.
         :param actuator_joint_commands: A dictionary mapping actuator names to joint command names.
         """
         send_meta_data = {robot_name: [BodyProperty.POSITION.value, BodyProperty.ORIENTATION.value,
                                        BodyProperty.RELATIVE_VELOCITY.value]}
         relative_velocity = [0.0] * 6
-        data = [self.sim_time, *position, *orientation, *relative_velocity]
+        data = [self.sim_time] + [0.0] * 3 + [1, 0, 0, 0] + relative_velocity
         self.send_data_to_server(data, send_meta_data=send_meta_data, receive_meta_data=actuator_joint_commands)
 
     def _reset_request_meta_data(self, set_simulation_name: bool = True):
@@ -506,7 +504,7 @@ class MultiverseAPI(MultiverseClient):
     """
     The wait time for the API request in seconds.
     """
-    APIs_THAT_NEED_WAIT_TIME: List[API] = [API.ATTACH]
+    APIs_THAT_NEED_WAIT_TIME: List[API] = [API.ATTACH, API.DETACH]
 
     def __init__(self, name: str, port: int, simulation: str, is_prospection_world: bool = False,
                  simulation_wait_time_factor: float = 1.0):

@@ -62,7 +62,7 @@ class MultiverseConfig(WorldConfig):
     Whether to use the physics simulator state when restoring or saving the world state.
     """
 
-    validate_goals = False
+    validate_goals = True
 
     clear_cache_at_start = True
 
@@ -73,4 +73,6 @@ class MultiverseConfig(WorldConfig):
     prismatic_joint_position_tolerance = 2e-2
 
     use_giskard_monitor = False
-    allow_gripper_collision = False
+    allow_gripper_collision = True
+
+    use_multiverse_process_modules = True

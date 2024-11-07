@@ -203,9 +203,10 @@ class Multiverse(World):
             for joint_name, actuator_name in self.robot_joint_actuators.items()
         }
         self.joint_controller.init_controller(actuator_joint_commands)
-        self.writer.spawn_robot_with_actuators(name, pose.position_as_list(),
-                                               xyzw_to_wxyz(pose.orientation_as_list()),
-                                               actuator_joint_commands)
+        self.writer.spawn_robot_with_actuators(name, actuator_joint_commands)
+        if not pose.almost_equal(Pose()):
+            goal = self.robot.get_mobile_base_joint_goal(pose)
+            self.set_multiple_joint_positions(goal)
 
     def load_object_and_get_id(self, name: Optional[str] = None,
                                pose: Optional[Pose] = None,
@@ -236,10 +237,23 @@ class Multiverse(World):
         :param object_type: The type of the object.
         :param pose: The pose of the object.
         """
-        if object_type == ObjectType.ROBOT and self.conf.use_controller:
-            self.spawn_robot_with_controller(name, pose)
+        if object_type == ObjectType.ROBOT:
+            if self.conf.use_controller:
+                self.spawn_robot_with_controller(name, pose)
+            else:
+                self.spawn_robot(name, pose)
         else:
             self._set_body_pose(name, pose)
+
+    def spawn_robot(self, name: str, pose: Pose) -> None:
+        """
+        Spawn the robot in the simulator.
+
+        :param name: The name of the robot.
+        :param pose: The pose of the robot.
+        """
+        self._set_body_pose(name, Pose())
+        self.robot.set_mobile_robot_pose(pose)
 
     def _update_object_id_name_maps_and_get_latest_id(self, name: str) -> int:
         """

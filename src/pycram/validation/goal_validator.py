@@ -3,10 +3,10 @@ from time import sleep, time
 import numpy as np
 from typing_extensions import Any, Callable, Optional, Union, Iterable, Dict, TYPE_CHECKING, Tuple
 
-from ..datastructures.enums import JointType
 from .error_checkers import ErrorChecker, PoseErrorChecker, PositionErrorChecker, \
     OrientationErrorChecker, SingleValueErrorChecker
-from ..ros.logging import logerr, logwarn
+from ..datastructures.enums import JointType
+from ..ros.logging import logerr
 
 if TYPE_CHECKING:
     from ..datastructures.world import World
@@ -90,7 +90,7 @@ class GoalValidator:
                     logerr(msg)
                     raise TimeoutError(msg)
                 else:
-                    logwarn(msg)
+                    # logwarn(msg)
                     break
             current = self.current_value
         self.reset()
@@ -167,7 +167,11 @@ class GoalValidator:
         if self.current_value_getter_input is not None:
             return self.current_value_getter(self.current_value_getter_input)
         else:
-            return self.current_value_getter()
+            try:
+                return self.current_value_getter()
+            except Exception as e:
+                logerr(f"Error while getting current value: {e}")
+                return None
 
     @property
     def current_error(self) -> np.ndarray:
@@ -222,6 +226,8 @@ class GoalValidator:
         """
         The relative initial error (relative to the acceptable error).
         """
+        if self.initial_error is None:
+            self.update_initial_error(self.goal_value)
         return np.maximum(self.initial_error, 1e-3)
 
     def get_relative_error(self, error: Any, threshold: Optional[float] = 1e-3) -> np.ndarray:
@@ -419,7 +425,7 @@ class JointPositionGoalValidator(GoalValidator):
         :param acceptable_error: The acceptable error.
         """
         if acceptable_error is None:
-            self.error_checker.acceptable_error = self.acceptable_orientation_error if joint_type == JointType.REVOLUTE\
+            self.error_checker.acceptable_error = self.acceptable_orientation_error if joint_type == JointType.REVOLUTE \
                 else self.acceptable_position_error
         super().register_goal(goal_value, current_value_getter_input, initial_value, acceptable_error)
 
@@ -469,15 +475,19 @@ def validate_object_pose(pose_setter_func):
     def wrapper(world: 'World', obj: 'Object', pose: 'Pose'):
 
         if not world.current_world.conf.validate_goals:
-            return True
+            return pose_setter_func(world, obj, pose)
 
-        world.pose_goal_validator.register_goal(pose, obj)
+        if obj is None:
+            logerr("Object should not be None")
+            return False
+        pose_goal_validator = PoseGoalValidator(world.get_object_pose, world.conf.get_pose_tolerance(),
+                                                world.conf.acceptable_percentage_of_goal)
+        pose_goal_validator.register_goal(pose, obj)
 
         if not pose_setter_func(world, obj, pose):
-            world.pose_goal_validator.reset()
             return False
 
-        world.pose_goal_validator.wait_until_goal_is_achieved()
+        pose_goal_validator.wait_until_goal_is_achieved()
         return True
 
     return wrapper
@@ -493,16 +503,18 @@ def validate_multiple_object_poses(pose_setter_func):
     def wrapper(world: 'World', object_poses: Dict['Object', 'Pose']):
 
         if not world.current_world.conf.validate_goals:
-            return True
+            return pose_setter_func(world, object_poses)
 
-        world.multi_pose_goal_validator.register_goal(list(object_poses.values()),
-                                                      list(object_poses.keys()))
+        multi_pose_goal_validator = MultiPoseGoalValidator(
+            lambda x: list(world.get_multiple_object_poses(x).values()),
+            world.conf.get_pose_tolerance(), world.conf.acceptable_percentage_of_goal)
+        multi_pose_goal_validator.register_goal(list(object_poses.values()),
+                                                list(object_poses.keys()))
 
         if not pose_setter_func(world, object_poses):
-            world.multi_pose_goal_validator.reset()
             return False
 
-        world.multi_pose_goal_validator.wait_until_goal_is_achieved()
+        multi_pose_goal_validator.wait_until_goal_is_achieved()
         return True
 
     return wrapper
@@ -518,16 +530,21 @@ def validate_joint_position(position_setter_func):
     def wrapper(world: 'World', joint: 'Joint', position: float):
 
         if not world.current_world.conf.validate_goals:
-            return True
+            return position_setter_func(world, joint, position)
+
+        joint_position_goal_validator = JointPositionGoalValidator(
+            world.get_joint_position,
+            acceptable_revolute_joint_position_error=world.conf.revolute_joint_position_tolerance,
+            acceptable_prismatic_joint_position_error=world.conf.prismatic_joint_position_tolerance,
+            acceptable_percentage_of_goal_achieved=world.conf.acceptable_percentage_of_goal)
 
         joint_type = joint.type
-        world.joint_position_goal_validator.register_goal(position, joint_type, joint)
+        joint_position_goal_validator.register_goal(position, joint_type, joint)
 
         if not position_setter_func(world, joint, position):
-            world.joint_position_goal_validator.reset()
             return False
 
-        world.joint_position_goal_validator.wait_until_goal_is_achieved()
+        joint_position_goal_validator.wait_until_goal_is_achieved()
         return True
 
     return wrapper
@@ -545,17 +562,25 @@ def validate_multiple_joint_positions(position_setter_func):
 
     def wrapper(world: 'World', joint_positions: Dict['Joint', float]):
         if not world.current_world.conf.validate_goals:
-            return True
+            return position_setter_func(world, joint_positions)
         joint_positions_to_validate = {joint: position for joint, position in joint_positions.items()
                                        if not joint.is_virtual}
+        if not joint_positions_to_validate:
+            return position_setter_func(world, joint_positions)
+
+        multi_joint_position_goal_validator = MultiJointPositionGoalValidator(
+            lambda x: list(world.get_multiple_joint_positions(x).values()),
+            acceptable_revolute_joint_position_error=world.conf.revolute_joint_position_tolerance,
+            acceptable_prismatic_joint_position_error=world.conf.prismatic_joint_position_tolerance,
+            acceptable_percentage_of_goal_achieved=world.conf.acceptable_percentage_of_goal)
+
         joint_types = [joint.type for joint in joint_positions_to_validate.keys()]
-        world.multi_joint_position_goal_validator.register_goal(list(joint_positions_to_validate.values()), joint_types,
-                                                                list(joint_positions_to_validate.keys()))
+        multi_joint_position_goal_validator.register_goal(list(joint_positions_to_validate.values()), joint_types,
+                                                          list(joint_positions_to_validate.keys()))
         if not position_setter_func(world, joint_positions):
-            world.multi_joint_position_goal_validator.reset()
             return False
 
-        world.multi_joint_position_goal_validator.wait_until_goal_is_achieved()
+        multi_joint_position_goal_validator.wait_until_goal_is_achieved()
         return True
 
     return wrapper

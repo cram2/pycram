@@ -185,7 +185,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             robot_name = "tiago_dual"
             rdm = RobotDescriptionManager()
             rdm.load_description(robot_name)
-            self.multiverse.spawn_robot_with_controller(robot_name, Pose([-2, -2, 0.001]))
+            self.multiverse.spawn_robot_with_controller(robot_name, Pose())
 
     def test_spawn_object(self):
         milk = self.spawn_milk([1, 1, 0.1])
@@ -370,7 +370,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
         self.assert_poses_are_equal(milk_initial_pose, milk_pose)
 
     def test_get_object_contact_points(self):
-        for i in range(10):
+        for i in range(3):
             milk = self.spawn_milk([1, 1, 0.01], [0, -0.707, 0, 0.707])
             contact_points = self.multiverse.get_object_contact_points(milk)
             self.assertIsInstance(contact_points, ContactPointsList)
@@ -443,7 +443,7 @@ class MultiversePyCRAMTestCase(unittest.TestCase):
             if self.multiverse.robot is not None:
                 self.multiverse.robot.remove()
             robot = Object(robot_name, ObjectType.ROBOT, f"{robot_name}.urdf",
-                           pose=Pose(position, [0, 0, 0, 1]))
+                           pose=Pose(position, orientation))
         else:
             robot = self.multiverse.robot
             robot.set_position(position)

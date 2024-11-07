@@ -31,7 +31,13 @@ if TYPE_CHECKING:
     from ..designators.object_designator import ObjectDesignatorDescription
 
 try:
+    from ..worlds import Multiverse
+except ImportError:
+    Multiverse = type(None)
+
+try:
     from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2
+    from control_msgs.msg import GripperCommandGoal, GripperCommandAction
 except ImportError:
     logdebug("Pr2GripperCommandGoal not found")
 
@@ -263,6 +269,36 @@ class Pr2MoveJointsReal(ProcessModule):
         giskard.achieve_joint_goal(name_to_position)
 
 
+class Pr2MoveGripperMultiverse(ProcessModule):
+    """
+    Opens or closes the gripper of the real PR2, gripper uses an action server for this instead of giskard
+    """
+
+    def _execute(self, designator: MoveGripperMotion) -> Any:
+        def activate_callback():
+            loginfo("Started gripper Movement")
+
+        def done_callback(state, result):
+            loginfo(f"Reached goal {designator.motion}: {result.reached_goal}")
+
+        def feedback_callback(msg):
+            pass
+
+        goal = GripperCommandGoal()
+        goal.command.position = 0.0 if designator.motion == "close" else 0.1
+        goal.command.max_effort = 50.0
+        if designator.gripper == "right":
+            controller_topic = "/real/pr2/right_gripper_controller/gripper_cmd"
+        else:
+            controller_topic = "/real/pr2/left_gripper_controller/gripper_cmd"
+        client = actionlib.SimpleActionClient(controller_topic, GripperCommandAction)
+        loginfo("Waiting for action server")
+        client.wait_for_server()
+        client.send_goal(goal, active_cb=activate_callback, done_cb=done_callback, feedback_cb=feedback_callback)
+        wait = client.wait_for_result()
+
+
+
 class Pr2MoveGripperReal(ProcessModule):
     """
     Opens or closes the gripper of the real PR2, gripper uses an action server for this instead of giskard 
@@ -376,7 +412,11 @@ class Pr2Manager(ProcessModuleManager):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:
             return Pr2MoveGripper(self._move_gripper_lock)
         elif ProcessModuleManager.execution_type == ExecutionType.REAL:
-            return Pr2MoveGripperReal(self._move_gripper_lock)
+            if (isinstance(World.current_world, Multiverse) and
+                    World.current_world.conf.use_multiverse_process_modules):
+                return Pr2MoveGripperMultiverse(self._move_gripper_lock)
+            else:
+                return Pr2MoveGripperReal(self._move_gripper_lock)
 
     def open(self):
         if ProcessModuleManager.execution_type == ExecutionType.SIMULATED:

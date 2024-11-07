@@ -21,6 +21,7 @@ from typing_extensions import Dict, Optional, get_type_hints, Type, Any
 from ..datastructures.pose import Pose
 from ..tasktree import with_tree
 from ..designator import BaseMotion
+from ..external_interfaces.robokudo import robokudo_found
 
 
 @dataclass
