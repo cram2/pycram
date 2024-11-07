@@ -5,7 +5,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.2
+      jupytext_version: 1.16.4
   kernelspec:
     display_name: Python 3
     language: python
@@ -33,6 +33,7 @@ import pandas as pd
 import sqlalchemy.orm
 
 import plotly
+from probabilistic_model.probabilistic_circuit.nx.probabilistic_circuit import ProbabilisticCircuit
 
 plotly.offline.init_notebook_mode()
 import plotly.graph_objects as go
@@ -128,6 +129,7 @@ variables = infer_variables_from_dataframe(samples, scale_continuous_types=False
                                            min_likelihood_improvement = 0.)
 model = JPT(variables, min_samples_leaf=25)
 model.fit(samples)
+model = ProbabilisticCircuit.from_other(model)
 print(model)
 ```
 
