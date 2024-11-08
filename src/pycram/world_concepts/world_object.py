@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 from deprecated import deprecated
 from geometry_msgs.msg import Point, Quaternion
+from trimesh.parent import Geometry3D
 from typing_extensions import Type, Optional, Dict, Tuple, List, Union
 
 from ..datastructures.dataclasses import (Color, ObjectState, LinkState, JointState,
@@ -1356,7 +1357,7 @@ class Object(WorldEntity):
         :return: The axis aligned bounding box of this object.
         """
         if self.has_one_link:
-            return self.links[self.description.get_root()].get_bounding_box()
+            return self.root_link.get_bounding_box()
         else:
             return self.world.get_object_axis_aligned_bounding_box(self)
 
@@ -1367,9 +1368,20 @@ class Object(WorldEntity):
         :return: The rotated bounding box of this object.
         """
         if self.has_one_link:
-            return self.links[self.description.get_root()].get_bounding_box(rotated=True)
+            return self.root_link.get_bounding_box(rotated=True)
         else:
             return self.world.get_object_rotated_bounding_box(self)
+
+    def get_convex_hull(self) -> Geometry3D:
+        """
+        Return the convex hull of this object.
+
+        :return: The convex hull of this object.
+        """
+        if self.has_one_link:
+            return self.root_link.get_convex_hull()
+        else:
+            return self.world.get_object_convex_hull(self)
 
     def get_base_origin(self) -> Pose:
         """

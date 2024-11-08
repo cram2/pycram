@@ -9,6 +9,7 @@ from copy import copy
 
 import numpy as np
 from geometry_msgs.msg import Point
+from trimesh.parent import Geometry3D
 from typing_extensions import List, Optional, Dict, Tuple, Callable, TYPE_CHECKING, Union, Type
 
 from ..cache_manager import CacheManager
@@ -124,6 +125,24 @@ class World(StateEntity, ABC):
         self.original_state_id = self.save_state()
 
         self.on_add_object_callbacks: List[Callable[[Object], None]] = []
+
+    def get_object_convex_hull(self, obj: Object) -> Geometry3D:
+        """
+        Get the convex hull of an object.
+
+        :param obj: The pycram object.
+        :return: The convex hull of the object as a list of Points.
+        """
+        raise NotImplementedError
+
+    def get_link_convex_hull(self, link: Link) -> Geometry3D:
+        """
+        Get the convex hull of a link of an articulated object.
+
+        :param link: The link as a AbstractLink object.
+        :return: The convex hull of the link as a list of Points.
+        """
+        raise NotImplementedError
 
     def add_callback_on_add_object(self, callback: Callable[[Object], None]) -> None:
         """
