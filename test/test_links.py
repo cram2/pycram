@@ -1,6 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from tf.transformations import quaternion_from_euler
+from typing_extensions import List
 
 from bullet_world_testcase import BulletWorldTestCase
 from pycram.datastructures.dataclasses import Color
@@ -8,6 +9,16 @@ from pycram.datastructures.pose import Pose
 
 
 class TestLinks(BulletWorldTestCase):
+
+    def test_get_convex_hull(self):
+        self.milk.set_orientation(quaternion_from_euler(0, np.pi/4, 0))
+        hull = self.milk.root_link.get_convex_hull()
+        self.assertIsNotNone(hull)
+        self.assertTrue(len(hull.vertices) > 0)
+        self.assertTrue(len(hull.faces) > 0)
+        plot = False
+        if plot:
+            self.plot_3d_points([hull.vertices])
 
     def test_rotated_bounding_box(self):
         self.milk.set_pose(Pose([1, 1, 1], quaternion_from_euler(np.pi/4, 0, 0).tolist()))
@@ -17,20 +28,25 @@ class TestLinks(BulletWorldTestCase):
         rot_points = np.array(rbb.get_points_list())
         plot = False
         if plot:
-            fig = plt.figure()
-            ax = fig.add_subplot(projection='3d')
+            self.plot_3d_points([aabb_points, rot_points])
 
-            ax.scatter(rot_points[:, 0], rot_points[:, 1], rot_points[:, 2], c='r', marker='o')
-            ax.scatter(aabb_points[:, 0], aabb_points[:, 1], aabb_points[:, 2], c='b', marker='o')
+    @staticmethod
+    def plot_3d_points(list_of_points: List[np.ndarray]):
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
 
-            ax.set_xlabel('X Label')
-            ax.set_ylabel('Y Label')
-            ax.set_zlabel('Z Label')
-            plt.xlim(0, 2)
-            plt.ylim(0, 2)
-            ax.set_zlim(0, 2)
+        for points in list_of_points:
+            color = np.random.rand(3,)
+            ax.scatter(points[:, 0], points[:, 1], points[:, 2], c=color, marker='o')
 
-            plt.show()
+        ax.set_xlabel('X Label')
+        ax.set_ylabel('Y Label')
+        ax.set_zlabel('Z Label')
+        plt.xlim(0, 2)
+        plt.ylim(0, 2)
+        ax.set_zlim(0, 2)
+
+        plt.show()
 
     def test_add_constraint(self):
         milk_link = self.milk.root_link

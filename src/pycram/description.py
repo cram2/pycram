@@ -5,6 +5,8 @@ import os
 import pathlib
 from abc import ABC, abstractmethod
 
+from trimesh.parent import Geometry3D
+
 from .ros.data_types import Time
 import trimesh
 from geometry_msgs.msg import Point, Quaternion
@@ -246,6 +248,27 @@ class Link(ObjectEntity, LinkDescription, ABC):
                     return RotatedBoundingBox.from_axis_aligned_bounding_box(bounding_box, self.transform)
                 else:
                     return bounding_box.get_transformed_box(self.transform)
+
+    def get_convex_hull(self) -> Geometry3D:
+        """
+        :return: The convex hull of the link geometry.
+        """
+        try:
+            return self.world.get_link_convex_hull(self)
+        except NotImplementedError:
+            if isinstance(self.geometry, MeshVisualShape):
+                mesh_path = self.get_mesh_path()
+                mesh = trimesh.load(mesh_path)
+                return trimesh.convex.convex_hull(mesh).apply_transform(self.transform.get_homogeneous_matrix())
+            else:
+                raise LinkGeometryHasNoMesh(self.name, type(self.geometry).__name__)
+
+    def _plot_convex_hull(self):
+        """
+        Plot the convex hull of the link geometry.
+        """
+        hull = self.get_convex_hull()
+        hull.show()
 
     def get_mesh_path(self) -> str:
         """
