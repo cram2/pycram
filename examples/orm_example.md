@@ -1,4 +1,4 @@
-from pycram.designators.action_designator import ActionAbstract---
+---
 jupyter:
   jupytext:
     text_representation:
