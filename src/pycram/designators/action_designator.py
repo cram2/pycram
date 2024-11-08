@@ -24,6 +24,7 @@ from ..local_transformer import LocalTransformer
 from ..failures import ObjectUnfetchable, ReachabilityFailure, NavigationGoalNotReachedError, PerceptionObjectNotFound, \
     ObjectNotGraspedError
 from ..robot_description import RobotDescription
+from ..ros.ros_tools import sleep
 from ..tasktree import with_tree
 from ..world_reasoning import contact
 
@@ -279,6 +280,7 @@ class PickUpActionPerformable(ActionAbstract):
         robot = World.robot
         # Retrieve object and robot from designators
         object = self.object_designator.world_object
+
         # Get grasp orientation and target pose
         grasp = RobotDescription.current_robot_description.grasps[self.grasp]
         # oTm = Object Pose in Frame map
@@ -446,7 +448,13 @@ class TransportActionPerformable(ActionAbstract):
         for pose in pickup_loc:
             if self.arm in pose.reachable_arms:
                 pickup_pose = pose
-                break
+                NavigateActionPerformable(pickup_pose.pose).perform()
+                robot = robot_desig.resolve().world_object
+                if robot.pose.almost_equal(pickup_pose.pose, 0.1, 3):
+                    break
+                else:
+                    pickup_pose = None
+                    continue
         if not pickup_pose:
             raise ObjectUnfetchable(
                 f"Found no pose for the robot to grasp the object: {self.object_designator} with arm: {self.arm}")
