@@ -5,9 +5,7 @@ from sqlalchemy.orm import Session
 
 from pycrap import PhysicalObject, Location
 from .object_designator import ObjectDesignatorDescription, ObjectPart, RealObject
-from ..datastructures.enums import ObjectType, Arms, GripperState, ExecutionType, MovementType
-from ..designator import ResolutionError
-from ..orm.base import ProcessMetaData
+from ..datastructures.enums import MovementType
 from ..failures import PerceptionObjectNotFound
 from ..process_module import ProcessModuleManager
 from ..orm.motion_designator import (MoveMotion as ORMMoveMotion,
@@ -17,7 +15,7 @@ from ..orm.motion_designator import (MoveMotion as ORMMoveMotion,
                                      Motion as ORMMotionDesignator)
 from ..datastructures.enums import ObjectType, Arms, GripperState, ExecutionType, DetectionTechnique, DetectionState
 
-from typing_extensions import Dict, Optional, get_type_hints, Type, Any
+from typing_extensions import Dict, Optional, Type
 from ..datastructures.pose import Pose
 from ..tasktree import with_tree
 from ..designator import BaseMotion

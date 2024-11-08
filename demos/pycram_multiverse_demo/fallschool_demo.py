@@ -51,7 +51,7 @@ apartment_desig = BelieveObject(names=[apartment.name])
 
 with real_robot:
 
-    # Transport the milk
+    # Transport the milkMoveGripperMotion
     ParkArmsAction([Arms.BOTH]).resolve().perform()
 
     MoveTorsoAction([0.2]).resolve().perform()
@@ -60,10 +60,14 @@ with real_robot:
 
     LookAtAction(targets=[Pose(milk.get_position_as_list())]).resolve().perform()
 
+    # world.restore_physics_simulator_state(100)
+
     try:
         milk_desig = DetectAction(BelieveObject(types=[milk.obj_type])).resolve().perform()
     except PerceptionObjectNotFound:
         milk_desig = DetectAction(BelieveObject(types=[milk.obj_type])).resolve().perform()
+
+    # world.save_state(100)
 
     TransportAction(milk_desig, [Arms.LEFT], [Pose([2.4, 3, 1.02])]).resolve().perform()
 

@@ -1,7 +1,8 @@
 import numpy as np
 import tf
-from typing_extensions import Tuple, List, Union, Dict, Iterable
+from typing_extensions import Tuple, List, Union, Dict, Iterable, Optional
 
+from .datastructures.enums import Arms
 from .costmaps import Costmap
 from .datastructures.pose import Pose, Transform
 from .datastructures.world import World
@@ -161,7 +162,8 @@ def _in_contact(robot: Object, obj: Object, allowed_collision: Dict[Object, List
 def reachability_validator(pose: Pose,
                            robot: Object,
                            target: Union[Object, Pose],
-                           allowed_collision: Dict[Object, List] = None) -> Tuple[bool, List]:
+                           allowed_collision: Dict[Object, List] = None,
+                           arm: Optional[Arms] = None) -> Tuple[bool, List]:
     """
     This method validates if a target position is reachable for a pose candidate.
     This is done by asking the ik solver if there is a valid solution if the
@@ -172,6 +174,7 @@ def reachability_validator(pose: Pose,
     :param robot: The robot object in the World for which the reachability should be validated.
     :param target: The target position or object instance which should be the target for reachability.
     :param allowed_collision: dict of objects with which the robot is allowed to collide each object correlates to a list of links of which this object consists
+    :param arm: The arm that should be used for the reachability check. If None all arms are checked.
     :return: True if the target is reachable for the robot and False in any other case.
     """
     if type(target) == Object:
@@ -180,7 +183,10 @@ def reachability_validator(pose: Pose,
     robot.set_pose(pose)
     # manipulator_descs = list(
     #    filter(lambda chain: isinstance(chain[1], ManipulatorDescription), robot_description.chains.items()))
-    manipulator_descs = RobotDescription.current_robot_description.get_manipulator_chains()
+    if arm is not None:
+        manipulator_descs = [RobotDescription.current_robot_description.get_arm_chain(arm)]
+    else:
+        manipulator_descs = RobotDescription.current_robot_description.get_manipulator_chains()
 
     # TODO Make orientation adhere to grasping orientation
     res = False

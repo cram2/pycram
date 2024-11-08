@@ -1,5 +1,4 @@
-from threading import Lock
-from typing_extensions import Any, TYPE_CHECKING
+from typing_extensions import TYPE_CHECKING
 
 import actionlib
 
@@ -15,6 +14,7 @@ from ..ros.logging import logdebug
 from ..utils import _apply_ik
 from ..local_transformer import LocalTransformer
 
+from .. import world_reasoning as btr
 from ..designators.motion_designator import MoveMotion, LookingMotion, \
     DetectingMotion, MoveTCPMotion, MoveArmJointsMotion, WorldStateDetectingMotion, MoveJointsMotion, \
     MoveGripperMotion, OpeningMotion, ClosingMotion
@@ -31,13 +31,17 @@ if TYPE_CHECKING:
     from ..designators.object_designator import ObjectDesignatorDescription
 
 try:
-    from ..worlds import Multiverse
+    from ..worlds.multiverse import Multiverse
 except ImportError:
     Multiverse = type(None)
 
 try:
-    from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2
     from control_msgs.msg import GripperCommandGoal, GripperCommandAction
+except ImportError:
+    logwarn("control_msgs import failed")
+
+try:
+    from pr2_controllers_msgs.msg import Pr2GripperCommandGoal, Pr2GripperCommandAction, Pr2
 except ImportError:
     logdebug("Pr2GripperCommandGoal not found")
 
@@ -285,7 +289,7 @@ class Pr2MoveGripperMultiverse(ProcessModule):
             pass
 
         goal = GripperCommandGoal()
-        goal.command.position = 0.0 if designator.motion == "close" else 0.1
+        goal.command.position = 0.0 if designator.motion == GripperState.CLOSE else 0.4
         goal.command.max_effort = 50.0
         if designator.gripper == "right":
             controller_topic = "/real/pr2/right_gripper_controller/gripper_cmd"
@@ -296,7 +300,6 @@ class Pr2MoveGripperMultiverse(ProcessModule):
         client.wait_for_server()
         client.send_goal(goal, active_cb=activate_callback, done_cb=done_callback, feedback_cb=feedback_callback)
         wait = client.wait_for_result()
-
 
 
 class Pr2MoveGripperReal(ProcessModule):

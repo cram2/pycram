@@ -545,7 +545,12 @@ class Multiverse(World):
         """
         Note: Currently Multiverse only gets one contact point per contact objects.
         """
-        contact_bodies = self.api_requester.get_contact_bodies_of_object(obj)
+        if self.is_paused:
+            self.unpause_simulation()
+            contact_bodies = self.api_requester.get_contact_bodies_of_object(obj)
+            self.pause_simulation()
+        else:
+            contact_bodies = self.api_requester.get_contact_bodies_of_object(obj)
         contact_points = ContactPointsList([])
         for body_name in contact_bodies:
             multiverse_contact_points = self.api_requester.get_contact_points_between_objects(obj.name, body_name)

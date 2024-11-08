@@ -6,7 +6,8 @@ from typing_extensions import List, Union, Iterable, Optional, Callable
 from .object_designator import ObjectDesignatorDescription, ObjectPart
 from ..datastructures.world import World, UseProspectionWorld
 from ..local_transformer import LocalTransformer
-from ..world_reasoning import link_pose_for_joint_config
+from ..world_concepts.world_object import Object
+from ..world_reasoning import link_pose_for_joint_config, contact
 from ..designator import DesignatorError, LocationDesignatorDescription
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
 from ..datastructures.enums import JointType, Arms
@@ -112,7 +113,8 @@ class CostmapLocation(LocationDesignatorDescription):
     def __init__(self, target: Union[Pose, ObjectDesignatorDescription.Object],
                  reachable_for: Optional[ObjectDesignatorDescription.Object] = None,
                  visible_for: Optional[ObjectDesignatorDescription.Object] = None,
-                 reachable_arm: Optional[Arms] = None):
+                 reachable_arm: Optional[Arms] = None,
+                 check_collision_at_start: bool = False):
         """
         Location designator that uses costmaps as base to calculate locations for complex constrains like reachable or
         visible. In case of reachable the resolved location contains a list of arms with which the location is reachable.
@@ -121,12 +123,14 @@ class CostmapLocation(LocationDesignatorDescription):
         :param reachable_for: Object for which the reachability should be calculated, usually a robot
         :param visible_for: Object for which the visibility should be calculated, usually a robot
         :param reachable_arm: An optional arm with which the target should be reached
+        :param check_collision_at_start: If True, the designator will check for collisions at the start pose.
         """
         super().__init__()
         self.target: Union[Pose, ObjectDesignatorDescription.Object] = target
         self.reachable_for: ObjectDesignatorDescription.Object = reachable_for
         self.visible_for: ObjectDesignatorDescription.Object = visible_for
         self.reachable_arm: Optional[Arms] = reachable_arm
+        self.check_collision_at_start = check_collision_at_start
 
     def ground(self) -> Location:
         """
@@ -135,6 +139,24 @@ class CostmapLocation(LocationDesignatorDescription):
         :return: A resolved location
         """
         return next(iter(self))
+
+    @staticmethod
+    def check_for_collision(robot: Object, pose: Pose) -> bool:
+        """
+        Check if the robot collides with any object in the world at the given pose.
+
+        :param robot: The robot object
+        :param pose: The pose to check for collision
+        :return: True if the robot collides with any object, False otherwise
+        """
+        robot.set_pose(pose)
+        floor = robot.world.get_object_by_name("floor")
+        for obj in robot.world.objects:
+            if obj in [robot, floor]:
+                continue
+            if contact(robot, obj):
+                return True
+        return False
 
     def __iter__(self):
         """
@@ -171,12 +193,16 @@ class CostmapLocation(LocationDesignatorDescription):
             visible = VisibilityCostmap(min_height, max_height, 200, 0.02, Pose(target_pose.position_as_list()))
             final_map += visible
 
+        test_robot = None
         if self.visible_for or self.reachable_for:
             robot_object = self.visible_for.world_object if self.visible_for else self.reachable_for.world_object
             test_robot = World.current_world.get_prospection_object_for_object(robot_object)
 
         with UseProspectionWorld():
             for maybe_pose in PoseGenerator(final_map, number_of_samples=600):
+                if self.check_collision_at_start and (test_robot is not None):
+                    if self.check_for_collision(test_robot, maybe_pose):
+                        continue
                 res = True
                 arms = None
                 if self.visible_for:
@@ -185,10 +211,14 @@ class CostmapLocation(LocationDesignatorDescription):
                                                        World.current_world)
                 if self.reachable_for:
                     hand_links = []
-                    for description in RobotDescription.current_robot_description.get_manipulator_chains():
-                        hand_links += description.end_effector.links
+                    if self.reachable_arm is not None:
+                        hand_links = RobotDescription.current_robot_description.get_arm_chain(self.reachable_arm).end_effector.links
+                    else:
+                        for description in RobotDescription.current_robot_description.get_manipulator_chains():
+                            hand_links += description.end_effector.links
                     valid, arms = reachability_validator(maybe_pose, test_robot, target_pose,
-                                                         allowed_collision={test_robot: hand_links})
+                                                         allowed_collision={test_robot: hand_links},
+                                                         arm=self.reachable_arm)
                     if self.reachable_arm:
                         res = res and valid and self.reachable_arm in arms
                     else:
