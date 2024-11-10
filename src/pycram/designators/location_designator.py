@@ -1,19 +1,19 @@
 import dataclasses
-import time
 
 from typing_extensions import List, Union, Iterable, Optional, Callable
 
 from .object_designator import ObjectDesignatorDescription, ObjectPart
-from ..datastructures.world import World, UseProspectionWorld
-from ..local_transformer import LocalTransformer
-from ..world_concepts.world_object import Object
-from ..world_reasoning import link_pose_for_joint_config, contact
-from ..designator import DesignatorError, LocationDesignatorDescription
 from ..costmaps import OccupancyCostmap, VisibilityCostmap, SemanticCostmap, GaussianCostmap
 from ..datastructures.enums import JointType, Arms
+from ..datastructures.pose import Pose
+from ..datastructures.world import World, UseProspectionWorld
+from ..designator import DesignatorError, LocationDesignatorDescription
+from ..local_transformer import LocalTransformer
 from ..pose_generator_and_validator import PoseGenerator, visibility_validator, reachability_validator
 from ..robot_description import RobotDescription
-from ..datastructures.pose import Pose
+from ..ros.logging import logdebug
+from ..world_concepts.world_object import Object
+from ..world_reasoning import link_pose_for_joint_config, contact
 
 
 class Location(LocationDesignatorDescription):
@@ -114,7 +114,7 @@ class CostmapLocation(LocationDesignatorDescription):
                  reachable_for: Optional[ObjectDesignatorDescription.Object] = None,
                  visible_for: Optional[ObjectDesignatorDescription.Object] = None,
                  reachable_arm: Optional[Arms] = None,
-                 check_collision_at_start: bool = False):
+                 check_collision_at_start: bool = True):
         """
         Location designator that uses costmaps as base to calculate locations for complex constrains like reachable or
         visible. In case of reachable the resolved location contains a list of arms with which the location is reachable.
@@ -155,7 +155,11 @@ class CostmapLocation(LocationDesignatorDescription):
             if obj in [robot, floor]:
                 continue
             if contact(robot, obj):
+                logdebug(f"Robot is in contact with {obj.name} in prospection: {obj.world.is_prospection_world}"
+                         f"at position {pose.position_as_list()} and z_angle {pose.z_angle}")
                 return True
+            logdebug(f"Robot is not in contact with {obj.name} in prospection: {obj.world.is_prospection_world}"
+                     f"at position {pose.position_as_list()} and z_angle {pose.z_angle}")
         return False
 
     def __iter__(self):
@@ -212,7 +216,8 @@ class CostmapLocation(LocationDesignatorDescription):
                 if self.reachable_for:
                     hand_links = []
                     if self.reachable_arm is not None:
-                        hand_links = RobotDescription.current_robot_description.get_arm_chain(self.reachable_arm).end_effector.links
+                        hand_links = RobotDescription.current_robot_description.get_arm_chain(
+                            self.reachable_arm).end_effector.links
                     else:
                         for description in RobotDescription.current_robot_description.get_manipulator_chains():
                             hand_links += description.end_effector.links

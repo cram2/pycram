@@ -8,7 +8,7 @@ import itertools
 import numpy as np
 from sqlalchemy.orm import Session
 from tf import transformations
-from typing_extensions import List, Union, Callable, Optional, Type
+from typing_extensions import List, Union, Optional, Type
 
 from pycrap import PhysicalObject, Location
 from .location_designator import CostmapLocation
